@@ -1,0 +1,368 @@
+const express = require('express');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const { body, validationResult } = require('express-validator');
+const { query, transaction } = require('../database/connection');
+const { asyncHandler, APIError } = require('../middleware/errorHandler');
+const { authRateLimit } = require('../middleware/rateLimiter');
+const { systemLogger } = require('../utils/logger');
+
+const router = express.Router();
+
+// JWT secret and expiry
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+const JWT_EXPIRY = process.env.JWT_EXPIRY || '24h';
+
+// Validation rules
+const registerValidation = [
+    body('firstName').trim().isLength({ min: 2, max: 50 }).withMessage('First name must be 2-50 characters'),
+    body('lastName').trim().isLength({ min: 2, max: 50 }).withMessage('Last name must be 2-50 characters'),
+    body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
+    body('mobile').isMobilePhone().withMessage('Valid mobile number is required'),
+    body('country').isLength({ min: 2, max: 2 }).withMessage('Country code must be 2 characters'),
+    body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters')
+        .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/).withMessage('Password must contain lowercase, uppercase, and number')
+];
+
+const loginValidation = [
+    body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
+    body('password').notEmpty().withMessage('Password is required')
+];
+
+// Helper function to generate JWT
+const generateToken = (userId) => {
+    return jwt.sign({ userId }, JWT_SECRET, { expiresIn: JWT_EXPIRY });
+};
+
+// Helper function to generate user ID
+const generateUserId = () => {
+    const timestamp = Math.floor(Date.now() / 1000);
+    const random = Math.floor(Math.random() * 999999).toString().padStart(6, '0');
+    return `user_${timestamp}_${random}`;
+};
+
+// Apply auth rate limiting to all routes
+router.use(authRateLimit);
+
+// POST /api/v1/auth/register - Register new user
+router.post('/register', registerValidation, asyncHandler(async (req, res) => {
+    // Check validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { firstName, lastName, email, mobile, country, password } = req.body;
+    
+    await transaction(async (client) => {
+        // Check if user already exists
+        const existingUser = await client.query(
+            'SELECT id FROM users WHERE email = $1',
+            [email]
+        );
+        
+        if (existingUser.rows.length > 0) {
+            throw new APIError('User with this email already exists', 409, 'USER_EXISTS');
+        }
+        
+        // Hash password
+        const saltRounds = 12;
+        const passwordHash = await bcrypt.hash(password, saltRounds);
+        
+        // Generate user ID
+        const userId = generateUserId();
+        
+        // Insert user
+        const userResult = await client.query(
+            `INSERT INTO users (id, first_name, last_name, email, mobile, country, password_hash, account_status) 
+             VALUES ($1, $2, $3, $4, $5, $6, $7, 'active') 
+             RETURNING id, first_name, last_name, email, created_at`,
+            [userId, firstName, lastName, email, mobile, country, passwordHash]
+        );
+        
+        const user = userResult.rows[0];
+        
+        // Create trading activity record
+        await client.query(
+            'INSERT INTO trading_activity (user_id) VALUES ($1)',
+            [userId]
+        );
+        
+        // Log registration
+        systemLogger.auth('New user registered', {
+            userId: userId,
+            email: email,
+            ip: req.ip,
+            userAgent: req.get('User-Agent')
+        });
+        
+        // Log user activity
+        await client.query(
+            'INSERT INTO user_activity (user_id, activity_type, activity_details, ip_address, user_agent) VALUES ($1, $2, $3, $4, $5)',
+            [userId, 'registration', { email }, req.ip, req.get('User-Agent')]
+        );
+        
+        // Generate token
+        const token = generateToken(userId);
+        
+        res.status(201).json({
+            success: true,
+            data: {
+                user: {
+                    id: user.id,
+                    firstName: user.first_name,
+                    lastName: user.last_name,
+                    email: user.email,
+                    createdAt: user.created_at
+                },
+                token
+            },
+            message: 'Registration successful'
+        });
+    });
+}));
+
+// POST /api/v1/auth/login - User login
+router.post('/login', loginValidation, asyncHandler(async (req, res) => {
+    // Check validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { email, password } = req.body;
+    
+    // Get user with password hash
+    const userResult = await query(
+        'SELECT id, first_name, last_name, email, password_hash, admin_role, account_status FROM users WHERE email = $1',
+        [email]
+    );
+    
+    if (userResult.rows.length === 0) {
+        systemLogger.security('Login attempt with non-existent email', {
+            email,
+            ip: req.ip,
+            userAgent: req.get('User-Agent')
+        });
+        throw new APIError('Invalid email or password', 401, 'INVALID_CREDENTIALS');
+    }
+    
+    const user = userResult.rows[0];
+    
+    // Check account status
+    if (user.account_status !== 'active') {
+        systemLogger.security('Login attempt with inactive account', {
+            userId: user.id,
+            email,
+            accountStatus: user.account_status,
+            ip: req.ip
+        });
+        throw new APIError('Account is not active', 401, 'ACCOUNT_INACTIVE');
+    }
+    
+    // Verify password
+    const passwordValid = await bcrypt.compare(password, user.password_hash);
+    if (!passwordValid) {
+        systemLogger.security('Login attempt with invalid password', {
+            userId: user.id,
+            email,
+            ip: req.ip,
+            userAgent: req.get('User-Agent')
+        });
+        throw new APIError('Invalid email or password', 401, 'INVALID_CREDENTIALS');
+    }
+    
+    // Update last login
+    await query(
+        'UPDATE users SET last_login_at = CURRENT_TIMESTAMP WHERE id = $1',
+        [user.id]
+    );
+    
+    // Log user activity
+    await query(
+        'INSERT INTO user_activity (user_id, activity_type, activity_details, ip_address, user_agent) VALUES ($1, $2, $3, $4, $5)',
+        [user.id, 'login', { email }, req.ip, req.get('User-Agent')]
+    );
+    
+    systemLogger.auth('User login successful', {
+        userId: user.id,
+        email,
+        isAdmin: !!user.admin_role,
+        ip: req.ip
+    });
+    
+    // Generate token
+    const token = generateToken(user.id);
+    
+    res.json({
+        success: true,
+        data: {
+            user: {
+                id: user.id,
+                firstName: user.first_name,
+                lastName: user.last_name,
+                email: user.email,
+                adminRole: user.admin_role
+            },
+            token
+        },
+        message: 'Login successful'
+    });
+}));
+
+// POST /api/v1/auth/logout - User logout
+router.post('/logout', asyncHandler(async (req, res) => {
+    const token = req.headers.authorization?.split(' ')[1];
+    
+    if (token) {
+        try {
+            const decoded = jwt.verify(token, JWT_SECRET);
+            
+            // Log user activity
+            await query(
+                'INSERT INTO user_activity (user_id, activity_type, activity_details, ip_address, user_agent) VALUES ($1, $2, $3, $4, $5)',
+                [decoded.userId, 'logout', {}, req.ip, req.get('User-Agent')]
+            );
+            
+            systemLogger.auth('User logout', {
+                userId: decoded.userId,
+                ip: req.ip
+            });
+        } catch (error) {
+            // Token invalid, but logout request is still valid
+        }
+    }
+    
+    res.json({
+        success: true,
+        message: 'Logout successful'
+    });
+}));
+
+// POST /api/v1/auth/verify-token - Verify JWT token
+router.post('/verify-token', asyncHandler(async (req, res) => {
+    const token = req.headers.authorization?.split(' ')[1];
+    
+    if (!token) {
+        throw new APIError('Token required', 401, 'TOKEN_REQUIRED');
+    }
+    
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        
+        // Get current user details
+        const userResult = await query(
+            'SELECT id, first_name, last_name, email, admin_role, account_status FROM users WHERE id = $1',
+            [decoded.userId]
+        );
+        
+        if (userResult.rows.length === 0) {
+            throw new APIError('User not found', 401, 'USER_NOT_FOUND');
+        }
+        
+        const user = userResult.rows[0];
+        
+        if (user.account_status !== 'active') {
+            throw new APIError('Account is not active', 401, 'ACCOUNT_INACTIVE');
+        }
+        
+        res.json({
+            success: true,
+            data: {
+                user: {
+                    id: user.id,
+                    firstName: user.first_name,
+                    lastName: user.last_name,
+                    email: user.email,
+                    adminRole: user.admin_role
+                },
+                tokenValid: true
+            }
+        });
+        
+    } catch (error) {
+        if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
+            throw new APIError('Invalid or expired token', 401, 'INVALID_TOKEN');
+        }
+        throw error;
+    }
+}));
+
+// POST /api/v1/auth/change-password - Change user password
+router.post('/change-password', [
+    body('currentPassword').notEmpty().withMessage('Current password is required'),
+    body('newPassword').isLength({ min: 8 }).withMessage('New password must be at least 8 characters')
+        .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/).withMessage('New password must contain lowercase, uppercase, and number')
+], asyncHandler(async (req, res) => {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+        throw new APIError('Authentication required', 401, 'AUTH_REQUIRED');
+    }
+    
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { currentPassword, newPassword } = req.body;
+    
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        
+        // Get user with password hash
+        const userResult = await query(
+            'SELECT id, password_hash FROM users WHERE id = $1 AND account_status = $2',
+            [decoded.userId, 'active']
+        );
+        
+        if (userResult.rows.length === 0) {
+            throw new APIError('User not found', 401, 'USER_NOT_FOUND');
+        }
+        
+        const user = userResult.rows[0];
+        
+        // Verify current password
+        const passwordValid = await bcrypt.compare(currentPassword, user.password_hash);
+        if (!passwordValid) {
+            systemLogger.security('Password change attempt with invalid current password', {
+                userId: user.id,
+                ip: req.ip
+            });
+            throw new APIError('Current password is incorrect', 400, 'INVALID_CURRENT_PASSWORD');
+        }
+        
+        // Hash new password
+        const saltRounds = 12;
+        const newPasswordHash = await bcrypt.hash(newPassword, saltRounds);
+        
+        // Update password
+        await query(
+            'UPDATE users SET password_hash = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+            [newPasswordHash, user.id]
+        );
+        
+        // Log activity
+        await query(
+            'INSERT INTO user_activity (user_id, activity_type, activity_details, ip_address, user_agent) VALUES ($1, $2, $3, $4, $5)',
+            [user.id, 'password_changed', {}, req.ip, req.get('User-Agent')]
+        );
+        
+        systemLogger.security('Password changed successfully', {
+            userId: user.id,
+            ip: req.ip
+        });
+        
+        res.json({
+            success: true,
+            message: 'Password changed successfully'
+        });
+        
+    } catch (error) {
+        if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
+            throw new APIError('Invalid or expired token', 401, 'INVALID_TOKEN');
+        }
+        throw error;
+    }
+}));
+
+module.exports = router;
