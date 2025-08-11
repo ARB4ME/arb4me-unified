@@ -60,7 +60,7 @@ app.get('/health', (req, res) => {
 const API_PREFIX = '/api/v1';
 
 // Apply rate limiting to all API routes
-app.use(API_PREFIX, rateLimiter);
+app.use(API_PREFIX, rateLimiter.general);
 
 // API Routes
 app.use(`${API_PREFIX}/auth`, authRoutes);
