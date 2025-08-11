@@ -14,7 +14,7 @@ const { logger } = require('./src/utils/logger');
 const { connectDatabase } = require('./src/database/connection');
 const { setupWebSocket } = require('./src/websocket/socketManager');
 const errorHandler = require('./src/middleware/errorHandler');
-const rateLimiter = require('./src/middleware/rateLimiter');
+const { generalRateLimit } = require('./src/middleware/rateLimiter');
 
 // Import routes
 const authRoutes = require('./src/routes/auth.routes');
@@ -60,7 +60,7 @@ app.get('/health', (req, res) => {
 const API_PREFIX = '/api/v1';
 
 // Apply rate limiting to all API routes
-app.use(API_PREFIX, rateLimiter.general);
+app.use(API_PREFIX, generalRateLimit);
 
 // API Routes
 app.use(`${API_PREFIX}/auth`, authRoutes);
