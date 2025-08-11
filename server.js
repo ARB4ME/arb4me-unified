@@ -36,7 +36,10 @@ const io = new Server(httpServer, {
 });
 
 // Global middleware
-app.use(helmet());
+app.use(helmet({
+    contentSecurityPolicy: false,  // Disable CSP for inline scripts
+    crossOriginEmbedderPolicy: false
+}));
 app.use(compression());
 app.use(cors({
     origin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:8080'],
