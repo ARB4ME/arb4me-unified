@@ -37,10 +37,7 @@ CREATE TABLE users (
     -- Timestamps
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    last_login_at TIMESTAMP,
-    
-    -- Foreign key constraints
-    CONSTRAINT fk_admin_promoted_by FOREIGN KEY (admin_promoted_by) REFERENCES users(id)
+    last_login_at TIMESTAMP
 );
 
 -- 2. MESSAGES TABLE
@@ -370,3 +367,7 @@ INSERT INTO trading_activity (user_id)
 SELECT 'user_admin_master' 
 WHERE EXISTS (SELECT 1 FROM users WHERE id = 'user_admin_master')
 ON CONFLICT (user_id) DO NOTHING;
+
+-- Add self-referencing foreign key constraint for users table (after table creation)
+ALTER TABLE users ADD CONSTRAINT fk_admin_promoted_by 
+    FOREIGN KEY (admin_promoted_by) REFERENCES users(id);
