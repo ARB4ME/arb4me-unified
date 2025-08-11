@@ -5,21 +5,30 @@ const { logger } = require('../utils/logger');
 // Database connection pool
 let pool = null;
 
-const dbConfig = {
-    host: process.env.DB_HOST || 'localhost',
-    port: parseInt(process.env.DB_PORT) || 5432,
-    database: process.env.DB_NAME || 'arb4me_db',
-    user: process.env.DB_USER || 'arb4me_user',
-    password: process.env.DB_PASSWORD,
-    max: 20,
-    idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 5000,
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
-};
+// Use DATABASE_URL if available (Railway), otherwise use individual vars
+const dbConfig = process.env.DATABASE_URL ? 
+    {
+        connectionString: process.env.DATABASE_URL,
+        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+        max: 20,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 5000
+    } : {
+        host: process.env.DB_HOST || 'localhost',
+        port: parseInt(process.env.DB_PORT) || 5432,
+        database: process.env.DB_NAME || 'arb4me_db',
+        user: process.env.DB_USER || 'arb4me_user',
+        password: process.env.DB_PASSWORD,
+        max: 20,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 5000,
+        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+    };
 
 // Create connection pool
 async function connectDatabase() {
     try {
+        console.log('Connecting to database with config:', process.env.DATABASE_URL ? 'DATABASE_URL' : 'Individual variables');
         pool = new Pool(dbConfig);
         
         // Test connection
