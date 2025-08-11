@@ -13,7 +13,7 @@ const { Server } = require('socket.io');
 const { logger } = require('./src/utils/logger');
 const { connectDatabase } = require('./src/database/connection');
 const { setupWebSocket } = require('./src/websocket/socketManager');
-const errorHandler = require('./src/middleware/errorHandler');
+const { errorHandler } = require('./src/middleware/errorHandler');
 const { generalRateLimit } = require('./src/middleware/rateLimiter');
 
 // Import routes
