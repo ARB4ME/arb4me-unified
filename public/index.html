@@ -12066,16 +12066,41 @@ ARB4ME Security Team`
             event.preventDefault();
             
             const formData = {
-                firstName: document.getElementById('firstName').value,
-                lastName: document.getElementById('lastName').value,
-                email: document.getElementById('email').value,
-                mobile: document.getElementById('mobile').value,
+                firstName: document.getElementById('firstName').value.trim(),
+                lastName: document.getElementById('lastName').value.trim(),
+                email: document.getElementById('email').value.trim(),
+                mobile: document.getElementById('mobile').value.replace(/[^0-9]/g, ''), // Remove non-digits
                 country: document.getElementById('country').value,
                 password: document.getElementById('password').value,
                 confirmPassword: document.getElementById('confirmPassword').value
             };
             
             // Basic validation
+            if (!formData.firstName || formData.firstName.length < 2) {
+                addActivity('❌ First name must be at least 2 characters', 'error');
+                return;
+            }
+            
+            if (!formData.lastName || formData.lastName.length < 2) {
+                addActivity('❌ Last name must be at least 2 characters', 'error');
+                return;
+            }
+            
+            if (!formData.email || !formData.email.includes('@')) {
+                addActivity('❌ Please enter a valid email address', 'error');
+                return;
+            }
+            
+            if (!formData.mobile || formData.mobile.length < 10) {
+                addActivity('❌ Mobile number must be at least 10 digits', 'error');
+                return;
+            }
+            
+            if (!formData.country) {
+                addActivity('❌ Please select your country', 'error');
+                return;
+            }
+            
             if (formData.password !== formData.confirmPassword) {
                 addActivity('❌ Passwords do not match', 'error');
                 return;
