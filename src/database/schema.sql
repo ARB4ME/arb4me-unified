@@ -278,12 +278,12 @@ CREATE INDEX idx_system_logs_created_at ON system_logs(created_at);
 
 -- Function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER AS $update_timestamp$
 BEGIN
     NEW.updated_at = CURRENT_TIMESTAMP;
     RETURN NEW;
 END;
-$$ language 'plpgsql';
+$update_timestamp$ language 'plpgsql';
 
 -- Apply updated_at trigger to relevant tables
 CREATE TRIGGER update_users_updated_at 
@@ -300,7 +300,7 @@ CREATE TRIGGER update_trading_activity_updated_at
 
 -- Function to assign thread_id for messages
 CREATE OR REPLACE FUNCTION assign_thread_id()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER AS $assign_thread$
 BEGIN
     IF NEW.parent_message_id IS NULL THEN
         -- This is a new thread, use the message ID as thread_id
@@ -314,7 +314,7 @@ BEGIN
     END IF;
     RETURN NEW;
 END;
-$$ language 'plpgsql';
+$assign_thread$ language 'plpgsql';
 
 -- Thread ID trigger
 CREATE TRIGGER assign_message_thread_id 
@@ -323,14 +323,14 @@ CREATE TRIGGER assign_message_thread_id
 
 -- Function to update thread_id after insert (for new threads)
 CREATE OR REPLACE FUNCTION update_thread_id_after_insert()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER AS $update_thread$
 BEGIN
     IF NEW.thread_id IS NULL THEN
         UPDATE messages SET thread_id = NEW.id WHERE id = NEW.id;
     END IF;
     RETURN NEW;
 END;
-$$ language 'plpgsql';
+$update_thread$ language 'plpgsql';
 
 -- Update thread ID after insert
 CREATE TRIGGER update_thread_id_after_insert
@@ -339,12 +339,12 @@ CREATE TRIGGER update_thread_id_after_insert
 
 -- Function to update exchanges_connected_count
 CREATE OR REPLACE FUNCTION update_exchanges_count()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER AS $update_exchanges$
 BEGIN
     NEW.exchanges_connected_count = jsonb_array_length(NEW.exchanges_connected);
     RETURN NEW;
 END;
-$$ language 'plpgsql';
+$update_exchanges$ language 'plpgsql';
 
 -- Exchanges count trigger
 CREATE TRIGGER update_trading_exchanges_count 
