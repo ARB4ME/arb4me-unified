@@ -95,9 +95,13 @@ app.use(errorHandler);
 // Start server
 async function startServer() {
     try {
-        // Connect to database
-        await connectDatabase();
-        logger.info('Database connected successfully');
+        // Connect to database (optional)
+        const dbConnection = await connectDatabase();
+        if (dbConnection) {
+            logger.info('Database connected successfully');
+        } else {
+            logger.warn('Running without database - PWA will use localStorage only');
+        }
 
         // Setup WebSocket
         setupWebSocket(io);

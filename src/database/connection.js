@@ -5,6 +5,9 @@ const { logger } = require('../utils/logger');
 // Database connection pool
 let pool = null;
 
+// TEMPORARY: Skip database connection if variables not available
+const skipDatabase = !process.env.DATABASE_URL && !process.env.DB_HOST && process.env.NODE_ENV === 'production';
+
 // Use DATABASE_URL if available (Railway), otherwise use individual vars
 const dbConfig = process.env.DATABASE_URL ? 
     {
@@ -32,8 +35,15 @@ async function connectDatabase() {
         console.log('DATABASE_URL exists:', !!process.env.DATABASE_URL);
         console.log('DATABASE_URL length:', process.env.DATABASE_URL?.length);
         console.log('DB_HOST:', process.env.DB_HOST);
-        console.log('PGHOST:', process.env.PGHOST);
+        console.log('NODE_ENV:', process.env.NODE_ENV);
         console.log('Config being used:', process.env.DATABASE_URL ? 'DATABASE_URL' : 'Individual variables');
+        
+        // Skip database if no connection info in production
+        if (skipDatabase) {
+            console.log('⚠️ SKIPPING DATABASE CONNECTION - No database credentials found');
+            logger.warn('Running without database - using in-memory storage');
+            return null;
+        }
         
         pool = new Pool(dbConfig);
         
