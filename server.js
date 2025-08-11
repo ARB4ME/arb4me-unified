@@ -103,6 +103,15 @@ async function startServer() {
         const dbConnection = await connectDatabase();
         if (dbConnection) {
             logger.info('Database connected successfully');
+            
+            // Run migration if needed
+            try {
+                const { runMigration } = require('./src/database/migrate');
+                await runMigration();
+                logger.info('Database migration completed');
+            } catch (migrationError) {
+                logger.warn('Migration failed or already complete:', migrationError.message);
+            }
         } else {
             logger.warn('Running without database - PWA will use localStorage only');
         }
