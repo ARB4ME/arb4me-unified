@@ -11986,7 +11986,7 @@ ARB4ME Security Team`
                                 passwordMatches = userData.password === password;
                             }
                             
-                            if (userData.email.toLowerCase() === email.toLowerCase() && passwordMatches) {
+                            if (userData.email && userData.email.toLowerCase() === email.toLowerCase() && passwordMatches) {
                                 // Store current session
                                 localStorage.setItem('arb4me_current_user', JSON.stringify(userData));
                                 return { success: true, data: { user: userData }, source: 'localStorage' };
@@ -12085,14 +12085,14 @@ ARB4ME Security Team`
             
             try {
                 // Use APIService with hybrid approach
-                const result = await apiService.register(
-                    formData.firstName,
-                    formData.lastName,
-                    formData.email,
-                    formData.mobile,
-                    formData.country,
-                    formData.password
-                );
+                const result = await apiService.register({
+                    firstName: formData.firstName,
+                    lastName: formData.lastName,
+                    email: formData.email,
+                    mobile: formData.mobile,
+                    country: formData.country,
+                    password: formData.password
+                });
                 
                 if (result.success) {
                     // Registration successful

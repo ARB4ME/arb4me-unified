@@ -18,10 +18,9 @@ const registerValidation = [
     body('firstName').trim().isLength({ min: 2, max: 50 }).withMessage('First name must be 2-50 characters'),
     body('lastName').trim().isLength({ min: 2, max: 50 }).withMessage('Last name must be 2-50 characters'),
     body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
-    body('mobile').isMobilePhone().withMessage('Valid mobile number is required'),
+    body('mobile').isLength({ min: 10, max: 15 }).withMessage('Mobile number must be 10-15 digits'),
     body('country').isLength({ min: 2, max: 2 }).withMessage('Country code must be 2 characters'),
     body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters')
-        .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/).withMessage('Password must contain lowercase, uppercase, and number')
 ];
 
 const loginValidation = [
@@ -49,7 +48,8 @@ router.post('/register', registerValidation, asyncHandler(async (req, res) => {
     // Check validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+        const errorMessages = errors.array().map(error => `${error.param}: ${error.msg}`).join(', ');
+        throw new APIError(`Validation failed: ${errorMessages}`, 400, 'VALIDATION_ERROR');
     }
     
     const { firstName, lastName, email, mobile, country, password } = req.body;
@@ -127,7 +127,8 @@ router.post('/login', loginValidation, asyncHandler(async (req, res) => {
     // Check validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+        const errorMessages = errors.array().map(error => `${error.param}: ${error.msg}`).join(', ');
+        throw new APIError(`Validation failed: ${errorMessages}`, 400, 'VALIDATION_ERROR');
     }
     
     const { email, password } = req.body;
