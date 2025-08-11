@@ -12,7 +12,7 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- 1. USERS TABLE
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     id VARCHAR(50) PRIMARY KEY DEFAULT 'user_' || EXTRACT(EPOCH FROM NOW())::TEXT || '_' || LPAD((RANDOM() * 999999)::INT::TEXT, 6, '0'),
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
@@ -41,7 +41,7 @@ CREATE TABLE users (
 );
 
 -- 2. MESSAGES TABLE
-CREATE TABLE messages (
+CREATE TABLE IF NOT EXISTS messages (
     id SERIAL PRIMARY KEY,
     user_id VARCHAR(50) NOT NULL,
     subject VARCHAR(255) NOT NULL,
@@ -70,7 +70,7 @@ CREATE TABLE messages (
 );
 
 -- 3. TRADING_ACTIVITY TABLE
-CREATE TABLE trading_activity (
+CREATE TABLE IF NOT EXISTS trading_activity (
     id SERIAL PRIMARY KEY,
     user_id VARCHAR(50) UNIQUE NOT NULL,
     
@@ -105,7 +105,7 @@ CREATE TABLE trading_activity (
 );
 
 -- 4. USER_ACTIVITY TABLE
-CREATE TABLE user_activity (
+CREATE TABLE IF NOT EXISTS user_activity (
     id SERIAL PRIMARY KEY,
     user_id VARCHAR(50) NOT NULL,
     
@@ -127,7 +127,7 @@ CREATE TABLE user_activity (
 );
 
 -- 5. PROFILE_UPDATES TABLE
-CREATE TABLE profile_updates (
+CREATE TABLE IF NOT EXISTS profile_updates (
     id SERIAL PRIMARY KEY,
     user_id VARCHAR(50) NOT NULL,
     field_name VARCHAR(50) NOT NULL,
@@ -143,7 +143,7 @@ CREATE TABLE profile_updates (
 );
 
 -- 6. BROADCAST_MESSAGES TABLE
-CREATE TABLE broadcast_messages (
+CREATE TABLE IF NOT EXISTS broadcast_messages (
     id SERIAL PRIMARY KEY,
     subject VARCHAR(255) NOT NULL,
     content TEXT NOT NULL,
@@ -166,7 +166,7 @@ CREATE TABLE broadcast_messages (
 );
 
 -- 7. MESSAGE_RECIPIENTS TABLE
-CREATE TABLE message_recipients (
+CREATE TABLE IF NOT EXISTS message_recipients (
     id SERIAL PRIMARY KEY,
     broadcast_message_id INTEGER NOT NULL,
     user_id VARCHAR(50) NOT NULL,
@@ -184,7 +184,7 @@ CREATE TABLE message_recipients (
 );
 
 -- 8. SESSIONS TABLE
-CREATE TABLE sessions (
+CREATE TABLE IF NOT EXISTS sessions (
     id SERIAL PRIMARY KEY,
     user_id VARCHAR(50) NOT NULL,
     token_hash VARCHAR(255) UNIQUE NOT NULL,
@@ -206,7 +206,7 @@ CREATE TABLE sessions (
 );
 
 -- 9. SYSTEM_LOGS TABLE
-CREATE TABLE system_logs (
+CREATE TABLE IF NOT EXISTS system_logs (
     id SERIAL PRIMARY KEY,
     log_level VARCHAR(20) NOT NULL CHECK (log_level IN ('debug', 'info', 'warning', 'error', 'critical')),
     log_type VARCHAR(50) NOT NULL,
@@ -295,5 +295,9 @@ WHERE EXISTS (SELECT 1 FROM users WHERE id = 'user_admin_master')
 ON CONFLICT (user_id) DO NOTHING;
 
 -- Add self-referencing foreign key constraint for users table (after table creation)
-ALTER TABLE users ADD CONSTRAINT fk_admin_promoted_by 
-    FOREIGN KEY (admin_promoted_by) REFERENCES users(id);
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_admin_promoted_by') THEN
+        ALTER TABLE users ADD CONSTRAINT fk_admin_promoted_by 
+            FOREIGN KEY (admin_promoted_by) REFERENCES users(id);
+    END IF;
+END $$;
