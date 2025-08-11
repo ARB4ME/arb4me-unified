@@ -28,7 +28,13 @@ const dbConfig = process.env.DATABASE_URL ?
 // Create connection pool
 async function connectDatabase() {
     try {
-        console.log('Connecting to database with config:', process.env.DATABASE_URL ? 'DATABASE_URL' : 'Individual variables');
+        console.log('Environment check:');
+        console.log('DATABASE_URL exists:', !!process.env.DATABASE_URL);
+        console.log('DATABASE_URL length:', process.env.DATABASE_URL?.length);
+        console.log('DB_HOST:', process.env.DB_HOST);
+        console.log('PGHOST:', process.env.PGHOST);
+        console.log('Config being used:', process.env.DATABASE_URL ? 'DATABASE_URL' : 'Individual variables');
+        
         pool = new Pool(dbConfig);
         
         // Test connection
