@@ -224,52 +224,52 @@ CREATE TABLE IF NOT EXISTS system_logs (
 -- INDEXES FOR PERFORMANCE
 
 -- Users table indexes
-CREATE INDEX idx_users_email ON users(email);
-CREATE INDEX idx_users_admin_role ON users(admin_role);
-CREATE INDEX idx_users_created_at ON users(created_at);
-CREATE INDEX idx_users_last_login ON users(last_login_at);
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_admin_role ON users(admin_role);
+CREATE INDEX IF NOT EXISTS idx_users_created_at ON users(created_at);
+CREATE INDEX IF NOT EXISTS idx_users_last_login ON users(last_login_at);
 
 -- Messages table indexes
-CREATE INDEX idx_messages_user_id ON messages(user_id);
-CREATE INDEX idx_messages_status ON messages(status);
-CREATE INDEX idx_messages_priority ON messages(priority);
-CREATE INDEX idx_messages_created_at ON messages(created_at);
-CREATE INDEX idx_messages_thread_id ON messages(thread_id);
-CREATE INDEX idx_messages_user_status ON messages(user_id, status);
+CREATE INDEX IF NOT EXISTS idx_messages_user_id ON messages(user_id);
+CREATE INDEX IF NOT EXISTS idx_messages_status ON messages(status);
+CREATE INDEX IF NOT EXISTS idx_messages_priority ON messages(priority);
+CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at);
+CREATE INDEX IF NOT EXISTS idx_messages_thread_id ON messages(thread_id);
+CREATE INDEX IF NOT EXISTS idx_messages_user_status ON messages(user_id, status);
 
 -- Trading activity indexes
-CREATE INDEX idx_trading_activity_user_id ON trading_activity(user_id);
-CREATE INDEX idx_trading_activity_active ON trading_activity(trading_active);
-CREATE INDEX idx_trading_activity_last_activity ON trading_activity(last_trading_activity);
+CREATE INDEX IF NOT EXISTS idx_trading_activity_user_id ON trading_activity(user_id);
+CREATE INDEX IF NOT EXISTS idx_trading_activity_active ON trading_activity(trading_active);
+CREATE INDEX IF NOT EXISTS idx_trading_activity_last_activity ON trading_activity(last_trading_activity);
 
 -- User activity indexes
-CREATE INDEX idx_user_activity_user_id ON user_activity(user_id);
-CREATE INDEX idx_user_activity_type ON user_activity(activity_type);
-CREATE INDEX idx_user_activity_created_at ON user_activity(created_at);
-CREATE INDEX idx_user_activity_user_date ON user_activity(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_user_activity_user_id ON user_activity(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_activity_type ON user_activity(activity_type);
+CREATE INDEX IF NOT EXISTS idx_user_activity_created_at ON user_activity(created_at);
+CREATE INDEX IF NOT EXISTS idx_user_activity_user_date ON user_activity(user_id, created_at DESC);
 
 -- Profile updates indexes
-CREATE INDEX idx_profile_updates_user_id ON profile_updates(user_id);
-CREATE INDEX idx_profile_updates_field_name ON profile_updates(field_name);
-CREATE INDEX idx_profile_updates_created_at ON profile_updates(created_at);
+CREATE INDEX IF NOT EXISTS idx_profile_updates_user_id ON profile_updates(user_id);
+CREATE INDEX IF NOT EXISTS idx_profile_updates_field_name ON profile_updates(field_name);
+CREATE INDEX IF NOT EXISTS idx_profile_updates_created_at ON profile_updates(created_at);
 
 -- Broadcast messages indexes
-CREATE INDEX idx_broadcast_sent_by ON broadcast_messages(sent_by_admin_id);
-CREATE INDEX idx_broadcast_sent_at ON broadcast_messages(sent_at);
+CREATE INDEX IF NOT EXISTS idx_broadcast_sent_by ON broadcast_messages(sent_by_admin_id);
+CREATE INDEX IF NOT EXISTS idx_broadcast_sent_at ON broadcast_messages(sent_at);
 
 -- Message recipients indexes
-CREATE INDEX idx_recipients_broadcast_id ON message_recipients(broadcast_message_id);
-CREATE INDEX idx_recipients_user_id ON message_recipients(user_id);
+CREATE INDEX IF NOT EXISTS idx_recipients_broadcast_id ON message_recipients(broadcast_message_id);
+CREATE INDEX IF NOT EXISTS idx_recipients_user_id ON message_recipients(user_id);
 
 -- Sessions indexes
-CREATE INDEX idx_sessions_token_hash ON sessions(token_hash);
-CREATE INDEX idx_sessions_user_id ON sessions(user_id);
-CREATE INDEX idx_sessions_expires_at ON sessions(expires_at);
+CREATE INDEX IF NOT EXISTS idx_sessions_token_hash ON sessions(token_hash);
+CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at);
 
 -- System logs indexes
-CREATE INDEX idx_system_logs_level ON system_logs(log_level);
-CREATE INDEX idx_system_logs_type ON system_logs(log_type);
-CREATE INDEX idx_system_logs_created_at ON system_logs(created_at);
+CREATE INDEX IF NOT EXISTS idx_system_logs_level ON system_logs(log_level);
+CREATE INDEX IF NOT EXISTS idx_system_logs_type ON system_logs(log_type);
+CREATE INDEX IF NOT EXISTS idx_system_logs_created_at ON system_logs(created_at);
 
 -- Note: Advanced triggers and functions removed to simplify database migration
 -- These features will be handled in the application layer instead
