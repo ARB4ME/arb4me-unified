@@ -3,7 +3,7 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
-const helmet = require('helmet');
+// const helmet = require('helmet'); // Disabled for inline scripts
 const compression = require('compression');
 const morgan = require('morgan');
 const { createServer } = require('http');
@@ -36,10 +36,11 @@ const io = new Server(httpServer, {
 });
 
 // Global middleware
-app.use(helmet({
-    contentSecurityPolicy: false,  // Disable CSP for inline scripts
-    crossOriginEmbedderPolicy: false
-}));
+// Helmet disabled to allow inline scripts in PWA
+// app.use(helmet({
+//     contentSecurityPolicy: false,
+//     crossOriginEmbedderPolicy: false
+// }));
 app.use(compression());
 app.use(cors({
     origin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:8080'],
