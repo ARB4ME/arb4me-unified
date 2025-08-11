@@ -295,9 +295,4 @@ WHERE EXISTS (SELECT 1 FROM users WHERE id = 'user_admin_master')
 ON CONFLICT (user_id) DO NOTHING;
 
 -- Add self-referencing foreign key constraint for users table (after table creation)
-DO $$ BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_admin_promoted_by') THEN
-        ALTER TABLE users ADD CONSTRAINT fk_admin_promoted_by 
-            FOREIGN KEY (admin_promoted_by) REFERENCES users(id);
-    END IF;
-END $$;
+-- Note: Skip adding constraint to avoid migration parsing issues with existing databases
