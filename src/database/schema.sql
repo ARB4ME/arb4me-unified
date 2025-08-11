@@ -274,13 +274,7 @@ CREATE INDEX idx_system_logs_created_at ON system_logs(created_at);
 -- TRIGGERS AND FUNCTIONS
 
 -- Function to update updated_at timestamp
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = CURRENT_TIMESTAMP;
-    RETURN NEW;
-END;
-$$ language 'plpgsql';
+CREATE OR REPLACE FUNCTION update_updated_at_column() RETURNS TRIGGER AS 'BEGIN NEW.updated_at = CURRENT_TIMESTAMP; RETURN NEW; END;' LANGUAGE 'plpgsql';
 
 -- Apply updated_at trigger to relevant tables
 CREATE TRIGGER update_users_updated_at 
@@ -296,22 +290,7 @@ CREATE TRIGGER update_trading_activity_updated_at
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Function to assign thread_id for messages
-CREATE OR REPLACE FUNCTION assign_thread_id()
-RETURNS TRIGGER AS $$
-BEGIN
-    IF NEW.parent_message_id IS NULL THEN
-        -- This is a new thread, use the message ID as thread_id
-        -- We'll update it after insert since we need the actual ID
-        NEW.thread_id = NULL;
-    ELSE
-        -- Get thread_id from parent message
-        SELECT thread_id INTO NEW.thread_id 
-        FROM messages 
-        WHERE id = NEW.parent_message_id;
-    END IF;
-    RETURN NEW;
-END;
-$$ language 'plpgsql';
+CREATE OR REPLACE FUNCTION assign_thread_id() RETURNS TRIGGER AS 'BEGIN IF NEW.parent_message_id IS NULL THEN NEW.thread_id = NULL; ELSE SELECT thread_id INTO NEW.thread_id FROM messages WHERE id = NEW.parent_message_id; END IF; RETURN NEW; END;' LANGUAGE 'plpgsql';
 
 -- Thread ID trigger
 CREATE TRIGGER assign_message_thread_id 
@@ -319,15 +298,7 @@ CREATE TRIGGER assign_message_thread_id
     FOR EACH ROW EXECUTE FUNCTION assign_thread_id();
 
 -- Function to update thread_id after insert (for new threads)
-CREATE OR REPLACE FUNCTION update_thread_id_after_insert()
-RETURNS TRIGGER AS $$
-BEGIN
-    IF NEW.thread_id IS NULL THEN
-        UPDATE messages SET thread_id = NEW.id WHERE id = NEW.id;
-    END IF;
-    RETURN NEW;
-END;
-$$ language 'plpgsql';
+CREATE OR REPLACE FUNCTION update_thread_id_after_insert() RETURNS TRIGGER AS 'BEGIN IF NEW.thread_id IS NULL THEN UPDATE messages SET thread_id = NEW.id WHERE id = NEW.id; END IF; RETURN NEW; END;' LANGUAGE 'plpgsql';
 
 -- Update thread ID after insert
 CREATE TRIGGER update_thread_id_after_insert
@@ -335,13 +306,7 @@ CREATE TRIGGER update_thread_id_after_insert
     FOR EACH ROW EXECUTE FUNCTION update_thread_id_after_insert();
 
 -- Function to update exchanges_connected_count
-CREATE OR REPLACE FUNCTION update_exchanges_count()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.exchanges_connected_count = jsonb_array_length(NEW.exchanges_connected);
-    RETURN NEW;
-END;
-$$ language 'plpgsql';
+CREATE OR REPLACE FUNCTION update_exchanges_count() RETURNS TRIGGER AS 'BEGIN NEW.exchanges_connected_count = jsonb_array_length(NEW.exchanges_connected); RETURN NEW; END;' LANGUAGE 'plpgsql';
 
 -- Exchanges count trigger
 CREATE TRIGGER update_trading_exchanges_count 
