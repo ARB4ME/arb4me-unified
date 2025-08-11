@@ -4,15 +4,19 @@ const path = require('path');
 const { Pool } = require('pg');
 const bcrypt = require('bcrypt');
 
-// Database configuration
-const dbConfig = {
-    host: process.env.DB_HOST || 'localhost',
-    port: parseInt(process.env.DB_PORT) || 5432,
-    database: process.env.DB_NAME || 'arb4me_db',
-    user: process.env.DB_USER || 'arb4me_user',
-    password: process.env.DB_PASSWORD,
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
-};
+// Database configuration - use DATABASE_URL if available
+const dbConfig = process.env.DATABASE_URL ? 
+    {
+        connectionString: process.env.DATABASE_URL,
+        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+    } : {
+        host: process.env.DB_HOST || 'localhost',
+        port: parseInt(process.env.DB_PORT) || 5432,
+        database: process.env.DB_NAME || 'arb4me_db',
+        user: process.env.DB_USER || 'arb4me_user',
+        password: process.env.DB_PASSWORD,
+        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+    };
 
 console.log('🚀 ARB4ME Database Migration Tool');
 console.log('==================================');
