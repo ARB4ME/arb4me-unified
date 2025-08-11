@@ -11902,7 +11902,8 @@ ARB4ME Security Team`
                     const data = await response.json();
                     
                     if (!response.ok) {
-                        throw new Error(data.error?.message || 'API request failed');
+                        console.error('❌ API Error Response:', data);
+                        throw new Error(data.error?.message || data.message || 'API request failed');
                     }
 
                     this.isOnline = true;
@@ -11916,17 +11917,21 @@ ARB4ME Security Team`
             // User Registration - Backend with localStorage fallback
             async register(userData) {
                 try {
+                    // Debug: Log the data being sent
+                    const registrationData = {
+                        firstName: userData.firstName,
+                        lastName: userData.lastName,
+                        email: userData.email,
+                        mobile: userData.mobile,
+                        country: userData.country,
+                        password: userData.password
+                    };
+                    console.log('🔍 Registration data being sent:', registrationData);
+                    
                     // Try backend registration
                     const response = await this.apiCall('/auth/register', {
                         method: 'POST',
-                        body: JSON.stringify({
-                            firstName: userData.firstName,
-                            lastName: userData.lastName,
-                            email: userData.email,
-                            mobile: userData.mobile,
-                            country: userData.country,
-                            password: userData.password
-                        })
+                        body: JSON.stringify(registrationData)
                     });
 
                     // Store JWT token
