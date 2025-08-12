@@ -11857,10 +11857,13 @@ ARB4ME Security Team`
             try {
                 console.log('📤 Sending message to backend:', messageData.subject);
                 
-                const response = await apiService.apiCall('/messages/send', 'POST', {
-                    subject: messageData.subject,
-                    content: messageData.content,
-                    priority: messageData.priority
+                const response = await apiService.apiCall('/messages/send', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        subject: messageData.subject,
+                        content: messageData.content,
+                        priority: messageData.priority
+                    })
                 });
                 
                 if (response.success) {
