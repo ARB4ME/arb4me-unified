@@ -107,29 +107,39 @@ router.post('/register', registerValidation, asyncHandler(async (req, res) => {
             `INSERT INTO messages (user_id, subject, content, message_type, status, admin_user_id) VALUES ($1, $2, $3, $4, $5, $6)`,
             [
                 userId,
-                'Welcome to ARB4ME - Your Arbitrage Trading Journey Begins!',
+                'Welcome to ARB4ME - Complete Setup Guide to Activate Trading',
                 `🎉 Welcome to ARB4ME!
 
 Hi ${firstName}! 👋
 
 Congratulations on joining the ARB4ME arbitrage trading platform! We're excited to have you on board.
 
-🚀 **Getting Started:**
-1. Explore the dashboard to see live arbitrage opportunities
-2. Connect your exchange accounts in the Setup tab
-3. Select your preferred crypto assets for trading
-4. Configure your safety controls and risk management
+🚀 **TO ACTIVATE TRADING, PLEASE FOLLOW THESE STEPS:**
 
-💡 **Pro Tips:**
-• Start with small amounts while you learn the platform
-• Always verify exchange balances before trading
-• Use the auto-trading features once you're comfortable
-• Monitor your trades in the Trading Activity section
+**Step 1:** Go to the SETTINGS button on the dashboard and set your screen timeout setting.
+
+**Step 2:** Go to the PROFILE button on the dashboard and update your profile if required.
+
+**Step 3:** Go to the ABOUT button on the dashboard and read all the about info.
+
+**Step 4:** Go to the ARB INFO button on the dashboard and read all the info.
+
+**Step 5:** Go to the API button on the dashboard and read how to get your APIs.
+
+**Step 6:** Register on your favorite Crypto Exchanges and complete the verification processes.
+
+**Step 7:** Get your API keys from the exchanges and insert them into the SETUP section of the App. The SETUP button is on the dashboard.
+
+**Step 8:** Fund your selected exchanges and ensure you have USDT available to arbitrage.
+
+**Step 9:** Go to SETTINGS button on the Dashboard and select the Crypto Assets you want to arbitrage. While on the SETTINGS page, tick the 4 Safety Trading Controls and set your MAXIMUM SINGLE TRADE to the lowest setting. Finally, also on the Settings page, set your Trading Parameters.
+
+✅ **FINAL STEP:** Once you have completed all these steps, you will be able to switch the AUTO Trading from OFF to ON by clicking on it.
 
 🔒 **Security Reminder:**
-Your account is protected with advanced security features. Enable screen lock and use strong passwords for maximum security.
+Your account is protected with advanced security features. Always use strong passwords and enable screen lock for maximum security.
 
-If you have any questions, don't hesitate to reach out through this messaging system!
+If you have any questions during setup, don't hesitate to reach out through this messaging system!
 
 Happy trading! 📈
 The ARB4ME Team`,
