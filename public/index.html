@@ -13489,12 +13489,12 @@ ARB4ME Security Team`
                         <div style="color: #b8c6db; font-size: 0.85rem;">Auto-trading continues safely in the background</div>
                     </div>
                     
-                    <div style="margin-bottom: 20px;">
+                    <form id="unlockForm" onsubmit="attemptUnlock(); return false;" style="margin-bottom: 20px;">
                         <input type="password" id="unlockPassword" placeholder="Enter your password to unlock" 
                                style="width: 100%; padding: 15px; border: 2px solid rgba(255,255,255,0.2); border-radius: 8px; 
                                       background: rgba(255,255,255,0.1); color: white; font-size: 16px; text-align: center;"
-                               autocomplete="off">
-                    </div>
+                               autocomplete="off" autofocus>
+                    </form>
                     
                     <button id="unlockBtn" style="
                         padding: 15px 30px;
