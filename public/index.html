@@ -7409,8 +7409,8 @@
             addActivity('👑 Admin refreshed user status view', 'info');
         }
 
-        function refreshAllUsersList() {
-            const allUsers = loadAllUsers();
+        function refreshAllUsersList(users = null) {
+            const allUsers = users || loadAllUsers();
             const usersList = document.getElementById('allUsersList');
             
             if (!usersList) return;
@@ -7428,16 +7428,22 @@
             
             // Generate user cards with admin role indicators
             usersList.innerHTML = allUsers.map(user => {
-                const roleIcon = getRoleIcon(user.adminRole);
-                const roleName = getRoleName(user.adminRole);
-                const roleColor = getRoleColor(user.adminRole);
+                // Handle both database format and localStorage format
+                const adminRole = user.admin_role || user.adminRole;
+                const firstName = user.first_name || user.firstName;
+                const lastName = user.last_name || user.lastName;
+                const createdAt = user.created_at || user.createdAt;
+                
+                const roleIcon = getRoleIcon(adminRole);
+                const roleName = getRoleName(adminRole);
+                const roleColor = getRoleColor(adminRole);
                 
                 return `
                     <div class="user-card" style="margin-bottom: 12px; padding: 15px;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                             <div>
                                 <h5 style="color: #00ff88; margin: 0; font-size: 1rem;">
-                                    ${user.firstName} ${user.lastName}
+                                    ${firstName} ${lastName}
                                 </h5>
                                 <div style="color: #b8c6db; font-size: 0.85rem; margin-top: 2px;">
                                     ${user.email}
@@ -12252,6 +12258,49 @@ ARB4ME Security Team`
                     return [];
                 }
             }
+
+            // Admin API Methods
+            async fetchAdminDashboard() {
+                try {
+                    if (!this.token) {
+                        console.log('No JWT token available for admin dashboard');
+                        return null;
+                    }
+
+                    const response = await this.apiCall('/admin/dashboard');
+                    
+                    if (response.success && response.data) {
+                        console.log('📊 Fetched admin dashboard data from backend');
+                        return response.data;
+                    }
+                    
+                    return null;
+                } catch (error) {
+                    console.log('Failed to fetch admin dashboard from backend:', error.message);
+                    return null;
+                }
+            }
+
+            async fetchAdminUsers(page = 1, limit = 100, status = 'all') {
+                try {
+                    if (!this.token) {
+                        console.log('No JWT token available for admin users');
+                        return [];
+                    }
+
+                    const response = await this.apiCall(`/admin/users?page=${page}&limit=${limit}&status=${status}&sortBy=created_at&sortOrder=desc`);
+                    
+                    if (response.success && response.data.users) {
+                        console.log('👥 Fetched admin users from backend:', response.data.users.length);
+                        return response.data;
+                    }
+                    
+                    return { users: [], pagination: {} };
+                } catch (error) {
+                    console.log('Failed to fetch admin users from backend:', error.message);
+                    return { users: [], pagination: {} };
+                }
+            }
         }
 
         // Initialize API Service
@@ -12778,49 +12827,131 @@ ARB4ME Security Team`
             addActivity('🔄 Admin dashboard refreshed with live data', 'info');
         }
         
-        function refreshAdminUsers() {
-            const users = loadAllUsers();
-            const today = new Date().toDateString();
-            
-            // Sort users by most recent activity, then by join date
-            users.sort((a, b) => {
-                const aActivity = new Date(a.lastLoginDate || a.createdAt);
-                const bActivity = new Date(b.lastLoginDate || b.createdAt);
-                return bActivity - aActivity; // Most recent first
-            });
-            
-            // Calculate real statistics
-            const totalUsers = users.length;
-            const newToday = users.filter(u => new Date(u.createdAt).toDateString() === today).length;
-            const activeTraders = users.filter(u => u.setupProgress.tradingEnabled).length;
-            const apiConnected = users.filter(u => u.setupProgress.exchangesConnected.length > 0).length;
-            
-            // Update statistics in admin panel
+        async function refreshAdminUsers() {
+            // Show loading state
             const totalUsersEl = document.getElementById('adminTotalUsers');
             const newTodayEl = document.getElementById('adminNewToday');
             const activeTradersEl = document.getElementById('adminActiveTraders');
             const apiConnectedEl = document.getElementById('adminApiConnected');
             
-            if (totalUsersEl) totalUsersEl.textContent = totalUsers;
-            if (newTodayEl) newTodayEl.textContent = newToday;
-            if (activeTradersEl) activeTradersEl.textContent = activeTraders;
-            if (apiConnectedEl) apiConnectedEl.textContent = apiConnected;
+            if (totalUsersEl) totalUsersEl.textContent = '...';
+            if (newTodayEl) newTodayEl.textContent = '...';
+            if (activeTradersEl) activeTradersEl.textContent = '...';
+            if (apiConnectedEl) apiConnectedEl.textContent = '...';
             
-            // Generate organized user list
-            const usersList = document.getElementById('usersList');
-            if (usersList && users.length > 0) {
-                usersList.innerHTML = generateUsersList(users);
-            } else if (usersList && users.length === 0) {
-                usersList.innerHTML = `
-                    <div style="text-align: center; padding: 40px; color: #b8c6db;">
-                        <div style="font-size: 2rem; margin-bottom: 10px;">👥</div>
-                        <div>No users registered yet</div>
-                        <div style="margin-top: 10px; font-size: 0.9rem;">Users will appear here as they sign up</div>
-                    </div>
-                `;
+            try {
+                // Fetch real users from backend database
+                const userData = await apiService.fetchAdminUsers(1, 100, 'all');
+                const users = userData.users || [];
+                
+                console.log('🔄 Refreshed admin users from database:', users.length);
+                
+                const today = new Date().toDateString();
+                
+                // Calculate real statistics from database
+                const totalUsers = users.length;
+                const newToday = users.filter(u => new Date(u.created_at).toDateString() === today).length;
+                const activeTraders = users.filter(u => u.trading_active).length;
+                const apiConnected = users.filter(u => u.exchanges_connected_count > 0).length;
+                
+                // Update statistics in admin panel with real data
+                if (totalUsersEl) totalUsersEl.textContent = totalUsers;
+                if (newTodayEl) newTodayEl.textContent = newToday;
+                if (activeTradersEl) activeTradersEl.textContent = activeTraders;
+                if (apiConnectedEl) apiConnectedEl.textContent = apiConnected;
+                
+                // Generate organized user list from real database data
+                const usersList = document.getElementById('usersList');
+                if (usersList && users.length > 0) {
+                    usersList.innerHTML = generateDatabaseUsersList(users);
+                } else if (usersList && users.length === 0) {
+                    usersList.innerHTML = `
+                        <div style="text-align: center; padding: 40px; color: #b8c6db;">
+                            <div style="font-size: 2rem; margin-bottom: 10px;">👥</div>
+                            <div>No users registered yet</div>
+                            <div style="margin-top: 10px; font-size: 0.9rem;">Users will appear here as they sign up</div>
+                        </div>
+                    `;
+                }
+                
+                // Also update the main User Management list
+                refreshAllUsersList(users);
+                
+                addActivity(`📊 Admin stats updated: ${totalUsers} users, ${newToday} new today`, 'info');
+                
+            } catch (error) {
+                console.error('Error refreshing admin users:', error);
+                addActivity('⚠️ Could not load admin user data from server', 'warning');
+                
+                // Fallback to localStorage if backend fails
+                const localUsers = loadAllUsers();
+                const today = new Date().toDateString();
+                
+                const totalUsers = localUsers.length;
+                const newToday = localUsers.filter(u => new Date(u.createdAt).toDateString() === today).length;
+                const activeTraders = localUsers.filter(u => u.setupProgress?.tradingEnabled).length;
+                const apiConnected = localUsers.filter(u => u.setupProgress?.exchangesConnected?.length > 0).length;
+                
+                if (totalUsersEl) totalUsersEl.textContent = totalUsers;
+                if (newTodayEl) newTodayEl.textContent = newToday;
+                if (activeTradersEl) activeTradersEl.textContent = activeTraders;
+                if (apiConnectedEl) apiConnectedEl.textContent = apiConnected;
+                
+                refreshAllUsersList(localUsers);
             }
         }
         
+        function generateDatabaseUsersList(users) {
+            return `
+                <div style="margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 15px;">
+                        <h3 style="color: white; margin: 0;">📋 Database Users (${users.length} users)</h3>
+                        <div style="font-size: 0.9rem; color: #b8c6db;">Real users from PostgreSQL database</div>
+                    </div>
+                    ${users.map(user => generateDatabaseUserCard(user)).join('')}
+                </div>
+            `;
+        }
+
+        function generateDatabaseUserCard(user) {
+            const joinDate = new Date(user.created_at).toLocaleDateString();
+            const lastLogin = user.last_login_at ? new Date(user.last_login_at).toLocaleDateString() : 'Never';
+            const tradingStatus = user.trading_active ? '🟢 Active' : '🔴 Inactive';
+            const accountStatus = user.account_status === 'active' ? '✅ Active' : 
+                                user.account_status === 'suspended' ? '⚠️ Suspended' : 
+                                user.account_status === 'trial' ? '🔄 Trial' : '❓ Unknown';
+            
+            return `
+                <div style="margin-bottom: 15px; padding: 15px; background: rgba(255,255,255,0.1); border-radius: 10px; border-left: 4px solid #00ff88;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <div>
+                            <h4 style="color: #00ff88; margin: 0; font-size: 1.1rem;">
+                                ${user.first_name} ${user.last_name}
+                            </h4>
+                            <div style="color: #b8c6db; font-size: 0.9rem; margin-top: 2px;">
+                                ${user.email} • ${user.country}
+                            </div>
+                        </div>
+                        <div style="text-align: right; font-size: 0.8rem; color: #888;">
+                            ID: ${user.id}
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-top: 10px; font-size: 0.85rem;">
+                        <div>
+                            <strong style="color: #00d4ff;">Account:</strong> ${accountStatus}<br>
+                            <strong style="color: #00d4ff;">Trading:</strong> ${tradingStatus}<br>
+                            <strong style="color: #00d4ff;">Exchanges:</strong> ${user.exchanges_connected_count || 0}
+                        </div>
+                        <div>
+                            <strong style="color: #00d4ff;">Joined:</strong> ${joinDate}<br>
+                            <strong style="color: #00d4ff;">Last Login:</strong> ${lastLogin}<br>
+                            <strong style="color: #00d4ff;">Trades:</strong> ${user.total_trades_count || 0}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
         function generateUsersList(users) {
             return `
                 <div style="margin-bottom: 20px;">
