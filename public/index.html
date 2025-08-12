@@ -11267,6 +11267,8 @@ Please help recover this stuck asset.`;
                 refreshAccountActivation();
             } else if (tabName === 'billing') {
                 refreshBillingData();
+            } else if (tabName === 'messages') {
+                refreshAdminMessages();
             }
             
             adminState.currentAdminTab = tabName;
@@ -12402,6 +12404,27 @@ ARB4ME Security Team`
                     return { users: [], pagination: {} };
                 }
             }
+
+            async fetchAdminMessages(page = 1, limit = 50, status = 'all', priority = 'all') {
+                try {
+                    if (!this.token) {
+                        console.log('No JWT token available for admin messages');
+                        return { messages: [], pagination: {} };
+                    }
+
+                    const response = await this.apiCall(`/admin/messages?page=${page}&limit=${limit}&status=${status}&priority=${priority}`);
+                    
+                    if (response.success && response.data.messages) {
+                        console.log('💬 Fetched admin messages from backend:', response.data.messages.length);
+                        return response.data;
+                    }
+                    
+                    return { messages: [], pagination: {} };
+                } catch (error) {
+                    console.log('Failed to fetch admin messages from backend:', error.message);
+                    return { messages: [], pagination: {} };
+                }
+            }
         }
 
         // Initialize API Service
@@ -13328,36 +13351,61 @@ ARB4ME Security Team`
             return Math.min(progress, 100);
         }
         
-        function refreshAdminMessages() {
-            const messages = JSON.parse(localStorage.getItem('arb4me_messages') || '[]');
+        async function refreshAdminMessages() {
+            console.log('🔄 Refreshing admin messages from database...');
             
-            // Calculate message statistics
-            const totalMessages = messages.length;
-            const urgentMessages = messages.filter(m => m.priority === 'high' || m.priority === 'critical').length;
-            const repliedMessages = messages.filter(m => m.replied).length;
-            const pendingMessages = totalMessages - repliedMessages;
-            
-            // Update message statistics
-            const messageStatsElements = document.querySelectorAll('#adminMessagesTab .stat-value');
-            if (messageStatsElements.length >= 4) {
-                messageStatsElements[0].textContent = totalMessages;
-                messageStatsElements[1].textContent = urgentMessages;
-                messageStatsElements[2].textContent = repliedMessages;
-                messageStatsElements[3].textContent = pendingMessages;
-            }
-            
-            // Generate real message cards
-            const messagesList = document.getElementById('adminMessagesList');
-            if (messagesList && messages.length > 0) {
-                messagesList.innerHTML = messages.slice(0, 10).map(message => generateMessageCard(message)).join('');
-            } else if (messagesList && messages.length === 0) {
-                messagesList.innerHTML = `
-                    <div style="text-align: center; padding: 40px; color: #b8c6db;">
-                        <div style="font-size: 2rem; margin-bottom: 10px;">💬</div>
-                        <div>No messages received yet</div>
-                        <div style="margin-top: 10px; font-size: 0.9rem;">Support messages will appear here</div>
-                    </div>
-                `;
+            try {
+                // Fetch real messages from backend database
+                const messageData = await apiService.fetchAdminMessages(1, 50, 'all', 'all');
+                const messages = messageData.messages || [];
+                
+                console.log('💬 Loaded messages from database:', messages.length);
+                
+                // Calculate message statistics from real data
+                const totalMessages = messages.length;
+                const urgentMessages = messages.filter(m => m.priority === 'high' || m.priority === 'critical').length;
+                const repliedMessages = messages.filter(m => m.status === 'replied').length;
+                const pendingMessages = messages.filter(m => m.status === 'sent' || m.status === 'read').length;
+                
+                // Update message statistics with real data
+                const messageStatsElements = document.querySelectorAll('#adminMessagesTab .stat-value');
+                if (messageStatsElements.length >= 4) {
+                    messageStatsElements[0].textContent = totalMessages;
+                    messageStatsElements[1].textContent = urgentMessages;
+                    messageStatsElements[2].textContent = repliedMessages;
+                    messageStatsElements[3].textContent = pendingMessages;
+                }
+                
+                // Generate real message cards from database
+                const messagesList = document.getElementById('adminMessagesList');
+                if (messagesList && messages.length > 0) {
+                    messagesList.innerHTML = messages.slice(0, 10).map(message => generateDatabaseMessageCard(message)).join('');
+                } else if (messagesList && messages.length === 0) {
+                    messagesList.innerHTML = `
+                        <div style="text-align: center; padding: 40px; color: #b8c6db;">
+                            <div style="font-size: 2rem; margin-bottom: 10px;">💬</div>
+                            <div>No user messages received yet</div>
+                            <div style="margin-top: 10px; font-size: 0.9rem;">User support messages will appear here</div>
+                        </div>
+                    `;
+                }
+                
+                console.log(`✅ Admin messages refreshed: ${totalMessages} total, ${urgentMessages} urgent, ${repliedMessages} replied`);
+                
+            } catch (error) {
+                console.error('❌ Failed to refresh admin messages:', error);
+                
+                // Fallback display
+                const messagesList = document.getElementById('adminMessagesList');
+                if (messagesList) {
+                    messagesList.innerHTML = `
+                        <div style="text-align: center; padding: 40px; color: #ff7675;">
+                            <div style="font-size: 2rem; margin-bottom: 10px;">⚠️</div>
+                            <div>Failed to load messages</div>
+                            <div style="margin-top: 10px; font-size: 0.9rem;">Please try refreshing the admin panel</div>
+                        </div>
+                    `;
+                }
             }
         }
         
@@ -13411,6 +13459,95 @@ ARB4ME Security Team`
                             font-size: 0.8rem;
                         ">
                             Reply
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function generateDatabaseMessageCard(message) {
+            const priorityColors = {
+                low: '#b8c6db',
+                medium: '#feca57', 
+                high: '#ff9f43',
+                critical: '#ff6b6b'
+            };
+            
+            const priorityLabels = {
+                low: 'General',
+                medium: 'Trading Issue',
+                high: 'Urgent', 
+                critical: 'Emergency'
+            };
+            
+            const statusColors = {
+                sent: '#74b9ff',
+                read: '#fdcb6e',
+                replied: '#00b894'
+            };
+            
+            const priorityColor = priorityColors[message.priority] || '#b8c6db';
+            const statusColor = statusColors[message.status] || '#b8c6db';
+            const timeAgo = getTimeAgo(new Date(message.timestamp));
+            
+            return `
+                <div class="message-card" style="
+                    background: linear-gradient(135deg, #16213e 0%, #1a1a2e 100%);
+                    border: 1px solid ${priorityColor}33;
+                    border-radius: 12px;
+                    padding: 15px;
+                    margin-bottom: 10px;
+                    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+                ">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <h4 style="color: #00d4ff; margin: 0; font-size: 0.95rem;">${message.subject}</h4>
+                        <div style="display: flex; gap: 8px;">
+                            <span style="
+                                padding: 2px 8px;
+                                background: ${priorityColor}22;
+                                color: ${priorityColor};
+                                border-radius: 10px;
+                                font-size: 0.7rem;
+                                font-weight: bold;
+                            ">
+                                ${priorityLabels[message.priority] || message.priority}
+                            </span>
+                            <span style="
+                                padding: 2px 8px;
+                                background: ${statusColor}22;
+                                color: ${statusColor};
+                                border-radius: 10px;
+                                font-size: 0.7rem;
+                                text-transform: uppercase;
+                            ">
+                                ${message.status}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 10px;">
+                        <div style="color: #b8c6db; font-size: 0.8rem; margin-bottom: 4px;">
+                            From: <strong style="color: #00ff88;">${message.sender.name}</strong> (${message.sender.email})
+                        </div>
+                        <div style="color: #e2e2e2; font-size: 0.85rem; line-height: 1.4;">
+                            ${message.content.length > 150 ? message.content.substring(0, 150) + '...' : message.content}
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="color: #74b9ff; font-size: 0.75rem;">${timeAgo}</span>
+                        <button onclick="replyToUserMessage('${message.id}', '${message.threadId}', '${message.sender.name}', '${message.subject}')" style="
+                            padding: 6px 12px;
+                            background: linear-gradient(45deg, #00d4ff, #00ff88);
+                            color: #1a1a2e;
+                            border: none;
+                            border-radius: 6px;
+                            cursor: pointer;
+                            font-size: 0.75rem;
+                            font-weight: bold;
+                            box-shadow: 0 2px 8px rgba(0,212,255,0.3);
+                        ">
+                            💬 Reply
                         </button>
                     </div>
                 </div>
