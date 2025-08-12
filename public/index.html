@@ -4244,7 +4244,7 @@
                         <form id="unlockProfileForm">
                             <div class="form-group">
                                 <label>Enter Your Password</label>
-                                <input type="password" id="unlockPassword" placeholder="Enter your account password" required style="width: 100%; padding: 12px; border: 2px solid rgba(255,255,255,0.2); border-radius: 8px; background: rgba(255,255,255,0.1); color: white; font-size: 16px;">
+                                <input type="password" id="profileUnlockPassword" placeholder="Enter your account password" required style="width: 100%; padding: 12px; border: 2px solid rgba(255,255,255,0.2); border-radius: 8px; background: rgba(255,255,255,0.1); color: white; font-size: 16px;">
                             </div>
                             <button type="submit" class="btn" style="font-size: 1.1rem;">
                                 🔓 Unlock Profile for Editing
@@ -6957,7 +6957,7 @@
         function handleUnlockProfile(event) {
             event.preventDefault();
             
-            const password = document.getElementById('unlockPassword').value;
+            const password = document.getElementById('profileUnlockPassword').value;
             
             if (password.length < 1) {
                 addActivity('❌ Please enter your password', 'error');
@@ -6991,7 +6991,12 @@
                     try {
                         // Validate password against stored password
                         let passwordMatches = false;
-                        if (userData.passwordHash) {
+                        
+                        // First check session password (for backend users)
+                        const sessionPassword = sessionStorage.getItem('arb4me_session_password');
+                        if (sessionPassword) {
+                            passwordMatches = password === sessionPassword;
+                        } else if (userData.passwordHash) {
                             // New format: compare encrypted password
                             passwordMatches = userData.passwordHash === simpleEncrypt(password);
                         } else if (userData.password) {
