@@ -11175,38 +11175,27 @@ Please help recover this stuck asset.`;
         function handleAdminLogin(event) {
             event.preventDefault();
             
-            // Check if user is logged in and has admin role
-            if (!userState.isLoggedIn || !userState.userData) {
-                addActivity('❌ Please log in as a user first', 'error');
-                switchTab('login');
-                return;
-            }
+            const username = document.getElementById('adminUsername').value;
+            const password = document.getElementById('adminPassword').value;
+            const level = document.getElementById('adminLevel').value;
             
-            // Check if user has admin role from backend
-            if (!userState.userData.adminRole) {
-                addActivity('❌ Your account does not have admin privileges', 'error');
-                addActivity('🔒 Contact system administrator for access', 'warning');
-                return;
-            }
-            
-            addActivity('🔐 Verifying admin access...', 'info');
+            addActivity('🔐 Checking administrator credentials...', 'info');
             
             setTimeout(() => {
-                // User has admin role, grant access
-                adminState.isLoggedIn = true;
-                adminState.userData = { 
-                    username: userState.userData.email, 
-                    level: userState.userData.adminRole 
-                };
-                adminState.accessLevel = userState.userData.adminRole;
+                // Check credentials (master/admin123 for demo)
+                if (username === 'master' && password === 'admin123' && level === 'master') {
+                    adminState.isLoggedIn = true;
+                    adminState.userData = { username: username, level: level };
+                    adminState.accessLevel = level;
                     
-                    // Store admin session in sessionStorage (clears on browser close)
+                    // Store encrypted admin session
                     const adminSession = {
-                        username: userState.userData.email,
-                        level: userState.userData.adminRole,
-                        loginTime: Date.now()
+                        username: username,
+                        level: level,
+                        loginTime: Date.now(),
+                        sessionExpiry: Date.now() + (8 * 60 * 60 * 1000) // 8 hours
                     };
-                    sessionStorage.setItem('arb4me_admin_session', JSON.stringify(adminSession));
+                    localStorage.setItem('arb4me_admin_session', adminEncrypt(JSON.stringify(adminSession)));
                     
                     // Show admin dashboard
                     document.getElementById('adminLogin').style.display = 'none';
@@ -11228,10 +11217,10 @@ Please help recover this stuck asset.`;
                     // Clear form
                     document.getElementById('adminLoginForm').reset();
                     
-                    
-                    // Log successful admin access
-                    addActivity(`👑 ${userState.userData.adminRole.toUpperCase()} administrator access granted`, 'success');
-                    addActivity('🎯 Admin dashboard access enabled', 'success');
+                } else {
+                    addActivity('❌ Invalid admin credentials', 'error');
+                    addActivity('🔒 Access denied - check username, password, and level', 'warning');
+                }
             }, 2000);
         }
 
@@ -15534,36 +15523,17 @@ ARB4ME Security Team`
             
             // Special handling for admin tab
             if (tabName === 'admin') {
-                // Check if user has admin role
-                if (userState.isLoggedIn && userState.userData?.adminRole) {
-                    // User has admin role, show dashboard directly
-                    adminState.isLoggedIn = true;
-                    adminState.userData = { 
-                        username: userState.userData.email, 
-                        level: userState.userData.adminRole 
-                    };
-                    adminState.accessLevel = userState.userData.adminRole;
-                    
+                if (adminState.isLoggedIn) {
                     document.getElementById('adminLogin').style.display = 'none';
                     document.getElementById('adminDashboard').style.display = 'block';
                     document.getElementById('adminTabs').classList.add('active');
                     
                     // Update admin user status display
                     updateAdminUserStatus();
-                    
-                    // Refresh admin data
-                    refreshAdminDashboard();
-                    
-                    addActivity(`👑 Admin panel accessed as ${userState.userData.adminRole.toUpperCase()}`, 'info');
-                } else if (userState.isLoggedIn) {
-                    // User logged in but no admin role
-                    addActivity('❌ Your account does not have admin privileges', 'error');
-                    addActivity('🔒 Admin access restricted to authorized personnel only', 'warning');
-                    switchTab('dashboard');
                 } else {
-                    // Not logged in at all
-                    addActivity('❌ Please log in first to access admin panel', 'error');
-                    switchTab('login');
+                    document.getElementById('adminDashboard').style.display = 'none';
+                    document.getElementById('adminLogin').style.display = 'block';
+                    document.getElementById('adminTabs').classList.remove('active');
                 }
             } else {
                 document.getElementById('adminTabs').classList.remove('active');
