@@ -16948,8 +16948,44 @@ ARB4ME Security Team`
         // Add cleanup command to console for easy access
         window.cleanupARB4ME = cleanupAllData;
         
+        // Add a complete reset function for sharing clean URLs
+        window.createCleanDeployment = function() {
+            // Clear all storage
+            localStorage.clear();
+            sessionStorage.clear();
+            
+            // Reset user state
+            if (typeof userState !== 'undefined') {
+                userState.isLoggedIn = false;
+                userState.userData = null;
+                userState.liveMode = false;
+            }
+            
+            // Clear profile display
+            document.getElementById('lockedName').textContent = '••••• •••••';
+            document.getElementById('lockedEmail').textContent = '•••••@••••••.com';
+            document.getElementById('lockedPhone').textContent = '+27 •• ••• ••••';
+            document.getElementById('lockedCountry').textContent = '••••• ••••••';
+            
+            // Clear header user info
+            const header = document.querySelector('.header h1');
+            if (header) {
+                header.innerHTML = 'ARB4ME';
+            }
+            
+            // Hide logout button
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) {
+                logoutBtn.style.display = 'none';
+            }
+            
+            console.log('✅ Clean deployment created! App is now ready for sharing.');
+            console.log('🔄 The app will show no user data and be ready for new users.');
+        };
+        
         console.log('🔥 ARB4ME - LIVE TRADING SYSTEM + ADMIN DASHBOARD + COMPLETE FAILURE MANAGEMENT loaded successfully!');
         console.log('💡 TIP: Run cleanupARB4ME() in console to clear all stored data and start fresh.');
+        console.log('🧹 TIP: Run createCleanDeployment() to prepare app for sharing (removes all user data traces).');
     </script>
 
     <!-- Crypto Asset Selection Confirmation Modal -->
