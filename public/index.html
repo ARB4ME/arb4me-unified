@@ -11852,6 +11852,51 @@ ARB4ME Security Team`
             }
         }
 
+        // ADMIN REPLY TO DATABASE MESSAGES
+        function replyToUserMessage(messageId, threadId, userId, senderName, originalSubject) {
+            console.log('💬 Opening reply for message:', { messageId, threadId, userId, senderName, originalSubject });
+            
+            // For now, use a simple prompt (we can enhance this later)
+            const replySubject = `Re: ${originalSubject}`;
+            const replyContent = prompt(`Reply to ${senderName}:\n\nSubject: ${replySubject}\n\nEnter your reply message (minimum 10 characters):`);
+            
+            if (replyContent && replyContent.trim().length >= 10) {
+                sendAdminReplyToBackend(messageId, threadId, userId, replySubject, replyContent, senderName);
+            } else if (replyContent) {
+                addActivity('❌ Reply must be at least 10 characters long', 'error');
+            }
+        }
+
+        async function sendAdminReplyToBackend(parentMessageId, threadId, targetUserId, subject, content, targetUserName) {
+            try {
+                console.log('📤 Sending admin reply to backend:', { parentMessageId, targetUserId, subject });
+                
+                const response = await apiService.apiCall('/messages/admin/reply', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        targetUserId: targetUserId,
+                        parentMessageId: parseInt(parentMessageId),
+                        subject: subject,
+                        content: content
+                    })
+                });
+                
+                if (response.success) {
+                    console.log('✅ Admin reply sent successfully');
+                    addActivity(`💬 Reply sent to ${targetUserName}: "${subject}"`, 'success');
+                    
+                    // Refresh the admin messages to show updated status
+                    refreshAdminMessages();
+                } else {
+                    throw new Error(response.message || 'Failed to send reply');
+                }
+                
+            } catch (error) {
+                console.error('❌ Failed to send admin reply:', error);
+                addActivity(`❌ Failed to send reply: ${error.message}`, 'error');
+            }
+        }
+
         // MESSAGING SYSTEM - CAREFULLY INJECTED
         async function sendMessageToBackend(messageData) {
             try {
@@ -13563,7 +13608,7 @@ ARB4ME Security Team`
                     
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <span style="color: #74b9ff; font-size: 0.75rem;">${timeAgo}</span>
-                        <button onclick="replyToUserMessage('${message.id}', '${message.threadId}', '${message.sender.name}', '${message.subject}')" style="
+                        <button onclick="replyToUserMessage('${message.id}', '${message.threadId}', '${message.userId}', '${message.sender.name}', '${message.subject}')" style="
                             padding: 6px 12px;
                             background: linear-gradient(45deg, #00d4ff, #00ff88);
                             color: #1a1a2e;

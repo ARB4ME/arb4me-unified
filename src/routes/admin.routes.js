@@ -40,7 +40,7 @@ router.get('/messages-test', asyncHandler(async (req, res) => {
     const messagesResult = await query(`
         SELECT 
             m.id, m.subject, m.content, m.priority, m.status, m.created_at, m.thread_id,
-            m.admin_read_at, m.admin_replied_at, m.admin_user_id,
+            m.admin_read_at, m.admin_replied_at, m.admin_user_id, m.user_id,
             u.first_name, u.last_name, u.email,
             admin_u.first_name as admin_first_name, admin_u.last_name as admin_last_name
         FROM messages m
@@ -64,6 +64,7 @@ router.get('/messages-test', asyncHandler(async (req, res) => {
         priority: row.priority,
         status: row.status,
         timestamp: row.created_at,
+        userId: row.user_id,
         sender: {
             name: `${row.first_name} ${row.last_name}`,
             email: row.email
