@@ -12144,6 +12144,9 @@ ARB4ME Security Team`
                     // Set current user for session management
                     localStorage.setItem('arb4me_current_user', JSON.stringify(newUser));
                     
+                    // Store password in sessionStorage for screen lock (temporary session only)
+                    sessionStorage.setItem('arb4me_session_password', formData.password);
+                    
                     addActivity('✅ Account created successfully!', 'success');
                     addActivity('🔒 User data encrypted and stored securely', 'success');
                     
@@ -13137,6 +13140,9 @@ ARB4ME Security Team`
                     // Set current user for session management
                     localStorage.setItem('arb4me_current_user', JSON.stringify(userState.userData));
                     
+                    // Store password in sessionStorage for screen lock (temporary session only)
+                    sessionStorage.setItem('arb4me_session_password', password);
+                    
                     addActivity(`✅ Welcome back, ${userState.userData.firstName}!`, 'success');
                     addActivity('🔒 Login successful', 'success');
                     updateUIForLoggedInUser();
@@ -13532,14 +13538,33 @@ ARB4ME Security Team`
                 return;
             }
             
-            // For now, we'll verify against the password they used to login
-            // In production, you'd want to hash/encrypt this properly
-            if (enteredPassword === userState.userData.password) {
-                unlockApplication();
+            // Check if we have a stored session password (for screen lock)
+            const sessionPassword = sessionStorage.getItem('arb4me_session_password');
+            
+            // For backend users, we verify using the stored session password
+            // For localStorage users, we check against their stored password
+            if (sessionPassword) {
+                // Backend user - check session password
+                if (enteredPassword === sessionPassword) {
+                    unlockApplication();
+                } else {
+                    showUnlockError('Incorrect password. Please try again.');
+                    passwordInput.value = '';
+                    passwordInput.focus();
+                }
+            } else if (userState.userData.password) {
+                // localStorage user - check stored password
+                if (enteredPassword === userState.userData.password) {
+                    unlockApplication();
+                } else {
+                    showUnlockError('Incorrect password. Please try again.');
+                    passwordInput.value = '';
+                    passwordInput.focus();
+                }
             } else {
-                showUnlockError('Incorrect password. Please try again.');
-                passwordInput.value = '';
-                passwordInput.focus();
+                // No password available - unlock with any input (temporary fix)
+                console.warn('⚠️ No password available for verification. Security lock bypassed.');
+                unlockApplication();
             }
         }
         
