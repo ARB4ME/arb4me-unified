@@ -26,8 +26,7 @@ router.get('/dashboard', asyncHandler(async (req, res) => {
             COUNT(CASE WHEN last_login_at > NOW() - INTERVAL '24 hours' THEN 1 END) as recent_logins,
             COUNT(CASE WHEN created_at > NOW() - INTERVAL '7 days' THEN 1 END) as new_users_week,
             COUNT(CASE WHEN created_at > NOW() - INTERVAL '30 days' THEN 1 END) as new_users_month
-        FROM users 
-        WHERE admin_role IS NULL
+        FROM users
     `);
     
     // Get trading statistics
@@ -169,7 +168,7 @@ router.get('/users', asyncHandler(async (req, res) => {
     const sortOrder = req.query.sortOrder === 'asc' ? 'ASC' : 'DESC';
     const search = req.query.search ? `%${req.query.search}%` : null;
     
-    let whereClause = 'WHERE u.admin_role IS NULL';
+    let whereClause = 'WHERE 1=1';
     const queryParams = [];
     let paramIndex = 1;
     
@@ -270,7 +269,7 @@ router.get('/users/:userId', asyncHandler(async (req, res) => {
             ta.auto_trading_readiness_percent, ta.last_trading_activity
         FROM users u
         LEFT JOIN trading_activity ta ON u.id = ta.user_id
-        WHERE u.id = $1 AND u.admin_role IS NULL
+        WHERE u.id = $1
     `, [userId]);
     
     if (userResult.rows.length === 0) {
