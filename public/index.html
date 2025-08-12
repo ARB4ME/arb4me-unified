@@ -11853,6 +11853,35 @@ ARB4ME Security Team`
         }
 
         // MESSAGING SYSTEM - CAREFULLY INJECTED
+        async function sendMessageToBackend(messageData) {
+            try {
+                console.log('📤 Sending message to backend:', messageData.subject);
+                
+                const response = await apiService.apiCall('/messages/send', 'POST', {
+                    subject: messageData.subject,
+                    content: messageData.content,
+                    priority: messageData.priority
+                });
+                
+                if (response.success) {
+                    console.log('✅ Message sent to backend successfully');
+                    addActivity(`📤 Message sent: "${messageData.subject}" - delivered to admin`, 'success');
+                } else {
+                    throw new Error(response.message || 'Failed to send message');
+                }
+                
+            } catch (error) {
+                console.error('❌ Failed to send message to backend:', error);
+                addActivity(`❌ Failed to send message: ${error.message}`, 'error');
+                
+                // Fallback: store in localStorage if backend fails
+                console.log('💾 Saving message to localStorage as fallback');
+                const messages = JSON.parse(localStorage.getItem('arb4me_messages') || '[]');
+                messages.unshift(messageData);
+                localStorage.setItem('arb4me_messages', JSON.stringify(messages));
+            }
+        }
+
         function handleMessage(event) {
             event.preventDefault();
             
@@ -11874,10 +11903,8 @@ ARB4ME Security Team`
                 status: 'sent'
             };
             
-            // Store message (in real app, this would go to backend)
-            const messages = JSON.parse(localStorage.getItem('arb4me_messages') || '[]');
-            messages.unshift(messageData);
-            localStorage.setItem('arb4me_messages', JSON.stringify(messages));
+            // Send message to backend API
+            sendMessageToBackend(messageData);
             
             // Update message history UI
             displayUserMessages();
@@ -11885,14 +11912,6 @@ ARB4ME Security Team`
             // Clear form
             document.getElementById('messageForm').reset();
             
-            const priorityText = {
-                low: 'General Question',
-                medium: 'Trading Issue', 
-                high: 'Urgent Problem',
-                critical: 'Trading Emergency'
-            };
-            
-            addActivity(`📤 Message sent: "${messageData.subject}" (${priorityText[messageData.priority]})`, 'success');
             addActivity('📧 Support team will respond according to priority level', 'info');
         }
 
