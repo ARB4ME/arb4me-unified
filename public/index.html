@@ -11871,7 +11871,7 @@ ARB4ME Security Team`
             try {
                 console.log('📤 Sending admin reply to backend:', { parentMessageId, targetUserId, subject });
                 
-                const response = await apiService.apiCall('/messages/admin/reply', {
+                const response = await apiService.apiCall('/admin/messages/admin/reply-test', {
                     method: 'POST',
                     body: JSON.stringify({
                         targetUserId: targetUserId,

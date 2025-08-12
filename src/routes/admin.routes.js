@@ -143,6 +143,69 @@ router.get('/users-test', asyncHandler(async (req, res) => {
     });
 }));
 
+// TEMPORARY: Admin reply endpoint without admin auth for testing
+router.post('/messages/admin/reply-test', asyncHandler(async (req, res) => {
+    const { targetUserId, parentMessageId, subject, content } = req.body;
+    
+    await transaction(async (client) => {
+        // Verify parent message exists and get thread info
+        const parentResult = await client.query(
+            'SELECT id, thread_id, user_id FROM messages WHERE id = $1',
+            [parentMessageId]
+        );
+        
+        if (parentResult.rows.length === 0) {
+            throw new APIError('Parent message not found', 404, 'PARENT_MESSAGE_NOT_FOUND');
+        }
+        
+        const parentMessage = parentResult.rows[0];
+        
+        // Verify target user exists
+        const userResult = await client.query(
+            'SELECT id, first_name, last_name FROM users WHERE id = $1 AND account_status = $2',
+            [targetUserId, 'active']
+        );
+        
+        if (userResult.rows.length === 0) {
+            throw new APIError('Target user not found or inactive', 404, 'TARGET_USER_NOT_FOUND');
+        }
+        
+        const targetUser = userResult.rows[0];
+        
+        // Insert admin reply (using a system admin ID for testing)
+        const replyResult = await client.query(
+            `INSERT INTO messages (user_id, subject, content, message_type, admin_user_id, parent_message_id, thread_id, status) 
+             VALUES ($1, $2, $3, 'admin_to_user', $4, $5, $6, 'delivered') 
+             RETURNING id, created_at`,
+            [targetUserId, subject, content, req.user.id, parentMessageId, parentMessage.thread_id]
+        );
+        
+        const reply = replyResult.rows[0];
+        
+        // Update parent message status
+        await client.query(
+            'UPDATE messages SET status = $1, admin_read_at = CURRENT_TIMESTAMP, admin_replied_at = CURRENT_TIMESTAMP WHERE id = $2',
+            ['replied', parentMessageId]
+        );
+        
+        res.status(201).json({
+            success: true,
+            data: {
+                reply: {
+                    id: reply.id,
+                    threadId: parentMessage.thread_id,
+                    targetUser: `${targetUser.first_name} ${targetUser.last_name}`,
+                    subject,
+                    content,
+                    timestamp: reply.created_at,
+                    parentMessageId
+                }
+            },
+            message: 'Reply sent successfully'
+        });
+    });
+}));
+
 router.use(requireAdmin);
 
 // GET /api/v1/admin/dashboard - Main dashboard statistics
