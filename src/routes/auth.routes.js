@@ -102,6 +102,43 @@ router.post('/register', registerValidation, asyncHandler(async (req, res) => {
             [userId, 'registration', { email }, req.ip, req.get('User-Agent')]
         );
         
+        // Send welcome message
+        await client.query(
+            `INSERT INTO messages (user_id, subject, content, message_type, status, admin_user_id) VALUES ($1, $2, $3, $4, $5, $6)`,
+            [
+                userId,
+                'Welcome to ARB4ME - Your Arbitrage Trading Journey Begins!',
+                `🎉 Welcome to ARB4ME!
+
+Hi ${firstName}! 👋
+
+Congratulations on joining the ARB4ME arbitrage trading platform! We're excited to have you on board.
+
+🚀 **Getting Started:**
+1. Explore the dashboard to see live arbitrage opportunities
+2. Connect your exchange accounts in the Setup tab
+3. Select your preferred crypto assets for trading
+4. Configure your safety controls and risk management
+
+💡 **Pro Tips:**
+• Start with small amounts while you learn the platform
+• Always verify exchange balances before trading
+• Use the auto-trading features once you're comfortable
+• Monitor your trades in the Trading Activity section
+
+🔒 **Security Reminder:**
+Your account is protected with advanced security features. Enable screen lock and use strong passwords for maximum security.
+
+If you have any questions, don't hesitate to reach out through this messaging system!
+
+Happy trading! 📈
+The ARB4ME Team`,
+                'admin_to_user',
+                'sent',
+                'user_admin_master'
+            ]
+        );
+        
         // Generate token
         const token = generateToken(userId);
         
