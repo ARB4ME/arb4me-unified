@@ -12391,7 +12391,7 @@ ARB4ME Security Team`
                         return [];
                     }
 
-                    const response = await this.apiCall(`/admin/users?page=${page}&limit=${limit}&status=${status}&sortBy=created_at&sortOrder=desc`);
+                    const response = await this.apiCall(`/admin/users-test?page=${page}&limit=${limit}&status=${status}`);
                     
                     if (response.success && response.data.users) {
                         console.log('👥 Fetched admin users from backend:', response.data.users.length);

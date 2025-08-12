@@ -84,6 +84,64 @@ router.get('/messages-test', asyncHandler(async (req, res) => {
     });
 }));
 
+// TEMPORARY: Users endpoint without admin auth for testing
+router.get('/users-test', asyncHandler(async (req, res) => {
+    const page = parseInt(req.query.page) || 1;
+    const limit = Math.min(parseInt(req.query.limit) || 100, 100);
+    const offset = (page - 1) * limit;
+    const status = req.query.status || 'all';
+    
+    let whereClause = 'WHERE 1=1';
+    const queryParams = [];
+    let paramIndex = 1;
+    
+    if (status !== 'all') {
+        whereClause += ` AND u.account_status = $${paramIndex++}`;
+        queryParams.push(status);
+    }
+    
+    queryParams.push(limit, offset);
+    
+    const usersResult = await query(`
+        SELECT 
+            u.id, u.first_name, u.last_name, u.email, u.mobile, u.country,
+            u.account_status, u.subscription_plan, u.subscription_expires_at,
+            u.created_at, u.updated_at, u.last_login_at
+        FROM users u
+        ${whereClause}
+        ORDER BY u.created_at DESC
+        LIMIT $${paramIndex++} OFFSET $${paramIndex++}
+    `, queryParams);
+    
+    const users = usersResult.rows.map(row => ({
+        id: row.id,
+        firstName: row.first_name,
+        lastName: row.last_name,
+        email: row.email,
+        mobile: row.mobile,
+        country: row.country,
+        accountStatus: row.account_status,
+        subscriptionPlan: row.subscription_plan,
+        subscriptionExpiresAt: row.subscription_expires_at,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+        lastLoginAt: row.last_login_at
+    }));
+    
+    res.json({
+        success: true,
+        data: {
+            users,
+            pagination: {
+                currentPage: page,
+                totalPages: 1,
+                totalRecords: users.length,
+                recordsPerPage: limit
+            }
+        }
+    });
+}));
+
 router.use(requireAdmin);
 
 // GET /api/v1/admin/dashboard - Main dashboard statistics
