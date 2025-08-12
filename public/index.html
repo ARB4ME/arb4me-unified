@@ -16860,7 +16860,38 @@ ARB4ME Security Team`
             setupCryptoSearchEvents();
         }
 
+        // Clean up function to reset all data
+        function cleanupAllData() {
+            // Clear all localStorage items
+            localStorage.removeItem('arb4me_user');
+            localStorage.removeItem('arb4me_users');
+            localStorage.removeItem('arb4me_current_user');
+            localStorage.removeItem('arb4me_jwt_token');
+            localStorage.removeItem('arb4meState');
+            localStorage.removeItem('arb4meExchanges');
+            localStorage.removeItem('arb4meSettings');
+            localStorage.removeItem('arb4meAssets');
+            localStorage.removeItem('arb4meActivity');
+            
+            // Clear sessionStorage
+            sessionStorage.clear();
+            
+            console.log('✅ All stored data has been cleared!');
+            console.log('🔄 Please refresh the page and register as a new user.');
+            
+            // Reset user state
+            userState.isLoggedIn = false;
+            userState.userData = null;
+            
+            // Show message to user
+            alert('All data has been cleared! Please refresh the page (F5) and register as a new user.');
+        }
+        
+        // Add cleanup command to console for easy access
+        window.cleanupARB4ME = cleanupAllData;
+        
         console.log('🔥 ARB4ME - LIVE TRADING SYSTEM + ADMIN DASHBOARD + COMPLETE FAILURE MANAGEMENT loaded successfully!');
+        console.log('💡 TIP: Run cleanupARB4ME() in console to clear all stored data and start fresh.');
     </script>
 
     <!-- Crypto Asset Selection Confirmation Modal -->
