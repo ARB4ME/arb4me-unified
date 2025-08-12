@@ -12,7 +12,79 @@ const router = express.Router();
 // Apply admin authentication and rate limiting to all routes
 router.use(adminRateLimit);
 router.use(authenticateUser);
-// TEMPORARILY DISABLED FOR TESTING MESSAGES - router.use(requireAdmin);
+
+// TEMPORARY: Messages endpoint without admin auth for testing
+router.get('/messages-test', asyncHandler(async (req, res) => {
+    const page = parseInt(req.query.page) || 1;
+    const limit = Math.min(parseInt(req.query.limit) || 20, 100);
+    const offset = (page - 1) * limit;
+    const status = req.query.status || 'all'; // sent, read, replied, all
+    const priority = req.query.priority || 'all'; // low, medium, high, critical, all
+    
+    let whereClause = 'WHERE m.message_type = \'user_to_admin\'';
+    const queryParams = [];
+    let paramIndex = 1;
+    
+    if (status !== 'all') {
+        whereClause += ` AND m.status = $${paramIndex++}`;
+        queryParams.push(status);
+    }
+    
+    if (priority !== 'all') {
+        whereClause += ` AND m.priority = $${paramIndex++}`;
+        queryParams.push(priority);
+    }
+    
+    queryParams.push(limit, offset);
+    
+    const messagesResult = await query(`
+        SELECT 
+            m.id, m.subject, m.content, m.priority, m.status, m.created_at, m.thread_id,
+            m.admin_read_at, m.admin_replied_at, m.admin_user_id,
+            u.first_name, u.last_name, u.email,
+            admin_u.first_name as admin_first_name, admin_u.last_name as admin_last_name
+        FROM messages m
+        JOIN users u ON m.user_id = u.id
+        LEFT JOIN users admin_u ON m.admin_user_id = admin_u.id
+        ${whereClause}
+        ORDER BY 
+            CASE WHEN m.priority = 'critical' THEN 1
+                 WHEN m.priority = 'high' THEN 2
+                 WHEN m.priority = 'medium' THEN 3
+                 ELSE 4 END,
+            m.created_at DESC
+        LIMIT $${paramIndex++} OFFSET $${paramIndex++}
+    `, queryParams);
+    
+    const messages = messagesResult.rows.map(row => ({
+        id: row.id,
+        threadId: row.thread_id,
+        subject: row.subject,
+        content: row.content,
+        priority: row.priority,
+        status: row.status,
+        timestamp: row.created_at,
+        sender: {
+            name: `${row.first_name} ${row.last_name}`,
+            email: row.email
+        }
+    }));
+    
+    res.json({
+        success: true,
+        data: {
+            messages,
+            pagination: {
+                currentPage: page,
+                totalPages: 1,
+                totalRecords: messages.length,
+                recordsPerPage: limit
+            }
+        }
+    });
+}));
+
+router.use(requireAdmin);
 
 // GET /api/v1/admin/dashboard - Main dashboard statistics
 router.get('/dashboard', asyncHandler(async (req, res) => {

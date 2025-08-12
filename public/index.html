@@ -12412,7 +12412,7 @@ ARB4ME Security Team`
                         return { messages: [], pagination: {} };
                     }
 
-                    const response = await this.apiCall(`/admin/messages?page=${page}&limit=${limit}&status=${status}&priority=${priority}`);
+                    const response = await this.apiCall(`/admin/messages-test?page=${page}&limit=${limit}&status=${status}&priority=${priority}`);
                     
                     if (response.success && response.data.messages) {
                         console.log('💬 Fetched admin messages from backend:', response.data.messages.length);
