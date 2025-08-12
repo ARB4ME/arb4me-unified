@@ -13493,10 +13493,10 @@ ARB4ME Security Team`
                         <input type="password" id="unlockPassword" placeholder="Enter your password to unlock" 
                                style="width: 100%; padding: 15px; border: 2px solid rgba(255,255,255,0.2); border-radius: 8px; 
                                       background: rgba(255,255,255,0.1); color: white; font-size: 16px; text-align: center;"
-                               onkeypress="if(event.key==='Enter') attemptUnlock()">
+                               autocomplete="off">
                     </div>
                     
-                    <button onclick="attemptUnlock()" style="
+                    <button id="unlockBtn" style="
                         padding: 15px 30px;
                         background: linear-gradient(45deg, #00d4ff, #00ff88);
                         color: #1a1a2e;
@@ -13507,7 +13507,7 @@ ARB4ME Security Team`
                         cursor: pointer;
                         transition: all 0.3s;
                         width: 100%;
-                    " onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+                    ">
                         🔓 Unlock ARB4ME
                     </button>
                     
@@ -13521,13 +13521,46 @@ ARB4ME Security Team`
             
             document.body.appendChild(lockScreen);
             
-            // Focus on password input after a short delay to ensure it's ready
+            // Set up event listeners after lock screen is created
             setTimeout(() => {
                 const passwordField = document.getElementById('unlockPassword');
+                const unlockButton = document.getElementById('unlockBtn');
+                
                 if (passwordField) {
+                    // Focus the field
                     passwordField.focus();
-                    console.log('🔒 Screen locked. Enter password to unlock.');
+                    
+                    // Add Enter key listener
+                    passwordField.addEventListener('keypress', function(event) {
+                        if (event.key === 'Enter') {
+                            event.preventDefault();
+                            attemptUnlock();
+                        }
+                    });
+                    
+                    // Log typing to ensure it's captured
+                    passwordField.addEventListener('input', function(event) {
+                        console.log('Password field updated, length:', event.target.value.length);
+                    });
                 }
+                
+                if (unlockButton) {
+                    // Add click listener
+                    unlockButton.addEventListener('click', function(event) {
+                        event.preventDefault();
+                        attemptUnlock();
+                    });
+                    
+                    // Add hover effects
+                    unlockButton.addEventListener('mouseover', function() {
+                        this.style.transform = 'scale(1.02)';
+                    });
+                    unlockButton.addEventListener('mouseout', function() {
+                        this.style.transform = 'scale(1)';
+                    });
+                }
+                
+                console.log('🔒 Screen locked. Enter password to unlock.');
             }, 100);
         }
 
@@ -13543,7 +13576,8 @@ ARB4ME Security Team`
             const enteredPassword = passwordInput.value;
             
             // Debug logging
-            console.log('🔓 Unlock attempt - Password length:', enteredPassword.length);
+            console.log('🔓 Unlock attempt - Password entered:', enteredPassword ? `${enteredPassword.length} characters` : 'empty');
+            console.log('🔓 Session password exists:', !!sessionStorage.getItem('arb4me_session_password'));
             
             if (!enteredPassword) {
                 showUnlockError('Please enter your password');
