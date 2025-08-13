@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- CACHE BUSTER: Reply Modal Fix - Updated 2025-01-13 16:35 -->
+<!-- CACHE BUSTER: Mobile Logout Button Fix - Updated 2025-01-13 18:45 -->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -1523,6 +1523,23 @@
             button {
                 min-height: 44px; /* Apple's recommended touch target size */
                 touch-action: manipulation;
+            }
+            
+            /* CRITICAL: Mobile logout button fix */
+            #logoutBtn {
+                background: linear-gradient(45deg, #ff4444, #ff6666) !important;
+                color: white !important;
+                opacity: 1 !important;
+                pointer-events: auto !important;
+                cursor: pointer !important;
+                z-index: 99999 !important;
+                display: block !important;
+                visibility: visible !important;
+                -webkit-appearance: none !important;
+                -moz-appearance: none !important;
+                border: 2px solid #ffffff !important;
+                filter: none !important;
+                box-shadow: 0 4px 12px rgba(255,68,68,0.5) !important;
             }
             
             .exchange-status {
