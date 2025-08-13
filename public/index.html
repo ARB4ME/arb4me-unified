@@ -14523,6 +14523,9 @@ ARB4ME Security Team`
                     // Button now works properly with fixed login system
                     logoutBtn.style.opacity = '1';
                     logoutBtn.style.pointerEvents = 'auto';
+                    
+                    // FORCE MOBILE LOGOUT VISIBILITY 
+                    setTimeout(forceLogoutButtonVisibility, 100);
                     logoutBtn.style.cursor = 'pointer';
                     
                     // Force visibility
@@ -17784,9 +17787,54 @@ ARB4ME Security Team`
             }
         }
 
+        // MOBILE LOGOUT BUTTON FORCE FIX
+        function forceLogoutButtonVisibility() {
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn && logoutBtn.style.display !== 'none') {
+                // Force visible styling with JavaScript - overrides all CSS
+                logoutBtn.style.cssText = `
+                    position: absolute !important;
+                    top: 20px !important;
+                    right: 20px !important;
+                    background: linear-gradient(45deg, #ff4444, #ff6666) !important;
+                    color: white !important;
+                    border: 2px solid #ffffff !important;
+                    padding: 10px 18px !important;
+                    border-radius: 20px !important;
+                    cursor: pointer !important;
+                    font-weight: bold !important;
+                    font-size: 0.85rem !important;
+                    box-shadow: 0 4px 12px rgba(255,68,68,0.5) !important;
+                    z-index: 99999 !important;
+                    opacity: 1 !important;
+                    pointer-events: auto !important;
+                    visibility: visible !important;
+                    display: block !important;
+                    min-height: 44px !important;
+                    min-width: 80px !important;
+                    touch-action: manipulation !important;
+                    filter: none !important;
+                    -webkit-appearance: none !important;
+                    -moz-appearance: none !important;
+                    transition: all 0.3s ease !important;
+                `;
+                
+                // Ensure it's clickable
+                logoutBtn.onclick = function() { logout(); };
+                
+                console.log('🔥 FORCED LOGOUT BUTTON VISIBILITY - MOBILE FIX APPLIED');
+            }
+        }
+
         // Event Listeners
         document.addEventListener('DOMContentLoaded', async function() {
             console.log('🚀 DOM loaded, initializing ARB4ME...');
+            
+            // Force logout button visibility immediately
+            setTimeout(forceLogoutButtonVisibility, 50);
+            setTimeout(forceLogoutButtonVisibility, 200);
+            setTimeout(forceLogoutButtonVisibility, 500);
+            setTimeout(forceLogoutButtonVisibility, 1000);
             
             // Check authentication status on page load
             await checkAuthenticationStatus();
