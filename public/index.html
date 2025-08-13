@@ -927,6 +927,32 @@
                 gap: 15px !important;
             }
             
+            /* Sign Up Now Button Styling */
+            .signup-btn {
+                background: linear-gradient(45deg, #ff6b6b, #ffa726);
+                color: white !important;
+                padding: 6px 12px;
+                border-radius: 6px;
+                border: none;
+                font-size: 0.8rem;
+                font-weight: 500;
+                text-decoration: none !important;
+                display: inline-block;
+                margin-left: 10px;
+                transition: all 0.3s ease;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                cursor: pointer;
+                white-space: nowrap;
+            }
+            
+            .signup-btn:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+                text-decoration: none !important;
+                color: white !important;
+                background: linear-gradient(45deg, #ff5252, #ff9100);
+            }
+            
             /* Setup page mobile override - 2 columns max on tablets */
             #setupTab .grid-2 {
                 grid-template-columns: repeat(2, 1fr) !important;
@@ -6371,7 +6397,10 @@
                 
                 <!-- Binance API Card -->
                 <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 12px; border: 2px solid #f1c40f;">
-                    <h3 style="color: #f1c40f; margin-bottom: 12px; font-size: 1.1rem;">🟡 Binance API Setup</h3>
+                    <h3 style="color: #f1c40f; margin-bottom: 12px; font-size: 1.1rem;">
+                        🟡 Binance API Setup
+                        <a href="https://accounts.binance.com/en/register" target="_blank" class="signup-btn">Sign Up Now</a>
+                    </h3>
                     <div style="line-height: 1.4; font-size: 0.9rem;">
                         <p style="margin-bottom: 6px;"><strong>1.</strong> Sign up: Binance.com</p>
                         <p style="margin-bottom: 6px;"><strong>2.</strong> Complete KYC verification</p>
@@ -6387,7 +6416,10 @@
 
                 <!-- Kraken API Card -->
                 <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 15px; border: 2px solid #674ea7;">
-                    <h3 style="color: #674ea7; margin-bottom: 10px; font-size: 0.95rem;">🟣 Kraken API Setup</h3>
+                    <h3 style="color: #674ea7; margin-bottom: 10px; font-size: 0.95rem;">
+                        🟣 Kraken API Setup
+                        <a href="https://r.kraken.com/signup" target="_blank" class="signup-btn">Sign Up Now</a>
+                    </h3>
                     <div style="line-height: 1.4; font-size: 0.9rem;">
                         <p style="margin-bottom: 6px;"><strong>1.</strong> Create account at Kraken.com</p>
                         <p style="margin-bottom: 6px;"><strong>2.</strong> Complete KYC verification</p>
