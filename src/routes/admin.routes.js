@@ -144,7 +144,7 @@ router.get('/users-test', asyncHandler(async (req, res) => {
 }));
 
 // TEMPORARY: Admin reply endpoint without admin auth for testing
-router.post('/messages/admin/reply-test', asyncHandler(async (req, res) => {
+router.post('/reply-test', asyncHandler(async (req, res) => {
     const { targetUserId, parentMessageId, subject, content } = req.body;
     
     await transaction(async (client) => {
