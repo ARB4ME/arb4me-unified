@@ -12886,22 +12886,33 @@ ARB4ME Security Team`
         function initializePasswordToggles() {
             console.log('🔐 Initializing password visibility toggles...');
             
-            // Test with login password field first
-            addPasswordToggle('loginPassword');
+            // Array of all password field IDs to enable toggles for
+            const passwordFields = [
+                'adminPinInput',        // Admin unlock PIN
+                'password',             // Signup password
+                'confirmPassword',      // Signup password confirmation  
+                'loginPassword',        // User login (already working!)
+                'profileUnlockPassword', // Profile unlock
+                'currentPassword',      // Change password (current)
+                'newPassword',          // Change password (new)
+                'confirmNewPassword',   // Change password (confirm)
+                'adminPassword',        // Admin settings
+                'newAdminPassword',     // Admin password change
+                'unlockPassword'        // General app unlock
+            ];
             
-            // TODO: Add remaining fields after testing:
-            // addPasswordToggle('adminPinInput');
-            // addPasswordToggle('password');
-            // addPasswordToggle('confirmPassword');
-            // addPasswordToggle('profileUnlockPassword');
-            // addPasswordToggle('currentPassword');
-            // addPasswordToggle('newPassword');
-            // addPasswordToggle('confirmNewPassword');
-            // addPasswordToggle('adminPassword');
-            // addPasswordToggle('newAdminPassword');
-            // addPasswordToggle('unlockPassword');
+            // Add toggle to each password field
+            let addedCount = 0;
+            passwordFields.forEach(fieldId => {
+                try {
+                    addPasswordToggle(fieldId);
+                    addedCount++;
+                } catch (error) {
+                    console.warn(`Failed to add toggle to ${fieldId}:`, error);
+                }
+            });
             
-            console.log('✅ Password toggles initialized');
+            console.log(`✅ Password toggles initialized: ${addedCount}/${passwordFields.length} fields`);
         }
 
         // User Authentication System
