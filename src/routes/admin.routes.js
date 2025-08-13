@@ -85,6 +85,32 @@ router.get('/messages-test', asyncHandler(async (req, res) => {
     });
 }));
 
+// TEMPORARY: Get all users for compose modal without admin auth
+router.get('/all-users-test', asyncHandler(async (req, res) => {
+    const usersResult = await query(`
+        SELECT 
+            id, first_name, last_name, email, account_status, last_login_at, created_at
+        FROM users 
+        WHERE admin_role IS NULL OR admin_role != 'master'
+        ORDER BY first_name ASC, last_name ASC
+    `);
+    
+    const users = usersResult.rows.map(row => ({
+        id: row.id,
+        name: `${row.first_name} ${row.last_name}`,
+        email: row.email,
+        status: row.account_status,
+        lastLogin: row.last_login_at,
+        isOnline: false // Default to offline since we don't track real-time status
+    }));
+    
+    res.json({
+        success: true,
+        data: { users },
+        message: `Found ${users.length} users`
+    });
+}));
+
 // TEMPORARY: Users endpoint without admin auth for testing
 router.get('/users-test', asyncHandler(async (req, res) => {
     const page = parseInt(req.query.page) || 1;
@@ -1016,6 +1042,69 @@ router.post('/promote', requireAdminRole('master'), [
             message: 'User promoted to admin successfully'
         });
     });
+}));
+
+// TEMPORARY: Admin compose message endpoint without auth for testing
+router.post('/compose-test', asyncHandler(async (req, res) => {
+    const { targetUserId, subject, content, priority = 'medium' } = req.body;
+    
+    if (!targetUserId || !subject || !content) {
+        return res.status(400).json({
+            success: false,
+            error: { message: 'targetUserId, subject, and content are required' }
+        });
+    }
+    
+    try {
+        // Verify target user exists
+        const userResult = await query(
+            'SELECT id, first_name, last_name, email FROM users WHERE id = $1 AND account_status = $2',
+            [targetUserId, 'active']
+        );
+        
+        if (userResult.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error: { message: 'Target user not found or inactive' }
+            });
+        }
+        
+        const targetUser = userResult.rows[0];
+        
+        // Insert admin-initiated message
+        const messageResult = await query(
+            `INSERT INTO messages (user_id, subject, content, priority, message_type, admin_user_id, status) 
+             VALUES ($1, $2, $3, $4, 'admin_to_user', $5, 'delivered') 
+             RETURNING id, created_at, thread_id`,
+            [targetUserId, subject, content, priority, 'user_admin_master'] // Using system admin ID
+        );
+        
+        const message = messageResult.rows[0];
+        
+        res.status(201).json({
+            success: true,
+            data: {
+                message: {
+                    id: message.id,
+                    threadId: message.thread_id,
+                    targetUser: `${targetUser.first_name} ${targetUser.last_name}`,
+                    targetEmail: targetUser.email,
+                    subject,
+                    content,
+                    priority,
+                    timestamp: message.created_at
+                }
+            },
+            message: 'Message sent successfully'
+        });
+        
+    } catch (error) {
+        console.error('❌ Admin compose error:', error);
+        res.status(500).json({
+            success: false,
+            error: { message: 'Failed to send message' }
+        });
+    }
 }));
 
 module.exports = router;

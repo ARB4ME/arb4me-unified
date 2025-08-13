@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- CACHE BUSTER: Reply Modal Fix - Updated 2025-01-13 16:35 -->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -1720,7 +1721,7 @@
             border: 2px solid #00d4ff;
         ">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
-                <h2 style="color: #00d4ff; margin: 0; font-size: 1.5rem;">✉️ Admin Compose Message</h2>
+                <h2 id="adminModalTitle" style="color: #00d4ff; margin: 0; font-size: 1.5rem;">✉️ Admin Compose Message</h2>
                 <button onclick="closeAdminComposeModal()" style="
                     background: rgba(255,107,107,0.2);
                     color: #ff6b6b;
@@ -1736,8 +1737,28 @@
                 ">×</button>
             </div>
             
+            <!-- Reply Info (hidden by default) -->
+            <div id="replyInfo" style="
+                display: none;
+                margin-bottom: 20px;
+                padding: 15px;
+                background: rgba(0, 212, 255, 0.1);
+                border: 1px solid rgba(0, 212, 255, 0.3);
+                border-radius: 10px;
+            ">
+                <h4 style="color: #00d4ff; margin: 0 0 10px 0; font-size: 0.9rem;">↩️ Replying to:</h4>
+                <div style="
+                    color: #e0e0e0;
+                    font-size: 0.8rem;
+                    line-height: 1.4;
+                ">
+                    <div><strong>From:</strong> <span id="replyFromName">-</span></div>
+                    <div><strong>Subject:</strong> <span id="replyOriginalSubject">-</span></div>
+                </div>
+            </div>
+
             <!-- Recipient Selection -->
-            <div style="margin-bottom: 20px;">
+            <div id="recipientSelection" style="margin-bottom: 20px;">
                 <h4 style="color: #00ff88; margin-bottom: 15px; font-size: 1rem;">👥 Recipients:</h4>
                 <div style="display: flex; gap: 15px; margin-bottom: 15px;">
                     <label style="
@@ -1854,6 +1875,12 @@
             
             <!-- Message Composition Form -->
             <form id="adminComposeForm">
+                <!-- Hidden fields for reply mode -->
+                <input type="hidden" id="isReplyMode" value="false">
+                <input type="hidden" id="replyToMessageId" value="">
+                <input type="hidden" id="replyToThreadId" value="">
+                <input type="hidden" id="replyToUserId" value="">
+                <input type="hidden" id="replyToUserName" value="">
                 <div style="margin-bottom: 15px;">
                     <label style="
                         display: block;
@@ -11298,10 +11325,8 @@ Please help recover this stuck asset.`;
         }
         */
 
-        // NEW: Professional modal-based reply function
-        function replyToMessage(userId) {
-            showAdminReplyModal(userId);
-        }
+        // REMOVED: Old replyToMessage function - now using unified replyToUserMessage instead
+        // CACHE BUSTER: Updated at 2025-01-13 16:35 - FORCE RAILWAY REDEPLOY - Unified Modal Fix v2
 
         // ADMIN REPLY MODAL FUNCTIONS
         let currentReplyUserId = null;
@@ -11453,27 +11478,148 @@ ARB4ME Priority Support`
         }
         
         // ADMIN COMPOSE MESSAGE FUNCTIONS
-        function openAdminComposeModal() {
-            // Clear previous content
+        async function openAdminComposeModal(replyData = null) {
+            const isReplyMode = replyData !== null;
+            
+            // Set reply mode state
+            document.getElementById('isReplyMode').value = isReplyMode ? 'true' : 'false';
+            
+            if (isReplyMode) {
+                // REPLY MODE - Setup for replying to a message
+                setupReplyMode(replyData);
+            } else {
+                // COMPOSE MODE - Setup for new message
+                setupComposeMode();
+            }
+            
+            updateComposeCharCount();
+            
+            // Populate user dropdown (only needed in compose mode)
+            if (!isReplyMode) {
+                await populateUserDropdown();
+            }
+            
+            // Show modal
+            document.getElementById('adminComposeModal').style.display = 'flex';
+            
+            // Focus on appropriate field
+            setTimeout(() => {
+                if (isReplyMode) {
+                    document.getElementById('composeContent').focus();
+                } else {
+                    document.getElementById('composeSubject').focus();
+                }
+            }, 100);
+        }
+        
+        function setupComposeMode() {
+            // Update modal title
+            document.getElementById('adminModalTitle').textContent = '✉️ Admin Compose Message';
+            
+            // Hide reply info, show recipient selection
+            document.getElementById('replyInfo').style.display = 'none';
+            document.getElementById('recipientSelection').style.display = 'block';
+            
+            // Clear all fields
             document.getElementById('composeSubject').value = '';
             document.getElementById('composeContent').value = '';
             document.getElementById('composePriority').value = 'medium';
-            document.getElementById('targetUser').value = 'current';
+            
+            // Clear reply data
+            document.getElementById('replyToMessageId').value = '';
+            document.getElementById('replyToThreadId').value = '';
+            document.getElementById('replyToUserId').value = '';
+            document.getElementById('replyToUserName').value = '';
             
             // Reset to individual message mode
             document.getElementById('individualMessage').checked = true;
             document.getElementById('broadcastMessage').checked = false;
             toggleMessageType();
+        }
+        
+        function setupReplyMode(replyData) {
+            // Update modal title
+            document.getElementById('adminModalTitle').textContent = '↩️ Admin Reply to Message';
             
-            updateComposeCharCount();
+            // Hide recipient selection, show reply info
+            document.getElementById('recipientSelection').style.display = 'none';
+            document.getElementById('replyInfo').style.display = 'block';
             
-            // Show modal
-            document.getElementById('adminComposeModal').style.display = 'flex';
+            // Fill in reply info display
+            document.getElementById('replyFromName').textContent = replyData.senderName || 'User';
+            document.getElementById('replyOriginalSubject').textContent = replyData.subject || 'No Subject';
             
-            // Focus on subject field
-            setTimeout(() => {
-                document.getElementById('composeSubject').focus();
-            }, 100);
+            // Pre-fill subject with "Re: " prefix if not already there
+            let replySubject = replyData.subject || '';
+            if (!replySubject.toLowerCase().startsWith('re:')) {
+                replySubject = 'Re: ' + replySubject;
+            }
+            document.getElementById('composeSubject').value = replySubject;
+            
+            // Clear content for user to type reply
+            document.getElementById('composeContent').value = '';
+            
+            // Set priority to match or default to medium
+            document.getElementById('composePriority').value = replyData.priority || 'medium';
+            
+            // Store reply data in hidden fields
+            document.getElementById('replyToMessageId').value = replyData.messageId || '';
+            document.getElementById('replyToThreadId').value = replyData.threadId || '';
+            document.getElementById('replyToUserId').value = replyData.userId || '';
+            document.getElementById('replyToUserName').value = replyData.senderName || '';
+            
+            // Force individual mode for replies
+            document.getElementById('individualMessage').checked = true;
+            document.getElementById('broadcastMessage').checked = false;
+        }
+        
+        async function populateUserDropdown() {
+            const dropdown = document.getElementById('targetUser');
+            
+            try {
+                // Show loading state
+                dropdown.innerHTML = '<option value="">Loading users...</option>';
+                
+                // Fetch all users from backend
+                const result = await apiService.getAllUsers();
+                
+                // Clear dropdown and add default options
+                dropdown.innerHTML = `
+                    <option value="">Choose a user...</option>
+                    <option value="current">Current Logged-in User</option>
+                `;
+                
+                // Add all users to dropdown
+                if (result.users && result.users.length > 0) {
+                    result.users.forEach(user => {
+                        const statusIcon = user.status === 'active' ? '🟢' : '🔴';
+                        const option = document.createElement('option');
+                        option.value = user.id;
+                        option.textContent = `${statusIcon} ${user.name} (${user.email})`;
+                        dropdown.appendChild(option);
+                    });
+                    
+                    console.log(`✅ Populated user dropdown with ${result.users.length} users`);
+                } else {
+                    // Add message if no users found
+                    const option = document.createElement('option');
+                    option.value = "";
+                    option.textContent = "No users available";
+                    option.disabled = true;
+                    dropdown.appendChild(option);
+                }
+                
+                // Set default to empty selection
+                dropdown.value = '';
+                
+            } catch (error) {
+                console.error('❌ Failed to populate user dropdown:', error);
+                dropdown.innerHTML = `
+                    <option value="">Choose a user...</option>
+                    <option value="current">Current Logged-in User</option>
+                    <option value="" disabled>Error loading users</option>
+                `;
+            }
         }
         
         function closeAdminComposeModal() {
@@ -11623,81 +11769,144 @@ ARB4ME Security Team`
             }
         }
         
-        function handleAdminCompose(event) {
+        async function handleAdminCompose(event) {
             event.preventDefault();
             
             const subject = document.getElementById('composeSubject').value.trim();
             const content = document.getElementById('composeContent').value.trim();
             const priority = document.getElementById('composePriority').value;
-            const isIndividual = document.getElementById('individualMessage').checked;
-            const targetUser = document.getElementById('targetUser').value;
+            const isReplyMode = document.getElementById('isReplyMode').value === 'true';
             
             if (!subject || !content) {
                 addActivity('❌ Subject and content are required', 'error');
                 return;
             }
             
-            if (isIndividual && !targetUser) {
-                addActivity('❌ Please select a target user', 'error');
-                return;
+            // Different validation for reply vs compose mode
+            if (!isReplyMode) {
+                const isIndividual = document.getElementById('individualMessage').checked;
+                const targetUser = document.getElementById('targetUser').value;
+                
+                if (isIndividual && !targetUser) {
+                    addActivity('❌ Please select a target user', 'error');
+                    return;
+                }
             }
             
             const timestamp = new Date().toISOString();
             const messageId = Date.now();
             
-            if (isIndividual) {
-                // Send individual message
-                sendIndividualAdminMessage(subject, content, priority, targetUser, timestamp, messageId);
-            } else {
-                // Send broadcast message
-                sendBroadcastAdminMessage(subject, content, priority, timestamp, messageId);
-            }
+            // Disable form while sending
+            const form = document.getElementById('adminComposeForm');
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = 'Sending...';
+            submitBtn.disabled = true;
             
-            // Close modal
-            closeAdminComposeModal();
+            try {
+                if (isReplyMode) {
+                    // REPLY MODE - Send reply using existing reply function
+                    const parentMessageId = document.getElementById('replyToMessageId').value;
+                    const threadId = document.getElementById('replyToThreadId').value;
+                    const targetUserId = document.getElementById('replyToUserId').value;
+                    const targetUserName = document.getElementById('replyToUserName').value;
+                    
+                    await sendAdminReplyToBackend(parentMessageId, threadId, targetUserId, subject, content, targetUserName);
+                } else {
+                    // COMPOSE MODE - Send new message
+                    const isIndividual = document.getElementById('individualMessage').checked;
+                    const targetUser = document.getElementById('targetUser').value;
+                    
+                    if (isIndividual) {
+                        await sendIndividualAdminMessage(subject, content, priority, targetUser, timestamp, messageId);
+                    } else {
+                        sendBroadcastAdminMessage(subject, content, priority, timestamp, messageId);
+                    }
+                }
+                
+                // Close modal only if successful
+                closeAdminComposeModal();
+                
+            } catch (error) {
+                console.error('❌ Failed to send message:', error);
+                addActivity(`❌ Failed to send message: ${error.message}`, 'error');
+            } finally {
+                // Re-enable form
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+            }
         }
         
-        function sendIndividualAdminMessage(subject, content, priority, targetUser, timestamp, messageId) {
-            const messages = JSON.parse(localStorage.getItem('arb4me_messages') || '[]');
-            
-            // Create admin-initiated message
-            const adminMessage = {
-                subject: subject,
-                content: content,
-                priority: priority,
-                isAdminInitiated: true,
-                isAdminReply: false, // This is not a reply, it's an original admin message
-                adminName: adminState.userData?.username || 'Admin',
-                timestamp: timestamp,
-                id: messageId,
-                status: 'sent'
-            };
-            
-            // Set recipient based on selection
-            if (targetUser === 'current') {
-                // Send to currently logged-in user
-                adminMessage.userId = userState.userData?.id;
-                adminMessage.userEmail = userState.userData?.email;
-                adminMessage.userName = `${userState.userData?.firstName} ${userState.userData?.lastName}`;
-            } else {
-                // Would handle specific user selection here
-                adminMessage.userId = targetUser;
+        async function sendIndividualAdminMessage(subject, content, priority, targetUser, timestamp, messageId) {
+            try {
+                let targetUserId, targetUserName;
+                
+                // Determine target user
+                if (targetUser === 'current') {
+                    // Send to currently logged-in user
+                    if (!userState.userData?.id) {
+                        addActivity('❌ No user currently logged in', 'error');
+                        return;
+                    }
+                    targetUserId = userState.userData.id;
+                    targetUserName = `${userState.userData.firstName} ${userState.userData.lastName}`;
+                } else {
+                    // Send to specific user by ID
+                    targetUserId = targetUser;
+                    targetUserName = 'Selected User'; // Will be updated by backend response
+                }
+                
+                // Send message to backend
+                const response = await apiService.sendAdminComposeMessage(targetUserId, subject, content, priority);
+                
+                if (response.success) {
+                    // Update recipient name from backend response
+                    if (response.data.message.targetUser) {
+                        targetUserName = response.data.message.targetUser;
+                    }
+                    
+                    // Refresh displays
+                    refreshAdminMessages();
+                    if (document.getElementById('messagesTab').classList.contains('active')) {
+                        displayUserMessages();
+                    }
+                    
+                    // Success feedback
+                    addActivity(`📤 Individual message sent to ${targetUserName}: "${subject}"`, 'success');
+                    addActivity(`✅ Message delivered to database successfully`, 'success');
+                } else {
+                    addActivity('❌ Failed to send message to backend', 'error');
+                }
+                
+            } catch (error) {
+                console.error('❌ Error sending individual admin message:', error);
+                addActivity(`❌ Failed to send message: ${error.message}`, 'error');
+                
+                // Fallback to localStorage for debugging
+                console.log('📝 Falling back to localStorage for message:', {subject, content, priority, targetUser});
+                const messages = JSON.parse(localStorage.getItem('arb4me_messages') || '[]');
+                
+                const adminMessage = {
+                    subject: subject,
+                    content: content,
+                    priority: priority,
+                    isAdminInitiated: true,
+                    isAdminReply: false,
+                    adminName: adminState.userData?.username || 'Admin',
+                    timestamp: timestamp,
+                    id: messageId,
+                    status: 'sent',
+                    userId: targetUser === 'current' ? userState.userData?.id : targetUser,
+                    userEmail: targetUser === 'current' ? userState.userData?.email : null,
+                    userName: targetUser === 'current' ? `${userState.userData?.firstName} ${userState.userData?.lastName}` : 'Selected User'
+                };
+                
+                messages.unshift(adminMessage);
+                localStorage.setItem('arb4me_messages', JSON.stringify(messages));
+                
+                refreshAdminMessages();
+                addActivity('📝 Message saved to localStorage as fallback', 'warning');
             }
-            
-            // Add to messages
-            messages.unshift(adminMessage);
-            localStorage.setItem('arb4me_messages', JSON.stringify(messages));
-            
-            // Update displays
-            refreshAdminMessages();
-            if (document.getElementById('messagesTab').classList.contains('active')) {
-                displayUserMessages();
-            }
-            
-            // Success feedback
-            const recipientName = adminMessage.userName || 'User';
-            addActivity(`📤 Individual message sent to ${recipientName}: "${subject}"`, 'success');
-            addActivity(`✅ Message delivered successfully`, 'success');
         }
         
         function sendBroadcastAdminMessage(subject, content, priority, timestamp, messageId) {
@@ -11854,17 +12063,20 @@ ARB4ME Security Team`
 
         // ADMIN REPLY TO DATABASE MESSAGES
         function replyToUserMessage(messageId, threadId, userId, senderName, originalSubject) {
-            console.log('💬 Opening reply for message:', { messageId, threadId, userId, senderName, originalSubject });
+            console.log('💬 Opening reply modal for message:', { messageId, threadId, userId, senderName, originalSubject });
             
-            // For now, use a simple prompt (we can enhance this later)
-            const replySubject = `Re: ${originalSubject}`;
-            const replyContent = prompt(`Reply to ${senderName}:\n\nSubject: ${replySubject}\n\nEnter your reply message (minimum 10 characters):`);
+            // Create reply data object
+            const replyData = {
+                messageId: messageId,
+                threadId: threadId,
+                userId: userId,
+                senderName: senderName,
+                subject: originalSubject,
+                priority: 'medium' // Default priority for replies
+            };
             
-            if (replyContent && replyContent.trim().length >= 10) {
-                sendAdminReplyToBackend(messageId, threadId, userId, replySubject, replyContent, senderName);
-            } else if (replyContent) {
-                addActivity('❌ Reply must be at least 10 characters long', 'error');
-            }
+            // Open the unified modal in reply mode
+            openAdminComposeModal(replyData);
         }
 
         async function sendAdminReplyToBackend(parentMessageId, threadId, targetUserId, subject, content, targetUserName) {
@@ -12495,6 +12707,56 @@ ARB4ME Security Team`
                 } catch (error) {
                     console.log('Failed to fetch admin messages from backend:', error.message);
                     return { messages: [], pagination: {} };
+                }
+            }
+
+            async getAllUsers() {
+                try {
+                    if (!this.token) {
+                        console.log('No JWT token available for fetching users');
+                        return { users: [] };
+                    }
+
+                    const response = await this.apiCall('/admin/all-users-test');
+                    
+                    if (response.success && response.data.users) {
+                        console.log('👥 Fetched all users from backend:', response.data.users.length);
+                        return response.data;
+                    }
+                    
+                    return { users: [] };
+                } catch (error) {
+                    console.log('Failed to fetch users from backend:', error.message);
+                    return { users: [] };
+                }
+            }
+
+            async sendAdminComposeMessage(targetUserId, subject, content, priority = 'medium') {
+                try {
+                    if (!this.token) {
+                        console.log('No JWT token available for admin compose');
+                        throw new Error('Authentication required');
+                    }
+
+                    const response = await this.apiCall('/admin/compose-test', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            targetUserId,
+                            subject,
+                            content,
+                            priority
+                        })
+                    });
+                    
+                    if (response.success) {
+                        console.log('✅ Admin compose message sent successfully');
+                        return response;
+                    }
+                    
+                    throw new Error(response.error?.message || 'Failed to send message');
+                } catch (error) {
+                    console.error('❌ Failed to send admin compose message:', error);
+                    throw error;
                 }
             }
         }
@@ -13521,7 +13783,7 @@ ARB4ME Security Team`
                     </p>
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <span style="font-size: 0.8rem; color: #888;">${timeAgo}</span>
-                        <button onclick="replyToMessage('${message.userId}')" style="
+                        <button onclick="replyToUserMessage('${message.id}', '${message.threadId}', '${message.userId}', '${message.userName}', '${message.subject}')" style="
                             padding: 4px 8px;
                             background: #00d4ff22;
                             color: #00d4ff;
