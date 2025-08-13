@@ -1525,6 +1525,24 @@
                 -webkit-appearance: none;
             }
         }
+        
+        /* Fix dropdown option visibility - dark theme styling */
+        #targetUser option {
+            background-color: #1a1a2e !important;
+            color: #ffffff !important;
+            padding: 8px 12px !important;
+        }
+        
+        #targetUser option:hover {
+            background-color: #00d4ff !important;
+            color: #1a1a2e !important;
+        }
+        
+        #targetUser option:checked,
+        #targetUser option:selected {
+            background-color: #00d4ff !important;
+            color: #1a1a2e !important;
+        }
     </style>
 </head>
 <body>
