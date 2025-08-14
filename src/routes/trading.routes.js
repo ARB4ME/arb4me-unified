@@ -714,29 +714,27 @@ const VALR_CONFIG = {
     }
 };
 
-// VALR Authentication Helper  
+// VALR Authentication Helper - COPIED FROM WORKING LOCALHOST VERSION
 function createValrSignature(apiSecret, timestamp, verb, path, body = '') {
-    // VALR signature format: timestamp + verb + path + body
-    const payload = `${timestamp}${verb.toUpperCase()}${path}${body}`;
+    const payload = timestamp + verb.toUpperCase() + path + (body || '');
     
-    systemLogger.trading('VALR signature payload', {
+    systemLogger.trading('VALR signature (working method)', {
         timestamp,
-        verb: verb.toUpperCase(),
+        method: verb.toUpperCase(),
         path,
-        bodyString: body,
-        fullPayload: payload
+        body: body || '',
+        payload: payload
     });
     
-    // VALR API secret is hex-encoded string - convert to Buffer first
+    // Use exact same method as working localhost - treat apiSecret as UTF-8, not hex
     const signature = crypto
-        .createHmac('sha512', Buffer.from(apiSecret, 'hex'))
-        .update(payload, 'utf8')
+        .createHmac('sha512', apiSecret)  // Direct string, not hex buffer!
+        .update(payload)
         .digest('hex');
     
-    systemLogger.trading('VALR signature result', { 
-        signature: signature,
-        payloadLength: payload.length,
-        apiSecretLength: apiSecret.length
+    systemLogger.trading('VALR signature generated', { 
+        signature: signature.substring(0, 20) + '...',
+        payloadLength: payload.length
     });
     
     return signature;
@@ -766,10 +764,11 @@ function makeValrRequest(endpoint, method, apiKey, apiSecret, body = null) {
         
         // Only add authentication headers if API key is provided (for private endpoints)
         if (apiKey && apiSecret) {
-            const signature = createValrSignature(apiSecret, timestamp, method, path, bodyString);
-            options.headers['X-API-KEY'] = apiKey;
-            options.headers['X-API-SIGNATURE'] = signature;
-            options.headers['X-API-TIMESTAMP'] = timestamp.toString();
+            const signature = createValrSignature(apiSecret, timestamp.toString(), method, path, bodyString);
+            // Use correct VALR header names (from working localhost version)
+            options.headers['X-VALR-API-KEY'] = apiKey;
+            options.headers['X-VALR-SIGNATURE'] = signature;
+            options.headers['X-VALR-TIMESTAMP'] = timestamp.toString();
         }
         
         systemLogger.trading('VALR API request details', {
