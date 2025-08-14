@@ -20,6 +20,10 @@
     <meta name="msapplication-TileColor" content="#1a1a2e">
     
     <title>ARB4ME - Complete</title>
+    
+    <!-- Socket.io Client for Real-time WebSocket Communication -->
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    
     <style>
         * { 
             margin: 0; 
@@ -12443,6 +12447,202 @@ ARB4ME Security Team`
             }
         }
 
+        // ============================================================================
+        // WEBSOCKET REAL-TIME MESSAGING SYSTEM
+        // ============================================================================
+        let socket = null;
+        let socketConnected = false;
+        let reconnectAttempts = 0;
+        const maxReconnectAttempts = 5;
+        
+        function initializeWebSocket() {
+            const token = localStorage.getItem('arb4me_jwt_token');
+            
+            if (!token) {
+                console.log('📡 No JWT token, skipping WebSocket connection');
+                return;
+            }
+            
+            console.log('🔌 Initializing WebSocket connection...');
+            
+            // Connect to the server
+            socket = io({
+                auth: {
+                    token: token
+                },
+                reconnection: true,
+                reconnectionDelay: 1000,
+                reconnectionDelayMax: 5000,
+                reconnectionAttempts: maxReconnectAttempts
+            });
+            
+            // Connection established
+            socket.on('connect', () => {
+                console.log('✅ WebSocket connected successfully');
+                socketConnected = true;
+                reconnectAttempts = 0;
+                updateConnectionStatus(true);
+            });
+            
+            // Connection lost
+            socket.on('disconnect', (reason) => {
+                console.log('❌ WebSocket disconnected:', reason);
+                socketConnected = false;
+                updateConnectionStatus(false);
+            });
+            
+            // Connection error
+            socket.on('connect_error', (error) => {
+                console.error('❌ WebSocket connection error:', error.message);
+                reconnectAttempts++;
+                
+                if (reconnectAttempts >= maxReconnectAttempts) {
+                    console.log('⚠️ Max reconnection attempts reached, stopping');
+                    socket.disconnect();
+                }
+            });
+            
+            // Listen for message events based on user type
+            if (userState.isLoggedIn) {
+                if (adminState.isLoggedIn) {
+                    setupAdminWebSocketListeners();
+                } else {
+                    setupUserWebSocketListeners();
+                }
+            }
+        }
+        
+        function setupUserWebSocketListeners() {
+            console.log('👤 Setting up user WebSocket listeners');
+            
+            // Listen for admin messages to this user
+            socket.on('admin_message', (data) => {
+                console.log('📨 New admin message received:', data);
+                handleIncomingAdminMessage(data);
+            });
+            
+            // Listen for broadcast messages
+            socket.on('broadcast_message', (data) => {
+                console.log('📢 New broadcast message received:', data);
+                handleIncomingBroadcastMessage(data);
+            });
+            
+            // Message sent confirmation
+            socket.on('message_sent', (data) => {
+                console.log('✅ Message sent confirmation:', data);
+            });
+        }
+        
+        function setupAdminWebSocketListeners() {
+            console.log('👨‍💼 Setting up admin WebSocket listeners');
+            
+            // Listen for new user messages
+            socket.on('new_user_message', (data) => {
+                console.log('📬 New user message received:', data);
+                handleIncomingUserMessage(data);
+            });
+            
+            // Listen for admin dashboard updates
+            socket.on('admin_dashboard_data', (data) => {
+                console.log('📊 Admin dashboard data received:', data);
+                // Update admin statistics if needed
+            });
+        }
+        
+        function handleIncomingAdminMessage(messageData) {
+            // Add the message to the messages display
+            const messageElement = {
+                id: messageData.id,
+                subject: messageData.subject,
+                content: messageData.content,
+                priority: messageData.priority || 'medium',
+                timestamp: messageData.timestamp,
+                from: messageData.from,
+                type: 'admin_to_user',
+                isNew: true
+            };
+            
+            // Update message count badge
+            updateMessageBadge();
+            
+            // If on messages tab, refresh display
+            if (document.getElementById('messagesTab').classList.contains('active')) {
+                displayUserMessages();
+            }
+            
+            // Show notification
+            addActivity(`📨 New message from Admin: "${messageData.subject}"`, 'info');
+        }
+        
+        function handleIncomingBroadcastMessage(messageData) {
+            // Add broadcast to display
+            const broadcastElement = {
+                id: messageData.id,
+                subject: `[BROADCAST] ${messageData.subject}`,
+                content: messageData.content,
+                priority: messageData.priority || 'medium',
+                timestamp: messageData.timestamp,
+                from: messageData.from,
+                type: 'broadcast',
+                isNew: true
+            };
+            
+            // Update message count badge
+            updateMessageBadge();
+            
+            // If on messages tab, refresh display
+            if (document.getElementById('messagesTab').classList.contains('active')) {
+                displayUserMessages();
+            }
+            
+            // Show notification
+            addActivity(`📢 New broadcast: "${messageData.subject}"`, 'info');
+        }
+        
+        function handleIncomingUserMessage(messageData) {
+            // For admin: add new user message to the admin dashboard
+            console.log('📬 Processing new user message for admin:', messageData);
+            
+            // Refresh admin messages display
+            refreshAdminMessages();
+            
+            // Show notification
+            addActivity(`💬 New message from ${messageData.from}: "${messageData.subject}"`, 'info');
+        }
+        
+        function updateConnectionStatus(connected) {
+            // Update UI to show connection status (optional)
+            const statusElement = document.getElementById('wsConnectionStatus');
+            if (statusElement) {
+                statusElement.textContent = connected ? '🟢 Live' : '🔴 Offline';
+                statusElement.style.color = connected ? '#00ff88' : '#ff4444';
+            }
+        }
+        
+        function updateMessageBadge() {
+            // Increment unread message count
+            const badgeElement = document.querySelector('.message-badge');
+            if (badgeElement) {
+                const currentCount = parseInt(badgeElement.textContent) || 0;
+                badgeElement.textContent = currentCount + 1;
+                badgeElement.style.display = 'block';
+            }
+        }
+        
+        // Disconnect WebSocket when logging out
+        function disconnectWebSocket() {
+            if (socket) {
+                console.log('🔌 Disconnecting WebSocket...');
+                socket.disconnect();
+                socket = null;
+                socketConnected = false;
+            }
+        }
+        
+        // ============================================================================
+        // END WEBSOCKET SYSTEM
+        // ============================================================================
+        
         // MESSAGING SYSTEM - CAREFULLY INJECTED
         async function sendMessageToBackend(messageData) {
             try {
@@ -14618,6 +14818,9 @@ ARB4ME Security Team`
                 userState.isLoggedIn = false;
                 userState.userData = null;
                 userState.liveMode = false;
+                
+                // Disconnect WebSocket
+                disconnectWebSocket();
                 
                 // Clear session data
                 localStorage.removeItem('arb4me_current_user');
@@ -17839,6 +18042,9 @@ ARB4ME Security Team`
             
             // Check authentication status on page load
             await checkAuthenticationStatus();
+            
+            // Initialize WebSocket connection for real-time messaging
+            initializeWebSocket();
             
             // Initialize USDT banner display
             // USDT banner now permanently visible - no need to check dismissal
