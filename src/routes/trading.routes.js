@@ -7,6 +7,10 @@ const { tradingRateLimit, authenticatedRateLimit, adminRateLimit } = require('..
 const { systemLogger } = require('../utils/logger');
 const { broadcastToAdmins } = require('../websocket/socketManager');
 
+// Additional dependencies for exchange API integration
+const crypto = require('crypto');
+const https = require('https');
+
 const router = express.Router();
 
 // Apply authentication to all trading routes
@@ -690,6 +694,534 @@ router.get('/admin/user/:userId/activity', requireAdmin, asyncHandler(async (req
         success: true,
         data: userTradingActivity
     });
+}));
+
+// ============================================================================
+// VALR EXCHANGE API PROXY ENDPOINTS
+// ============================================================================
+
+// VALR API Configuration
+const VALR_CONFIG = {
+    baseUrl: 'https://api.valr.com',
+    endpoints: {
+        balance: '/v1/account/balances',
+        ticker: '/v1/public/marketsummary',
+        simpleBuyOrder: '/v1/simple/buy/order',
+        simpleSellOrder: '/v1/simple/sell/order',
+        pairs: '/v1/public/pairs',
+        orderStatus: '/v1/orders/:orderId',
+        orderBook: '/v1/public/:pair/orderbook'
+    }
+};
+
+// VALR Authentication Helper
+function createValrSignature(apiSecret, timestamp, verb, path, body = '') {
+    const payload = `${timestamp}${verb.toUpperCase()}${path}${body}`;
+    return crypto
+        .createHmac('sha512', Buffer.from(apiSecret, 'hex'))
+        .update(payload)
+        .digest('hex');
+}
+
+// VALR HTTP Request Helper
+function makeValrRequest(endpoint, method, apiKey, apiSecret, body = null) {
+    return new Promise((resolve, reject) => {
+        const timestamp = Date.now();
+        const path = endpoint;
+        const bodyString = body ? JSON.stringify(body) : '';
+        
+        const options = {
+            hostname: 'api.valr.com',
+            path: path,
+            method: method.toUpperCase(),
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        };
+        
+        // Only add authentication headers if API key is provided (for private endpoints)
+        if (apiKey && apiSecret) {
+            const signature = createValrSignature(apiSecret, timestamp, method, path, bodyString);
+            options.headers['X-API-KEY'] = apiKey;
+            options.headers['X-API-SIGNATURE'] = signature;
+            options.headers['X-API-TIMESTAMP'] = timestamp.toString();
+        }
+        
+        const req = https.request(options, (res) => {
+            let data = '';
+            
+            res.on('data', (chunk) => {
+                data += chunk;
+            });
+            
+            res.on('end', () => {
+                try {
+                    const jsonData = JSON.parse(data);
+                    
+                    if (res.statusCode >= 200 && res.statusCode < 300) {
+                        resolve(jsonData);
+                    } else {
+                        reject(new Error(jsonData.message || `HTTP ${res.statusCode}`));
+                    }
+                } catch (error) {
+                    reject(new Error('Invalid JSON response'));
+                }
+            });
+        });
+        
+        req.on('error', (error) => {
+            reject(error);
+        });
+        
+        if (bodyString) {
+            req.write(bodyString);
+        }
+        
+        req.end();
+    });
+}
+
+// VALR Balance Endpoint
+router.post('/valr/balance', tradingRateLimit, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey, apiSecret } = req.body;
+    
+    try {
+        systemLogger.trading('VALR balance request initiated', {
+            userId: req.user.id,
+            exchange: 'valr',
+            endpoint: 'balance'
+        });
+        
+        // Call VALR API
+        const balanceData = await makeValrRequest(
+            VALR_CONFIG.endpoints.balance,
+            'GET',
+            apiKey,
+            apiSecret
+        );
+        
+        // Transform VALR response to expected format
+        const balances = {};
+        balanceData.forEach(balance => {
+            balances[balance.currency] = parseFloat(balance.available) + parseFloat(balance.reserved);
+        });
+        
+        systemLogger.trading('VALR balance retrieved successfully', {
+            userId: req.user.id,
+            exchange: 'valr',
+            balanceCount: Object.keys(balances).length
+        });
+        
+        res.json({
+            success: true,
+            balances: balances
+        });
+        
+    } catch (error) {
+        systemLogger.error('VALR balance request failed', {
+            userId: req.user.id,
+            exchange: 'valr',
+            error: error.message
+        });
+        
+        throw new APIError(`VALR balance request failed: ${error.message}`, 500, 'VALR_BALANCE_ERROR');
+    }
+}));
+
+// VALR Ticker Endpoint  
+router.post('/valr/ticker', tradingRateLimit, asyncHandler(async (req, res) => {
+    const { pair } = req.body;
+    
+    try {
+        systemLogger.trading('VALR ticker request initiated', {
+            userId: req.user.id,
+            exchange: 'valr',
+            endpoint: 'ticker',
+            pair: pair
+        });
+        
+        // VALR ticker is public endpoint, no authentication required
+        const tickerData = await makeValrRequest(
+            VALR_CONFIG.endpoints.ticker,
+            'GET',
+            null, // No API key needed for public endpoint
+            null  // No secret needed for public endpoint
+        );
+        
+        systemLogger.trading('VALR ticker retrieved successfully', {
+            userId: req.user.id,
+            exchange: 'valr',
+            dataCount: tickerData.length
+        });
+        
+        res.json({
+            success: true,
+            data: tickerData
+        });
+        
+    } catch (error) {
+        systemLogger.error('VALR ticker request failed', {
+            userId: req.user.id,
+            exchange: 'valr',
+            error: error.message
+        });
+        
+        throw new APIError(`VALR ticker request failed: ${error.message}`, 500, 'VALR_TICKER_ERROR');
+    }
+}));
+
+// VALR Test Endpoint
+router.post('/valr/test', tradingRateLimit, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey, apiSecret } = req.body;
+    
+    try {
+        systemLogger.trading('VALR connection test initiated', {
+            userId: req.user.id,
+            exchange: 'valr',
+            endpoint: 'test'
+        });
+        
+        // Test connection by getting balance (minimal data)
+        const balanceData = await makeValrRequest(
+            VALR_CONFIG.endpoints.balance,
+            'GET',
+            apiKey,
+            apiSecret
+        );
+        
+        systemLogger.trading('VALR connection test successful', {
+            userId: req.user.id,
+            exchange: 'valr'
+        });
+        
+        res.json({
+            success: true,
+            message: 'VALR connection successful',
+            data: {
+                connected: true,
+                balanceCount: balanceData.length
+            }
+        });
+        
+    } catch (error) {
+        systemLogger.error('VALR connection test failed', {
+            userId: req.user.id,
+            exchange: 'valr',
+            error: error.message
+        });
+        
+        throw new APIError(`VALR connection test failed: ${error.message}`, 500, 'VALR_CONNECTION_ERROR');
+    }
+}));
+
+// VALR Buy Order Endpoint
+router.post('/valr/buy-order', tradingRateLimit, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('pair').notEmpty().withMessage('Trading pair is required'),
+    body('payInCurrency').notEmpty().withMessage('Pay-in currency is required'),
+    body('payAmount').isFloat({ min: 0.01 }).withMessage('Pay amount must be a positive number'),
+    body('customerOrderId').optional().isString().withMessage('Customer order ID must be string')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey, apiSecret, pair, payInCurrency, payAmount, customerOrderId } = req.body;
+    
+    try {
+        systemLogger.trading('VALR buy order initiated', {
+            userId: req.user.id,
+            exchange: 'valr',
+            endpoint: 'buy-order',
+            pair,
+            payInCurrency,
+            payAmount,
+            customerOrderId
+        });
+        
+        // Prepare order payload
+        const orderPayload = {
+            pair,
+            payInCurrency,
+            payAmount: parseFloat(payAmount).toString(),
+            ...(customerOrderId && { customerOrderId })
+        };
+        
+        // Call VALR API
+        const orderData = await makeValrRequest(
+            VALR_CONFIG.endpoints.simpleBuyOrder,
+            'POST',
+            apiKey,
+            apiSecret,
+            orderPayload
+        );
+        
+        // Log successful order
+        systemLogger.trading('VALR buy order placed successfully', {
+            userId: req.user.id,
+            exchange: 'valr',
+            orderId: orderData.id,
+            pair,
+            payAmount,
+            status: orderData.status
+        });
+        
+        // Record trade attempt in database
+        await query(
+            'INSERT INTO user_activity (user_id, activity_type, activity_details, ip_address, user_agent) VALUES ($1, $2, $3, $4, $5)',
+            [req.user.id, 'valr_buy_order_placed', {
+                orderId: orderData.id,
+                pair,
+                payInCurrency,
+                payAmount,
+                orderStatus: orderData.status,
+                customerOrderId,
+                timestamp: new Date()
+            }, req.ip, req.get('User-Agent')]
+        );
+        
+        // Notify admins of trading activity
+        broadcastToAdmins('user_trading_order', {
+            userId: req.user.id,
+            userName: `${req.user.first_name} ${req.user.last_name}`,
+            exchange: 'VALR',
+            orderType: 'BUY',
+            pair,
+            amount: payAmount,
+            currency: payInCurrency,
+            orderId: orderData.id,
+            status: orderData.status,
+            timestamp: new Date()
+        });
+        
+        res.json({
+            success: true,
+            data: {
+                order: {
+                    id: orderData.id,
+                    pair,
+                    payInCurrency,
+                    payAmount,
+                    status: orderData.status,
+                    createdAt: orderData.createdAt || new Date(),
+                    customerOrderId: orderData.customerOrderId
+                }
+            },
+            message: 'VALR buy order placed successfully'
+        });
+        
+    } catch (error) {
+        systemLogger.error('VALR buy order failed', {
+            userId: req.user.id,
+            exchange: 'valr',
+            error: error.message,
+            pair,
+            payAmount
+        });
+        
+        // Record failed order attempt
+        await query(
+            'INSERT INTO user_activity (user_id, activity_type, activity_details, ip_address, user_agent) VALUES ($1, $2, $3, $4, $5)',
+            [req.user.id, 'valr_buy_order_failed', {
+                pair,
+                payInCurrency,
+                payAmount,
+                error: error.message,
+                timestamp: new Date()
+            }, req.ip, req.get('User-Agent')]
+        );
+        
+        throw new APIError(`VALR buy order failed: ${error.message}`, 500, 'VALR_BUY_ORDER_ERROR');
+    }
+}));
+
+// VALR Sell Order Endpoint
+router.post('/valr/sell-order', tradingRateLimit, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('pair').notEmpty().withMessage('Trading pair is required'),
+    body('payAmount').isFloat({ min: 0.01 }).withMessage('Pay amount must be a positive number'),
+    body('customerOrderId').optional().isString().withMessage('Customer order ID must be string')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey, apiSecret, pair, payAmount, customerOrderId } = req.body;
+    
+    try {
+        systemLogger.trading('VALR sell order initiated', {
+            userId: req.user.id,
+            exchange: 'valr',
+            endpoint: 'sell-order',
+            pair,
+            payAmount,
+            customerOrderId
+        });
+        
+        // Prepare order payload
+        const orderPayload = {
+            pair,
+            payAmount: parseFloat(payAmount).toString(),
+            ...(customerOrderId && { customerOrderId })
+        };
+        
+        // Call VALR API
+        const orderData = await makeValrRequest(
+            VALR_CONFIG.endpoints.simpleSellOrder,
+            'POST',
+            apiKey,
+            apiSecret,
+            orderPayload
+        );
+        
+        // Log successful order
+        systemLogger.trading('VALR sell order placed successfully', {
+            userId: req.user.id,
+            exchange: 'valr',
+            orderId: orderData.id,
+            pair,
+            payAmount,
+            status: orderData.status
+        });
+        
+        // Record trade attempt in database
+        await query(
+            'INSERT INTO user_activity (user_id, activity_type, activity_details, ip_address, user_agent) VALUES ($1, $2, $3, $4, $5)',
+            [req.user.id, 'valr_sell_order_placed', {
+                orderId: orderData.id,
+                pair,
+                payAmount,
+                orderStatus: orderData.status,
+                customerOrderId,
+                timestamp: new Date()
+            }, req.ip, req.get('User-Agent')]
+        );
+        
+        // Notify admins of trading activity
+        broadcastToAdmins('user_trading_order', {
+            userId: req.user.id,
+            userName: `${req.user.first_name} ${req.user.last_name}`,
+            exchange: 'VALR',
+            orderType: 'SELL',
+            pair,
+            amount: payAmount,
+            orderId: orderData.id,
+            status: orderData.status,
+            timestamp: new Date()
+        });
+        
+        res.json({
+            success: true,
+            data: {
+                order: {
+                    id: orderData.id,
+                    pair,
+                    payAmount,
+                    status: orderData.status,
+                    createdAt: orderData.createdAt || new Date(),
+                    customerOrderId: orderData.customerOrderId
+                }
+            },
+            message: 'VALR sell order placed successfully'
+        });
+        
+    } catch (error) {
+        systemLogger.error('VALR sell order failed', {
+            userId: req.user.id,
+            exchange: 'valr',
+            error: error.message,
+            pair,
+            payAmount
+        });
+        
+        // Record failed order attempt
+        await query(
+            'INSERT INTO user_activity (user_id, activity_type, activity_details, ip_address, user_agent) VALUES ($1, $2, $3, $4, $5)',
+            [req.user.id, 'valr_sell_order_failed', {
+                pair,
+                payAmount,
+                error: error.message,
+                timestamp: new Date()
+            }, req.ip, req.get('User-Agent')]
+        );
+        
+        throw new APIError(`VALR sell order failed: ${error.message}`, 500, 'VALR_SELL_ORDER_ERROR');
+    }
+}));
+
+// VALR Order Status Endpoint
+router.post('/valr/order-status', tradingRateLimit, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('orderId').notEmpty().withMessage('Order ID is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey, apiSecret, orderId } = req.body;
+    
+    try {
+        systemLogger.trading('VALR order status check initiated', {
+            userId: req.user.id,
+            exchange: 'valr',
+            endpoint: 'order-status',
+            orderId
+        });
+        
+        // Call VALR API
+        const orderData = await makeValrRequest(
+            VALR_CONFIG.endpoints.orderStatus.replace(':orderId', orderId),
+            'GET',
+            apiKey,
+            apiSecret
+        );
+        
+        systemLogger.trading('VALR order status retrieved', {
+            userId: req.user.id,
+            exchange: 'valr',
+            orderId,
+            status: orderData.status
+        });
+        
+        res.json({
+            success: true,
+            data: {
+                order: orderData
+            }
+        });
+        
+    } catch (error) {
+        systemLogger.error('VALR order status check failed', {
+            userId: req.user.id,
+            exchange: 'valr',
+            error: error.message,
+            orderId
+        });
+        
+        throw new APIError(`VALR order status check failed: ${error.message}`, 500, 'VALR_ORDER_STATUS_ERROR');
+    }
 }));
 
 module.exports = router;

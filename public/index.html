@@ -10617,24 +10617,58 @@ Please help recover this stuck asset.`;
                     throw new Error(`${exchange} API credentials not available`);
                 }
                 
-                const orderData = {
-                    apiKey: exchangeData.api.key,
-                    apiSecret: exchangeData.api.secret,
-                    side: 'BUY',
-                    pair: opportunity.asset,
-                    amount: amount.toString(),
-                    type: 'MARKET',
-                    price: opportunity.buyPrice // Send price for backend calculation
-                };
+                // Format order data for VALR vs other exchanges
+                let orderData;
+                if (exchange === 'valr') {
+                    // VALR uses different parameter names
+                    orderData = {
+                        apiKey: exchangeData.api.key,
+                        apiSecret: exchangeData.api.secret,
+                        pair: opportunity.asset,
+                        payInCurrency: 'ZAR', // VALR requires specifying the pay-in currency
+                        payAmount: (amount * opportunity.buyPrice).toString() // VALR wants the ZAR amount to spend
+                    };
+                } else {
+                    // Other exchanges use the old format
+                    orderData = {
+                        apiKey: exchangeData.api.key,
+                        apiSecret: exchangeData.api.secret,
+                        side: 'BUY',
+                        pair: opportunity.asset,
+                        amount: amount.toString(),
+                        type: 'MARKET',
+                        price: opportunity.buyPrice
+                    };
+                }
                 
                 console.log(`🚀 Executing BUY order: ${amount} ${opportunity.asset} on ${exchange}`);
                 
-                const backendUrl = 'http://localhost:3001';
-                const response = await fetch(`${backendUrl}/api/${exchange}/order`, {
+                // Use Railway for VALR, localhost for others
+                const backendUrl = exchange === 'valr' 
+                    ? 'https://arb4me-unified-production.up.railway.app' 
+                    : 'http://localhost:3001';
+                
+                // Use correct endpoint for VALR
+                const orderEndpoint = exchange === 'valr' 
+                    ? `/api/v1/trading/valr/buy-order`
+                    : `/api/${exchange}/order`;
+                
+                // Prepare headers
+                const headers = {
+                    'Content-Type': 'application/json'
+                };
+                
+                // Add JWT token for Railway endpoints (VALR)
+                if (exchange === 'valr') {
+                    const token = localStorage.getItem('arb4me_jwt_token');
+                    if (token) {
+                        headers['Authorization'] = `Bearer ${token}`;
+                    }
+                }
+                
+                const response = await fetch(`${backendUrl}${orderEndpoint}`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers,
                     body: JSON.stringify(orderData)
                 });
                 
@@ -10730,23 +10764,56 @@ Please help recover this stuck asset.`;
                     throw new Error(`${exchange} API credentials not available`);
                 }
                 
-                const orderData = {
-                    apiKey: exchangeData.api.key,
-                    apiSecret: exchangeData.api.secret,
-                    side: 'SELL',
-                    pair: opportunity.asset,
-                    amount: amount.toString(),
-                    type: 'MARKET'
-                };
+                // Format order data for VALR vs other exchanges
+                let orderData;
+                if (exchange === 'valr') {
+                    // VALR uses different parameter names for sell orders
+                    orderData = {
+                        apiKey: exchangeData.api.key,
+                        apiSecret: exchangeData.api.secret,
+                        pair: opportunity.asset,
+                        payAmount: amount.toString() // VALR wants the crypto amount to sell
+                    };
+                } else {
+                    // Other exchanges use the old format
+                    orderData = {
+                        apiKey: exchangeData.api.key,
+                        apiSecret: exchangeData.api.secret,
+                        side: 'SELL',
+                        pair: opportunity.asset,
+                        amount: amount.toString(),
+                        type: 'MARKET'
+                    };
+                }
                 
                 console.log(`💰 Executing SELL order: ${amount} ${opportunity.asset} on ${exchange}`);
                 
-                const backendUrl = 'http://localhost:3001';
-                const response = await fetch(`${backendUrl}/api/${exchange}/order`, {
+                // Use Railway for VALR, localhost for others
+                const backendUrl = exchange === 'valr' 
+                    ? 'https://arb4me-unified-production.up.railway.app' 
+                    : 'http://localhost:3001';
+                
+                // Use correct endpoint for VALR
+                const orderEndpoint = exchange === 'valr' 
+                    ? `/api/v1/trading/valr/sell-order`
+                    : `/api/${exchange}/order`;
+                
+                // Prepare headers
+                const headers = {
+                    'Content-Type': 'application/json'
+                };
+                
+                // Add JWT token for Railway endpoints (VALR)
+                if (exchange === 'valr') {
+                    const token = localStorage.getItem('arb4me_jwt_token');
+                    if (token) {
+                        headers['Authorization'] = `Bearer ${token}`;
+                    }
+                }
+                
+                const response = await fetch(`${backendUrl}${orderEndpoint}`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers,
                     body: JSON.stringify(orderData)
                 });
                 
@@ -16122,24 +16189,50 @@ ARB4ME Security Team`
 
             // Use backend server for all exchanges to avoid CORS issues
             if (exchange === 'luno' || exchange === 'valr' || exchange === 'altcointrader' || exchange === 'xago' || exchange === 'chainex' || exchange === 'kraken' || exchange === 'binance' || exchange === 'bybit' || exchange === 'gateio' || exchange === 'bitmart' || exchange === 'bitrue') {
-                const backendUrl = 'http://localhost:3001';
+                // Use Railway for VALR (production deployment), localhost for others (for now)
+                const backendUrl = exchange === 'valr' 
+                    ? 'https://arb4me-unified-production.up.railway.app' 
+                    : 'http://localhost:3001';
                 
                 try {
                     // Map endpoints to backend routes
                     let backendEndpoint;
-                    if (endpoint.includes('balance')) {
-                        backendEndpoint = `/api/${exchange}/balance`;
-                    } else if (endpoint.includes('ticker')) {
-                        backendEndpoint = `/api/${exchange}/ticker`;
+                    if (exchange === 'valr') {
+                        // Use new VALR trading routes
+                        if (endpoint.includes('balance')) {
+                            backendEndpoint = `/api/v1/trading/valr/balance`;
+                        } else if (endpoint.includes('ticker')) {
+                            backendEndpoint = `/api/v1/trading/valr/ticker`;
+                        } else {
+                            backendEndpoint = `/api/v1/trading/valr/test`;
+                        }
                     } else {
-                        backendEndpoint = `/api/${exchange}/test`;
+                        // Use old structure for other exchanges
+                        if (endpoint.includes('balance')) {
+                            backendEndpoint = `/api/${exchange}/balance`;
+                        } else if (endpoint.includes('ticker')) {
+                            backendEndpoint = `/api/${exchange}/ticker`;
+                        } else {
+                            backendEndpoint = `/api/${exchange}/test`;
+                        }
+                    }
+
+                    // Prepare headers
+                    const headers = {
+                        'Content-Type': 'application/json'
+                    };
+                    
+                    // Add JWT token for Railway endpoints (VALR)
+                    if (exchange === 'valr') {
+                        const token = localStorage.getItem('arb4me_jwt_token');
+                        if (token) {
+                            headers['Authorization'] = `Bearer ${token}`;
+                        }
                     }
 
                     const response = await fetch(`${backendUrl}${backendEndpoint}`, {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
+                        headers,
                         body: JSON.stringify({
                             apiKey: exchangeData.api.key,
                             apiSecret: exchangeData.api.secret,
