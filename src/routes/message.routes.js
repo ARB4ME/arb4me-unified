@@ -338,7 +338,7 @@ router.post('/broadcast', [
     
     // Insert broadcast message
     const broadcastResult = await query(
-        `INSERT INTO broadcast_messages (admin_user_id, subject, content, priority, sent_at) 
+        `INSERT INTO broadcast_messages (sent_by_admin_id, subject, content, priority, sent_at) 
          VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP) 
          RETURNING id, created_at, sent_at`,
         [req.user.id, subject, content, priority]
