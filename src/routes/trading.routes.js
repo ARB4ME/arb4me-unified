@@ -735,9 +735,15 @@ function makeValrRequest(endpoint, method, apiKey, apiSecret, body = null) {
             path: path,
             method: method.toUpperCase(),
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'User-Agent': 'ARB4ME/1.0'
             }
         };
+        
+        // Add Content-Length if we have a body
+        if (bodyString) {
+            options.headers['Content-Length'] = Buffer.byteLength(bodyString);
+        }
         
         // Only add authentication headers if API key is provided (for private endpoints)
         if (apiKey && apiSecret) {
@@ -747,6 +753,13 @@ function makeValrRequest(endpoint, method, apiKey, apiSecret, body = null) {
             options.headers['X-API-TIMESTAMP'] = timestamp.toString();
         }
         
+        systemLogger.trading('VALR API request', {
+            method: method.toUpperCase(),
+            path: path,
+            hasAuth: !!(apiKey && apiSecret),
+            bodyLength: bodyString ? bodyString.length : 0
+        });
+        
         const req = https.request(options, (res) => {
             let data = '';
             
@@ -755,16 +768,27 @@ function makeValrRequest(endpoint, method, apiKey, apiSecret, body = null) {
             });
             
             res.on('end', () => {
+                systemLogger.trading('VALR API raw response', {
+                    statusCode: res.statusCode,
+                    data: data.substring(0, 500),
+                    headers: res.headers
+                });
+                
                 try {
+                    if (!data || data.trim() === '') {
+                        reject(new Error('Empty response from VALR API'));
+                        return;
+                    }
+                    
                     const jsonData = JSON.parse(data);
                     
                     if (res.statusCode >= 200 && res.statusCode < 300) {
                         resolve(jsonData);
                     } else {
-                        reject(new Error(jsonData.message || `HTTP ${res.statusCode}`));
+                        reject(new Error(jsonData.message || jsonData.error || `HTTP ${res.statusCode}: ${data.substring(0, 200)}`));
                     }
-                } catch (error) {
-                    reject(new Error('Invalid JSON response'));
+                } catch (parseError) {
+                    reject(new Error(`Invalid JSON response from VALR: ${data.substring(0, 200)}`));
                 }
             });
         });
