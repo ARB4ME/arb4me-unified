@@ -9,12 +9,15 @@ const { getConnectedUsers, notifyUser, broadcastToAdmins } = require('../websock
 
 const router = express.Router();
 
-// Apply admin authentication and rate limiting to all routes
+// Create a separate router for test endpoints (no auth required)
+const testRouter = express.Router();
+
+// Apply admin authentication and rate limiting to main routes
 router.use(adminRateLimit);
 router.use(authenticateUser);
 
 // TEMPORARY: Messages endpoint without admin auth for testing
-router.get('/messages-test', asyncHandler(async (req, res) => {
+testRouter.get('/messages-test', asyncHandler(async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = Math.min(parseInt(req.query.limit) || 20, 100);
     const offset = (page - 1) * limit;
@@ -1045,7 +1048,7 @@ router.post('/promote', requireAdminRole('master'), [
 }));
 
 // TEMPORARY: Admin compose message endpoint without auth for testing
-router.post('/compose-test', asyncHandler(async (req, res) => {
+testRouter.post('/compose-test', asyncHandler(async (req, res) => {
     const { targetUserId, subject, content, priority = 'medium' } = req.body;
     
     if (!targetUserId || !subject || !content) {
@@ -1107,4 +1110,5 @@ router.post('/compose-test', asyncHandler(async (req, res) => {
     }
 }));
 
-module.exports = router;
+// Export both routers
+module.exports = { router, testRouter };
