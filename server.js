@@ -20,7 +20,7 @@ const { generalRateLimit } = require('./src/middleware/rateLimiter');
 const authRoutes = require('./src/routes/auth.routes');
 const userRoutes = require('./src/routes/user.routes');
 const messageRoutes = require('./src/routes/message.routes');
-const { router: adminRoutes, testRouter: adminTestRoutes } = require('./src/routes/admin.routes');
+const adminRoutes = require('./src/routes/admin.routes');
 const tradingRoutes = require('./src/routes/trading.routes');
 
 // Initialize Express app
@@ -71,7 +71,6 @@ app.use(`${API_PREFIX}/auth`, authRoutes);
 app.use(`${API_PREFIX}/user`, userRoutes);
 app.use(`${API_PREFIX}/messages`, messageRoutes);
 app.use(`${API_PREFIX}/admin`, adminRoutes);
-app.use(`${API_PREFIX}/admin`, adminTestRoutes); // Test routes without auth
 app.use(`${API_PREFIX}/trading`, tradingRoutes);
 
 // Serve PWA static files
