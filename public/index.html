@@ -12153,7 +12153,7 @@ ARB4ME Security Team`
                     if (isIndividual) {
                         await sendIndividualAdminMessage(subject, content, priority, targetUser, timestamp, messageId);
                     } else {
-                        sendBroadcastAdminMessage(subject, content, priority, timestamp, messageId);
+                        await sendBroadcastAdminMessage(subject, content, priority, timestamp, messageId);
                     }
                 }
                 
@@ -12242,54 +12242,54 @@ ARB4ME Security Team`
             }
         }
         
-        function sendBroadcastAdminMessage(subject, content, priority, timestamp, messageId) {
-            const messages = JSON.parse(localStorage.getItem('arb4me_messages') || '[]');
-            
-            // For now, we'll send to the current user as a demo
-            // In a real system, this would iterate through all users
-            const recipients = [
-                {
-                    userId: userState.userData?.id,
-                    userEmail: userState.userData?.email,
-                    userName: `${userState.userData?.firstName} ${userState.userData?.lastName}`
-                }
-                // In production: get all users from database
-            ];
-            
-            let sentCount = 0;
-            
-            recipients.forEach(recipient => {
-                const broadcastMessage = {
-                    subject: `[BROADCAST] ${subject}`,
-                    content: content,
-                    priority: priority,
-                    isAdminInitiated: true,
-                    isAdminReply: false,
-                    isBroadcast: true,
-                    adminName: adminState.userData?.username || 'Admin',
-                    timestamp: timestamp,
-                    userId: recipient.userId,
-                    userEmail: recipient.userEmail,
-                    userName: recipient.userName,
-                    id: messageId + sentCount, // Unique ID for each recipient
-                    status: 'sent'
-                };
+        async function sendBroadcastAdminMessage(subject, content, priority, timestamp, messageId) {
+            try {
+                console.log('📢 Sending broadcast message:', { subject, priority });
                 
-                messages.unshift(broadcastMessage);
-                sentCount++;
-            });
-            
-            localStorage.setItem('arb4me_messages', JSON.stringify(messages));
-            
-            // Update displays
-            refreshAdminMessages();
-            if (document.getElementById('messagesTab').classList.contains('active')) {
-                displayUserMessages();
+                // Send to backend API
+                const response = await apiService.apiCall('/messages/broadcast', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        subject: `[BROADCAST] ${subject}`,
+                        content,
+                        priority
+                    })
+                });
+                
+                if (response.success) {
+                    console.log('✅ Broadcast sent successfully:', response.data);
+                    
+                    // Update displays
+                    refreshAdminMessages();
+                    if (document.getElementById('messagesTab').classList.contains('active')) {
+                        displayUserMessages();
+                    }
+                    
+                    // Success feedback
+                    const recipientCount = response.data.broadcast.recipientCount;
+                    addActivity(`📢 Broadcast message sent to ${recipientCount} users: "${subject}"`, 'success');
+                    addActivity(`✅ Broadcast delivered successfully`, 'success');
+                } else {
+                    throw new Error(response.error?.message || 'Failed to send broadcast');
+                }
+            } catch (error) {
+                console.error('❌ Failed to send broadcast message:', error);
+                addActivity(`❌ Failed to send broadcast: ${error.message}`, 'error');
+                
+                // Fallback to localStorage
+                console.log('💾 Saving broadcast to localStorage as fallback');
+                const messages = JSON.parse(localStorage.getItem('arb4me_messages') || '[]');
+                messages.unshift({
+                    subject: `[BROADCAST] ${subject}`,
+                    content,
+                    priority,
+                    isBroadcast: true,
+                    timestamp,
+                    id: messageId,
+                    status: 'failed'
+                });
+                localStorage.setItem('arb4me_messages', JSON.stringify(messages));
             }
-            
-            // Success feedback
-            addActivity(`📢 Broadcast message sent to ${sentCount} users: "${subject}"`, 'success');
-            addActivity(`✅ Broadcast delivered successfully`, 'success');
         }
         
         function handleAdminReply(event) {
@@ -13071,7 +13071,7 @@ ARB4ME Security Team`
                         throw new Error('Authentication required');
                     }
 
-                    const response = await this.apiCall('/admin/compose-test', {
+                    const response = await this.apiCall('/messages/send', {
                         method: 'POST',
                         body: JSON.stringify({
                             targetUserId,

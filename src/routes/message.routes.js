@@ -13,25 +13,50 @@ const router = express.Router();
 router.use(authenticatedRateLimit);
 router.use(authenticateUser);
 
-// POST /api/v1/messages/send - Send message to admin
+// POST /api/v1/messages/send - Send message (user-to-admin OR admin-to-user)
 router.post('/send', messageRateLimit, [
     body('subject').trim().isLength({ min: 5, max: 255 }).withMessage('Subject must be 5-255 characters'),
     body('content').trim().isLength({ min: 10, max: 5000 }).withMessage('Content must be 10-5000 characters'),
-    body('priority').optional().isIn(['low', 'medium', 'high', 'critical']).withMessage('Invalid priority level')
+    body('priority').optional().isIn(['low', 'medium', 'high', 'critical']).withMessage('Invalid priority level'),
+    body('targetUserId').optional().isString().withMessage('Target user ID must be a string')
 ], asyncHandler(async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
     }
     
-    const { subject, content, priority = 'medium' } = req.body;
+    const { subject, content, priority = 'medium', targetUserId } = req.body;
+    
+    // Determine message type and recipient
+    let messageType, userId, adminUserId;
+    
+    if (req.user.admin_role && targetUserId) {
+        // Admin sending to specific user
+        messageType = 'admin_to_user';
+        userId = targetUserId;
+        adminUserId = req.user.id;
+        
+        // Verify target user exists
+        const userCheck = await query(
+            'SELECT id FROM users WHERE id = $1 AND account_status = $2',
+            [targetUserId, 'active']
+        );
+        if (userCheck.rows.length === 0) {
+            throw new APIError('Target user not found or inactive', 404, 'USER_NOT_FOUND');
+        }
+    } else {
+        // Regular user sending to admin
+        messageType = 'user_to_admin';
+        userId = req.user.id;
+        adminUserId = null;
+    }
     
     // Insert message into database
     const messageResult = await query(
-        `INSERT INTO messages (user_id, subject, content, priority, message_type, status) 
-         VALUES ($1, $2, $3, $4, 'user_to_admin', 'sent') 
+        `INSERT INTO messages (user_id, subject, content, priority, message_type, status, admin_user_id) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7) 
          RETURNING id, created_at, thread_id`,
-        [req.user.id, subject, content, priority]
+        [userId, subject, content, priority, messageType, 'sent', adminUserId]
     );
     
     const message = messageResult.rows[0];
@@ -46,28 +71,40 @@ router.post('/send', messageRateLimit, [
         }, req.ip, req.get('User-Agent')]
     );
     
-    // Notify admins via WebSocket
+    // Notify appropriate recipients via WebSocket
     const messageData = {
         id: message.id,
         threadId: message.thread_id,
         from: `${req.user.first_name} ${req.user.last_name}`,
-        userId: req.user.id,
+        userId: messageType === 'admin_to_user' ? targetUserId : req.user.id,
         subject,
         content,
         priority,
         timestamp: message.created_at,
-        type: 'user_to_admin'
+        type: messageType
     };
     
-    broadcastToAdmins('new_user_message', messageData);
-    
-    systemLogger.user('Message sent to admin', {
-        userId: req.user.id,
-        messageId: message.id,
-        subject,
-        priority,
-        threadId: message.thread_id
-    });
+    if (messageType === 'admin_to_user') {
+        // Notify the specific user
+        notifyUser(targetUserId, 'new_admin_message', messageData);
+        systemLogger.admin('Admin message sent to user', {
+            adminId: req.user.id,
+            targetUserId,
+            messageId: message.id,
+            subject,
+            priority
+        });
+    } else {
+        // Notify all admins
+        broadcastToAdmins('new_user_message', messageData);
+        systemLogger.user('Message sent to admin', {
+            userId: req.user.id,
+            messageId: message.id,
+            subject,
+            priority,
+            threadId: message.thread_id
+        });
+    }
     
     res.status(201).json({
         success: true,
@@ -283,6 +320,90 @@ router.put('/:messageId/mark-read', asyncHandler(async (req, res) => {
     res.json({
         success: true,
         message: 'Message marked as read'
+    });
+}));
+
+// POST /api/v1/messages/broadcast - Send broadcast message to all users (admin only)
+router.post('/broadcast', [
+    body('subject').trim().isLength({ min: 5, max: 255 }).withMessage('Subject must be 5-255 characters'),
+    body('content').trim().isLength({ min: 10, max: 5000 }).withMessage('Content must be 10-5000 characters'),
+    body('priority').optional().isIn(['low', 'medium', 'high', 'critical']).withMessage('Invalid priority level')
+], asyncHandler(async (req, res) => {
+    // Check if user is admin
+    if (!req.user.admin_role) {
+        throw new APIError('Admin privileges required', 403, 'INSUFFICIENT_PRIVILEGES');
+    }
+    
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { subject, content, priority = 'medium' } = req.body;
+    
+    // Insert broadcast message
+    const broadcastResult = await query(
+        `INSERT INTO broadcast_messages (admin_user_id, subject, content, priority, sent_at) 
+         VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP) 
+         RETURNING id, created_at, sent_at`,
+        [req.user.id, subject, content, priority]
+    );
+    
+    const broadcast = broadcastResult.rows[0];
+    
+    // Get all active users
+    const usersResult = await query(
+        'SELECT id, first_name, last_name FROM users WHERE account_status = $1 AND admin_role IS NULL',
+        ['active']
+    );
+    
+    // Insert message recipients
+    const recipientPromises = usersResult.rows.map(user => 
+        query(
+            'INSERT INTO message_recipients (broadcast_message_id, user_id, delivered_at) VALUES ($1, $2, CURRENT_TIMESTAMP)',
+            [broadcast.id, user.id]
+        )
+    );
+    
+    await Promise.all(recipientPromises);
+    
+    // Notify all users via WebSocket
+    const broadcastData = {
+        id: broadcast.id,
+        subject,
+        content,
+        priority,
+        timestamp: broadcast.sent_at,
+        from: `${req.user.first_name} ${req.user.last_name}`,
+        type: 'broadcast'
+    };
+    
+    // Notify each user
+    usersResult.rows.forEach(user => {
+        notifyUser(user.id, 'new_broadcast_message', broadcastData);
+    });
+    
+    systemLogger.admin('Broadcast message sent', {
+        adminId: req.user.id,
+        broadcastId: broadcast.id,
+        recipientCount: usersResult.rows.length,
+        subject,
+        priority
+    });
+    
+    res.status(201).json({
+        success: true,
+        data: {
+            broadcast: {
+                id: broadcast.id,
+                subject,
+                content,
+                priority,
+                recipientCount: usersResult.rows.length,
+                timestamp: broadcast.sent_at
+            }
+        },
+        message: `Broadcast sent to ${usersResult.rows.length} users`
     });
 }));
 
