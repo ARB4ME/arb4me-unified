@@ -12416,13 +12416,14 @@ ARB4ME Security Team`
             try {
                 console.log('📤 Sending admin reply to backend:', { parentMessageId, targetUserId, subject });
                 
-                const response = await apiService.apiCall('/admin/reply-test', {
+                // Use the same working endpoint as compose messages
+                const response = await apiService.apiCall('/messages/send', {
                     method: 'POST',
                     body: JSON.stringify({
                         targetUserId: targetUserId,
-                        parentMessageId: parseInt(parentMessageId),
                         subject: subject,
-                        content: content
+                        content: content,
+                        priority: 'medium'
                     })
                 });
                 
@@ -12433,7 +12434,7 @@ ARB4ME Security Team`
                     // Refresh the admin messages to show updated status
                     refreshAdminMessages();
                 } else {
-                    throw new Error(response.message || 'Failed to send reply');
+                    throw new Error(response.error?.message || 'Failed to send reply');
                 }
                 
             } catch (error) {
