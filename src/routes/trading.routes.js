@@ -716,37 +716,27 @@ const VALR_CONFIG = {
 
 // VALR Authentication Helper  
 function createValrSignature(apiSecret, timestamp, verb, path, body = '') {
+    // VALR signature format: timestamp + verb + path + body
     const payload = `${timestamp}${verb.toUpperCase()}${path}${body}`;
     
-    // Debug logging
-    systemLogger.trading('VALR signature debug', {
+    systemLogger.trading('VALR signature payload', {
         timestamp,
         verb: verb.toUpperCase(),
         path,
-        body,
-        payload
+        bodyString: body,
+        fullPayload: payload
     });
     
-    // VALR expects the secret as hex, but let's try both ways
-    let signature;
-    try {
-        // Method 1: Treat secret as hex string (VALR standard)
-        signature = crypto
-            .createHmac('sha512', Buffer.from(apiSecret, 'hex'))
-            .update(payload)
-            .digest('hex');
-    } catch (hexError) {
-        // Method 2: Treat secret as UTF-8 string (fallback)
-        systemLogger.trading('VALR hex conversion failed, trying UTF-8', { error: hexError.message });
-        signature = crypto
-            .createHmac('sha512', apiSecret)
-            .update(payload)
-            .digest('hex');
-    }
+    // VALR API secret is hex-encoded string - convert to Buffer first
+    const signature = crypto
+        .createHmac('sha512', Buffer.from(apiSecret, 'hex'))
+        .update(payload, 'utf8')
+        .digest('hex');
     
-    systemLogger.trading('VALR signature created', { 
-        signatureLength: signature.length,
-        signaturePreview: signature.substring(0, 16) + '...'
+    systemLogger.trading('VALR signature result', { 
+        signature: signature,
+        payloadLength: payload.length,
+        apiSecretLength: apiSecret.length
     });
     
     return signature;
@@ -782,11 +772,13 @@ function makeValrRequest(endpoint, method, apiKey, apiSecret, body = null) {
             options.headers['X-API-TIMESTAMP'] = timestamp.toString();
         }
         
-        systemLogger.trading('VALR API request', {
+        systemLogger.trading('VALR API request details', {
             method: method.toUpperCase(),
             path: path,
-            hasAuth: !!(apiKey && apiSecret),
-            bodyLength: bodyString ? bodyString.length : 0
+            hostname: options.hostname,
+            headers: options.headers,
+            bodyString: bodyString,
+            hasAuth: !!(apiKey && apiSecret)
         });
         
         const req = https.request(options, (res) => {
