@@ -705,22 +705,51 @@ const VALR_CONFIG = {
     baseUrl: 'https://api.valr.com',
     endpoints: {
         balance: '/v1/account/balances',
-        ticker: '/v1/public/marketsummary',
-        simpleBuyOrder: '/v1/simple/buy/order',
-        simpleSellOrder: '/v1/simple/sell/order',
+        ticker: '/v1/public/marketsummary', 
+        simpleBuyOrder: '/v1/simple/quotedorder',  // Updated to correct VALR endpoint
+        simpleSellOrder: '/v1/simple/quotedorder', // Updated to correct VALR endpoint
         pairs: '/v1/public/pairs',
         orderStatus: '/v1/orders/:orderId',
         orderBook: '/v1/public/:pair/orderbook'
     }
 };
 
-// VALR Authentication Helper
+// VALR Authentication Helper  
 function createValrSignature(apiSecret, timestamp, verb, path, body = '') {
     const payload = `${timestamp}${verb.toUpperCase()}${path}${body}`;
-    return crypto
-        .createHmac('sha512', Buffer.from(apiSecret, 'hex'))
-        .update(payload)
-        .digest('hex');
+    
+    // Debug logging
+    systemLogger.trading('VALR signature debug', {
+        timestamp,
+        verb: verb.toUpperCase(),
+        path,
+        body,
+        payload
+    });
+    
+    // VALR expects the secret as hex, but let's try both ways
+    let signature;
+    try {
+        // Method 1: Treat secret as hex string (VALR standard)
+        signature = crypto
+            .createHmac('sha512', Buffer.from(apiSecret, 'hex'))
+            .update(payload)
+            .digest('hex');
+    } catch (hexError) {
+        // Method 2: Treat secret as UTF-8 string (fallback)
+        systemLogger.trading('VALR hex conversion failed, trying UTF-8', { error: hexError.message });
+        signature = crypto
+            .createHmac('sha512', apiSecret)
+            .update(payload)
+            .digest('hex');
+    }
+    
+    systemLogger.trading('VALR signature created', { 
+        signatureLength: signature.length,
+        signaturePreview: signature.substring(0, 16) + '...'
+    });
+    
+    return signature;
 }
 
 // VALR HTTP Request Helper
