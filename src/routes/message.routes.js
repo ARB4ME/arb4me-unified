@@ -329,11 +329,6 @@ router.post('/broadcast', [
     body('content').trim().isLength({ min: 10, max: 5000 }).withMessage('Content must be 10-5000 characters'),
     body('priority').optional().isIn(['low', 'medium', 'high', 'critical']).withMessage('Invalid priority level')
 ], asyncHandler(async (req, res) => {
-    // Check if user is admin
-    if (!req.user.admin_role) {
-        throw new APIError('Admin privileges required', 403, 'INSUFFICIENT_PRIVILEGES');
-    }
-    
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
