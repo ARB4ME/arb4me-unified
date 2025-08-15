@@ -17000,7 +17000,7 @@ ARB4ME Security Team`
                 const jwtToken = localStorage.getItem('arb4me_jwt_token');
                 if (jwtToken) {
                     // Update via backend API (async, but don't wait)
-                    fetch('/api/v1/users/profile', {
+                    fetch('/api/v1/user/profile', {
                         method: 'PUT',
                         headers: {
                             'Content-Type': 'application/json',
