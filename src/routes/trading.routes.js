@@ -2238,4 +2238,245 @@ router.post('/xago/test', tradingRateLimit, [
     }
 }));
 
+// ============================================================================
+// CHAINEX EXCHANGE API PROXY ENDPOINTS
+// ============================================================================
+
+// ChainEX API Configuration
+const CHAINEX_CONFIG = {
+    baseUrl: 'https://api.chainex.io',
+    endpoints: {
+        balance: '/v1/account/balances',
+        ticker: '/v1/market/ticker',
+        order: '/v1/order'
+    }
+};
+
+// ChainEX Authentication Helper
+async function createChainEXAuth(apiKey, apiSecret) {
+    // ChainEX uses API key/secret with timestamp and signature
+    try {
+        const timestamp = Date.now();
+        const message = `${timestamp}${apiKey}`;
+        const signature = crypto
+            .createHmac('sha256', apiSecret)
+            .update(message)
+            .digest('hex');
+        
+        return {
+            apiKey,
+            timestamp: timestamp.toString(),
+            signature
+        };
+    } catch (error) {
+        throw new Error(`ChainEX authentication failed: ${error.message}`);
+    }
+}
+
+// ChainEX Balance Endpoint
+router.post('/chainex/balance', tradingRateLimit, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey, apiSecret } = req.body;
+    
+    try {
+        systemLogger.trading('ChainEX balance request initiated', {
+            userId: req.user.id,
+            exchange: 'chainex',
+            endpoint: 'balance'
+        });
+        
+        const auth = await createChainEXAuth(apiKey, apiSecret);
+        
+        const response = await fetch(`${CHAINEX_CONFIG.baseUrl}${CHAINEX_CONFIG.endpoints.balance}`, {
+            method: 'GET',
+            headers: {
+                'X-API-KEY': auth.apiKey,
+                'X-TIMESTAMP': auth.timestamp,
+                'X-SIGNATURE': auth.signature,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const balanceData = await response.json();
+        
+        // Transform ChainEX response to expected format
+        const balances = {};
+        if (balanceData && Array.isArray(balanceData)) {
+            balanceData.forEach(balance => {
+                balances[balance.asset] = parseFloat(balance.free || 0) + parseFloat(balance.locked || 0);
+            });
+        }
+        
+        systemLogger.trading('ChainEX balance retrieved successfully', {
+            userId: req.user.id,
+            exchange: 'chainex',
+            balanceCount: Object.keys(balances).length
+        });
+        
+        res.json({
+            success: true,
+            balances: balances
+        });
+        
+    } catch (error) {
+        systemLogger.error('ChainEX balance request failed', {
+            userId: req.user.id,
+            exchange: 'chainex',
+            error: error.message
+        });
+        
+        throw new APIError(`ChainEX balance request failed: ${error.message}`, 500, 'CHAINEX_BALANCE_ERROR');
+    }
+}));
+
+// ChainEX Ticker Endpoint
+router.post('/chainex/ticker', tradingRateLimit, [
+    body('pair').notEmpty().withMessage('Trading pair is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { pair } = req.body;
+    
+    try {
+        systemLogger.trading('ChainEX ticker request initiated', {
+            userId: req.user.id,
+            exchange: 'chainex',
+            endpoint: 'ticker',
+            pair: pair
+        });
+        
+        // Handle ChainEX's pair naming: convert USDT pairs to ZAR pairs for SA market
+        let chainexPair = pair.replace('USDT', 'ZAR');
+        
+        const response = await fetch(`${CHAINEX_CONFIG.baseUrl}${CHAINEX_CONFIG.endpoints.ticker}/${chainexPair}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const tickerData = await response.json();
+        
+        if (!tickerData) {
+            throw new APIError(`Trading pair ${chainexPair} not found on ChainEX`, 404, 'PAIR_NOT_FOUND');
+        }
+        
+        systemLogger.trading('ChainEX ticker retrieved successfully', {
+            userId: req.user.id,
+            exchange: 'chainex',
+            pair: chainexPair
+        });
+        
+        res.json({
+            success: true,
+            data: {
+                pair: chainexPair,
+                ticker: {
+                    lastPrice: parseFloat(tickerData.last || 0),
+                    bid: parseFloat(tickerData.bid || 0),
+                    ask: parseFloat(tickerData.ask || 0),
+                    volume: parseFloat(tickerData.volume || 0),
+                    high: parseFloat(tickerData.high || 0),
+                    low: parseFloat(tickerData.low || 0),
+                    change: parseFloat(tickerData.change || 0)
+                }
+            }
+        });
+        
+    } catch (error) {
+        systemLogger.error('ChainEX ticker request failed', {
+            userId: req.user.id,
+            exchange: 'chainex',
+            error: error.message,
+            pair: pair
+        });
+        
+        throw new APIError(`ChainEX ticker request failed: ${error.message}`, 500, 'CHAINEX_TICKER_ERROR');
+    }
+}));
+
+// ChainEX Test Endpoint
+router.post('/chainex/test', tradingRateLimit, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey, apiSecret } = req.body;
+    
+    try {
+        systemLogger.trading('ChainEX connection test initiated', {
+            userId: req.user.id,
+            exchange: 'chainex',
+            endpoint: 'test'
+        });
+        
+        const auth = await createChainEXAuth(apiKey, apiSecret);
+        
+        // Test connection by getting balance
+        const response = await fetch(`${CHAINEX_CONFIG.baseUrl}${CHAINEX_CONFIG.endpoints.balance}`, {
+            method: 'GET',
+            headers: {
+                'X-API-KEY': auth.apiKey,
+                'X-TIMESTAMP': auth.timestamp,
+                'X-SIGNATURE': auth.signature,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const balanceData = await response.json();
+        
+        systemLogger.trading('ChainEX connection test successful', {
+            userId: req.user.id,
+            exchange: 'chainex'
+        });
+        
+        res.json({
+            success: true,
+            message: 'ChainEX connection successful',
+            data: {
+                connected: true,
+                balanceCount: Array.isArray(balanceData) ? balanceData.length : 0
+            }
+        });
+        
+    } catch (error) {
+        systemLogger.error('ChainEX connection test failed', {
+            userId: req.user.id,
+            exchange: 'chainex',
+            error: error.message
+        });
+        
+        throw new APIError(`ChainEX connection test failed: ${error.message}`, 500, 'CHAINEX_CONNECTION_ERROR');
+    }
+}));
+
 module.exports = router;
