@@ -16340,8 +16340,33 @@ ARB4ME Security Team`
                 
                 // Use backend server for all exchanges to avoid CORS issues
                 if (exchange === 'luno' || exchange === 'valr' || exchange === 'altcointrader' || exchange === 'xago' || exchange === 'chainex' || exchange === 'kraken' || exchange === 'binance' || exchange === 'bybit' || exchange === 'gateio' || exchange === 'okx' || exchange === 'mexc' || exchange === 'kucoin' || exchange === 'xt' || exchange === 'ascendex' || exchange === 'htx' || exchange === 'bingx' || exchange === 'bitget' || exchange === 'bitmart' || exchange === 'bitrue') {
-                    const backendUrl = 'http://localhost:3001';
-                    const response = await fetch(`${backendUrl}/api/${exchange}/ticker/${pair}`);
+                    // Use Railway for VALR and LUNO, localhost for others
+                    const backendUrl = (exchange === 'valr' || exchange === 'luno') 
+                        ? 'https://arb4me-unified-production.up.railway.app' 
+                        : 'http://localhost:3001';
+                    
+                    // Use new trading routes for VALR and LUNO
+                    let tickerEndpoint;
+                    if (exchange === 'valr') {
+                        tickerEndpoint = `/api/v1/trading/valr/ticker`;
+                    } else if (exchange === 'luno') {
+                        tickerEndpoint = `/api/v1/trading/luno/ticker`;
+                    } else {
+                        tickerEndpoint = `/api/${exchange}/ticker/${pair}`;
+                    }
+                    
+                    const response = await fetch(`${backendUrl}${tickerEndpoint}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...(exchange === 'valr' || exchange === 'luno' ? {
+                                'Authorization': `Bearer ${localStorage.getItem('arb4me_jwt_token')}`
+                            } : {})
+                        },
+                        body: JSON.stringify({
+                            pair: pair
+                        })
+                    });
                     
                     if (!response.ok) {
                         const error = await response.json();
@@ -16349,7 +16374,14 @@ ARB4ME Security Team`
                     }
                     
                     const data = await response.json();
-                    return data.ticker.lastPrice;
+                    // Handle different response formats
+                    if (exchange === 'valr' || exchange === 'luno') {
+                        // New trading routes return { success: true, data: { ticker: {...} } }
+                        return data.data?.ticker?.lastPrice || data.ticker?.lastPrice || data.lastPrice;
+                    } else {
+                        // Old routes return { ticker: {...} }
+                        return data.ticker.lastPrice;
+                    }
                 }
                 
                 // Keep direct API calls for other exchanges (will need backend support later)
