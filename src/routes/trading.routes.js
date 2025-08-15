@@ -800,9 +800,9 @@ router.post('/luno/ticker', tradingRateLimit, [
             pair: pair
         });
         
-        // Handle Luno's different pair naming for Bitcoin
-        let lunoPair = pair;
-        if (pair === 'BTCZAR') {
+        // Handle Luno's pair naming: convert USDT pairs to ZAR pairs
+        let lunoPair = pair.replace('USDT', 'ZAR'); // Convert BTCUSDT -> BTCZAR
+        if (lunoPair === 'BTCZAR') {
             lunoPair = 'XBTZAR'; // Luno uses XBTZAR for Bitcoin
         }
         
@@ -829,10 +829,12 @@ router.post('/luno/ticker', tradingRateLimit, [
         res.json({
             success: true,
             data: {
-                bid: parseFloat(tickerData.bid || 0),
-                ask: parseFloat(tickerData.ask || 0),
-                lastPrice: parseFloat(tickerData.last_trade || 0),
-                volume: parseFloat(tickerData.rolling_24_hour_volume || 0)
+                ticker: {
+                    bid: parseFloat(tickerData.bid || 0),
+                    ask: parseFloat(tickerData.ask || 0),
+                    lastPrice: parseFloat(tickerData.last_trade || 0),
+                    volume: parseFloat(tickerData.rolling_24_hour_volume || 0)
+                }
             }
         });
         
@@ -1365,15 +1367,38 @@ router.post('/valr/ticker', tradingRateLimit, asyncHandler(async (req, res) => {
             null  // No secret needed for public endpoint
         );
         
+        // Find the specific pair from all market summaries
+        // VALR uses format like "BTCZAR", "ETHZAR", "USDTZAR" etc.
+        const valrPair = pair.replace('USDT', 'ZAR'); // Convert BTCUSDT -> BTCZAR
+        const pairData = tickerData.find(ticker => ticker.currencyPair === valrPair);
+        
+        if (!pairData) {
+            throw new APIError(`Trading pair ${valrPair} not found on VALR`, 404, 'PAIR_NOT_FOUND');
+        }
+        
+        // Format ticker response for consistency
+        const formattedTicker = {
+            lastPrice: parseFloat(pairData.lastTradedPrice),
+            bid: parseFloat(pairData.bidPrice),
+            ask: parseFloat(pairData.askPrice),
+            volume: parseFloat(pairData.baseVolume),
+            high: parseFloat(pairData.highPrice),
+            low: parseFloat(pairData.lowPrice),
+            change: parseFloat(pairData.changeFromPrevious)
+        };
+        
         systemLogger.trading('VALR ticker retrieved successfully', {
             userId: req.user.id,
             exchange: 'valr',
-            dataCount: tickerData.length
+            pair: valrPair,
+            lastPrice: formattedTicker.lastPrice
         });
         
         res.json({
             success: true,
-            data: tickerData
+            data: {
+                ticker: formattedTicker
+            }
         });
         
     } catch (error) {
