@@ -697,6 +697,470 @@ router.get('/admin/user/:userId/activity', requireAdmin, asyncHandler(async (req
 }));
 
 // ============================================================================
+// LUNO EXCHANGE API PROXY ENDPOINTS
+// ============================================================================
+
+// LUNO API Configuration
+const LUNO_CONFIG = {
+    baseUrl: 'https://api.luno.com',
+    endpoints: {
+        balance: '/api/1/balance',
+        ticker: '/api/1/ticker',
+        order: '/api/1/marketorder'
+    }
+};
+
+// LUNO Authentication Helper - Simple Basic Auth
+function createLunoAuth(apiKey, apiSecret) {
+    return Buffer.from(`${apiKey}:${apiSecret}`).toString('base64');
+}
+
+// LUNO Balance Endpoint
+router.post('/luno/balance', tradingRateLimit, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey, apiSecret } = req.body;
+    
+    try {
+        systemLogger.trading('LUNO balance request initiated', {
+            userId: req.user.id,
+            exchange: 'luno',
+            endpoint: 'balance'
+        });
+        
+        const auth = createLunoAuth(apiKey, apiSecret);
+        
+        const response = await fetch(`${LUNO_CONFIG.baseUrl}${LUNO_CONFIG.endpoints.balance}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Basic ${auth}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const balanceData = await response.json();
+        
+        // Transform LUNO response to expected format
+        const balances = {};
+        if (balanceData.balance) {
+            balanceData.balance.forEach(balance => {
+                balances[balance.asset] = parseFloat(balance.balance);
+            });
+        }
+        
+        systemLogger.trading('LUNO balance retrieved successfully', {
+            userId: req.user.id,
+            exchange: 'luno',
+            balanceCount: Object.keys(balances).length
+        });
+        
+        res.json({
+            success: true,
+            balances: balances
+        });
+        
+    } catch (error) {
+        systemLogger.error('LUNO balance request failed', {
+            userId: req.user.id,
+            exchange: 'luno',
+            error: error.message
+        });
+        
+        throw new APIError(`LUNO balance request failed: ${error.message}`, 500, 'LUNO_BALANCE_ERROR');
+    }
+}));
+
+// LUNO Ticker Endpoint
+router.post('/luno/ticker', tradingRateLimit, [
+    body('pair').notEmpty().withMessage('Trading pair is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { pair } = req.body;
+    
+    try {
+        systemLogger.trading('LUNO ticker request initiated', {
+            userId: req.user.id,
+            exchange: 'luno',
+            endpoint: 'ticker',
+            pair: pair
+        });
+        
+        // Handle Luno's different pair naming for Bitcoin
+        let lunoPair = pair;
+        if (pair === 'BTCZAR') {
+            lunoPair = 'XBTZAR'; // Luno uses XBTZAR for Bitcoin
+        }
+        
+        const response = await fetch(`${LUNO_CONFIG.baseUrl}${LUNO_CONFIG.endpoints.ticker}?pair=${lunoPair}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const tickerData = await response.json();
+        
+        systemLogger.trading('LUNO ticker retrieved successfully', {
+            userId: req.user.id,
+            exchange: 'luno',
+            pair: lunoPair
+        });
+        
+        res.json({
+            success: true,
+            data: {
+                bid: parseFloat(tickerData.bid || 0),
+                ask: parseFloat(tickerData.ask || 0),
+                lastPrice: parseFloat(tickerData.last_trade || 0),
+                volume: parseFloat(tickerData.rolling_24_hour_volume || 0)
+            }
+        });
+        
+    } catch (error) {
+        systemLogger.error('LUNO ticker request failed', {
+            userId: req.user.id,
+            exchange: 'luno',
+            error: error.message,
+            pair: pair
+        });
+        
+        throw new APIError(`LUNO ticker request failed: ${error.message}`, 500, 'LUNO_TICKER_ERROR');
+    }
+}));
+
+// LUNO Test Endpoint
+router.post('/luno/test', tradingRateLimit, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey, apiSecret } = req.body;
+    
+    try {
+        systemLogger.trading('LUNO connection test initiated', {
+            userId: req.user.id,
+            exchange: 'luno',
+            endpoint: 'test'
+        });
+        
+        const auth = createLunoAuth(apiKey, apiSecret);
+        
+        // Test connection by getting balance (minimal data)
+        const response = await fetch(`${LUNO_CONFIG.baseUrl}${LUNO_CONFIG.endpoints.balance}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Basic ${auth}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const balanceData = await response.json();
+        
+        systemLogger.trading('LUNO connection test successful', {
+            userId: req.user.id,
+            exchange: 'luno'
+        });
+        
+        res.json({
+            success: true,
+            message: 'LUNO connection successful',
+            data: {
+                connected: true,
+                balanceCount: balanceData.balance ? balanceData.balance.length : 0
+            }
+        });
+        
+    } catch (error) {
+        systemLogger.error('LUNO connection test failed', {
+            userId: req.user.id,
+            exchange: 'luno',
+            error: error.message
+        });
+        
+        throw new APIError(`LUNO connection test failed: ${error.message}`, 500, 'LUNO_CONNECTION_ERROR');
+    }
+}));
+
+// LUNO Buy Order Endpoint
+router.post('/luno/buy-order', tradingRateLimit, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('pair').notEmpty().withMessage('Trading pair is required'),
+    body('volume').isFloat({ min: 0.01 }).withMessage('Volume must be a positive number')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey, apiSecret, pair, volume } = req.body;
+    
+    try {
+        systemLogger.trading('LUNO buy order initiated', {
+            userId: req.user.id,
+            exchange: 'luno',
+            endpoint: 'buy-order',
+            pair,
+            volume
+        });
+        
+        // Handle Luno's different pair naming for Bitcoin
+        let lunoPair = pair;
+        if (pair === 'BTCZAR') {
+            lunoPair = 'XBTZAR'; // Luno uses XBTZAR for Bitcoin
+        }
+        
+        const auth = createLunoAuth(apiKey, apiSecret);
+        
+        const orderData = {
+            pair: lunoPair,
+            type: 'BUY',
+            volume: volume.toString()
+        };
+        
+        const response = await fetch(`${LUNO_CONFIG.baseUrl}${LUNO_CONFIG.endpoints.order}`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Basic ${auth}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(orderData)
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const orderResult = await response.json();
+        
+        systemLogger.trading('LUNO buy order placed successfully', {
+            userId: req.user.id,
+            exchange: 'luno',
+            orderId: orderResult.order_id,
+            pair: lunoPair,
+            volume
+        });
+        
+        // Record trade attempt in database
+        await query(
+            'INSERT INTO user_activity (user_id, activity_type, activity_details, ip_address, user_agent) VALUES ($1, $2, $3, $4, $5)',
+            [req.user.id, 'luno_buy_order_placed', {
+                orderId: orderResult.order_id,
+                pair: lunoPair,
+                volume,
+                orderStatus: orderResult.state || 'PENDING',
+                timestamp: new Date()
+            }, req.ip, req.get('User-Agent')]
+        );
+        
+        // Notify admins of trading activity
+        broadcastToAdmins('user_trading_order', {
+            userId: req.user.id,
+            userName: `${req.user.first_name} ${req.user.last_name}`,
+            exchange: 'LUNO',
+            orderType: 'BUY',
+            pair: lunoPair,
+            volume,
+            orderId: orderResult.order_id,
+            status: orderResult.state || 'PENDING',
+            timestamp: new Date()
+        });
+        
+        res.json({
+            success: true,
+            data: {
+                order: {
+                    id: orderResult.order_id,
+                    pair: lunoPair,
+                    type: 'BUY',
+                    volume,
+                    status: orderResult.state || 'PENDING',
+                    createdAt: orderResult.creation_timestamp || new Date()
+                }
+            },
+            message: 'LUNO buy order placed successfully'
+        });
+        
+    } catch (error) {
+        systemLogger.error('LUNO buy order failed', {
+            userId: req.user.id,
+            exchange: 'luno',
+            error: error.message,
+            pair,
+            volume
+        });
+        
+        // Record failed order attempt
+        await query(
+            'INSERT INTO user_activity (user_id, activity_type, activity_details, ip_address, user_agent) VALUES ($1, $2, $3, $4, $5)',
+            [req.user.id, 'luno_buy_order_failed', {
+                pair,
+                volume,
+                error: error.message,
+                timestamp: new Date()
+            }, req.ip, req.get('User-Agent')]
+        );
+        
+        throw new APIError(`LUNO buy order failed: ${error.message}`, 500, 'LUNO_BUY_ORDER_ERROR');
+    }
+}));
+
+// LUNO Sell Order Endpoint
+router.post('/luno/sell-order', tradingRateLimit, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('pair').notEmpty().withMessage('Trading pair is required'),
+    body('volume').isFloat({ min: 0.01 }).withMessage('Volume must be a positive number')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey, apiSecret, pair, volume } = req.body;
+    
+    try {
+        systemLogger.trading('LUNO sell order initiated', {
+            userId: req.user.id,
+            exchange: 'luno',
+            endpoint: 'sell-order',
+            pair,
+            volume
+        });
+        
+        // Handle Luno's different pair naming for Bitcoin
+        let lunoPair = pair;
+        if (pair === 'BTCZAR') {
+            lunoPair = 'XBTZAR'; // Luno uses XBTZAR for Bitcoin
+        }
+        
+        const auth = createLunoAuth(apiKey, apiSecret);
+        
+        const orderData = {
+            pair: lunoPair,
+            type: 'SELL',
+            volume: volume.toString()
+        };
+        
+        const response = await fetch(`${LUNO_CONFIG.baseUrl}${LUNO_CONFIG.endpoints.order}`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Basic ${auth}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(orderData)
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const orderResult = await response.json();
+        
+        systemLogger.trading('LUNO sell order placed successfully', {
+            userId: req.user.id,
+            exchange: 'luno',
+            orderId: orderResult.order_id,
+            pair: lunoPair,
+            volume
+        });
+        
+        // Record trade attempt in database
+        await query(
+            'INSERT INTO user_activity (user_id, activity_type, activity_details, ip_address, user_agent) VALUES ($1, $2, $3, $4, $5)',
+            [req.user.id, 'luno_sell_order_placed', {
+                orderId: orderResult.order_id,
+                pair: lunoPair,
+                volume,
+                orderStatus: orderResult.state || 'PENDING',
+                timestamp: new Date()
+            }, req.ip, req.get('User-Agent')]
+        );
+        
+        // Notify admins of trading activity
+        broadcastToAdmins('user_trading_order', {
+            userId: req.user.id,
+            userName: `${req.user.first_name} ${req.user.last_name}`,
+            exchange: 'LUNO',
+            orderType: 'SELL',
+            pair: lunoPair,
+            volume,
+            orderId: orderResult.order_id,
+            status: orderResult.state || 'PENDING',
+            timestamp: new Date()
+        });
+        
+        res.json({
+            success: true,
+            data: {
+                order: {
+                    id: orderResult.order_id,
+                    pair: lunoPair,
+                    type: 'SELL',
+                    volume,
+                    status: orderResult.state || 'PENDING',
+                    createdAt: orderResult.creation_timestamp || new Date()
+                }
+            },
+            message: 'LUNO sell order placed successfully'
+        });
+        
+    } catch (error) {
+        systemLogger.error('LUNO sell order failed', {
+            userId: req.user.id,
+            exchange: 'luno',
+            error: error.message,
+            pair,
+            volume
+        });
+        
+        // Record failed order attempt
+        await query(
+            'INSERT INTO user_activity (user_id, activity_type, activity_details, ip_address, user_agent) VALUES ($1, $2, $3, $4, $5)',
+            [req.user.id, 'luno_sell_order_failed', {
+                pair,
+                volume,
+                error: error.message,
+                timestamp: new Date()
+            }, req.ip, req.get('User-Agent')]
+        );
+        
+        throw new APIError(`LUNO sell order failed: ${error.message}`, 500, 'LUNO_SELL_ORDER_ERROR');
+    }
+}));
+
+// ============================================================================
 // VALR EXCHANGE API PROXY ENDPOINTS
 // ============================================================================
 

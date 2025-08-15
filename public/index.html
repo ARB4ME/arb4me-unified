@@ -16189,8 +16189,8 @@ ARB4ME Security Team`
 
             // Use backend server for all exchanges to avoid CORS issues
             if (exchange === 'luno' || exchange === 'valr' || exchange === 'altcointrader' || exchange === 'xago' || exchange === 'chainex' || exchange === 'kraken' || exchange === 'binance' || exchange === 'bybit' || exchange === 'gateio' || exchange === 'bitmart' || exchange === 'bitrue') {
-                // Use Railway for VALR (production deployment), localhost for others (for now)
-                const backendUrl = exchange === 'valr' 
+                // Use Railway for VALR and LUNO (production deployment), localhost for others (for now)
+                const backendUrl = (exchange === 'valr' || exchange === 'luno') 
                     ? 'https://arb4me-unified-production.up.railway.app' 
                     : 'http://localhost:3001';
                 
@@ -16205,6 +16205,15 @@ ARB4ME Security Team`
                             backendEndpoint = `/api/v1/trading/valr/ticker`;
                         } else {
                             backendEndpoint = `/api/v1/trading/valr/test`;
+                        }
+                    } else if (exchange === 'luno') {
+                        // Use new LUNO trading routes
+                        if (endpoint.includes('balance')) {
+                            backendEndpoint = `/api/v1/trading/luno/balance`;
+                        } else if (endpoint.includes('ticker')) {
+                            backendEndpoint = `/api/v1/trading/luno/ticker`;
+                        } else {
+                            backendEndpoint = `/api/v1/trading/luno/test`;
                         }
                     } else {
                         // Use old structure for other exchanges
@@ -16222,8 +16231,8 @@ ARB4ME Security Team`
                         'Content-Type': 'application/json'
                     };
                     
-                    // Add JWT token for Railway endpoints (VALR)
-                    if (exchange === 'valr') {
+                    // Add JWT token for Railway endpoints (VALR & LUNO)
+                    if (exchange === 'valr' || exchange === 'luno') {
                         const token = localStorage.getItem('arb4me_jwt_token');
                         if (token) {
                             headers['Authorization'] = `Bearer ${token}`;
