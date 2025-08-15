@@ -17249,7 +17249,17 @@ ARB4ME Security Team`
                     };
                     
                     userState.userData = updatedUser;
-                    updateUser(userState.userData.id, updatedUser);
+                    
+                    // Update user via backend if JWT token exists, otherwise use local storage
+                    const jwtToken = localStorage.getItem('arb4me_jwt_token');
+                    if (jwtToken) {
+                        // For backend authentication, just log the exchange connection
+                        // Backend doesn't currently support exchangeConnections field
+                        console.log('✅ Exchange connected for backend user:', exchangeName);
+                    } else {
+                        // Use local storage method for offline users
+                        updateUser(userState.userData.id, updatedUser);
+                    }
                     
                     // Update single-user storage for backward compatibility
                     const encryptedUserData = simpleEncrypt(JSON.stringify(updatedUser));
