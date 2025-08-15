@@ -1995,4 +1995,247 @@ router.post('/altcointrader/test', tradingRateLimit, [
     }
 }));
 
+// ============================================================================
+// XAGO EXCHANGE API PROXY ENDPOINTS
+// ============================================================================
+
+// XAGO API Configuration
+const XAGO_CONFIG = {
+    baseUrl: 'https://api.xago.io',
+    endpoints: {
+        balance: '/v1/account/balance',
+        ticker: '/v1/market/ticker',
+        login: '/v1/auth/login',
+        order: '/v1/trading/order'
+    }
+};
+
+// XAGO Authentication Helper
+async function createXagoAuth(apiKey, apiSecret) {
+    // XAGO uses API key/secret authentication
+    try {
+        const timestamp = Date.now().toString();
+        const signature = crypto
+            .createHmac('sha256', apiSecret)
+            .update(timestamp + apiKey)
+            .digest('hex');
+        
+        return {
+            apiKey,
+            timestamp,
+            signature
+        };
+    } catch (error) {
+        throw new Error(`XAGO authentication failed: ${error.message}`);
+    }
+}
+
+// XAGO Balance Endpoint
+router.post('/xago/balance', tradingRateLimit, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey, apiSecret } = req.body;
+    
+    try {
+        systemLogger.trading('XAGO balance request initiated', {
+            userId: req.user.id,
+            exchange: 'xago',
+            endpoint: 'balance'
+        });
+        
+        const auth = await createXagoAuth(apiKey, apiSecret);
+        
+        const response = await fetch(`${XAGO_CONFIG.baseUrl}${XAGO_CONFIG.endpoints.balance}`, {
+            method: 'GET',
+            headers: {
+                'X-API-KEY': auth.apiKey,
+                'X-TIMESTAMP': auth.timestamp,
+                'X-SIGNATURE': auth.signature,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const balanceData = await response.json();
+        
+        // Transform XAGO response to expected format
+        const balances = {};
+        if (balanceData && balanceData.data) {
+            balanceData.data.forEach(balance => {
+                balances[balance.currency] = parseFloat(balance.available || 0);
+            });
+        }
+        
+        systemLogger.trading('XAGO balance retrieved successfully', {
+            userId: req.user.id,
+            exchange: 'xago',
+            balanceCount: Object.keys(balances).length
+        });
+        
+        res.json({
+            success: true,
+            balances: balances
+        });
+        
+    } catch (error) {
+        systemLogger.error('XAGO balance request failed', {
+            userId: req.user.id,
+            exchange: 'xago',
+            error: error.message
+        });
+        
+        throw new APIError(`XAGO balance request failed: ${error.message}`, 500, 'XAGO_BALANCE_ERROR');
+    }
+}));
+
+// XAGO Ticker Endpoint
+router.post('/xago/ticker', tradingRateLimit, [
+    body('pair').notEmpty().withMessage('Trading pair is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { pair } = req.body;
+    
+    try {
+        systemLogger.trading('XAGO ticker request initiated', {
+            userId: req.user.id,
+            exchange: 'xago',
+            endpoint: 'ticker',
+            pair: pair
+        });
+        
+        // Handle XAGO's pair naming: convert USDT pairs to ZAR pairs for SA market
+        let xagoPair = pair.replace('USDT', 'ZAR');
+        
+        const response = await fetch(`${XAGO_CONFIG.baseUrl}${XAGO_CONFIG.endpoints.ticker}?symbol=${xagoPair}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const tickerData = await response.json();
+        
+        if (!tickerData || !tickerData.data) {
+            throw new APIError(`Trading pair ${xagoPair} not found on XAGO`, 404, 'PAIR_NOT_FOUND');
+        }
+        
+        const pairData = tickerData.data;
+        
+        systemLogger.trading('XAGO ticker retrieved successfully', {
+            userId: req.user.id,
+            exchange: 'xago',
+            pair: xagoPair
+        });
+        
+        res.json({
+            success: true,
+            data: {
+                pair: xagoPair,
+                ticker: {
+                    lastPrice: parseFloat(pairData.lastPrice || 0),
+                    bid: parseFloat(pairData.bidPrice || 0),
+                    ask: parseFloat(pairData.askPrice || 0),
+                    volume: parseFloat(pairData.volume || 0),
+                    high: parseFloat(pairData.highPrice || 0),
+                    low: parseFloat(pairData.lowPrice || 0),
+                    change: parseFloat(pairData.priceChange || 0)
+                }
+            }
+        });
+        
+    } catch (error) {
+        systemLogger.error('XAGO ticker request failed', {
+            userId: req.user.id,
+            exchange: 'xago',
+            error: error.message,
+            pair: pair
+        });
+        
+        throw new APIError(`XAGO ticker request failed: ${error.message}`, 500, 'XAGO_TICKER_ERROR');
+    }
+}));
+
+// XAGO Test Endpoint
+router.post('/xago/test', tradingRateLimit, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey, apiSecret } = req.body;
+    
+    try {
+        systemLogger.trading('XAGO connection test initiated', {
+            userId: req.user.id,
+            exchange: 'xago',
+            endpoint: 'test'
+        });
+        
+        const auth = await createXagoAuth(apiKey, apiSecret);
+        
+        // Test connection by getting balance
+        const response = await fetch(`${XAGO_CONFIG.baseUrl}${XAGO_CONFIG.endpoints.balance}`, {
+            method: 'GET',
+            headers: {
+                'X-API-KEY': auth.apiKey,
+                'X-TIMESTAMP': auth.timestamp,
+                'X-SIGNATURE': auth.signature,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const balanceData = await response.json();
+        
+        systemLogger.trading('XAGO connection test successful', {
+            userId: req.user.id,
+            exchange: 'xago'
+        });
+        
+        res.json({
+            success: true,
+            message: 'XAGO connection successful',
+            data: {
+                connected: true,
+                balanceCount: balanceData?.data?.length || 0
+            }
+        });
+        
+    } catch (error) {
+        systemLogger.error('XAGO connection test failed', {
+            userId: req.user.id,
+            exchange: 'xago',
+            error: error.message
+        });
+        
+        throw new APIError(`XAGO connection test failed: ${error.message}`, 500, 'XAGO_CONNECTION_ERROR');
+    }
+}));
+
 module.exports = router;

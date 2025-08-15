@@ -16301,6 +16301,15 @@ ARB4ME Security Team`
                         } else {
                             backendEndpoint = `/api/v1/trading/altcointrader/test`;
                         }
+                    } else if (exchange === 'xago') {
+                        // Use new XAGO trading routes
+                        if (endpoint.includes('balance')) {
+                            backendEndpoint = `/api/v1/trading/xago/balance`;
+                        } else if (endpoint.includes('ticker')) {
+                            backendEndpoint = `/api/v1/trading/xago/ticker`;
+                        } else {
+                            backendEndpoint = `/api/v1/trading/xago/test`;
+                        }
                     } else {
                         // Use old structure for other exchanges
                         if (endpoint.includes('balance')) {
@@ -16435,6 +16444,8 @@ ARB4ME Security Team`
                         tickerEndpoint = `/api/v1/trading/luno/ticker`;
                     } else if (exchange === 'altcointrader') {
                         tickerEndpoint = `/api/v1/trading/altcointrader/ticker`;
+                    } else if (exchange === 'xago') {
+                        tickerEndpoint = `/api/v1/trading/xago/ticker`;
                     } else {
                         tickerEndpoint = `/api/${exchange}/ticker/${pair}`;
                     }
@@ -16443,7 +16454,7 @@ ARB4ME Security Team`
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            ...(exchange === 'valr' || exchange === 'luno' || exchange === 'altcointrader' ? {
+                            ...(exchange === 'valr' || exchange === 'luno' || exchange === 'altcointrader' || exchange === 'xago' ? {
                                 'Authorization': `Bearer ${localStorage.getItem('arb4me_jwt_token')}`
                             } : {})
                         },
