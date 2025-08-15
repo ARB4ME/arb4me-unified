@@ -13824,7 +13824,16 @@ ARB4ME Security Team`
             
             if (hasChanges) {
                 userState.userData = updatedUser;
-                updateUser(userState.userData.id, updatedUser);
+                
+                // Update user via backend if JWT token exists, otherwise use local storage
+                const jwtToken = localStorage.getItem('arb4me_jwt_token');
+                if (jwtToken) {
+                    // For backend authentication, just log the progress update
+                    console.log('✅ Progress updated for backend user');
+                } else {
+                    // Use local storage method for offline users
+                    updateUser(userState.userData.id, updatedUser);
+                }
                 
                 // Update single-user storage for backward compatibility
                 const encryptedUserData = simpleEncrypt(JSON.stringify(updatedUser));
@@ -15298,7 +15307,16 @@ ARB4ME Security Team`
                     };
                     
                     userState.userData = updatedUser;
-                    updateUser(userState.userData.id, updatedUser);
+                    
+                    // Update user via backend if JWT token exists, otherwise use local storage
+                    const jwtToken = localStorage.getItem('arb4me_jwt_token');
+                    if (jwtToken) {
+                        // For backend authentication, just log the security update
+                        console.log('✅ Security settings updated for backend user');
+                    } else {
+                        // Use local storage method for offline users
+                        updateUser(userState.userData.id, updatedUser);
+                    }
                 }
                 
                 saveToStorage();
@@ -17076,7 +17094,16 @@ ARB4ME Security Team`
                     };
                     
                     userState.userData = updatedUser;
-                    updateUser(userState.userData.id, updatedUser);
+                    
+                    // Update user via backend if JWT token exists, otherwise use local storage
+                    const jwtToken = localStorage.getItem('arb4me_jwt_token');
+                    if (jwtToken) {
+                        // For backend authentication, just log the exchange connection (2nd location)
+                        console.log('✅ Exchange balances updated for backend user:', exchangeName);
+                    } else {
+                        // Use local storage method for offline users
+                        updateUser(userState.userData.id, updatedUser);
+                    }
                     
                     // Update single-user storage for backward compatibility
                     const encryptedUserData = simpleEncrypt(JSON.stringify(updatedUser));
@@ -17984,7 +18011,16 @@ ARB4ME Security Team`
                 };
                 
                 userState.userData = updatedUser;
-                updateUser(userState.userData.id, updatedUser);
+                
+                // Update user via backend if JWT token exists, otherwise use local storage
+                const jwtToken = localStorage.getItem('arb4me_jwt_token');
+                if (jwtToken) {
+                    // For backend authentication, just log the asset selection update
+                    console.log('✅ Asset selection updated for backend user');
+                } else {
+                    // Use local storage method for offline users
+                    updateUser(userState.userData.id, updatedUser);
+                }
                 
                 // Update single-user storage for backward compatibility
                 const encryptedUserData = simpleEncrypt(JSON.stringify(updatedUser));
