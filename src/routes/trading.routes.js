@@ -726,15 +726,15 @@ function createValrSignature(apiSecret, timestamp, verb, path, body = '') {
         payload: payload
     });
     
-    // Frontend uses base64, backend was using hex - THIS WAS THE BUG!
+    // Localhost server.js uses hex - match exactly
     const signature = crypto
         .createHmac('sha512', apiSecret)  // UTF-8 string
         .update(payload)
-        .digest('base64');  // CHANGED FROM 'hex' to 'base64' to match frontend!
+        .digest('hex');  // Use hex like working localhost server.js
     
-    systemLogger.trading('VALR signature generated (base64)', { 
+    systemLogger.trading('VALR signature generated (hex)', { 
         signature: signature.substring(0, 20) + '...',
-        encoding: 'base64',
+        encoding: 'hex',
         payloadLength: payload.length
     });
     
