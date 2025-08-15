@@ -1758,4 +1758,241 @@ router.post('/valr/order-status', tradingRateLimit, [
     }
 }));
 
+// ============================================================================
+// ALTCOINTRADER EXCHANGE API PROXY ENDPOINTS
+// ============================================================================
+
+// AltCoinTrader API Configuration
+const ALTCOINTRADER_CONFIG = {
+    baseUrl: 'https://www.altcointrader.co.za/api',
+    endpoints: {
+        balance: '/balance',
+        ticker: '/live_stats', 
+        login: '/login',
+        buy: '/order',
+        sell: '/order'
+    }
+};
+
+// AltCoinTrader Authentication Helper
+async function createAltCoinTraderAuth(username, password) {
+    // AltCoinTrader requires login to get auth token
+    try {
+        const response = await fetch(`${ALTCOINTRADER_CONFIG.baseUrl}${ALTCOINTRADER_CONFIG.endpoints.login}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                username: username,
+                password: password
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Login failed: ${response.status}`);
+        }
+
+        const loginData = await response.json();
+        return loginData.token; // Return the auth token
+    } catch (error) {
+        throw new Error(`AltCoinTrader authentication failed: ${error.message}`);
+    }
+}
+
+// AltCoinTrader Balance Endpoint
+router.post('/altcointrader/balance', tradingRateLimit, [
+    body('apiKey').notEmpty().withMessage('Username is required'),
+    body('apiSecret').notEmpty().withMessage('Password is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey: username, apiSecret: password } = req.body;
+    
+    try {
+        systemLogger.trading('AltCoinTrader balance request initiated', {
+            userId: req.user.id,
+            exchange: 'altcointrader',
+            endpoint: 'balance'
+        });
+        
+        // Get auth token
+        const authToken = await createAltCoinTraderAuth(username, password);
+        
+        const response = await fetch(`${ALTCOINTRADER_CONFIG.baseUrl}${ALTCOINTRADER_CONFIG.endpoints.balance}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${authToken}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const balanceData = await response.json();
+        
+        // Transform AltCoinTrader response to expected format
+        const balances = {};
+        if (balanceData && typeof balanceData === 'object') {
+            Object.keys(balanceData).forEach(currency => {
+                balances[currency] = parseFloat(balanceData[currency] || 0);
+            });
+        }
+        
+        systemLogger.trading('AltCoinTrader balance retrieved successfully', {
+            userId: req.user.id,
+            exchange: 'altcointrader',
+            balanceCount: Object.keys(balances).length
+        });
+        
+        res.json({
+            success: true,
+            balances: balances
+        });
+        
+    } catch (error) {
+        systemLogger.error('AltCoinTrader balance request failed', {
+            userId: req.user.id,
+            exchange: 'altcointrader',
+            error: error.message
+        });
+        
+        throw new APIError(`AltCoinTrader balance request failed: ${error.message}`, 500, 'ALTCOINTRADER_BALANCE_ERROR');
+    }
+}));
+
+// AltCoinTrader Ticker Endpoint
+router.post('/altcointrader/ticker', tradingRateLimit, [
+    body('pair').notEmpty().withMessage('Trading pair is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { pair } = req.body;
+    
+    try {
+        systemLogger.trading('AltCoinTrader ticker request initiated', {
+            userId: req.user.id,
+            exchange: 'altcointrader',
+            endpoint: 'ticker',
+            pair: pair
+        });
+        
+        // AltCoinTrader ticker is public endpoint
+        const response = await fetch(`${ALTCOINTRADER_CONFIG.baseUrl}${ALTCOINTRADER_CONFIG.endpoints.ticker}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const tickerData = await response.json();
+        
+        // Handle AltCoinTrader's pair naming: convert USDT pairs to ZAR pairs
+        let altcoinPair = pair.replace('USDT', 'ZAR'); // Convert BTCUSDT -> BTCZAR
+        let currency = altcoinPair.replace('ZAR', ''); // Extract currency (BTC, ETH, etc.)
+        
+        // Find the specific currency data
+        const pairData = tickerData[currency];
+        
+        if (!pairData) {
+            throw new APIError(`Trading pair ${currency} not found on AltCoinTrader`, 404, 'PAIR_NOT_FOUND');
+        }
+        
+        systemLogger.trading('AltCoinTrader ticker retrieved successfully', {
+            userId: req.user.id,
+            exchange: 'altcointrader',
+            pair: currency
+        });
+        
+        res.json({
+            success: true,
+            data: {
+                pair: altcoinPair,
+                ticker: {
+                    lastPrice: parseFloat(pairData.Price || 0),
+                    bid: parseFloat(pairData.Buy || 0),
+                    ask: parseFloat(pairData.Sell || 0),
+                    volume: parseFloat(pairData.Volume || 0),
+                    high: parseFloat(pairData.High || 0),
+                    low: parseFloat(pairData.Low || 0)
+                }
+            }
+        });
+        
+    } catch (error) {
+        systemLogger.error('AltCoinTrader ticker request failed', {
+            userId: req.user.id,
+            exchange: 'altcointrader',
+            error: error.message,
+            pair: pair
+        });
+        
+        throw new APIError(`AltCoinTrader ticker request failed: ${error.message}`, 500, 'ALTCOINTRADER_TICKER_ERROR');
+    }
+}));
+
+// AltCoinTrader Test Endpoint
+router.post('/altcointrader/test', tradingRateLimit, [
+    body('apiKey').notEmpty().withMessage('Username is required'),
+    body('apiSecret').notEmpty().withMessage('Password is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey: username, apiSecret: password } = req.body;
+    
+    try {
+        systemLogger.trading('AltCoinTrader connection test initiated', {
+            userId: req.user.id,
+            exchange: 'altcointrader',
+            endpoint: 'test'
+        });
+        
+        // Test connection by attempting to get auth token
+        const authToken = await createAltCoinTraderAuth(username, password);
+        
+        systemLogger.trading('AltCoinTrader connection test successful', {
+            userId: req.user.id,
+            exchange: 'altcointrader'
+        });
+        
+        res.json({
+            success: true,
+            message: 'AltCoinTrader connection successful',
+            data: {
+                connected: true,
+                tokenReceived: !!authToken
+            }
+        });
+        
+    } catch (error) {
+        systemLogger.error('AltCoinTrader connection test failed', {
+            userId: req.user.id,
+            exchange: 'altcointrader',
+            error: error.message
+        });
+        
+        throw new APIError(`AltCoinTrader connection test failed: ${error.message}`, 500, 'ALTCOINTRADER_CONNECTION_ERROR');
+    }
+}));
+
 module.exports = router;

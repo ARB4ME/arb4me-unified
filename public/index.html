@@ -2890,12 +2890,12 @@
                         <strong>🔥 Live Trading:</strong> Full trading permissions required for REAL arbitrage execution
                     </div>
                     <div class="form-group">
-                        <label>AltCoinTrader API Key (Required for live trading)</label>
-                        <input type="text" id="altcointraderApiKey" placeholder="Enter your AltCoinTrader API key">
+                        <label>AltCoinTrader Username (Required for live trading)</label>
+                        <input type="text" id="altcointraderApiKey" placeholder="Enter your AltCoinTrader username">
                     </div>
                     <div class="form-group">
-                        <label>AltCoinTrader API Secret (Required for live trading)</label>
-                        <input type="password" id="altcointraderSecretKey" placeholder="Enter your AltCoinTrader API secret">
+                        <label>AltCoinTrader Password (Required for live trading)</label>
+                        <input type="password" id="altcointraderSecretKey" placeholder="Enter your AltCoinTrader password">
                     </div>
                     <button class="btn" id="altcointraderConnectBtn">
                         <span id="altcointraderConnectText">🔗 Connect AltCoinTrader (Real Mode)</span>
@@ -15698,8 +15698,7 @@ ARB4ME Security Team`
             // Test the connection using backend for LUNO and Valr
             try {
                 if (exchangeName === 'valr' || exchangeName === 'luno' || exchangeName === 'altcointrader' || exchangeName === 'xago' || exchangeName === 'chainex' || exchangeName === 'kraken' || exchangeName === 'binance' || exchangeName === 'bybit' || exchangeName === 'gateio' || exchangeName === 'bitmart' || exchangeName === 'bitrue' || exchangeName === 'gemini' || exchangeName === 'cryptocom' || exchangeName === 'coincatch') {
-                    const backendUrl = 'http://localhost:3001';
-                    const testResponse = await fetch(`${backendUrl}/api/${exchangeName}/test`, {
+                    const testResponse = await fetch(`/api/v1/trading/${exchangeName}/test`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
@@ -16293,6 +16292,15 @@ ARB4ME Security Team`
                         } else {
                             backendEndpoint = `/api/v1/trading/luno/test`;
                         }
+                    } else if (exchange === 'altcointrader') {
+                        // Use new ALTCOINTRADER trading routes
+                        if (endpoint.includes('balance')) {
+                            backendEndpoint = `/api/v1/trading/altcointrader/balance`;
+                        } else if (endpoint.includes('ticker')) {
+                            backendEndpoint = `/api/v1/trading/altcointrader/ticker`;
+                        } else {
+                            backendEndpoint = `/api/v1/trading/altcointrader/test`;
+                        }
                     } else {
                         // Use old structure for other exchanges
                         if (endpoint.includes('balance')) {
@@ -16418,26 +16426,24 @@ ARB4ME Security Team`
                 
                 // Use backend server for all exchanges to avoid CORS issues
                 if (exchange === 'luno' || exchange === 'valr' || exchange === 'altcointrader' || exchange === 'xago' || exchange === 'chainex' || exchange === 'kraken' || exchange === 'binance' || exchange === 'bybit' || exchange === 'gateio' || exchange === 'okx' || exchange === 'mexc' || exchange === 'kucoin' || exchange === 'xt' || exchange === 'ascendex' || exchange === 'htx' || exchange === 'bingx' || exchange === 'bitget' || exchange === 'bitmart' || exchange === 'bitrue') {
-                    // Use Railway for VALR and LUNO, localhost for others
-                    const backendUrl = (exchange === 'valr' || exchange === 'luno') 
-                        ? 'https://arb4me-unified-production.up.railway.app' 
-                        : 'http://localhost:3001';
                     
-                    // Use new trading routes for VALR and LUNO
+                    // Use new trading routes for supported exchanges
                     let tickerEndpoint;
                     if (exchange === 'valr') {
                         tickerEndpoint = `/api/v1/trading/valr/ticker`;
                     } else if (exchange === 'luno') {
                         tickerEndpoint = `/api/v1/trading/luno/ticker`;
+                    } else if (exchange === 'altcointrader') {
+                        tickerEndpoint = `/api/v1/trading/altcointrader/ticker`;
                     } else {
                         tickerEndpoint = `/api/${exchange}/ticker/${pair}`;
                     }
                     
-                    const response = await fetch(`${backendUrl}${tickerEndpoint}`, {
+                    const response = await fetch(tickerEndpoint, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            ...(exchange === 'valr' || exchange === 'luno' ? {
+                            ...(exchange === 'valr' || exchange === 'luno' || exchange === 'altcointrader' ? {
                                 'Authorization': `Bearer ${localStorage.getItem('arb4me_jwt_token')}`
                             } : {})
                         },
