@@ -16995,7 +16995,33 @@ ARB4ME Security Team`
                 };
                 
                 userState.userData = updatedUser;
-                updateUser(userState.userData.id, updatedUser);
+                
+                // Update user via backend if JWT token exists, otherwise use local storage
+                const jwtToken = localStorage.getItem('arb4me_jwt_token');
+                if (jwtToken) {
+                    // Update via backend API (async, but don't wait)
+                    fetch('/api/v1/users/profile', {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${jwtToken}`
+                        },
+                        body: JSON.stringify({
+                            setupProgress: updatedUser.setupProgress
+                        })
+                    }).then(response => {
+                        if (response.ok) {
+                            console.log('✅ User updated successfully via backend');
+                        } else {
+                            console.warn('⚠️ Backend update failed');
+                        }
+                    }).catch(error => {
+                        console.warn('⚠️ Backend update error:', error.message);
+                    });
+                } else {
+                    // Use local storage method
+                    updateUser(userState.userData.id, updatedUser);
+                }
                 
                 // Update single-user storage for backward compatibility
                 const encryptedUserData = simpleEncrypt(JSON.stringify(updatedUser));
