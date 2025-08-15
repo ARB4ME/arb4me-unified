@@ -14748,6 +14748,22 @@ ARB4ME Security Team`
                     // Set current user for session management
                     localStorage.setItem('arb4me_current_user', JSON.stringify(userState.userData));
                     
+                    // Handle Remember Me functionality
+                    if (rememberMe) {
+                        // Store encrypted credentials for auto-login
+                        const rememberData = {
+                            email: email,
+                            password: simpleEncrypt(password),
+                            timestamp: Date.now(),
+                            expires: Date.now() + (30 * 24 * 60 * 60 * 1000) // 30 days
+                        };
+                        localStorage.setItem('arb4me_remember_me', JSON.stringify(rememberData));
+                        addActivity('🔒 Login credentials saved for 30 days', 'success');
+                    } else {
+                        // Clear any existing remember me data
+                        localStorage.removeItem('arb4me_remember_me');
+                    }
+                    
                     // Store password in sessionStorage for screen lock (temporary session only)
                     sessionStorage.setItem('arb4me_session_password', password);
                     
@@ -14956,7 +14972,58 @@ ARB4ME Security Team`
             console.log('🔍 Checking authentication status...');
             
             try {
-                // Check if there's a current session
+                // FIRST: Check if user has valid "Remember Me" credentials
+                const rememberData = localStorage.getItem('arb4me_remember_me');
+                if (rememberData) {
+                    try {
+                        const remembered = JSON.parse(rememberData);
+                        
+                        // Check if remember me hasn't expired (30 days)
+                        if (remembered.expires && Date.now() < remembered.expires) {
+                            console.log('🔒 Found valid "Remember Me" credentials, attempting auto-login...');
+                            
+                            // Decrypt stored password
+                            const decryptedPassword = simpleDecrypt(remembered.password);
+                            
+                            // Attempt automatic login
+                            const result = await apiService.login(remembered.email, decryptedPassword);
+                            
+                            if (result.success) {
+                                userState.isLoggedIn = true;
+                                userState.userData = result.data.user || result.data;
+                                userState.liveMode = true;
+                                
+                                // Update session data
+                                localStorage.setItem('arb4me_current_user', JSON.stringify(userState.userData));
+                                
+                                if (result.source === 'backend' && result.data.token) {
+                                    localStorage.setItem('arb4me_jwt_token', result.data.token);
+                                }
+                                
+                                // Check "Remember Me" checkbox for user convenience
+                                const rememberMeCheckbox = document.getElementById('rememberMe');
+                                if (rememberMeCheckbox) {
+                                    rememberMeCheckbox.checked = true;
+                                }
+                                
+                                updateUIForLoggedInUser();
+                                console.log('✅ Auto-login successful via Remember Me');
+                                return;
+                            } else {
+                                console.log('⚠️ Auto-login failed, clearing Remember Me data');
+                                localStorage.removeItem('arb4me_remember_me');
+                            }
+                        } else {
+                            console.log('⏰ Remember Me credentials expired, clearing...');
+                            localStorage.removeItem('arb4me_remember_me');
+                        }
+                    } catch (error) {
+                        console.log('❌ Invalid Remember Me data, clearing...', error.message);
+                        localStorage.removeItem('arb4me_remember_me');
+                    }
+                }
+                
+                // SECOND: Check if there's a current session
                 const currentUser = localStorage.getItem('arb4me_current_user');
                 const jwtToken = localStorage.getItem('arb4me_jwt_token');
                 
