@@ -714,11 +714,11 @@ const VALR_CONFIG = {
     }
 };
 
-// VALR Authentication Helper - COPIED FROM WORKING LOCALHOST VERSION
+// VALR Authentication Helper - FIXED TO MATCH FRONTEND BASE64 ENCODING
 function createValrSignature(apiSecret, timestamp, verb, path, body = '') {
     const payload = timestamp + verb.toUpperCase() + path + (body || '');
     
-    systemLogger.trading('VALR signature (working method)', {
+    systemLogger.trading('VALR signature payload', {
         timestamp,
         method: verb.toUpperCase(),
         path,
@@ -726,14 +726,15 @@ function createValrSignature(apiSecret, timestamp, verb, path, body = '') {
         payload: payload
     });
     
-    // Use exact same method as working localhost - treat apiSecret as UTF-8, not hex
+    // Frontend uses base64, backend was using hex - THIS WAS THE BUG!
     const signature = crypto
-        .createHmac('sha512', apiSecret)  // Direct string, not hex buffer!
+        .createHmac('sha512', apiSecret)  // UTF-8 string
         .update(payload)
-        .digest('hex');
+        .digest('base64');  // CHANGED FROM 'hex' to 'base64' to match frontend!
     
-    systemLogger.trading('VALR signature generated', { 
+    systemLogger.trading('VALR signature generated (base64)', { 
         signature: signature.substring(0, 20) + '...',
+        encoding: 'base64',
         payloadLength: payload.length
     });
     
