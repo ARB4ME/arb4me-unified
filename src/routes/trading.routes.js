@@ -2479,4 +2479,4133 @@ router.post('/chainex/test', tradingRateLimit, [
     }
 }));
 
+// ============================================================================
+// BINANCE EXCHANGE API PROXY ENDPOINTS
+// ============================================================================
+
+// Binance API Configuration
+const BINANCE_CONFIG = {
+    baseUrl: 'https://api.binance.com',
+    endpoints: {
+        balance: '/api/v3/account',
+        ticker: '/api/v3/ticker/price',
+        ticker24hr: '/api/v3/ticker/24hr',
+        order: '/api/v3/order',
+        time: '/api/v3/time'
+    }
+};
+
+// Binance Authentication Helper
+function createBinanceSignature(queryString, apiSecret) {
+    return crypto
+        .createHmac('sha256', apiSecret)
+        .update(queryString)
+        .digest('hex');
+}
+
+// Binance Balance Endpoint
+router.post('/binance/balance', tradingRateLimit, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey, apiSecret } = req.body;
+    
+    try {
+        systemLogger.trading('Binance balance request initiated', {
+            userId: req.user.id,
+            exchange: 'binance',
+            endpoint: 'balance'
+        });
+        
+        const timestamp = Date.now();
+        const queryString = `timestamp=${timestamp}`;
+        const signature = createBinanceSignature(queryString, apiSecret);
+        
+        const response = await fetch(`${BINANCE_CONFIG.baseUrl}${BINANCE_CONFIG.endpoints.balance}?${queryString}&signature=${signature}`, {
+            method: 'GET',
+            headers: {
+                'X-MBX-APIKEY': apiKey,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const accountData = await response.json();
+        
+        // Transform Binance response to expected format
+        const balances = {};
+        if (accountData && accountData.balances) {
+            accountData.balances.forEach(balance => {
+                const total = parseFloat(balance.free) + parseFloat(balance.locked);
+                if (total > 0) {
+                    balances[balance.asset] = total;
+                }
+            });
+        }
+        
+        systemLogger.trading('Binance balance retrieved successfully', {
+            userId: req.user.id,
+            exchange: 'binance',
+            balanceCount: Object.keys(balances).length
+        });
+        
+        res.json({
+            success: true,
+            balances: balances
+        });
+        
+    } catch (error) {
+        systemLogger.error('Binance balance request failed', {
+            userId: req.user.id,
+            exchange: 'binance',
+            error: error.message
+        });
+        
+        throw new APIError(`Binance balance request failed: ${error.message}`, 500, 'BINANCE_BALANCE_ERROR');
+    }
+}));
+
+// Binance Ticker Endpoint
+router.post('/binance/ticker', tradingRateLimit, [
+    body('pair').notEmpty().withMessage('Trading pair is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { pair } = req.body;
+    
+    try {
+        systemLogger.trading('Binance ticker request initiated', {
+            userId: req.user.id,
+            exchange: 'binance',
+            endpoint: 'ticker',
+            pair: pair
+        });
+        
+        // Binance uses direct USDT pairs (BTCUSDT, ETHUSDT, etc.)
+        const binancePair = pair.toUpperCase();
+        
+        // Get both price and 24hr stats
+        const [priceResponse, statsResponse] = await Promise.all([
+            fetch(`${BINANCE_CONFIG.baseUrl}${BINANCE_CONFIG.endpoints.ticker}?symbol=${binancePair}`),
+            fetch(`${BINANCE_CONFIG.baseUrl}${BINANCE_CONFIG.endpoints.ticker24hr}?symbol=${binancePair}`)
+        ]);
+
+        if (!priceResponse.ok || !statsResponse.ok) {
+            const errorText = !priceResponse.ok ? await priceResponse.text() : await statsResponse.text();
+            throw new Error(`HTTP ${!priceResponse.ok ? priceResponse.status : statsResponse.status}: ${errorText}`);
+        }
+        
+        const priceData = await priceResponse.json();
+        const statsData = await statsResponse.json();
+        
+        systemLogger.trading('Binance ticker retrieved successfully', {
+            userId: req.user.id,
+            exchange: 'binance',
+            pair: binancePair
+        });
+        
+        res.json({
+            success: true,
+            data: {
+                pair: binancePair,
+                ticker: {
+                    lastPrice: parseFloat(priceData.price || statsData.lastPrice || 0),
+                    bid: parseFloat(statsData.bidPrice || 0),
+                    ask: parseFloat(statsData.askPrice || 0),
+                    volume: parseFloat(statsData.volume || 0),
+                    high: parseFloat(statsData.highPrice || 0),
+                    low: parseFloat(statsData.lowPrice || 0),
+                    change: parseFloat(statsData.priceChangePercent || 0)
+                }
+            }
+        });
+        
+    } catch (error) {
+        systemLogger.error('Binance ticker request failed', {
+            userId: req.user.id,
+            exchange: 'binance',
+            error: error.message,
+            pair: pair
+        });
+        
+        throw new APIError(`Binance ticker request failed: ${error.message}`, 500, 'BINANCE_TICKER_ERROR');
+    }
+}));
+
+// Binance Test Endpoint
+router.post('/binance/test', tradingRateLimit, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey, apiSecret } = req.body;
+    
+    try {
+        systemLogger.trading('Binance connection test initiated', {
+            userId: req.user.id,
+            exchange: 'binance',
+            endpoint: 'test'
+        });
+        
+        // Test connection by getting server time and account info
+        const timestamp = Date.now();
+        const queryString = `timestamp=${timestamp}`;
+        const signature = createBinanceSignature(queryString, apiSecret);
+        
+        const response = await fetch(`${BINANCE_CONFIG.baseUrl}${BINANCE_CONFIG.endpoints.balance}?${queryString}&signature=${signature}`, {
+            method: 'GET',
+            headers: {
+                'X-MBX-APIKEY': apiKey,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const accountData = await response.json();
+        
+        systemLogger.trading('Binance connection test successful', {
+            userId: req.user.id,
+            exchange: 'binance'
+        });
+        
+        res.json({
+            success: true,
+            message: 'Binance connection successful',
+            data: {
+                connected: true,
+                balanceCount: accountData.balances ? accountData.balances.length : 0,
+                accountType: accountData.accountType || 'SPOT'
+            }
+        });
+        
+    } catch (error) {
+        systemLogger.error('Binance connection test failed', {
+            userId: req.user.id,
+            exchange: 'binance',
+            error: error.message
+        });
+        
+        throw new APIError(`Binance connection test failed: ${error.message}`, 500, 'BINANCE_CONNECTION_ERROR');
+    }
+}));
+
+// ============================================================================
+// KRAKEN EXCHANGE API PROXY ENDPOINTS
+// ============================================================================
+
+// Kraken API Configuration
+const KRAKEN_CONFIG = {
+    baseUrl: 'https://api.kraken.com',
+    endpoints: {
+        balance: '/0/private/Balance',
+        ticker: '/0/public/Ticker',
+        test: '/0/private/Balance'
+    }
+};
+
+// Kraken Authentication Helper
+function createKrakenSignature(path, postdata, apiSecret, nonce) {
+    const message = postdata;
+    const secret_buffer = Buffer.from(apiSecret, 'base64');
+    const hash = crypto.createHash('sha256');
+    const hmac = crypto.createHmac('sha512', secret_buffer);
+    const hash_digest = hash.update(nonce + message).digest('binary');
+    const hmac_digest = hmac.update(path + hash_digest, 'binary').digest('base64');
+    return hmac_digest;
+}
+
+// POST /api/v1/trading/kraken/balance - Get Kraken account balance
+router.post('/kraken/balance', tradingRateLimit, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const { apiKey, apiSecret } = req.body;
+    
+    try {
+        const nonce = Date.now().toString();
+        const postdata = `nonce=${nonce}`;
+        const path = KRAKEN_CONFIG.endpoints.balance;
+        const signature = createKrakenSignature(path, postdata, apiSecret, nonce);
+
+        const response = await fetch(`${KRAKEN_CONFIG.baseUrl}${path}`, {
+            method: 'POST',
+            headers: {
+                'API-Key': apiKey,
+                'API-Sign': signature,
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: postdata
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            systemLogger.trading('Kraken balance API error', {
+                userId: req.user?.id,
+                status: response.status,
+                error: errorText
+            });
+            throw new APIError(`Kraken API error: ${response.status}`, 502, 'KRAKEN_API_ERROR');
+        }
+
+        const data = await response.json();
+        
+        if (data.error && data.error.length > 0) {
+            throw new APIError(`Kraken error: ${data.error.join(', ')}`, 400, 'KRAKEN_ERROR');
+        }
+
+        const balances = {};
+        if (data.result) {
+            for (const [currency, balance] of Object.entries(data.result)) {
+                const amount = parseFloat(balance);
+                if (amount > 0) {
+                    balances[currency] = amount;
+                }
+            }
+        }
+
+        systemLogger.trading('Kraken balance retrieved', {
+            userId: req.user?.id,
+            currencies: Object.keys(balances)
+        });
+
+        res.json({
+            success: true,
+            data: {
+                exchange: 'kraken',
+                balances
+            }
+        });
+
+    } catch (error) {
+        systemLogger.trading('Kraken balance error', {
+            userId: req.user?.id,
+            error: error.message
+        });
+        
+        if (error instanceof APIError) {
+            throw error;
+        }
+        throw new APIError('Failed to fetch Kraken balance', 500, 'KRAKEN_BALANCE_ERROR');
+    }
+}));
+
+// POST /api/v1/trading/kraken/ticker - Get Kraken ticker data
+router.post('/kraken/ticker', tradingRateLimit, [
+    body('pair').notEmpty().withMessage('Trading pair is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const { pair } = req.body;
+    
+    try {
+        // Convert pair format (e.g., BTCUSDT -> XBTUSDT for Kraken)
+        let krakenPair = pair;
+        if (pair === 'BTCUSDT') krakenPair = 'XBTUSDT';
+        if (pair === 'ETHUSDT') krakenPair = 'ETHUSDT';
+        
+        const response = await fetch(`${KRAKEN_CONFIG.baseUrl}${KRAKEN_CONFIG.endpoints.ticker}?pair=${krakenPair}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            systemLogger.trading('Kraken ticker API error', {
+                userId: req.user?.id,
+                pair: krakenPair,
+                status: response.status,
+                error: errorText
+            });
+            throw new APIError(`Kraken API error: ${response.status}`, 502, 'KRAKEN_API_ERROR');
+        }
+
+        const data = await response.json();
+        
+        if (data.error && data.error.length > 0) {
+            throw new APIError(`Kraken error: ${data.error.join(', ')}`, 400, 'KRAKEN_ERROR');
+        }
+
+        let ticker = null;
+        if (data.result) {
+            const pairData = Object.values(data.result)[0];
+            if (pairData) {
+                ticker = {
+                    symbol: krakenPair,
+                    lastPrice: parseFloat(pairData.c[0]),
+                    bidPrice: parseFloat(pairData.b[0]),
+                    askPrice: parseFloat(pairData.a[0]),
+                    volume: parseFloat(pairData.v[1]),
+                    high: parseFloat(pairData.h[1]),
+                    low: parseFloat(pairData.l[1])
+                };
+            }
+        }
+
+        if (!ticker) {
+            throw new APIError('No ticker data available', 404, 'NO_TICKER_DATA');
+        }
+
+        systemLogger.trading('Kraken ticker retrieved', {
+            userId: req.user?.id,
+            pair: krakenPair,
+            price: ticker.lastPrice
+        });
+
+        res.json({
+            success: true,
+            data: {
+                exchange: 'kraken',
+                pair: krakenPair,
+                ticker
+            }
+        });
+
+    } catch (error) {
+        systemLogger.trading('Kraken ticker error', {
+            userId: req.user?.id,
+            pair,
+            error: error.message
+        });
+        
+        if (error instanceof APIError) {
+            throw error;
+        }
+        throw new APIError('Failed to fetch Kraken ticker', 500, 'KRAKEN_TICKER_ERROR');
+    }
+}));
+
+// POST /api/v1/trading/kraken/test - Test Kraken API connection
+router.post('/kraken/test', tradingRateLimit, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const { apiKey, apiSecret } = req.body;
+    
+    try {
+        const nonce = Date.now().toString();
+        const postdata = `nonce=${nonce}`;
+        const path = KRAKEN_CONFIG.endpoints.test;
+        const signature = createKrakenSignature(path, postdata, apiSecret, nonce);
+
+        const response = await fetch(`${KRAKEN_CONFIG.baseUrl}${path}`, {
+            method: 'POST',
+            headers: {
+                'API-Key': apiKey,
+                'API-Sign': signature,
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: postdata
+        });
+
+        const data = await response.json();
+        
+        if (data.error && data.error.length > 0) {
+            systemLogger.trading('Kraken API test failed', {
+                userId: req.user?.id,
+                error: data.error.join(', ')
+            });
+            
+            res.json({
+                success: false,
+                data: {
+                    exchange: 'kraken',
+                    connected: false,
+                    error: data.error.join(', ')
+                }
+            });
+            return;
+        }
+
+        systemLogger.trading('Kraken API test successful', {
+            userId: req.user?.id
+        });
+
+        res.json({
+            success: true,
+            data: {
+                exchange: 'kraken',
+                connected: true,
+                message: 'API connection successful'
+            }
+        });
+
+    } catch (error) {
+        systemLogger.trading('Kraken test error', {
+            userId: req.user?.id,
+            error: error.message
+        });
+        
+        res.json({
+            success: false,
+            data: {
+                exchange: 'kraken',
+                connected: false,
+                error: error.message
+            }
+        });
+    }
+}));
+
+// ============================================================================
+// BYBIT EXCHANGE API PROXY ENDPOINTS
+// ============================================================================
+
+// ByBit API Configuration
+const BYBIT_CONFIG = {
+    baseUrl: 'https://api.bybit.com',
+    endpoints: {
+        balance: '/v5/account/wallet-balance',
+        ticker: '/v5/market/tickers',
+        test: '/v5/account/wallet-balance'
+    }
+};
+
+// ByBit Authentication Helper
+function createByBitSignature(timestamp, apiKey, apiSecret, recv_window, queryString) {
+    const param_str = timestamp + apiKey + recv_window + queryString;
+    return crypto.createHmac('sha256', apiSecret).update(param_str).digest('hex');
+}
+
+// POST /api/v1/trading/bybit/balance - Get ByBit account balance
+router.post('/bybit/balance', tradingRateLimit, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const { apiKey, apiSecret } = req.body;
+    
+    try {
+        const timestamp = Date.now().toString();
+        const recv_window = '5000';
+        const queryString = 'accountType=UNIFIED';
+        const signature = createByBitSignature(timestamp, apiKey, apiSecret, recv_window, queryString);
+
+        const response = await fetch(`${BYBIT_CONFIG.baseUrl}${BYBIT_CONFIG.endpoints.balance}?${queryString}`, {
+            method: 'GET',
+            headers: {
+                'X-BAPI-API-KEY': apiKey,
+                'X-BAPI-SIGN': signature,
+                'X-BAPI-SIGN-TYPE': '2',
+                'X-BAPI-TIMESTAMP': timestamp,
+                'X-BAPI-RECV-WINDOW': recv_window,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            systemLogger.trading('ByBit balance API error', {
+                userId: req.user?.id,
+                status: response.status,
+                error: errorText
+            });
+            throw new APIError(`ByBit API error: ${response.status}`, 502, 'BYBIT_API_ERROR');
+        }
+
+        const data = await response.json();
+        
+        if (data.retCode !== 0) {
+            throw new APIError(`ByBit error: ${data.retMsg}`, 400, 'BYBIT_ERROR');
+        }
+
+        const balances = {};
+        if (data.result && data.result.list && data.result.list.length > 0) {
+            const account = data.result.list[0];
+            if (account.coin) {
+                account.coin.forEach(coin => {
+                    const balance = parseFloat(coin.walletBalance);
+                    if (balance > 0) {
+                        balances[coin.coin] = balance;
+                    }
+                });
+            }
+        }
+
+        systemLogger.trading('ByBit balance retrieved', {
+            userId: req.user?.id,
+            currencies: Object.keys(balances)
+        });
+
+        res.json({
+            success: true,
+            data: {
+                exchange: 'bybit',
+                balances
+            }
+        });
+
+    } catch (error) {
+        systemLogger.trading('ByBit balance error', {
+            userId: req.user?.id,
+            error: error.message
+        });
+        
+        if (error instanceof APIError) {
+            throw error;
+        }
+        throw new APIError('Failed to fetch ByBit balance', 500, 'BYBIT_BALANCE_ERROR');
+    }
+}));
+
+// POST /api/v1/trading/bybit/ticker - Get ByBit ticker data
+router.post('/bybit/ticker', tradingRateLimit, [
+    body('pair').notEmpty().withMessage('Trading pair is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const { pair } = req.body;
+    
+    try {
+        const response = await fetch(`${BYBIT_CONFIG.baseUrl}${BYBIT_CONFIG.endpoints.ticker}?category=spot&symbol=${pair}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            systemLogger.trading('ByBit ticker API error', {
+                userId: req.user?.id,
+                pair,
+                status: response.status,
+                error: errorText
+            });
+            throw new APIError(`ByBit API error: ${response.status}`, 502, 'BYBIT_API_ERROR');
+        }
+
+        const data = await response.json();
+        
+        if (data.retCode !== 0) {
+            throw new APIError(`ByBit error: ${data.retMsg}`, 400, 'BYBIT_ERROR');
+        }
+
+        let ticker = null;
+        if (data.result && data.result.list && data.result.list.length > 0) {
+            const tickerData = data.result.list[0];
+            ticker = {
+                symbol: tickerData.symbol,
+                lastPrice: parseFloat(tickerData.lastPrice),
+                bidPrice: parseFloat(tickerData.bid1Price),
+                askPrice: parseFloat(tickerData.ask1Price),
+                volume: parseFloat(tickerData.volume24h),
+                high: parseFloat(tickerData.highPrice24h),
+                low: parseFloat(tickerData.lowPrice24h),
+                change: parseFloat(tickerData.price24hPcnt)
+            };
+        }
+
+        if (!ticker) {
+            throw new APIError('No ticker data available', 404, 'NO_TICKER_DATA');
+        }
+
+        systemLogger.trading('ByBit ticker retrieved', {
+            userId: req.user?.id,
+            pair,
+            price: ticker.lastPrice
+        });
+
+        res.json({
+            success: true,
+            data: {
+                exchange: 'bybit',
+                pair,
+                ticker
+            }
+        });
+
+    } catch (error) {
+        systemLogger.trading('ByBit ticker error', {
+            userId: req.user?.id,
+            pair,
+            error: error.message
+        });
+        
+        if (error instanceof APIError) {
+            throw error;
+        }
+        throw new APIError('Failed to fetch ByBit ticker', 500, 'BYBIT_TICKER_ERROR');
+    }
+}));
+
+// POST /api/v1/trading/bybit/test - Test ByBit API connection
+router.post('/bybit/test', tradingRateLimit, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const { apiKey, apiSecret } = req.body;
+    
+    try {
+        const timestamp = Date.now().toString();
+        const recv_window = '5000';
+        const queryString = 'accountType=UNIFIED';
+        const signature = createByBitSignature(timestamp, apiKey, apiSecret, recv_window, queryString);
+
+        const response = await fetch(`${BYBIT_CONFIG.baseUrl}${BYBIT_CONFIG.endpoints.test}?${queryString}`, {
+            method: 'GET',
+            headers: {
+                'X-BAPI-API-KEY': apiKey,
+                'X-BAPI-SIGN': signature,
+                'X-BAPI-SIGN-TYPE': '2',
+                'X-BAPI-TIMESTAMP': timestamp,
+                'X-BAPI-RECV-WINDOW': recv_window,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+        
+        if (data.retCode !== 0) {
+            systemLogger.trading('ByBit API test failed', {
+                userId: req.user?.id,
+                error: data.retMsg
+            });
+            
+            res.json({
+                success: false,
+                data: {
+                    exchange: 'bybit',
+                    connected: false,
+                    error: data.retMsg
+                }
+            });
+            return;
+        }
+
+        systemLogger.trading('ByBit API test successful', {
+            userId: req.user?.id
+        });
+
+        res.json({
+            success: true,
+            data: {
+                exchange: 'bybit',
+                connected: true,
+                message: 'API connection successful'
+            }
+        });
+
+    } catch (error) {
+        systemLogger.trading('ByBit test error', {
+            userId: req.user?.id,
+            error: error.message
+        });
+        
+        res.json({
+            success: false,
+            data: {
+                exchange: 'bybit',
+                connected: false,
+                error: error.message
+            }
+        });
+    }
+}));
+
+// ============================================================================
+// GATE.IO EXCHANGE API PROXY ENDPOINTS  
+// ============================================================================
+
+// Gate.io API Configuration
+const GATEIO_CONFIG = {
+    baseUrl: 'https://api.gateio.ws',
+    endpoints: {
+        balance: '/api/v4/spot/accounts',
+        ticker: '/api/v4/spot/tickers',
+        test: '/api/v4/spot/accounts'
+    }
+};
+
+// Gate.io Authentication Helper
+function createGateioSignature(method, url, queryString, body, timestamp, apiSecret) {
+    const hashedPayload = crypto.createHash('sha512').update(body || '').digest('hex');
+    const signingString = `${method}\n${url}\n${queryString}\n${hashedPayload}\n${timestamp}`;
+    return crypto.createHmac('sha512', apiSecret).update(signingString).digest('hex');
+}
+
+// POST /api/v1/trading/gateio/balance - Get Gate.io account balance
+router.post('/gateio/balance', tradingRateLimit, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const { apiKey, apiSecret } = req.body;
+    
+    try {
+        const timestamp = Math.floor(Date.now() / 1000).toString();
+        const method = 'GET';
+        const url = GATEIO_CONFIG.endpoints.balance;
+        const queryString = '';
+        const signature = createGateioSignature(method, url, queryString, '', timestamp, apiSecret);
+
+        const response = await fetch(`${GATEIO_CONFIG.baseUrl}${url}`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'KEY': apiKey,
+                'Timestamp': timestamp,
+                'SIGN': signature
+            }
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            systemLogger.trading('Gate.io balance API error', {
+                userId: req.user?.id,
+                status: response.status,
+                error: errorText
+            });
+            throw new APIError(`Gate.io API error: ${response.status}`, 502, 'GATEIO_API_ERROR');
+        }
+
+        const data = await response.json();
+        
+        const balances = {};
+        if (Array.isArray(data)) {
+            data.forEach(account => {
+                const available = parseFloat(account.available);
+                if (available > 0) {
+                    balances[account.currency] = available;
+                }
+            });
+        }
+
+        systemLogger.trading('Gate.io balance retrieved', {
+            userId: req.user?.id,
+            currencies: Object.keys(balances)
+        });
+
+        res.json({
+            success: true,
+            data: {
+                exchange: 'gateio',
+                balances
+            }
+        });
+
+    } catch (error) {
+        systemLogger.trading('Gate.io balance error', {
+            userId: req.user?.id,
+            error: error.message
+        });
+        
+        if (error instanceof APIError) {
+            throw error;
+        }
+        throw new APIError('Failed to fetch Gate.io balance', 500, 'GATEIO_BALANCE_ERROR');
+    }
+}));
+
+// POST /api/v1/trading/gateio/ticker - Get Gate.io ticker data
+router.post('/gateio/ticker', tradingRateLimit, [
+    body('pair').notEmpty().withMessage('Trading pair is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const { pair } = req.body;
+    
+    try {
+        // Convert pair format (BTCUSDT -> BTC_USDT for Gate.io)
+        const gateioSymbol = pair.replace(/([A-Z]+)([A-Z]{3,4})$/, '$1_$2');
+        
+        const response = await fetch(`${GATEIO_CONFIG.baseUrl}${GATEIO_CONFIG.endpoints.ticker}?currency_pair=${gateioSymbol}`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            systemLogger.trading('Gate.io ticker API error', {
+                userId: req.user?.id,
+                pair: gateioSymbol,
+                status: response.status,
+                error: errorText
+            });
+            throw new APIError(`Gate.io API error: ${response.status}`, 502, 'GATEIO_API_ERROR');
+        }
+
+        const data = await response.json();
+        
+        let ticker = null;
+        if (Array.isArray(data) && data.length > 0) {
+            const tickerData = data[0];
+            ticker = {
+                symbol: tickerData.currency_pair,
+                lastPrice: parseFloat(tickerData.last),
+                bidPrice: parseFloat(tickerData.highest_bid),
+                askPrice: parseFloat(tickerData.lowest_ask),
+                volume: parseFloat(tickerData.base_volume),
+                high: parseFloat(tickerData.high_24h),
+                low: parseFloat(tickerData.low_24h),
+                change: parseFloat(tickerData.change_percentage)
+            };
+        }
+
+        if (!ticker) {
+            throw new APIError('No ticker data available', 404, 'NO_TICKER_DATA');
+        }
+
+        systemLogger.trading('Gate.io ticker retrieved', {
+            userId: req.user?.id,
+            pair: gateioSymbol,
+            price: ticker.lastPrice
+        });
+
+        res.json({
+            success: true,
+            data: {
+                exchange: 'gateio',
+                pair: gateioSymbol,
+                ticker
+            }
+        });
+
+    } catch (error) {
+        systemLogger.trading('Gate.io ticker error', {
+            userId: req.user?.id,
+            pair,
+            error: error.message
+        });
+        
+        if (error instanceof APIError) {
+            throw error;
+        }
+        throw new APIError('Failed to fetch Gate.io ticker', 500, 'GATEIO_TICKER_ERROR');
+    }
+}));
+
+// POST /api/v1/trading/gateio/test - Test Gate.io API connection
+router.post('/gateio/test', tradingRateLimit, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const { apiKey, apiSecret } = req.body;
+    
+    try {
+        const timestamp = Math.floor(Date.now() / 1000).toString();
+        const method = 'GET';
+        const url = GATEIO_CONFIG.endpoints.test;
+        const queryString = '';
+        const signature = createGateioSignature(method, url, queryString, '', timestamp, apiSecret);
+
+        const response = await fetch(`${GATEIO_CONFIG.baseUrl}${url}`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'KEY': apiKey,
+                'Timestamp': timestamp,
+                'SIGN': signature
+            }
+        });
+
+        const data = await response.json();
+        
+        if (!response.ok || (data.message && data.message !== 'Success')) {
+            systemLogger.trading('Gate.io API test failed', {
+                userId: req.user?.id,
+                error: data.message || `HTTP ${response.status}`
+            });
+            
+            res.json({
+                success: false,
+                data: {
+                    exchange: 'gateio',
+                    connected: false,
+                    error: data.message || `HTTP ${response.status}`
+                }
+            });
+            return;
+        }
+
+        systemLogger.trading('Gate.io API test successful', {
+            userId: req.user?.id
+        });
+
+        res.json({
+            success: true,
+            data: {
+                exchange: 'gateio',
+                connected: true,
+                message: 'API connection successful'
+            }
+        });
+
+    } catch (error) {
+        systemLogger.trading('Gate.io test error', {
+            userId: req.user?.id,
+            error: error.message
+        });
+        
+        res.json({
+            success: false,
+            data: {
+                exchange: 'gateio',
+                connected: false,
+                error: error.message
+            }
+        });
+    }
+}));
+
+// ============================================================================
+// OKX EXCHANGE API PROXY ENDPOINTS
+// ============================================================================
+
+// OKX API Configuration
+const OKX_CONFIG = {
+    baseUrl: 'https://www.okx.com',
+    endpoints: {
+        balance: '/api/v5/account/balance',
+        ticker: '/api/v5/market/ticker',
+        test: '/api/v5/account/balance'
+    }
+};
+
+// OKX Authentication Helper
+function createOKXSignature(timestamp, method, requestPath, body, apiSecret) {
+    const message = timestamp + method + requestPath + (body || '');
+    return crypto.createHmac('sha256', apiSecret).update(message).digest('base64');
+}
+
+// POST /api/v1/trading/okx/balance - Get OKX account balance
+router.post('/okx/balance', tradingRateLimit, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('passphrase').notEmpty().withMessage('Passphrase is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const { apiKey, apiSecret, passphrase } = req.body;
+    
+    try {
+        const timestamp = new Date().toISOString();
+        const method = 'GET';
+        const requestPath = OKX_CONFIG.endpoints.balance;
+        const signature = createOKXSignature(timestamp, method, requestPath, '', apiSecret);
+
+        const response = await fetch(`${OKX_CONFIG.baseUrl}${requestPath}`, {
+            method: 'GET',
+            headers: {
+                'OK-ACCESS-KEY': apiKey,
+                'OK-ACCESS-SIGN': signature,
+                'OK-ACCESS-TIMESTAMP': timestamp,
+                'OK-ACCESS-PASSPHRASE': passphrase,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            systemLogger.trading('OKX balance API error', {
+                userId: req.user?.id,
+                status: response.status,
+                error: errorText
+            });
+            throw new APIError(`OKX API error: ${response.status}`, 502, 'OKX_API_ERROR');
+        }
+
+        const data = await response.json();
+        
+        if (data.code !== '0') {
+            throw new APIError(`OKX error: ${data.msg}`, 400, 'OKX_ERROR');
+        }
+
+        const balances = {};
+        if (data.data && Array.isArray(data.data) && data.data.length > 0) {
+            const account = data.data[0];
+            if (account.details && Array.isArray(account.details)) {
+                account.details.forEach(detail => {
+                    const available = parseFloat(detail.availBal);
+                    if (available > 0) {
+                        balances[detail.ccy] = available;
+                    }
+                });
+            }
+        }
+
+        systemLogger.trading('OKX balance retrieved', {
+            userId: req.user?.id,
+            currencies: Object.keys(balances)
+        });
+
+        res.json({
+            success: true,
+            data: {
+                exchange: 'okx',
+                balances
+            }
+        });
+
+    } catch (error) {
+        systemLogger.trading('OKX balance error', {
+            userId: req.user?.id,
+            error: error.message
+        });
+        
+        if (error instanceof APIError) {
+            throw error;
+        }
+        throw new APIError('Failed to fetch OKX balance', 500, 'OKX_BALANCE_ERROR');
+    }
+}));
+
+// POST /api/v1/trading/okx/ticker - Get OKX ticker data
+router.post('/okx/ticker', tradingRateLimit, [
+    body('pair').notEmpty().withMessage('Trading pair is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const { pair } = req.body;
+    
+    try {
+        // Convert pair format (BTCUSDT -> BTC-USDT for OKX)
+        const okxSymbol = pair.replace(/([A-Z]+)([A-Z]{3,4})$/, '$1-$2');
+        
+        const response = await fetch(`${OKX_CONFIG.baseUrl}${OKX_CONFIG.endpoints.ticker}?instId=${okxSymbol}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            systemLogger.trading('OKX ticker API error', {
+                userId: req.user?.id,
+                pair: okxSymbol,
+                status: response.status,
+                error: errorText
+            });
+            throw new APIError(`OKX API error: ${response.status}`, 502, 'OKX_API_ERROR');
+        }
+
+        const data = await response.json();
+        
+        if (data.code !== '0') {
+            throw new APIError(`OKX error: ${data.msg}`, 400, 'OKX_ERROR');
+        }
+
+        let ticker = null;
+        if (data.data && Array.isArray(data.data) && data.data.length > 0) {
+            const tickerData = data.data[0];
+            ticker = {
+                symbol: tickerData.instId,
+                lastPrice: parseFloat(tickerData.last),
+                bidPrice: parseFloat(tickerData.bidPx),
+                askPrice: parseFloat(tickerData.askPx),
+                volume: parseFloat(tickerData.vol24h),
+                high: parseFloat(tickerData.high24h),
+                low: parseFloat(tickerData.low24h),
+                change: parseFloat(tickerData.chgUtc8)
+            };
+        }
+
+        if (!ticker) {
+            throw new APIError('No ticker data available', 404, 'NO_TICKER_DATA');
+        }
+
+        systemLogger.trading('OKX ticker retrieved', {
+            userId: req.user?.id,
+            pair: okxSymbol,
+            price: ticker.lastPrice
+        });
+
+        res.json({
+            success: true,
+            data: {
+                exchange: 'okx',
+                pair: okxSymbol,
+                ticker
+            }
+        });
+
+    } catch (error) {
+        systemLogger.trading('OKX ticker error', {
+            userId: req.user?.id,
+            pair,
+            error: error.message
+        });
+        
+        if (error instanceof APIError) {
+            throw error;
+        }
+        throw new APIError('Failed to fetch OKX ticker', 500, 'OKX_TICKER_ERROR');
+    }
+}));
+
+// POST /api/v1/trading/okx/test - Test OKX API connection
+router.post('/okx/test', tradingRateLimit, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('passphrase').notEmpty().withMessage('Passphrase is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const { apiKey, apiSecret, passphrase } = req.body;
+    
+    try {
+        const timestamp = new Date().toISOString();
+        const method = 'GET';
+        const requestPath = OKX_CONFIG.endpoints.test;
+        const signature = createOKXSignature(timestamp, method, requestPath, '', apiSecret);
+
+        const response = await fetch(`${OKX_CONFIG.baseUrl}${requestPath}`, {
+            method: 'GET',
+            headers: {
+                'OK-ACCESS-KEY': apiKey,
+                'OK-ACCESS-SIGN': signature,
+                'OK-ACCESS-TIMESTAMP': timestamp,
+                'OK-ACCESS-PASSPHRASE': passphrase,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+        
+        if (data.code !== '0') {
+            systemLogger.trading('OKX API test failed', {
+                userId: req.user?.id,
+                error: data.msg
+            });
+            
+            res.json({
+                success: false,
+                data: {
+                    exchange: 'okx',
+                    connected: false,
+                    error: data.msg
+                }
+            });
+            return;
+        }
+
+        systemLogger.trading('OKX API test successful', {
+            userId: req.user?.id
+        });
+
+        res.json({
+            success: true,
+            data: {
+                exchange: 'okx',
+                connected: true,
+                message: 'API connection successful'
+            }
+        });
+
+    } catch (error) {
+        systemLogger.trading('OKX test error', {
+            userId: req.user?.id,
+            error: error.message
+        });
+        
+        res.json({
+            success: false,
+            data: {
+                exchange: 'okx',
+                connected: false,
+                error: error.message
+            }
+        });
+    }
+}));
+
+// ============================================================================
+// MEXC EXCHANGE API PROXY ENDPOINTS
+// ============================================================================
+
+// MEXC API Configuration
+const MEXC_CONFIG = {
+    baseUrl: 'https://api.mexc.com',
+    endpoints: {
+        balance: '/api/v3/account',
+        ticker: '/api/v3/ticker/24hr',
+        test: '/api/v3/account'
+    }
+};
+
+// MEXC Authentication Helper
+function createMEXCSignature(queryString, apiSecret) {
+    return crypto.createHmac('sha256', apiSecret).update(queryString).digest('hex');
+}
+
+// POST /api/v1/trading/mexc/balance - Get MEXC account balance
+router.post('/mexc/balance', tradingRateLimit, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const { apiKey, apiSecret } = req.body;
+    
+    try {
+        const timestamp = Date.now();
+        const queryString = `timestamp=${timestamp}`;
+        const signature = createMEXCSignature(queryString, apiSecret);
+
+        const response = await fetch(`${MEXC_CONFIG.baseUrl}${MEXC_CONFIG.endpoints.balance}?${queryString}&signature=${signature}`, {
+            method: 'GET',
+            headers: {
+                'X-MEXC-APIKEY': apiKey,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            systemLogger.trading('MEXC balance API error', {
+                userId: req.user?.id,
+                status: response.status,
+                error: errorText
+            });
+            throw new APIError(`MEXC API error: ${response.status}`, 502, 'MEXC_API_ERROR');
+        }
+
+        const data = await response.json();
+        
+        if (data.code && data.code !== 200) {
+            throw new APIError(`MEXC error: ${data.msg}`, 400, 'MEXC_ERROR');
+        }
+
+        const balances = {};
+        if (data.balances && Array.isArray(data.balances)) {
+            data.balances.forEach(balance => {
+                const free = parseFloat(balance.free);
+                if (free > 0) {
+                    balances[balance.asset] = free;
+                }
+            });
+        }
+
+        systemLogger.trading('MEXC balance retrieved', {
+            userId: req.user?.id,
+            currencies: Object.keys(balances)
+        });
+
+        res.json({
+            success: true,
+            data: {
+                exchange: 'mexc',
+                balances
+            }
+        });
+
+    } catch (error) {
+        systemLogger.trading('MEXC balance error', {
+            userId: req.user?.id,
+            error: error.message
+        });
+        
+        if (error instanceof APIError) {
+            throw error;
+        }
+        throw new APIError('Failed to fetch MEXC balance', 500, 'MEXC_BALANCE_ERROR');
+    }
+}));
+
+// POST /api/v1/trading/mexc/ticker - Get MEXC ticker data
+router.post('/mexc/ticker', tradingRateLimit, [
+    body('pair').notEmpty().withMessage('Trading pair is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const { pair } = req.body;
+    
+    try {
+        const response = await fetch(`${MEXC_CONFIG.baseUrl}${MEXC_CONFIG.endpoints.ticker}?symbol=${pair}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            systemLogger.trading('MEXC ticker API error', {
+                userId: req.user?.id,
+                pair,
+                status: response.status,
+                error: errorText
+            });
+            throw new APIError(`MEXC API error: ${response.status}`, 502, 'MEXC_API_ERROR');
+        }
+
+        const data = await response.json();
+        
+        if (data.code && data.code !== 200) {
+            throw new APIError(`MEXC error: ${data.msg}`, 400, 'MEXC_ERROR');
+        }
+
+        let ticker = null;
+        if (data.symbol) {
+            ticker = {
+                symbol: data.symbol,
+                lastPrice: parseFloat(data.lastPrice),
+                bidPrice: parseFloat(data.bidPrice),
+                askPrice: parseFloat(data.askPrice),
+                volume: parseFloat(data.volume),
+                high: parseFloat(data.highPrice),
+                low: parseFloat(data.lowPrice),
+                change: parseFloat(data.priceChangePercent)
+            };
+        }
+
+        if (!ticker) {
+            throw new APIError('No ticker data available', 404, 'NO_TICKER_DATA');
+        }
+
+        systemLogger.trading('MEXC ticker retrieved', {
+            userId: req.user?.id,
+            pair,
+            price: ticker.lastPrice
+        });
+
+        res.json({
+            success: true,
+            data: {
+                exchange: 'mexc',
+                pair,
+                ticker
+            }
+        });
+
+    } catch (error) {
+        systemLogger.trading('MEXC ticker error', {
+            userId: req.user?.id,
+            pair,
+            error: error.message
+        });
+        
+        if (error instanceof APIError) {
+            throw error;
+        }
+        throw new APIError('Failed to fetch MEXC ticker', 500, 'MEXC_TICKER_ERROR');
+    }
+}));
+
+// POST /api/v1/trading/mexc/test - Test MEXC API connection
+router.post('/mexc/test', tradingRateLimit, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const { apiKey, apiSecret } = req.body;
+    
+    try {
+        const timestamp = Date.now();
+        const queryString = `timestamp=${timestamp}`;
+        const signature = createMEXCSignature(queryString, apiSecret);
+
+        const response = await fetch(`${MEXC_CONFIG.baseUrl}${MEXC_CONFIG.endpoints.test}?${queryString}&signature=${signature}`, {
+            method: 'GET',
+            headers: {
+                'X-MEXC-APIKEY': apiKey,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+        
+        if (data.code && data.code !== 200) {
+            systemLogger.trading('MEXC API test failed', {
+                userId: req.user?.id,
+                error: data.msg
+            });
+            
+            res.json({
+                success: false,
+                data: {
+                    exchange: 'mexc',
+                    connected: false,
+                    error: data.msg
+                }
+            });
+            return;
+        }
+
+        systemLogger.trading('MEXC API test successful', {
+            userId: req.user?.id
+        });
+
+        res.json({
+            success: true,
+            data: {
+                exchange: 'mexc',
+                connected: true,
+                message: 'API connection successful'
+            }
+        });
+
+    } catch (error) {
+        systemLogger.trading('MEXC test error', {
+            userId: req.user?.id,
+            error: error.message
+        });
+        
+        res.json({
+            success: false,
+            data: {
+                exchange: 'mexc',
+                connected: false,
+                error: error.message
+            }
+        });
+    }
+}));
+
+// ============================================================================
+// KUCOIN EXCHANGE API PROXY ENDPOINTS
+// ============================================================================
+
+// KuCoin API Configuration
+const KUCOIN_CONFIG = {
+    baseUrl: 'https://api.kucoin.com',
+    endpoints: {
+        balance: '/api/v1/accounts',
+        ticker: '/api/v1/market/orderbook/level1',
+        test: '/api/v1/accounts'
+    }
+};
+
+// KuCoin Authentication Helper
+function createKuCoinSignature(timestamp, method, endpoint, body, apiSecret) {
+    const strForSign = timestamp + method + endpoint + (body || '');
+    const signatureResult = crypto.createHmac('sha256', apiSecret).update(strForSign).digest('base64');
+    return signatureResult;
+}
+
+// POST /api/v1/trading/kucoin/balance - Get KuCoin account balance
+router.post('/kucoin/balance', tradingRateLimit, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('passphrase').notEmpty().withMessage('Passphrase is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const { apiKey, apiSecret, passphrase } = req.body;
+    
+    try {
+        const timestamp = Date.now();
+        const method = 'GET';
+        const endpoint = KUCOIN_CONFIG.endpoints.balance;
+        const signature = createKuCoinSignature(timestamp, method, endpoint, '', apiSecret);
+        const passphraseHash = crypto.createHmac('sha256', apiSecret).update(passphrase).digest('base64');
+
+        const response = await fetch(`${KUCOIN_CONFIG.baseUrl}${endpoint}`, {
+            method: 'GET',
+            headers: {
+                'KC-API-KEY': apiKey,
+                'KC-API-SIGN': signature,
+                'KC-API-TIMESTAMP': timestamp.toString(),
+                'KC-API-PASSPHRASE': passphraseHash,
+                'KC-API-KEY-VERSION': '2',
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            systemLogger.trading('KuCoin balance API error', {
+                userId: req.user?.id,
+                status: response.status,
+                error: errorText
+            });
+            throw new APIError(`KuCoin API error: ${response.status}`, 502, 'KUCOIN_API_ERROR');
+        }
+
+        const data = await response.json();
+        
+        if (data.code !== '200000') {
+            throw new APIError(`KuCoin error: ${data.msg}`, 400, 'KUCOIN_ERROR');
+        }
+
+        const balances = {};
+        if (data.data && Array.isArray(data.data)) {
+            data.data.forEach(account => {
+                const available = parseFloat(account.available);
+                if (available > 0) {
+                    balances[account.currency] = available;
+                }
+            });
+        }
+
+        systemLogger.trading('KuCoin balance retrieved', {
+            userId: req.user?.id,
+            currencies: Object.keys(balances)
+        });
+
+        res.json({
+            success: true,
+            data: {
+                exchange: 'kucoin',
+                balances
+            }
+        });
+
+    } catch (error) {
+        systemLogger.trading('KuCoin balance error', {
+            userId: req.user?.id,
+            error: error.message
+        });
+        
+        if (error instanceof APIError) {
+            throw error;
+        }
+        throw new APIError('Failed to fetch KuCoin balance', 500, 'KUCOIN_BALANCE_ERROR');
+    }
+}));
+
+// POST /api/v1/trading/kucoin/ticker - Get KuCoin ticker data
+router.post('/kucoin/ticker', tradingRateLimit, [
+    body('pair').notEmpty().withMessage('Trading pair is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const { pair } = req.body;
+    
+    try {
+        // Convert pair format (BTCUSDT -> BTC-USDT for KuCoin)
+        const kucoinSymbol = pair.replace(/([A-Z]+)([A-Z]{3,4})$/, '$1-$2');
+        
+        const response = await fetch(`${KUCOIN_CONFIG.baseUrl}${KUCOIN_CONFIG.endpoints.ticker}?symbol=${kucoinSymbol}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            systemLogger.trading('KuCoin ticker API error', {
+                userId: req.user?.id,
+                pair: kucoinSymbol,
+                status: response.status,
+                error: errorText
+            });
+            throw new APIError(`KuCoin API error: ${response.status}`, 502, 'KUCOIN_API_ERROR');
+        }
+
+        const data = await response.json();
+        
+        if (data.code !== '200000') {
+            throw new APIError(`KuCoin error: ${data.msg}`, 400, 'KUCOIN_ERROR');
+        }
+
+        let ticker = null;
+        if (data.data) {
+            ticker = {
+                symbol: kucoinSymbol,
+                lastPrice: parseFloat(data.data.price),
+                bidPrice: parseFloat(data.data.bestBid),
+                askPrice: parseFloat(data.data.bestAsk),
+                volume: parseFloat(data.data.size),
+                high: parseFloat(data.data.price), // KuCoin level1 doesn't provide 24h high/low
+                low: parseFloat(data.data.price),
+                change: 0
+            };
+        }
+
+        if (!ticker) {
+            throw new APIError('No ticker data available', 404, 'NO_TICKER_DATA');
+        }
+
+        systemLogger.trading('KuCoin ticker retrieved', {
+            userId: req.user?.id,
+            pair: kucoinSymbol,
+            price: ticker.lastPrice
+        });
+
+        res.json({
+            success: true,
+            data: {
+                exchange: 'kucoin',
+                pair: kucoinSymbol,
+                ticker
+            }
+        });
+
+    } catch (error) {
+        systemLogger.trading('KuCoin ticker error', {
+            userId: req.user?.id,
+            pair,
+            error: error.message
+        });
+        
+        if (error instanceof APIError) {
+            throw error;
+        }
+        throw new APIError('Failed to fetch KuCoin ticker', 500, 'KUCOIN_TICKER_ERROR');
+    }
+}));
+
+// POST /api/v1/trading/kucoin/test - Test KuCoin API connection
+router.post('/kucoin/test', tradingRateLimit, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('passphrase').notEmpty().withMessage('Passphrase is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const { apiKey, apiSecret, passphrase } = req.body;
+    
+    try {
+        const timestamp = Date.now();
+        const method = 'GET';
+        const endpoint = KUCOIN_CONFIG.endpoints.test;
+        const signature = createKuCoinSignature(timestamp, method, endpoint, '', apiSecret);
+        const passphraseHash = crypto.createHmac('sha256', apiSecret).update(passphrase).digest('base64');
+
+        const response = await fetch(`${KUCOIN_CONFIG.baseUrl}${endpoint}`, {
+            method: 'GET',
+            headers: {
+                'KC-API-KEY': apiKey,
+                'KC-API-SIGN': signature,
+                'KC-API-TIMESTAMP': timestamp.toString(),
+                'KC-API-PASSPHRASE': passphraseHash,
+                'KC-API-KEY-VERSION': '2',
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+        
+        if (data.code !== '200000') {
+            systemLogger.trading('KuCoin API test failed', {
+                userId: req.user?.id,
+                error: data.msg
+            });
+            
+            res.json({
+                success: false,
+                data: {
+                    exchange: 'kucoin',
+                    connected: false,
+                    error: data.msg
+                }
+            });
+            return;
+        }
+
+        systemLogger.trading('KuCoin API test successful', {
+            userId: req.user?.id
+        });
+
+        res.json({
+            success: true,
+            data: {
+                exchange: 'kucoin',
+                connected: true,
+                message: 'API connection successful'
+            }
+        });
+
+    } catch (error) {
+        systemLogger.trading('KuCoin test error', {
+            userId: req.user?.id,
+            error: error.message
+        });
+        
+        res.json({
+            success: false,
+            data: {
+                exchange: 'kucoin',
+                connected: false,
+                error: error.message
+            }
+        });
+    }
+}));
+
+// ============================================================================
+// XT.COM EXCHANGE API PROXY ENDPOINTS
+// ============================================================================
+
+// XT.com API Configuration
+const XT_CONFIG = {
+    baseUrl: 'https://sapi.xt.com',
+    endpoints: {
+        balance: '/v4/balances',
+        ticker: '/v4/public/ticker',
+        test: '/v4/balances'
+    }
+};
+
+// XT.com Authentication Helper
+function createXTSignature(timestamp, method, endpoint, params, apiSecret) {
+    const paramString = params ? Object.keys(params).sort().map(key => `${key}=${params[key]}`).join('&') : '';
+    const signString = `${method}#${endpoint}#${paramString}#${timestamp}`;
+    return crypto.createHmac('sha256', apiSecret).update(signString).digest('hex');
+}
+
+// POST /api/v1/trading/xt/balance - Get XT.com account balance
+router.post('/xt/balance', tradingRateLimit, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const { apiKey, apiSecret } = req.body;
+    
+    try {
+        const timestamp = Date.now().toString();
+        const method = 'GET';
+        const endpoint = XT_CONFIG.endpoints.balance;
+        const signature = createXTSignature(timestamp, method, endpoint, null, apiSecret);
+
+        const response = await fetch(`${XT_CONFIG.baseUrl}${endpoint}`, {
+            method: 'GET',
+            headers: {
+                'xt-validate-appkey': apiKey,
+                'xt-validate-timestamp': timestamp,
+                'xt-validate-signature': signature,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            systemLogger.trading('XT.com balance API error', {
+                userId: req.user?.id,
+                status: response.status,
+                error: errorText
+            });
+            throw new APIError(`XT.com API error: ${response.status}`, 502, 'XT_API_ERROR');
+        }
+
+        const data = await response.json();
+        
+        if (data.rc !== 0 && data.code !== 200) {
+            throw new APIError(`XT.com error: ${data.msg || data.message}`, 400, 'XT_ERROR');
+        }
+
+        const balances = {};
+        if (data.result && Array.isArray(data.result)) {
+            data.result.forEach(balance => {
+                const available = parseFloat(balance.availableAmount || balance.available);
+                if (available > 0) {
+                    balances[balance.currency || balance.coin] = available;
+                }
+            });
+        }
+
+        systemLogger.trading('XT.com balance retrieved', {
+            userId: req.user?.id,
+            currencies: Object.keys(balances)
+        });
+
+        res.json({
+            success: true,
+            data: {
+                exchange: 'xt',
+                balances
+            }
+        });
+
+    } catch (error) {
+        systemLogger.trading('XT.com balance error', {
+            userId: req.user?.id,
+            error: error.message
+        });
+        
+        if (error instanceof APIError) {
+            throw error;
+        }
+        throw new APIError('Failed to fetch XT.com balance', 500, 'XT_BALANCE_ERROR');
+    }
+}));
+
+// POST /api/v1/trading/xt/ticker - Get XT.com ticker data
+router.post('/xt/ticker', tradingRateLimit, [
+    body('pair').notEmpty().withMessage('Trading pair is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const { pair } = req.body;
+    
+    try {
+        // Convert pair format (BTCUSDT -> btc_usdt for XT.com)
+        const xtSymbol = pair.replace(/([A-Z]+)([A-Z]{3,4})$/, '$1_$2').toLowerCase();
+        
+        const response = await fetch(`${XT_CONFIG.baseUrl}${XT_CONFIG.endpoints.ticker}?symbol=${xtSymbol}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            systemLogger.trading('XT.com ticker API error', {
+                userId: req.user?.id,
+                pair: xtSymbol,
+                status: response.status,
+                error: errorText
+            });
+            throw new APIError(`XT.com API error: ${response.status}`, 502, 'XT_API_ERROR');
+        }
+
+        const data = await response.json();
+        
+        if (data.rc !== 0 && data.code !== 200) {
+            throw new APIError(`XT.com error: ${data.msg || data.message}`, 400, 'XT_ERROR');
+        }
+
+        let ticker = null;
+        if (data.result) {
+            const tickerData = Array.isArray(data.result) ? data.result[0] : data.result;
+            ticker = {
+                symbol: xtSymbol,
+                lastPrice: parseFloat(tickerData.c || tickerData.last),
+                bidPrice: parseFloat(tickerData.b || tickerData.bid),
+                askPrice: parseFloat(tickerData.a || tickerData.ask),
+                volume: parseFloat(tickerData.v || tickerData.volume),
+                high: parseFloat(tickerData.h || tickerData.high),
+                low: parseFloat(tickerData.l || tickerData.low),
+                change: parseFloat(tickerData.cr || tickerData.changeRate || 0)
+            };
+        }
+
+        if (!ticker) {
+            throw new APIError('No ticker data available', 404, 'NO_TICKER_DATA');
+        }
+
+        systemLogger.trading('XT.com ticker retrieved', {
+            userId: req.user?.id,
+            pair: xtSymbol,
+            price: ticker.lastPrice
+        });
+
+        res.json({
+            success: true,
+            data: {
+                exchange: 'xt',
+                pair: xtSymbol,
+                ticker
+            }
+        });
+
+    } catch (error) {
+        systemLogger.trading('XT.com ticker error', {
+            userId: req.user?.id,
+            pair,
+            error: error.message
+        });
+        
+        if (error instanceof APIError) {
+            throw error;
+        }
+        throw new APIError('Failed to fetch XT.com ticker', 500, 'XT_TICKER_ERROR');
+    }
+}));
+
+// POST /api/v1/trading/xt/test - Test XT.com API connection
+router.post('/xt/test', tradingRateLimit, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const { apiKey, apiSecret } = req.body;
+    
+    try {
+        const timestamp = Date.now().toString();
+        const method = 'GET';
+        const endpoint = XT_CONFIG.endpoints.test;
+        const signature = createXTSignature(timestamp, method, endpoint, null, apiSecret);
+
+        const response = await fetch(`${XT_CONFIG.baseUrl}${endpoint}`, {
+            method: 'GET',
+            headers: {
+                'xt-validate-appkey': apiKey,
+                'xt-validate-timestamp': timestamp,
+                'xt-validate-signature': signature,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+        
+        if (data.rc !== 0 && data.code !== 200) {
+            systemLogger.trading('XT.com API test failed', {
+                userId: req.user?.id,
+                error: data.msg || data.message
+            });
+            
+            res.json({
+                success: false,
+                data: {
+                    exchange: 'xt',
+                    connected: false,
+                    error: data.msg || data.message
+                }
+            });
+            return;
+        }
+
+        systemLogger.trading('XT.com API test successful', {
+            userId: req.user?.id
+        });
+
+        res.json({
+            success: true,
+            data: {
+                exchange: 'xt',
+                connected: true,
+                message: 'API connection successful'
+            }
+        });
+
+    } catch (error) {
+        systemLogger.trading('XT.com test error', {
+            userId: req.user?.id,
+            error: error.message
+        });
+        
+        res.json({
+            success: false,
+            data: {
+                exchange: 'xt',
+                connected: false,
+                error: error.message
+            }
+        });
+    }
+}));
+
+// ============================================================================
+// ASCENDEX EXCHANGE API PROXY ENDPOINTS
+// ============================================================================
+
+// AscendEX API Configuration
+const ASCENDEX_CONFIG = {
+    baseUrl: 'https://ascendex.com',
+    endpoints: {
+        balance: '/api/pro/v1/cash/balance',
+        ticker: '/api/pro/v1/ticker',
+        test: '/api/pro/v1/info'
+    }
+};
+
+// AscendEX Authentication Helper
+function createAscendEXSignature(timestamp, path, apiSecret) {
+    const prehashString = timestamp + '+' + path;
+    return crypto.createHmac('sha256', apiSecret).update(prehashString).digest('base64');
+}
+
+// POST /api/v1/trading/ascendex/balance - Get AscendEX account balance
+router.post('/ascendex/balance', tradingRateLimit, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const { apiKey, apiSecret } = req.body;
+    
+    try {
+        const timestamp = Date.now().toString();
+        const path = ASCENDEX_CONFIG.endpoints.balance;
+        const signature = createAscendEXSignature(timestamp, path, apiSecret);
+
+        const response = await fetch(`${ASCENDEX_CONFIG.baseUrl}${path}`, {
+            method: 'GET',
+            headers: {
+                'x-auth-key': apiKey,
+                'x-auth-timestamp': timestamp,
+                'x-auth-signature': signature,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            systemLogger.trading('AscendEX balance API error', {
+                userId: req.user?.id,
+                status: response.status,
+                error: errorText
+            });
+            throw new APIError(`AscendEX API error: ${response.status}`, 502, 'ASCENDEX_API_ERROR');
+        }
+
+        const data = await response.json();
+        
+        if (data.code !== 0) {
+            throw new APIError(`AscendEX error: ${data.message}`, 400, 'ASCENDEX_ERROR');
+        }
+
+        const balances = {};
+        if (data.data && Array.isArray(data.data)) {
+            data.data.forEach(balance => {
+                const available = parseFloat(balance.availableBalance);
+                if (available > 0) {
+                    balances[balance.asset] = available;
+                }
+            });
+        }
+
+        systemLogger.trading('AscendEX balance retrieved', {
+            userId: req.user?.id,
+            currencies: Object.keys(balances)
+        });
+
+        res.json({
+            success: true,
+            data: {
+                exchange: 'ascendex',
+                balances
+            }
+        });
+
+    } catch (error) {
+        systemLogger.trading('AscendEX balance error', {
+            userId: req.user?.id,
+            error: error.message
+        });
+        
+        if (error instanceof APIError) {
+            throw error;
+        }
+        throw new APIError('Failed to fetch AscendEX balance', 500, 'ASCENDEX_BALANCE_ERROR');
+    }
+}));
+
+// POST /api/v1/trading/ascendex/ticker - Get AscendEX ticker data
+router.post('/ascendex/ticker', tradingRateLimit, [
+    body('pair').notEmpty().withMessage('Trading pair is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const { pair } = req.body;
+    
+    try {
+        // Convert pair format (BTCUSDT -> BTC/USDT for AscendEX)
+        const ascendexSymbol = pair.replace(/([A-Z]+)([A-Z]{3,4})$/, '$1/$2');
+        
+        const response = await fetch(`${ASCENDEX_CONFIG.baseUrl}${ASCENDEX_CONFIG.endpoints.ticker}?symbol=${ascendexSymbol}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            systemLogger.trading('AscendEX ticker API error', {
+                userId: req.user?.id,
+                pair: ascendexSymbol,
+                status: response.status,
+                error: errorText
+            });
+            throw new APIError(`AscendEX API error: ${response.status}`, 502, 'ASCENDEX_API_ERROR');
+        }
+
+        const data = await response.json();
+        
+        if (data.code !== 0) {
+            throw new APIError(`AscendEX error: ${data.message}`, 400, 'ASCENDEX_ERROR');
+        }
+
+        let ticker = null;
+        if (data.data) {
+            const tickerData = Array.isArray(data.data) ? data.data[0] : data.data;
+            ticker = {
+                symbol: ascendexSymbol,
+                lastPrice: parseFloat(tickerData.close),
+                bidPrice: parseFloat(tickerData.bid?.[0] || tickerData.close),
+                askPrice: parseFloat(tickerData.ask?.[0] || tickerData.close),
+                volume: parseFloat(tickerData.volume),
+                high: parseFloat(tickerData.high),
+                low: parseFloat(tickerData.low),
+                change: parseFloat(tickerData.changeRate || 0)
+            };
+        }
+
+        if (!ticker) {
+            throw new APIError('No ticker data available', 404, 'NO_TICKER_DATA');
+        }
+
+        systemLogger.trading('AscendEX ticker retrieved', {
+            userId: req.user?.id,
+            pair: ascendexSymbol,
+            price: ticker.lastPrice
+        });
+
+        res.json({
+            success: true,
+            data: {
+                exchange: 'ascendex',
+                pair: ascendexSymbol,
+                ticker
+            }
+        });
+
+    } catch (error) {
+        systemLogger.trading('AscendEX ticker error', {
+            userId: req.user?.id,
+            pair,
+            error: error.message
+        });
+        
+        if (error instanceof APIError) {
+            throw error;
+        }
+        throw new APIError('Failed to fetch AscendEX ticker', 500, 'ASCENDEX_TICKER_ERROR');
+    }
+}));
+
+// POST /api/v1/trading/ascendex/test - Test AscendEX API connection
+router.post('/ascendex/test', tradingRateLimit, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const { apiKey, apiSecret } = req.body;
+    
+    try {
+        const timestamp = Date.now().toString();
+        const path = ASCENDEX_CONFIG.endpoints.test;
+        const signature = createAscendEXSignature(timestamp, path, apiSecret);
+
+        const response = await fetch(`${ASCENDEX_CONFIG.baseUrl}${path}`, {
+            method: 'GET',
+            headers: {
+                'x-auth-key': apiKey,
+                'x-auth-timestamp': timestamp,
+                'x-auth-signature': signature,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+        
+        if (data.code !== 0) {
+            systemLogger.trading('AscendEX API test failed', {
+                userId: req.user?.id,
+                error: data.message
+            });
+            
+            res.json({
+                success: false,
+                data: {
+                    exchange: 'ascendex',
+                    connected: false,
+                    error: data.message
+                }
+            });
+            return;
+        }
+
+        systemLogger.trading('AscendEX API test successful', {
+            userId: req.user?.id
+        });
+
+        res.json({
+            success: true,
+            data: {
+                exchange: 'ascendex',
+                connected: true,
+                message: 'API connection successful'
+            }
+        });
+
+    } catch (error) {
+        systemLogger.trading('AscendEX test error', {
+            userId: req.user?.id,
+            error: error.message
+        });
+        
+        res.json({
+            success: false,
+            data: {
+                exchange: 'ascendex',
+                connected: false,
+                error: error.message
+            }
+        });
+    }
+}));
+
+// ============================================================================
+// HTX (HUOBI) EXCHANGE API PROXY ENDPOINTS
+// ============================================================================
+
+// HTX API Configuration
+const HTX_CONFIG = {
+    baseUrl: 'https://api.huobi.pro',
+    endpoints: {
+        balance: '/v1/account/accounts/{account-id}/balance',
+        accounts: '/v1/account/accounts',
+        ticker: '/market/detail/merged',
+        test: '/v1/account/accounts'
+    }
+};
+
+// HTX Authentication Helper
+function createHTXSignature(method, host, path, params, apiSecret) {
+    const sortedParams = Object.keys(params).sort().map(key => `${key}=${encodeURIComponent(params[key])}`).join('&');
+    const meta = [method, host, path, sortedParams].join('\n');
+    return crypto.createHmac('sha256', apiSecret).update(meta).digest('base64');
+}
+
+// POST /api/v1/trading/htx/balance - Get HTX account balance
+router.post('/htx/balance', tradingRateLimit, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const { apiKey, apiSecret } = req.body;
+    
+    try {
+        // First get account ID
+        const timestamp = new Date().toISOString().replace(/\.\d{3}/, '');
+        const params = {
+            AccessKeyId: apiKey,
+            SignatureMethod: 'HmacSHA256',
+            SignatureVersion: '2',
+            Timestamp: timestamp
+        };
+        
+        let signature = createHTXSignature('GET', 'api.huobi.pro', HTX_CONFIG.endpoints.accounts, params, apiSecret);
+        params.Signature = signature;
+        
+        const accountsUrl = `${HTX_CONFIG.baseUrl}${HTX_CONFIG.endpoints.accounts}?${Object.keys(params).map(key => `${key}=${encodeURIComponent(params[key])}`).join('&')}`;
+        const accountsResponse = await fetch(accountsUrl);
+        
+        if (!accountsResponse.ok) {
+            throw new APIError(`HTX API error: ${accountsResponse.status}`, 502, 'HTX_API_ERROR');
+        }
+        
+        const accountsData = await accountsResponse.json();
+        
+        if (accountsData.status !== 'ok' || !accountsData.data || accountsData.data.length === 0) {
+            throw new APIError('HTX error: No accounts found', 400, 'HTX_ERROR');
+        }
+        
+        const accountId = accountsData.data[0].id;
+        
+        // Now get balance
+        const balanceParams = {
+            AccessKeyId: apiKey,
+            SignatureMethod: 'HmacSHA256',
+            SignatureVersion: '2',
+            Timestamp: new Date().toISOString().replace(/\.\d{3}/, '')
+        };
+        
+        const balancePath = HTX_CONFIG.endpoints.balance.replace('{account-id}', accountId);
+        signature = createHTXSignature('GET', 'api.huobi.pro', balancePath, balanceParams, apiSecret);
+        balanceParams.Signature = signature;
+        
+        const balanceUrl = `${HTX_CONFIG.baseUrl}${balancePath}?${Object.keys(balanceParams).map(key => `${key}=${encodeURIComponent(balanceParams[key])}`).join('&')}`;
+        const response = await fetch(balanceUrl);
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            systemLogger.trading('HTX balance API error', {
+                userId: req.user?.id,
+                status: response.status,
+                error: errorText
+            });
+            throw new APIError(`HTX API error: ${response.status}`, 502, 'HTX_API_ERROR');
+        }
+
+        const data = await response.json();
+        
+        if (data.status !== 'ok') {
+            throw new APIError(`HTX error: ${data['err-msg']}`, 400, 'HTX_ERROR');
+        }
+
+        const balances = {};
+        if (data.data && data.data.list) {
+            data.data.list.forEach(balance => {
+                if (balance.type === 'trade') {
+                    const amount = parseFloat(balance.balance);
+                    if (amount > 0) {
+                        balances[balance.currency.toUpperCase()] = amount;
+                    }
+                }
+            });
+        }
+
+        systemLogger.trading('HTX balance retrieved', {
+            userId: req.user?.id,
+            currencies: Object.keys(balances)
+        });
+
+        res.json({
+            success: true,
+            data: {
+                exchange: 'htx',
+                balances
+            }
+        });
+
+    } catch (error) {
+        systemLogger.trading('HTX balance error', {
+            userId: req.user?.id,
+            error: error.message
+        });
+        
+        if (error instanceof APIError) {
+            throw error;
+        }
+        throw new APIError('Failed to fetch HTX balance', 500, 'HTX_BALANCE_ERROR');
+    }
+}));
+
+// POST /api/v1/trading/htx/ticker - Get HTX ticker data
+router.post('/htx/ticker', tradingRateLimit, [
+    body('pair').notEmpty().withMessage('Trading pair is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const { pair } = req.body;
+    
+    try {
+        // Convert pair format (BTCUSDT -> btcusdt for HTX)
+        const htxSymbol = pair.toLowerCase();
+        
+        const response = await fetch(`${HTX_CONFIG.baseUrl}${HTX_CONFIG.endpoints.ticker}?symbol=${htxSymbol}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            systemLogger.trading('HTX ticker API error', {
+                userId: req.user?.id,
+                pair: htxSymbol,
+                status: response.status,
+                error: errorText
+            });
+            throw new APIError(`HTX API error: ${response.status}`, 502, 'HTX_API_ERROR');
+        }
+
+        const data = await response.json();
+        
+        if (data.status !== 'ok') {
+            throw new APIError(`HTX error: ${data['err-msg']}`, 400, 'HTX_ERROR');
+        }
+
+        let ticker = null;
+        if (data.tick) {
+            ticker = {
+                symbol: htxSymbol,
+                lastPrice: parseFloat(data.tick.close),
+                bidPrice: parseFloat(data.tick.bid[0]),
+                askPrice: parseFloat(data.tick.ask[0]),
+                volume: parseFloat(data.tick.vol),
+                high: parseFloat(data.tick.high),
+                low: parseFloat(data.tick.low),
+                change: ((parseFloat(data.tick.close) - parseFloat(data.tick.open)) / parseFloat(data.tick.open) * 100)
+            };
+        }
+
+        if (!ticker) {
+            throw new APIError('No ticker data available', 404, 'NO_TICKER_DATA');
+        }
+
+        systemLogger.trading('HTX ticker retrieved', {
+            userId: req.user?.id,
+            pair: htxSymbol,
+            price: ticker.lastPrice
+        });
+
+        res.json({
+            success: true,
+            data: {
+                exchange: 'htx',
+                pair: htxSymbol,
+                ticker
+            }
+        });
+
+    } catch (error) {
+        systemLogger.trading('HTX ticker error', {
+            userId: req.user?.id,
+            pair,
+            error: error.message
+        });
+        
+        if (error instanceof APIError) {
+            throw error;
+        }
+        throw new APIError('Failed to fetch HTX ticker', 500, 'HTX_TICKER_ERROR');
+    }
+}));
+
+// POST /api/v1/trading/htx/test - Test HTX API connection
+router.post('/htx/test', tradingRateLimit, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const { apiKey, apiSecret } = req.body;
+    
+    try {
+        const timestamp = new Date().toISOString().replace(/\.\d{3}/, '');
+        const params = {
+            AccessKeyId: apiKey,
+            SignatureMethod: 'HmacSHA256',
+            SignatureVersion: '2',
+            Timestamp: timestamp
+        };
+        
+        const signature = createHTXSignature('GET', 'api.huobi.pro', HTX_CONFIG.endpoints.test, params, apiSecret);
+        params.Signature = signature;
+        
+        const url = `${HTX_CONFIG.baseUrl}${HTX_CONFIG.endpoints.test}?${Object.keys(params).map(key => `${key}=${encodeURIComponent(params[key])}`).join('&')}`;
+        const response = await fetch(url);
+
+        const data = await response.json();
+        
+        if (data.status !== 'ok') {
+            systemLogger.trading('HTX API test failed', {
+                userId: req.user?.id,
+                error: data['err-msg']
+            });
+            
+            res.json({
+                success: false,
+                data: {
+                    exchange: 'htx',
+                    connected: false,
+                    error: data['err-msg']
+                }
+            });
+            return;
+        }
+
+        systemLogger.trading('HTX API test successful', {
+            userId: req.user?.id
+        });
+
+        res.json({
+            success: true,
+            data: {
+                exchange: 'htx',
+                connected: true,
+                message: 'API connection successful'
+            }
+        });
+
+    } catch (error) {
+        systemLogger.trading('HTX test error', {
+            userId: req.user?.id,
+            error: error.message
+        });
+        
+        res.json({
+            success: false,
+            data: {
+                exchange: 'htx',
+                connected: false,
+                error: error.message
+            }
+        });
+    }
+}));
+
+// ============================================================================
+// BINGX EXCHANGE API PROXY ENDPOINTS
+// ============================================================================
+
+// BingX API Configuration
+const BINGX_CONFIG = {
+    baseUrl: 'https://open-api.bingx.com',
+    endpoints: {
+        balance: '/openApi/spot/v1/account/balance',
+        ticker: '/openApi/spot/v1/ticker/24hr',
+        test: '/openApi/spot/v1/account/balance'
+    }
+};
+
+// BingX Authentication Helper
+function createBingXSignature(queryString, apiSecret) {
+    return crypto.createHmac('sha256', apiSecret).update(queryString).digest('hex');
+}
+
+// POST /api/v1/trading/bingx/balance - Get BingX account balance
+router.post('/bingx/balance', tradingRateLimit, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const { apiKey, apiSecret } = req.body;
+    
+    try {
+        const timestamp = Date.now();
+        const queryString = `timestamp=${timestamp}`;
+        const signature = createBingXSignature(queryString, apiSecret);
+
+        const response = await fetch(`${BINGX_CONFIG.baseUrl}${BINGX_CONFIG.endpoints.balance}?${queryString}&signature=${signature}`, {
+            method: 'GET',
+            headers: {
+                'X-BX-APIKEY': apiKey,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            systemLogger.trading('BingX balance API error', {
+                userId: req.user?.id,
+                status: response.status,
+                error: errorText
+            });
+            throw new APIError(`BingX API error: ${response.status}`, 502, 'BINGX_API_ERROR');
+        }
+
+        const data = await response.json();
+        
+        if (data.code !== 0) {
+            throw new APIError(`BingX error: ${data.msg}`, 400, 'BINGX_ERROR');
+        }
+
+        const balances = {};
+        if (data.data && data.data.balances) {
+            data.data.balances.forEach(balance => {
+                const free = parseFloat(balance.free);
+                if (free > 0) {
+                    balances[balance.asset] = free;
+                }
+            });
+        }
+
+        res.json({
+            success: true,
+            data: {
+                exchange: 'bingx',
+                balances
+            }
+        });
+
+    } catch (error) {
+        if (error instanceof APIError) {
+            throw error;
+        }
+        throw new APIError('Failed to fetch BingX balance', 500, 'BINGX_BALANCE_ERROR');
+    }
+}));
+
+// POST /api/v1/trading/bingx/ticker - Get BingX ticker data
+router.post('/bingx/ticker', tradingRateLimit, [
+    body('pair').notEmpty().withMessage('Trading pair is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const { pair } = req.body;
+    
+    try {
+        const response = await fetch(`${BINGX_CONFIG.baseUrl}${BINGX_CONFIG.endpoints.ticker}?symbol=${pair}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            throw new APIError(`BingX API error: ${response.status}`, 502, 'BINGX_API_ERROR');
+        }
+
+        const data = await response.json();
+        
+        if (data.code !== 0) {
+            throw new APIError(`BingX error: ${data.msg}`, 400, 'BINGX_ERROR');
+        }
+
+        let ticker = null;
+        if (data.data) {
+            ticker = {
+                symbol: data.data.symbol,
+                lastPrice: parseFloat(data.data.lastPrice),
+                bidPrice: parseFloat(data.data.bidPrice),
+                askPrice: parseFloat(data.data.askPrice),
+                volume: parseFloat(data.data.volume),
+                high: parseFloat(data.data.highPrice),
+                low: parseFloat(data.data.lowPrice),
+                change: parseFloat(data.data.priceChangePercent)
+            };
+        }
+
+        if (!ticker) {
+            throw new APIError('No ticker data available', 404, 'NO_TICKER_DATA');
+        }
+
+        res.json({
+            success: true,
+            data: {
+                exchange: 'bingx',
+                pair,
+                ticker
+            }
+        });
+
+    } catch (error) {
+        if (error instanceof APIError) {
+            throw error;
+        }
+        throw new APIError('Failed to fetch BingX ticker', 500, 'BINGX_TICKER_ERROR');
+    }
+}));
+
+// POST /api/v1/trading/bingx/test - Test BingX API connection
+router.post('/bingx/test', tradingRateLimit, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const { apiKey, apiSecret } = req.body;
+    
+    try {
+        const timestamp = Date.now();
+        const queryString = `timestamp=${timestamp}`;
+        const signature = createBingXSignature(queryString, apiSecret);
+
+        const response = await fetch(`${BINGX_CONFIG.baseUrl}${BINGX_CONFIG.endpoints.test}?${queryString}&signature=${signature}`, {
+            method: 'GET',
+            headers: {
+                'X-BX-APIKEY': apiKey,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+        
+        if (data.code !== 0) {
+            res.json({
+                success: false,
+                data: {
+                    exchange: 'bingx',
+                    connected: false,
+                    error: data.msg
+                }
+            });
+            return;
+        }
+
+        res.json({
+            success: true,
+            data: {
+                exchange: 'bingx',
+                connected: true,
+                message: 'API connection successful'
+            }
+        });
+
+    } catch (error) {
+        res.json({
+            success: false,
+            data: {
+                exchange: 'bingx',
+                connected: false,
+                error: error.message
+            }
+        });
+    }
+}));
+
+// ============================================================================
+// BITGET EXCHANGE API PROXY ENDPOINTS
+// ============================================================================
+
+// Bitget API Configuration
+const BITGET_CONFIG = {
+    baseUrl: 'https://api.bitget.com',
+    endpoints: {
+        balance: '/api/spot/v1/account/assets',
+        ticker: '/api/spot/v1/market/ticker',
+        test: '/api/spot/v1/account/assets'
+    }
+};
+
+// Bitget Authentication Helper
+function createBitgetSignature(timestamp, method, requestPath, body, apiSecret) {
+    const message = timestamp + method + requestPath + (body || '');
+    return crypto.createHmac('sha256', apiSecret).update(message).digest('base64');
+}
+
+// POST /api/v1/trading/bitget/balance - Get Bitget account balance
+router.post('/bitget/balance', tradingRateLimit, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('passphrase').notEmpty().withMessage('Passphrase is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const { apiKey, apiSecret, passphrase } = req.body;
+    
+    try {
+        const timestamp = Date.now().toString();
+        const method = 'GET';
+        const requestPath = BITGET_CONFIG.endpoints.balance;
+        const signature = createBitgetSignature(timestamp, method, requestPath, '', apiSecret);
+
+        const response = await fetch(`${BITGET_CONFIG.baseUrl}${requestPath}`, {
+            method: 'GET',
+            headers: {
+                'ACCESS-KEY': apiKey,
+                'ACCESS-SIGN': signature,
+                'ACCESS-TIMESTAMP': timestamp,
+                'ACCESS-PASSPHRASE': passphrase,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            throw new APIError(`Bitget API error: ${response.status}`, 502, 'BITGET_API_ERROR');
+        }
+
+        const data = await response.json();
+        
+        if (data.code !== '00000') {
+            throw new APIError(`Bitget error: ${data.msg}`, 400, 'BITGET_ERROR');
+        }
+
+        const balances = {};
+        if (data.data) {
+            data.data.forEach(balance => {
+                const available = parseFloat(balance.available);
+                if (available > 0) {
+                    balances[balance.coinName] = available;
+                }
+            });
+        }
+
+        res.json({
+            success: true,
+            data: {
+                exchange: 'bitget',
+                balances
+            }
+        });
+
+    } catch (error) {
+        if (error instanceof APIError) {
+            throw error;
+        }
+        throw new APIError('Failed to fetch Bitget balance', 500, 'BITGET_BALANCE_ERROR');
+    }
+}));
+
+// POST /api/v1/trading/bitget/ticker - Get Bitget ticker data
+router.post('/bitget/ticker', tradingRateLimit, [
+    body('pair').notEmpty().withMessage('Trading pair is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const { pair } = req.body;
+    
+    try {
+        // Convert pair format (BTCUSDT -> BTCUSDT_SPBL for Bitget)
+        const bitgetSymbol = `${pair}_SPBL`;
+        
+        const response = await fetch(`${BITGET_CONFIG.baseUrl}${BITGET_CONFIG.endpoints.ticker}?symbol=${bitgetSymbol}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            throw new APIError(`Bitget API error: ${response.status}`, 502, 'BITGET_API_ERROR');
+        }
+
+        const data = await response.json();
+        
+        if (data.code !== '00000') {
+            throw new APIError(`Bitget error: ${data.msg}`, 400, 'BITGET_ERROR');
+        }
+
+        let ticker = null;
+        if (data.data) {
+            ticker = {
+                symbol: bitgetSymbol,
+                lastPrice: parseFloat(data.data.close),
+                bidPrice: parseFloat(data.data.bidPr),
+                askPrice: parseFloat(data.data.askPr),
+                volume: parseFloat(data.data.baseVol),
+                high: parseFloat(data.data.high24h),
+                low: parseFloat(data.data.low24h),
+                change: parseFloat(data.data.change)
+            };
+        }
+
+        if (!ticker) {
+            throw new APIError('No ticker data available', 404, 'NO_TICKER_DATA');
+        }
+
+        res.json({
+            success: true,
+            data: {
+                exchange: 'bitget',
+                pair: bitgetSymbol,
+                ticker
+            }
+        });
+
+    } catch (error) {
+        if (error instanceof APIError) {
+            throw error;
+        }
+        throw new APIError('Failed to fetch Bitget ticker', 500, 'BITGET_TICKER_ERROR');
+    }
+}));
+
+// POST /api/v1/trading/bitget/test - Test Bitget API connection
+router.post('/bitget/test', tradingRateLimit, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('passphrase').notEmpty().withMessage('Passphrase is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const { apiKey, apiSecret, passphrase } = req.body;
+    
+    try {
+        const timestamp = Date.now().toString();
+        const method = 'GET';
+        const requestPath = BITGET_CONFIG.endpoints.test;
+        const signature = createBitgetSignature(timestamp, method, requestPath, '', apiSecret);
+
+        const response = await fetch(`${BITGET_CONFIG.baseUrl}${requestPath}`, {
+            method: 'GET',
+            headers: {
+                'ACCESS-KEY': apiKey,
+                'ACCESS-SIGN': signature,
+                'ACCESS-TIMESTAMP': timestamp,
+                'ACCESS-PASSPHRASE': passphrase,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+        
+        if (data.code !== '00000') {
+            res.json({
+                success: false,
+                data: {
+                    exchange: 'bitget',
+                    connected: false,
+                    error: data.msg
+                }
+            });
+            return;
+        }
+
+        res.json({
+            success: true,
+            data: {
+                exchange: 'bitget',
+                connected: true,
+                message: 'API connection successful'
+            }
+        });
+
+    } catch (error) {
+        res.json({
+            success: false,
+            data: {
+                exchange: 'bitget',
+                connected: false,
+                error: error.message
+            }
+        });
+    }
+}));
+
+// ============================================================================
+// BITMART EXCHANGE API PROXY ENDPOINTS
+// ============================================================================
+
+// BitMart API Configuration
+const BITMART_CONFIG = {
+    baseUrl: 'https://api-cloud.bitmart.com',
+    endpoints: {
+        balance: '/spot/v1/wallet',
+        ticker: '/spot/v1/ticker',
+        test: '/spot/v1/wallet'
+    }
+};
+
+// BitMart Authentication Helper
+function createBitMartSignature(timestamp, method, requestPath, body, apiSecret) {
+    const message = timestamp + '#' + 'bitmart.com' + '#' + method + '#' + requestPath + '#' + (body || '');
+    return crypto.createHmac('sha256', apiSecret).update(message).digest('hex');
+}
+
+// POST /api/v1/trading/bitmart/balance - Get BitMart account balance
+router.post('/bitmart/balance', tradingRateLimit, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('memo').notEmpty().withMessage('Memo is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const { apiKey, apiSecret, memo } = req.body;
+    
+    try {
+        const timestamp = Date.now().toString();
+        const method = 'GET';
+        const requestPath = BITMART_CONFIG.endpoints.balance;
+        const signature = createBitMartSignature(timestamp, method, requestPath, '', apiSecret);
+
+        const response = await fetch(`${BITMART_CONFIG.baseUrl}${requestPath}`, {
+            method: 'GET',
+            headers: {
+                'X-BM-KEY': apiKey,
+                'X-BM-SIGN': signature,
+                'X-BM-TIMESTAMP': timestamp,
+                'X-BM-PASSPHRASE': memo,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            throw new APIError(`BitMart API error: ${response.status}`, 502, 'BITMART_API_ERROR');
+        }
+
+        const data = await response.json();
+        
+        if (data.code !== 1000) {
+            throw new APIError(`BitMart error: ${data.message}`, 400, 'BITMART_ERROR');
+        }
+
+        const balances = {};
+        if (data.data && data.data.wallet) {
+            data.data.wallet.forEach(balance => {
+                const available = parseFloat(balance.available);
+                if (available > 0) {
+                    balances[balance.id] = available;
+                }
+            });
+        }
+
+        res.json({
+            success: true,
+            data: {
+                exchange: 'bitmart',
+                balances
+            }
+        });
+
+    } catch (error) {
+        if (error instanceof APIError) {
+            throw error;
+        }
+        throw new APIError('Failed to fetch BitMart balance', 500, 'BITMART_BALANCE_ERROR');
+    }
+}));
+
+// POST /api/v1/trading/bitmart/ticker - Get BitMart ticker data
+router.post('/bitmart/ticker', tradingRateLimit, [
+    body('pair').notEmpty().withMessage('Trading pair is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const { pair } = req.body;
+    
+    try {
+        // Convert pair format (BTCUSDT -> BTC_USDT for BitMart)
+        const bitmartSymbol = pair.replace(/([A-Z]+)([A-Z]{3,4})$/, '$1_$2');
+        
+        const response = await fetch(`${BITMART_CONFIG.baseUrl}${BITMART_CONFIG.endpoints.ticker}?symbol=${bitmartSymbol}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            throw new APIError(`BitMart API error: ${response.status}`, 502, 'BITMART_API_ERROR');
+        }
+
+        const data = await response.json();
+        
+        if (data.code !== 1000) {
+            throw new APIError(`BitMart error: ${data.message}`, 400, 'BITMART_ERROR');
+        }
+
+        let ticker = null;
+        if (data.data) {
+            ticker = {
+                symbol: bitmartSymbol,
+                lastPrice: parseFloat(data.data.last_price),
+                bidPrice: parseFloat(data.data.best_bid),
+                askPrice: parseFloat(data.data.best_ask),
+                volume: parseFloat(data.data.base_volume_24h),
+                high: parseFloat(data.data.high_24h),
+                low: parseFloat(data.data.low_24h),
+                change: parseFloat(data.data.fluctuation)
+            };
+        }
+
+        if (!ticker) {
+            throw new APIError('No ticker data available', 404, 'NO_TICKER_DATA');
+        }
+
+        res.json({
+            success: true,
+            data: {
+                exchange: 'bitmart',
+                pair: bitmartSymbol,
+                ticker
+            }
+        });
+
+    } catch (error) {
+        if (error instanceof APIError) {
+            throw error;
+        }
+        throw new APIError('Failed to fetch BitMart ticker', 500, 'BITMART_TICKER_ERROR');
+    }
+}));
+
+// POST /api/v1/trading/bitmart/test - Test BitMart API connection
+router.post('/bitmart/test', tradingRateLimit, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('memo').notEmpty().withMessage('Memo is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const { apiKey, apiSecret, memo } = req.body;
+    
+    try {
+        const timestamp = Date.now().toString();
+        const method = 'GET';
+        const requestPath = BITMART_CONFIG.endpoints.test;
+        const signature = createBitMartSignature(timestamp, method, requestPath, '', apiSecret);
+
+        const response = await fetch(`${BITMART_CONFIG.baseUrl}${requestPath}`, {
+            method: 'GET',
+            headers: {
+                'X-BM-KEY': apiKey,
+                'X-BM-SIGN': signature,
+                'X-BM-TIMESTAMP': timestamp,
+                'X-BM-PASSPHRASE': memo,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+        
+        if (data.code !== 1000) {
+            res.json({
+                success: false,
+                data: {
+                    exchange: 'bitmart',
+                    connected: false,
+                    error: data.message
+                }
+            });
+            return;
+        }
+
+        res.json({
+            success: true,
+            data: {
+                exchange: 'bitmart',
+                connected: true,
+                message: 'API connection successful'
+            }
+        });
+
+    } catch (error) {
+        res.json({
+            success: false,
+            data: {
+                exchange: 'bitmart',
+                connected: false,
+                error: error.message
+            }
+        });
+    }
+}));
+
+// ============================================================================
+// BITRUE EXCHANGE API PROXY ENDPOINTS
+// ============================================================================
+
+// Bitrue API Configuration
+const BITRUE_CONFIG = {
+    baseUrl: 'https://openapi.bitrue.com',
+    endpoints: {
+        balance: '/api/v1/account',
+        ticker: '/api/v1/ticker/24hr',
+        test: '/api/v1/account'
+    }
+};
+
+// Bitrue Authentication Helper (similar to Binance)
+function createBitrueSignature(queryString, apiSecret) {
+    return crypto.createHmac('sha256', apiSecret).update(queryString).digest('hex');
+}
+
+// POST /api/v1/trading/bitrue/balance - Get Bitrue account balance
+router.post('/bitrue/balance', tradingRateLimit, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const { apiKey, apiSecret } = req.body;
+    
+    try {
+        const timestamp = Date.now();
+        const queryString = `timestamp=${timestamp}`;
+        const signature = createBitrueSignature(queryString, apiSecret);
+
+        const response = await fetch(`${BITRUE_CONFIG.baseUrl}${BITRUE_CONFIG.endpoints.balance}?${queryString}&signature=${signature}`, {
+            method: 'GET',
+            headers: {
+                'X-MBX-APIKEY': apiKey,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            throw new APIError(`Bitrue API error: ${response.status}`, 502, 'BITRUE_API_ERROR');
+        }
+
+        const data = await response.json();
+        
+        const balances = {};
+        if (data.balances) {
+            data.balances.forEach(balance => {
+                const free = parseFloat(balance.free);
+                if (free > 0) {
+                    balances[balance.asset] = free;
+                }
+            });
+        }
+
+        res.json({
+            success: true,
+            data: {
+                exchange: 'bitrue',
+                balances
+            }
+        });
+
+    } catch (error) {
+        if (error instanceof APIError) {
+            throw error;
+        }
+        throw new APIError('Failed to fetch Bitrue balance', 500, 'BITRUE_BALANCE_ERROR');
+    }
+}));
+
+// POST /api/v1/trading/bitrue/ticker - Get Bitrue ticker data
+router.post('/bitrue/ticker', tradingRateLimit, [
+    body('pair').notEmpty().withMessage('Trading pair is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const { pair } = req.body;
+    
+    try {
+        const response = await fetch(`${BITRUE_CONFIG.baseUrl}${BITRUE_CONFIG.endpoints.ticker}?symbol=${pair}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            throw new APIError(`Bitrue API error: ${response.status}`, 502, 'BITRUE_API_ERROR');
+        }
+
+        const data = await response.json();
+        
+        let ticker = null;
+        if (data.symbol) {
+            ticker = {
+                symbol: data.symbol,
+                lastPrice: parseFloat(data.lastPrice),
+                bidPrice: parseFloat(data.bidPrice),
+                askPrice: parseFloat(data.askPrice),
+                volume: parseFloat(data.volume),
+                high: parseFloat(data.highPrice),
+                low: parseFloat(data.lowPrice),
+                change: parseFloat(data.priceChangePercent)
+            };
+        }
+
+        if (!ticker) {
+            throw new APIError('No ticker data available', 404, 'NO_TICKER_DATA');
+        }
+
+        res.json({
+            success: true,
+            data: {
+                exchange: 'bitrue',
+                pair,
+                ticker
+            }
+        });
+
+    } catch (error) {
+        if (error instanceof APIError) {
+            throw error;
+        }
+        throw new APIError('Failed to fetch Bitrue ticker', 500, 'BITRUE_TICKER_ERROR');
+    }
+}));
+
+// POST /api/v1/trading/bitrue/test - Test Bitrue API connection
+router.post('/bitrue/test', tradingRateLimit, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const { apiKey, apiSecret } = req.body;
+    
+    try {
+        const timestamp = Date.now();
+        const queryString = `timestamp=${timestamp}`;
+        const signature = createBitrueSignature(queryString, apiSecret);
+
+        const response = await fetch(`${BITRUE_CONFIG.baseUrl}${BITRUE_CONFIG.endpoints.test}?${queryString}&signature=${signature}`, {
+            method: 'GET',
+            headers: {
+                'X-MBX-APIKEY': apiKey,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+        
+        if (data.code && data.code < 0) {
+            res.json({
+                success: false,
+                data: {
+                    exchange: 'bitrue',
+                    connected: false,
+                    error: data.msg
+                }
+            });
+            return;
+        }
+
+        res.json({
+            success: true,
+            data: {
+                exchange: 'bitrue',
+                connected: true,
+                message: 'API connection successful'
+            }
+        });
+
+    } catch (error) {
+        res.json({
+            success: false,
+            data: {
+                exchange: 'bitrue',
+                connected: false,
+                error: error.message
+            }
+        });
+    }
+}));
+
+// ============================================================================
+// GEMINI EXCHANGE API PROXY ENDPOINTS
+// ============================================================================
+
+// Gemini API Configuration
+const GEMINI_CONFIG = {
+    baseUrl: 'https://api.gemini.com',
+    endpoints: {
+        balance: '/v1/balances',
+        ticker: '/v1/pubticker',
+        test: '/v1/balances'
+    }
+};
+
+// Gemini Authentication Helper
+function createGeminiSignature(payload, apiSecret) {
+    return crypto.createHmac('sha384', Buffer.from(apiSecret, 'base64')).update(payload).digest('hex');
+}
+
+// POST /api/v1/trading/gemini/balance - Get Gemini account balance
+router.post('/gemini/balance', tradingRateLimit, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const { apiKey, apiSecret } = req.body;
+    
+    try {
+        const nonce = Date.now();
+        const payload = {
+            request: GEMINI_CONFIG.endpoints.balance,
+            nonce: nonce
+        };
+        const payloadBase64 = Buffer.from(JSON.stringify(payload)).toString('base64');
+        const signature = createGeminiSignature(payloadBase64, apiSecret);
+
+        const response = await fetch(`${GEMINI_CONFIG.baseUrl}${GEMINI_CONFIG.endpoints.balance}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'text/plain',
+                'X-GEMINI-APIKEY': apiKey,
+                'X-GEMINI-PAYLOAD': payloadBase64,
+                'X-GEMINI-SIGNATURE': signature
+            }
+        });
+
+        if (!response.ok) {
+            throw new APIError(`Gemini API error: ${response.status}`, 502, 'GEMINI_API_ERROR');
+        }
+
+        const data = await response.json();
+        
+        const balances = {};
+        if (Array.isArray(data)) {
+            data.forEach(balance => {
+                const available = parseFloat(balance.available);
+                if (available > 0) {
+                    balances[balance.currency] = available;
+                }
+            });
+        }
+
+        res.json({
+            success: true,
+            data: {
+                exchange: 'gemini',
+                balances
+            }
+        });
+
+    } catch (error) {
+        if (error instanceof APIError) {
+            throw error;
+        }
+        throw new APIError('Failed to fetch Gemini balance', 500, 'GEMINI_BALANCE_ERROR');
+    }
+}));
+
+// POST /api/v1/trading/gemini/ticker - Get Gemini ticker data
+router.post('/gemini/ticker', tradingRateLimit, [
+    body('pair').notEmpty().withMessage('Trading pair is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const { pair } = req.body;
+    
+    try {
+        // Convert pair format (BTCUSDT -> btcusd for Gemini)
+        const geminiSymbol = pair.replace('USDT', 'USD').toLowerCase();
+        
+        const response = await fetch(`${GEMINI_CONFIG.baseUrl}${GEMINI_CONFIG.endpoints.ticker}/${geminiSymbol}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            throw new APIError(`Gemini API error: ${response.status}`, 502, 'GEMINI_API_ERROR');
+        }
+
+        const data = await response.json();
+        
+        let ticker = null;
+        if (data.last) {
+            ticker = {
+                symbol: geminiSymbol,
+                lastPrice: parseFloat(data.last),
+                bidPrice: parseFloat(data.bid),
+                askPrice: parseFloat(data.ask),
+                volume: parseFloat(data.volume[Object.keys(data.volume)[0]] || 0),
+                high: parseFloat(data.last),
+                low: parseFloat(data.last),
+                change: 0
+            };
+        }
+
+        if (!ticker) {
+            throw new APIError('No ticker data available', 404, 'NO_TICKER_DATA');
+        }
+
+        res.json({
+            success: true,
+            data: {
+                exchange: 'gemini',
+                pair: geminiSymbol,
+                ticker
+            }
+        });
+
+    } catch (error) {
+        if (error instanceof APIError) {
+            throw error;
+        }
+        throw new APIError('Failed to fetch Gemini ticker', 500, 'GEMINI_TICKER_ERROR');
+    }
+}));
+
+// POST /api/v1/trading/gemini/test - Test Gemini API connection
+router.post('/gemini/test', tradingRateLimit, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const { apiKey, apiSecret } = req.body;
+    
+    try {
+        const nonce = Date.now();
+        const payload = {
+            request: GEMINI_CONFIG.endpoints.test,
+            nonce: nonce
+        };
+        const payloadBase64 = Buffer.from(JSON.stringify(payload)).toString('base64');
+        const signature = createGeminiSignature(payloadBase64, apiSecret);
+
+        const response = await fetch(`${GEMINI_CONFIG.baseUrl}${GEMINI_CONFIG.endpoints.test}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'text/plain',
+                'X-GEMINI-APIKEY': apiKey,
+                'X-GEMINI-PAYLOAD': payloadBase64,
+                'X-GEMINI-SIGNATURE': signature
+            }
+        });
+
+        const data = await response.json();
+        
+        if (data.result === 'error') {
+            res.json({
+                success: false,
+                data: {
+                    exchange: 'gemini',
+                    connected: false,
+                    error: data.message
+                }
+            });
+            return;
+        }
+
+        res.json({
+            success: true,
+            data: {
+                exchange: 'gemini',
+                connected: true,
+                message: 'API connection successful'
+            }
+        });
+
+    } catch (error) {
+        res.json({
+            success: false,
+            data: {
+                exchange: 'gemini',
+                connected: false,
+                error: error.message
+            }
+        });
+    }
+}));
+
+// ============================================================================
+// CRYPTO.COM EXCHANGE API PROXY ENDPOINTS
+// ============================================================================
+
+// Crypto.com API Configuration
+const CRYPTOCOM_CONFIG = {
+    baseUrl: 'https://api.crypto.com',
+    endpoints: {
+        balance: '/v2/private/get-account-summary',
+        ticker: '/v2/public/get-ticker',
+        test: '/v2/private/get-account-summary'
+    }
+};
+
+// Crypto.com Authentication Helper
+function createCryptoComSignature(method, requestPath, body, apiSecret, timestamp, nonce) {
+    const paramString = method + requestPath + body + timestamp + nonce;
+    return crypto.createHmac('sha256', apiSecret).update(paramString).digest('hex');
+}
+
+// POST /api/v1/trading/cryptocom/balance - Get Crypto.com account balance
+router.post('/cryptocom/balance', tradingRateLimit, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const { apiKey, apiSecret } = req.body;
+    
+    try {
+        const timestamp = Date.now();
+        const nonce = Date.now();
+        const method = 'POST';
+        const requestPath = CRYPTOCOM_CONFIG.endpoints.balance;
+        const requestBody = JSON.stringify({
+            id: 11,
+            method: 'private/get-account-summary',
+            api_key: apiKey,
+            nonce: nonce
+        });
+        
+        const signature = createCryptoComSignature(method, requestPath, requestBody, apiSecret, timestamp, nonce);
+
+        const response = await fetch(`${CRYPTOCOM_CONFIG.baseUrl}${requestPath}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `${apiKey}:${signature}:${nonce}`
+            },
+            body: requestBody
+        });
+
+        if (!response.ok) {
+            throw new APIError(`Crypto.com API error: ${response.status}`, 502, 'CRYPTOCOM_API_ERROR');
+        }
+
+        const data = await response.json();
+        
+        const balances = {};
+        if (data.result && data.result.accounts) {
+            data.result.accounts.forEach(account => {
+                const available = parseFloat(account.available);
+                if (available > 0) {
+                    balances[account.currency] = available;
+                }
+            });
+        }
+
+        res.json({
+            success: true,
+            data: {
+                exchange: 'cryptocom',
+                balances
+            }
+        });
+
+    } catch (error) {
+        if (error instanceof APIError) {
+            throw error;
+        }
+        throw new APIError('Failed to fetch Crypto.com balance', 500, 'CRYPTOCOM_BALANCE_ERROR');
+    }
+}));
+
+// POST /api/v1/trading/cryptocom/ticker - Get Crypto.com ticker data
+router.post('/cryptocom/ticker', tradingRateLimit, [
+    body('pair').notEmpty().withMessage('Trading pair is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const { pair } = req.body;
+    
+    try {
+        // Convert pair format (BTCUSDT -> BTC_USDT for Crypto.com)
+        const cryptocomSymbol = pair.replace(/([A-Z]+)([A-Z]{3,4})$/, '$1_$2');
+        
+        const response = await fetch(`${CRYPTOCOM_CONFIG.baseUrl}${CRYPTOCOM_CONFIG.endpoints.ticker}?instrument_name=${cryptocomSymbol}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            throw new APIError(`Crypto.com API error: ${response.status}`, 502, 'CRYPTOCOM_API_ERROR');
+        }
+
+        const data = await response.json();
+        
+        let ticker = null;
+        if (data.result && data.result.data && data.result.data.length > 0) {
+            const tickerData = data.result.data[0];
+            ticker = {
+                symbol: cryptocomSymbol,
+                lastPrice: parseFloat(tickerData.a),
+                bidPrice: parseFloat(tickerData.b),
+                askPrice: parseFloat(tickerData.k),
+                volume: parseFloat(tickerData.v),
+                high: parseFloat(tickerData.h),
+                low: parseFloat(tickerData.l),
+                change: parseFloat(tickerData.c || 0)
+            };
+        }
+
+        if (!ticker) {
+            throw new APIError('No ticker data available', 404, 'NO_TICKER_DATA');
+        }
+
+        res.json({
+            success: true,
+            data: {
+                exchange: 'cryptocom',
+                pair: cryptocomSymbol,
+                ticker
+            }
+        });
+
+    } catch (error) {
+        if (error instanceof APIError) {
+            throw error;
+        }
+        throw new APIError('Failed to fetch Crypto.com ticker', 500, 'CRYPTOCOM_TICKER_ERROR');
+    }
+}));
+
+// POST /api/v1/trading/cryptocom/test - Test Crypto.com API connection
+router.post('/cryptocom/test', tradingRateLimit, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const { apiKey, apiSecret } = req.body;
+    
+    try {
+        const timestamp = Date.now();
+        const nonce = Date.now();
+        const method = 'POST';
+        const requestPath = CRYPTOCOM_CONFIG.endpoints.test;
+        const requestBody = JSON.stringify({
+            id: 11,
+            method: 'private/get-account-summary',
+            api_key: apiKey,
+            nonce: nonce
+        });
+        
+        const signature = createCryptoComSignature(method, requestPath, requestBody, apiSecret, timestamp, nonce);
+
+        const response = await fetch(`${CRYPTOCOM_CONFIG.baseUrl}${requestPath}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `${apiKey}:${signature}:${nonce}`
+            },
+            body: requestBody
+        });
+
+        const data = await response.json();
+        
+        if (data.code && data.code !== 0) {
+            res.json({
+                success: false,
+                data: {
+                    exchange: 'cryptocom',
+                    connected: false,
+                    error: data.message
+                }
+            });
+            return;
+        }
+
+        res.json({
+            success: true,
+            data: {
+                exchange: 'cryptocom',
+                connected: true,
+                message: 'API connection successful'
+            }
+        });
+
+    } catch (error) {
+        res.json({
+            success: false,
+            data: {
+                exchange: 'cryptocom',
+                connected: false,
+                error: error.message
+            }
+        });
+    }
+}));
+
+// ============================================================================
+// COINCATCH EXCHANGE API PROXY ENDPOINTS
+// ============================================================================
+
+// CoinCatch API Configuration
+const COINCATCH_CONFIG = {
+    baseUrl: 'https://api.coincatch.com',
+    endpoints: {
+        balance: '/api/v1/account/balance',
+        ticker: '/api/v1/market/ticker',
+        test: '/api/v1/account/balance'
+    }
+};
+
+// CoinCatch Authentication Helper
+function createCoinCatchSignature(timestamp, method, requestPath, body, apiSecret) {
+    const message = timestamp + method + requestPath + (body || '');
+    return crypto.createHmac('sha256', apiSecret).update(message).digest('hex');
+}
+
+// POST /api/v1/trading/coincatch/balance - Get CoinCatch account balance
+router.post('/coincatch/balance', tradingRateLimit, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('passphrase').notEmpty().withMessage('Passphrase is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const { apiKey, apiSecret, passphrase } = req.body;
+    
+    try {
+        const timestamp = Date.now().toString();
+        const method = 'GET';
+        const requestPath = COINCATCH_CONFIG.endpoints.balance;
+        const signature = createCoinCatchSignature(timestamp, method, requestPath, '', apiSecret);
+
+        const response = await fetch(`${COINCATCH_CONFIG.baseUrl}${requestPath}`, {
+            method: 'GET',
+            headers: {
+                'CC-API-KEY': apiKey,
+                'CC-API-SIGN': signature,
+                'CC-API-TIMESTAMP': timestamp,
+                'CC-API-PASSPHRASE': passphrase,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            throw new APIError(`CoinCatch API error: ${response.status}`, 502, 'COINCATCH_API_ERROR');
+        }
+
+        const data = await response.json();
+        
+        const balances = {};
+        if (data.data && Array.isArray(data.data)) {
+            data.data.forEach(balance => {
+                const available = parseFloat(balance.available);
+                if (available > 0) {
+                    balances[balance.currency] = available;
+                }
+            });
+        }
+
+        res.json({
+            success: true,
+            data: {
+                exchange: 'coincatch',
+                balances
+            }
+        });
+
+    } catch (error) {
+        if (error instanceof APIError) {
+            throw error;
+        }
+        throw new APIError('Failed to fetch CoinCatch balance', 500, 'COINCATCH_BALANCE_ERROR');
+    }
+}));
+
+// POST /api/v1/trading/coincatch/ticker - Get CoinCatch ticker data
+router.post('/coincatch/ticker', tradingRateLimit, [
+    body('pair').notEmpty().withMessage('Trading pair is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const { pair } = req.body;
+    
+    try {
+        const response = await fetch(`${COINCATCH_CONFIG.baseUrl}${COINCATCH_CONFIG.endpoints.ticker}?symbol=${pair}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            throw new APIError(`CoinCatch API error: ${response.status}`, 502, 'COINCATCH_API_ERROR');
+        }
+
+        const data = await response.json();
+        
+        let ticker = null;
+        if (data.data) {
+            ticker = {
+                symbol: data.data.symbol,
+                lastPrice: parseFloat(data.data.close),
+                bidPrice: parseFloat(data.data.bid),
+                askPrice: parseFloat(data.data.ask),
+                volume: parseFloat(data.data.volume),
+                high: parseFloat(data.data.high),
+                low: parseFloat(data.data.low),
+                change: parseFloat(data.data.change)
+            };
+        }
+
+        if (!ticker) {
+            throw new APIError('No ticker data available', 404, 'NO_TICKER_DATA');
+        }
+
+        res.json({
+            success: true,
+            data: {
+                exchange: 'coincatch',
+                pair,
+                ticker
+            }
+        });
+
+    } catch (error) {
+        if (error instanceof APIError) {
+            throw error;
+        }
+        throw new APIError('Failed to fetch CoinCatch ticker', 500, 'COINCATCH_TICKER_ERROR');
+    }
+}));
+
+// POST /api/v1/trading/coincatch/test - Test CoinCatch API connection
+router.post('/coincatch/test', tradingRateLimit, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('passphrase').notEmpty().withMessage('Passphrase is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const { apiKey, apiSecret, passphrase } = req.body;
+    
+    try {
+        const timestamp = Date.now().toString();
+        const method = 'GET';
+        const requestPath = COINCATCH_CONFIG.endpoints.test;
+        const signature = createCoinCatchSignature(timestamp, method, requestPath, '', apiSecret);
+
+        const response = await fetch(`${COINCATCH_CONFIG.baseUrl}${requestPath}`, {
+            method: 'GET',
+            headers: {
+                'CC-API-KEY': apiKey,
+                'CC-API-SIGN': signature,
+                'CC-API-TIMESTAMP': timestamp,
+                'CC-API-PASSPHRASE': passphrase,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+        
+        if (data.code && data.code !== '0') {
+            res.json({
+                success: false,
+                data: {
+                    exchange: 'coincatch',
+                    connected: false,
+                    error: data.message
+                }
+            });
+            return;
+        }
+
+        res.json({
+            success: true,
+            data: {
+                exchange: 'coincatch',
+                connected: true,
+                message: 'API connection successful'
+            }
+        });
+
+    } catch (error) {
+        res.json({
+            success: false,
+            data: {
+                exchange: 'coincatch',
+                connected: false,
+                error: error.message
+            }
+        });
+    }
+}));
+
 module.exports = router;

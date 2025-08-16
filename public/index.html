@@ -16319,6 +16319,152 @@ ARB4ME Security Team`
                         } else {
                             backendEndpoint = `/api/v1/trading/chainex/test`;
                         }
+                    } else if (exchange === 'binance') {
+                        // Use new BINANCE trading routes
+                        if (endpoint.includes('balance')) {
+                            backendEndpoint = `/api/v1/trading/binance/balance`;
+                        } else if (endpoint.includes('ticker')) {
+                            backendEndpoint = `/api/v1/trading/binance/ticker`;
+                        } else {
+                            backendEndpoint = `/api/v1/trading/binance/test`;
+                        }
+                    } else if (exchange === 'kraken') {
+                        // Use new KRAKEN trading routes
+                        if (endpoint.includes('balance')) {
+                            backendEndpoint = `/api/v1/trading/kraken/balance`;
+                        } else if (endpoint.includes('ticker')) {
+                            backendEndpoint = `/api/v1/trading/kraken/ticker`;
+                        } else {
+                            backendEndpoint = `/api/v1/trading/kraken/test`;
+                        }
+                    } else if (exchange === 'bybit') {
+                        // Use new BYBIT trading routes
+                        if (endpoint.includes('balance')) {
+                            backendEndpoint = `/api/v1/trading/bybit/balance`;
+                        } else if (endpoint.includes('ticker')) {
+                            backendEndpoint = `/api/v1/trading/bybit/ticker`;
+                        } else {
+                            backendEndpoint = `/api/v1/trading/bybit/test`;
+                        }
+                    } else if (exchange === 'gateio') {
+                        // Use new GATE.IO trading routes
+                        if (endpoint.includes('balance')) {
+                            backendEndpoint = `/api/v1/trading/gateio/balance`;
+                        } else if (endpoint.includes('ticker')) {
+                            backendEndpoint = `/api/v1/trading/gateio/ticker`;
+                        } else {
+                            backendEndpoint = `/api/v1/trading/gateio/test`;
+                        }
+                    } else if (exchange === 'okx') {
+                        // Use new OKX trading routes
+                        if (endpoint.includes('balance')) {
+                            backendEndpoint = `/api/v1/trading/okx/balance`;
+                        } else if (endpoint.includes('ticker')) {
+                            backendEndpoint = `/api/v1/trading/okx/ticker`;
+                        } else {
+                            backendEndpoint = `/api/v1/trading/okx/test`;
+                        }
+                    } else if (exchange === 'mexc') {
+                        // Use new MEXC trading routes
+                        if (endpoint.includes('balance')) {
+                            backendEndpoint = `/api/v1/trading/mexc/balance`;
+                        } else if (endpoint.includes('ticker')) {
+                            backendEndpoint = `/api/v1/trading/mexc/ticker`;
+                        } else {
+                            backendEndpoint = `/api/v1/trading/mexc/test`;
+                        }
+                    } else if (exchange === 'kucoin') {
+                        // Use new KUCOIN trading routes
+                        if (endpoint.includes('balance')) {
+                            backendEndpoint = `/api/v1/trading/kucoin/balance`;
+                        } else if (endpoint.includes('ticker')) {
+                            backendEndpoint = `/api/v1/trading/kucoin/ticker`;
+                        } else {
+                            backendEndpoint = `/api/v1/trading/kucoin/test`;
+                        }
+                    } else if (exchange === 'xt') {
+                        // Use new XT.COM trading routes
+                        if (endpoint.includes('balance')) {
+                            backendEndpoint = `/api/v1/trading/xt/balance`;
+                        } else if (endpoint.includes('ticker')) {
+                            backendEndpoint = `/api/v1/trading/xt/ticker`;
+                        } else {
+                            backendEndpoint = `/api/v1/trading/xt/test`;
+                        }
+                    } else if (exchange === 'ascendex') {
+                        // Use new ASCENDEX trading routes
+                        if (endpoint.includes('balance')) {
+                            backendEndpoint = `/api/v1/trading/ascendex/balance`;
+                        } else if (endpoint.includes('ticker')) {
+                            backendEndpoint = `/api/v1/trading/ascendex/ticker`;
+                        } else {
+                            backendEndpoint = `/api/v1/trading/ascendex/test`;
+                        }
+                    } else if (exchange === 'htx') {
+                        // Use new HTX trading routes
+                        if (endpoint.includes('balance')) {
+                            backendEndpoint = `/api/v1/trading/htx/balance`;
+                        } else if (endpoint.includes('ticker')) {
+                            backendEndpoint = `/api/v1/trading/htx/ticker`;
+                        } else {
+                            backendEndpoint = `/api/v1/trading/htx/test`;
+                        }
+                    } else if (exchange === 'bingx') {
+                        if (endpoint.includes('balance')) {
+                            backendEndpoint = `/api/v1/trading/bingx/balance`;
+                        } else if (endpoint.includes('ticker')) {
+                            backendEndpoint = `/api/v1/trading/bingx/ticker`;
+                        } else {
+                            backendEndpoint = `/api/v1/trading/bingx/test`;
+                        }
+                    } else if (exchange === 'bitget') {
+                        if (endpoint.includes('balance')) {
+                            backendEndpoint = `/api/v1/trading/bitget/balance`;
+                        } else if (endpoint.includes('ticker')) {
+                            backendEndpoint = `/api/v1/trading/bitget/ticker`;
+                        } else {
+                            backendEndpoint = `/api/v1/trading/bitget/test`;
+                        }
+                    } else if (exchange === 'bitmart') {
+                        if (endpoint.includes('balance')) {
+                            backendEndpoint = `/api/v1/trading/bitmart/balance`;
+                        } else if (endpoint.includes('ticker')) {
+                            backendEndpoint = `/api/v1/trading/bitmart/ticker`;
+                        } else {
+                            backendEndpoint = `/api/v1/trading/bitmart/test`;
+                        }
+                    } else if (exchange === 'bitrue') {
+                        if (endpoint.includes('balance')) {
+                            backendEndpoint = `/api/v1/trading/bitrue/balance`;
+                        } else if (endpoint.includes('ticker')) {
+                            backendEndpoint = `/api/v1/trading/bitrue/ticker`;
+                        } else {
+                            backendEndpoint = `/api/v1/trading/bitrue/test`;
+                        }
+                    } else if (exchange === 'gemini') {
+                        if (endpoint.includes('balance')) {
+                            backendEndpoint = `/api/v1/trading/gemini/balance`;
+                        } else if (endpoint.includes('ticker')) {
+                            backendEndpoint = `/api/v1/trading/gemini/ticker`;
+                        } else {
+                            backendEndpoint = `/api/v1/trading/gemini/test`;
+                        }
+                    } else if (exchange === 'cryptocom') {
+                        if (endpoint.includes('balance')) {
+                            backendEndpoint = `/api/v1/trading/cryptocom/balance`;
+                        } else if (endpoint.includes('ticker')) {
+                            backendEndpoint = `/api/v1/trading/cryptocom/ticker`;
+                        } else {
+                            backendEndpoint = `/api/v1/trading/cryptocom/test`;
+                        }
+                    } else if (exchange === 'coincatch') {
+                        if (endpoint.includes('balance')) {
+                            backendEndpoint = `/api/v1/trading/coincatch/balance`;
+                        } else if (endpoint.includes('ticker')) {
+                            backendEndpoint = `/api/v1/trading/coincatch/ticker`;
+                        } else {
+                            backendEndpoint = `/api/v1/trading/coincatch/test`;
+                        }
                     } else {
                         // Use old structure for other exchanges
                         if (endpoint.includes('balance')) {
@@ -16457,6 +16603,40 @@ ARB4ME Security Team`
                         tickerEndpoint = `/api/v1/trading/xago/ticker`;
                     } else if (exchange === 'chainex') {
                         tickerEndpoint = `/api/v1/trading/chainex/ticker`;
+                    } else if (exchange === 'binance') {
+                        tickerEndpoint = `/api/v1/trading/binance/ticker`;
+                    } else if (exchange === 'kraken') {
+                        tickerEndpoint = `/api/v1/trading/kraken/ticker`;
+                    } else if (exchange === 'bybit') {
+                        tickerEndpoint = `/api/v1/trading/bybit/ticker`;
+                    } else if (exchange === 'gateio') {
+                        tickerEndpoint = `/api/v1/trading/gateio/ticker`;
+                    } else if (exchange === 'okx') {
+                        tickerEndpoint = `/api/v1/trading/okx/ticker`;
+                    } else if (exchange === 'mexc') {
+                        tickerEndpoint = `/api/v1/trading/mexc/ticker`;
+                    } else if (exchange === 'kucoin') {
+                        tickerEndpoint = `/api/v1/trading/kucoin/ticker`;
+                    } else if (exchange === 'xt') {
+                        tickerEndpoint = `/api/v1/trading/xt/ticker`;
+                    } else if (exchange === 'ascendex') {
+                        tickerEndpoint = `/api/v1/trading/ascendex/ticker`;
+                    } else if (exchange === 'htx') {
+                        tickerEndpoint = `/api/v1/trading/htx/ticker`;
+                    } else if (exchange === 'bingx') {
+                        tickerEndpoint = `/api/v1/trading/bingx/ticker`;
+                    } else if (exchange === 'bitget') {
+                        tickerEndpoint = `/api/v1/trading/bitget/ticker`;
+                    } else if (exchange === 'bitmart') {
+                        tickerEndpoint = `/api/v1/trading/bitmart/ticker`;
+                    } else if (exchange === 'bitrue') {
+                        tickerEndpoint = `/api/v1/trading/bitrue/ticker`;
+                    } else if (exchange === 'gemini') {
+                        tickerEndpoint = `/api/v1/trading/gemini/ticker`;
+                    } else if (exchange === 'cryptocom') {
+                        tickerEndpoint = `/api/v1/trading/cryptocom/ticker`;
+                    } else if (exchange === 'coincatch') {
+                        tickerEndpoint = `/api/v1/trading/coincatch/ticker`;
                     } else {
                         tickerEndpoint = `/api/${exchange}/ticker/${pair}`;
                     }
@@ -16465,7 +16645,7 @@ ARB4ME Security Team`
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            ...(exchange === 'valr' || exchange === 'luno' || exchange === 'altcointrader' || exchange === 'xago' || exchange === 'chainex' ? {
+                            ...(exchange === 'valr' || exchange === 'luno' || exchange === 'altcointrader' || exchange === 'xago' || exchange === 'chainex' || exchange === 'binance' || exchange === 'kraken' || exchange === 'bybit' || exchange === 'gateio' || exchange === 'okx' || exchange === 'mexc' || exchange === 'kucoin' || exchange === 'xt' || exchange === 'ascendex' || exchange === 'htx' || exchange === 'bingx' || exchange === 'bitget' || exchange === 'bitmart' || exchange === 'bitrue' || exchange === 'gemini' || exchange === 'cryptocom' || exchange === 'coincatch' ? {
                                 'Authorization': `Bearer ${localStorage.getItem('arb4me_jwt_token')}`
                             } : {})
                         },
@@ -16481,7 +16661,7 @@ ARB4ME Security Team`
                     
                     const data = await response.json();
                     // Handle different response formats
-                    if (exchange === 'valr' || exchange === 'luno') {
+                    if (exchange === 'valr' || exchange === 'luno' || exchange === 'altcointrader' || exchange === 'xago' || exchange === 'chainex' || exchange === 'binance' || exchange === 'kraken' || exchange === 'bybit' || exchange === 'gateio' || exchange === 'okx' || exchange === 'mexc' || exchange === 'kucoin' || exchange === 'xt' || exchange === 'ascendex' || exchange === 'htx' || exchange === 'bingx' || exchange === 'bitget' || exchange === 'bitmart' || exchange === 'bitrue' || exchange === 'gemini' || exchange === 'cryptocom' || exchange === 'coincatch') {
                         // New trading routes return { success: true, data: { ticker: {...} } }
                         return data.data?.ticker?.lastPrice || data.ticker?.lastPrice || data.lastPrice;
                     } else {
