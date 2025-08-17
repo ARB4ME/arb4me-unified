@@ -47,16 +47,9 @@ async function runMigration() {
         try {
             await migrationClient.query('BEGIN');
             
-            // Split and execute SQL statements
-            const statements = schemaSQL.split(';').filter(stmt => stmt.trim());
-            
-            for (let i = 0; i < statements.length; i++) {
-                const statement = statements[i].trim();
-                if (statement) {
-                    console.log(`   Executing statement ${i + 1}/${statements.length}...`);
-                    await migrationClient.query(statement);
-                }
-            }
+            // Execute entire schema as one block to handle functions correctly
+            console.log('   Executing database schema...');
+            await migrationClient.query(schemaSQL);
             
             await migrationClient.query('COMMIT');
             console.log('✅ Database schema created successfully');
@@ -135,13 +128,8 @@ async function runMigrationFiles(pool) {
                 try {
                     await client.query('BEGIN');
                     
-                    // Split and execute SQL statements
-                    const statements = sql.split(';').filter(stmt => stmt.trim());
-                    for (const statement of statements) {
-                        if (statement.trim()) {
-                            await client.query(statement);
-                        }
-                    }
+                    // Execute entire migration file as one block to handle functions
+                    await client.query(sql);
                     
                     await client.query('COMMIT');
                     console.log(`   ✅ ${file} completed`);

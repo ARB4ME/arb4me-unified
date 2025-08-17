@@ -322,9 +322,20 @@ ON CONFLICT (user_id) DO NOTHING;
 -- Note: Skip adding constraint to avoid migration parsing issues with existing databases
 
 -- Update existing users with payment references if they don't have one
-UPDATE users 
-SET payment_reference = generate_payment_reference()
-WHERE payment_reference IS NULL;
+DO $$ 
+BEGIN
+    -- Only update if the column exists and there are users
+    IF EXISTS (
+        SELECT 1 
+        FROM information_schema.columns 
+        WHERE table_name = 'users' 
+        AND column_name = 'payment_reference'
+    ) THEN
+        UPDATE users 
+        SET payment_reference = generate_payment_reference()
+        WHERE payment_reference IS NULL;
+    END IF;
+END $$;
 
 -- Create index for payment reference lookups
 CREATE INDEX IF NOT EXISTS idx_users_payment_reference ON users(payment_reference);
