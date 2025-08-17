@@ -104,18 +104,8 @@ async function startServer() {
         if (dbConnection) {
             logger.info('Database connected successfully');
             
-            // Run migration if needed
-            try {
-                console.log('🔧 Starting database migration...');
-                const { runMigration } = require('./src/database/migrate');
-                await runMigration();
-                console.log('✅ Database migration completed successfully');
-                logger.info('Database migration completed');
-            } catch (migrationError) {
-                console.error('❌ Migration error:', migrationError);
-                logger.error('Migration failed:', migrationError.message);
-                // Don't stop server if migration fails
-            }
+            // Skip automatic migration - should be run separately
+            // Migration can be triggered via npm run migrate
         } else {
             logger.warn('Running without database - PWA will use localStorage only');
         }

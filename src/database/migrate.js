@@ -21,12 +21,16 @@ const dbConfig = process.env.DATABASE_URL ?
 console.log('🚀 ARB4ME Database Migration Tool');
 console.log('==================================');
 
-async function runMigration() {
-    let pool = null;
+async function runMigration(existingPool = null) {
+    let pool = existingPool;
+    let shouldClosePool = false;
     
     try {
-        console.log('📊 Connecting to database...');
-        pool = new Pool(dbConfig);
+        if (!pool) {
+            console.log('📊 Connecting to database...');
+            pool = new Pool(dbConfig);
+            shouldClosePool = true;
+        }
         
         // Test connection
         const client = await pool.connect();
@@ -89,7 +93,7 @@ async function runMigration() {
         
         process.exit(1);
     } finally {
-        if (pool) {
+        if (pool && shouldClosePool) {
             await pool.end();
         }
     }
