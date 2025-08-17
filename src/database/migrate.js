@@ -68,6 +68,10 @@ async function runMigration() {
             migrationClient.release();
         }
         
+        // Run additional migration files
+        console.log('📂 Running migration files...');
+        await runMigrationFiles(pool);
+        
         // Create master admin user if it doesn't exist
         console.log('👤 Setting up master admin user...');
         await setupMasterAdmin(pool);
@@ -95,6 +99,64 @@ async function runMigration() {
         if (pool) {
             await pool.end();
         }
+    }
+}
+
+async function runMigrationFiles(pool) {
+    try {
+        const migrationsDir = path.join(__dirname, 'migrations');
+        
+        // Check if migrations directory exists
+        try {
+            await fs.access(migrationsDir);
+        } catch {
+            console.log('   No migrations directory found, skipping...');
+            return;
+        }
+        
+        // Read all SQL files from migrations directory
+        const files = await fs.readdir(migrationsDir);
+        const sqlFiles = files.filter(f => f.endsWith('.sql')).sort();
+        
+        if (sqlFiles.length === 0) {
+            console.log('   No migration files found');
+            return;
+        }
+        
+        console.log(`   Found ${sqlFiles.length} migration files`);
+        
+        for (const file of sqlFiles) {
+            console.log(`   Running migration: ${file}...`);
+            const filePath = path.join(migrationsDir, file);
+            const sql = await fs.readFile(filePath, 'utf8');
+            
+            try {
+                const client = await pool.connect();
+                try {
+                    await client.query('BEGIN');
+                    
+                    // Split and execute SQL statements
+                    const statements = sql.split(';').filter(stmt => stmt.trim());
+                    for (const statement of statements) {
+                        if (statement.trim()) {
+                            await client.query(statement);
+                        }
+                    }
+                    
+                    await client.query('COMMIT');
+                    console.log(`   ✅ ${file} completed`);
+                } catch (error) {
+                    await client.query('ROLLBACK');
+                    console.log(`   ⚠️  ${file} skipped (may already be applied): ${error.message}`);
+                } finally {
+                    client.release();
+                }
+            } catch (error) {
+                console.log(`   ❌ ${file} failed: ${error.message}`);
+            }
+        }
+    } catch (error) {
+        console.error('   Error reading migrations:', error.message);
     }
 }
 

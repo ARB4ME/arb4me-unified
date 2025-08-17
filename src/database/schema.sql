@@ -34,11 +34,35 @@ CREATE TABLE IF NOT EXISTS users (
     subscription_plan VARCHAR(50) DEFAULT 'free',
     subscription_expires_at TIMESTAMP,
     
+    -- Payment reference
+    payment_reference VARCHAR(20) UNIQUE,
+    
     -- Timestamps
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     last_login_at TIMESTAMP
 );
+
+-- Payment Reference Sequence and Function
+CREATE SEQUENCE IF NOT EXISTS user_payment_ref_seq
+    START WITH 100001
+    INCREMENT BY 1
+    MINVALUE 100001
+    MAXVALUE 999999
+    NO CYCLE;
+
+CREATE OR REPLACE FUNCTION generate_payment_reference()
+RETURNS VARCHAR AS $$
+DECLARE
+    new_ref VARCHAR(20);
+    ref_num INTEGER;
+BEGIN
+    -- Get next value from sequence
+    ref_num := nextval('user_payment_ref_seq');
+    new_ref := 'ARB-' || ref_num::TEXT;
+    RETURN new_ref;
+END;
+$$ LANGUAGE plpgsql;
 
 -- 2. MESSAGES TABLE
 CREATE TABLE IF NOT EXISTS messages (
@@ -296,3 +320,11 @@ ON CONFLICT (user_id) DO NOTHING;
 
 -- Add self-referencing foreign key constraint for users table (after table creation)
 -- Note: Skip adding constraint to avoid migration parsing issues with existing databases
+
+-- Update existing users with payment references if they don't have one
+UPDATE users 
+SET payment_reference = generate_payment_reference()
+WHERE payment_reference IS NULL;
+
+-- Create index for payment reference lookups
+CREATE INDEX IF NOT EXISTS idx_users_payment_reference ON users(payment_reference);
