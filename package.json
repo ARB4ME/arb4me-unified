@@ -10,7 +10,7 @@
     "migrate": "node src/database/migrate.js",
     "seed": "node src/database/seed.js",
     "deploy": "node deploy.js",
-    "build": "npm run migrate || echo 'Migration skipped'",
+    "build": "echo 'No build step required for Node.js backend'",
     "postinstall": "echo 'ARB4ME Backend dependencies installed successfully'"
   },
   "keywords": ["crypto", "arbitrage", "trading", "api"],
