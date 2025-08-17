@@ -8925,8 +8925,8 @@
             console.log('🔄 Refreshing Billing data from database...');
             
             try {
-                // Fetch real users from database
-                const userData = await apiService.fetchAdminUsers(1, 100, 'all');
+                // Fetch real users from database - using working endpoint
+                const userData = await apiService.fetchAllUsers();
                 const databaseUsers = userData.users || [];
                 
                 // Generate realistic payment data from real users
@@ -9160,8 +9160,8 @@
             console.log('🔄 Refreshing Account Activation data from database...');
             
             try {
-                // Fetch real users from database
-                const userData = await apiService.fetchAdminUsers(1, 100, 'all');
+                // Fetch real users from database - using working endpoint
+                const userData = await apiService.fetchAllUsers();
                 const databaseUsers = userData.users || [];
                 
                 // Convert database users to activation format
@@ -13989,8 +13989,8 @@ ARB4ME Security Team`
             if (apiConnectedEl) apiConnectedEl.textContent = '...';
             
             try {
-                // Fetch real users from backend database
-                const userData = await apiService.fetchAdminUsers(1, 100, 'all');
+                // Fetch real users from backend database - using working endpoint
+                const userData = await apiService.fetchAllUsers();
                 const users = userData.users || [];
                 
                 console.log('🔄 Refreshed admin users from database:', users.length);
