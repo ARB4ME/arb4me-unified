@@ -4502,7 +4502,7 @@
                                     </div>
                                     <div style="text-align: right;">
                                         <div style="color: #b8c6db; font-size: 0.9rem; margin-bottom: 5px;">Your Payment Reference:</div>
-                                        <div style="color: #00d4ff; font-size: 1.2rem; font-weight: bold; font-family: monospace;" id="paymentReference">ARB-000000-JAN-2025</div>
+                                        <div style="color: #00d4ff; font-size: 1.2rem; font-weight: bold; font-family: monospace;" id="paymentReference">ARB-100001</div>
                                     </div>
                                 </div>
                             </div>
@@ -8418,10 +8418,8 @@
                 serviceFeeAmountElement.textContent = `$${serviceFee.toFixed(2)}`;
             }
 
-            // Generate payment reference
-            const userId = userState.userData.id || '000000';
-            const monthName = new Date().toLocaleString('en-US', { month: 'short' }).toUpperCase();
-            billingState.paymentReference = `ARB-${userId}-${monthName}-${currentYear}`;
+            // Use permanent payment reference from database
+            billingState.paymentReference = userState.userData.paymentReference || 'ARB-100001';
             
             if (paymentReferenceElement) {
                 paymentReferenceElement.textContent = billingState.paymentReference;
@@ -8473,10 +8471,7 @@
             `;
             
             const serviceFee = billingState.currentMonthProfit * billingState.serviceFeePercentage;
-            const userId = userState.userData.id || '000000';
-            const monthName = new Date().toLocaleString('en-US', { month: 'short' }).toUpperCase();
-            const currentYear = new Date().getFullYear();
-            const paymentReference = `ARB-${userId}-${monthName}-${currentYear}`;
+            const paymentReference = userState.userData.paymentReference || 'ARB-100001';
             
             modal.innerHTML = `
                 <div style="background: #1a1a2e; padding: 30px; border-radius: 15px; max-width: 900px; max-height: 80vh; overflow-y: auto;">
@@ -8800,7 +8795,7 @@
                 }, 0);
 
                 const serviceFee = monthlyProfit * 0.03; // 3%
-                const paymentReference = `ARB-${user.id}-${new Date().toLocaleString('en-US', { month: 'short' }).toUpperCase()}-${currentYear}`;
+                const paymentReference = user.paymentReference || 'ARB-100001';
                 
                 // Check payment status
                 const billingHistory = JSON.parse(localStorage.getItem(`arb4me_billing_history_${user.id}`) || '[]');
@@ -8978,7 +8973,7 @@
                     userId: '123456',
                     userName: 'John Smith',
                     amount: 45.50,
-                    reference: 'ARB-123456-JAN-2025',
+                    reference: 'ARB-100002',
                     status: 'completed',
                     timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
                 },
@@ -8986,7 +8981,7 @@
                     userId: '654321',
                     userName: 'Sarah Johnson', 
                     amount: 78.90,
-                    reference: 'ARB-654321-JAN-2025',
+                    reference: 'ARB-100003',
                     status: 'pending',
                     timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString()
                 }
@@ -9077,7 +9072,7 @@
             }, 0);
 
             const serviceFee = monthlyProfit * 0.03;
-            const paymentReference = `ARB-${userId}-${new Date().toLocaleString('en-US', { month: 'short' }).toUpperCase()}-${currentYear}`;
+            const paymentReference = user.paymentReference || 'ARB-100001';
 
             modal.innerHTML = `
                 <div style="background: #1a1a2e; padding: 30px; border-radius: 15px; max-width: 800px; max-height: 80vh; overflow-y: auto;">
@@ -9204,7 +9199,7 @@
                         {
                             id: 'demo_001',
                             email: 'demo@example.com',
-                            paymentReference: 'ARB-175252490343-AUG-2025',
+                            paymentReference: 'ARB-100001',
                             status: 'active',
                             lastPayment: '2025-08-01',
                             nextDue: '2025-09-01',

@@ -17,7 +17,7 @@ router.get('/profile', asyncHandler(async (req, res) => {
     const userResult = await query(`
         SELECT u.id, u.first_name, u.last_name, u.email, u.mobile, u.country,
                u.admin_role, u.account_status, u.subscription_plan, u.subscription_expires_at,
-               u.created_at, u.updated_at, u.last_login_at,
+               u.created_at, u.updated_at, u.last_login_at, u.payment_reference,
                ta.exchanges_connected, ta.exchanges_connected_count, ta.selected_crypto_assets,
                ta.trading_active, ta.auto_trading_enabled, ta.total_trades_count,
                ta.successful_trades_count, ta.failed_trades_count, ta.profit_loss_total,
@@ -50,7 +50,8 @@ router.get('/profile', asyncHandler(async (req, res) => {
                 subscriptionExpiresAt: userData.subscription_expires_at,
                 createdAt: userData.created_at,
                 updatedAt: userData.updated_at,
-                lastLoginAt: userData.last_login_at
+                lastLoginAt: userData.last_login_at,
+                paymentReference: userData.payment_reference
             },
             tradingActivity: {
                 exchangesConnected: userData.exchanges_connected || [],
