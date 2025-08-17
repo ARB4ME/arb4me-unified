@@ -8795,7 +8795,7 @@
                 }, 0);
 
                 const serviceFee = monthlyProfit * 0.03; // 3%
-                const paymentReference = user.paymentReference || 'ARB-100001';
+                const paymentReference = user.paymentReference || user.payment_reference || `ARB-${user.id}`;
                 
                 // Check payment status
                 const billingHistory = JSON.parse(localStorage.getItem(`arb4me_billing_history_${user.id}`) || '[]');
@@ -9072,7 +9072,7 @@
             }, 0);
 
             const serviceFee = monthlyProfit * 0.03;
-            const paymentReference = user.paymentReference || 'ARB-100001';
+            const paymentReference = user.paymentReference || user.payment_reference || `ARB-${user.id}`;
 
             modal.innerHTML = `
                 <div style="background: #1a1a2e; padding: 30px; border-radius: 15px; max-width: 800px; max-height: 80vh; overflow-y: auto;">
@@ -9169,7 +9169,7 @@
                     return {
                         id: user.id,
                         email: user.email,
-                        paymentReference: `ARB-${user.id.replace('user_', '')}-${new Date().getFullYear()}`,
+                        paymentReference: user.paymentReference || user.payment_reference || `ARB-${user.id}`,
                         status: user.account_status === 'active' ? 'active' : 
                                user.account_status === 'suspended' ? 'inactive' : 
                                user.account_status === 'trial' ? 'grace' : 'inactive',

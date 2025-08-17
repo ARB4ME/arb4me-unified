@@ -88,7 +88,7 @@ router.get('/messages-test', asyncHandler(async (req, res) => {
 router.get('/all-users-test', asyncHandler(async (req, res) => {
     const usersResult = await query(`
         SELECT 
-            id, first_name, last_name, email, account_status, last_login_at, created_at
+            id, first_name, last_name, email, account_status, last_login_at, created_at, payment_reference
         FROM users 
         WHERE admin_role IS NULL OR admin_role != 'master'
         ORDER BY first_name ASC, last_name ASC
@@ -100,6 +100,7 @@ router.get('/all-users-test', asyncHandler(async (req, res) => {
         email: row.email,
         status: row.account_status,
         lastLogin: row.last_login_at,
+        paymentReference: row.payment_reference,
         isOnline: false // Default to offline since we don't track real-time status
     }));
     
@@ -132,7 +133,7 @@ router.get('/users-test', asyncHandler(async (req, res) => {
         SELECT 
             u.id, u.first_name, u.last_name, u.email, u.mobile, u.country,
             u.account_status, u.subscription_plan, u.subscription_expires_at,
-            u.created_at, u.updated_at, u.last_login_at
+            u.created_at, u.updated_at, u.last_login_at, u.payment_reference
         FROM users u
         ${whereClause}
         ORDER BY u.created_at DESC
@@ -151,7 +152,8 @@ router.get('/users-test', asyncHandler(async (req, res) => {
         subscriptionExpiresAt: row.subscription_expires_at,
         createdAt: row.created_at,
         updatedAt: row.updated_at,
-        lastLoginAt: row.last_login_at
+        lastLoginAt: row.last_login_at,
+        paymentReference: row.payment_reference
     }));
     
     res.json({
