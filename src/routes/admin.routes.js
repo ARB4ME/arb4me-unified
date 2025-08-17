@@ -86,13 +86,27 @@ router.get('/messages-test', asyncHandler(async (req, res) => {
 
 // TEMPORARY: Get all users for compose modal without admin auth
 router.get('/all-users-test', asyncHandler(async (req, res) => {
-    const usersResult = await query(`
-        SELECT 
-            id, first_name, last_name, email, account_status, last_login_at, created_at, payment_reference
-        FROM users 
-        WHERE admin_role IS NULL OR admin_role != 'master'
-        ORDER BY first_name ASC, last_name ASC
-    `);
+    // Try with payment_reference, fallback without if column doesn't exist
+    let usersResult;
+    try {
+        usersResult = await query(`
+            SELECT 
+                id, first_name, last_name, email, account_status, last_login_at, created_at, payment_reference
+            FROM users 
+            WHERE admin_role IS NULL OR admin_role != 'master'
+            ORDER BY first_name ASC, last_name ASC
+        `);
+    } catch (error) {
+        // If payment_reference column doesn't exist, query without it
+        console.log('Payment reference column not found, querying without it');
+        usersResult = await query(`
+            SELECT 
+                id, first_name, last_name, email, account_status, last_login_at, created_at
+            FROM users 
+            WHERE admin_role IS NULL OR admin_role != 'master'
+            ORDER BY first_name ASC, last_name ASC
+        `);
+    }
     
     const users = usersResult.rows.map(row => ({
         id: row.id,
@@ -100,7 +114,7 @@ router.get('/all-users-test', asyncHandler(async (req, res) => {
         email: row.email,
         status: row.account_status,
         lastLogin: row.last_login_at,
-        paymentReference: row.payment_reference,
+        paymentReference: row.payment_reference || null,
         isOnline: false // Default to offline since we don't track real-time status
     }));
     
@@ -129,16 +143,33 @@ router.get('/users-test', asyncHandler(async (req, res) => {
     
     queryParams.push(limit, offset);
     
-    const usersResult = await query(`
-        SELECT 
-            u.id, u.first_name, u.last_name, u.email, u.mobile, u.country,
-            u.account_status, u.subscription_plan, u.subscription_expires_at,
-            u.created_at, u.updated_at, u.last_login_at, u.payment_reference
-        FROM users u
-        ${whereClause}
-        ORDER BY u.created_at DESC
-        LIMIT $${paramIndex++} OFFSET $${paramIndex++}
-    `, queryParams);
+    // Try with payment_reference, fallback without if column doesn't exist
+    let usersResult;
+    try {
+        usersResult = await query(`
+            SELECT 
+                u.id, u.first_name, u.last_name, u.email, u.mobile, u.country,
+                u.account_status, u.subscription_plan, u.subscription_expires_at,
+                u.created_at, u.updated_at, u.last_login_at, u.payment_reference
+            FROM users u
+            ${whereClause}
+            ORDER BY u.created_at DESC
+            LIMIT $${paramIndex++} OFFSET $${paramIndex++}
+        `, queryParams);
+    } catch (error) {
+        // If payment_reference column doesn't exist, query without it
+        console.log('Payment reference column not found, querying without it');
+        usersResult = await query(`
+            SELECT 
+                u.id, u.first_name, u.last_name, u.email, u.mobile, u.country,
+                u.account_status, u.subscription_plan, u.subscription_expires_at,
+                u.created_at, u.updated_at, u.last_login_at
+            FROM users u
+            ${whereClause}
+            ORDER BY u.created_at DESC
+            LIMIT $${paramIndex++} OFFSET $${paramIndex++}
+        `, queryParams);
+    }
     
     const users = usersResult.rows.map(row => ({
         id: row.id,
@@ -153,7 +184,7 @@ router.get('/users-test', asyncHandler(async (req, res) => {
         createdAt: row.created_at,
         updatedAt: row.updated_at,
         lastLoginAt: row.last_login_at,
-        paymentReference: row.payment_reference
+        paymentReference: row.payment_reference || null
     }));
     
     res.json({
