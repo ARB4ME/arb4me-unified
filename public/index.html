@@ -6003,11 +6003,82 @@
                     </div>
 
                     <!-- Failed Login Attempts -->
-                    <div style="background: rgba(255,193,7,0.1); padding: 20px; border-radius: 15px;">
+                    <div style="background: rgba(255,193,7,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px;">
                         <h4 style="color: #ffc107; margin-bottom: 15px;">🔐 Recent Failed Login Attempts</h4>
                         
                         <div id="failedLoginAttempts" style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; max-height: 300px; overflow-y: auto;">
                             <div style="text-align: center; color: #888; padding: 20px;">Loading failed login data...</div>
+                        </div>
+                    </div>
+
+                    <!-- Log Maintenance & Cleanup -->
+                    <div style="background: rgba(156,39,176,0.1); padding: 20px; border-radius: 15px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <h4 style="color: #9c27b0; margin: 0;">🗄️ Log Maintenance & Cleanup</h4>
+                            <button onclick="refreshMaintenanceStats()" style="padding: 5px 10px; background: rgba(255,255,255,0.1); color: white; border: 1px solid #666; border-radius: 5px; cursor: pointer;">🔄 Refresh</button>
+                        </div>
+
+                        <!-- Database Storage Overview -->
+                        <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                            <h5 style="color: #9c27b0; margin-bottom: 10px;">💾 Database Storage</h5>
+                            <div id="databaseStorageInfo" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+                                <div style="text-align: center; color: #888; padding: 20px;">Loading storage information...</div>
+                            </div>
+                        </div>
+
+                        <!-- Log Statistics -->
+                        <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                            <h5 style="color: #9c27b0; margin-bottom: 10px;">📊 Log Statistics by Category</h5>
+                            <div id="logStatistics" style="max-height: 300px; overflow-y: auto;">
+                                <div style="text-align: center; color: #888; padding: 20px;">Loading log statistics...</div>
+                            </div>
+                        </div>
+
+                        <!-- Maintenance Actions -->
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px;">
+                            
+                            <!-- Log Cleanup -->
+                            <div style="background: rgba(255,107,107,0.1); padding: 15px; border-radius: 8px;">
+                                <h6 style="color: #ff6b6b; margin-bottom: 10px;">🧹 Automated Cleanup</h6>
+                                <p style="color: #aaa; font-size: 0.8rem; margin-bottom: 10px;">Remove logs based on retention policies</p>
+                                <div style="display: flex; flex-direction: column; gap: 8px;">
+                                    <button onclick="runLogCleanup(true)" style="padding: 8px 12px; background: rgba(255,149,0,0.3); color: #ff9500; border: 1px solid #ff9500; border-radius: 5px; cursor: pointer;">
+                                        🔍 Simulate Cleanup (Dry Run)
+                                    </button>
+                                    <button onclick="runLogCleanup(false)" style="padding: 8px 12px; background: linear-gradient(45deg, #ff6b6b, #ff5252); color: white; border: none; border-radius: 5px; cursor: pointer;">
+                                        🗑️ Execute Cleanup
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Log Archiving -->
+                            <div style="background: rgba(0,212,255,0.1); padding: 15px; border-radius: 8px;">
+                                <h6 style="color: #00d4ff; margin-bottom: 10px;">📦 Archive Old Logs</h6>
+                                <p style="color: #aaa; font-size: 0.8rem; margin-bottom: 10px;">Move old logs to archive tables</p>
+                                <div style="margin-bottom: 8px;">
+                                    <label style="font-size: 0.8rem; color: #aaa;">Archive Before:</label>
+                                    <input type="date" id="archiveDate" style="width: 100%; padding: 5px; background: rgba(0,0,0,0.5); border: 1px solid #333; border-radius: 3px; color: white; margin-top: 3px;">
+                                </div>
+                                <button onclick="runLogArchiving()" style="padding: 8px 12px; background: linear-gradient(45deg, #00d4ff, #0099cc); color: white; border: none; border-radius: 5px; cursor: pointer; width: 100%;">
+                                    📦 Archive Logs
+                                </button>
+                            </div>
+
+                            <!-- Database Optimization -->
+                            <div style="background: rgba(0,255,136,0.1); padding: 15px; border-radius: 8px;">
+                                <h6 style="color: #00ff88; margin-bottom: 10px;">⚡ Database Optimization</h6>
+                                <p style="color: #aaa; font-size: 0.8rem; margin-bottom: 10px;">Vacuum and analyze tables for optimal performance</p>
+                                <button onclick="runDatabaseVacuum()" style="padding: 8px 12px; background: linear-gradient(45deg, #00ff88, #00d4aa); color: white; border: none; border-radius: 5px; cursor: pointer; width: 100%;">
+                                    ⚡ Optimize Database
+                                </button>
+                            </div>
+
+                        </div>
+
+                        <!-- Maintenance Results -->
+                        <div id="maintenanceResults" style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; margin-top: 15px; display: none;">
+                            <h5 style="color: #9c27b0; margin-bottom: 10px;">📋 Maintenance Results</h5>
+                            <div id="maintenanceResultsContent"></div>
                         </div>
                     </div>
                 </div>
@@ -10346,6 +10417,279 @@
             refreshSecurityHealth();
             refreshSecurityDashboard();
             refreshSecurityAlerts();
+            refreshMaintenanceStats();
+        }
+
+        // Log Maintenance Functions
+        let maintenanceData = {
+            statistics: null,
+            lastCleanup: null
+        };
+
+        async function refreshMaintenanceStats() {
+            try {
+                const response = await apiService.apiCall('/admin/maintenance/logs', { method: 'GET' });
+                
+                if (response.success) {
+                    maintenanceData.statistics = response.data;
+                    displayMaintenanceStats(response.data);
+                    addActivity('🗄️ Maintenance statistics refreshed', 'info');
+                } else {
+                    console.error('Failed to get maintenance statistics:', response.error);
+                    addActivity('❌ Failed to refresh maintenance statistics', 'error');
+                }
+            } catch (error) {
+                console.error('Error refreshing maintenance statistics:', error);
+                addActivity('❌ Error refreshing maintenance statistics', 'error');
+            }
+        }
+
+        function displayMaintenanceStats(data) {
+            // Display database storage information
+            const storageDiv = document.getElementById('databaseStorageInfo');
+            if (data.databaseSize && data.databaseSize.length > 0) {
+                const html = data.databaseSize.map(table => `
+                    <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 5px; text-align: center;">
+                        <div style="font-weight: bold; color: #9c27b0; margin-bottom: 5px;">${table.tablename}</div>
+                        <div style="font-size: 1.2rem; color: #00d4ff; font-weight: bold;">${table.size}</div>
+                        <div style="font-size: 0.8rem; color: #aaa;">Database Size</div>
+                    </div>
+                `).join('');
+                storageDiv.innerHTML = html;
+            } else {
+                storageDiv.innerHTML = '<div style="text-align: center; color: #888; padding: 20px;">No storage information available</div>';
+            }
+
+            // Display log statistics
+            const statsDiv = document.getElementById('logStatistics');
+            const allStats = [
+                ...(data.logStatistics || []),
+                ...(data.securityStatistics ? [data.securityStatistics] : []),
+                ...(data.sessionStatistics ? [data.sessionStatistics] : [])
+            ];
+
+            if (allStats.length > 0) {
+                const html = allStats.map(stat => {
+                    const retentionPolicy = data.retentionPolicies?.find(p => p.category === stat.category);
+                    const retentionDays = retentionPolicy ? retentionPolicy.retention_days : 'N/A';
+                    
+                    return `
+                        <div style="background: rgba(255,255,255,0.05); padding: 12px; margin-bottom: 8px; border-radius: 5px;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; align-items: center;">
+                                <div>
+                                    <div style="font-weight: bold; color: #9c27b0;">${stat.category.replace(/_/g, ' ').toUpperCase()}</div>
+                                    <div style="font-size: 0.8rem; color: #aaa;">Retention: ${retentionDays} days</div>
+                                </div>
+                                <div style="text-align: center;">
+                                    <div style="font-size: 1.2rem; color: #00d4ff; font-weight: bold;">${stat.total_logs}</div>
+                                    <div style="font-size: 0.8rem; color: #aaa;">Total Logs</div>
+                                </div>
+                                <div style="text-align: center;">
+                                    <div style="font-size: 1rem; color: #ff9500; font-weight: bold;">${stat.logs_older_than_90d || 0}</div>
+                                    <div style="font-size: 0.8rem; color: #aaa;">Older than 90d</div>
+                                </div>
+                                <div style="text-align: center;">
+                                    <div style="font-size: 0.9rem; color: #aaa;">${stat.oldest_log ? new Date(stat.oldest_log).toLocaleDateString() : 'N/A'}</div>
+                                    <div style="font-size: 0.8rem; color: #aaa;">Oldest Record</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                statsDiv.innerHTML = html;
+            } else {
+                statsDiv.innerHTML = '<div style="text-align: center; color: #888; padding: 20px;">No log statistics available</div>';
+            }
+
+            // Set default archive date to 90 days ago
+            const archiveDateInput = document.getElementById('archiveDate');
+            const ninetyDaysAgo = new Date();
+            ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+            archiveDateInput.value = ninetyDaysAgo.toISOString().split('T')[0];
+        }
+
+        async function runLogCleanup(dryRun = true) {
+            const confirmMessage = dryRun ? 
+                'Run cleanup simulation to see what would be deleted?' : 
+                'Execute log cleanup? This will permanently delete old logs based on retention policies!';
+            
+            if (!confirm(confirmMessage)) return;
+            
+            try {
+                showMaintenanceResults(`🔄 ${dryRun ? 'Simulating' : 'Executing'} log cleanup...`);
+                
+                const response = await apiService.apiCall('/admin/maintenance/cleanup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ dryRun, categories: [] })
+                });
+                
+                if (response.success) {
+                    const result = response.data;
+                    const html = `
+                        <div style="color: ${dryRun ? '#ff9500' : '#00ff88'}; font-weight: bold; margin-bottom: 10px;">
+                            ${dryRun ? '🔍 SIMULATION RESULTS' : '✅ CLEANUP COMPLETED'}
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+                            <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 5px; text-align: center;">
+                                <div style="font-size: 1.2rem; color: #ff6b6b; font-weight: bold;">${result.deletedRecords.adminActivityLog}</div>
+                                <div style="font-size: 0.8rem; color: #aaa;">Admin Activity Logs</div>
+                            </div>
+                            <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 5px; text-align: center;">
+                                <div style="font-size: 1.2rem; color: #ff9500; font-weight: bold;">${result.deletedRecords.securityEvents}</div>
+                                <div style="font-size: 0.8rem; color: #aaa;">Security Events</div>
+                            </div>
+                            <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 5px; text-align: center;">
+                                <div style="font-size: 1.2rem; color: #ffc107; font-weight: bold;">${result.deletedRecords.userSessions}</div>
+                                <div style="font-size: 0.8rem; color: #aaa;">User Sessions</div>
+                            </div>
+                            <div style="background: rgba(156,39,176,0.2); padding: 10px; border-radius: 5px; text-align: center;">
+                                <div style="font-size: 1.2rem; color: #9c27b0; font-weight: bold;">${result.deletedRecords.totalDeleted}</div>
+                                <div style="font-size: 0.8rem; color: #aaa;">Total ${dryRun ? 'Would Delete' : 'Deleted'}</div>
+                            </div>
+                        </div>
+                    `;
+                    showMaintenanceResults(html);
+                    
+                    addActivity(`🧹 Log cleanup ${dryRun ? 'simulated' : 'executed'}: ${result.deletedRecords.totalDeleted} records`, 'info');
+                    
+                    if (!dryRun) {
+                        refreshMaintenanceStats(); // Refresh stats after actual cleanup
+                    }
+                } else {
+                    showMaintenanceResults(`<div style="color: #ff6b6b;">❌ Failed to ${dryRun ? 'simulate' : 'execute'} cleanup: ${response.error}</div>`);
+                    addActivity('❌ Failed to execute log cleanup', 'error');
+                }
+            } catch (error) {
+                console.error('Error running log cleanup:', error);
+                showMaintenanceResults(`<div style="color: #ff6b6b;">❌ Error: ${error.message}</div>`);
+                addActivity('❌ Error running log cleanup', 'error');
+            }
+        }
+
+        async function runLogArchiving() {
+            const archiveDate = document.getElementById('archiveDate').value;
+            if (!archiveDate) {
+                alert('Please select an archive date');
+                return;
+            }
+            
+            if (!confirm(`Archive all logs created before ${archiveDate}? This will move old logs to archive tables.`)) return;
+            
+            try {
+                showMaintenanceResults('🔄 Archiving old logs...');
+                
+                const response = await apiService.apiCall('/admin/maintenance/archive', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ archiveBefore: archiveDate, categories: [] })
+                });
+                
+                if (response.success) {
+                    const result = response.data;
+                    const html = `
+                        <div style="color: #00d4ff; font-weight: bold; margin-bottom: 10px;">
+                            📦 ARCHIVING COMPLETED
+                        </div>
+                        <div style="margin-bottom: 10px;">
+                            <strong>Archive Date:</strong> ${new Date(result.archiveBefore).toLocaleDateString()}
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+                            <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 5px; text-align: center;">
+                                <div style="font-size: 1.2rem; color: #ff6b6b; font-weight: bold;">${result.archivedRecords.adminActivityLog}</div>
+                                <div style="font-size: 0.8rem; color: #aaa;">Admin Activity Logs</div>
+                            </div>
+                            <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 5px; text-align: center;">
+                                <div style="font-size: 1.2rem; color: #ff9500; font-weight: bold;">${result.archivedRecords.securityEvents}</div>
+                                <div style="font-size: 0.8rem; color: #aaa;">Security Events</div>
+                            </div>
+                            <div style="background: rgba(0,212,255,0.2); padding: 10px; border-radius: 5px; text-align: center;">
+                                <div style="font-size: 1.2rem; color: #00d4ff; font-weight: bold;">${result.archivedRecords.totalArchived}</div>
+                                <div style="font-size: 0.8rem; color: #aaa;">Total Archived</div>
+                            </div>
+                        </div>
+                    `;
+                    showMaintenanceResults(html);
+                    
+                    addActivity(`📦 Log archiving completed: ${result.archivedRecords.totalArchived} records archived`, 'info');
+                    refreshMaintenanceStats(); // Refresh stats after archiving
+                } else {
+                    showMaintenanceResults(`<div style="color: #ff6b6b;">❌ Failed to archive logs: ${response.error}</div>`);
+                    addActivity('❌ Failed to archive logs', 'error');
+                }
+            } catch (error) {
+                console.error('Error running log archiving:', error);
+                showMaintenanceResults(`<div style="color: #ff6b6b;">❌ Error: ${error.message}</div>`);
+                addActivity('❌ Error running log archiving', 'error');
+            }
+        }
+
+        async function runDatabaseVacuum() {
+            if (!confirm('Run database optimization? This may take a few minutes and will improve performance.')) return;
+            
+            try {
+                showMaintenanceResults('🔄 Optimizing database tables...');
+                
+                const response = await apiService.apiCall('/admin/maintenance/vacuum', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tables: ['admin_activity_log', 'security_events', 'user_sessions'] })
+                });
+                
+                if (response.success) {
+                    const result = response.data;
+                    const html = `
+                        <div style="color: #00ff88; font-weight: bold; margin-bottom: 10px;">
+                            ⚡ DATABASE OPTIMIZATION COMPLETED
+                        </div>
+                        <div style="margin-bottom: 10px;">
+                            <strong>Tables Processed:</strong> ${result.completedTables} of ${result.totalTables}
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 10px;">
+                            ${result.results.map(table => `
+                                <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 5px;">
+                                    <div style="font-weight: bold; color: ${table.status === 'completed' ? '#00ff88' : '#ff6b6b'};">
+                                        ${table.table}
+                                    </div>
+                                    ${table.status === 'completed' ? `
+                                        <div style="font-size: 0.8rem; color: #aaa; margin-top: 5px;">
+                                            Before: ${table.sizeBefore}<br>
+                                            After: ${table.sizeAfter}<br>
+                                            Saved: ${table.spaceSaved}
+                                        </div>
+                                    ` : `
+                                        <div style="font-size: 0.8rem; color: #ff6b6b; margin-top: 5px;">
+                                            Error: ${table.error}
+                                        </div>
+                                    `}
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                    showMaintenanceResults(html);
+                    
+                    addActivity(`⚡ Database optimization completed: ${result.completedTables}/${result.totalTables} tables`, 'info');
+                    refreshMaintenanceStats(); // Refresh stats after optimization
+                } else {
+                    showMaintenanceResults(`<div style="color: #ff6b6b;">❌ Failed to optimize database: ${response.error}</div>`);
+                    addActivity('❌ Failed to optimize database', 'error');
+                }
+            } catch (error) {
+                console.error('Error running database optimization:', error);
+                showMaintenanceResults(`<div style="color: #ff6b6b;">❌ Error: ${error.message}</div>`);
+                addActivity('❌ Error running database optimization', 'error');
+            }
+        }
+
+        function showMaintenanceResults(content) {
+            const resultsDiv = document.getElementById('maintenanceResults');
+            const contentDiv = document.getElementById('maintenanceResultsContent');
+            
+            contentDiv.innerHTML = content;
+            resultsDiv.style.display = 'block';
+            
+            // Scroll to results
+            resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
 
         function displayActivityLog() {
@@ -15134,6 +15478,108 @@ ARB4ME Security Team`
                     }
                 } catch (error) {
                     console.log('❌ Error creating security incident:', error.message);
+                    return { success: false, error: error.message };
+                }
+            },
+
+            async getMaintenanceStats() {
+                try {
+                    if (!this.token) {
+                        console.log('No JWT token available for maintenance statistics');
+                        return { success: false, error: 'No authentication token' };
+                    }
+
+                    const response = await this.apiCall('/admin/maintenance/logs', {
+                        method: 'GET'
+                    });
+                    
+                    if (response.success) {
+                        console.log('✅ Maintenance statistics retrieved:', response.data);
+                        return response;
+                    } else {
+                        console.log('❌ Failed to get maintenance statistics:', response.error);
+                        return response;
+                    }
+                } catch (error) {
+                    console.log('❌ Error getting maintenance statistics:', error.message);
+                    return { success: false, error: error.message };
+                }
+            },
+
+            async runLogCleanup(dryRun = true, categories = []) {
+                try {
+                    if (!this.token) {
+                        console.log('No JWT token available for log cleanup');
+                        return { success: false, error: 'No authentication token' };
+                    }
+
+                    const response = await this.apiCall('/admin/maintenance/cleanup', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ dryRun, categories })
+                    });
+                    
+                    if (response.success) {
+                        console.log('✅ Log cleanup completed:', response.data);
+                        return response;
+                    } else {
+                        console.log('❌ Failed to run log cleanup:', response.error);
+                        return response;
+                    }
+                } catch (error) {
+                    console.log('❌ Error running log cleanup:', error.message);
+                    return { success: false, error: error.message };
+                }
+            },
+
+            async archiveLogs(archiveBefore, categories = []) {
+                try {
+                    if (!this.token) {
+                        console.log('No JWT token available for log archiving');
+                        return { success: false, error: 'No authentication token' };
+                    }
+
+                    const response = await this.apiCall('/admin/maintenance/archive', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ archiveBefore, categories })
+                    });
+                    
+                    if (response.success) {
+                        console.log('✅ Log archiving completed:', response.data);
+                        return response;
+                    } else {
+                        console.log('❌ Failed to archive logs:', response.error);
+                        return response;
+                    }
+                } catch (error) {
+                    console.log('❌ Error archiving logs:', error.message);
+                    return { success: false, error: error.message };
+                }
+            },
+
+            async optimizeDatabase(tables = ['admin_activity_log', 'security_events', 'user_sessions']) {
+                try {
+                    if (!this.token) {
+                        console.log('No JWT token available for database optimization');
+                        return { success: false, error: 'No authentication token' };
+                    }
+
+                    const response = await this.apiCall('/admin/maintenance/vacuum', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ tables })
+                    });
+                    
+                    if (response.success) {
+                        console.log('✅ Database optimization completed:', response.data);
+                        return response;
+                    } else {
+                        console.log('❌ Failed to optimize database:', response.error);
+                        return response;
+                    }
+                } catch (error) {
+                    console.log('❌ Error optimizing database:', error.message);
                     return { success: false, error: error.message };
                 }
             }

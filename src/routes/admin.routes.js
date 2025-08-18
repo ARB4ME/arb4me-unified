@@ -2230,4 +2230,356 @@ function generateSecurityRecommendations(metrics, healthScore) {
     return recommendations;
 }
 
+// GET /api/v1/admin/maintenance/logs - Log maintenance and cleanup
+router.get('/maintenance/logs', authenticateUser, requireAdmin, requirePermission('system.maintenance'), asyncHandler(async (req, res) => {
+    // Get log statistics for different categories
+    const logStats = await query(`
+        SELECT 
+            category,
+            COUNT(*) as total_logs,
+            MIN(created_at) as oldest_log,
+            MAX(created_at) as newest_log,
+            COUNT(*) FILTER (WHERE created_at < CURRENT_TIMESTAMP - INTERVAL '30 days') as logs_older_than_30d,
+            COUNT(*) FILTER (WHERE created_at < CURRENT_TIMESTAMP - INTERVAL '90 days') as logs_older_than_90d,
+            COUNT(*) FILTER (WHERE created_at < CURRENT_TIMESTAMP - INTERVAL '365 days') as logs_older_than_1y
+        FROM admin_activity_log 
+        GROUP BY category
+        ORDER BY total_logs DESC
+    `);
+    
+    const securityStats = await query(`
+        SELECT 
+            'security_events' as category,
+            COUNT(*) as total_logs,
+            MIN(created_at) as oldest_log,
+            MAX(created_at) as newest_log,
+            COUNT(*) FILTER (WHERE created_at < CURRENT_TIMESTAMP - INTERVAL '30 days') as logs_older_than_30d,
+            COUNT(*) FILTER (WHERE created_at < CURRENT_TIMESTAMP - INTERVAL '90 days') as logs_older_than_90d,
+            COUNT(*) FILTER (WHERE created_at < CURRENT_TIMESTAMP - INTERVAL '365 days') as logs_older_than_1y
+        FROM security_events
+    `);
+    
+    const sessionStats = await query(`
+        SELECT 
+            'user_sessions' as category,
+            COUNT(*) as total_logs,
+            MIN(created_at) as oldest_log,
+            MAX(created_at) as newest_log,
+            COUNT(*) FILTER (WHERE created_at < CURRENT_TIMESTAMP - INTERVAL '30 days') as logs_older_than_30d,
+            COUNT(*) FILTER (WHERE created_at < CURRENT_TIMESTAMP - INTERVAL '90 days') as logs_older_than_90d,
+            COUNT(*) FILTER (WHERE created_at < CURRENT_TIMESTAMP - INTERVAL '365 days') as logs_older_than_1y
+        FROM user_sessions
+    `);
+    
+    // Get retention policies
+    const retentionPolicies = await query(`
+        SELECT category, retention_days, description 
+        FROM log_categories 
+        ORDER BY retention_days DESC
+    `);
+    
+    // Calculate database size information
+    const dbSizeInfo = await query(`
+        SELECT 
+            schemaname,
+            tablename,
+            pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) as size,
+            pg_total_relation_size(schemaname||'.'||tablename) as size_bytes
+        FROM pg_tables 
+        WHERE schemaname = 'public' 
+        AND tablename IN ('admin_activity_log', 'security_events', 'user_sessions')
+        ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC
+    `);
+    
+    res.json({
+        success: true,
+        data: {
+            logStatistics: logStats.rows,
+            securityStatistics: securityStats.rows[0] || null,
+            sessionStatistics: sessionStats.rows[0] || null,
+            retentionPolicies: retentionPolicies.rows,
+            databaseSize: dbSizeInfo.rows,
+            generatedAt: new Date().toISOString()
+        },
+        message: 'Log maintenance statistics retrieved successfully'
+    });
+}));
+
+// POST /api/v1/admin/maintenance/cleanup - Execute log cleanup
+router.post('/maintenance/cleanup', authenticateUser, requireAdmin, requirePermission('system.maintenance'), asyncHandler(async (req, res) => {
+    const { dryRun = true, categories = [] } = req.body;
+    
+    let deletedRecords = {
+        adminActivityLog: 0,
+        securityEvents: 0,
+        userSessions: 0,
+        totalDeleted: 0
+    };
+    
+    await transaction(async (client) => {
+        if (dryRun) {
+            // Dry run - just calculate what would be deleted
+            if (categories.length === 0 || categories.includes('admin_activity_log')) {
+                const adminLogCount = await client.query(`
+                    SELECT COUNT(*) as count FROM admin_activity_log al
+                    JOIN log_categories lc ON al.category = lc.category
+                    WHERE al.created_at < CURRENT_TIMESTAMP - INTERVAL '1 day' * lc.retention_days
+                `);
+                deletedRecords.adminActivityLog = parseInt(adminLogCount.rows[0].count);
+            }
+            
+            if (categories.length === 0 || categories.includes('security_events')) {
+                const securityEventCount = await client.query(`
+                    SELECT COUNT(*) as count FROM security_events 
+                    WHERE created_at < CURRENT_TIMESTAMP - INTERVAL '730 days'
+                `);
+                deletedRecords.securityEvents = parseInt(securityEventCount.rows[0].count);
+            }
+            
+            if (categories.length === 0 || categories.includes('user_sessions')) {
+                const sessionCount = await client.query(`
+                    SELECT COUNT(*) as count FROM user_sessions 
+                    WHERE created_at < CURRENT_TIMESTAMP - INTERVAL '90 days'
+                `);
+                deletedRecords.userSessions = parseInt(sessionCount.rows[0].count);
+            }
+        } else {
+            // Actual cleanup
+            if (categories.length === 0 || categories.includes('admin_activity_log')) {
+                const result = await client.query(`
+                    DELETE FROM admin_activity_log 
+                    WHERE id IN (
+                        SELECT al.id FROM admin_activity_log al
+                        JOIN log_categories lc ON al.category = lc.category
+                        WHERE al.created_at < CURRENT_TIMESTAMP - INTERVAL '1 day' * lc.retention_days
+                        LIMIT 1000
+                    )
+                `);
+                deletedRecords.adminActivityLog = result.rowCount;
+            }
+            
+            if (categories.length === 0 || categories.includes('security_events')) {
+                const result = await client.query(`
+                    DELETE FROM security_events 
+                    WHERE created_at < CURRENT_TIMESTAMP - INTERVAL '730 days'
+                    AND resolved = TRUE
+                    LIMIT 1000
+                `);
+                deletedRecords.securityEvents = result.rowCount;
+            }
+            
+            if (categories.length === 0 || categories.includes('user_sessions')) {
+                const result = await client.query(`
+                    DELETE FROM user_sessions 
+                    WHERE created_at < CURRENT_TIMESTAMP - INTERVAL '90 days'
+                    LIMIT 1000
+                `);
+                deletedRecords.userSessions = result.rowCount;
+            }
+        }
+        
+        deletedRecords.totalDeleted = deletedRecords.adminActivityLog + 
+                                     deletedRecords.securityEvents + 
+                                     deletedRecords.userSessions;
+        
+        // Log the cleanup activity
+        await logAdminActivity(
+            req.user.id,
+            dryRun ? 'log_cleanup_simulated' : 'log_cleanup_executed',
+            'system',
+            'maintenance',
+            {
+                dryRun,
+                categories: categories.length > 0 ? categories : ['all'],
+                deletedRecords
+            },
+            req.ip,
+            req.get('User-Agent'),
+            {
+                category: 'system',
+                severity: dryRun ? 'info' : 'medium'
+            }
+        );
+        
+        res.json({
+            success: true,
+            data: {
+                dryRun,
+                deletedRecords,
+                message: dryRun ? 
+                    'Dry run completed - no records were deleted' : 
+                    'Log cleanup completed successfully'
+            },
+            message: dryRun ? 'Log cleanup simulation completed' : 'Log cleanup executed successfully'
+        });
+    });
+}));
+
+// POST /api/v1/admin/maintenance/archive - Archive old logs
+router.post('/maintenance/archive', authenticateUser, requireAdmin, requirePermission('system.maintenance'), asyncHandler(async (req, res) => {
+    const { archiveBefore, categories = [] } = req.body;
+    
+    if (!archiveBefore) {
+        throw new APIError('Archive date is required', 400, 'MISSING_ARCHIVE_DATE');
+    }
+    
+    const archiveDate = new Date(archiveBefore);
+    if (isNaN(archiveDate.getTime())) {
+        throw new APIError('Invalid archive date format', 400, 'INVALID_DATE');
+    }
+    
+    let archivedRecords = {
+        adminActivityLog: 0,
+        securityEvents: 0,
+        totalArchived: 0
+    };
+    
+    await transaction(async (client) => {
+        // Create archive tables if they don't exist
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS admin_activity_log_archive (
+                LIKE admin_activity_log INCLUDING ALL
+            )
+        `);
+        
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS security_events_archive (
+                LIKE security_events INCLUDING ALL
+            )
+        `);
+        
+        if (categories.length === 0 || categories.includes('admin_activity_log')) {
+            // Move old admin activity logs to archive
+            const result = await client.query(`
+                WITH moved_rows AS (
+                    DELETE FROM admin_activity_log 
+                    WHERE created_at < $1
+                    RETURNING *
+                )
+                INSERT INTO admin_activity_log_archive 
+                SELECT * FROM moved_rows
+            `, [archiveDate]);
+            
+            archivedRecords.adminActivityLog = result.rowCount;
+        }
+        
+        if (categories.length === 0 || categories.includes('security_events')) {
+            // Move old security events to archive (only resolved ones)
+            const result = await client.query(`
+                WITH moved_rows AS (
+                    DELETE FROM security_events 
+                    WHERE created_at < $1 AND resolved = TRUE
+                    RETURNING *
+                )
+                INSERT INTO security_events_archive 
+                SELECT * FROM moved_rows
+            `, [archiveDate]);
+            
+            archivedRecords.securityEvents = result.rowCount;
+        }
+        
+        archivedRecords.totalArchived = archivedRecords.adminActivityLog + archivedRecords.securityEvents;
+        
+        // Log the archiving activity
+        await logAdminActivity(
+            req.user.id,
+            'log_archiving_completed',
+            'system',
+            'maintenance',
+            {
+                archiveBefore: archiveDate.toISOString(),
+                categories: categories.length > 0 ? categories : ['all'],
+                archivedRecords
+            },
+            req.ip,
+            req.get('User-Agent'),
+            {
+                category: 'system',
+                severity: 'medium'
+            }
+        );
+        
+        res.json({
+            success: true,
+            data: {
+                archiveBefore: archiveDate.toISOString(),
+                archivedRecords,
+                message: `Successfully archived ${archivedRecords.totalArchived} records`
+            },
+            message: 'Log archiving completed successfully'
+        });
+    });
+}));
+
+// GET /api/v1/admin/maintenance/vacuum - Database vacuum and analyze
+router.post('/maintenance/vacuum', authenticateUser, requireAdmin, requirePermission('system.maintenance'), asyncHandler(async (req, res) => {
+    const { tables = ['admin_activity_log', 'security_events', 'user_sessions'] } = req.body;
+    
+    const results = [];
+    
+    for (const table of tables) {
+        try {
+            // Get table size before vacuum
+            const sizeBefore = await query(`
+                SELECT pg_size_pretty(pg_total_relation_size($1)) as size,
+                       pg_total_relation_size($1) as size_bytes
+            `, [table]);
+            
+            // Perform VACUUM ANALYZE
+            await query(`VACUUM ANALYZE ${table}`);
+            
+            // Get table size after vacuum
+            const sizeAfter = await query(`
+                SELECT pg_size_pretty(pg_total_relation_size($1)) as size,
+                       pg_total_relation_size($1) as size_bytes
+            `, [table]);
+            
+            const spaceSaved = sizeBefore.rows[0].size_bytes - sizeAfter.rows[0].size_bytes;
+            
+            results.push({
+                table,
+                sizeBefore: sizeBefore.rows[0].size,
+                sizeAfter: sizeAfter.rows[0].size,
+                spaceSaved: spaceSaved > 0 ? `${(spaceSaved / 1024 / 1024).toFixed(2)} MB` : '0 MB',
+                status: 'completed'
+            });
+            
+        } catch (error) {
+            results.push({
+                table,
+                status: 'failed',
+                error: error.message
+            });
+        }
+    }
+    
+    // Log the vacuum activity
+    await logAdminActivity(
+        req.user.id,
+        'database_vacuum_completed',
+        'system',
+        'maintenance',
+        {
+            tables,
+            results
+        },
+        req.ip,
+        req.get('User-Agent'),
+        {
+            category: 'system',
+            severity: 'info'
+        }
+    );
+    
+    res.json({
+        success: true,
+        data: {
+            results,
+            totalTables: tables.length,
+            completedTables: results.filter(r => r.status === 'completed').length
+        },
+        message: 'Database vacuum and analyze completed'
+    });
+}));
+
 module.exports = router;
