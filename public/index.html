@@ -2330,6 +2330,7 @@
             <button class="admin-tab-btn" onclick="showAdminTab('activation')">✅ Account Activation</button>
             <button class="admin-tab-btn" onclick="showAdminTab('messages')">💬 Messages</button>
             <button class="admin-tab-btn" onclick="showAdminTab('billing')">💰 Billing</button>
+            <button class="admin-tab-btn" onclick="showAdminTab('admins')">🔐 Admin Management</button>
             <button class="admin-tab-btn" onclick="showAdminTab('analytics')">📊 Analytics</button>
             <button class="admin-tab-btn" onclick="showAdminTab('settings')">⚙️ Settings</button>
         </div>
@@ -5784,6 +5785,66 @@
                     </div>
                 </div>
 
+                <div id="adminAdminsTab" class="admin-content" style="display: none;">
+                    <h3 style="color: #00d4ff; margin-bottom: 15px;">🔐 Admin Management</h3>
+                    
+                    <div style="background: rgba(0,212,255,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px;">
+                        <h4 style="color: #00d4ff; margin-bottom: 15px;">👑 Admin Users</h4>
+                        <div style="margin-bottom: 15px;">
+                            <button onclick="refreshAdminUsers()" style="padding: 8px 16px; background: linear-gradient(45deg, #00d4ff, #0099cc); color: white; border: none; border-radius: 20px; cursor: pointer; margin-right: 10px;">
+                                🔄 Refresh
+                            </button>
+                            <button onclick="showRolePermissions()" style="padding: 8px 16px; background: linear-gradient(45deg, #ff9500, #ff6b00); color: white; border: none; border-radius: 20px; cursor: pointer;">
+                                📋 View Permissions
+                            </button>
+                        </div>
+                        <div id="adminUsersList" style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 10px;">
+                            <div style="text-align: center; color: #888; padding: 20px;">
+                                Loading admin users...
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="background: rgba(255,149,0,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px;">
+                        <h4 style="color: #ff9500; margin-bottom: 15px;">👤 Promote User to Admin</h4>
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label>User ID to Promote:</label>
+                                <input type="text" id="promoteUserId" placeholder="Enter user ID" style="width: 100%; padding: 10px; border: 1px solid #333; border-radius: 5px; background: rgba(0,0,0,0.3); color: white;">
+                            </div>
+                            <div class="form-group">
+                                <label>Admin Role:</label>
+                                <select id="promoteRole" style="width: 100%; padding: 10px; border: 1px solid #333; border-radius: 5px; background: rgba(0,0,0,0.3); color: white;">
+                                    <option value="support">Support</option>
+                                    <option value="manager">Manager</option>
+                                    <option value="admin">Admin</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Admin PIN:</label>
+                            <input type="password" id="adminPinPromote" placeholder="Enter your admin PIN" style="width: 100%; padding: 10px; border: 1px solid #333; border-radius: 5px; background: rgba(0,0,0,0.3); color: white;">
+                        </div>
+                        <button onclick="promoteUserToAdmin()" style="padding: 10px 20px; background: linear-gradient(45deg, #ff9500, #ff6b00); color: white; border: none; border-radius: 25px; cursor: pointer; margin-top: 10px;">
+                            ⬆️ Promote User
+                        </button>
+                    </div>
+
+                    <div style="background: rgba(255,107,107,0.1); padding: 20px; border-radius: 15px;">
+                        <h4 style="color: #ff6b6b; margin-bottom: 15px;">📊 Admin Activity Log</h4>
+                        <div style="margin-bottom: 15px;">
+                            <button onclick="refreshActivityLog()" style="padding: 8px 16px; background: linear-gradient(45deg, #ff6b6b, #ff5252); color: white; border: none; border-radius: 20px; cursor: pointer;">
+                                🔄 Refresh Log
+                            </button>
+                        </div>
+                        <div id="adminActivityLog" style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 10px; max-height: 300px; overflow-y: auto;">
+                            <div style="text-align: center; color: #888; padding: 20px;">
+                                Loading activity log...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div id="adminSettingsTab" class="admin-content" style="display: none;">
                     <h3 style="color: #00d4ff; margin-bottom: 15px;">⚙️ Admin Settings</h3>
                     
@@ -9161,6 +9222,263 @@
             }
         };
 
+        // 🔐 ADMIN ROLE MANAGEMENT SYSTEM
+        let adminManagementData = {
+            adminUsers: [],
+            rolePermissions: {},
+            activityLog: []
+        };
+
+        async function refreshAdminUsers() {
+            try {
+                const response = await apiService.getAdminUsers();
+                
+                if (response.success) {
+                    adminManagementData.adminUsers = response.data;
+                    displayAdminUsers();
+                } else {
+                    showNotification('Failed to load admin users: ' + (response.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                console.error('Error refreshing admin users:', error);
+                showNotification('Error loading admin users. Please try again.', 'error');
+            }
+        }
+
+        function displayAdminUsers() {
+            const container = document.getElementById('adminUsersList');
+            
+            if (adminManagementData.adminUsers.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: #888; padding: 20px;">No admin users found</div>';
+                return;
+            }
+
+            const html = adminManagementData.adminUsers.map(admin => {
+                const roleColor = {
+                    'master': '#ff6b6b',
+                    'admin': '#ff9500', 
+                    'manager': '#00d4ff',
+                    'support': '#00ff88'
+                }[admin.admin_role] || '#888';
+
+                const roleIcon = {
+                    'master': '👑',
+                    'admin': '🔐', 
+                    'manager': '👨‍💼',
+                    'support': '🎧'
+                }[admin.admin_role] || '👤';
+
+                return `
+                    <div style="background: rgba(255,255,255,0.05); padding: 15px; margin-bottom: 10px; border-radius: 10px; border-left: 4px solid ${roleColor};">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <div style="color: white; font-weight: bold;">${roleIcon} ${admin.first_name} ${admin.last_name}</div>
+                                <div style="color: #aaa; font-size: 0.9rem;">📧 ${admin.email}</div>
+                                <div style="color: #aaa; font-size: 0.9rem;">🆔 ${admin.id}</div>
+                                <div style="color: ${roleColor}; font-weight: bold; margin-top: 5px;">Role: ${admin.admin_role}</div>
+                                ${admin.admin_promoted_date ? `<div style="color: #888; font-size: 0.8rem;">Promoted: ${new Date(admin.admin_promoted_date).toLocaleDateString()}</div>` : ''}
+                            </div>
+                            <div>
+                                ${admin.admin_role !== 'master' ? `
+                                    <button onclick="demoteAdmin('${admin.id}')" style="padding: 5px 10px; background: linear-gradient(45deg, #ff6b6b, #ff5252); color: white; border: none; border-radius: 15px; cursor: pointer; font-size: 0.8rem; margin-left: 5px;">
+                                        ⬇️ Demote
+                                    </button>
+                                ` : '<span style="color: #ff6b6b; font-size: 0.8rem;">👑 Master</span>'}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = html;
+        }
+
+        async function promoteUserToAdmin() {
+            const userId = document.getElementById('promoteUserId').value.trim();
+            const role = document.getElementById('promoteRole').value;
+            const adminPin = document.getElementById('adminPinPromote').value;
+
+            if (!userId) {
+                showNotification('Please enter a user ID', 'error');
+                return;
+            }
+
+            if (!adminPin) {
+                showNotification('Please enter your admin PIN', 'error');
+                return;
+            }
+
+            try {
+                const response = await apiService.promoteUser(userId, role, adminPin);
+                
+                if (response.success) {
+                    showNotification(`User promoted to ${role} successfully!`, 'success');
+                    document.getElementById('promoteUserId').value = '';
+                    document.getElementById('adminPinPromote').value = '';
+                    refreshAdminUsers();
+                } else {
+                    showNotification('Failed to promote user: ' + (response.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                console.error('Error promoting user:', error);
+                showNotification('Error promoting user. Please try again.', 'error');
+            }
+        }
+
+        async function demoteAdmin(userId) {
+            const adminPin = prompt('Enter your admin PIN to confirm demotion:');
+            
+            if (!adminPin) {
+                return;
+            }
+
+            if (confirm('Are you sure you want to remove admin privileges from this user?')) {
+                try {
+                    const response = await apiService.demoteUser(userId, adminPin);
+                    
+                    if (response.success) {
+                        showNotification('Admin user demoted successfully!', 'success');
+                        refreshAdminUsers();
+                    } else {
+                        showNotification('Failed to demote admin: ' + (response.error || 'Unknown error'), 'error');
+                    }
+                } catch (error) {
+                    console.error('Error demoting admin:', error);
+                    showNotification('Error demoting admin. Please try again.', 'error');
+                }
+            }
+        }
+
+        async function showRolePermissions() {
+            try {
+                const response = await apiService.getRolePermissions();
+                
+                if (response.success) {
+                    adminManagementData.rolePermissions = response.data;
+                    displayRolePermissionsModal();
+                } else {
+                    showNotification('Failed to load role permissions: ' + (response.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                console.error('Error loading role permissions:', error);
+                showNotification('Error loading role permissions. Please try again.', 'error');
+            }
+        }
+
+        function displayRolePermissionsModal() {
+            const permissions = adminManagementData.rolePermissions;
+            
+            const html = Object.keys(permissions).map(role => {
+                const roleColor = {
+                    'master': '#ff6b6b',
+                    'admin': '#ff9500', 
+                    'manager': '#00d4ff',
+                    'support': '#00ff88'
+                }[role] || '#888';
+
+                const roleIcon = {
+                    'master': '👑',
+                    'admin': '🔐', 
+                    'manager': '👨‍💼',
+                    'support': '🎧'
+                }[role] || '👤';
+
+                const permissionList = permissions[role].map(perm => 
+                    `<li style="margin-bottom: 5px; color: #ddd;">${perm.permission} - ${perm.description}</li>`
+                ).join('');
+
+                return `
+                    <div style="background: rgba(${role === 'master' ? '255,107,107' : role === 'admin' ? '255,149,0' : role === 'manager' ? '0,212,255' : '0,255,136'},0.1); padding: 15px; margin-bottom: 15px; border-radius: 10px; border-left: 4px solid ${roleColor};">
+                        <h4 style="color: ${roleColor}; margin-bottom: 10px;">${roleIcon} ${role.toUpperCase()}</h4>
+                        <ul style="margin: 0; padding-left: 20px;">
+                            ${permissionList}
+                        </ul>
+                    </div>
+                `;
+            }).join('');
+
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+                background: rgba(0,0,0,0.8); display: flex; justify-content: center; 
+                align-items: center; z-index: 10000;
+            `;
+            
+            modal.innerHTML = `
+                <div style="background: #1a1a1a; padding: 30px; border-radius: 15px; max-width: 600px; max-height: 80vh; overflow-y: auto; border: 2px solid #333;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3 style="color: #00d4ff; margin: 0;">📋 Admin Role Permissions</h3>
+                        <button onclick="this.parentElement.parentElement.parentElement.remove()" style="background: #ff6b6b; color: white; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer;">×</button>
+                    </div>
+                    ${html}
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+        }
+
+        async function refreshActivityLog() {
+            try {
+                const response = await apiService.getAdminActivityLog(20, 0);
+                
+                if (response.success) {
+                    adminManagementData.activityLog = response.data;
+                    displayActivityLog();
+                } else {
+                    showNotification('Failed to load activity log: ' + (response.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                console.error('Error refreshing activity log:', error);
+                showNotification('Error loading activity log. Please try again.', 'error');
+            }
+        }
+
+        function displayActivityLog() {
+            const container = document.getElementById('adminActivityLog');
+            
+            if (adminManagementData.activityLog.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: #888; padding: 20px;">No activity log entries found</div>';
+                return;
+            }
+
+            const html = adminManagementData.activityLog.map(log => {
+                const actionColor = {
+                    'admin_promoted': '#00ff88',
+                    'admin_demoted': '#ff6b6b',
+                    'user_status_updated': '#00d4ff',
+                    'bulk_operation': '#ff9500'
+                }[log.action] || '#888';
+
+                const actionIcon = {
+                    'admin_promoted': '⬆️',
+                    'admin_demoted': '⬇️', 
+                    'user_status_updated': '🔄',
+                    'bulk_operation': '📊'
+                }[log.action] || '🔍';
+
+                return `
+                    <div style="background: rgba(255,255,255,0.05); padding: 10px; margin-bottom: 8px; border-radius: 8px; border-left: 3px solid ${actionColor};">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div style="flex: 1;">
+                                <div style="color: ${actionColor}; font-weight: bold; margin-bottom: 2px;">
+                                    ${actionIcon} ${log.action.replace(/_/g, ' ').toUpperCase()}
+                                </div>
+                                <div style="color: #ddd; font-size: 0.9rem;">
+                                    By: ${log.first_name} ${log.last_name} (${log.admin_role})
+                                </div>
+                                ${log.details ? `<div style="color: #aaa; font-size: 0.8rem; margin-top: 5px;">${JSON.stringify(log.details)}</div>` : ''}
+                            </div>
+                            <div style="color: #888; font-size: 0.8rem; text-align: right;">
+                                ${new Date(log.created_at).toLocaleString()}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = html;
+        }
+
         // 🔥 ACCOUNT ACTIVATION SYSTEM
         let activationData = {
             users: [] // Will be populated from database
@@ -11748,6 +12066,9 @@ Please help recover this stuck asset.`;
                 refreshBillingData();
             } else if (tabName === 'messages') {
                 refreshAdminMessages();
+            } else if (tabName === 'admins') {
+                refreshAdminUsers();
+                refreshActivityLog();
             }
             
             adminState.currentAdminTab = tabName;
@@ -13480,6 +13801,128 @@ ARB4ME Security Team`
                     }
                 } catch (error) {
                     console.log('❌ Error bulk suspending users:', error.message);
+                    return { success: false, error: error.message };
+                }
+            }
+
+            async getAdminUsers() {
+                try {
+                    if (!this.token) {
+                        console.log('No JWT token available for admin users');
+                        return { success: false, error: 'No authentication token' };
+                    }
+
+                    const response = await this.apiCall(`/admin/admins`, {
+                        method: 'GET'
+                    });
+                    
+                    if (response.success) {
+                        console.log('✅ Admin users retrieved:', response.data);
+                        return response;
+                    } else {
+                        console.log('❌ Failed to get admin users:', response.error);
+                        return response;
+                    }
+                } catch (error) {
+                    console.log('❌ Error getting admin users:', error.message);
+                    return { success: false, error: error.message };
+                }
+            }
+
+            async getRolePermissions() {
+                try {
+                    if (!this.token) {
+                        console.log('No JWT token available for role permissions');
+                        return { success: false, error: 'No authentication token' };
+                    }
+
+                    const response = await this.apiCall(`/admin/roles/permissions`, {
+                        method: 'GET'
+                    });
+                    
+                    if (response.success) {
+                        console.log('✅ Role permissions retrieved:', response.data);
+                        return response;
+                    } else {
+                        console.log('❌ Failed to get role permissions:', response.error);
+                        return response;
+                    }
+                } catch (error) {
+                    console.log('❌ Error getting role permissions:', error.message);
+                    return { success: false, error: error.message };
+                }
+            }
+
+            async promoteUser(userId, newRole, adminPin) {
+                try {
+                    if (!this.token) {
+                        console.log('No JWT token available for promote user');
+                        return { success: false, error: 'No authentication token' };
+                    }
+
+                    const response = await this.apiCall(`/admin/admins/${userId}/promote`, {
+                        method: 'POST',
+                        body: JSON.stringify({ newRole, adminPin })
+                    });
+                    
+                    if (response.success) {
+                        console.log('✅ User promoted:', response.data);
+                        return response;
+                    } else {
+                        console.log('❌ Failed to promote user:', response.error);
+                        return response;
+                    }
+                } catch (error) {
+                    console.log('❌ Error promoting user:', error.message);
+                    return { success: false, error: error.message };
+                }
+            }
+
+            async demoteUser(userId, adminPin) {
+                try {
+                    if (!this.token) {
+                        console.log('No JWT token available for demote user');
+                        return { success: false, error: 'No authentication token' };
+                    }
+
+                    const response = await this.apiCall(`/admin/admins/${userId}/demote`, {
+                        method: 'POST',
+                        body: JSON.stringify({ adminPin })
+                    });
+                    
+                    if (response.success) {
+                        console.log('✅ User demoted:', response.data);
+                        return response;
+                    } else {
+                        console.log('❌ Failed to demote user:', response.error);
+                        return response;
+                    }
+                } catch (error) {
+                    console.log('❌ Error demoting user:', error.message);
+                    return { success: false, error: error.message };
+                }
+            }
+
+            async getAdminActivityLog(limit = 50, offset = 0) {
+                try {
+                    if (!this.token) {
+                        console.log('No JWT token available for activity log');
+                        return { success: false, error: 'No authentication token' };
+                    }
+
+                    const response = await this.apiCall(`/admin/activity-log?limit=${limit}&offset=${offset}`, {
+                        method: 'GET'
+                    });
+                    
+                    if (response.success) {
+                        console.log('✅ Activity log retrieved:', response.data);
+                        return response;
+                    } else {
+                        console.log('❌ Failed to get activity log:', response.error);
+                        return response;
+                    }
+                } catch (error) {
+                    console.log('❌ Error getting activity log:', error.message);
                     return { success: false, error: error.message };
                 }
             }

@@ -6,6 +6,12 @@ const { authenticateUser, requireAdmin, requireAdminRole } = require('../middlew
 const { adminRateLimit } = require('../middleware/rateLimiter');
 const { systemLogger } = require('../utils/logger');
 const { getConnectedUsers, notifyUser, broadcastToAdmins } = require('../websocket/socketManager');
+const { 
+    requirePermission, 
+    requireMaster, 
+    requireAdmin: requireAdminPerm, 
+    logAdminActivity 
+} = require('../middleware/adminPermissions');
 
 const router = express.Router();
 
@@ -1144,7 +1150,7 @@ router.post('/compose-test', asyncHandler(async (req, res) => {
 }));
 
 // POST /api/v1/admin/users/:userId/status - Update user account status
-router.post('/users/:userId/status', asyncHandler(async (req, res) => {
+router.post('/users/:userId/status', requirePermission('users.suspend'), asyncHandler(async (req, res) => {
     const { userId } = req.params;
     const { status } = req.body;
     
@@ -1181,7 +1187,7 @@ router.post('/users/:userId/status', asyncHandler(async (req, res) => {
 }));
 
 // Bulk user status operations
-router.post('/users/bulk/activate', asyncHandler(async (req, res) => {
+router.post('/users/bulk/activate', requirePermission('users.bulk_operations'), asyncHandler(async (req, res) => {
     const { userIds } = req.body;
     
     // Validate input
@@ -1239,7 +1245,7 @@ router.post('/users/bulk/activate', asyncHandler(async (req, res) => {
     });
 }));
 
-router.post('/users/bulk/suspend', asyncHandler(async (req, res) => {
+router.post('/users/bulk/suspend', requirePermission('users.bulk_operations'), asyncHandler(async (req, res) => {
     const { userIds } = req.body;
     
     // Validate input
@@ -1294,6 +1300,196 @@ router.post('/users/bulk/suspend', asyncHandler(async (req, res) => {
         success: true,
         data: results,
         message: `Bulk suspension completed: ${results.success.length} successful, ${results.failed.length} failed`
+    });
+}));
+
+// Admin role management endpoints
+router.get('/roles/permissions', requirePermission('admins.view'), asyncHandler(async (req, res) => {
+    // Get all role permissions
+    const permissions = await query(
+        'SELECT role_name, permission_name, description FROM admin_permissions ORDER BY role_name, permission_name'
+    );
+    
+    // Group by role
+    const rolePermissions = {};
+    permissions.rows.forEach(perm => {
+        if (!rolePermissions[perm.role_name]) {
+            rolePermissions[perm.role_name] = [];
+        }
+        rolePermissions[perm.role_name].push({
+            permission: perm.permission_name,
+            description: perm.description
+        });
+    });
+    
+    res.json({
+        success: true,
+        data: rolePermissions,
+        message: 'Role permissions retrieved successfully'
+    });
+}));
+
+router.get('/admins', requirePermission('admins.view'), asyncHandler(async (req, res) => {
+    // Get all admin users
+    const admins = await query(`
+        SELECT id, first_name, last_name, email, admin_role, 
+               admin_promoted_by, admin_promoted_date, admin_last_access,
+               created_at
+        FROM users 
+        WHERE admin_role IS NOT NULL 
+        ORDER BY 
+            CASE admin_role 
+                WHEN 'master' THEN 1 
+                WHEN 'admin' THEN 2 
+                WHEN 'manager' THEN 3 
+                WHEN 'support' THEN 4 
+            END,
+            created_at DESC
+    `);
+    
+    res.json({
+        success: true,
+        data: admins.rows,
+        message: 'Admin users retrieved successfully'
+    });
+}));
+
+router.post('/admins/:userId/promote', requireMaster, asyncHandler(async (req, res) => {
+    const { userId } = req.params;
+    const { newRole, adminPin } = req.body;
+    
+    // Validate new role
+    const validRoles = ['support', 'manager', 'admin'];
+    if (!validRoles.includes(newRole)) {
+        throw new APIError('Invalid admin role', 400, 'INVALID_ROLE');
+    }
+    
+    // TODO: Add admin PIN verification and permission checks
+    
+    await transaction(async (client) => {
+        // Check if user exists
+        const userResult = await client.query(
+            'SELECT id, first_name, last_name, email, admin_role FROM users WHERE id = $1',
+            [userId]
+        );
+        
+        if (userResult.rows.length === 0) {
+            throw new APIError('User not found', 404, 'USER_NOT_FOUND');
+        }
+        
+        const user = userResult.rows[0];
+        
+        // Update user admin role
+        await client.query(`
+            UPDATE users SET 
+                admin_role = $1,
+                admin_promoted_by = $2,
+                admin_promoted_date = CURRENT_TIMESTAMP,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = $3
+        `, [newRole, 'admin_temp', userId]);
+        
+        // Log the promotion activity
+        await client.query(`
+            SELECT log_admin_activity($1, $2, $3, $4, $5)
+        `, [
+            'admin_temp', // TODO: Get from JWT
+            'admin_promoted',
+            'user',
+            userId,
+            JSON.stringify({
+                previous_role: user.admin_role,
+                new_role: newRole,
+                user_name: `${user.first_name} ${user.last_name}`
+            })
+        ]);
+    });
+    
+    console.log(`User ${userId} promoted to ${newRole} role`);
+    
+    res.json({
+        success: true,
+        data: { userId, newRole },
+        message: `User promoted to ${newRole} role successfully`
+    });
+}));
+
+router.post('/admins/:userId/demote', requireMaster, asyncHandler(async (req, res) => {
+    const { userId } = req.params;
+    const { adminPin } = req.body;
+    
+    // TODO: Add admin PIN verification and permission checks
+    
+    await transaction(async (client) => {
+        // Check if user exists and is admin
+        const userResult = await client.query(
+            'SELECT id, first_name, last_name, email, admin_role FROM users WHERE id = $1 AND admin_role IS NOT NULL',
+            [userId]
+        );
+        
+        if (userResult.rows.length === 0) {
+            throw new APIError('Admin user not found', 404, 'ADMIN_NOT_FOUND');
+        }
+        
+        const user = userResult.rows[0];
+        
+        // Cannot demote master admin
+        if (user.admin_role === 'master') {
+            throw new APIError('Cannot demote master admin', 403, 'CANNOT_DEMOTE_MASTER');
+        }
+        
+        // Remove admin role
+        await client.query(`
+            UPDATE users SET 
+                admin_role = NULL,
+                admin_promoted_by = NULL,
+                admin_promoted_date = NULL,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = $1
+        `, [userId]);
+        
+        // Log the demotion activity
+        await client.query(`
+            SELECT log_admin_activity($1, $2, $3, $4, $5)
+        `, [
+            'admin_temp', // TODO: Get from JWT
+            'admin_demoted',
+            'user',
+            userId,
+            JSON.stringify({
+                previous_role: user.admin_role,
+                user_name: `${user.first_name} ${user.last_name}`
+            })
+        ]);
+    });
+    
+    console.log(`User ${userId} demoted from admin role`);
+    
+    res.json({
+        success: true,
+        data: { userId },
+        message: 'User demoted from admin role successfully'
+    });
+}));
+
+router.get('/activity-log', requirePermission('system.logs'), asyncHandler(async (req, res) => {
+    const { limit = 50, offset = 0 } = req.query;
+    
+    const logs = await query(`
+        SELECT 
+            al.id, al.action, al.target_type, al.target_id, al.details,
+            al.ip_address, al.created_at,
+            u.first_name, u.last_name, u.email, u.admin_role
+        FROM admin_activity_log al
+        JOIN users u ON al.admin_user_id = u.id
+        ORDER BY al.created_at DESC
+        LIMIT $1 OFFSET $2
+    `, [parseInt(limit), parseInt(offset)]);
+    
+    res.json({
+        success: true,
+        data: logs.rows,
+        message: 'Admin activity log retrieved successfully'
     });
 }));
 
