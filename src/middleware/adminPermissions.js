@@ -85,16 +85,54 @@ async function checkAdminPermission(role, permission) {
 /**
  * Log admin activity
  */
-async function logAdminActivity(adminUserId, action, targetType, targetId, details, ipAddress, userAgent) {
+async function logAdminActivity(adminUserId, action, targetType, targetId, details, ipAddress, userAgent, options = {}) {
     try {
+        // Use enhanced logging function if available, fallback to basic
+        const {
+            category = 'admin_actions',
+            severity = 'info',
+            beforeState = null,
+            afterState = null,
+            sessionId = null,
+            requestMethod = null,
+            requestUrl = null,
+            responseStatus = null,
+            durationMs = null
+        } = options;
+
         await query(
-            'SELECT log_admin_activity($1, $2, $3, $4, $5, $6, $7)',
-            [adminUserId, action, targetType, targetId, details, ipAddress, userAgent]
+            'SELECT log_admin_activity_enhanced($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)',
+            [
+                adminUserId, action, category, severity, targetType, targetId,
+                details, beforeState, afterState, ipAddress, userAgent, sessionId,
+                requestMethod, requestUrl, responseStatus, durationMs
+            ]
         );
     } catch (error) {
         console.error('Error logging admin activity:', error);
-        // Fallback: Log to console if database function not available
-        console.log(`Admin Activity: ${adminUserId} performed ${action} on ${targetType}:${targetId}`, details);
+        // Fallback to basic logging
+        try {
+            await query(
+                'SELECT log_admin_activity($1, $2, $3, $4, $5, $6, $7)',
+                [adminUserId, action, targetType, targetId, details, ipAddress, userAgent]
+            );
+        } catch (fallbackError) {
+            console.log(`Admin Activity: ${adminUserId} performed ${action} on ${targetType}:${targetId}`, details);
+        }
+    }
+}
+
+async function logSecurityEvent(eventType, severity, userId, ipAddress, userAgent, details) {
+    try {
+        const result = await query(
+            'SELECT log_security_event($1, $2, $3, $4, $5, $6)',
+            [eventType, severity, userId, ipAddress, userAgent, details]
+        );
+        return result.rows[0]?.log_security_event;
+    } catch (error) {
+        console.error('Error logging security event:', error);
+        console.log(`Security Event: ${eventType} (${severity}) for user ${userId}`, details);
+        return null;
     }
 }
 
@@ -150,6 +188,55 @@ const requireAdmin = requireRole(['admin', 'master']);
  */
 const requireManager = requireRole(['manager', 'admin', 'master']);
 
+/**
+ * Enhanced logging middleware that captures request/response details
+ */
+function adminActivityLogger(category = 'admin_actions', severity = 'info') {
+    return (req, res, next) => {
+        const startTime = Date.now();
+        
+        // Capture original res.json to log response status
+        const originalJson = res.json;
+        res.json = function(data) {
+            const duration = Date.now() - startTime;
+            
+            // Log the admin activity with enhanced details
+            if (req.user && req.user.admin_role) {
+                const action = `${req.method} ${req.route?.path || req.path}`;
+                logAdminActivity(
+                    req.user.id,
+                    action,
+                    category,
+                    req.params?.userId || req.params?.id,
+                    {
+                        method: req.method,
+                        url: req.originalUrl,
+                        body: req.body,
+                        params: req.params,
+                        query: req.query,
+                        response: data
+                    },
+                    req.ip,
+                    req.get('User-Agent'),
+                    {
+                        category,
+                        severity,
+                        sessionId: req.headers['x-session-id'],
+                        requestMethod: req.method,
+                        requestUrl: req.originalUrl,
+                        responseStatus: res.statusCode,
+                        durationMs: duration
+                    }
+                );
+            }
+            
+            return originalJson.call(this, data);
+        };
+        
+        next();
+    };
+}
+
 module.exports = {
     requirePermission,
     requireRole,
@@ -158,5 +245,7 @@ module.exports = {
     requireManager,
     checkAdminPermission,
     logAdminActivity,
-    updateAdminLastAccess
+    logSecurityEvent,
+    updateAdminLastAccess,
+    adminActivityLogger
 };
