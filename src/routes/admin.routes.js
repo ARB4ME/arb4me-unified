@@ -1356,7 +1356,7 @@ router.get('/admins', requirePermission('admins.view'), asyncHandler(async (req,
 
 router.post('/admins/:userId/promote', requireMaster, asyncHandler(async (req, res) => {
     const { userId } = req.params;
-    const { newRole, adminPin } = req.body;
+    const { newRole } = req.body;
     
     // Validate new role
     const validRoles = ['support', 'manager', 'admin'];
@@ -1364,7 +1364,7 @@ router.post('/admins/:userId/promote', requireMaster, asyncHandler(async (req, r
         throw new APIError('Invalid admin role', 400, 'INVALID_ROLE');
     }
     
-    // TODO: Add admin PIN verification and permission checks
+    // Note: Simple confirmation handled on frontend
     
     await transaction(async (client) => {
         // Check if user exists
@@ -1416,9 +1416,8 @@ router.post('/admins/:userId/promote', requireMaster, asyncHandler(async (req, r
 
 router.post('/admins/:userId/demote', requireMaster, asyncHandler(async (req, res) => {
     const { userId } = req.params;
-    const { adminPin } = req.body;
     
-    // TODO: Add admin PIN verification and permission checks
+    // Note: Simple confirmation handled on frontend
     
     await transaction(async (client) => {
         // Check if user exists and is admin

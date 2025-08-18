@@ -5821,10 +5821,6 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="form-group">
-                            <label>Admin PIN:</label>
-                            <input type="password" id="adminPinPromote" placeholder="Enter your admin PIN" style="width: 100%; padding: 10px; border: 1px solid #333; border-radius: 5px; background: rgba(0,0,0,0.3); color: white;">
-                        </div>
                         <button onclick="promoteUserToAdmin()" style="padding: 10px 20px; background: linear-gradient(45deg, #ff9500, #ff6b00); color: white; border: none; border-radius: 25px; cursor: pointer; margin-top: 10px;">
                             ⬆️ Promote User
                         </button>
@@ -9296,25 +9292,23 @@
         async function promoteUserToAdmin() {
             const userId = document.getElementById('promoteUserId').value.trim();
             const role = document.getElementById('promoteRole').value;
-            const adminPin = document.getElementById('adminPinPromote').value;
 
             if (!userId) {
                 showNotification('Please enter a user ID', 'error');
                 return;
             }
 
-            if (!adminPin) {
-                showNotification('Please enter your admin PIN', 'error');
+            // Simple confirmation instead of PIN
+            if (!confirm(`Are you sure you want to promote user ${userId} to ${role} role?\n\nThis will give them administrative privileges.`)) {
                 return;
             }
 
             try {
-                const response = await apiService.promoteUser(userId, role, adminPin);
+                const response = await apiService.promoteUser(userId, role);
                 
                 if (response.success) {
                     showNotification(`User promoted to ${role} successfully!`, 'success');
                     document.getElementById('promoteUserId').value = '';
-                    document.getElementById('adminPinPromote').value = '';
                     refreshAdminUsers();
                 } else {
                     showNotification('Failed to promote user: ' + (response.error || 'Unknown error'), 'error');
@@ -9326,26 +9320,23 @@
         }
 
         async function demoteAdmin(userId) {
-            const adminPin = prompt('Enter your admin PIN to confirm demotion:');
-            
-            if (!adminPin) {
+            // Simple confirmation instead of PIN
+            if (!confirm(`Are you sure you want to remove admin privileges from user ${userId}?\n\nThis action cannot be undone and will revoke all administrative access.`)) {
                 return;
             }
 
-            if (confirm('Are you sure you want to remove admin privileges from this user?')) {
-                try {
-                    const response = await apiService.demoteUser(userId, adminPin);
-                    
-                    if (response.success) {
-                        showNotification('Admin user demoted successfully!', 'success');
-                        refreshAdminUsers();
-                    } else {
-                        showNotification('Failed to demote admin: ' + (response.error || 'Unknown error'), 'error');
-                    }
-                } catch (error) {
-                    console.error('Error demoting admin:', error);
-                    showNotification('Error demoting admin. Please try again.', 'error');
+            try {
+                const response = await apiService.demoteUser(userId);
+                
+                if (response.success) {
+                    showNotification('Admin user demoted successfully!', 'success');
+                    refreshAdminUsers();
+                } else {
+                    showNotification('Failed to demote admin: ' + (response.error || 'Unknown error'), 'error');
                 }
+            } catch (error) {
+                console.error('Error demoting admin:', error);
+                showNotification('Error demoting admin. Please try again.', 'error');
             }
         }
 
@@ -13853,7 +13844,7 @@ ARB4ME Security Team`
                 }
             }
 
-            async promoteUser(userId, newRole, adminPin) {
+            async promoteUser(userId, newRole) {
                 try {
                     if (!this.token) {
                         console.log('No JWT token available for promote user');
@@ -13862,7 +13853,7 @@ ARB4ME Security Team`
 
                     const response = await this.apiCall(`/admin/admins/${userId}/promote`, {
                         method: 'POST',
-                        body: JSON.stringify({ newRole, adminPin })
+                        body: JSON.stringify({ newRole })
                     });
                     
                     if (response.success) {
@@ -13878,7 +13869,7 @@ ARB4ME Security Team`
                 }
             }
 
-            async demoteUser(userId, adminPin) {
+            async demoteUser(userId) {
                 try {
                     if (!this.token) {
                         console.log('No JWT token available for demote user');
@@ -13887,7 +13878,7 @@ ARB4ME Security Team`
 
                     const response = await this.apiCall(`/admin/admins/${userId}/demote`, {
                         method: 'POST',
-                        body: JSON.stringify({ adminPin })
+                        body: JSON.stringify({})
                     });
                     
                     if (response.success) {
