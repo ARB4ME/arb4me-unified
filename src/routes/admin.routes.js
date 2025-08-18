@@ -1180,4 +1180,121 @@ router.post('/users/:userId/status', asyncHandler(async (req, res) => {
     });
 }));
 
+// Bulk user status operations
+router.post('/users/bulk/activate', asyncHandler(async (req, res) => {
+    const { userIds } = req.body;
+    
+    // Validate input
+    if (!Array.isArray(userIds) || userIds.length === 0) {
+        throw new APIError('User IDs array is required and cannot be empty', 400, 'INVALID_USER_IDS');
+    }
+    
+    if (userIds.length > 100) {
+        throw new APIError('Cannot process more than 100 users at once', 400, 'TOO_MANY_USERS');
+    }
+    
+    const results = {
+        success: [],
+        failed: [],
+        total: userIds.length
+    };
+    
+    // Process in transaction
+    await transaction(async (client) => {
+        for (const userId of userIds) {
+            try {
+                const result = await client.query(
+                    'UPDATE users SET account_status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING id, account_status, first_name, last_name',
+                    ['active', userId]
+                );
+                
+                if (result.rows.length > 0) {
+                    const user = result.rows[0];
+                    results.success.push({
+                        userId: user.id,
+                        status: user.account_status,
+                        name: `${user.first_name} ${user.last_name}`
+                    });
+                } else {
+                    results.failed.push({
+                        userId,
+                        error: 'User not found'
+                    });
+                }
+            } catch (error) {
+                results.failed.push({
+                    userId,
+                    error: error.message
+                });
+            }
+        }
+    });
+    
+    console.log(`Bulk activate: ${results.success.length} successful, ${results.failed.length} failed`);
+    
+    res.json({
+        success: true,
+        data: results,
+        message: `Bulk activation completed: ${results.success.length} successful, ${results.failed.length} failed`
+    });
+}));
+
+router.post('/users/bulk/suspend', asyncHandler(async (req, res) => {
+    const { userIds } = req.body;
+    
+    // Validate input
+    if (!Array.isArray(userIds) || userIds.length === 0) {
+        throw new APIError('User IDs array is required and cannot be empty', 400, 'INVALID_USER_IDS');
+    }
+    
+    if (userIds.length > 100) {
+        throw new APIError('Cannot process more than 100 users at once', 400, 'TOO_MANY_USERS');
+    }
+    
+    const results = {
+        success: [],
+        failed: [],
+        total: userIds.length
+    };
+    
+    // Process in transaction
+    await transaction(async (client) => {
+        for (const userId of userIds) {
+            try {
+                const result = await client.query(
+                    'UPDATE users SET account_status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING id, account_status, first_name, last_name',
+                    ['suspended', userId]
+                );
+                
+                if (result.rows.length > 0) {
+                    const user = result.rows[0];
+                    results.success.push({
+                        userId: user.id,
+                        status: user.account_status,
+                        name: `${user.first_name} ${user.last_name}`
+                    });
+                } else {
+                    results.failed.push({
+                        userId,
+                        error: 'User not found'
+                    });
+                }
+            } catch (error) {
+                results.failed.push({
+                    userId,
+                    error: error.message
+                });
+            }
+        }
+    });
+    
+    console.log(`Bulk suspend: ${results.success.length} successful, ${results.failed.length} failed`);
+    
+    res.json({
+        success: true,
+        data: results,
+        message: `Bulk suspension completed: ${results.success.length} successful, ${results.failed.length} failed`
+    });
+}));
+
 module.exports = router;

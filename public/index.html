@@ -9129,13 +9129,23 @@
             document.body.appendChild(modal);
         }
 
-        function suspendUserAccount(userId) {
+        async function suspendUserAccount(userId) {
             if (confirm(`Are you sure you want to suspend user ${userId} for overdue payment?`)) {
-                // In production, this would update the user's account status
-                addActivity(`🚫 User ${userId} account suspended for overdue payment`, 'warning');
-                
-                // Update the billing overview
-                updateAdminBillingOverview();
+                try {
+                    const response = await apiService.updateUserStatus(userId, 'suspended');
+                    
+                    if (response.success) {
+                        addActivity(`🚫 User ${userId} account suspended for overdue payment`, 'warning');
+                        
+                        // Update the billing overview
+                        updateAdminBillingOverview();
+                    } else {
+                        showNotification('Failed to suspend user: ' + (response.message || 'Unknown error'), 'error');
+                    }
+                } catch (error) {
+                    console.error('Error suspending user:', error);
+                    showNotification('Error suspending user. Please try again.', 'error');
+                }
             }
         }
 
@@ -9297,21 +9307,33 @@
             });
         }
 
-        function toggleUserActivation(userId) {
+        async function toggleUserActivation(userId) {
             const user = activationData.users.find(u => u.id === userId);
             if (!user) return;
 
-            user.isActive = !user.isActive;
-            user.status = user.isActive ? 'active' : 'inactive';
+            const newStatus = user.isActive ? 'suspended' : 'active';
             
-            // In production, update database
-            // await updateUserActivationStatus(userId, user.isActive);
-            
-            addActivity(`${user.isActive ? '✅ Activated' : '❌ Deactivated'} user: ${user.email}`, user.isActive ? 'success' : 'warning');
-            refreshActivationList();
+            try {
+                // Update backend first
+                const response = await apiService.updateUserStatus(userId, newStatus);
+                
+                if (response.success) {
+                    // Update local state only after successful backend update
+                    user.isActive = !user.isActive;
+                    user.status = user.isActive ? 'active' : 'inactive';
+                    
+                    addActivity(`${user.isActive ? '✅ Activated' : '❌ Deactivated'} user: ${user.email}`, user.isActive ? 'success' : 'warning');
+                    refreshActivationList();
+                } else {
+                    showNotification('Failed to update user status: ' + (response.message || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                console.error('Error updating user status:', error);
+                showNotification('Error updating user status. Please try again.', 'error');
+            }
         }
 
-        function bulkActivateSelected() {
+        async function bulkActivateSelected() {
             const selectedUsers = getSelectedUsers();
             if (selectedUsers.length === 0) {
                 alert('Please select users to activate');
@@ -9319,25 +9341,44 @@
             }
 
             if (confirm(`Activate ${selectedUsers.length} selected users?`)) {
-                selectedUsers.forEach(userId => {
-                    const user = activationData.users.find(u => u.id === userId);
-                    if (user) {
-                        user.isActive = true;
-                        user.status = 'active';
-                        user.lastPayment = new Date().toISOString().split('T')[0];
-                        const nextMonth = new Date();
-                        nextMonth.setMonth(nextMonth.getMonth() + 1);
-                        user.nextDue = nextMonth.toISOString().split('T')[0];
-                    }
-                });
+                try {
+                    const response = await apiService.bulkActivateUsers(selectedUsers);
+                    
+                    if (response.success) {
+                        const { success, failed } = response.data;
+                        
+                        // Update local state for successful activations
+                        success.forEach(({ userId }) => {
+                            const user = activationData.users.find(u => u.id === userId);
+                            if (user) {
+                                user.isActive = true;
+                                user.status = 'active';
+                                user.lastPayment = new Date().toISOString().split('T')[0];
+                                const nextMonth = new Date();
+                                nextMonth.setMonth(nextMonth.getMonth() + 1);
+                                user.nextDue = nextMonth.toISOString().split('T')[0];
+                            }
+                        });
 
-                addActivity(`✅ Bulk activated ${selectedUsers.length} users`, 'success');
+                        addActivity(`✅ Bulk activated ${success.length} users`, 'success');
+                        
+                        if (failed.length > 0) {
+                            showNotification(`${failed.length} users could not be activated`, 'warning');
+                        }
+                    } else {
+                        showNotification('Failed to activate users: ' + (response.error || 'Unknown error'), 'error');
+                    }
+                } catch (error) {
+                    console.error('Error bulk activating users:', error);
+                    showNotification('Error activating users. Please try again.', 'error');
+                }
+
                 refreshActivationList();
                 clearUserSelection();
             }
         }
 
-        function bulkDeactivateSelected() {
+        async function bulkDeactivateSelected() {
             const selectedUsers = getSelectedUsers();
             if (selectedUsers.length === 0) {
                 alert('Please select users to deactivate');
@@ -9345,15 +9386,34 @@
             }
 
             if (confirm(`Deactivate ${selectedUsers.length} selected users?`)) {
-                selectedUsers.forEach(userId => {
-                    const user = activationData.users.find(u => u.id === userId);
-                    if (user) {
-                        user.isActive = false;
-                        user.status = 'inactive';
-                    }
-                });
+                try {
+                    const response = await apiService.bulkSuspendUsers(selectedUsers);
+                    
+                    if (response.success) {
+                        const { success, failed } = response.data;
+                        
+                        // Update local state for successful suspensions
+                        success.forEach(({ userId }) => {
+                            const user = activationData.users.find(u => u.id === userId);
+                            if (user) {
+                                user.isActive = false;
+                                user.status = 'inactive';
+                            }
+                        });
 
-                addActivity(`❌ Bulk deactivated ${selectedUsers.length} users`, 'warning');
+                        addActivity(`❌ Bulk deactivated ${success.length} users`, 'warning');
+                        
+                        if (failed.length > 0) {
+                            showNotification(`${failed.length} users could not be deactivated`, 'error');
+                        }
+                    } else {
+                        showNotification('Failed to deactivate users: ' + (response.error || 'Unknown error'), 'error');
+                    }
+                } catch (error) {
+                    console.error('Error bulk deactivating users:', error);
+                    showNotification('Error deactivating users. Please try again.', 'error');
+                }
+
                 refreshActivationList();
                 clearUserSelection();
             }
@@ -13320,6 +13380,31 @@ ARB4ME Security Team`
                 }
             }
 
+            async updateUserStatus(userId, status) {
+                try {
+                    if (!this.token) {
+                        console.log('No JWT token available for updating user status');
+                        return { success: false, error: 'No authentication token' };
+                    }
+
+                    const response = await this.apiCall(`/admin/users/${userId}/status`, {
+                        method: 'POST',
+                        body: JSON.stringify({ status })
+                    });
+                    
+                    if (response.success) {
+                        console.log('✅ User status updated:', response.data);
+                        return response;
+                    } else {
+                        console.log('❌ Failed to update user status:', response.error);
+                        return response;
+                    }
+                } catch (error) {
+                    console.log('❌ Error updating user status:', error.message);
+                    return { success: false, error: error.message };
+                }
+            }
+
             async sendAdminComposeMessage(targetUserId, subject, content, priority = 'medium') {
                 try {
                     if (!this.token) {
@@ -13346,6 +13431,56 @@ ARB4ME Security Team`
                 } catch (error) {
                     console.error('❌ Failed to send admin compose message:', error);
                     throw error;
+                }
+            }
+
+            async bulkActivateUsers(userIds) {
+                try {
+                    if (!this.token) {
+                        console.log('No JWT token available for bulk activate');
+                        return { success: false, error: 'No authentication token' };
+                    }
+
+                    const response = await this.apiCall(`/admin/users/bulk/activate`, {
+                        method: 'POST',
+                        body: JSON.stringify({ userIds })
+                    });
+                    
+                    if (response.success) {
+                        console.log('✅ Bulk user activation completed:', response.data);
+                        return response;
+                    } else {
+                        console.log('❌ Failed to bulk activate users:', response.error);
+                        return response;
+                    }
+                } catch (error) {
+                    console.log('❌ Error bulk activating users:', error.message);
+                    return { success: false, error: error.message };
+                }
+            }
+
+            async bulkSuspendUsers(userIds) {
+                try {
+                    if (!this.token) {
+                        console.log('No JWT token available for bulk suspend');
+                        return { success: false, error: 'No authentication token' };
+                    }
+
+                    const response = await this.apiCall(`/admin/users/bulk/suspend`, {
+                        method: 'POST',
+                        body: JSON.stringify({ userIds })
+                    });
+                    
+                    if (response.success) {
+                        console.log('✅ Bulk user suspension completed:', response.data);
+                        return response;
+                    } else {
+                        console.log('❌ Failed to bulk suspend users:', response.error);
+                        return response;
+                    }
+                } catch (error) {
+                    console.log('❌ Error bulk suspending users:', error.message);
+                    return { success: false, error: error.message };
                 }
             }
         }
