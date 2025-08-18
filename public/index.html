@@ -9276,7 +9276,7 @@
                     reference: 'ARB-100002',
                     status: 'completed',
                     timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
-                }
+                },
                 {
                     userId: '654321',
                     userName: 'Sarah Johnson', 
@@ -13789,7 +13789,7 @@ Happy trading!
 
 Best regards,
 The ARB4ME Team`
-                }
+                },
                 
                 update: {
                     subject: 'ARB4ME Platform Update - New Features Available',
@@ -13818,7 +13818,7 @@ If you experience any issues, don't hesitate to reach out!
 
 Best regards,
 ARB4ME Development Team`
-                }
+                },
                 
                 maintenance: {
                     subject: 'Scheduled Maintenance - ARB4ME Platform',
@@ -13847,7 +13847,7 @@ We apologize for any inconvenience and appreciate your patience.
 
 Best regards,
 ARB4ME Operations Team`
-                }
+                },
                 
                 security: {
                     subject: '🔒 Important Security Alert - Action Required',
@@ -14256,7 +14256,7 @@ ARB4ME Security Team`
             socket = io({
                 auth: {
                     token: token
-                }
+                },
                 reconnection: true,
                 reconnectionDelay: 1000,
                 reconnectionDelayMax: 5000,
@@ -15324,7 +15324,7 @@ ARB4ME Security Team`
                     console.log('❌ Error generating report:', error.message);
                     return { success: false, error: error.message };
                 }
-            }
+            },
 
             async exportReport(format, filters = {}) {
                 try {
@@ -15357,7 +15357,7 @@ ARB4ME Security Team`
                     console.log('❌ Error exporting report:', error.message);
                     return { success: false, error: error.message };
                 }
-            }
+            },
 
             async getSecurityHealth() {
                 try {
@@ -15381,7 +15381,7 @@ ARB4ME Security Team`
                     console.log('❌ Error getting security health:', error.message);
                     return { success: false, error: error.message };
                 }
-            }
+            },
 
             async getSecurityDashboard(period = '24h') {
                 try {
@@ -15405,7 +15405,7 @@ ARB4ME Security Team`
                     console.log('❌ Error getting security dashboard:', error.message);
                     return { success: false, error: error.message };
                 }
-            }
+            },
 
             async getSecurityAlerts() {
                 try {
@@ -15429,7 +15429,7 @@ ARB4ME Security Team`
                     console.log('❌ Error getting security alerts:', error.message);
                     return { success: false, error: error.message };
                 }
-            }
+            },
 
             async resolveSecurityAlert(alertId, resolution, notes) {
                 try {
@@ -15455,7 +15455,7 @@ ARB4ME Security Team`
                     console.log('❌ Error resolving security alert:', error.message);
                     return { success: false, error: error.message };
                 }
-            }
+            },
 
             async createSecurityIncident(incidentData) {
                 try {
@@ -15481,7 +15481,7 @@ ARB4ME Security Team`
                     console.log('❌ Error creating security incident:', error.message);
                     return { success: false, error: error.message };
                 }
-            }
+            },
 
             async getMaintenanceStats() {
                 try {
@@ -15505,7 +15505,7 @@ ARB4ME Security Team`
                     console.log('❌ Error getting maintenance statistics:', error.message);
                     return { success: false, error: error.message };
                 }
-            }
+            },
 
             async runLogCleanup(dryRun = true, categories = []) {
                 try {
@@ -15531,7 +15531,7 @@ ARB4ME Security Team`
                     console.log('❌ Error running log cleanup:', error.message);
                     return { success: false, error: error.message };
                 }
-            }
+            },
 
             async archiveLogs(archiveBefore, categories = []) {
                 try {
@@ -15557,7 +15557,7 @@ ARB4ME Security Team`
                     console.log('❌ Error archiving logs:', error.message);
                     return { success: false, error: error.message };
                 }
-            }
+            },
 
             async optimizeDatabase(tables = ['admin_activity_log', 'security_events', 'user_sessions']) {
                 try {
@@ -15860,7 +15860,7 @@ ARB4ME Security Team`
                     assetsSelected: [],
                     tradingEnabled: false,
                     progressPercent: 20 // Basic account created
-                }
+                },
                 tradingStats: {
                     totalTrades: 0,
                     successfulTrades: 0,
@@ -15983,7 +15983,7 @@ ARB4ME Security Team`
                         assetsSelected: selectedAssets,
                         tradingEnabled: tradingEnabled,
                         ...existingUserData.setupProgress // Keep any existing setup progress
-                    }
+                    },
                     balances: {
                         ...existingUserData.balances, // Keep any existing balances
                         ...state.balances // Add current balance data
@@ -16030,7 +16030,7 @@ ARB4ME Security Team`
                     exchangesConnected: connectedExchanges,
                     assetsSelected: selectedAssets,
                     tradingEnabled: tradingEnabled
-                }
+                },
                 balances: {
                     ...userState.userData.balances,
                     ...state.balances
@@ -16105,7 +16105,7 @@ ARB4ME Security Team`
                 
                 localStorage.setItem('arb4me_activity_history', JSON.stringify(activities));
                 return activity;
-            }
+            },
             
             getActivities: function(filters = {}) {
                 const activities = JSON.parse(localStorage.getItem('arb4me_activity_history') || '[]');
@@ -16133,7 +16133,7 @@ ARB4ME Security Team`
                 }
                 
                 return filtered;
-            }
+            },
             
             getActivityStats: function() {
                 const activities = this.getActivities();
@@ -16150,7 +16150,7 @@ ARB4ME Security Team`
                         success: activities.filter(a => a.type === 'success').length,
                         warning: activities.filter(a => a.type === 'warning').length,
                         error: activities.filter(a => a.type === 'error').length
-                    }
+                    },
                     byCategory: {}
                 };
             }
@@ -17651,106 +17651,106 @@ ARB4ME Security Team`
                     settings: state.settings,
                     security: {
                         inactivityTimeout: securityState.inactivityTimeout
-                    }
+                    },
                     apiKeys: {
                         valr: {
                             key: state.exchanges.valr.api ? simpleEncrypt(state.exchanges.valr.api.key) : '',
                             secret: state.exchanges.valr.api ? simpleEncrypt(state.exchanges.valr.api.secret) : ''
-                        }
+                        },
                         luno: {
                             key: state.exchanges.luno.api ? simpleEncrypt(state.exchanges.luno.api.key) : '',
                             secret: state.exchanges.luno.api ? simpleEncrypt(state.exchanges.luno.api.secret) : ''
-                        }
+                        },
                         altcointrader: {
                             key: state.exchanges.altcointrader.api ? simpleEncrypt(state.exchanges.altcointrader.api.key) : '',
                             secret: state.exchanges.altcointrader.api ? simpleEncrypt(state.exchanges.altcointrader.api.secret) : ''
-                        }
+                        },
                         xago: {
                             key: state.exchanges.xago.api ? simpleEncrypt(state.exchanges.xago.api.key) : '',
                             secret: state.exchanges.xago.api ? simpleEncrypt(state.exchanges.xago.api.secret) : ''
-                        }
+                        },
                         chainex: {
                             key: state.exchanges.chainex.api ? simpleEncrypt(state.exchanges.chainex.api.key) : '',
                             secret: state.exchanges.chainex.api ? simpleEncrypt(state.exchanges.chainex.api.secret) : ''
-                        }
+                        },
                         kraken: {
                             key: state.exchanges.kraken.api ? simpleEncrypt(state.exchanges.kraken.api.key) : '',
                             secret: state.exchanges.kraken.api ? simpleEncrypt(state.exchanges.kraken.api.secret) : ''
-                        }
+                        },
                         binance: {
                             key: state.exchanges.binance.api ? simpleEncrypt(state.exchanges.binance.api.key) : '',
                             secret: state.exchanges.binance.api ? simpleEncrypt(state.exchanges.binance.api.secret) : ''
-                        }
+                        },
                         bybit: {
                             key: state.exchanges.bybit.api ? simpleEncrypt(state.exchanges.bybit.api.key) : '',
                             secret: state.exchanges.bybit.api ? simpleEncrypt(state.exchanges.bybit.api.secret) : ''
-                        }
+                        },
                         gateio: {
                             key: state.exchanges.gateio.api ? simpleEncrypt(state.exchanges.gateio.api.key) : '',
                             secret: state.exchanges.gateio.api ? simpleEncrypt(state.exchanges.gateio.api.secret) : ''
-                        }
+                        },
                         okx: {
                             key: state.exchanges.okx.api ? simpleEncrypt(state.exchanges.okx.api.key) : '',
                             secret: state.exchanges.okx.api ? simpleEncrypt(state.exchanges.okx.api.secret) : '',
                             passphrase: state.exchanges.okx.api ? simpleEncrypt(state.exchanges.okx.api.passphrase) : ''
-                        }
+                        },
                         mexc: {
                             key: state.exchanges.mexc.api ? simpleEncrypt(state.exchanges.mexc.api.key) : '',
                             secret: state.exchanges.mexc.api ? simpleEncrypt(state.exchanges.mexc.api.secret) : ''
-                        }
+                        },
                         kucoin: {
                             key: state.exchanges.kucoin.api ? simpleEncrypt(state.exchanges.kucoin.api.key) : '',
                             secret: state.exchanges.kucoin.api ? simpleEncrypt(state.exchanges.kucoin.api.secret) : '',
                             passphrase: state.exchanges.kucoin.api ? simpleEncrypt(state.exchanges.kucoin.api.passphrase) : ''
-                        }
+                        },
                         xt: {
                             key: state.exchanges.xt.api ? simpleEncrypt(state.exchanges.xt.api.key) : '',
                             secret: state.exchanges.xt.api ? simpleEncrypt(state.exchanges.xt.api.secret) : ''
-                        }
+                        },
                         ascendex: {
                             key: state.exchanges.ascendex.api ? simpleEncrypt(state.exchanges.ascendex.api.key) : '',
                             secret: state.exchanges.ascendex.api ? simpleEncrypt(state.exchanges.ascendex.api.secret) : ''
-                        }
+                        },
                         htx: {
                             key: state.exchanges.htx.api ? simpleEncrypt(state.exchanges.htx.api.key) : '',
                             secret: state.exchanges.htx.api ? simpleEncrypt(state.exchanges.htx.api.secret) : ''
-                        }
+                        },
                         bingx: {
                             key: state.exchanges.bingx.api ? simpleEncrypt(state.exchanges.bingx.api.key) : '',
                             secret: state.exchanges.bingx.api ? simpleEncrypt(state.exchanges.bingx.api.secret) : ''
-                        }
+                        },
                         bitget: {
                             key: state.exchanges.bitget.api ? simpleEncrypt(state.exchanges.bitget.api.key) : '',
                             secret: state.exchanges.bitget.api ? simpleEncrypt(state.exchanges.bitget.api.secret) : '',
                             passphrase: state.exchanges.bitget.api ? simpleEncrypt(state.exchanges.bitget.api.passphrase) : ''
-                        }
+                        },
                         bitmart: {
                             key: state.exchanges.bitmart.api ? simpleEncrypt(state.exchanges.bitmart.api.key) : '',
                             secret: state.exchanges.bitmart.api ? simpleEncrypt(state.exchanges.bitmart.api.secret) : '',
                             memo: state.exchanges.bitmart.api ? simpleEncrypt(state.exchanges.bitmart.api.memo) : ''
-                        }
+                        },
                         bitrue: {
                             key: state.exchanges.bitrue.api ? simpleEncrypt(state.exchanges.bitrue.api.key) : '',
                             secret: state.exchanges.bitrue.api ? simpleEncrypt(state.exchanges.bitrue.api.secret) : ''
-                        }
+                        },
                         gemini: {
                             key: state.exchanges.gemini.api ? simpleEncrypt(state.exchanges.gemini.api.key) : '',
                             secret: state.exchanges.gemini.api ? simpleEncrypt(state.exchanges.gemini.api.secret) : ''
-                        }
+                        },
                         cryptocom: {
                             key: state.exchanges.cryptocom.api ? simpleEncrypt(state.exchanges.cryptocom.api.key) : '',
                             secret: state.exchanges.cryptocom.api ? simpleEncrypt(state.exchanges.cryptocom.api.secret) : ''
-                        }
+                        },
                         coincatch: {
                             key: state.exchanges.coincatch.api ? simpleEncrypt(state.exchanges.coincatch.api.key) : '',
                             secret: state.exchanges.coincatch.api ? simpleEncrypt(state.exchanges.coincatch.api.secret) : ''
                         }
-                    }
+                    },
                     recovery: {
                         stuckAssets: Array.from(recoveryState.stuckAssets.entries()),
                         activeRecoveries: Array.from(recoveryState.activeRecoveries.entries()),
                         recoveryHistory: recoveryState.recoveryHistory
-                    }
+                    },
                     tradeHistory: state.tradeHistory,
                     liveActivity: state.liveActivity,
                     tradingStats: state.tradingStats,
@@ -17933,7 +17933,7 @@ ARB4ME Security Team`
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
-                        }
+                        },
                         body: JSON.stringify({
                             apiKey: exchange.api.key,
                             apiSecret: exchange.api.secret
@@ -18107,13 +18107,13 @@ ARB4ME Security Team`
                     balance: '/v1/account/balances',
                     order: '/v1/orders/market',
                     pairs: '/v1/public/pairs'
-                }
+                },
                 fees: {
                     trading: { maker: 0.0010, taker: 0.0010 }, // 0.10%
                     withdrawal: { ZAR: 9.00, BTC: 0.0001, ETH: 0.005, XRP: 0.25 },
                     deposit: { ZAR: 0.00, crypto: 0.00 }
                 }
-            }
+            },
             luno: {
                 baseUrl: 'https://api.luno.com',
                 endpoints: {
@@ -18122,13 +18122,13 @@ ARB4ME Security Team`
                     balance: '/api/1/balance',
                     order: '/api/1/marketorder',
                     pairs: '/api/1/tickers'
-                }
+                },
                 fees: {
                     trading: { maker: 0.0010, taker: 0.0010 }, // 0.10%
                     withdrawal: { ZAR: 8.50, BTC: 0.0002, ETH: 0.007, XRP: 0.50 },
                     deposit: { ZAR: 0.00, crypto: 0.00 }
                 }
-            }
+            },
             altcointrader: {
                 baseUrl: 'https://api.altcointrader.co.za',
                 endpoints: {
@@ -18137,13 +18137,13 @@ ARB4ME Security Team`
                     balance: '/v3/balance',
                     order: '/v3/simple-buy-order',
                     pairs: '/v3/live-stats'
-                }
+                },
                 fees: {
                     trading: { maker: 0.0010, taker: 0.0010 }, // 0.10%
                     withdrawal: { ZAR: 25.00, BTC: 0.0003, ETH: 0.01 },
                     deposit: { ZAR: 0.00, crypto: 0.00 }
                 }
-            }
+            },
             xago: {
                 baseUrl: 'https://api.xago.co.za',
                 endpoints: {
@@ -18152,13 +18152,13 @@ ARB4ME Security Team`
                     balance: '/v2/account/balance',
                     order: '/v2/orders',
                     pairs: '/v2/rates'
-                }
+                },
                 fees: {
                     trading: { maker: 0.0010, taker: 0.0010 }, // 0.10%
                     withdrawal: { ZAR: 15.00, BTC: 0.0002, ETH: 0.008 },
                     deposit: { ZAR: 0.00, crypto: 0.00 }
                 }
-            }
+            },
             chainex: {
                 baseUrl: 'https://api.chainex.io',
                 endpoints: {
@@ -18167,13 +18167,13 @@ ARB4ME Security Team`
                     balance: '/v1/spot/account',
                     order: '/v1/spot/order',
                     pairs: '/v1/spot/ticker/24hr'
-                }
+                },
                 fees: {
                     trading: { maker: 0.0010, taker: 0.0010 }, // 0.10%
                     withdrawal: { ZAR: 12.00, BTC: 0.00025, ETH: 0.006 },
                     deposit: { ZAR: 0.00, crypto: 0.00 }
                 }
-            }
+            },
             kraken: {
                 baseUrl: 'https://api.kraken.com',
                 endpoints: {
@@ -18182,13 +18182,13 @@ ARB4ME Security Team`
                     balance: '/0/private/Balance',
                     order: '/0/private/AddOrder',
                     pairs: '/0/public/AssetPairs'
-                }
+                },
                 fees: {
                     trading: { maker: 0.0016, taker: 0.0026 }, // 0.16% maker, 0.26% taker
                     withdrawal: { USDT: 5.00, BTC: 0.00015, ETH: 0.0035, XRP: 0.02 },
                     deposit: { USDT: 0.00, crypto: 0.00 }
                 }
-            }
+            },
             binance: {
                 baseUrl: 'https://api.binance.com',
                 endpoints: {
@@ -18197,13 +18197,13 @@ ARB4ME Security Team`
                     balance: '/api/v3/account',
                     order: '/api/v3/order',
                     pairs: '/api/v3/exchangeInfo'
-                }
+                },
                 fees: {
                     trading: { maker: 0.0010, taker: 0.0010 }, // 0.10% standard spot trading
                     withdrawal: { USDT: 0.8, BTC: 0.0005, ETH: 0.005, XRP: 0.25 },
                     deposit: { USDT: 0.00, crypto: 0.00 }
                 }
-            }
+            },
             bybit: {
                 baseUrl: 'https://api.bybit.com',
                 endpoints: {
@@ -18212,13 +18212,13 @@ ARB4ME Security Team`
                     balance: '/v5/account/wallet-balance',
                     order: '/v5/order/create',
                     pairs: '/v5/market/instruments-info'
-                }
+                },
                 fees: {
                     trading: { maker: 0.0010, taker: 0.0010 }, // 0.10% standard spot trading
                     withdrawal: { USDT: 1.0, BTC: 0.000100, ETH: 0.005, XRP: 0.25 },
                     deposit: { USDT: 0.00, crypto: 0.00 }
                 }
-            }
+            },
             gateio: {
                 baseUrl: 'https://api.gateio.ws',
                 endpoints: {
@@ -18227,13 +18227,13 @@ ARB4ME Security Team`
                     balance: '/api/v4/spot/accounts',
                     order: '/api/v4/spot/orders',
                     pairs: '/api/v4/spot/currency_pairs'
-                }
+                },
                 fees: {
                     trading: { maker: 0.0020, taker: 0.0020 }, // 0.20% standard spot trading
                     withdrawal: { USDT: 1.0, BTC: 0.0005, ETH: 0.0032, XRP: 0.25 },
                     deposit: { USDT: 0.00, crypto: 0.00 }
                 }
-            }
+            },
             okx: {
                 baseUrl: 'https://www.okx.com',
                 endpoints: {
@@ -18242,13 +18242,13 @@ ARB4ME Security Team`
                     balance: '/api/v5/account/balance',
                     order: '/api/v5/trade/order',
                     pairs: '/api/v5/market/tickers'
-                }
+                },
                 fees: {
                     trading: { maker: 0.0008, taker: 0.0010 }, // 0.08% maker, 0.10% taker (regular users)
                     withdrawal: { USDT: 1.0, BTC: 0.00003, ETH: 0.005, XRP: 0.1 },
                     deposit: { USDT: 0.00, crypto: 0.00 }
                 }
-            }
+            },
             mexc: {
                 baseUrl: 'https://api.mexc.com',
                 endpoints: {
@@ -18257,13 +18257,13 @@ ARB4ME Security Team`
                     balance: '/api/v3/account',
                     order: '/api/v3/order',
                     pairs: '/api/v3/exchangeInfo'
-                }
+                },
                 fees: {
                     trading: { maker: 0.0000, taker: 0.0010 }, // 0% maker, 0.10% taker (with MX holding)  
                     withdrawal: { USDT: 0.8, BTC: 0.0002, ETH: 0.003, XRP: 0.25 },
                     deposit: { USDT: 0.00, crypto: 0.00 }
                 }
-            }
+            },
             kucoin: {
                 baseUrl: 'https://api.kucoin.com',
                 endpoints: {
@@ -18272,13 +18272,13 @@ ARB4ME Security Team`
                     balance: '/api/v1/accounts',
                     order: '/api/v1/orders',
                     pairs: '/api/v1/symbols'
-                }
+                },
                 fees: {
                     trading: { maker: 0.0010, taker: 0.0010 }, // 0.10% maker, 0.10% taker (standard)
                     withdrawal: { USDT: 1.0, BTC: 0.0005, ETH: 0.005, XRP: 0.25 },
                     deposit: { USDT: 0.00, crypto: 0.00 }
                 }
-            }
+            },
             xt: {
                 baseUrl: 'https://sapi.xt.com',
                 endpoints: {
@@ -18287,13 +18287,13 @@ ARB4ME Security Team`
                     balance: '/v4/balances',
                     order: '/v4/order',
                     pairs: '/v4/public/symbol'
-                }
+                },
                 fees: {
                     trading: { maker: 0.0010, taker: 0.0010 }, // 0.10% maker, 0.10% taker (standard)
                     withdrawal: { USDT: 1.0, BTC: 0.0005, ETH: 0.005, XRP: 0.25 },
                     deposit: { USDT: 0.00, crypto: 0.00 }
                 }
-            }
+            },
             ascendex: {
                 baseUrl: 'https://ascendex.com',
                 endpoints: {
@@ -18302,13 +18302,13 @@ ARB4ME Security Team`
                     balance: '/api/pro/v2/cash/balance',
                     order: '/api/pro/v2/order',
                     pairs: '/api/pro/v1/products'
-                }
+                },
                 fees: {
                     trading: { maker: 0.0010, taker: 0.0010 }, // 0.10% maker, 0.10% taker (standard)
                     withdrawal: { USDT: 2.0, BTC: 0.0005, ETH: 0.005, XRP: 0.25 },
                     deposit: { USDT: 0.00, crypto: 0.00 }
                 }
-            }
+            },
             htx: {
                 baseUrl: 'https://api.huobi.pro',
                 endpoints: {
@@ -18317,13 +18317,13 @@ ARB4ME Security Team`
                     balance: '/v1/account/accounts',
                     order: '/v1/order/orders/place',
                     pairs: '/v1/common/symbols'
-                }
+                },
                 fees: {
                     trading: { maker: 0.0020, taker: 0.0020 }, // 0.20% maker, 0.20% taker (standard)
                     withdrawal: { USDT: 5.0, BTC: 0.0005, ETH: 0.005, XRP: 0.25 },
                     deposit: { USDT: 0.00, crypto: 0.00 }
                 }
-            }
+            },
             bingx: {
                 baseUrl: 'https://open-api.bingx.com',
                 endpoints: {
@@ -18332,13 +18332,13 @@ ARB4ME Security Team`
                     balance: '/openApi/spot/v1/account/balance',
                     order: '/openApi/spot/v1/trade/order',
                     pairs: '/openApi/spot/v1/common/symbols'
-                }
+                },
                 fees: {
                     trading: { maker: 0.0010, taker: 0.0010 }, // 0.10% maker, 0.10% taker (standard)
                     withdrawal: { USDT: 1.0, BTC: 0.0005, ETH: 0.005, XRP: 0.25 },
                     deposit: { USDT: 0.00, crypto: 0.00 }
                 }
-            }
+            },
             bitget: {
                 baseUrl: 'https://api.bitget.com',
                 endpoints: {
@@ -18347,13 +18347,13 @@ ARB4ME Security Team`
                     balance: '/api/spot/v1/account/assets',
                     order: '/api/spot/v1/trade/orders',
                     pairs: '/api/spot/v1/public/products'
-                }
+                },
                 fees: {
                     trading: { maker: 0.0010, taker: 0.0010 }, // 0.10% maker, 0.10% taker (standard)
                     withdrawal: { USDT: 1.0, BTC: 0.0005, ETH: 0.005, XRP: 0.25 },
                     deposit: { USDT: 0.00, crypto: 0.00 }
                 }
-            }
+            },
             bitmart: {
                 baseUrl: 'https://api-cloud.bitmart.com',
                 endpoints: {
@@ -18362,13 +18362,13 @@ ARB4ME Security Team`
                     balance: '/spot/v1/wallet',
                     order: '/spot/v1/submit_order',
                     pairs: '/spot/v1/symbols'
-                }
+                },
                 fees: {
                     trading: { maker: 0.0025, taker: 0.0025 }, // 0.25% maker, 0.25% taker (standard)
                     withdrawal: { USDT: 2.0, BTC: 0.0005, ETH: 0.005, XRP: 0.25 },
                     deposit: { USDT: 0.00, crypto: 0.00 }
                 }
-            }
+            },
             bitrue: {
                 baseUrl: 'https://www.bitrue.com',
                 endpoints: {
@@ -18377,13 +18377,13 @@ ARB4ME Security Team`
                     balance: '/api/v1/account',
                     order: '/api/v1/order',
                     pairs: '/api/v1/exchangeInfo'
-                }
+                },
                 fees: {
                     trading: { maker: 0.0010, taker: 0.0010 }, // 0.10% maker, 0.10% taker (standard)
                     withdrawal: { USDT: 1.0, BTC: 0.0005, ETH: 0.005, XRP: 0.25 },
                     deposit: { USDT: 0.00, crypto: 0.00 }
                 }
-            }
+            },
             gemini: {
                 baseUrl: 'https://api.gemini.com',
                 endpoints: {
@@ -18392,13 +18392,13 @@ ARB4ME Security Team`
                     balance: '/v1/balances',
                     order: '/v1/order/new',
                     pairs: '/v1/symbols'
-                }
+                },
                 fees: {
                     trading: { maker: 0.0025, taker: 0.0035 }, // 0.25% maker, 0.35% taker (standard)
                     withdrawal: { USD: 0.00, BTC: 0.00000000, ETH: 0.00000000, GUSD: 0.00 },
                     deposit: { USD: 0.00, crypto: 0.00 }
                 }
-            }
+            },
             cryptocom: {
                 baseUrl: 'https://api.crypto.com/exchange/v1',
                 endpoints: {
@@ -18407,13 +18407,13 @@ ARB4ME Security Team`
                     balance: 'private/get-account-summary',
                     order: 'private/create-order',
                     pairs: 'public/get-instruments'
-                }
+                },
                 fees: {
                     trading: { maker: 0.0010, taker: 0.0010 }, // 0.10% maker, 0.10% taker (standard)
                     withdrawal: { USDT: 1.0, BTC: 0.0004, ETH: 0.007, CRO: 0.8 },
                     deposit: { USDT: 0.00, crypto: 0.00 }
                 }
-            }
+            },
             coincatch: {
                 baseUrl: 'https://api.coincatch.com',
                 endpoints: {
@@ -18422,7 +18422,7 @@ ARB4ME Security Team`
                     balance: 'api/v1/accounts',
                     order: 'api/v1/orders',
                     pairs: 'api/v1/symbols'
-                }
+                },
                 fees: {
                     trading: { maker: 0.001, taker: 0.001 }, // 0.10% maker, 0.10% taker (standard)
                     withdrawal: { USDT: 1.0, BTC: 0.0005, ETH: 0.01 },
@@ -18476,7 +18476,7 @@ ARB4ME Security Team`
                     sellTradingFee: sellTradingFee,
                     totalTradingFees: buyTradingFee + sellTradingFee,
                     withdrawalFee: withdrawalCost * sellPrice
-                }
+                },
                 breakdown: {
                     tradeValueBase: tradeValueBase,
                     cryptoAmount: cryptoAmount,
@@ -18879,7 +18879,7 @@ ARB4ME Security Team`
                             ...(exchange === 'valr' || exchange === 'luno' || exchange === 'altcointrader' || exchange === 'xago' || exchange === 'chainex' || exchange === 'binance' || exchange === 'kraken' || exchange === 'bybit' || exchange === 'gateio' || exchange === 'okx' || exchange === 'mexc' || exchange === 'kucoin' || exchange === 'xt' || exchange === 'ascendex' || exchange === 'htx' || exchange === 'bingx' || exchange === 'bitget' || exchange === 'bitmart' || exchange === 'bitrue' || exchange === 'gemini' || exchange === 'cryptocom' || exchange === 'coincatch' ? {
                                 'Authorization': `Bearer ${localStorage.getItem('arb4me_jwt_token')}`
                             } : {})
-                        }
+                        },
                         body: JSON.stringify({
                             pair: pair
                         })
@@ -19097,7 +19097,7 @@ ARB4ME Security Team`
                 gemini: { connected: false, api: null, credentials: null },
                 cryptocom: { connected: false, api: null, credentials: null },
                 coincatch: { connected: false, api: null, credentials: null }
-            }
+            },
             currentOpportunity: null,
             tradingStats: {
                 totalProfit: 0,
@@ -19105,14 +19105,14 @@ ARB4ME Security Team`
                 successfulTrades: 0,
                 todayProfit: 0,
                 todayTrades: 0
-            }
+            },
             settings: {
                 profitThreshold: 1.0, // Fixed at 1% - not user configurable
                 tradeSize: 20,
                 selectedAssets: ['XRPUSDT', 'BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'LINKUSDT', 'DOGEUSDT', 'ADAUSDT', 'DOTUSDT', 'AVAXUSDT', 'MATICUSDT', 'LTCUSDT', 'ATOMUSDT', 'BNBUSDT', 'UNIUSDT', 'BCHUSDT', 'SHIBUSDT', 'HBARUSDT', 'ETHBTC', 'ADABTC', 'DOTETH', 'LINKBTC', 'XRPBTC', 'XLMBTC', 'ALGOBTC', 'HBARBTC', 'SOLBTC', 'MATICBTC', 'AVAXBTC', 'BNBBTC', 'LTCBTC', 'SOLETH', 'MATICETH', 'LINKETH', 'UNIETH', 'BTCUSDC', 'ETHUSDC'],
                 maxTradeAmount: 100,
                 safetyEnabled: true
-            }
+            },
             balances: {
                 valr: { USDT: 0, BTC: 0, ETH: 0, XRP: 0 },
                 luno: { USDT: 0, BTC: 0, ETH: 0, XRP: 0 },
@@ -19136,7 +19136,7 @@ ARB4ME Security Team`
                 gemini: { USDT: 0, BTC: 0, ETH: 0, XRP: 0 },
                 cryptocom: { USDT: 0, BTC: 0, ETH: 0, XRP: 0 },
                 coincatch: { USDT: 0, BTC: 0, ETH: 0, XRP: 0 }
-            }
+            },
             tradeHistory: [], // Successful trades only (for billing)
             failedTrades: [], // Failed trades (for debugging, not shown in Box 1)
             liveActivity: [], // Store last 10 trading activity messages
@@ -19588,7 +19588,7 @@ ARB4ME Security Team`
                         setupProgress: {
                             ...userState.userData.setupProgress,
                             exchangesConnected: connectedExchanges
-                        }
+                        },
                         balances: userBalances
                     };
                     
@@ -19767,7 +19767,7 @@ ARB4ME Security Team`
                         setupProgress: {
                             ...userState.userData.setupProgress,
                             exchangesConnected: connectedExchanges
-                        }
+                        },
                         balances: {
                             ...userState.userData.balances,
                             ...state.balances
