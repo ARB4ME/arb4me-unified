@@ -5875,8 +5875,18 @@
                                 <button onclick="clearLogFilters()" style="padding: 8px 16px; background: rgba(255,255,255,0.1); color: white; border: 1px solid #666; border-radius: 20px; cursor: pointer;">
                                     ✖️ Clear
                                 </button>
-                                <button onclick="exportActivityLog()" style="padding: 8px 16px; background: linear-gradient(45deg, #00ff88, #00d4aa); color: white; border: none; border-radius: 20px; cursor: pointer;">
-                                    📥 Export CSV
+                                <div style="position: relative; display: inline-block;">
+                                    <button onclick="toggleExportMenu()" style="padding: 8px 16px; background: linear-gradient(45deg, #00ff88, #00d4aa); color: white; border: none; border-radius: 20px; cursor: pointer;">
+                                        📥 Export ▼
+                                    </button>
+                                    <div id="exportMenu" style="display: none; position: absolute; top: 100%; left: 0; background: rgba(0,0,0,0.9); border: 1px solid #333; border-radius: 8px; min-width: 150px; z-index: 1000;">
+                                        <button onclick="exportWithFormat('csv')" style="width: 100%; padding: 8px 12px; background: none; color: white; border: none; text-align: left; cursor: pointer; border-bottom: 1px solid #333;">📄 CSV Format</button>
+                                        <button onclick="exportWithFormat('json')" style="width: 100%; padding: 8px 12px; background: none; color: white; border: none; text-align: left; cursor: pointer; border-bottom: 1px solid #333;">📋 JSON Format</button>
+                                        <button onclick="exportWithFormat('pdf')" style="width: 100%; padding: 8px 12px; background: none; color: white; border: none; text-align: left; cursor: pointer;">📑 PDF Report</button>
+                                    </div>
+                                </div>
+                                <button onclick="showReportsModal()" style="padding: 8px 16px; background: linear-gradient(45deg, #9c27b0, #673ab7); color: white; border: none; border-radius: 20px; cursor: pointer;">
+                                    📊 Reports
                                 </button>
                             </div>
                         </div>
@@ -9622,60 +9632,335 @@
         }
 
         function exportActivityLog() {
+            // Legacy function - redirect to new format-based export
+            exportWithFormat('csv');
+        }
+
+        // Enhanced export functionality with multiple formats
+        function toggleExportMenu() {
+            const menu = document.getElementById('exportMenu');
+            menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function exportWithFormat(format) {
+            // Close the export menu
+            document.getElementById('exportMenu').style.display = 'none';
+            
             try {
-                const logs = adminManagementData.activityLog;
-                if (logs.length === 0) {
-                    addActivity('⚠️ No logs to export', 'warning');
-                    return;
+                if (format === 'csv') {
+                    // Use existing CSV export logic for backward compatibility
+                    const logs = adminManagementData.activityLog;
+                    if (logs.length === 0) {
+                        addActivity('⚠️ No logs to export', 'warning');
+                        return;
+                    }
+
+                    // Create CSV content
+                    const headers = [
+                        'Date/Time', 'Admin User', 'Admin Role', 'Action', 'Category', 
+                        'Severity', 'Target Type', 'Target ID', 'IP Address', 'Details'
+                    ];
+                    
+                    const csvContent = [
+                        headers.join(','),
+                        ...logs.map(log => {
+                            const adminName = log.admin_name || (log.first_name && log.last_name ? 
+                                `${log.first_name} ${log.last_name}` : 'Unknown Admin');
+                            
+                            return [
+                                `"${new Date(log.created_at).toLocaleString()}"`,
+                                `"${adminName}"`,
+                                `"${log.admin_role || 'unknown'}"`,
+                                `"${log.action}"`,
+                                `"${log.category || 'admin_actions'}"`,
+                                `"${log.severity || 'info'}"`,
+                                `"${log.target_type || ''}"`,
+                                `"${log.target_id || ''}"`,
+                                `"${log.ip_address || ''}"`,
+                                `"${log.details ? JSON.stringify(log.details).replace(/"/g, '""') : ''}"`
+                            ].join(',');
+                        })
+                    ].join('\n');
+
+                    // Create and download file
+                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                    const link = document.createElement('a');
+                    const url = URL.createObjectURL(blob);
+                    
+                    link.setAttribute('href', url);
+                    link.setAttribute('download', `activity_log_${new Date().toISOString().split('T')[0]}.csv`);
+                    link.style.visibility = 'hidden';
+                    
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    
+                    addActivity(`📥 Exported ${logs.length} log entries to CSV`, 'info');
+                } else {
+                    // Use backend export for JSON and PDF formats
+                    exportFromBackend(format);
                 }
-
-                // Create CSV content
-                const headers = [
-                    'Date/Time', 'Admin User', 'Admin Role', 'Action', 'Category', 
-                    'Severity', 'Target Type', 'Target ID', 'IP Address', 'Details'
-                ];
-                
-                const csvContent = [
-                    headers.join(','),
-                    ...logs.map(log => {
-                        const adminName = log.admin_name || (log.first_name && log.last_name ? 
-                            `${log.first_name} ${log.last_name}` : 'Unknown Admin');
-                        
-                        return [
-                            `"${new Date(log.created_at).toLocaleString()}"`,
-                            `"${adminName}"`,
-                            `"${log.admin_role || 'unknown'}"`,
-                            `"${log.action}"`,
-                            `"${log.category || 'admin_actions'}"`,
-                            `"${log.severity || 'info'}"`,
-                            `"${log.target_type || ''}"`,
-                            `"${log.target_id || ''}"`,
-                            `"${log.ip_address || ''}"`,
-                            `"${log.details ? JSON.stringify(log.details).replace(/"/g, '""') : ''}"`
-                        ].join(',');
-                    })
-                ].join('\n');
-
-                // Create and download file
-                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                const link = document.createElement('a');
-                const url = URL.createObjectURL(blob);
-                
-                link.setAttribute('href', url);
-                link.setAttribute('download', `activity_log_${new Date().toISOString().split('T')[0]}.csv`);
-                link.style.visibility = 'hidden';
-                
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                
-                addActivity(`📥 Exported ${logs.length} log entries to CSV`, 'info');
                 
             } catch (error) {
                 console.error('Error exporting activity log:', error);
                 addActivity('❌ Failed to export activity log', 'error');
             }
         }
+
+        async function exportFromBackend(format) {
+            try {
+                const params = new URLSearchParams({
+                    format: format,
+                    reportType: 'activity_log'
+                });
+
+                // Add current filters
+                if (activityLogState.filters.startDate) params.append('startDate', activityLogState.filters.startDate);
+                if (activityLogState.filters.endDate) params.append('endDate', activityLogState.filters.endDate);
+                if (activityLogState.filters.category) params.append('category', activityLogState.filters.category);
+                if (activityLogState.filters.severity) params.append('severity', activityLogState.filters.severity);
+                if (activityLogState.filters.adminUserId) params.append('adminUserId', activityLogState.filters.adminUserId);
+
+                const response = await apiService.apiCall(`/admin/reports/export?${params.toString()}`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': format === 'json' ? 'application/json' : 'text/csv'
+                    }
+                });
+
+                if (response) {
+                    // Create download link
+                    const blob = new Blob([response], { 
+                        type: format === 'json' ? 'application/json' : 'text/csv' 
+                    });
+                    const link = document.createElement('a');
+                    const url = URL.createObjectURL(blob);
+                    
+                    link.setAttribute('href', url);
+                    link.setAttribute('download', `activity_log_${new Date().toISOString().split('T')[0]}.${format}`);
+                    link.style.visibility = 'hidden';
+                    
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    
+                    addActivity(`📥 Exported activity log as ${format.toUpperCase()}`, 'info');
+                } else {
+                    addActivity('❌ Failed to export from backend', 'error');
+                }
+                
+            } catch (error) {
+                console.error('Error exporting from backend:', error);
+                addActivity('❌ Failed to export activity log', 'error');
+            }
+        }
+
+        // Reports modal functions
+        function showReportsModal() {
+            document.getElementById('reportsModal').style.display = 'block';
+        }
+
+        function closeReportsModal() {
+            document.getElementById('reportsModal').style.display = 'none';
+        }
+
+        async function generateCustomReport() {
+            const reportType = document.getElementById('reportType').value;
+            const period = document.getElementById('reportPeriod').value;
+            const format = document.getElementById('reportFormat').value;
+            
+            const resultsDiv = document.getElementById('reportResults');
+            resultsDiv.innerHTML = '<div style="text-align: center; color: #00d4ff; padding: 20px;">🔄 Generating report...</div>';
+            
+            try {
+                const response = await apiService.apiCall(`/admin/reports/summary?type=${reportType}&period=${period}`, {
+                    method: 'GET'
+                });
+                
+                if (response.success) {
+                    displayReportResults(response.data, format);
+                    addActivity(`📊 Generated ${reportType} report for ${period}`, 'info');
+                } else {
+                    resultsDiv.innerHTML = '<div style="text-align: center; color: #ff6b6b; padding: 20px;">❌ Failed to generate report</div>';
+                }
+                
+            } catch (error) {
+                console.error('Error generating report:', error);
+                resultsDiv.innerHTML = '<div style="text-align: center; color: #ff6b6b; padding: 20px;">❌ Error generating report</div>';
+            }
+        }
+
+        async function generateQuickReport(reportType) {
+            const resultsDiv = document.getElementById('reportResults');
+            resultsDiv.innerHTML = '<div style="text-align: center; color: #00d4ff; padding: 20px;">🔄 Generating quick report...</div>';
+            
+            let period = '7d';
+            let type = 'security';
+            
+            switch (reportType) {
+                case 'security_today':
+                    period = '1d';
+                    type = 'security';
+                    break;
+                case 'admin_activity_week':
+                    period = '7d';
+                    type = 'activity';
+                    break;
+                case 'critical_events':
+                    period = '30d';
+                    type = 'security';
+                    break;
+                case 'user_changes':
+                    period = '7d';
+                    type = 'activity';
+                    break;
+            }
+            
+            try {
+                const response = await apiService.apiCall(`/admin/reports/summary?type=${type}&period=${period}`, {
+                    method: 'GET'
+                });
+                
+                if (response.success) {
+                    displayReportResults(response.data, 'json', reportType);
+                    addActivity(`📊 Generated quick report: ${reportType}`, 'info');
+                } else {
+                    resultsDiv.innerHTML = '<div style="text-align: center; color: #ff6b6b; padding: 20px;">❌ Failed to generate report</div>';
+                }
+                
+            } catch (error) {
+                console.error('Error generating quick report:', error);
+                resultsDiv.innerHTML = '<div style="text-align: center; color: #ff6b6b; padding: 20px;">❌ Error generating report</div>';
+            }
+        }
+
+        function displayReportResults(data, format, quickReportType = null) {
+            const resultsDiv = document.getElementById('reportResults');
+            
+            if (format === 'json') {
+                // Display formatted report results
+                let html = `
+                    <div style="margin-bottom: 15px;">
+                        <h4 style="color: #9c27b0; margin-bottom: 10px;">📊 ${data.reportType}</h4>
+                        <div style="color: #aaa; font-size: 0.9rem;">Generated: ${new Date(data.generatedAt).toLocaleString()}</div>
+                        <div style="color: #aaa; font-size: 0.9rem;">Period: ${data.period}</div>
+                    </div>
+                `;
+                
+                if (data.securityEvents && data.securityEvents.length > 0) {
+                    html += `
+                        <div style="background: rgba(255,107,107,0.1); padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                            <h5 style="color: #ff6b6b; margin-bottom: 10px;">🛡️ Security Events</h5>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+                                ${data.securityEvents.map(event => `
+                                    <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 5px;">
+                                        <div style="font-weight: bold; color: ${event.severity === 'critical' ? '#ff6b6b' : event.severity === 'high' ? '#ff9500' : '#f39c12'};">
+                                            ${event.event_type}
+                                        </div>
+                                        <div style="font-size: 0.8rem; color: #aaa;">
+                                            Count: ${event.event_count} | Unresolved: ${event.unresolved_count}
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                if (data.adminActivity && data.adminActivity.length > 0) {
+                    html += `
+                        <div style="background: rgba(255,149,0,0.1); padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                            <h5 style="color: #ff9500; margin-bottom: 10px;">⚡ Admin Activity Summary</h5>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+                                ${data.adminActivity.map(activity => `
+                                    <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 5px;">
+                                        <div style="font-weight: bold; color: #ff9500;">
+                                            ${activity.category.replace(/_/g, ' ')}
+                                        </div>
+                                        <div style="font-size: 0.8rem; color: #aaa;">
+                                            Count: ${activity.activity_count} | Admins: ${activity.unique_admins}
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                if (data.topActiveAdmins && data.topActiveAdmins.length > 0) {
+                    html += `
+                        <div style="background: rgba(0,255,136,0.1); padding: 15px; border-radius: 8px;">
+                            <h5 style="color: #00ff88; margin-bottom: 10px;">👥 Most Active Admins</h5>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+                                ${data.topActiveAdmins.map(admin => `
+                                    <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 5px;">
+                                        <div style="font-weight: bold; color: #00ff88;">
+                                            ${admin.admin_name}
+                                        </div>
+                                        <div style="font-size: 0.8rem; color: #aaa;">
+                                            Role: ${admin.admin_role} | Actions: ${admin.activity_count}
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                html += `
+                    <div style="margin-top: 15px; text-align: center;">
+                        <button onclick="downloadReportData('${data.reportType}', ${JSON.stringify(data).replace(/"/g, '&quot;')})" 
+                                style="padding: 8px 16px; background: linear-gradient(45deg, #00ff88, #00d4aa); color: white; border: none; border-radius: 20px; cursor: pointer;">
+                            📥 Download Full Report
+                        </button>
+                    </div>
+                `;
+                
+                resultsDiv.innerHTML = html;
+            } else {
+                // Handle CSV/PDF format display
+                resultsDiv.innerHTML = `
+                    <div style="text-align: center; color: #00ff88; padding: 20px;">
+                        ✅ Report generated successfully in ${format.toUpperCase()} format
+                        <br><br>
+                        The file has been automatically downloaded to your computer.
+                    </div>
+                `;
+            }
+        }
+
+        function downloadReportData(reportType, data) {
+            try {
+                const jsonContent = JSON.stringify(data, null, 2);
+                const blob = new Blob([jsonContent], { type: 'application/json' });
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                
+                link.setAttribute('href', url);
+                link.setAttribute('download', `${reportType.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.json`);
+                link.style.visibility = 'hidden';
+                
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                addActivity(`📥 Downloaded ${reportType} report data`, 'info');
+                
+            } catch (error) {
+                console.error('Error downloading report data:', error);
+                addActivity('❌ Failed to download report data', 'error');
+            }
+        }
+
+        // Close export menu when clicking outside
+        document.addEventListener('click', function(event) {
+            const exportMenu = document.getElementById('exportMenu');
+            const exportButton = event.target.closest('[onclick="toggleExportMenu()"]');
+            
+            if (!exportButton && exportMenu && !exportMenu.contains(event.target)) {
+                exportMenu.style.display = 'none';
+            }
+        });
 
         function displayActivityLog() {
             const container = document.getElementById('adminActivityLog');
@@ -14280,6 +14565,63 @@ ARB4ME Security Team`
                     }
                 } catch (error) {
                     console.log('❌ Error getting filtered activity log:', error.message);
+                    return { success: false, error: error.message };
+                }
+            },
+
+            async generateReport(reportType, period, format) {
+                try {
+                    if (!this.token) {
+                        console.log('No JWT token available for report generation');
+                        return { success: false, error: 'No authentication token' };
+                    }
+
+                    const response = await this.apiCall(`/admin/reports/summary?type=${reportType}&period=${period}&format=${format}`, {
+                        method: 'GET'
+                    });
+                    
+                    if (response.success) {
+                        console.log('✅ Report generated successfully:', response.data);
+                        return response;
+                    } else {
+                        console.log('❌ Failed to generate report:', response.error);
+                        return response;
+                    }
+                } catch (error) {
+                    console.log('❌ Error generating report:', error.message);
+                    return { success: false, error: error.message };
+                }
+            },
+
+            async exportReport(format, filters = {}) {
+                try {
+                    if (!this.token) {
+                        console.log('No JWT token available for report export');
+                        return { success: false, error: 'No authentication token' };
+                    }
+
+                    const params = new URLSearchParams({
+                        format: format,
+                        reportType: 'activity_log',
+                        ...filters
+                    });
+
+                    const response = await this.apiCall(`/admin/reports/export?${params.toString()}`, {
+                        method: 'GET',
+                        headers: {
+                            'Accept': format === 'json' ? 'application/json' : 'text/csv'
+                        }
+                    });
+                    
+                    if (response) {
+                        console.log('✅ Report exported successfully');
+                        return { success: true, data: response };
+                    } else {
+                        console.log('❌ Failed to export report');
+                        return { success: false, error: 'Export failed' };
+                    }
+                } catch (error) {
+                    console.log('❌ Error exporting report:', error.message);
                     return { success: false, error: error.message };
                 }
             }
@@ -19999,6 +20341,82 @@ ARB4ME Security Team`
                         ❌ Cancel
                     </button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reports Modal -->
+    <div id="reportsModal" class="modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 9999;">
+        <div class="modal-content" style="max-width: 800px; margin: 5% auto; max-height: 90%; overflow-y: auto;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #9c27b0 0%, #673ab7 100%); color: white; display: flex; justify-content: space-between; align-items: center; padding: 15px; border-radius: 8px 8px 0 0;">
+                <h3 style="margin: 0;">📊 Advanced Reports & Analytics</h3>
+                <button onclick="closeReportsModal()" style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer;">✕</button>
+            </div>
+            <div class="modal-body" style="padding: 20px; background: rgba(30,30,30,0.95); color: white; border-radius: 0 0 8px 8px;">
+                
+                <!-- Report Generation Section -->
+                <div style="background: rgba(156,39,176,0.1); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+                    <h4 style="color: #9c27b0; margin-bottom: 15px;">📈 Generate Custom Reports</h4>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px;">
+                        <div>
+                            <label style="font-size: 0.9rem; color: #aaa;">Report Type:</label>
+                            <select id="reportType" style="width: 100%; padding: 8px; background: rgba(0,0,0,0.5); border: 1px solid #333; border-radius: 5px; color: white;">
+                                <option value="security">Security Summary</option>
+                                <option value="activity">Admin Activity</option>
+                                <option value="compliance">Compliance Report</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-size: 0.9rem; color: #aaa;">Time Period:</label>
+                            <select id="reportPeriod" style="width: 100%; padding: 8px; background: rgba(0,0,0,0.5); border: 1px solid #333; border-radius: 5px; color: white;">
+                                <option value="7d">Last 7 Days</option>
+                                <option value="30d" selected>Last 30 Days</option>
+                                <option value="90d">Last 90 Days</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-size: 0.9rem; color: #aaa;">Format:</label>
+                            <select id="reportFormat" style="width: 100%; padding: 8px; background: rgba(0,0,0,0.5); border: 1px solid #333; border-radius: 5px; color: white;">
+                                <option value="json">Detailed JSON</option>
+                                <option value="csv">CSV Export</option>
+                                <option value="pdf">PDF Report</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <button onclick="generateCustomReport()" style="padding: 10px 20px; background: linear-gradient(45deg, #9c27b0, #673ab7); color: white; border: none; border-radius: 25px; cursor: pointer;">
+                        🔄 Generate Report
+                    </button>
+                </div>
+
+                <!-- Quick Reports Section -->
+                <div style="background: rgba(0,212,255,0.1); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+                    <h4 style="color: #00d4ff; margin-bottom: 15px;">⚡ Quick Reports</h4>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+                        <button onclick="generateQuickReport('security_today')" style="padding: 10px; background: rgba(255,107,107,0.2); color: #ff6b6b; border: 1px solid #ff6b6b; border-radius: 8px; cursor: pointer;">
+                            🛡️ Today's Security Events
+                        </button>
+                        <button onclick="generateQuickReport('admin_activity_week')" style="padding: 10px; background: rgba(255,149,0,0.2); color: #ff9500; border: 1px solid #ff9500; border-radius: 8px; cursor: pointer;">
+                            ⚡ This Week's Admin Activity
+                        </button>
+                        <button onclick="generateQuickReport('critical_events')" style="padding: 10px; background: rgba(255,107,107,0.2); color: #ff6b6b; border: 1px solid #ff6b6b; border-radius: 8px; cursor: pointer;">
+                            🚨 All Critical Events
+                        </button>
+                        <button onclick="generateQuickReport('user_changes')" style="padding: 10px; background: rgba(0,255,136,0.2); color: #00ff88; border: 1px solid #00ff88; border-radius: 8px; cursor: pointer;">
+                            👥 Recent User Changes
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Report Results Section -->
+                <div id="reportResults" style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; min-height: 200px;">
+                    <div style="text-align: center; color: #888; padding: 40px;">
+                        Select a report type above to generate analytics and insights
+                    </div>
+                </div>
+                
             </div>
         </div>
     </div>

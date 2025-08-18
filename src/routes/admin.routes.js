@@ -1607,4 +1607,209 @@ router.get('/activity-log', authenticateUser, requireAdmin, requirePermission('s
     });
 }));
 
+// GET /api/v1/admin/reports/export - Enhanced export functionality
+router.get('/reports/export', authenticateUser, requireAdmin, requirePermission('system.logs'), asyncHandler(async (req, res) => {
+    const { 
+        format = 'csv',
+        startDate,
+        endDate,
+        adminUserId,
+        category,
+        severity,
+        reportType = 'activity_log'
+    } = req.query;
+    
+    // Validate format
+    if (!['csv', 'json', 'pdf'].includes(format)) {
+        throw new APIError('Invalid export format. Supported: csv, json, pdf', 400, 'INVALID_FORMAT');
+    }
+    
+    let logs, filename, contentType, content;
+    
+    if (reportType === 'activity_log') {
+        // Get filtered logs for export
+        logs = await query(`
+            SELECT * FROM get_activity_logs($1, $2, $3, $4, $5, $6, $7)
+        `, [
+            startDate || null,
+            endDate || null, 
+            adminUserId || null,
+            category || null,
+            severity || null,
+            10000, // Large limit for export
+            0
+        ]);
+        
+        const timestamp = new Date().toISOString().split('T')[0];
+        
+        switch (format) {
+            case 'csv':
+                filename = `activity_log_${timestamp}.csv`;
+                contentType = 'text/csv';
+                content = generateCSV(logs.rows);
+                break;
+                
+            case 'json':
+                filename = `activity_log_${timestamp}.json`;
+                contentType = 'application/json';
+                content = JSON.stringify({
+                    exportDate: new Date().toISOString(),
+                    filters: { startDate, endDate, adminUserId, category, severity },
+                    totalRecords: logs.rows.length,
+                    data: logs.rows
+                }, null, 2);
+                break;
+                
+            case 'pdf':
+                // For now, return structured data that frontend can convert to PDF
+                filename = `activity_log_${timestamp}.json`;
+                contentType = 'application/json';
+                content = JSON.stringify({
+                    reportType: 'Activity Log Report',
+                    generatedBy: `${req.user.first_name} ${req.user.last_name}`,
+                    generatedAt: new Date().toISOString(),
+                    filters: { startDate, endDate, adminUserId, category, severity },
+                    summary: {
+                        totalEvents: logs.rows.length,
+                        criticalEvents: logs.rows.filter(l => l.severity === 'critical').length,
+                        highEvents: logs.rows.filter(l => l.severity === 'high').length,
+                        categories: [...new Set(logs.rows.map(l => l.category))],
+                        admins: [...new Set(logs.rows.map(l => l.admin_name))]
+                    },
+                    data: logs.rows
+                }, null, 2);
+                break;
+        }
+    }
+    
+    // Log the export activity
+    await logAdminActivity(
+        req.user.id,
+        'data_export',
+        'system',
+        reportType,
+        {
+            format,
+            recordCount: logs.rows.length,
+            filters: { startDate, endDate, adminUserId, category, severity }
+        },
+        req.ip,
+        req.get('User-Agent'),
+        {
+            category: 'data_export',
+            severity: 'medium'
+        }
+    );
+    
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Type', contentType);
+    res.send(content);
+}));
+
+// GET /api/v1/admin/reports/summary - Generate summary reports
+router.get('/reports/summary', authenticateUser, requireAdmin, requirePermission('system.logs'), asyncHandler(async (req, res) => {
+    const { 
+        period = '30d',
+        type = 'security'
+    } = req.query;
+    
+    let days;
+    switch (period) {
+        case '7d': days = 7; break;
+        case '30d': days = 30; break;
+        case '90d': days = 90; break;
+        default: days = 30;
+    }
+    
+    if (type === 'security') {
+        // Security summary report
+        const securityEvents = await query(`
+            SELECT 
+                event_type,
+                severity,
+                COUNT(*) as event_count,
+                COUNT(*) FILTER (WHERE resolved = FALSE) as unresolved_count,
+                MAX(created_at) as last_occurrence
+            FROM security_events 
+            WHERE created_at >= CURRENT_TIMESTAMP - INTERVAL '${days} days'
+            GROUP BY event_type, severity
+            ORDER BY event_count DESC
+        `);
+        
+        const adminActivity = await query(`
+            SELECT 
+                category,
+                severity,
+                COUNT(*) as activity_count,
+                COUNT(DISTINCT admin_user_id) as unique_admins
+            FROM admin_activity_log 
+            WHERE created_at >= CURRENT_TIMESTAMP - INTERVAL '${days} days'
+            GROUP BY category, severity
+            ORDER BY activity_count DESC
+        `);
+        
+        const topAdmins = await query(`
+            SELECT 
+                u.first_name || ' ' || u.last_name as admin_name,
+                u.admin_role,
+                COUNT(*) as activity_count
+            FROM admin_activity_log al
+            JOIN users u ON al.admin_user_id = u.id
+            WHERE al.created_at >= CURRENT_TIMESTAMP - INTERVAL '${days} days'
+            GROUP BY u.id, u.first_name, u.last_name, u.admin_role
+            ORDER BY activity_count DESC
+            LIMIT 10
+        `);
+        
+        res.json({
+            success: true,
+            data: {
+                reportType: 'Security Summary',
+                period: `${days} days`,
+                generatedAt: new Date().toISOString(),
+                securityEvents: securityEvents.rows,
+                adminActivity: adminActivity.rows,
+                topActiveAdmins: topAdmins.rows
+            },
+            message: 'Security summary report generated successfully'
+        });
+    }
+    
+    // Log the report generation
+    await logAdminActivity(
+        req.user.id,
+        'report_generated',
+        'system',
+        type,
+        { period, reportType: type },
+        req.ip,
+        req.get('User-Agent'),
+        {
+            category: 'data_export',
+            severity: 'info'
+        }
+    );
+}));
+
+// Helper function to generate CSV content
+function generateCSV(rows) {
+    if (rows.length === 0) return 'No data available';
+    
+    const headers = Object.keys(rows[0]);
+    const csvContent = [
+        headers.join(','),
+        ...rows.map(row => 
+            headers.map(header => {
+                const value = row[header];
+                if (value === null || value === undefined) return '';
+                if (typeof value === 'object') return `"${JSON.stringify(value).replace(/"/g, '""')}"`;
+                if (typeof value === 'string' && value.includes(',')) return `"${value.replace(/"/g, '""')}"`;
+                return value;
+            }).join(',')
+        )
+    ].join('\n');
+    
+    return csvContent;
+}
+
 module.exports = router;
