@@ -10,7 +10,9 @@ const {
     requirePermission, 
     requireMaster, 
     requireAdmin: requireAdminPerm, 
-    logAdminActivity 
+    logAdminActivity,
+    logSecurityEvent,
+    adminActivityLogger
 } = require('../middleware/adminPermissions');
 
 const router = express.Router();
@@ -1160,20 +1162,48 @@ router.post('/users/:userId/status', authenticateUser, requireAdmin, requirePerm
         throw new APIError('Invalid status. Must be: active, suspended, trial, or deleted', 400, 'INVALID_STATUS');
     }
     
+    // Get current user state before update
+    const beforeResult = await query(
+        'SELECT id, account_status, first_name, last_name, email FROM users WHERE id = $1',
+        [userId]
+    );
+    
+    if (beforeResult.rows.length === 0) {
+        throw new APIError('User not found', 404, 'USER_NOT_FOUND');
+    }
+    
+    const beforeState = beforeResult.rows[0];
+    
     // Update user status
     const result = await query(
         'UPDATE users SET account_status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING id, account_status, first_name, last_name',
         [status, userId]
     );
     
-    if (result.rows.length === 0) {
-        throw new APIError('User not found', 404, 'USER_NOT_FOUND');
-    }
-    
     const user = result.rows[0];
     
-    // Log the action (simple console log for now)
-    console.log(`Admin updated user ${userId} status to ${status}`);
+    // Enhanced logging with before/after states
+    await logAdminActivity(
+        req.user.id,
+        `user_status_changed`,
+        'user',
+        userId,
+        {
+            action: 'status_change',
+            user_name: `${user.first_name} ${user.last_name}`,
+            old_status: beforeState.account_status,
+            new_status: status,
+            reason: req.body.reason || 'No reason provided'
+        },
+        req.ip,
+        req.get('User-Agent'),
+        {
+            category: 'user_management',
+            severity: status === 'deleted' ? 'high' : 'medium',
+            beforeState: { account_status: beforeState.account_status },
+            afterState: { account_status: status }
+        }
+    );
     
     res.json({
         success: true,
@@ -1236,7 +1266,29 @@ router.post('/users/bulk/activate', authenticateUser, requireAdmin, requirePermi
         }
     });
     
-    console.log(`Bulk activate: ${results.success.length} successful, ${results.failed.length} failed`);
+    // Enhanced logging for bulk operations
+    await logAdminActivity(
+        req.user.id,
+        'bulk_users_activated',
+        'bulk_operation',
+        null,
+        {
+            action: 'bulk_activate',
+            total_users: userIds.length,
+            successful: results.success.length,
+            failed: results.failed.length,
+            user_ids: userIds,
+            results: results
+        },
+        req.ip,
+        req.get('User-Agent'),
+        {
+            category: 'bulk_operations',
+            severity: 'high',
+            beforeState: null,
+            afterState: { activated_users: results.success.map(u => u.userId) }
+        }
+    );
     
     res.json({
         success: true,
@@ -1294,7 +1346,29 @@ router.post('/users/bulk/suspend', authenticateUser, requireAdmin, requirePermis
         }
     });
     
-    console.log(`Bulk suspend: ${results.success.length} successful, ${results.failed.length} failed`);
+    // Enhanced logging for bulk suspension
+    await logAdminActivity(
+        req.user.id,
+        'bulk_users_suspended',
+        'bulk_operation',
+        null,
+        {
+            action: 'bulk_suspend',
+            total_users: userIds.length,
+            successful: results.success.length,
+            failed: results.failed.length,
+            user_ids: userIds,
+            results: results
+        },
+        req.ip,
+        req.get('User-Agent'),
+        {
+            category: 'bulk_operations',
+            severity: 'high',
+            beforeState: null,
+            afterState: { suspended_users: results.success.map(u => u.userId) }
+        }
+    );
     
     res.json({
         success: true,
@@ -1389,19 +1463,26 @@ router.post('/admins/:userId/promote', authenticateUser, requireAdmin, requireMa
             WHERE id = $3
         `, [newRole, req.user.id, userId]);
         
-        // Log the promotion activity
+        // Enhanced logging for admin promotion
         await client.query(`
-            SELECT log_admin_activity($1, $2, $3, $4, $5)
+            SELECT log_admin_activity_enhanced($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
         `, [
-            req.user.id, // Get admin ID from authenticated JWT
+            req.user.id,
             'admin_promoted',
+            'admin_actions',
+            'high',
             'user',
             userId,
             JSON.stringify({
                 previous_role: user.admin_role,
                 new_role: newRole,
-                user_name: `${user.first_name} ${user.last_name}`
-            })
+                user_name: `${user.first_name} ${user.last_name}`,
+                promoted_by: `${req.user.first_name} ${req.user.last_name}`
+            }),
+            JSON.stringify({ admin_role: user.admin_role }),
+            JSON.stringify({ admin_role: newRole }),
+            req.ip,
+            req.get('User-Agent')
         ]);
     });
     
@@ -1447,18 +1528,25 @@ router.post('/admins/:userId/demote', authenticateUser, requireAdmin, requireMas
             WHERE id = $1
         `, [userId]);
         
-        // Log the demotion activity
+        // Enhanced logging for admin demotion
         await client.query(`
-            SELECT log_admin_activity($1, $2, $3, $4, $5)
+            SELECT log_admin_activity_enhanced($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
         `, [
-            req.user.id, // Get admin ID from authenticated JWT
+            req.user.id,
             'admin_demoted',
+            'admin_actions',
+            'high',
             'user',
             userId,
             JSON.stringify({
                 previous_role: user.admin_role,
-                user_name: `${user.first_name} ${user.last_name}`
-            })
+                user_name: `${user.first_name} ${user.last_name}`,
+                demoted_by: `${req.user.first_name} ${req.user.last_name}`
+            }),
+            JSON.stringify({ admin_role: user.admin_role }),
+            JSON.stringify({ admin_role: null }),
+            req.ip,
+            req.get('User-Agent')
         ]);
     });
     
@@ -1472,22 +1560,49 @@ router.post('/admins/:userId/demote', authenticateUser, requireAdmin, requireMas
 }));
 
 router.get('/activity-log', authenticateUser, requireAdmin, requirePermission('system.logs'), asyncHandler(async (req, res) => {
-    const { limit = 50, offset = 0 } = req.query;
+    const { 
+        limit = 50, 
+        offset = 0,
+        startDate,
+        endDate,
+        adminUserId,
+        category,
+        severity
+    } = req.query;
     
+    // Use the enhanced query function for filtering
     const logs = await query(`
-        SELECT 
-            al.id, al.action, al.target_type, al.target_id, al.details,
-            al.ip_address, al.created_at,
-            u.first_name, u.last_name, u.email, u.admin_role
+        SELECT * FROM get_activity_logs($1, $2, $3, $4, $5, $6, $7)
+    `, [
+        startDate || null,
+        endDate || null,
+        adminUserId || null,
+        category || null,
+        severity || null,
+        parseInt(limit),
+        parseInt(offset)
+    ]);
+    
+    // Get total count for pagination
+    const countResult = await query(`
+        SELECT COUNT(*) as total
         FROM admin_activity_log al
-        JOIN users u ON al.admin_user_id = u.id
-        ORDER BY al.created_at DESC
-        LIMIT $1 OFFSET $2
-    `, [parseInt(limit), parseInt(offset)]);
+        WHERE 
+            ($1::TIMESTAMP IS NULL OR al.created_at >= $1) AND
+            ($2::TIMESTAMP IS NULL OR al.created_at <= $2) AND
+            ($3::VARCHAR IS NULL OR al.admin_user_id = $3) AND
+            ($4::VARCHAR IS NULL OR al.category = $4) AND
+            ($5::VARCHAR IS NULL OR al.severity = $5)
+    `, [startDate, endDate, adminUserId, category, severity]);
     
     res.json({
         success: true,
-        data: logs.rows,
+        data: {
+            logs: logs.rows,
+            total: parseInt(countResult.rows[0].total),
+            page: Math.floor(offset / limit) + 1,
+            limit: limit
+        },
         message: 'Admin activity log retrieved successfully'
     });
 }));
