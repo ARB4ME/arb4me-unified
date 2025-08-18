@@ -1812,4 +1812,422 @@ function generateCSV(rows) {
     return csvContent;
 }
 
+// GET /api/v1/admin/security/dashboard - Security monitoring dashboard
+router.get('/security/dashboard', authenticateUser, requireAdmin, requirePermission('security.monitor'), asyncHandler(async (req, res) => {
+    const { period = '24h' } = req.query;
+    
+    let hours;
+    switch (period) {
+        case '1h': hours = 1; break;
+        case '24h': hours = 24; break;
+        case '7d': hours = 168; break;
+        default: hours = 24;
+    }
+    
+    // Get critical security metrics
+    const criticalEvents = await query(`
+        SELECT 
+            event_type,
+            COUNT(*) as count,
+            MAX(created_at) as last_occurrence
+        FROM security_events 
+        WHERE severity = 'critical' 
+        AND created_at >= CURRENT_TIMESTAMP - INTERVAL '${hours} hours'
+        GROUP BY event_type
+        ORDER BY count DESC
+    `);
+    
+    const unresolvedEvents = await query(`
+        SELECT 
+            event_type,
+            severity,
+            COUNT(*) as count,
+            MIN(created_at) as oldest_event
+        FROM security_events 
+        WHERE resolved = FALSE
+        GROUP BY event_type, severity
+        ORDER BY 
+            CASE severity 
+                WHEN 'critical' THEN 1 
+                WHEN 'high' THEN 2 
+                WHEN 'medium' THEN 3 
+                ELSE 4 
+            END,
+            count DESC
+    `);
+    
+    const recentFailedLogins = await query(`
+        SELECT 
+            ip_address,
+            COUNT(*) as attempts,
+            MAX(created_at) as last_attempt,
+            COUNT(DISTINCT details->>'email') as unique_emails
+        FROM security_events 
+        WHERE event_type = 'failed_login'
+        AND created_at >= CURRENT_TIMESTAMP - INTERVAL '${hours} hours'
+        GROUP BY ip_address
+        HAVING COUNT(*) >= 3
+        ORDER BY attempts DESC
+        LIMIT 10
+    `);
+    
+    const adminSessions = await query(`
+        SELECT 
+            u.first_name || ' ' || u.last_name as admin_name,
+            u.admin_role,
+            s.ip_address,
+            s.login_time,
+            s.last_activity
+        FROM user_sessions s
+        JOIN users u ON s.user_id = u.id
+        WHERE s.logout_time IS NULL 
+        AND s.is_admin_session = TRUE
+        AND s.last_activity >= CURRENT_TIMESTAMP - INTERVAL '24 hours'
+        ORDER BY s.last_activity DESC
+    `);
+    
+    const threatIndicators = await query(`
+        SELECT 
+            'brute_force' as threat_type,
+            COUNT(*) as incidents,
+            'IP addresses with 5+ failed login attempts' as description
+        FROM security_events 
+        WHERE event_type = 'brute_force_detected'
+        AND created_at >= CURRENT_TIMESTAMP - INTERVAL '${hours} hours'
+        
+        UNION ALL
+        
+        SELECT 
+            'suspicious_activity' as threat_type,
+            COUNT(*) as incidents,
+            'Flagged suspicious admin activities' as description
+        FROM security_events 
+        WHERE event_type = 'suspicious_activity'
+        AND created_at >= CURRENT_TIMESTAMP - INTERVAL '${hours} hours'
+        
+        UNION ALL
+        
+        SELECT 
+            'unauthorized_access' as threat_type,
+            COUNT(*) as incidents,
+            'Unauthorized access attempts' as description
+        FROM admin_activity_log 
+        WHERE action = 'unauthorized_access_attempt'
+        AND created_at >= CURRENT_TIMESTAMP - INTERVAL '${hours} hours'
+    `);
+    
+    res.json({
+        success: true,
+        data: {
+            period: period,
+            generatedAt: new Date().toISOString(),
+            criticalEvents: criticalEvents.rows,
+            unresolvedEvents: unresolvedEvents.rows,
+            recentFailedLogins: recentFailedLogins.rows,
+            activeAdminSessions: adminSessions.rows,
+            threatIndicators: threatIndicators.rows
+        },
+        message: 'Security dashboard data retrieved successfully'
+    });
+}));
+
+// GET /api/v1/admin/security/alerts - Get active security alerts
+router.get('/security/alerts', authenticateUser, requireAdmin, requirePermission('security.monitor'), asyncHandler(async (req, res) => {
+    const activeAlerts = await query(`
+        SELECT 
+            se.id,
+            se.event_type,
+            se.severity,
+            se.user_id,
+            se.ip_address,
+            se.details,
+            se.created_at,
+            u.first_name || ' ' || u.last_name as user_name
+        FROM security_events se
+        LEFT JOIN users u ON se.user_id = u.id
+        WHERE se.resolved = FALSE
+        AND se.severity IN ('critical', 'high')
+        ORDER BY 
+            CASE se.severity 
+                WHEN 'critical' THEN 1 
+                WHEN 'high' THEN 2 
+                ELSE 3 
+            END,
+            se.created_at DESC
+        LIMIT 50
+    `);
+    
+    res.json({
+        success: true,
+        data: {
+            alerts: activeAlerts.rows,
+            totalUnresolved: activeAlerts.rows.length
+        },
+        message: 'Active security alerts retrieved successfully'
+    });
+}));
+
+// POST /api/v1/admin/security/alerts/:alertId/resolve - Resolve security alert
+router.post('/security/alerts/:alertId/resolve', authenticateUser, requireAdmin, requirePermission('security.manage'), asyncHandler(async (req, res) => {
+    const { alertId } = req.params;
+    const { resolution, notes } = req.body;
+    
+    await transaction(async (client) => {
+        // Get the alert details first
+        const alertResult = await client.query(
+            'SELECT * FROM security_events WHERE id = $1',
+            [alertId]
+        );
+        
+        if (alertResult.rows.length === 0) {
+            throw new APIError('Security alert not found', 404, 'ALERT_NOT_FOUND');
+        }
+        
+        const alert = alertResult.rows[0];
+        
+        // Update the alert as resolved
+        await client.query(
+            'UPDATE security_events SET resolved = TRUE, resolved_by = $1, resolved_at = CURRENT_TIMESTAMP WHERE id = $2',
+            [req.user.id, alertId]
+        );
+        
+        // Log the resolution activity
+        await logAdminActivity(
+            req.user.id,
+            'security_alert_resolved',
+            'security',
+            alertId,
+            {
+                alertType: alert.event_type,
+                severity: alert.severity,
+                resolution,
+                notes
+            },
+            req.ip,
+            req.get('User-Agent'),
+            {
+                category: 'security',
+                severity: 'medium'
+            }
+        );
+        
+        res.json({
+            success: true,
+            data: {
+                alertId: alertId,
+                resolvedBy: `${req.user.first_name} ${req.user.last_name}`,
+                resolvedAt: new Date().toISOString(),
+                resolution,
+                notes
+            },
+            message: 'Security alert resolved successfully'
+        });
+    });
+}));
+
+// POST /api/v1/admin/security/incidents/create - Create security incident
+router.post('/security/incidents/create', authenticateUser, requireAdmin, requirePermission('security.manage'), asyncHandler(async (req, res) => {
+    const { title, description, severity, affectedSystems, immediateActions } = req.body;
+    
+    // Validate input
+    if (!title || !description || !severity) {
+        throw new APIError('Title, description, and severity are required', 400, 'MISSING_FIELDS');
+    }
+    
+    if (!['low', 'medium', 'high', 'critical'].includes(severity)) {
+        throw new APIError('Invalid severity level', 400, 'INVALID_SEVERITY');
+    }
+    
+    await transaction(async (client) => {
+        // Create security incident record
+        const incidentResult = await client.query(`
+            INSERT INTO security_events (
+                event_type, severity, user_id, ip_address, details
+            ) VALUES (
+                'security_incident', $1, $2, $3, $4
+            ) RETURNING id, created_at
+        `, [
+            severity,
+            req.user.id,
+            req.ip,
+            {
+                incident_type: 'manual_creation',
+                title,
+                description,
+                affected_systems: affectedSystems,
+                immediate_actions: immediateActions,
+                created_by: `${req.user.first_name} ${req.user.last_name}`,
+                admin_role: req.user.admin_role
+            }
+        ]);
+        
+        const incident = incidentResult.rows[0];
+        
+        // Log the incident creation
+        await logAdminActivity(
+            req.user.id,
+            'security_incident_created',
+            'security',
+            incident.id,
+            {
+                title,
+                severity,
+                affectedSystems,
+                immediateActions
+            },
+            req.ip,
+            req.get('User-Agent'),
+            {
+                category: 'security',
+                severity: severity === 'critical' ? 'critical' : 'high'
+            }
+        );
+        
+        res.status(201).json({
+            success: true,
+            data: {
+                incidentId: incident.id,
+                title,
+                severity,
+                createdAt: incident.created_at,
+                createdBy: `${req.user.first_name} ${req.user.last_name}`
+            },
+            message: 'Security incident created successfully'
+        });
+    });
+}));
+
+// GET /api/v1/admin/security/health - System security health check
+router.get('/security/health', authenticateUser, requireAdmin, requirePermission('security.monitor'), asyncHandler(async (req, res) => {
+    // Calculate security health score based on various metrics
+    const last24Hours = await query(`
+        SELECT 
+            COUNT(*) FILTER (WHERE severity = 'critical') as critical_events,
+            COUNT(*) FILTER (WHERE severity = 'high') as high_events,
+            COUNT(*) FILTER (WHERE event_type = 'failed_login') as failed_logins,
+            COUNT(*) FILTER (WHERE event_type = 'brute_force_detected') as brute_force_attempts,
+            COUNT(*) FILTER (WHERE resolved = FALSE) as unresolved_events
+        FROM security_events 
+        WHERE created_at >= CURRENT_TIMESTAMP - INTERVAL '24 hours'
+    `);
+    
+    const metrics = last24Hours.rows[0];
+    
+    // Calculate health score (0-100)
+    let healthScore = 100;
+    
+    // Deduct points for security issues
+    healthScore -= (parseInt(metrics.critical_events) * 20); // -20 per critical event
+    healthScore -= (parseInt(metrics.high_events) * 10);     // -10 per high event
+    healthScore -= (parseInt(metrics.brute_force_attempts) * 15); // -15 per brute force
+    healthScore -= (parseInt(metrics.unresolved_events) * 5); // -5 per unresolved event
+    
+    // Deduct for excessive failed logins
+    if (parseInt(metrics.failed_logins) > 50) {
+        healthScore -= Math.min(30, Math.floor(parseInt(metrics.failed_logins) / 10));
+    }
+    
+    // Ensure score doesn't go below 0
+    healthScore = Math.max(0, healthScore);
+    
+    let healthStatus;
+    let healthColor;
+    
+    if (healthScore >= 90) {
+        healthStatus = 'Excellent';
+        healthColor = '#00ff88';
+    } else if (healthScore >= 75) {
+        healthStatus = 'Good';
+        healthColor = '#00d4ff';
+    } else if (healthScore >= 50) {
+        healthStatus = 'Fair';
+        healthColor = '#ff9500';
+    } else if (healthScore >= 25) {
+        healthStatus = 'Poor';
+        healthColor = '#ff6b6b';
+    } else {
+        healthStatus = 'Critical';
+        healthColor = '#ff4757';
+    }
+    
+    res.json({
+        success: true,
+        data: {
+            healthScore,
+            healthStatus,
+            healthColor,
+            metrics: {
+                criticalEvents: parseInt(metrics.critical_events),
+                highEvents: parseInt(metrics.high_events),
+                failedLogins: parseInt(metrics.failed_logins),
+                bruteForceAttempts: parseInt(metrics.brute_force_attempts),
+                unresolvedEvents: parseInt(metrics.unresolved_events)
+            },
+            recommendations: generateSecurityRecommendations(metrics, healthScore)
+        },
+        message: 'Security health check completed successfully'
+    });
+}));
+
+// Helper function to generate security recommendations
+function generateSecurityRecommendations(metrics, healthScore) {
+    const recommendations = [];
+    
+    if (parseInt(metrics.critical_events) > 0) {
+        recommendations.push({
+            priority: 'critical',
+            action: 'Immediate Response Required',
+            description: `${metrics.critical_events} critical security events detected in the last 24 hours`,
+            icon: '🚨'
+        });
+    }
+    
+    if (parseInt(metrics.unresolved_events) > 5) {
+        recommendations.push({
+            priority: 'high',
+            action: 'Review Unresolved Events',
+            description: `${metrics.unresolved_events} security events remain unresolved`,
+            icon: '⚠️'
+        });
+    }
+    
+    if (parseInt(metrics.brute_force_attempts) > 0) {
+        recommendations.push({
+            priority: 'high',
+            action: 'Implement IP Blocking',
+            description: `${metrics.brute_force_attempts} brute force attempts detected`,
+            icon: '🛡️'
+        });
+    }
+    
+    if (parseInt(metrics.failed_logins) > 100) {
+        recommendations.push({
+            priority: 'medium',
+            action: 'Review Authentication Logs',
+            description: `High number of failed login attempts (${metrics.failed_logins})`,
+            icon: '🔐'
+        });
+    }
+    
+    if (healthScore < 75) {
+        recommendations.push({
+            priority: 'medium',
+            action: 'Security Review Required',
+            description: 'Overall security health is below optimal levels',
+            icon: '📊'
+        });
+    }
+    
+    if (recommendations.length === 0) {
+        recommendations.push({
+            priority: 'info',
+            action: 'System Secure',
+            description: 'No immediate security concerns detected',
+            icon: '✅'
+        });
+    }
+    
+    return recommendations;
+}
+
 module.exports = router;

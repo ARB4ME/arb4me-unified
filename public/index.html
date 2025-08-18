@@ -2331,6 +2331,7 @@
             <button class="admin-tab-btn" onclick="showAdminTab('messages')">💬 Messages</button>
             <button class="admin-tab-btn" onclick="showAdminTab('billing')">💰 Billing</button>
             <button class="admin-tab-btn" onclick="showAdminTab('admins')">🔐 Admin Management</button>
+            <button class="admin-tab-btn" onclick="showAdminTab('security')">🛡️ Security Monitor</button>
             <button class="admin-tab-btn" onclick="showAdminTab('analytics')">📊 Analytics</button>
             <button class="admin-tab-btn" onclick="showAdminTab('settings')">⚙️ Settings</button>
         </div>
@@ -5923,6 +5924,90 @@
                             <button onclick="previousLogPage()" style="padding: 5px 10px; background: rgba(255,255,255,0.1); color: white; border: 1px solid #666; border-radius: 5px; cursor: pointer;">◀</button>
                             <span id="logPageInfo" style="color: #aaa;">Page 1 of 1</span>
                             <button onclick="nextLogPage()" style="padding: 5px 10px; background: rgba(255,255,255,0.1); color: white; border: 1px solid #666; border-radius: 5px; cursor: pointer;">▶</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="adminSecurityTab" class="admin-content" style="display: none;">
+                    <h3 style="color: #ff6b6b; margin-bottom: 15px;">🛡️ Security Monitor</h3>
+                    
+                    <!-- Security Health Overview -->
+                    <div style="background: rgba(255,107,107,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <h4 style="color: #ff6b6b; margin: 0;">🩺 System Security Health</h4>
+                            <button onclick="refreshSecurityHealth()" style="padding: 5px 10px; background: rgba(255,255,255,0.1); color: white; border: 1px solid #666; border-radius: 5px; cursor: pointer;">🔄 Refresh</button>
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 20px; align-items: center;">
+                            <div style="text-align: center;">
+                                <div id="securityHealthScore" style="font-size: 3rem; font-weight: bold; color: #00ff88;">100</div>
+                                <div id="securityHealthStatus" style="font-size: 1.2rem; color: #00ff88; margin-bottom: 10px;">Excellent</div>
+                                <div style="font-size: 0.8rem; color: #aaa;">Security Score</div>
+                            </div>
+                            <div id="securityRecommendations" style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px;">
+                                <div style="text-align: center; color: #888; padding: 20px;">Loading recommendations...</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Security Metrics Dashboard -->
+                    <div style="background: rgba(255,149,0,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <h4 style="color: #ff9500; margin: 0;">📊 Security Metrics</h4>
+                            <select id="securityPeriod" onchange="refreshSecurityDashboard()" style="padding: 5px; background: rgba(0,0,0,0.5); border: 1px solid #333; border-radius: 5px; color: white;">
+                                <option value="1h">Last Hour</option>
+                                <option value="24h" selected>Last 24 Hours</option>
+                                <option value="7d">Last 7 Days</option>
+                            </select>
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                            <div style="background: rgba(255,107,107,0.2); padding: 15px; border-radius: 8px; text-align: center;">
+                                <div id="criticalEventsCount" style="font-size: 2rem; color: #ff6b6b; font-weight: bold;">0</div>
+                                <div style="font-size: 0.9rem; color: #aaa;">Critical Events</div>
+                            </div>
+                            <div style="background: rgba(255,149,0,0.2); padding: 15px; border-radius: 8px; text-align: center;">
+                                <div id="highEventsCount" style="font-size: 2rem; color: #ff9500; font-weight: bold;">0</div>
+                                <div style="font-size: 0.9rem; color: #aaa;">High Severity</div>
+                            </div>
+                            <div style="background: rgba(255,193,7,0.2); padding: 15px; border-radius: 8px; text-align: center;">
+                                <div id="unresolvedEventsCount" style="font-size: 2rem; color: #ffc107; font-weight: bold;">0</div>
+                                <div style="font-size: 0.9rem; color: #aaa;">Unresolved</div>
+                            </div>
+                            <div style="background: rgba(0,212,255,0.2); padding: 15px; border-radius: 8px; text-align: center;">
+                                <div id="activeSessionsCount" style="font-size: 2rem; color: #00d4ff; font-weight: bold;">0</div>
+                                <div style="font-size: 0.9rem; color: #aaa;">Active Sessions</div>
+                            </div>
+                        </div>
+
+                        <!-- Threat Indicators -->
+                        <div id="threatIndicators" style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px;">
+                            <h5 style="color: #ff9500; margin-bottom: 10px;">🎯 Threat Indicators</h5>
+                            <div style="text-align: center; color: #888; padding: 20px;">Loading threat analysis...</div>
+                        </div>
+                    </div>
+
+                    <!-- Active Security Alerts -->
+                    <div style="background: rgba(255,107,107,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <h4 style="color: #ff6b6b; margin: 0;">🚨 Active Security Alerts</h4>
+                            <div style="display: flex; gap: 10px;">
+                                <button onclick="refreshSecurityAlerts()" style="padding: 5px 10px; background: rgba(255,255,255,0.1); color: white; border: 1px solid #666; border-radius: 5px; cursor: pointer;">🔄 Refresh</button>
+                                <button onclick="showCreateIncidentModal()" style="padding: 5px 10px; background: linear-gradient(45deg, #ff6b6b, #ff5252); color: white; border: none; border-radius: 5px; cursor: pointer;">➕ Create Incident</button>
+                            </div>
+                        </div>
+                        
+                        <div id="securityAlerts" style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; max-height: 400px; overflow-y: auto;">
+                            <div style="text-align: center; color: #888; padding: 20px;">Loading security alerts...</div>
+                        </div>
+                    </div>
+
+                    <!-- Failed Login Attempts -->
+                    <div style="background: rgba(255,193,7,0.1); padding: 20px; border-radius: 15px;">
+                        <h4 style="color: #ffc107; margin-bottom: 15px;">🔐 Recent Failed Login Attempts</h4>
+                        
+                        <div id="failedLoginAttempts" style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; max-height: 300px; overflow-y: auto;">
+                            <div style="text-align: center; color: #888; padding: 20px;">Loading failed login data...</div>
                         </div>
                     </div>
                 </div>
@@ -9962,6 +10047,307 @@
             }
         });
 
+        // Security Monitoring Functions
+        let securityData = {
+            health: null,
+            dashboard: null,
+            alerts: null
+        };
+
+        async function refreshSecurityHealth() {
+            try {
+                const response = await apiService.apiCall('/admin/security/health', { method: 'GET' });
+                
+                if (response.success) {
+                    securityData.health = response.data;
+                    displaySecurityHealth(response.data);
+                    addActivity('🩺 Security health check refreshed', 'info');
+                } else {
+                    console.error('Failed to get security health:', response.error);
+                    addActivity('❌ Failed to refresh security health', 'error');
+                }
+            } catch (error) {
+                console.error('Error refreshing security health:', error);
+                addActivity('❌ Error refreshing security health', 'error');
+            }
+        }
+
+        function displaySecurityHealth(data) {
+            document.getElementById('securityHealthScore').textContent = data.healthScore;
+            document.getElementById('securityHealthScore').style.color = data.healthColor;
+            document.getElementById('securityHealthStatus').textContent = data.healthStatus;
+            document.getElementById('securityHealthStatus').style.color = data.healthColor;
+            
+            // Display recommendations
+            const recommendationsDiv = document.getElementById('securityRecommendations');
+            if (data.recommendations && data.recommendations.length > 0) {
+                const html = data.recommendations.map(rec => {
+                    const priorityColor = {
+                        'critical': '#ff4757',
+                        'high': '#ff6b6b',
+                        'medium': '#ff9500',
+                        'info': '#00d4ff'
+                    }[rec.priority] || '#888';
+                    
+                    return `
+                        <div style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; padding: 8px; background: rgba(255,255,255,0.05); border-radius: 5px;">
+                            <span style="font-size: 1.2rem;">${rec.icon}</span>
+                            <div>
+                                <div style="color: ${priorityColor}; font-weight: bold; font-size: 0.9rem;">${rec.action}</div>
+                                <div style="color: #aaa; font-size: 0.8rem;">${rec.description}</div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                recommendationsDiv.innerHTML = html;
+            } else {
+                recommendationsDiv.innerHTML = '<div style="text-align: center; color: #888; padding: 20px;">No recommendations available</div>';
+            }
+        }
+
+        async function refreshSecurityDashboard() {
+            const period = document.getElementById('securityPeriod').value;
+            
+            try {
+                const response = await apiService.apiCall(`/admin/security/dashboard?period=${period}`, { method: 'GET' });
+                
+                if (response.success) {
+                    securityData.dashboard = response.data;
+                    displaySecurityDashboard(response.data);
+                    addActivity(`📊 Security dashboard refreshed (${period})`, 'info');
+                } else {
+                    console.error('Failed to get security dashboard:', response.error);
+                    addActivity('❌ Failed to refresh security dashboard', 'error');
+                }
+            } catch (error) {
+                console.error('Error refreshing security dashboard:', error);
+                addActivity('❌ Error refreshing security dashboard', 'error');
+            }
+        }
+
+        function displaySecurityDashboard(data) {
+            // Update metric counts
+            const criticalCount = data.criticalEvents ? data.criticalEvents.reduce((sum, event) => sum + parseInt(event.count), 0) : 0;
+            const unresolvedCount = data.unresolvedEvents ? data.unresolvedEvents.reduce((sum, event) => sum + parseInt(event.count), 0) : 0;
+            const activeSessionsCount = data.activeAdminSessions ? data.activeAdminSessions.length : 0;
+            
+            document.getElementById('criticalEventsCount').textContent = criticalCount;
+            document.getElementById('unresolvedEventsCount').textContent = unresolvedCount;
+            document.getElementById('activeSessionsCount').textContent = activeSessionsCount;
+            
+            // Display threat indicators
+            const threatDiv = document.getElementById('threatIndicators');
+            if (data.threatIndicators && data.threatIndicators.length > 0) {
+                const html = `
+                    <h5 style="color: #ff9500; margin-bottom: 10px;">🎯 Threat Indicators</h5>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+                        ${data.threatIndicators.map(threat => `
+                            <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 5px;">
+                                <div style="font-weight: bold; color: ${threat.incidents > 0 ? '#ff6b6b' : '#00ff88'};">
+                                    ${threat.threat_type.replace(/_/g, ' ').toUpperCase()}
+                                </div>
+                                <div style="font-size: 0.9rem; color: #aaa; margin: 5px 0;">${threat.description}</div>
+                                <div style="font-size: 1.2rem; color: ${threat.incidents > 0 ? '#ff6b6b' : '#00ff88'};">
+                                    ${threat.incidents} incidents
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                threatDiv.innerHTML = html;
+            } else {
+                threatDiv.innerHTML = `
+                    <h5 style="color: #ff9500; margin-bottom: 10px;">🎯 Threat Indicators</h5>
+                    <div style="text-align: center; color: #888; padding: 20px;">No threat indicators detected</div>
+                `;
+            }
+            
+            // Display failed login attempts
+            displayFailedLoginAttempts(data.recentFailedLogins || []);
+        }
+
+        function displayFailedLoginAttempts(failedLogins) {
+            const container = document.getElementById('failedLoginAttempts');
+            
+            if (failedLogins.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: #888; padding: 20px;">No failed login attempts detected</div>';
+                return;
+            }
+            
+            const html = failedLogins.map(attempt => `
+                <div style="background: rgba(255,255,255,0.05); padding: 10px; margin-bottom: 8px; border-radius: 5px; border-left: 3px solid ${attempt.attempts >= 10 ? '#ff4757' : attempt.attempts >= 5 ? '#ff9500' : '#ffc107'};">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div style="color: #ff6b6b; font-weight: bold;">IP: ${attempt.ip_address}</div>
+                            <div style="color: #aaa; font-size: 0.8rem;">
+                                ${attempt.attempts} attempts | ${attempt.unique_emails} unique emails
+                            </div>
+                        </div>
+                        <div style="color: #888; font-size: 0.8rem;">
+                            Last: ${new Date(attempt.last_attempt).toLocaleString()}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            
+            container.innerHTML = html;
+        }
+
+        async function refreshSecurityAlerts() {
+            try {
+                const response = await apiService.apiCall('/admin/security/alerts', { method: 'GET' });
+                
+                if (response.success) {
+                    securityData.alerts = response.data;
+                    displaySecurityAlerts(response.data.alerts || []);
+                    addActivity(`🚨 Security alerts refreshed (${response.data.totalUnresolved} active)`, 'info');
+                } else {
+                    console.error('Failed to get security alerts:', response.error);
+                    addActivity('❌ Failed to refresh security alerts', 'error');
+                }
+            } catch (error) {
+                console.error('Error refreshing security alerts:', error);
+                addActivity('❌ Error refreshing security alerts', 'error');
+            }
+        }
+
+        function displaySecurityAlerts(alerts) {
+            const container = document.getElementById('securityAlerts');
+            
+            if (alerts.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: #00ff88; padding: 20px;">✅ No active security alerts</div>';
+                return;
+            }
+            
+            const html = alerts.map(alert => {
+                const severityColor = {
+                    'critical': '#ff4757',
+                    'high': '#ff6b6b',
+                    'medium': '#ff9500',
+                    'low': '#ffc107'
+                }[alert.severity] || '#888';
+                
+                return `
+                    <div style="background: rgba(255,255,255,0.05); padding: 12px; margin-bottom: 10px; border-radius: 8px; border-left: 4px solid ${severityColor};">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                            <div>
+                                <div style="color: ${severityColor}; font-weight: bold; margin-bottom: 4px;">
+                                    🚨 ${alert.event_type.replace(/_/g, ' ').toUpperCase()}
+                                </div>
+                                <div style="color: #ddd; font-size: 0.9rem;">
+                                    ${alert.user_name ? `User: ${alert.user_name}` : 'System Event'}
+                                </div>
+                                ${alert.ip_address ? `<div style="color: #aaa; font-size: 0.8rem;">IP: ${alert.ip_address}</div>` : ''}
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="color: #888; font-size: 0.8rem;">
+                                    ${new Date(alert.created_at).toLocaleString()}
+                                </div>
+                                <button onclick="resolveSecurityAlert(${alert.id})" 
+                                        style="margin-top: 5px; padding: 4px 8px; background: linear-gradient(45deg, #00ff88, #00d4aa); color: white; border: none; border-radius: 15px; cursor: pointer; font-size: 0.8rem;">
+                                    ✅ Resolve
+                                </button>
+                            </div>
+                        </div>
+                        ${alert.details ? `
+                            <div style="background: rgba(0,0,0,0.3); padding: 8px; border-radius: 5px; font-size: 0.8rem; color: #ccc;">
+                                ${typeof alert.details === 'object' ? JSON.stringify(alert.details, null, 2) : alert.details}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+            
+            container.innerHTML = html;
+        }
+
+        async function resolveSecurityAlert(alertId) {
+            const resolution = prompt('Enter resolution details:');
+            if (!resolution) return;
+            
+            const notes = prompt('Additional notes (optional):') || '';
+            
+            try {
+                const response = await apiService.apiCall(`/admin/security/alerts/${alertId}/resolve`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ resolution, notes })
+                });
+                
+                if (response.success) {
+                    addActivity(`✅ Security alert #${alertId} resolved`, 'info');
+                    refreshSecurityAlerts(); // Refresh the alerts list
+                } else {
+                    console.error('Failed to resolve alert:', response.error);
+                    addActivity('❌ Failed to resolve security alert', 'error');
+                }
+            } catch (error) {
+                console.error('Error resolving alert:', error);
+                addActivity('❌ Error resolving security alert', 'error');
+            }
+        }
+
+        // Create Incident Modal Functions
+        function showCreateIncidentModal() {
+            document.getElementById('createIncidentModal').style.display = 'block';
+        }
+
+        function closeCreateIncidentModal() {
+            document.getElementById('createIncidentModal').style.display = 'none';
+            // Clear form
+            document.getElementById('incidentTitle').value = '';
+            document.getElementById('incidentSeverity').value = '';
+            document.getElementById('incidentDescription').value = '';
+            document.getElementById('incidentAffectedSystems').value = '';
+            document.getElementById('incidentImmediateActions').value = '';
+        }
+
+        async function createSecurityIncident() {
+            const title = document.getElementById('incidentTitle').value.trim();
+            const severity = document.getElementById('incidentSeverity').value;
+            const description = document.getElementById('incidentDescription').value.trim();
+            const affectedSystems = document.getElementById('incidentAffectedSystems').value.trim();
+            const immediateActions = document.getElementById('incidentImmediateActions').value.trim();
+            
+            if (!title || !severity || !description) {
+                alert('Please fill in all required fields (Title, Severity, Description)');
+                return;
+            }
+            
+            try {
+                const response = await apiService.apiCall('/admin/security/incidents/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title,
+                        severity,
+                        description,
+                        affectedSystems,
+                        immediateActions
+                    })
+                });
+                
+                if (response.success) {
+                    addActivity(`🚨 Security incident created: ${title}`, 'info');
+                    closeCreateIncidentModal();
+                    refreshSecurityAlerts(); // Refresh to show the new incident
+                } else {
+                    console.error('Failed to create incident:', response.error);
+                    addActivity('❌ Failed to create security incident', 'error');
+                }
+            } catch (error) {
+                console.error('Error creating incident:', error);
+                addActivity('❌ Error creating security incident', 'error');
+            }
+        }
+
+        // Initialize security monitoring when security tab is shown
+        function initializeSecurityMonitoring() {
+            refreshSecurityHealth();
+            refreshSecurityDashboard();
+            refreshSecurityAlerts();
+        }
+
         function displayActivityLog() {
             const container = document.getElementById('adminActivityLog');
             
@@ -12687,6 +13073,8 @@ Please help recover this stuck asset.`;
             } else if (tabName === 'admins') {
                 refreshAdminUsers();
                 refreshActivityLog();
+            } else if (tabName === 'security') {
+                initializeSecurityMonitoring();
             }
             
             adminState.currentAdminTab = tabName;
@@ -14622,6 +15010,130 @@ ARB4ME Security Team`
                     }
                 } catch (error) {
                     console.log('❌ Error exporting report:', error.message);
+                    return { success: false, error: error.message };
+                }
+            },
+
+            async getSecurityHealth() {
+                try {
+                    if (!this.token) {
+                        console.log('No JWT token available for security health check');
+                        return { success: false, error: 'No authentication token' };
+                    }
+
+                    const response = await this.apiCall('/admin/security/health', {
+                        method: 'GET'
+                    });
+                    
+                    if (response.success) {
+                        console.log('✅ Security health retrieved:', response.data);
+                        return response;
+                    } else {
+                        console.log('❌ Failed to get security health:', response.error);
+                        return response;
+                    }
+                } catch (error) {
+                    console.log('❌ Error getting security health:', error.message);
+                    return { success: false, error: error.message };
+                }
+            },
+
+            async getSecurityDashboard(period = '24h') {
+                try {
+                    if (!this.token) {
+                        console.log('No JWT token available for security dashboard');
+                        return { success: false, error: 'No authentication token' };
+                    }
+
+                    const response = await this.apiCall(`/admin/security/dashboard?period=${period}`, {
+                        method: 'GET'
+                    });
+                    
+                    if (response.success) {
+                        console.log('✅ Security dashboard retrieved:', response.data);
+                        return response;
+                    } else {
+                        console.log('❌ Failed to get security dashboard:', response.error);
+                        return response;
+                    }
+                } catch (error) {
+                    console.log('❌ Error getting security dashboard:', error.message);
+                    return { success: false, error: error.message };
+                }
+            },
+
+            async getSecurityAlerts() {
+                try {
+                    if (!this.token) {
+                        console.log('No JWT token available for security alerts');
+                        return { success: false, error: 'No authentication token' };
+                    }
+
+                    const response = await this.apiCall('/admin/security/alerts', {
+                        method: 'GET'
+                    });
+                    
+                    if (response.success) {
+                        console.log('✅ Security alerts retrieved:', response.data);
+                        return response;
+                    } else {
+                        console.log('❌ Failed to get security alerts:', response.error);
+                        return response;
+                    }
+                } catch (error) {
+                    console.log('❌ Error getting security alerts:', error.message);
+                    return { success: false, error: error.message };
+                }
+            },
+
+            async resolveSecurityAlert(alertId, resolution, notes) {
+                try {
+                    if (!this.token) {
+                        console.log('No JWT token available for resolving security alert');
+                        return { success: false, error: 'No authentication token' };
+                    }
+
+                    const response = await this.apiCall(`/admin/security/alerts/${alertId}/resolve`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ resolution, notes })
+                    });
+                    
+                    if (response.success) {
+                        console.log('✅ Security alert resolved:', response.data);
+                        return response;
+                    } else {
+                        console.log('❌ Failed to resolve security alert:', response.error);
+                        return response;
+                    }
+                } catch (error) {
+                    console.log('❌ Error resolving security alert:', error.message);
+                    return { success: false, error: error.message };
+                }
+            },
+
+            async createSecurityIncident(incidentData) {
+                try {
+                    if (!this.token) {
+                        console.log('No JWT token available for creating security incident');
+                        return { success: false, error: 'No authentication token' };
+                    }
+
+                    const response = await this.apiCall('/admin/security/incidents/create', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(incidentData)
+                    });
+                    
+                    if (response.success) {
+                        console.log('✅ Security incident created:', response.data);
+                        return response;
+                    } else {
+                        console.log('❌ Failed to create security incident:', response.error);
+                        return response;
+                    }
+                } catch (error) {
+                    console.log('❌ Error creating security incident:', error.message);
                     return { success: false, error: error.message };
                 }
             }
@@ -20415,6 +20927,59 @@ ARB4ME Security Team`
                     <div style="text-align: center; color: #888; padding: 40px;">
                         Select a report type above to generate analytics and insights
                     </div>
+                </div>
+                
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Security Incident Modal -->
+    <div id="createIncidentModal" class="modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 9999;">
+        <div class="modal-content" style="max-width: 600px; margin: 5% auto; max-height: 90%; overflow-y: auto;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #ff6b6b 0%, #ff5252 100%); color: white; display: flex; justify-content: space-between; align-items: center; padding: 15px; border-radius: 8px 8px 0 0;">
+                <h3 style="margin: 0;">🚨 Create Security Incident</h3>
+                <button onclick="closeCreateIncidentModal()" style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer;">✕</button>
+            </div>
+            <div class="modal-body" style="padding: 20px; background: rgba(30,30,30,0.95); color: white; border-radius: 0 0 8px 8px;">
+                
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="font-size: 0.9rem; color: #aaa; margin-bottom: 5px; display: block;">Incident Title *</label>
+                    <input type="text" id="incidentTitle" placeholder="Enter incident title" style="width: 100%; padding: 10px; background: rgba(0,0,0,0.5); border: 1px solid #333; border-radius: 5px; color: white;">
+                </div>
+
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="font-size: 0.9rem; color: #aaa; margin-bottom: 5px; display: block;">Severity Level *</label>
+                    <select id="incidentSeverity" style="width: 100%; padding: 10px; background: rgba(0,0,0,0.5); border: 1px solid #333; border-radius: 5px; color: white;">
+                        <option value="">Select severity...</option>
+                        <option value="low">🟢 Low</option>
+                        <option value="medium">🟡 Medium</option>
+                        <option value="high">🟠 High</option>
+                        <option value="critical">🔴 Critical</option>
+                    </select>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="font-size: 0.9rem; color: #aaa; margin-bottom: 5px; display: block;">Description *</label>
+                    <textarea id="incidentDescription" placeholder="Describe the security incident in detail..." rows="4" style="width: 100%; padding: 10px; background: rgba(0,0,0,0.5); border: 1px solid #333; border-radius: 5px; color: white; resize: vertical;"></textarea>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="font-size: 0.9rem; color: #aaa; margin-bottom: 5px; display: block;">Affected Systems</label>
+                    <input type="text" id="incidentAffectedSystems" placeholder="e.g., User authentication, API endpoints" style="width: 100%; padding: 10px; background: rgba(0,0,0,0.5); border: 1px solid #333; border-radius: 5px; color: white;">
+                </div>
+
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label style="font-size: 0.9rem; color: #aaa; margin-bottom: 5px; display: block;">Immediate Actions Taken</label>
+                    <textarea id="incidentImmediateActions" placeholder="Describe any immediate response actions..." rows="3" style="width: 100%; padding: 10px; background: rgba(0,0,0,0.5); border: 1px solid #333; border-radius: 5px; color: white; resize: vertical;"></textarea>
+                </div>
+
+                <div style="display: flex; gap: 15px; justify-content: center;">
+                    <button onclick="createSecurityIncident()" style="padding: 12px 24px; background: linear-gradient(45deg, #ff6b6b, #ff5252); color: white; border: none; border-radius: 25px; cursor: pointer; font-weight: bold;">
+                        🚨 Create Incident
+                    </button>
+                    <button onclick="closeCreateIncidentModal()" style="padding: 12px 24px; background: rgba(255,255,255,0.1); color: white; border: 1px solid #666; border-radius: 25px; cursor: pointer;">
+                        ❌ Cancel
+                    </button>
                 </div>
                 
             </div>
