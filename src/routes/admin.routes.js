@@ -18,8 +18,8 @@ const router = express.Router();
 // Apply rate limiting to all routes
 router.use(adminRateLimit);
 
-// TEMPORARY: Messages endpoint without admin auth for testing
-router.get('/messages-test', asyncHandler(async (req, res) => {
+// Messages endpoint with proper authentication
+router.get('/messages-test', authenticateUser, requireAdmin, asyncHandler(async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = Math.min(parseInt(req.query.limit) || 20, 100);
     const offset = (page - 1) * limit;
@@ -90,8 +90,8 @@ router.get('/messages-test', asyncHandler(async (req, res) => {
     });
 }));
 
-// TEMPORARY: Get all users for compose modal without admin auth
-router.get('/all-users-test', asyncHandler(async (req, res) => {
+// Get all users for compose modal with proper authentication  
+router.get('/all-users-test', authenticateUser, requireAdmin, asyncHandler(async (req, res) => {
     // Try with payment_reference, fallback without if column doesn't exist
     let usersResult;
     try {
@@ -131,8 +131,8 @@ router.get('/all-users-test', asyncHandler(async (req, res) => {
     });
 }));
 
-// TEMPORARY: Users endpoint without admin auth for testing
-router.get('/users-test', asyncHandler(async (req, res) => {
+// Users endpoint with proper authentication
+router.get('/users-test', authenticateUser, requireAdmin, asyncHandler(async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = Math.min(parseInt(req.query.limit) || 100, 100);
     const offset = (page - 1) * limit;
@@ -207,8 +207,8 @@ router.get('/users-test', asyncHandler(async (req, res) => {
     });
 }));
 
-// TEMPORARY: Admin reply endpoint without admin auth for testing
-router.post('/reply-test', asyncHandler(async (req, res) => {
+// Admin reply endpoint with proper authentication
+router.post('/reply-test', authenticateUser, requireAdmin, asyncHandler(async (req, res) => {
     const { targetUserId, parentMessageId, subject, content } = req.body;
     
     await transaction(async (client) => {
@@ -1086,8 +1086,8 @@ router.post('/promote', requireAdminRole('master'), [
     });
 }));
 
-// TEMPORARY: Admin compose message endpoint without auth for testing
-router.post('/compose-test', asyncHandler(async (req, res) => {
+// Admin compose message endpoint with proper authentication
+router.post('/compose-test', authenticateUser, requireAdmin, asyncHandler(async (req, res) => {
     const { targetUserId, subject, content, priority = 'medium' } = req.body;
     
     if (!targetUserId || !subject || !content) {
@@ -1150,7 +1150,7 @@ router.post('/compose-test', asyncHandler(async (req, res) => {
 }));
 
 // POST /api/v1/admin/users/:userId/status - Update user account status
-router.post('/users/:userId/status', requirePermission('users.suspend'), asyncHandler(async (req, res) => {
+router.post('/users/:userId/status', authenticateUser, requireAdmin, requirePermission('users.suspend'), asyncHandler(async (req, res) => {
     const { userId } = req.params;
     const { status } = req.body;
     
@@ -1187,7 +1187,7 @@ router.post('/users/:userId/status', requirePermission('users.suspend'), asyncHa
 }));
 
 // Bulk user status operations
-router.post('/users/bulk/activate', requirePermission('users.bulk_operations'), asyncHandler(async (req, res) => {
+router.post('/users/bulk/activate', authenticateUser, requireAdmin, requirePermission('users.bulk_operations'), asyncHandler(async (req, res) => {
     const { userIds } = req.body;
     
     // Validate input
@@ -1245,7 +1245,7 @@ router.post('/users/bulk/activate', requirePermission('users.bulk_operations'), 
     });
 }));
 
-router.post('/users/bulk/suspend', requirePermission('users.bulk_operations'), asyncHandler(async (req, res) => {
+router.post('/users/bulk/suspend', authenticateUser, requireAdmin, requirePermission('users.bulk_operations'), asyncHandler(async (req, res) => {
     const { userIds } = req.body;
     
     // Validate input
@@ -1304,7 +1304,7 @@ router.post('/users/bulk/suspend', requirePermission('users.bulk_operations'), a
 }));
 
 // Admin role management endpoints
-router.get('/roles/permissions', requirePermission('admins.view'), asyncHandler(async (req, res) => {
+router.get('/roles/permissions', authenticateUser, requireAdmin, requirePermission('admins.view'), asyncHandler(async (req, res) => {
     // Get all role permissions
     const permissions = await query(
         'SELECT role_name, permission_name, description FROM admin_permissions ORDER BY role_name, permission_name'
@@ -1329,7 +1329,7 @@ router.get('/roles/permissions', requirePermission('admins.view'), asyncHandler(
     });
 }));
 
-router.get('/admins', requirePermission('admins.view'), asyncHandler(async (req, res) => {
+router.get('/admins', authenticateUser, requireAdmin, requirePermission('admins.view'), asyncHandler(async (req, res) => {
     // Get all admin users
     const admins = await query(`
         SELECT id, first_name, last_name, email, admin_role, 
@@ -1354,7 +1354,7 @@ router.get('/admins', requirePermission('admins.view'), asyncHandler(async (req,
     });
 }));
 
-router.post('/admins/:userId/promote', requireMaster, asyncHandler(async (req, res) => {
+router.post('/admins/:userId/promote', authenticateUser, requireAdmin, requireMaster, asyncHandler(async (req, res) => {
     const { userId } = req.params;
     const { newRole } = req.body;
     
@@ -1387,13 +1387,13 @@ router.post('/admins/:userId/promote', requireMaster, asyncHandler(async (req, r
                 admin_promoted_date = CURRENT_TIMESTAMP,
                 updated_at = CURRENT_TIMESTAMP
             WHERE id = $3
-        `, [newRole, 'admin_temp', userId]);
+        `, [newRole, req.user.id, userId]);
         
         // Log the promotion activity
         await client.query(`
             SELECT log_admin_activity($1, $2, $3, $4, $5)
         `, [
-            'admin_temp', // TODO: Get from JWT
+            req.user.id, // Get admin ID from authenticated JWT
             'admin_promoted',
             'user',
             userId,
@@ -1414,7 +1414,7 @@ router.post('/admins/:userId/promote', requireMaster, asyncHandler(async (req, r
     });
 }));
 
-router.post('/admins/:userId/demote', requireMaster, asyncHandler(async (req, res) => {
+router.post('/admins/:userId/demote', authenticateUser, requireAdmin, requireMaster, asyncHandler(async (req, res) => {
     const { userId } = req.params;
     
     // Note: Simple confirmation handled on frontend
@@ -1451,7 +1451,7 @@ router.post('/admins/:userId/demote', requireMaster, asyncHandler(async (req, re
         await client.query(`
             SELECT log_admin_activity($1, $2, $3, $4, $5)
         `, [
-            'admin_temp', // TODO: Get from JWT
+            req.user.id, // Get admin ID from authenticated JWT
             'admin_demoted',
             'user',
             userId,
@@ -1471,7 +1471,7 @@ router.post('/admins/:userId/demote', requireMaster, asyncHandler(async (req, re
     });
 }));
 
-router.get('/activity-log', requirePermission('system.logs'), asyncHandler(async (req, res) => {
+router.get('/activity-log', authenticateUser, requireAdmin, requirePermission('system.logs'), asyncHandler(async (req, res) => {
     const { limit = 50, offset = 0 } = req.query;
     
     const logs = await query(`
