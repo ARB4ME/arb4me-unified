@@ -15405,7 +15405,7 @@ ARB4ME Security Team`
                     console.log('❌ Error getting security dashboard:', error.message);
                     return { success: false, error: error.message };
                 }
-            },
+            }
 
             async getSecurityAlerts() {
                 try {
@@ -15429,7 +15429,7 @@ ARB4ME Security Team`
                     console.log('❌ Error getting security alerts:', error.message);
                     return { success: false, error: error.message };
                 }
-            },
+            }
 
             async resolveSecurityAlert(alertId, resolution, notes) {
                 try {
@@ -15455,7 +15455,7 @@ ARB4ME Security Team`
                     console.log('❌ Error resolving security alert:', error.message);
                     return { success: false, error: error.message };
                 }
-            },
+            }
 
             async createSecurityIncident(incidentData) {
                 try {
@@ -15481,7 +15481,7 @@ ARB4ME Security Team`
                     console.log('❌ Error creating security incident:', error.message);
                     return { success: false, error: error.message };
                 }
-            },
+            }
 
             async getMaintenanceStats() {
                 try {
@@ -15505,7 +15505,7 @@ ARB4ME Security Team`
                     console.log('❌ Error getting maintenance statistics:', error.message);
                     return { success: false, error: error.message };
                 }
-            },
+            }
 
             async runLogCleanup(dryRun = true, categories = []) {
                 try {
@@ -15531,7 +15531,7 @@ ARB4ME Security Team`
                     console.log('❌ Error running log cleanup:', error.message);
                     return { success: false, error: error.message };
                 }
-            },
+            }
 
             async archiveLogs(archiveBefore, categories = []) {
                 try {
@@ -15557,7 +15557,7 @@ ARB4ME Security Team`
                     console.log('❌ Error archiving logs:', error.message);
                     return { success: false, error: error.message };
                 }
-            },
+            }
 
             async optimizeDatabase(tables = ['admin_activity_log', 'security_events', 'user_sessions']) {
                 try {
