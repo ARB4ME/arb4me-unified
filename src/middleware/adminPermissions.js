@@ -1,6 +1,6 @@
 // Admin Permissions Middleware
 const { query } = require('../database/connection');
-const { APIError } = require('../utils/errors');
+const { APIError } = require('./errorHandler');
 
 /**
  * Middleware to check if admin has required permission
@@ -58,6 +58,7 @@ function requirePermission(requiredPermission) {
  */
 async function checkAdminPermission(role, permission) {
     try {
+        // Check if admin_permissions table exists and function is available
         const result = await query(
             'SELECT admin_has_permission($1, $2) as has_permission',
             [role, permission]
@@ -66,7 +67,18 @@ async function checkAdminPermission(role, permission) {
         return result.rows[0]?.has_permission || false;
     } catch (error) {
         console.error('Error checking admin permission:', error);
-        return false;
+        // Fallback: If migration hasn't run yet, allow master admin all permissions
+        if (role === 'master') {
+            return true;
+        }
+        // For other roles, check basic permissions
+        const basicPermissions = {
+            'admin': ['users.view', 'users.activate', 'users.suspend', 'users.bulk_operations', 'admins.view'],
+            'manager': ['users.view', 'users.activate', 'users.suspend'],
+            'support': ['users.view', 'messages.view', 'messages.reply']
+        };
+        
+        return basicPermissions[role]?.includes(permission) || false;
     }
 }
 
@@ -81,6 +93,8 @@ async function logAdminActivity(adminUserId, action, targetType, targetId, detai
         );
     } catch (error) {
         console.error('Error logging admin activity:', error);
+        // Fallback: Log to console if database function not available
+        console.log(`Admin Activity: ${adminUserId} performed ${action} on ${targetType}:${targetId}`, details);
     }
 }
 
