@@ -5827,16 +5827,92 @@
                     </div>
 
                     <div style="background: rgba(255,107,107,0.1); padding: 20px; border-radius: 15px;">
-                        <h4 style="color: #ff6b6b; margin-bottom: 15px;">📊 Admin Activity Log</h4>
-                        <div style="margin-bottom: 15px;">
-                            <button onclick="refreshActivityLog()" style="padding: 8px 16px; background: linear-gradient(45deg, #ff6b6b, #ff5252); color: white; border: none; border-radius: 20px; cursor: pointer;">
-                                🔄 Refresh Log
-                            </button>
+                        <h4 style="color: #ff6b6b; margin-bottom: 15px;">📊 Advanced Activity Log</h4>
+                        
+                        <!-- Filtering Controls -->
+                        <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; margin-bottom: 15px;">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 10px;">
+                                <div>
+                                    <label style="font-size: 0.8rem; color: #aaa;">Date Range:</label>
+                                    <input type="date" id="logStartDate" style="width: 100%; padding: 5px; background: rgba(0,0,0,0.5); border: 1px solid #333; border-radius: 5px; color: white;">
+                                    <input type="date" id="logEndDate" style="width: 100%; padding: 5px; background: rgba(0,0,0,0.5); border: 1px solid #333; border-radius: 5px; color: white; margin-top: 5px;">
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.8rem; color: #aaa;">Category:</label>
+                                    <select id="logCategory" style="width: 100%; padding: 5px; background: rgba(0,0,0,0.5); border: 1px solid #333; border-radius: 5px; color: white;">
+                                        <option value="">All Categories</option>
+                                        <option value="authentication">Authentication</option>
+                                        <option value="user_management">User Management</option>
+                                        <option value="admin_actions">Admin Actions</option>
+                                        <option value="bulk_operations">Bulk Operations</option>
+                                        <option value="security">Security</option>
+                                        <option value="system">System</option>
+                                        <option value="messages">Messages</option>
+                                        <option value="billing">Billing</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.8rem; color: #aaa;">Severity:</label>
+                                    <select id="logSeverity" style="width: 100%; padding: 5px; background: rgba(0,0,0,0.5); border: 1px solid #333; border-radius: 5px; color: white;">
+                                        <option value="">All Levels</option>
+                                        <option value="info">Info</option>
+                                        <option value="medium">Medium</option>
+                                        <option value="high">High</option>
+                                        <option value="critical">Critical</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.8rem; color: #aaa;">Admin User:</label>
+                                    <select id="logAdminUser" style="width: 100%; padding: 5px; background: rgba(0,0,0,0.5); border: 1px solid #333; border-radius: 5px; color: white;">
+                                        <option value="">All Admins</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 10px;">
+                                <button onclick="applyLogFilters()" style="padding: 8px 16px; background: linear-gradient(45deg, #00d4ff, #0099cc); color: white; border: none; border-radius: 20px; cursor: pointer;">
+                                    🔍 Apply Filters
+                                </button>
+                                <button onclick="clearLogFilters()" style="padding: 8px 16px; background: rgba(255,255,255,0.1); color: white; border: 1px solid #666; border-radius: 20px; cursor: pointer;">
+                                    ✖️ Clear
+                                </button>
+                                <button onclick="exportActivityLog()" style="padding: 8px 16px; background: linear-gradient(45deg, #00ff88, #00d4aa); color: white; border: none; border-radius: 20px; cursor: pointer;">
+                                    📥 Export CSV
+                                </button>
+                            </div>
                         </div>
-                        <div id="adminActivityLog" style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 10px; max-height: 300px; overflow-y: auto;">
+                        
+                        <!-- Log Statistics -->
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 15px;">
+                            <div style="background: rgba(0,212,255,0.1); padding: 10px; border-radius: 8px; text-align: center;">
+                                <div id="totalLogsCount" style="font-size: 1.5rem; color: #00d4ff; font-weight: bold;">0</div>
+                                <div style="font-size: 0.8rem; color: #aaa;">Total Events</div>
+                            </div>
+                            <div style="background: rgba(255,107,107,0.1); padding: 10px; border-radius: 8px; text-align: center;">
+                                <div id="criticalLogsCount" style="font-size: 1.5rem; color: #ff6b6b; font-weight: bold;">0</div>
+                                <div style="font-size: 0.8rem; color: #aaa;">Critical</div>
+                            </div>
+                            <div style="background: rgba(255,149,0,0.1); padding: 10px; border-radius: 8px; text-align: center;">
+                                <div id="highLogsCount" style="font-size: 1.5rem; color: #ff9500; font-weight: bold;">0</div>
+                                <div style="font-size: 0.8rem; color: #aaa;">High</div>
+                            </div>
+                            <div style="background: rgba(0,255,136,0.1); padding: 10px; border-radius: 8px; text-align: center;">
+                                <div id="todayLogsCount" style="font-size: 1.5rem; color: #00ff88; font-weight: bold;">0</div>
+                                <div style="font-size: 0.8rem; color: #aaa;">Today</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Enhanced Log Display -->
+                        <div id="adminActivityLog" style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 10px; max-height: 500px; overflow-y: auto;">
                             <div style="text-align: center; color: #888; padding: 20px;">
                                 Loading activity log...
                             </div>
+                        </div>
+                        
+                        <!-- Pagination -->
+                        <div id="logPagination" style="display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 15px;">
+                            <button onclick="previousLogPage()" style="padding: 5px 10px; background: rgba(255,255,255,0.1); color: white; border: 1px solid #666; border-radius: 5px; cursor: pointer;">◀</button>
+                            <span id="logPageInfo" style="color: #aaa;">Page 1 of 1</span>
+                            <button onclick="nextLogPage()" style="padding: 5px 10px; background: rgba(255,255,255,0.1); color: white; border: 1px solid #666; border-radius: 5px; cursor: pointer;">▶</button>
                         </div>
                     </div>
                 </div>
@@ -9241,6 +9317,26 @@
             }
         }
 
+        function populateAdminUserFilter() {
+            const dropdown = document.getElementById('logAdminUser');
+            if (!dropdown) return;
+            
+            // Clear existing options (keep "All Admins")
+            const allOption = dropdown.options[0];
+            dropdown.innerHTML = '';
+            dropdown.appendChild(allOption);
+            
+            // Add admin users to dropdown
+            if (adminManagementData.adminUsers && adminManagementData.adminUsers.length > 0) {
+                adminManagementData.adminUsers.forEach(admin => {
+                    const option = document.createElement('option');
+                    option.value = admin.id;
+                    option.textContent = `${admin.first_name} ${admin.last_name} (${admin.admin_role})`;
+                    dropdown.appendChild(option);
+                });
+            }
+        }
+
         function displayAdminUsers() {
             const container = document.getElementById('adminUsersList');
             
@@ -9248,6 +9344,9 @@
                 container.innerHTML = '<div style="text-align: center; color: #888; padding: 20px;">No admin users found</div>';
                 return;
             }
+
+            // Populate the admin filter dropdown whenever admin users are loaded
+            populateAdminUserFilter();
 
             const html = adminManagementData.adminUsers.map(admin => {
                 const roleColor = {
@@ -9408,19 +9507,173 @@
             document.body.appendChild(modal);
         }
 
+        // Enhanced Activity Log System
+        let activityLogState = {
+            currentPage: 1,
+            limit: 20,
+            total: 0,
+            filters: {
+                startDate: null,
+                endDate: null,
+                category: null,
+                severity: null,
+                adminUserId: null
+            }
+        };
+
         async function refreshActivityLog() {
+            const offset = (activityLogState.currentPage - 1) * activityLogState.limit;
+            
             try {
-                const response = await apiService.getAdminActivityLog(20, 0);
+                const params = new URLSearchParams({
+                    limit: activityLogState.limit,
+                    offset: offset
+                });
+                
+                // Add filters to params
+                if (activityLogState.filters.startDate) params.append('startDate', activityLogState.filters.startDate);
+                if (activityLogState.filters.endDate) params.append('endDate', activityLogState.filters.endDate);
+                if (activityLogState.filters.category) params.append('category', activityLogState.filters.category);
+                if (activityLogState.filters.severity) params.append('severity', activityLogState.filters.severity);
+                if (activityLogState.filters.adminUserId) params.append('adminUserId', activityLogState.filters.adminUserId);
+                
+                const response = await apiService.getAdminActivityLogFiltered(params.toString());
                 
                 if (response.success) {
-                    adminManagementData.activityLog = response.data;
+                    adminManagementData.activityLog = response.data.logs || response.data;
+                    activityLogState.total = response.data.total || adminManagementData.activityLog.length;
                     displayActivityLog();
+                    updateLogStatistics();
+                    updateLogPagination();
                 } else {
                     showNotification('Failed to load activity log: ' + (response.error || 'Unknown error'), 'error');
                 }
             } catch (error) {
                 console.error('Error refreshing activity log:', error);
                 showNotification('Error loading activity log. Please try again.', 'error');
+            }
+        }
+
+        function applyLogFilters() {
+            activityLogState.filters = {
+                startDate: document.getElementById('logStartDate').value || null,
+                endDate: document.getElementById('logEndDate').value || null,
+                category: document.getElementById('logCategory').value || null,
+                severity: document.getElementById('logSeverity').value || null,
+                adminUserId: document.getElementById('logAdminUser').value || null
+            };
+            activityLogState.currentPage = 1;
+            refreshActivityLog();
+        }
+
+        function clearLogFilters() {
+            document.getElementById('logStartDate').value = '';
+            document.getElementById('logEndDate').value = '';
+            document.getElementById('logCategory').value = '';
+            document.getElementById('logSeverity').value = '';
+            document.getElementById('logAdminUser').value = '';
+            
+            activityLogState.filters = {
+                startDate: null,
+                endDate: null,
+                category: null,
+                severity: null,
+                adminUserId: null
+            };
+            activityLogState.currentPage = 1;
+            refreshActivityLog();
+        }
+
+        function previousLogPage() {
+            if (activityLogState.currentPage > 1) {
+                activityLogState.currentPage--;
+                refreshActivityLog();
+            }
+        }
+
+        function nextLogPage() {
+            const totalPages = Math.ceil(activityLogState.total / activityLogState.limit);
+            if (activityLogState.currentPage < totalPages) {
+                activityLogState.currentPage++;
+                refreshActivityLog();
+            }
+        }
+
+        function updateLogPagination() {
+            const totalPages = Math.ceil(activityLogState.total / activityLogState.limit) || 1;
+            document.getElementById('logPageInfo').textContent = `Page ${activityLogState.currentPage} of ${totalPages}`;
+        }
+
+        function updateLogStatistics() {
+            const logs = adminManagementData.activityLog;
+            const today = new Date().toISOString().split('T')[0];
+            
+            const stats = {
+                total: activityLogState.total,
+                critical: logs.filter(l => l.severity === 'critical').length,
+                high: logs.filter(l => l.severity === 'high').length,
+                today: logs.filter(l => l.created_at && l.created_at.startsWith(today)).length
+            };
+            
+            document.getElementById('totalLogsCount').textContent = stats.total;
+            document.getElementById('criticalLogsCount').textContent = stats.critical;
+            document.getElementById('highLogsCount').textContent = stats.high;
+            document.getElementById('todayLogsCount').textContent = stats.today;
+        }
+
+        function exportActivityLog() {
+            try {
+                const logs = adminManagementData.activityLog;
+                if (logs.length === 0) {
+                    addActivity('⚠️ No logs to export', 'warning');
+                    return;
+                }
+
+                // Create CSV content
+                const headers = [
+                    'Date/Time', 'Admin User', 'Admin Role', 'Action', 'Category', 
+                    'Severity', 'Target Type', 'Target ID', 'IP Address', 'Details'
+                ];
+                
+                const csvContent = [
+                    headers.join(','),
+                    ...logs.map(log => {
+                        const adminName = log.admin_name || (log.first_name && log.last_name ? 
+                            `${log.first_name} ${log.last_name}` : 'Unknown Admin');
+                        
+                        return [
+                            `"${new Date(log.created_at).toLocaleString()}"`,
+                            `"${adminName}"`,
+                            `"${log.admin_role || 'unknown'}"`,
+                            `"${log.action}"`,
+                            `"${log.category || 'admin_actions'}"`,
+                            `"${log.severity || 'info'}"`,
+                            `"${log.target_type || ''}"`,
+                            `"${log.target_id || ''}"`,
+                            `"${log.ip_address || ''}"`,
+                            `"${log.details ? JSON.stringify(log.details).replace(/"/g, '""') : ''}"`
+                        ].join(',');
+                    })
+                ].join('\n');
+
+                // Create and download file
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                
+                link.setAttribute('href', url);
+                link.setAttribute('download', `activity_log_${new Date().toISOString().split('T')[0]}.csv`);
+                link.style.visibility = 'hidden';
+                
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                addActivity(`📥 Exported ${logs.length} log entries to CSV`, 'info');
+                
+            } catch (error) {
+                console.error('Error exporting activity log:', error);
+                addActivity('❌ Failed to export activity log', 'error');
             }
         }
 
@@ -9433,34 +9686,123 @@
             }
 
             const html = adminManagementData.activityLog.map(log => {
-                const actionColor = {
-                    'admin_promoted': '#00ff88',
-                    'admin_demoted': '#ff6b6b',
-                    'user_status_updated': '#00d4ff',
-                    'bulk_operation': '#ff9500'
-                }[log.action] || '#888';
+                // Enhanced severity-based colors
+                const severityColors = {
+                    'critical': '#ff4757',
+                    'high': '#ff9500',
+                    'medium': '#f39c12',
+                    'info': '#00d4ff',
+                    'low': '#2ecc71'
+                };
+                
+                // Enhanced category-based icons
+                const categoryIcons = {
+                    'authentication': '🔐',
+                    'user_management': '👤',
+                    'admin_actions': '⚡',
+                    'bulk_operations': '📊',
+                    'security': '🛡️',
+                    'system': '⚙️',
+                    'messages': '💬',
+                    'billing': '💰',
+                    'api_access': '🔗',
+                    'data_export': '📥'
+                };
 
-                const actionIcon = {
+                // Action-specific icons as fallback
+                const actionIcons = {
                     'admin_promoted': '⬆️',
                     'admin_demoted': '⬇️', 
                     'user_status_updated': '🔄',
-                    'bulk_operation': '📊'
-                }[log.action] || '🔍';
+                    'user_status_changed': '🔄',
+                    'bulk_operation': '📊',
+                    'login': '🚪',
+                    'logout': '🚶',
+                    'unauthorized_access_attempt': '⚠️'
+                };
+
+                const severity = log.severity || 'info';
+                const category = log.category || 'admin_actions';
+                const severityColor = severityColors[severity] || '#888';
+                const categoryIcon = categoryIcons[category] || actionIcons[log.action] || '🔍';
+                
+                // Format admin name
+                const adminName = log.admin_name || (log.first_name && log.last_name ? 
+                    `${log.first_name} ${log.last_name}` : 'Unknown Admin');
+                
+                // Format details for better readability
+                let detailsHtml = '';
+                if (log.details) {
+                    try {
+                        const details = typeof log.details === 'string' ? JSON.parse(log.details) : log.details;
+                        if (Object.keys(details).length > 0) {
+                            detailsHtml = `<div style="color: #aaa; font-size: 0.8rem; margin-top: 5px; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 5px;">
+                                ${Object.entries(details).map(([key, value]) => 
+                                    `<div>${key}: ${typeof value === 'object' ? JSON.stringify(value) : value}</div>`
+                                ).join('')}
+                            </div>`;
+                        }
+                    } catch (e) {
+                        detailsHtml = `<div style="color: #aaa; font-size: 0.8rem; margin-top: 5px;">${log.details}</div>`;
+                    }
+                }
+                
+                // Before/After state display
+                let stateChangeHtml = '';
+                if (log.before_state && log.after_state) {
+                    try {
+                        const before = typeof log.before_state === 'string' ? JSON.parse(log.before_state) : log.before_state;
+                        const after = typeof log.after_state === 'string' ? JSON.parse(log.after_state) : log.after_state;
+                        
+                        stateChangeHtml = `<div style="margin-top: 8px; display: flex; gap: 10px; font-size: 0.75rem;">
+                            <div style="background: rgba(255,107,107,0.1); padding: 5px; border-radius: 3px; border-left: 2px solid #ff6b6b;">
+                                <strong>Before:</strong> ${JSON.stringify(before)}
+                            </div>
+                            <div style="background: rgba(0,255,136,0.1); padding: 5px; border-radius: 3px; border-left: 2px solid #00ff88;">
+                                <strong>After:</strong> ${JSON.stringify(after)}
+                            </div>
+                        </div>`;
+                    } catch (e) {
+                        // Ignore parsing errors for state changes
+                    }
+                }
 
                 return `
-                    <div style="background: rgba(255,255,255,0.05); padding: 10px; margin-bottom: 8px; border-radius: 8px; border-left: 3px solid ${actionColor};">
+                    <div style="background: rgba(255,255,255,0.05); padding: 12px; margin-bottom: 8px; border-radius: 8px; border-left: 4px solid ${severityColor};">
                         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                             <div style="flex: 1;">
-                                <div style="color: ${actionColor}; font-weight: bold; margin-bottom: 2px;">
-                                    ${actionIcon} ${log.action.replace(/_/g, ' ').toUpperCase()}
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                                    <span style="color: ${severityColor}; font-weight: bold;">
+                                        ${categoryIcon} ${log.action.replace(/_/g, ' ').toUpperCase()}
+                                    </span>
+                                    <span style="background: ${severityColor}; color: white; padding: 2px 6px; border-radius: 10px; font-size: 0.7rem; font-weight: bold;">
+                                        ${severity.toUpperCase()}
+                                    </span>
+                                    <span style="background: rgba(255,255,255,0.1); color: #ccc; padding: 2px 6px; border-radius: 10px; font-size: 0.7rem;">
+                                        ${category.replace(/_/g, ' ')}
+                                    </span>
                                 </div>
-                                <div style="color: #ddd; font-size: 0.9rem;">
-                                    By: ${log.first_name} ${log.last_name} (${log.admin_role})
+                                <div style="color: #ddd; font-size: 0.85rem; margin-bottom: 2px;">
+                                    <strong>Admin:</strong> ${adminName} <span style="color: #aaa;">(${log.admin_role || 'unknown'})</span>
                                 </div>
-                                ${log.details ? `<div style="color: #aaa; font-size: 0.8rem; margin-top: 5px;">${JSON.stringify(log.details)}</div>` : ''}
+                                ${log.target_type && log.target_id ? `<div style="color: #bbb; font-size: 0.8rem;">
+                                    <strong>Target:</strong> ${log.target_type}:${log.target_id}
+                                </div>` : ''}
+                                ${log.ip_address ? `<div style="color: #999; font-size: 0.75rem;">
+                                    <strong>IP:</strong> ${log.ip_address}
+                                </div>` : ''}
+                                ${detailsHtml}
+                                ${stateChangeHtml}
                             </div>
-                            <div style="color: #888; font-size: 0.8rem; text-align: right;">
-                                ${new Date(log.created_at).toLocaleString()}
+                            <div style="color: #888; font-size: 0.75rem; text-align: right; min-width: 120px;">
+                                ${new Date(log.created_at).toLocaleString('en-ZA', {
+                                    year: 'numeric',
+                                    month: '2-digit',
+                                    day: '2-digit',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                    second: '2-digit'
+                                })}
                             </div>
                         </div>
                     </div>
@@ -13914,6 +14256,30 @@ ARB4ME Security Team`
                     }
                 } catch (error) {
                     console.log('❌ Error getting activity log:', error.message);
+                    return { success: false, error: error.message };
+                }
+            },
+
+            async getAdminActivityLogFiltered(queryParams) {
+                try {
+                    if (!this.token) {
+                        console.log('No JWT token available for filtered activity log');
+                        return { success: false, error: 'No authentication token' };
+                    }
+
+                    const response = await this.apiCall(`/admin/activity-log?${queryParams}`, {
+                        method: 'GET'
+                    });
+                    
+                    if (response.success) {
+                        console.log('✅ Filtered activity log retrieved:', response.data);
+                        return response;
+                    } else {
+                        console.log('❌ Failed to get filtered activity log:', response.error);
+                        return response;
+                    }
+                } catch (error) {
+                    console.log('❌ Error getting filtered activity log:', error.message);
                     return { success: false, error: error.message };
                 }
             }
