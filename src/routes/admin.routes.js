@@ -1143,4 +1143,41 @@ router.post('/compose-test', asyncHandler(async (req, res) => {
     }
 }));
 
+// POST /api/v1/admin/users/:userId/status - Update user account status
+router.post('/users/:userId/status', asyncHandler(async (req, res) => {
+    const { userId } = req.params;
+    const { status } = req.body;
+    
+    // Validate status
+    const validStatuses = ['active', 'suspended', 'trial', 'deleted'];
+    if (!status || !validStatuses.includes(status)) {
+        throw new APIError('Invalid status. Must be: active, suspended, trial, or deleted', 400, 'INVALID_STATUS');
+    }
+    
+    // Update user status
+    const result = await query(
+        'UPDATE users SET account_status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING id, account_status, first_name, last_name',
+        [status, userId]
+    );
+    
+    if (result.rows.length === 0) {
+        throw new APIError('User not found', 404, 'USER_NOT_FOUND');
+    }
+    
+    const user = result.rows[0];
+    
+    // Log the action (simple console log for now)
+    console.log(`Admin updated user ${userId} status to ${status}`);
+    
+    res.json({
+        success: true,
+        data: {
+            userId: user.id,
+            newStatus: user.account_status,
+            userName: `${user.first_name} ${user.last_name}`
+        },
+        message: `User status updated to ${status}`
+    });
+}));
+
 module.exports = router;
