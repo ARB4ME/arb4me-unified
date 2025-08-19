@@ -30,58 +30,20 @@ router.post('/run-billing', async (req, res) => {
             });
         }
 
-        // Split into individual statements (basic approach)
-        const statements = migrationSQL
-            .split(';')
-            .map(stmt => stmt.trim())
-            .filter(stmt => stmt.length > 0 && !stmt.startsWith('--'));
-
-        const results = [];
-        let successCount = 0;
-        let errorCount = 0;
-
-        // Execute each statement
-        for (let i = 0; i < statements.length; i++) {
-            const statement = statements[i];
-            if (!statement) continue;
-
-            try {
-                console.log(`Executing statement ${i + 1}/${statements.length}`);
-                const result = await query(statement);
-                results.push({
-                    statement: i + 1,
-                    success: true,
-                    rowCount: result.rowCount || 0
-                });
-                successCount++;
-            } catch (error) {
-                console.error(`Error in statement ${i + 1}:`, error.message);
-                results.push({
-                    statement: i + 1,
-                    success: false,
-                    error: error.message,
-                    sql: statement.substring(0, 100) + '...'
-                });
-                errorCount++;
-                
-                // Don't stop on errors for CREATE IF NOT EXISTS statements
-                if (!statement.toUpperCase().includes('IF NOT EXISTS')) {
-                    throw error;
-                }
-            }
-        }
-
+        // Execute the entire migration as one transaction
+        console.log('Executing full migration script...');
+        const result = await query(migrationSQL);
+        
         console.log('✅ Phase 6 Billing Migration completed');
         
         res.json({
             success: true,
-            message: 'Phase 6 Billing Migration completed',
+            message: 'Phase 6 Billing Migration completed successfully',
             summary: {
-                totalStatements: statements.length,
-                successful: successCount,
-                errors: errorCount
-            },
-            results: results
+                executed: 'Full migration script',
+                successful: 1,
+                errors: 0
+            }
         });
 
     } catch (error) {
