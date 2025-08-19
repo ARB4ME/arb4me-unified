@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const { query } = require('../database/connection');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateUser, requireAdmin: requireAdminAuth } = require('../middleware/auth');
 const { requireAdmin, requireMaster, logAdminActivity } = require('../middleware/adminPermissions');
 const { body, param, validationResult } = require('express-validator');
 
@@ -32,8 +32,8 @@ const handleValidationErrors = (req, res, next) => {
 
 // POST /api/v1/admin/payments/mark-received
 router.post('/mark-received', 
-    authenticateToken,
-    requireAdmin,
+    authenticateUser,
+    requireAdminAuth,
     validatePaymentRecording,
     handleValidationErrors,
     async (req, res) => {
@@ -143,8 +143,8 @@ router.post('/mark-received',
 
 // GET /api/v1/admin/payments/history/:userId
 router.get('/history/:userId',
-    authenticateToken,
-    requireAdmin,
+    authenticateUser,
+    requireAdminAuth,
     param('userId').notEmpty(),
     handleValidationErrors,
     async (req, res) => {
@@ -180,8 +180,8 @@ router.get('/history/:userId',
 
 // GET /api/v1/admin/payments/all
 router.get('/all',
-    authenticateToken,
-    requireAdmin,
+    authenticateUser,
+    requireAdminAuth,
     async (req, res) => {
         try {
             const { limit = 50, offset = 0 } = req.query;
@@ -222,8 +222,8 @@ router.get('/all',
 
 // GET /api/v1/admin/users/expiring
 router.get('/users/expiring',
-    authenticateToken,
-    requireAdmin,
+    authenticateUser,
+    requireAdminAuth,
     async (req, res) => {
         try {
             const { days = 7 } = req.query;
@@ -254,8 +254,8 @@ router.get('/users/expiring',
 
 // GET /api/v1/admin/users/expired
 router.get('/users/expired',
-    authenticateToken,
-    requireAdmin,
+    authenticateUser,
+    requireAdminAuth,
     async (req, res) => {
         try {
             const expiredUsers = await query(
@@ -282,7 +282,7 @@ router.get('/users/expired',
 
 // POST /api/v1/admin/users/suspend-expired
 router.post('/users/suspend-expired',
-    authenticateToken,
+    authenticateUser,
     requireMaster,
     async (req, res) => {
         const startTime = Date.now();
@@ -340,8 +340,8 @@ router.post('/users/suspend-expired',
 
 // GET /api/v1/admin/billing/summary
 router.get('/summary',
-    authenticateToken,
-    requireAdmin,
+    authenticateUser,
+    requireAdminAuth,
     async (req, res) => {
         try {
             // Get overall payment summary
@@ -401,8 +401,8 @@ router.get('/summary',
 
 // POST /api/v1/admin/reminders/send
 router.post('/reminders/send',
-    authenticateToken,
-    requireAdmin,
+    authenticateUser,
+    requireAdminAuth,
     async (req, res) => {
         const startTime = Date.now();
         try {
