@@ -46,7 +46,16 @@ CREATE INDEX IF NOT EXISTS idx_billing_user_id ON billing_history(user_id);
 CREATE INDEX IF NOT EXISTS idx_billing_month ON billing_history(billing_month);
 CREATE INDEX IF NOT EXISTS idx_users_subscription_expires ON users(subscription_expires_at);
 
--- 5. Update existing users with payment references
-UPDATE users 
-SET payment_reference = 'ARB-' || LPAD((ROW_NUMBER() OVER (ORDER BY created_at))::TEXT, 6, '0')
-WHERE payment_reference IS NULL;
+-- 5. Update existing users with payment references (using a simpler approach)
+DO $$
+DECLARE
+    user_record RECORD;
+    counter INTEGER := 100001;
+BEGIN
+    FOR user_record IN SELECT id FROM users WHERE payment_reference IS NULL ORDER BY created_at LOOP
+        UPDATE users 
+        SET payment_reference = 'ARB-' || LPAD(counter::TEXT, 6, '0')
+        WHERE id = user_record.id;
+        counter := counter + 1;
+    END LOOP;
+END $$;
