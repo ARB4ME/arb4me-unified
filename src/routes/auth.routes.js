@@ -33,11 +33,16 @@ const generateToken = (userId) => {
     return jwt.sign({ userId }, JWT_SECRET, { expiresIn: JWT_EXPIRY });
 };
 
-// Helper function to generate user ID
-const generateUserId = () => {
-    const timestamp = Math.floor(Date.now() / 1000);
-    const random = Math.floor(Math.random() * 999999).toString().padStart(6, '0');
-    return `user_${timestamp}_${random}`;
+// Helper function to generate unified user ID and payment reference
+const generateUserIdAndPaymentRef = async (client) => {
+    // Get next number from the payment reference sequence
+    const result = await client.query('SELECT nextval(\'user_payment_ref_seq\') as ref_num');
+    const refNum = result.rows[0].ref_num;
+    
+    return {
+        userId: `user_${refNum}`,
+        paymentReference: `ARB-${refNum}`
+    };
 };
 
 // Apply auth rate limiting to all routes
@@ -69,15 +74,15 @@ router.post('/register', registerValidation, asyncHandler(async (req, res) => {
         const saltRounds = 12;
         const passwordHash = await bcrypt.hash(password, saltRounds);
         
-        // Generate user ID
-        const userId = generateUserId();
+        // Generate unified user ID and payment reference
+        const { userId, paymentReference } = await generateUserIdAndPaymentRef(client);
         
-        // Insert user
+        // Insert user with explicit payment reference
         const userResult = await client.query(
-            `INSERT INTO users (id, first_name, last_name, email, mobile, country, password_hash, account_status) 
-             VALUES ($1, $2, $3, $4, $5, $6, $7, 'active') 
-             RETURNING id, first_name, last_name, email, created_at`,
-            [userId, firstName, lastName, email, mobile, country, passwordHash]
+            `INSERT INTO users (id, first_name, last_name, email, mobile, country, password_hash, account_status, payment_reference) 
+             VALUES ($1, $2, $3, $4, $5, $6, $7, 'active', $8) 
+             RETURNING id, first_name, last_name, email, created_at, payment_reference`,
+            [userId, firstName, lastName, email, mobile, country, passwordHash, paymentReference]
         );
         
         const user = userResult.rows[0];
@@ -160,7 +165,8 @@ The ARB4ME Team`,
                     firstName: user.first_name,
                     lastName: user.last_name,
                     email: user.email,
-                    createdAt: user.created_at
+                    createdAt: user.created_at,
+                    paymentReference: user.payment_reference
                 },
                 token
             },
