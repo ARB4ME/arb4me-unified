@@ -8570,6 +8570,7 @@
                                 </div>
                                 <div style="color: #b8c6db; font-size: 0.75rem;">
                                     ID: ${user.payment_reference || user.paymentReference || user.id}
+                                    ${console.log('🔍 User object fields:', Object.keys(user), 'payment_reference:', user.payment_reference, 'paymentReference:', user.paymentReference) || ''}
                                 </div>
                             </div>
                         </div>
