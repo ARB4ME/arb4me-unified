@@ -158,8 +158,13 @@ router.get('/users-test', authenticateUser, requireAdmin, asyncHandler(async (re
             SELECT 
                 u.id, u.first_name, u.last_name, u.email, u.mobile, u.country,
                 u.account_status, u.subscription_plan, u.subscription_expires_at,
-                u.created_at, u.updated_at, u.last_login_at, u.payment_reference
+                u.payment_reference,
+                u.created_at, u.updated_at, u.last_login_at,
+                ta.exchanges_connected_count, ta.trading_active, ta.auto_trading_enabled,
+                ta.total_trades_count, ta.successful_trades_count, ta.profit_loss_total,
+                ta.last_trading_activity
             FROM users u
+            LEFT JOIN trading_activity ta ON u.id = ta.user_id
             ${whereClause}
             ORDER BY u.created_at DESC
             LIMIT $${paramIndex++} OFFSET $${paramIndex++}
@@ -171,8 +176,12 @@ router.get('/users-test', authenticateUser, requireAdmin, asyncHandler(async (re
             SELECT 
                 u.id, u.first_name, u.last_name, u.email, u.mobile, u.country,
                 u.account_status, u.subscription_plan, u.subscription_expires_at,
-                u.created_at, u.updated_at, u.last_login_at
+                u.created_at, u.updated_at, u.last_login_at,
+                ta.exchanges_connected_count, ta.trading_active, ta.auto_trading_enabled,
+                ta.total_trades_count, ta.successful_trades_count, ta.profit_loss_total,
+                ta.last_trading_activity
             FROM users u
+            LEFT JOIN trading_activity ta ON u.id = ta.user_id
             ${whereClause}
             ORDER BY u.created_at DESC
             LIMIT $${paramIndex++} OFFSET $${paramIndex++}
@@ -192,7 +201,15 @@ router.get('/users-test', authenticateUser, requireAdmin, asyncHandler(async (re
         createdAt: row.created_at,
         updatedAt: row.updated_at,
         lastLoginAt: row.last_login_at,
-        paymentReference: row.payment_reference || null
+        paymentReference: row.payment_reference || null,
+        // Trading activity fields
+        exchangesConnectedCount: row.exchanges_connected_count || 0,
+        tradingActive: row.trading_active || false,
+        autoTradingEnabled: row.auto_trading_enabled || false,
+        totalTradesCount: row.total_trades_count || 0,
+        successfulTradesCount: row.successful_trades_count || 0,
+        profitLossTotal: row.profit_loss_total || 0,
+        lastTradingActivity: row.last_trading_activity || null
     }));
     
     res.json({

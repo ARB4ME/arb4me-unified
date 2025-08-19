@@ -8580,15 +8580,15 @@
                                 <span style="color: #00d4ff;">📅 Joined:</span> ${new Date(createdAt).toLocaleDateString()}
                             </div>
                             <div style="color: #b8c6db;">
-                                <span style="color: #00d4ff;">🔄 Last Login:</span> ${user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString() : 'Never'}
+                                <span style="color: #00d4ff;">🔄 Last Login:</span> ${user.lastLoginAt || user.last_login_at ? new Date(user.lastLoginAt || user.last_login_at).toLocaleDateString() : 'Never'}
                             </div>
                             <div style="color: #b8c6db;">
                                 <span style="color: #00d4ff;">📱 Country:</span> ${getCountryName(user.country)}
                             </div>
                             <div style="color: #b8c6db;">
                                 <span style="color: #00d4ff;">✅ Status:</span> 
-                                <span style="color: ${user.accountStatus === 'active' ? '#00ff88' : '#ff6b6b'};">
-                                    ${user.accountStatus || 'Unknown'}
+                                <span style="color: ${(user.accountStatus || user.account_status) === 'active' ? '#00ff88' : '#ff6b6b'};">
+                                    ${user.accountStatus || user.account_status || 'Unknown'}
                                 </span>
                             </div>
                             <div style="color: #b8c6db;">
@@ -8607,19 +8607,21 @@
                                 </div>
                                 <div style="color: #b8c6db;">
                                     <span style="color: #00ff88;">💱 Exchanges:</span> 
-                                    ${user.exchangesConnectedCount || 0}
+                                    ${user.exchangesConnectedCount || user.exchanges_connected_count || 0}
                                 </div>
                                 <div style="color: #b8c6db;">
-                                    <span style="color: #00ff88;">🪙 Assets:</span> 
-                                    ${user.selectedCryptoAssets ? JSON.parse(user.selectedCryptoAssets).length : 0}
+                                    <span style="color: #00ff88;">🚀 Trading:</span> 
+                                    <span style="color: ${(user.tradingActive || user.trading_active) ? '#00ff88' : '#ff6b6b'};">
+                                        ${(user.tradingActive || user.trading_active) ? 'Active' : 'Inactive'}
+                                    </span>
                                 </div>
                                 <div style="color: #b8c6db;">
                                     <span style="color: #00ff88;">📈 Trades:</span> 
-                                    ${user.totalTradesCount || 0}
+                                    ${user.totalTradesCount || user.total_trades_count || 0}
                                 </div>
                                 <div style="color: #b8c6db;">
                                     <span style="color: #00ff88;">💰 Profit:</span> 
-                                    $${(user.profitLossTotal || 0).toFixed(2)}
+                                    $${(user.profitLossTotal || user.profit_loss_total || 0).toFixed(2)}
                                 </div>
                                 <div style="color: #b8c6db;">
                                     <span style="color: #00ff88;">🎯 Ready:</span> 
@@ -8628,9 +8630,9 @@
                                     </span>
                                 </div>
                             </div>
-                            ${user.lastTradingActivity ? `
+                            ${(user.lastTradingActivity || user.last_trading_activity) ? `
                                 <div style="color: #b8c6db; font-size: 0.7rem; margin-top: 5px;">
-                                    Last activity: ${new Date(user.lastTradingActivity).toLocaleString()}
+                                    Last activity: ${new Date(user.lastTradingActivity || user.last_trading_activity).toLocaleString()}
                                 </div>
                             ` : ''}
                         </div>
