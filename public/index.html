@@ -651,9 +651,32 @@
         }
         
         .admin-tabs.active {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
+            display: grid !important;
+            grid-template-columns: repeat(4, 1fr) !important;
+            gap: 15px !important;
+            padding: 10px !important;
+            overflow-x: visible !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+        }
+        
+        /* Higher specificity rule for admin tabs */
+        #adminTabs.admin-tabs.active {
+            display: flex !important;
+            flex-wrap: wrap !important;
+            justify-content: space-between !important;
+            gap: 12px !important;
+            padding: 15px !important;
+            overflow-x: visible !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+        }
+        
+        /* Force admin tab buttons to equal width */
+        #adminTabs.admin-tabs.active .admin-tab-btn {
+            flex: 1 1 calc(25% - 9px) !important;
+            min-width: 0 !important;
+            max-width: calc(25% - 9px) !important;
         }
         
         .admin-tab-btn {
@@ -665,6 +688,10 @@
             cursor: pointer;
             transition: all 0.3s;
             font-size: 0.9rem;
+            text-align: center;
+            display: block;
+            width: 100%;
+            box-sizing: border-box;
         }
         
         .admin-tab-btn.active {
@@ -1347,13 +1374,12 @@
             }
             
             .admin-tabs {
-                overflow-x: auto;
-                -webkit-overflow-scrolling: touch;
+                /* Removed overflow-x for grid layout */
             }
             
             .admin-tab-btn {
                 white-space: nowrap;
-                flex-shrink: 0;
+                /* Removed flex-shrink for grid layout */
             }
             
             /* Form elements mobile optimization */
@@ -1485,9 +1511,18 @@
             }
             
             /* Fix admin tabs spacing on mobile */
-            .admin-tabs {
-                gap: 5px !important;
+            .admin-tabs.active,
+            #adminTabs.admin-tabs.active {
+                gap: 8px !important;
                 margin-bottom: 15px !important;
+                padding: 12px !important;
+                width: 100% !important;
+            }
+            
+            /* Mobile: 2 buttons per row */
+            #adminTabs.admin-tabs.active .admin-tab-btn {
+                flex: 1 1 calc(50% - 4px) !important;
+                max-width: calc(50% - 4px) !important;
             }
             
             /* Admin cards spacing on mobile */
@@ -8465,9 +8500,11 @@
             try {
                 // Fetch real users from backend
                 const response = await apiService.getAllUsers();
+                console.log('🔍 getAllUsers response:', response);
                 
                 if (!response.success || !response.data || !response.data.users) {
-                    throw new Error('Failed to fetch users');
+                    console.error('❌ Invalid response structure:', response);
+                    throw new Error(`Failed to fetch users - Response: ${JSON.stringify(response)}`);
                 }
                 
                 const allUsers = response.data.users;
@@ -14828,6 +14865,24 @@ Please help recover this stuck asset.`;
                     document.getElementById('adminLogin').style.display = 'none';
                     document.getElementById('adminDashboard').style.display = 'block';
                     document.getElementById('adminTabs').classList.add('active');
+                    
+                    // Force flexbox layout for admin tabs
+                    const adminTabs = document.getElementById('adminTabs');
+                    adminTabs.style.display = 'flex';
+                    adminTabs.style.flexWrap = 'wrap';
+                    adminTabs.style.justifyContent = 'space-between';
+                    adminTabs.style.gap = '12px';
+                    adminTabs.style.padding = '15px';
+                    adminTabs.style.width = '100%';
+                    adminTabs.style.boxSizing = 'border-box';
+                    
+                    // Set button widths to be equal
+                    const adminButtons = adminTabs.querySelectorAll('.admin-tab-btn');
+                    adminButtons.forEach(btn => {
+                        btn.style.flex = '1 1 calc(25% - 9px)';
+                        btn.style.minWidth = '0';
+                        btn.style.maxWidth = 'calc(25% - 9px)';
+                    });
                     
                     // Update admin user status display
                     updateAdminUserStatus();
@@ -21582,6 +21637,24 @@ ARB4ME Security Team`
                     document.getElementById('adminLogin').style.display = 'none';
                     document.getElementById('adminDashboard').style.display = 'block';
                     document.getElementById('adminTabs').classList.add('active');
+                    
+                    // Force flexbox layout for admin tabs
+                    const adminTabs = document.getElementById('adminTabs');
+                    adminTabs.style.display = 'flex';
+                    adminTabs.style.flexWrap = 'wrap';
+                    adminTabs.style.justifyContent = 'space-between';
+                    adminTabs.style.gap = '12px';
+                    adminTabs.style.padding = '15px';
+                    adminTabs.style.width = '100%';
+                    adminTabs.style.boxSizing = 'border-box';
+                    
+                    // Set button widths to be equal
+                    const adminButtons = adminTabs.querySelectorAll('.admin-tab-btn');
+                    adminButtons.forEach(btn => {
+                        btn.style.flex = '1 1 calc(25% - 9px)';
+                        btn.style.minWidth = '0';
+                        btn.style.maxWidth = 'calc(25% - 9px)';
+                    });
                     
                     // Update admin user status display
                     updateAdminUserStatus();
