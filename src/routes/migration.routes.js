@@ -17,7 +17,7 @@ router.post('/run-billing', async (req, res) => {
         // Read the migration file content
         const fs = require('fs');
         const path = require('path');
-        const migrationPath = path.join(__dirname, '../database/migrations/005_billing_system.sql');
+        const migrationPath = path.join(__dirname, '../database/migrations/005_billing_system_simple.sql');
         
         let migrationSQL;
         try {
