@@ -8621,7 +8621,7 @@
                                 </div>
                                 <div style="color: #b8c6db;">
                                     <span style="color: #00ff88;">💰 Profit:</span> 
-                                    $${(user.profitLossTotal || user.profit_loss_total || 0).toFixed(2)}
+                                    $${(Number(user.profitLossTotal || user.profit_loss_total) || 0).toFixed(2)}
                                 </div>
                                 <div style="color: #b8c6db;">
                                     <span style="color: #00ff88;">🎯 Ready:</span> 
