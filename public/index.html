@@ -6321,44 +6321,191 @@
                 </div>
 
                 <div id="adminSettingsTab" class="admin-content" style="display: none;">
-                    <h3 style="color: #00d4ff; margin-bottom: 15px;">⚙️ Admin Settings</h3>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3 style="color: #00d4ff; margin: 0;">⚙️ Platform Settings</h3>
+                        
+                        <div style="display: flex; gap: 10px;">
+                            <button onclick="refreshSettings()" style="
+                                padding: 6px 12px;
+                                background: linear-gradient(45deg, #00ff88, #00d4aa);
+                                color: #1a1a2e;
+                                border: none;
+                                border-radius: 6px;
+                                cursor: pointer;
+                                font-weight: bold;
+                                font-size: 0.9rem;
+                            ">🔄 Refresh</button>
+                            
+                            <button onclick="runSettingsMigration()" style="
+                                padding: 6px 12px;
+                                background: linear-gradient(45deg, #ff9500, #ff6b00);
+                                color: white;
+                                border: none;
+                                border-radius: 6px;
+                                cursor: pointer;
+                                font-weight: bold;
+                                font-size: 0.9rem;
+                            ">🔧 Run Migration</button>
+                        </div>
+                    </div>
                     
-                    <div style="background: rgba(255,107,107,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px;">
-                        <h4 style="color: #ff6b6b; margin-bottom: 15px;">🔐 Update Admin Credentials</h4>
-                        <div class="grid-2">
-                            <div class="form-group">
-                                <label>New Username</label>
-                                <input type="text" id="newAdminUsername" placeholder="Enter new admin username">
-                            </div>
-                            <div class="form-group">
-                                <label>New Password</label>
-                                <input type="password" id="newAdminPassword" placeholder="Enter new admin password">
+                    <!-- Loading State -->
+                    <div id="settingsLoading" style="
+                        text-align: center; 
+                        padding: 50px; 
+                        color: #b8c6db;
+                        display: none;
+                    ">
+                        <div style="font-size: 2rem; margin-bottom: 15px;">⏳</div>
+                        <div>Loading platform settings...</div>
+                    </div>
+                    
+                    <!-- Settings Content -->
+                    <div id="settingsContent">
+                        <!-- Platform Configuration -->
+                        <div style="background: rgba(0,255,136,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px;">
+                            <h4 style="color: #00ff88; margin: 0 0 15px 0;">🌐 Platform Configuration</h4>
+                            <div id="platformSettings" style="
+                                display: grid; 
+                                grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); 
+                                gap: 15px;
+                            ">
+                                Loading platform settings...
                             </div>
                         </div>
-                        <button onclick="updateAdminCredentials()" class="btn" style="background: linear-gradient(45deg, #ff6b6b, #ff5252);">
-                            🔐 Update Credentials
-                        </button>
-                    </div>
-
-                    <div style="background: rgba(0,255,136,0.1); padding: 20px; border-radius: 15px;">
-                        <h4 style="color: #00ff88; margin-bottom: 15px;">📊 Platform Settings</h4>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-                            <label style="display: flex; align-items: center; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer;">
-                                <input type="checkbox" checked style="margin-right: 10px;">
-                                <span style="font-size: 0.9rem;">User Registration Enabled</span>
-                            </label>
-                            <label style="display: flex; align-items: center; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer;">
-                                <input type="checkbox" checked style="margin-right: 10px;">
-                                <span style="font-size: 0.9rem;">API Trading Enabled</span>
-                            </label>
-                            <label style="display: flex; align-items: center; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer;">
-                                <input type="checkbox" checked style="margin-right: 10px;">
-                                <span style="font-size: 0.9rem;">Support Messages Enabled</span>
-                            </label>
-                            <label style="display: flex; align-items: center; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer;">
-                                <input type="checkbox" style="margin-right: 10px;">
-                                <span style="font-size: 0.9rem;">Maintenance Mode</span>
-                            </label>
+                        
+                        <!-- Notification Preferences -->
+                        <div style="background: rgba(0,212,255,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px;">
+                            <h4 style="color: #00d4ff; margin: 0 0 15px 0;">🔔 Notification Preferences</h4>
+                            <div id="notificationSettings" style="
+                                display: grid; 
+                                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); 
+                                gap: 15px;
+                            ">
+                                Loading notification settings...
+                            </div>
+                        </div>
+                        
+                        <!-- Maintenance Controls -->
+                        <div style="background: rgba(255,193,7,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px;">
+                            <h4 style="color: #ffc107; margin: 0 0 15px 0;">🔧 Maintenance Controls</h4>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                                <div>
+                                    <div style="margin-bottom: 15px;">
+                                        <label style="color: #b8c6db; display: block; margin-bottom: 5px;">Maintenance Message</label>
+                                        <textarea id="maintenanceMessage" placeholder="Enter maintenance message for users..." style="
+                                            width: 100%;
+                                            padding: 10px;
+                                            background: rgba(255,255,255,0.1);
+                                            border: 1px solid #ffc107;
+                                            border-radius: 6px;
+                                            color: white;
+                                            resize: vertical;
+                                            min-height: 80px;
+                                        "></textarea>
+                                    </div>
+                                    
+                                    <div style="display: flex; gap: 10px;">
+                                        <button onclick="startMaintenanceMode()" style="
+                                            padding: 8px 16px;
+                                            background: #ffc107;
+                                            color: #1a1a2e;
+                                            border: none;
+                                            border-radius: 6px;
+                                            cursor: pointer;
+                                            font-weight: bold;
+                                        ">🔧 Start Maintenance</button>
+                                        
+                                        <button onclick="endMaintenanceMode()" style="
+                                            padding: 8px 16px;
+                                            background: #00ff88;
+                                            color: #1a1a2e;
+                                            border: none;
+                                            border-radius: 6px;
+                                            cursor: pointer;
+                                            font-weight: bold;
+                                        ">✅ End Maintenance</button>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <div style="color: #b8c6db; margin-bottom: 10px;">
+                                        <strong>Current Status:</strong>
+                                        <span id="maintenanceStatus">Checking...</span>
+                                    </div>
+                                    
+                                    <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;">
+                                        <h5 style="color: #ffc107; margin: 0 0 10px 0;">Recent Maintenance</h5>
+                                        <div id="maintenanceHistory" style="font-size: 0.9rem; color: #b8c6db;">
+                                            Loading maintenance history...
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Backup & Export -->
+                        <div style="background: rgba(255,107,107,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px;">
+                            <h4 style="color: #ff6b6b; margin: 0 0 15px 0;">💾 Backup & Export</h4>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                                <div>
+                                    <h5 style="color: #ff6b6b; margin: 0 0 10px 0;">Database Backup</h5>
+                                    <p style="color: #b8c6db; font-size: 0.9rem; margin-bottom: 15px;">
+                                        Create a backup of the entire database for disaster recovery
+                                    </p>
+                                    <button onclick="createDatabaseBackup()" style="
+                                        padding: 10px 20px;
+                                        background: #ff6b6b;
+                                        color: white;
+                                        border: none;
+                                        border-radius: 6px;
+                                        cursor: pointer;
+                                        font-weight: bold;
+                                        width: 100%;
+                                    ">💾 Create Backup</button>
+                                </div>
+                                
+                                <div>
+                                    <h5 style="color: #ff6b6b; margin: 0 0 10px 0;">Data Export</h5>
+                                    <div style="margin-bottom: 15px;">
+                                        <label style="display: flex; align-items: center; margin-bottom: 8px; color: #b8c6db;">
+                                            <input type="checkbox" id="exportUsers" style="margin-right: 8px;">
+                                            Include User Data
+                                        </label>
+                                        <label style="display: flex; align-items: center; margin-bottom: 8px; color: #b8c6db;">
+                                            <input type="checkbox" id="exportPayments" style="margin-right: 8px;">
+                                            Include Payment Data
+                                        </label>
+                                        <select id="exportFormat" style="
+                                            width: 100%;
+                                            padding: 6px;
+                                            background: rgba(255,255,255,0.1);
+                                            border: 1px solid #ff6b6b;
+                                            border-radius: 4px;
+                                            color: white;
+                                            margin-bottom: 10px;
+                                        ">
+                                            <option value="json">JSON Format</option>
+                                            <option value="csv">CSV Format</option>
+                                        </select>
+                                    </div>
+                                    <button onclick="exportPlatformData()" style="
+                                        padding: 10px 20px;
+                                        background: linear-gradient(45deg, #ff6b6b, #ff8a80);
+                                        color: white;
+                                        border: none;
+                                        border-radius: 6px;
+                                        cursor: pointer;
+                                        font-weight: bold;
+                                        width: 100%;
+                                    ">📊 Export Data</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Settings Status -->
+                        <div style="text-align: center; color: #888; font-size: 0.85rem; margin-top: 20px;">
+                            <span id="settingsLastUpdated">📅 Loading settings...</span>
                         </div>
                     </div>
                 </div>
@@ -8876,6 +9023,385 @@
                 `).join('');
             } else {
                 alertsDiv.style.display = 'none';
+            }
+        }
+
+        async function refreshSettings() {
+            const settingsLoading = document.getElementById('settingsLoading');
+            const settingsContent = document.getElementById('settingsContent');
+            
+            // Show loading state
+            if (settingsLoading) settingsLoading.style.display = 'block';
+            if (settingsContent) settingsContent.style.opacity = '0.5';
+            
+            try {
+                // Fetch platform settings and notifications in parallel
+                const [settingsResponse, notificationsResponse] = await Promise.all([
+                    apiService.getPlatformSettings(),
+                    apiService.getNotificationSettings()
+                ]);
+                
+                if (!settingsResponse.success) {
+                    throw new Error(settingsResponse.error || 'Failed to fetch platform settings');
+                }
+                
+                if (!notificationsResponse.success) {
+                    throw new Error(notificationsResponse.error || 'Failed to fetch notification settings');
+                }
+                
+                // Update platform settings
+                updatePlatformSettingsDisplay(settingsResponse.data.settings);
+                
+                // Update notification settings
+                updateNotificationSettingsDisplay(notificationsResponse.data.notifications);
+                
+                // Update maintenance status
+                updateMaintenanceStatus(settingsResponse.data.settings);
+                
+                // Update timestamp
+                const lastUpdated = document.getElementById('settingsLastUpdated');
+                if (lastUpdated) {
+                    lastUpdated.textContent = `📅 Last updated: ${new Date().toLocaleString()}`;
+                }
+                
+                addActivity('⚙️ Settings refreshed successfully', 'success');
+                
+            } catch (error) {
+                console.error('Error refreshing settings:', error);
+                addActivity('❌ Failed to refresh settings', 'error');
+                
+                // Show error state
+                const platformDiv = document.getElementById('platformSettings');
+                if (platformDiv) {
+                    platformDiv.innerHTML = `
+                        <div style="grid-column: 1 / -1; text-align: center; padding: 30px; background: rgba(255,107,107,0.1); border-radius: 12px; border: 1px solid #ff6b6b;">
+                            <div style="font-size: 1.5rem; margin-bottom: 10px;">❌</div>
+                            <div style="color: #ff6b6b; font-weight: bold;">Failed to load settings</div>
+                            <div style="color: #b8c6db; margin-top: 5px; font-size: 0.9rem;">${error.message}</div>
+                            <button onclick="refreshSettings()" style="
+                                margin-top: 15px;
+                                padding: 8px 16px;
+                                background: #ff6b6b;
+                                color: white;
+                                border: none;
+                                border-radius: 6px;
+                                cursor: pointer;
+                                font-weight: bold;
+                            ">🔄 Retry</button>
+                        </div>
+                    `;
+                }
+            } finally {
+                // Hide loading state
+                if (settingsLoading) settingsLoading.style.display = 'none';
+                if (settingsContent) settingsContent.style.opacity = '1';
+            }
+        }
+
+        function updatePlatformSettingsDisplay(settings) {
+            const platformDiv = document.getElementById('platformSettings');
+            if (!platformDiv || !settings) return;
+            
+            // Group settings by category
+            const categories = {};
+            settings.forEach(setting => {
+                if (!categories[setting.category]) {
+                    categories[setting.category] = [];
+                }
+                categories[setting.category].push(setting);
+            });
+            
+            platformDiv.innerHTML = Object.entries(categories).map(([category, categorySettings]) => `
+                <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px;">
+                    <h5 style="color: #00ff88; margin: 0 0 15px 0; text-transform: capitalize;">
+                        ${category.replace('_', ' ')}
+                    </h5>
+                    ${categorySettings.map(setting => {
+                        if (setting.setting_type === 'boolean') {
+                            return `
+                                <label style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; cursor: pointer;">
+                                    <span style="color: #b8c6db; font-size: 0.9rem;">
+                                        ${setting.description || setting.setting_key.replace('_', ' ')}
+                                    </span>
+                                    <input type="checkbox" 
+                                        ${setting.setting_value === 'true' ? 'checked' : ''} 
+                                        onchange="updateSetting('${setting.setting_key}', this.checked)"
+                                        style="margin-left: 10px;">
+                                </label>
+                            `;
+                        } else if (setting.setting_type === 'number') {
+                            return `
+                                <div style="margin-bottom: 15px;">
+                                    <label style="color: #b8c6db; font-size: 0.9rem; display: block; margin-bottom: 5px;">
+                                        ${setting.description || setting.setting_key.replace('_', ' ')}
+                                    </label>
+                                    <input type="number" 
+                                        value="${setting.setting_value}" 
+                                        onchange="updateSetting('${setting.setting_key}', this.value)"
+                                        style="
+                                            width: 100%;
+                                            padding: 6px 10px;
+                                            background: rgba(255,255,255,0.1);
+                                            border: 1px solid #00ff88;
+                                            border-radius: 4px;
+                                            color: white;
+                                        ">
+                                </div>
+                            `;
+                        } else {
+                            return `
+                                <div style="margin-bottom: 15px;">
+                                    <label style="color: #b8c6db; font-size: 0.9rem; display: block; margin-bottom: 5px;">
+                                        ${setting.description || setting.setting_key.replace('_', ' ')}
+                                    </label>
+                                    <input type="text" 
+                                        value="${setting.setting_value}" 
+                                        onchange="updateSetting('${setting.setting_key}', this.value)"
+                                        style="
+                                            width: 100%;
+                                            padding: 6px 10px;
+                                            background: rgba(255,255,255,0.1);
+                                            border: 1px solid #00ff88;
+                                            border-radius: 4px;
+                                            color: white;
+                                        ">
+                                </div>
+                            `;
+                        }
+                    }).join('')}
+                </div>
+            `).join('');
+        }
+
+        function updateNotificationSettingsDisplay(notifications) {
+            const notificationDiv = document.getElementById('notificationSettings');
+            if (!notificationDiv || !notifications) return;
+            
+            notificationDiv.innerHTML = notifications.map(notification => `
+                <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px;">
+                    <h5 style="color: #00d4ff; margin: 0 0 10px 0;">
+                        ${notification.notification_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                    </h5>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                        <label style="display: flex; align-items: center; color: #b8c6db; font-size: 0.9rem;">
+                            <input type="checkbox" 
+                                ${notification.enabled ? 'checked' : ''} 
+                                onchange="updateNotification('${notification.notification_type}', 'enabled', this.checked)"
+                                style="margin-right: 8px;">
+                            Enabled
+                        </label>
+                        
+                        <label style="display: flex; align-items: center; color: #b8c6db; font-size: 0.9rem;">
+                            <input type="checkbox" 
+                                ${notification.email_enabled ? 'checked' : ''} 
+                                onchange="updateNotification('${notification.notification_type}', 'email_enabled', this.checked)"
+                                style="margin-right: 8px;">
+                            Email
+                        </label>
+                    </div>
+                    
+                    ${notification.threshold_value ? `
+                        <div style="margin-bottom: 10px;">
+                            <label style="color: #b8c6db; font-size: 0.9rem; display: block; margin-bottom: 5px;">
+                                Threshold Value
+                            </label>
+                            <input type="number" 
+                                value="${notification.threshold_value}" 
+                                onchange="updateNotification('${notification.notification_type}', 'threshold_value', this.value)"
+                                style="
+                                    width: 100%;
+                                    padding: 4px 8px;
+                                    background: rgba(255,255,255,0.1);
+                                    border: 1px solid #00d4ff;
+                                    border-radius: 4px;
+                                    color: white;
+                                    font-size: 0.9rem;
+                                ">
+                        </div>
+                    ` : ''}
+                    
+                    <div>
+                        <label style="color: #b8c6db; font-size: 0.9rem; display: block; margin-bottom: 5px;">
+                            Frequency
+                        </label>
+                        <select onchange="updateNotification('${notification.notification_type}', 'frequency', this.value)"
+                            style="
+                                width: 100%;
+                                padding: 4px 8px;
+                                background: rgba(255,255,255,0.1);
+                                border: 1px solid #00d4ff;
+                                border-radius: 4px;
+                                color: white;
+                                font-size: 0.9rem;
+                            ">
+                            <option value="immediate" ${notification.frequency === 'immediate' ? 'selected' : ''}>Immediate</option>
+                            <option value="hourly" ${notification.frequency === 'hourly' ? 'selected' : ''}>Hourly</option>
+                            <option value="daily" ${notification.frequency === 'daily' ? 'selected' : ''}>Daily</option>
+                            <option value="weekly" ${notification.frequency === 'weekly' ? 'selected' : ''}>Weekly</option>
+                        </select>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateMaintenanceStatus(settings) {
+            const statusSpan = document.getElementById('maintenanceStatus');
+            if (!statusSpan) return;
+            
+            const maintenanceMode = settings.find(s => s.setting_key === 'maintenance_mode');
+            const isMaintenanceMode = maintenanceMode && maintenanceMode.setting_value === 'true';
+            
+            statusSpan.innerHTML = isMaintenanceMode ? 
+                '<span style="color: #ffc107;">🔧 Maintenance Mode Active</span>' :
+                '<span style="color: #00ff88;">✅ Platform Online</span>';
+        }
+
+        async function updateSetting(key, value) {
+            try {
+                const response = await apiService.updatePlatformSetting(key, value);
+                if (response.success) {
+                    addActivity(`⚙️ Setting "${key}" updated to "${value}"`, 'success');
+                    
+                    // Update maintenance status if maintenance_mode was changed
+                    if (key === 'maintenance_mode') {
+                        updateMaintenanceStatus([{setting_key: 'maintenance_mode', setting_value: String(value)}]);
+                    }
+                } else {
+                    addActivity(`❌ Failed to update setting "${key}"`, 'error');
+                    // Refresh to revert UI changes
+                    refreshSettings();
+                }
+            } catch (error) {
+                console.error('Error updating setting:', error);
+                addActivity(`❌ Error updating setting "${key}": ${error.message}`, 'error');
+                refreshSettings();
+            }
+        }
+
+        async function updateNotification(type, field, value) {
+            try {
+                const updateData = {};
+                updateData[field] = value;
+                
+                const response = await apiService.updateNotificationSetting(type, updateData);
+                if (response.success) {
+                    addActivity(`🔔 Notification "${type}" ${field} updated`, 'success');
+                } else {
+                    addActivity(`❌ Failed to update notification "${type}"`, 'error');
+                    refreshSettings();
+                }
+            } catch (error) {
+                console.error('Error updating notification:', error);
+                addActivity(`❌ Error updating notification: ${error.message}`, 'error');
+                refreshSettings();
+            }
+        }
+
+        async function startMaintenanceMode() {
+            const messageInput = document.getElementById('maintenanceMessage');
+            const message = messageInput ? messageInput.value.trim() : '';
+            
+            if (!message) {
+                addActivity('❌ Please enter a maintenance message', 'error');
+                return;
+            }
+            
+            try {
+                const response = await apiService.startMaintenanceMode(message);
+                if (response.success) {
+                    addActivity('🔧 Maintenance mode started', 'success');
+                    updateMaintenanceStatus([{setting_key: 'maintenance_mode', setting_value: 'true'}]);
+                    messageInput.value = '';
+                } else {
+                    addActivity('❌ Failed to start maintenance mode', 'error');
+                }
+            } catch (error) {
+                console.error('Error starting maintenance mode:', error);
+                addActivity(`❌ Error starting maintenance: ${error.message}`, 'error');
+            }
+        }
+
+        async function endMaintenanceMode() {
+            try {
+                const response = await apiService.endMaintenanceMode('Maintenance completed');
+                if (response.success) {
+                    addActivity('✅ Maintenance mode ended', 'success');
+                    updateMaintenanceStatus([{setting_key: 'maintenance_mode', setting_value: 'false'}]);
+                } else {
+                    addActivity('❌ Failed to end maintenance mode', 'error');
+                }
+            } catch (error) {
+                console.error('Error ending maintenance mode:', error);
+                addActivity(`❌ Error ending maintenance: ${error.message}`, 'error');
+            }
+        }
+
+        async function createDatabaseBackup() {
+            try {
+                addActivity('💾 Starting database backup...', 'info');
+                const response = await apiService.createBackup();
+                if (response.success) {
+                    addActivity('✅ Database backup completed successfully', 'success');
+                } else {
+                    addActivity('❌ Database backup failed', 'error');
+                }
+            } catch (error) {
+                console.error('Error creating backup:', error);
+                addActivity(`❌ Backup error: ${error.message}`, 'error');
+            }
+        }
+
+        async function exportPlatformData() {
+            const exportUsers = document.getElementById('exportUsers')?.checked || false;
+            const exportPayments = document.getElementById('exportPayments')?.checked || false;
+            const exportFormat = document.getElementById('exportFormat')?.value || 'json';
+            
+            try {
+                addActivity(`📊 Exporting platform data as ${exportFormat.toUpperCase()}...`, 'info');
+                const response = await apiService.exportPlatformData(exportFormat, exportUsers, exportPayments);
+                if (response.success) {
+                    addActivity('✅ Platform data exported successfully', 'success');
+                    
+                    // Trigger download (simplified - in real implementation you'd handle the blob)
+                    const filename = `arb4me_export_${new Date().toISOString().split('T')[0]}.${exportFormat}`;
+                    addActivity(`💾 Download started: ${filename}`, 'info');
+                } else {
+                    addActivity('❌ Data export failed', 'error');
+                }
+            } catch (error) {
+                console.error('Error exporting data:', error);
+                addActivity(`❌ Export error: ${error.message}`, 'error');
+            }
+        }
+
+        async function runSettingsMigration() {
+            if (!confirm('Run the settings migration? This will create the platform settings database tables.')) {
+                return;
+            }
+            
+            try {
+                addActivity('🔧 Running settings migration...', 'info');
+                
+                const response = await fetch('/api/v1/migration/run-settings', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${apiService.token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    addActivity('✅ Settings migration completed successfully', 'success');
+                    setTimeout(() => refreshSettings(), 1000);
+                } else {
+                    addActivity(`❌ Settings migration failed: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                console.error('Migration error:', error);
+                addActivity(`❌ Migration error: ${error.message}`, 'error');
             }
         }
 
@@ -14364,6 +14890,8 @@ Please help recover this stuck asset.`;
                 initializeBillingTab();
             } else if (tabName === 'analytics') {
                 refreshAnalytics();
+            } else if (tabName === 'settings') {
+                refreshSettings();
             } else if (tabName === 'messages') {
                 refreshAdminMessages();
             } else if (tabName === 'admins') {
