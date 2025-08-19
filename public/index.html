@@ -8573,7 +8573,7 @@
                                     ${roleIcon} ${roleName}
                                 </div>
                                 <div style="color: #b8c6db; font-size: 0.75rem;">
-                                    ID: ${user.id}
+                                    ID: ${user.payment_reference || user.paymentReference || user.id}
                                 </div>
                             </div>
                         </div>
@@ -8593,6 +8593,10 @@
                                 <span style="color: ${user.accountStatus === 'active' ? '#00ff88' : '#ff6b6b'};">
                                     ${user.accountStatus || 'Unknown'}
                                 </span>
+                            </div>
+                            <div style="color: #b8c6db;">
+                                <span style="color: #00d4ff;">🔧 DB ID:</span> 
+                                <span style="font-family: monospace; font-size: 0.7rem;">${user.id}</span>
                             </div>
                         </div>
                         
