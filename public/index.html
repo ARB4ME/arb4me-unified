@@ -8569,8 +8569,8 @@
                                     ${roleIcon} ${roleName}
                                 </div>
                                 <div style="color: #b8c6db; font-size: 0.75rem;">
-                                    ID: ${user.payment_reference || user.paymentReference || user.id}
-                                    ${console.log('🔍 User object fields:', Object.keys(user), 'payment_reference:', user.payment_reference, 'paymentReference:', user.paymentReference) || ''}
+                                    ID: ${user.payment_reference || user.paymentReference || 'ARB-' + user.id.split('_')[1] || user.id}
+                                    ${console.log('🔍 Debug - payment_reference:', user.payment_reference, 'paymentReference:', user.paymentReference, 'user.id:', user.id, 'Final ID will be:', user.payment_reference || user.paymentReference || 'ARB-' + user.id.split('_')[1] || user.id) || ''}
                                 </div>
                             </div>
                         </div>
@@ -10723,7 +10723,7 @@
                                     ${userData.user.firstName} ${userData.user.lastName}
                                 </div>
                                 <div style="color: #e0e0e0; font-size: 0.9rem;">
-                                    ${userData.user.email} | ID: ${userData.user.id}
+                                    ${userData.user.email} | ID: ${userData.user.paymentReference || userData.user.payment_reference || 'ARB-' + userData.user.id.split('_')[1] || userData.user.id}
                                 </div>
                                 <div style="color: #ffd700; font-size: 0.9rem; font-weight: bold;">
                                     💳 Payment Ref: ${userData.user.paymentReference || userData.user.payment_reference || 'Not Set'}
@@ -10936,7 +10936,7 @@
                         <div style="color: #e0e0e0;">
                             <div>📧 Email: ${user.email}</div>
                             <div>📱 Phone: ${user.mobile || 'Not provided'}</div>
-                            <div>🆔 User ID: ${user.id}</div>
+                            <div>🆔 User ID: ${user.payment_reference || user.paymentReference || 'ARB-' + user.id.split('_')[1] || user.id}</div>
                             <div>📝 Reference: ${paymentReference}</div>
                         </div>
                     </div>
@@ -18689,7 +18689,7 @@ ARB4ME Security Team`
                             </div>
                         </div>
                         <div style="text-align: right; font-size: 0.8rem; color: #888;">
-                            ID: ${user.id}
+                            ID: ${user.payment_reference || user.paymentReference || 'ARB-' + user.id.split('_')[1] || user.id}
                         </div>
                     </div>
                     <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-top: 10px; font-size: 0.85rem;">
