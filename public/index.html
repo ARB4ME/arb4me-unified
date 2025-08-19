@@ -8508,6 +8508,9 @@
                                 <div style="color: #b8c6db; font-size: 0.85rem; margin-top: 2px;">
                                     ${user.email}
                                 </div>
+                                <div style="color: #ffd700; font-size: 0.9rem; font-weight: bold; margin-top: 4px;">
+                                    💳 Ref: ${user.paymentReference || user.payment_reference || 'Not Set'}
+                                </div>
                             </div>
                             <div style="display: flex; align-items: center; gap: 10px;">
                                 <div style="
@@ -10664,6 +10667,9 @@
                                 </div>
                                 <div style="color: #e0e0e0; font-size: 0.9rem;">
                                     ${userData.user.email} | ID: ${userData.user.id}
+                                </div>
+                                <div style="color: #ffd700; font-size: 0.9rem; font-weight: bold;">
+                                    💳 Payment Ref: ${userData.user.paymentReference || userData.user.payment_reference || 'Not Set'}
                                 </div>
                                 <div style="color: #b8c6db; font-size: 0.8rem; margin-top: 3px;">
                                     ${userData.tradeCount} trades • $${userData.monthlyProfit.toFixed(2)} profit
@@ -18677,6 +18683,9 @@ ARB4ME Security Team`
                             <div style="color: #b8c6db; font-size: 0.85rem;">
                                 📧 ${user.email} • 📱 ${user.mobile}
                             </div>
+                            <div style="color: #ffd700; font-size: 0.85rem; font-weight: bold;">
+                                💳 Ref: ${user.paymentReference || user.payment_reference || 'Not Set'}
+                            </div>
                         </div>
                         
                         <!-- Quick Status -->
@@ -18807,6 +18816,7 @@ ARB4ME Security Team`
                     <div style="color: #b8c6db; font-size: 0.9rem; margin-bottom: 15px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 8px;">
                         📧 ${user.email}<br>
                         📱 ${user.mobile}<br>
+                        💳 Payment Ref: <span style="color: #ffd700; font-weight: bold;">${user.paymentReference || user.payment_reference || 'Not Set'}</span><br>
                         📅 Joined: ${joinDate}
                     </div>
                     
