@@ -99,30 +99,72 @@ router.get('/all-users-test', authenticateUser, requireAdmin, asyncHandler(async
     try {
         usersResult = await query(`
             SELECT 
-                id, first_name, last_name, email, account_status, last_login_at, created_at, payment_reference
-            FROM users 
-            WHERE admin_role IS NULL OR admin_role != 'master'
-            ORDER BY first_name ASC, last_name ASC
+                u.id, u.first_name, u.last_name, u.email, u.mobile, u.country,
+                u.account_status, u.subscription_plan, u.subscription_expires_at,
+                u.payment_reference,
+                u.created_at, u.updated_at, u.last_login_at,
+                ta.exchanges_connected_count, ta.trading_active, ta.auto_trading_enabled,
+                ta.total_trades_count, ta.successful_trades_count, ta.profit_loss_total,
+                ta.last_trading_activity
+            FROM users u
+            LEFT JOIN trading_activity ta ON u.id = ta.user_id
+            WHERE u.admin_role IS NULL OR u.admin_role != 'master'
+            ORDER BY u.first_name ASC, u.last_name ASC
         `);
     } catch (error) {
         // If payment_reference column doesn't exist, query without it
         console.log('Payment reference column not found, querying without it');
         usersResult = await query(`
             SELECT 
-                id, first_name, last_name, email, account_status, last_login_at, created_at
-            FROM users 
-            WHERE admin_role IS NULL OR admin_role != 'master'
-            ORDER BY first_name ASC, last_name ASC
+                u.id, u.first_name, u.last_name, u.email, u.mobile, u.country,
+                u.account_status, u.subscription_plan, u.subscription_expires_at,
+                u.created_at, u.updated_at, u.last_login_at,
+                ta.exchanges_connected_count, ta.trading_active, ta.auto_trading_enabled,
+                ta.total_trades_count, ta.successful_trades_count, ta.profit_loss_total,
+                ta.last_trading_activity
+            FROM users u
+            LEFT JOIN trading_activity ta ON u.id = ta.user_id
+            WHERE u.admin_role IS NULL OR u.admin_role != 'master'
+            ORDER BY u.first_name ASC, u.last_name ASC
         `);
     }
     
     const users = usersResult.rows.map(row => ({
         id: row.id,
+        first_name: row.first_name,
+        last_name: row.last_name,
         name: `${row.first_name} ${row.last_name}`,
         email: row.email,
+        mobile: row.mobile,
+        country: row.country,
+        account_status: row.account_status,
+        accountStatus: row.account_status,
         status: row.account_status,
+        subscription_plan: row.subscription_plan,
+        subscription_expires_at: row.subscription_expires_at,
+        created_at: row.created_at,
+        createdAt: row.created_at,
+        updated_at: row.updated_at,
+        last_login_at: row.last_login_at,
+        lastLoginAt: row.last_login_at,
         lastLogin: row.last_login_at,
-        paymentReference: row.payment_reference || null,
+        payment_reference: row.payment_reference,
+        paymentReference: row.payment_reference,
+        // Trading activity fields
+        exchanges_connected_count: row.exchanges_connected_count || 0,
+        exchangesConnectedCount: row.exchanges_connected_count || 0,
+        trading_active: row.trading_active || false,
+        tradingActive: row.trading_active || false,
+        auto_trading_enabled: row.auto_trading_enabled || false,
+        autoTradingEnabled: row.auto_trading_enabled || false,
+        total_trades_count: row.total_trades_count || 0,
+        totalTradesCount: row.total_trades_count || 0,
+        successful_trades_count: row.successful_trades_count || 0,
+        successfulTradesCount: row.successful_trades_count || 0,
+        profit_loss_total: row.profit_loss_total || 0,
+        profitLossTotal: row.profit_loss_total || 0,
+        last_trading_activity: row.last_trading_activity,
+        lastTradingActivity: row.last_trading_activity,
         isOnline: false // Default to offline since we don't track real-time status
     }));
     
