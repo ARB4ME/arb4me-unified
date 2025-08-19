@@ -22,6 +22,7 @@ const userRoutes = require('./src/routes/user.routes');
 const messageRoutes = require('./src/routes/message.routes');
 const adminRoutes = require('./src/routes/admin.routes');
 const tradingRoutes = require('./src/routes/trading.routes');
+const billingRoutes = require('./src/routes/billing.routes');
 
 // Initialize Express app
 const app = express();
@@ -71,6 +72,7 @@ app.use(`${API_PREFIX}/auth`, authRoutes);
 app.use(`${API_PREFIX}/user`, userRoutes);
 app.use(`${API_PREFIX}/messages`, messageRoutes);
 app.use(`${API_PREFIX}/admin`, adminRoutes);
+app.use(`${API_PREFIX}/admin/payments`, billingRoutes);
 app.use(`${API_PREFIX}/trading`, tradingRoutes);
 
 // Serve PWA static files
