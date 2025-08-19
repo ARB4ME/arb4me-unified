@@ -173,4 +173,51 @@ router.get('/status', async (req, res) => {
     }
 });
 
+// POST /api/v1/migration/run-settings - Run settings system migration
+router.post('/run-settings', async (req, res) => {
+    try {
+        console.log('🔄 Starting Platform Settings Migration...');
+        
+        // Read the migration file content
+        const fs = require('fs');
+        const path = require('path');
+        const migrationPath = path.join(__dirname, '../database/migrations/007_platform_settings.sql');
+        
+        let migrationSQL;
+        try {
+            migrationSQL = fs.readFileSync(migrationPath, 'utf8');
+        } catch (error) {
+            return res.status(500).json({
+                success: false,
+                error: 'Settings migration file not found',
+                details: error.message
+            });
+        }
+
+        // Execute the entire migration as one transaction
+        console.log('Executing settings migration script...');
+        const result = await query(migrationSQL);
+        
+        console.log('✅ Platform Settings Migration completed');
+        
+        res.json({
+            success: true,
+            message: 'Platform Settings Migration completed successfully',
+            summary: {
+                executed: 'Settings system tables and default values created',
+                successful: 1,
+                errors: 0
+            }
+        });
+
+    } catch (error) {
+        console.error('❌ Settings Migration failed:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Settings Migration failed',
+            details: error.message
+        });
+    }
+});
+
 module.exports = router;

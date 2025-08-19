@@ -16844,6 +16844,218 @@ ARB4ME Security Team`
                     return { success: false, error: error.message };
                 }
             }
+
+            // =====================
+            // SETTINGS API METHODS
+            // =====================
+
+            async getPlatformSettings(category = null) {
+                try {
+                    if (!this.token) {
+                        console.log('No JWT token available for platform settings');
+                        return { success: false, error: 'No authentication token' };
+                    }
+
+                    const params = category ? `?category=${category}` : '';
+                    const response = await this.apiCall(`/settings/platform${params}`, {
+                        method: 'GET'
+                    });
+                    
+                    if (response.success) {
+                        console.log('✅ Platform settings retrieved:', response.data);
+                        return response;
+                    } else {
+                        console.log('❌ Failed to get platform settings:', response.error);
+                        return response;
+                    }
+                } catch (error) {
+                    console.log('❌ Error getting platform settings:', error.message);
+                    return { success: false, error: error.message };
+                }
+            }
+
+            async updatePlatformSetting(key, value) {
+                try {
+                    if (!this.token) {
+                        console.log('No JWT token available for updating settings');
+                        return { success: false, error: 'No authentication token' };
+                    }
+
+                    const response = await this.apiCall(`/settings/platform/${key}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ value })
+                    });
+                    
+                    if (response.success) {
+                        console.log('✅ Platform setting updated:', response.data);
+                        return response;
+                    } else {
+                        console.log('❌ Failed to update platform setting:', response.error);
+                        return response;
+                    }
+                } catch (error) {
+                    console.log('❌ Error updating platform setting:', error.message);
+                    return { success: false, error: error.message };
+                }
+            }
+
+            async getNotificationSettings() {
+                try {
+                    if (!this.token) {
+                        console.log('No JWT token available for notification settings');
+                        return { success: false, error: 'No authentication token' };
+                    }
+
+                    const response = await this.apiCall('/settings/notifications', {
+                        method: 'GET'
+                    });
+                    
+                    if (response.success) {
+                        console.log('✅ Notification settings retrieved:', response.data);
+                        return response;
+                    } else {
+                        console.log('❌ Failed to get notification settings:', response.error);
+                        return response;
+                    }
+                } catch (error) {
+                    console.log('❌ Error getting notification settings:', error.message);
+                    return { success: false, error: error.message };
+                }
+            }
+
+            async updateNotificationSetting(type, settings) {
+                try {
+                    if (!this.token) {
+                        console.log('No JWT token available for updating notifications');
+                        return { success: false, error: 'No authentication token' };
+                    }
+
+                    const response = await this.apiCall(`/settings/notifications/${type}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(settings)
+                    });
+                    
+                    if (response.success) {
+                        console.log('✅ Notification setting updated:', response.data);
+                        return response;
+                    } else {
+                        console.log('❌ Failed to update notification setting:', response.error);
+                        return response;
+                    }
+                } catch (error) {
+                    console.log('❌ Error updating notification setting:', error.message);
+                    return { success: false, error: error.message };
+                }
+            }
+
+            async startMaintenanceMode(message) {
+                try {
+                    if (!this.token) {
+                        console.log('No JWT token available for maintenance mode');
+                        return { success: false, error: 'No authentication token' };
+                    }
+
+                    const response = await this.apiCall('/settings/maintenance/start', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ message })
+                    });
+                    
+                    if (response.success) {
+                        console.log('✅ Maintenance mode started:', response.data);
+                        return response;
+                    } else {
+                        console.log('❌ Failed to start maintenance mode:', response.error);
+                        return response;
+                    }
+                } catch (error) {
+                    console.log('❌ Error starting maintenance mode:', error.message);
+                    return { success: false, error: error.message };
+                }
+            }
+
+            async endMaintenanceMode(message) {
+                try {
+                    if (!this.token) {
+                        console.log('No JWT token available for maintenance mode');
+                        return { success: false, error: 'No authentication token' };
+                    }
+
+                    const response = await this.apiCall('/settings/maintenance/end', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ message })
+                    });
+                    
+                    if (response.success) {
+                        console.log('✅ Maintenance mode ended:', response.data);
+                        return response;
+                    } else {
+                        console.log('❌ Failed to end maintenance mode:', response.error);
+                        return response;
+                    }
+                } catch (error) {
+                    console.log('❌ Error ending maintenance mode:', error.message);
+                    return { success: false, error: error.message };
+                }
+            }
+
+            async createBackup() {
+                try {
+                    if (!this.token) {
+                        console.log('No JWT token available for backup creation');
+                        return { success: false, error: 'No authentication token' };
+                    }
+
+                    const response = await this.apiCall('/settings/backup/create', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                    
+                    if (response.success) {
+                        console.log('✅ Backup created:', response.data);
+                        return response;
+                    } else {
+                        console.log('❌ Failed to create backup:', response.error);
+                        return response;
+                    }
+                } catch (error) {
+                    console.log('❌ Error creating backup:', error.message);
+                    return { success: false, error: error.message };
+                }
+            }
+
+            async exportPlatformData(format = 'json', includeUsers = false, includePayments = false) {
+                try {
+                    if (!this.token) {
+                        console.log('No JWT token available for data export');
+                        return { success: false, error: 'No authentication token' };
+                    }
+
+                    const params = new URLSearchParams({
+                        format,
+                        include_users: includeUsers,
+                        include_payments: includePayments
+                    });
+
+                    const response = await this.apiCall(`/settings/export/data?${params}`, {
+                        method: 'GET'
+                    });
+                    
+                    if (response.success) {
+                        console.log('✅ Platform data exported:', response.data);
+                        return response;
+                    } else {
+                        console.log('❌ Failed to export platform data:', response.error);
+                        return response;
+                    }
+                } catch (error) {
+                    console.log('❌ Error exporting platform data:', error.message);
+                    return { success: false, error: error.message };
+                }
+            }
         }
 
         // Initialize API Service
