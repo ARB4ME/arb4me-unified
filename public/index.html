@@ -8515,6 +8515,12 @@
                     throw new Error(`Failed to fetch users - Response: ${JSON.stringify(response)}`);
                 }
                 
+                console.log('📋 Users for display:', allUsers.map(u => ({
+                    name: `${u.first_name || u.firstName} ${u.last_name || u.lastName}`,
+                    payment_ref: u.payment_reference || u.paymentReference,
+                    id: u.id
+                })));
+                
                 // Update stats
                 updateUserManagementStats(allUsers);
                 
@@ -10659,11 +10665,18 @@
                 };
             });
 
-            // Update admin stats
-            document.getElementById('adminTotalRevenue').textContent = `R${totalRevenue.toFixed(2)}`;
-            document.getElementById('adminPendingPayments').textContent = pendingPayments;
-            document.getElementById('adminOverduePayments').textContent = overduePayments;
-            document.getElementById('adminSuspendedAccounts').textContent = suspendedAccounts;
+            // Update admin stats (with null checks)
+            const totalRevenueEl = document.getElementById('adminTotalRevenue');
+            if (totalRevenueEl) totalRevenueEl.textContent = `R${totalRevenue.toFixed(2)}`;
+            
+            const pendingPaymentsEl = document.getElementById('adminPendingPayments');
+            if (pendingPaymentsEl) pendingPaymentsEl.textContent = pendingPayments;
+            
+            const overduePaymentsEl = document.getElementById('adminOverduePayments');
+            if (overduePaymentsEl) overduePaymentsEl.textContent = overduePayments;
+            
+            const suspendedAccountsEl = document.getElementById('adminSuspendedAccounts');
+            if (suspendedAccountsEl) suspendedAccountsEl.textContent = suspendedAccounts;
 
             // Update user billing list
             updateAdminUserBillingList(userBillingData);
