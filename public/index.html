@@ -8502,12 +8502,18 @@
                 const response = await apiService.getAllUsers();
                 console.log('🔍 getAllUsers response:', response);
                 
-                if (!response.success || !response.data || !response.data.users) {
+                // Handle different response formats
+                let allUsers;
+                if (response.success && response.data && response.data.users) {
+                    // Standard API response format
+                    allUsers = response.data.users;
+                } else if (response.users && Array.isArray(response.users)) {
+                    // Direct users array format
+                    allUsers = response.users;
+                } else {
                     console.error('❌ Invalid response structure:', response);
                     throw new Error(`Failed to fetch users - Response: ${JSON.stringify(response)}`);
                 }
-                
-                const allUsers = response.data.users;
                 
                 // Update stats
                 updateUserManagementStats(allUsers);
