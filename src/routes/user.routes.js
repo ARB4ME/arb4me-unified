@@ -14,19 +14,38 @@ router.use(authenticateUser);
 
 // GET /api/v1/user/profile - Get user profile
 router.get('/profile', asyncHandler(async (req, res) => {
-    const userResult = await query(`
-        SELECT u.id, u.first_name, u.last_name, u.email, u.mobile, u.country,
-               u.admin_role, u.account_status, u.subscription_plan, u.subscription_expires_at,
-               u.created_at, u.updated_at, u.last_login_at, u.payment_reference,
-               ta.exchanges_connected, ta.exchanges_connected_count, ta.selected_crypto_assets,
-               ta.trading_active, ta.auto_trading_enabled, ta.total_trades_count,
-               ta.successful_trades_count, ta.failed_trades_count, ta.profit_loss_total,
-               ta.api_keys_configured, ta.usdt_balance_detected, ta.safety_controls_completed,
-               ta.auto_trading_readiness_percent, ta.last_trading_activity
-        FROM users u
-        LEFT JOIN trading_activity ta ON u.id = ta.user_id
-        WHERE u.id = $1
-    `, [req.user.id]);
+    // Try new schema first, fall back to basic user data if billing fields don't exist
+    let userResult;
+    try {
+        userResult = await query(`
+            SELECT u.id, u.first_name, u.last_name, u.email, u.mobile, u.country,
+                   u.admin_role, u.account_status, u.subscription_plan, u.subscription_expires_at,
+                   u.created_at, u.updated_at, u.last_login_at, u.payment_reference,
+                   ta.exchanges_connected, ta.exchanges_connected_count, ta.selected_crypto_assets,
+                   ta.trading_active, ta.auto_trading_enabled, ta.total_trades_count,
+                   ta.successful_trades_count, ta.failed_trades_count, ta.profit_loss_total,
+                   ta.api_keys_configured, ta.usdt_balance_detected, ta.safety_controls_completed,
+                   ta.auto_trading_readiness_percent, ta.last_trading_activity
+            FROM users u
+            LEFT JOIN trading_activity ta ON u.id = ta.user_id
+            WHERE u.id = $1
+        `, [req.user.id]);
+    } catch (error) {
+        // Fall back to basic user query if billing columns don't exist yet
+        console.log('Billing columns not available, using basic user query:', error.message);
+        userResult = await query(`
+            SELECT u.id, u.first_name, u.last_name, u.email, u.mobile, u.country,
+                   u.admin_role, u.account_status, u.created_at, u.updated_at, u.last_login_at,
+                   ta.exchanges_connected, ta.exchanges_connected_count, ta.selected_crypto_assets,
+                   ta.trading_active, ta.auto_trading_enabled, ta.total_trades_count,
+                   ta.successful_trades_count, ta.failed_trades_count, ta.profit_loss_total,
+                   ta.api_keys_configured, ta.usdt_balance_detected, ta.safety_controls_completed,
+                   ta.auto_trading_readiness_percent, ta.last_trading_activity
+            FROM users u
+            LEFT JOIN trading_activity ta ON u.id = ta.user_id
+            WHERE u.id = $1
+        `, [req.user.id]);
+    }
     
     if (userResult.rows.length === 0) {
         throw new APIError('User not found', 404, 'USER_NOT_FOUND');
@@ -37,22 +56,20 @@ router.get('/profile', asyncHandler(async (req, res) => {
     res.json({
         success: true,
         data: {
-            profile: {
-                id: userData.id,
-                firstName: userData.first_name,
-                lastName: userData.last_name,
-                email: userData.email,
-                mobile: userData.mobile,
-                country: userData.country,
-                adminRole: userData.admin_role,
-                accountStatus: userData.account_status,
-                subscriptionPlan: userData.subscription_plan,
-                subscriptionExpiresAt: userData.subscription_expires_at,
-                createdAt: userData.created_at,
-                updatedAt: userData.updated_at,
-                lastLoginAt: userData.last_login_at,
-                paymentReference: userData.payment_reference
-            },
+            id: userData.id,
+            firstName: userData.first_name,
+            lastName: userData.last_name,
+            email: userData.email,
+            mobile: userData.mobile,
+            country: userData.country,
+            adminRole: userData.admin_role,
+            account_status: userData.account_status,
+            subscription_plan: userData.subscription_plan || null,
+            subscription_expires_at: userData.subscription_expires_at || null,
+            createdAt: userData.created_at,
+            updatedAt: userData.updated_at,
+            lastLoginAt: userData.last_login_at,
+            payment_reference: userData.payment_reference || null,
             tradingActivity: {
                 exchangesConnected: userData.exchanges_connected || [],
                 exchangesConnectedCount: userData.exchanges_connected_count || 0,
