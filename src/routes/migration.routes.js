@@ -1,13 +1,13 @@
 const express = require('express');
 const { query } = require('../database/connection');
-const { requireMaster } = require('../middleware/adminPermissions');
+const { requireAdmin } = require('../middleware/adminPermissions');
 const { authenticateUser } = require('../middleware/auth');
 
 const router = express.Router();
 
 // Apply authentication and admin requirements
 router.use(authenticateUser);
-router.use(requireMaster);
+router.use(requireAdmin);
 
 // POST /api/v1/migration/run-billing - Run Phase 6 billing migration
 router.post('/run-billing', async (req, res) => {
