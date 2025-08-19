@@ -262,6 +262,56 @@
             0%, 100% { transform: translateY(0); }
             50% { transform: translateY(-5px); }
         }
+
+        /* Subscription Warning Banner Styles */
+        .subscription-warning-banner {
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            animation: bannerPulse 3s ease-in-out infinite;
+        }
+
+        .subscription-warning-banner.expired {
+            background: linear-gradient(135deg, #ff4757, #c44569);
+            border: 2px solid #ff6b6b;
+            animation: urgentPulse 1.5s ease-in-out infinite;
+        }
+
+        .subscription-warning-banner.critical {
+            background: linear-gradient(135deg, #ff6348, #ff4757);
+            border: 2px solid #ff7675;
+        }
+
+        .subscription-warning-banner.warning {
+            background: linear-gradient(135deg, #ffa502, #ff6348);
+            border: 2px solid #ff9f43;
+        }
+
+        .banner-actions {
+            display: flex;
+            gap: 10px;
+            margin-left: 15px;
+        }
+
+        .banner-actions button {
+            transition: all 0.3s ease;
+        }
+
+        .banner-actions button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        @keyframes urgentPulse {
+            0%, 100% { 
+                box-shadow: 0 4px 15px rgba(255, 71, 87, 0.4);
+                transform: scale(1);
+            }
+            50% { 
+                box-shadow: 0 4px 25px rgba(255, 71, 87, 0.7);
+                transform: scale(1.01);
+            }
+        }
         
         /* USDT Tooltip System */
         .usdt-tooltip {
@@ -2489,6 +2539,20 @@
                     <div class="banner-text">
                         <div class="banner-title">🌍 Global Arbitrage Trading Platform</div>
                         <div class="banner-message">Convert your local currency to USDT on exchanges before trading • ARB4ME uses USDT as the universal trading currency</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Subscription Expiry Warning Banner -->
+            <div id="subscriptionWarningBanner" class="subscription-warning-banner" style="display: none;">
+                <div class="banner-content">
+                    <div class="banner-icon">⚠️</div>
+                    <div class="banner-text">
+                        <div class="banner-title">Subscription Status</div>
+                        <div class="banner-message" id="subscriptionWarningMessage">Your subscription status will appear here</div>
+                    </div>
+                    <div class="banner-actions">
+                        <button id="renewSubscriptionBtn" onclick="openBillingDashboard()" style="background: #ff6b6b; color: white; border: none; padding: 8px 16px; border-radius: 20px; cursor: pointer; font-weight: bold; font-size: 0.9rem;">Renew Now</button>
                     </div>
                 </div>
             </div>
@@ -8899,50 +8963,262 @@
             document.body.appendChild(modal);
         }
 
-        function updateAccountStatus() {
-            // Check if there are any overdue payments
-            const billingHistory = JSON.parse(localStorage.getItem('arb4me_billing_history') || '[]');
-            const overduePayments = billingHistory.filter(bill => 
-                bill.status === 'unpaid' && new Date(bill.dueDate) < new Date()
-            );
+        async function updateAccountStatus() {
+            try {
+                // First get user subscription data from API if available
+                const user = userState.userData;
+                let subscriptionExpiresAt = null;
+                let accountStatus = 'ACTIVE';
+                let daysRemaining = null;
 
-            if (overduePayments.length > 0) {
-                billingState.accountStatus = 'SUSPENDED';
-                billingState.paymentStatus = 'OVERDUE';
-                document.getElementById('accountStatus').textContent = 'SUSPENDED';
-                document.getElementById('accountStatus').style.color = '#ff6b6b';
-                document.getElementById('paymentStatus').textContent = 'OVERDUE';
-                document.getElementById('paymentStatus').style.color = '#ff6b6b';
-                
-                // Disable trading if account is suspended
+                // Try to get latest user data from API
+                if (user && user.id) {
+                    try {
+                        const response = await apiService.getCurrentUser();
+                        if (response && response.data) {
+                            subscriptionExpiresAt = response.data.subscription_expires_at;
+                            accountStatus = response.data.account_status || 'ACTIVE';
+                        }
+                    } catch (error) {
+                        console.log('Could not fetch latest user data:', error.message);
+                        // Fall back to existing user data
+                        subscriptionExpiresAt = user.subscription_expires_at;
+                        accountStatus = user.account_status || 'ACTIVE';
+                    }
+                }
+
+                // Calculate subscription status
+                if (subscriptionExpiresAt) {
+                    const expiryDate = new Date(subscriptionExpiresAt);
+                    const currentDate = new Date();
+                    const timeDiff = expiryDate.getTime() - currentDate.getTime();
+                    daysRemaining = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+
+                    // Update account status based on expiry
+                    if (daysRemaining < 0) {
+                        // Expired
+                        billingState.accountStatus = 'EXPIRED';
+                        billingState.paymentStatus = 'RENEWAL REQUIRED';
+                        updateStatusDisplay('accountStatus', 'EXPIRED', '#ff6b6b');
+                        updateStatusDisplay('paymentStatus', 'RENEWAL REQUIRED', '#ff6b6b');
+                        
+                        // Update next payment display
+                        updateNextPaymentDate('Overdue - Renew Now');
+                        
+                        // Disable trading if expired
+                        if (userState.liveMode) {
+                            userState.liveMode = false;
+                            addActivity('⚠️ Trading suspended - subscription expired', 'error');
+                        }
+                    } else if (daysRemaining <= 3) {
+                        // Expires in 3 days or less - critical
+                        billingState.accountStatus = accountStatus;
+                        billingState.paymentStatus = 'RENEWAL URGENT';
+                        updateStatusDisplay('accountStatus', accountStatus, '#feca57');
+                        updateStatusDisplay('paymentStatus', `EXPIRES IN ${daysRemaining} DAY${daysRemaining === 1 ? '' : 'S'}`, '#ff6b6b');
+                        updateNextPaymentDate(expiryDate.toLocaleDateString('en-ZA'));
+                    } else if (daysRemaining <= 7) {
+                        // Expires in 7 days or less - warning
+                        billingState.accountStatus = accountStatus;
+                        billingState.paymentStatus = 'RENEWAL DUE SOON';
+                        updateStatusDisplay('accountStatus', accountStatus, '#00ff88');
+                        updateStatusDisplay('paymentStatus', `EXPIRES IN ${daysRemaining} DAYS`, '#feca57');
+                        updateNextPaymentDate(expiryDate.toLocaleDateString('en-ZA'));
+                    } else {
+                        // Active with time remaining
+                        billingState.accountStatus = accountStatus;
+                        billingState.paymentStatus = 'SUBSCRIPTION ACTIVE';
+                        updateStatusDisplay('accountStatus', accountStatus, '#00ff88');
+                        updateStatusDisplay('paymentStatus', `EXPIRES IN ${daysRemaining} DAYS`, '#00d4ff');
+                        updateNextPaymentDate(expiryDate.toLocaleDateString('en-ZA'));
+                    }
+                } else {
+                    // No subscription data - fall back to old system
+                    const billingHistory = JSON.parse(localStorage.getItem('arb4me_billing_history') || '[]');
+                    const overduePayments = billingHistory.filter(bill => 
+                        bill.status === 'unpaid' && new Date(bill.dueDate) < new Date()
+                    );
+
+                    if (overduePayments.length > 0) {
+                        billingState.accountStatus = 'SUSPENDED';
+                        billingState.paymentStatus = 'OVERDUE';
+                        updateStatusDisplay('accountStatus', 'SUSPENDED', '#ff6b6b');
+                        updateStatusDisplay('paymentStatus', 'OVERDUE', '#ff6b6b');
+                        
+                        if (userState.liveMode) {
+                            userState.liveMode = false;
+                            addActivity('⚠️ Trading suspended due to overdue payment', 'error');
+                        }
+                    } else {
+                        billingState.accountStatus = 'ACTIVE';
+                        updateStatusDisplay('accountStatus', 'ACTIVE', '#00ff88');
+                        updateStatusDisplay('paymentStatus', 'No Subscription Data', '#feca57');
+                    }
+                }
+
+                // Store subscription info for dashboard use
+                billingState.subscriptionExpiresAt = subscriptionExpiresAt;
+                billingState.daysRemaining = daysRemaining;
+
+                // Update subscription warning banner
+                updateSubscriptionWarningBanner(daysRemaining, subscriptionExpiresAt);
+
+                // Auto-suspend if expired
+                if (daysRemaining !== null && daysRemaining < 0) {
+                    await autoSuspendIfExpired(userState.userData, daysRemaining);
+                }
+
+                // Enforce subscription limits on UI
+                enforceSubscriptionLimits();
+
+            } catch (error) {
+                console.error('Error updating account status:', error);
+                // Fallback to safe status
+                updateStatusDisplay('accountStatus', 'UNKNOWN', '#feca57');
+                updateStatusDisplay('paymentStatus', 'Check Required', '#feca57');
+            }
+        }
+
+        function updateStatusDisplay(elementId, text, color) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.textContent = text;
+                element.style.color = color;
+            }
+        }
+
+        function updateNextPaymentDate(dateText) {
+            const element = document.getElementById('nextPaymentDate');
+            if (element) {
+                element.textContent = dateText;
+                element.style.color = dateText.includes('Overdue') ? '#ff6b6b' : '#00d4ff';
+            }
+        }
+
+        // Enhanced function to calculate subscription days remaining
+        function calculateDaysRemaining(expiryDate) {
+            if (!expiryDate) return null;
+            const expiry = new Date(expiryDate);
+            const today = new Date();
+            const timeDiff = expiry.getTime() - today.getTime();
+            return Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+        }
+
+        // Function to get subscription status color and message
+        function getSubscriptionStatusInfo(daysRemaining) {
+            if (daysRemaining === null) return { color: '#feca57', status: 'No Data' };
+            if (daysRemaining < 0) return { color: '#ff6b6b', status: 'EXPIRED' };
+            if (daysRemaining <= 3) return { color: '#ff6b6b', status: 'URGENT' };
+            if (daysRemaining <= 7) return { color: '#feca57', status: 'WARNING' };
+            return { color: '#00ff88', status: 'ACTIVE' };
+        }
+
+        // Update subscription warning banner
+        function updateSubscriptionWarningBanner(daysRemaining, subscriptionExpiresAt) {
+            const banner = document.getElementById('subscriptionWarningBanner');
+            const message = document.getElementById('subscriptionWarningMessage');
+            
+            if (!banner || !message) return;
+
+            // Remove existing classes
+            banner.classList.remove('expired', 'critical', 'warning');
+            
+            if (daysRemaining === null || daysRemaining > 7) {
+                // No warning needed - subscription is healthy or no data
+                banner.style.display = 'none';
+                return;
+            }
+
+            // Show banner with appropriate styling and message
+            banner.style.display = 'block';
+            
+            const expiryDate = new Date(subscriptionExpiresAt).toLocaleDateString('en-ZA');
+            
+            if (daysRemaining < 0) {
+                // Expired
+                banner.classList.add('expired');
+                const expiredDays = Math.abs(daysRemaining);
+                message.textContent = `⚠️ Your subscription expired ${expiredDays} day${expiredDays === 1 ? '' : 's'} ago (${expiryDate}). Trading is suspended until renewal.`;
+            } else if (daysRemaining <= 3) {
+                // Critical - expires in 3 days or less
+                banner.classList.add('critical');
+                message.textContent = `🚨 URGENT: Your subscription expires in ${daysRemaining} day${daysRemaining === 1 ? '' : 's'} (${expiryDate}). Renew now to avoid service interruption.`;
+            } else if (daysRemaining <= 7) {
+                // Warning - expires in 7 days or less
+                banner.classList.add('warning');
+                message.textContent = `⏰ Your subscription expires in ${daysRemaining} days (${expiryDate}). Please renew soon to avoid any interruption.`;
+            }
+        }
+
+        // Auto-suspend expired users - checks subscription and disables services
+        async function autoSuspendIfExpired(user, daysRemaining) {
+            if (!user || daysRemaining === null || daysRemaining >= 0) {
+                return false; // Not expired
+            }
+
+            try {
+                // Disable live trading immediately
                 if (userState.liveMode) {
                     userState.liveMode = false;
-                    addActivity('⚠️ Trading suspended due to overdue payment', 'error');
+                    addActivity('🚫 Auto-trading disabled - subscription expired', 'error');
                 }
-            } else {
-                billingState.accountStatus = 'ACTIVE';
-                document.getElementById('accountStatus').textContent = 'ACTIVE';
-                document.getElementById('accountStatus').style.color = '#00ff88';
-                
-                // Check if payment is due soon
-                const currentDate = new Date();
-                const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
-                const daysUntilMonthEnd = Math.ceil((endOfMonth - currentDate) / (1000 * 60 * 60 * 24));
-                
-                if (daysUntilMonthEnd <= 7 && billingState.currentMonthProfit > 0) {
-                    billingState.paymentStatus = 'Payment Due Soon';
-                    document.getElementById('paymentStatus').textContent = 'Payment Due Soon';
-                    document.getElementById('paymentStatus').style.color = '#feca57';
-                } else if (billingState.currentMonthProfit > 0) {
-                    billingState.paymentStatus = 'Payment Pending';
-                    document.getElementById('paymentStatus').textContent = 'Payment Pending';
-                    document.getElementById('paymentStatus').style.color = '#00d4ff';
-                } else {
-                    billingState.paymentStatus = 'No Payment Due';
-                    document.getElementById('paymentStatus').textContent = 'No Payment Due';
-                    document.getElementById('paymentStatus').style.color = '#feca57';
+
+                // Update user's account status locally
+                userState.userData.account_status = 'suspended';
+                localStorage.setItem('arb4me_current_user', JSON.stringify(userState.userData));
+
+                // Try to update account status on backend (optional - may fail if offline)
+                try {
+                    await apiService.updateUserStatus(user.id, 'suspended');
+                    console.log('✅ User account suspended in backend due to expiry');
+                } catch (error) {
+                    console.log('⚠️ Could not suspend user in backend (offline?):', error.message);
                 }
+
+                // Disable all trading controls
+                const tradingControls = document.querySelectorAll('#autoTradeToggle, #manualTradeBtn, #liveTradeBtn');
+                tradingControls.forEach(control => {
+                    if (control) {
+                        control.disabled = true;
+                        control.style.opacity = '0.5';
+                    }
+                });
+
+                // Show suspension message in activity feed
+                addActivity('⛔ Account suspended due to subscription expiry. Renew to reactivate.', 'error');
+
+                return true; // User was suspended
+            } catch (error) {
+                console.error('Error in auto-suspend:', error);
+                return false;
             }
+        }
+
+        // Check and enforce subscription limits on trading
+        function enforceSubscriptionLimits() {
+            const daysRemaining = billingState.daysRemaining;
+            
+            if (daysRemaining !== null && daysRemaining < 0) {
+                // Subscription expired - block all trading
+                const tradingControls = document.querySelectorAll('#autoTradeToggle, #manualTradeBtn, #liveTradeBtn');
+                tradingControls.forEach(control => {
+                    if (control) {
+                        control.disabled = true;
+                        control.style.opacity = '0.5';
+                        control.title = 'Trading disabled - subscription expired';
+                    }
+                });
+
+                // Force disable live mode if somehow still enabled
+                if (userState.liveMode) {
+                    userState.liveMode = false;
+                    addActivity('🚫 Trading forcibly disabled - subscription expired', 'error');
+                }
+
+                return false; // Trading not allowed
+            }
+
+            return true; // Trading allowed
         }
 
         function loadBillingHistory() {
@@ -14948,6 +15224,32 @@ ARB4ME Security Team`
                 }
             }
 
+            // Get current user data (with fresh subscription info)
+            async getCurrentUser() {
+                try {
+                    // Try to get fresh user data from backend
+                    const response = await this.apiCall('/user/profile', {
+                        method: 'GET'
+                    });
+
+                    // Update local storage with fresh data
+                    if (response.success && response.data) {
+                        localStorage.setItem('arb4me_current_user', JSON.stringify(response.data));
+                        return { success: true, data: response.data };
+                    }
+
+                    return response;
+                } catch (error) {
+                    // Fallback to localStorage data
+                    console.log('Backend user fetch failed, using localStorage:', error.message);
+                    const userData = JSON.parse(localStorage.getItem('arb4me_current_user') || '{}');
+                    if (userData && Object.keys(userData).length > 0) {
+                        return { success: true, data: userData, source: 'localStorage' };
+                    }
+                    throw error;
+                }
+            }
+
             // Logout
             async logout() {
                 try {
@@ -19996,7 +20298,14 @@ ARB4ME Security Team`
             
             // Check if user is trying to turn ON auto-trading
             if (!state.autoTrading) {
-                // First check failures
+                // First check subscription status
+                if (!enforceSubscriptionLimits()) {
+                    addActivity('❌ Cannot start trading: subscription expired', 'error');
+                    openBillingDashboard(); // Open billing to renew
+                    return;
+                }
+                
+                // Then check failures
                 if (failureState.currentFailures.length > 0) {
                     addActivity('❌ Cannot start trading: unresolved failures exist', 'error');
                     showFailureRecoveryInterface(failureState.currentFailures[0], failureState.recoveryOptions);
