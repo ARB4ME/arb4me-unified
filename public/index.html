@@ -8518,8 +8518,10 @@
                 console.log('📋 Users for display:', allUsers.map(u => ({
                     name: `${u.first_name || u.firstName} ${u.last_name || u.lastName}`,
                     payment_ref: u.payment_reference || u.paymentReference,
-                    id: u.id
+                    id: u.id,
+                    all_fields: Object.keys(u)
                 })));
+                console.log('🔍 First user full object:', allUsers[0]);
                 
                 // Update stats
                 updateUserManagementStats(allUsers);
