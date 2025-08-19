@@ -56,6 +56,53 @@ router.post('/run-billing', async (req, res) => {
     }
 });
 
+// POST /api/v1/migration/run-trading-activity - Run trading activity migration
+router.post('/run-trading-activity', async (req, res) => {
+    try {
+        console.log('🔄 Starting Trading Activity Migration...');
+        
+        // Read the migration file content
+        const fs = require('fs');
+        const path = require('path');
+        const migrationPath = path.join(__dirname, '../database/migrations/006_trading_activity.sql');
+        
+        let migrationSQL;
+        try {
+            migrationSQL = fs.readFileSync(migrationPath, 'utf8');
+        } catch (error) {
+            return res.status(500).json({
+                success: false,
+                error: 'Migration file not found',
+                details: error.message
+            });
+        }
+
+        // Execute the entire migration as one transaction
+        console.log('Executing trading activity migration...');
+        const result = await query(migrationSQL);
+        
+        console.log('✅ Trading Activity Migration completed');
+        
+        res.json({
+            success: true,
+            message: 'Trading Activity Migration completed successfully',
+            summary: {
+                executed: 'Trading activity table and triggers created',
+                successful: 1,
+                errors: 0
+            }
+        });
+
+    } catch (error) {
+        console.error('❌ Migration failed:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Migration failed',
+            details: error.message
+        });
+    }
+});
+
 // POST /api/v1/migration/promote-admin - Promote current user to admin
 router.post('/promote-admin', async (req, res) => {
     try {
