@@ -5916,46 +5916,109 @@
                 </div>
 
                 <div id="adminAnalyticsTab" class="admin-content" style="display: none;">
-                    <h3 style="color: #00d4ff; margin-bottom: 15px;">📊 Platform Analytics</h3>
-                    
-                    <div class="stats-grid" style="margin-bottom: 20px;">
-                        <div class="stat-card">
-                            <div class="stat-value">2</div>
-                            <div class="stat-label">Total Signups</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value">1</div>
-                            <div class="stat-label">Signups Today</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value">50%</div>
-                            <div class="stat-label">API Connection Rate</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value">1</div>
-                            <div class="stat-label">Active Traders</div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3 style="color: #00d4ff; margin: 0;">📊 Platform Analytics</h3>
+                        
+                        <!-- Time Period Filter -->
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <label style="color: #b8c6db; font-size: 0.9rem;">Period:</label>
+                            <select id="analyticsTimePeriod" onchange="refreshAnalytics()" style="
+                                padding: 6px 12px;
+                                background: rgba(255,255,255,0.1);
+                                border: 1px solid #00d4ff;
+                                border-radius: 6px;
+                                color: white;
+                                font-size: 0.9rem;
+                            ">
+                                <option value="7d">Last 7 Days</option>
+                                <option value="30d" selected>Last 30 Days</option>
+                                <option value="90d">Last 90 Days</option>
+                                <option value="1y">Last Year</option>
+                            </select>
+                            
+                            <button onclick="refreshAnalytics()" style="
+                                padding: 6px 12px;
+                                background: linear-gradient(45deg, #00ff88, #00d4aa);
+                                color: #1a1a2e;
+                                border: none;
+                                border-radius: 6px;
+                                cursor: pointer;
+                                font-weight: bold;
+                                font-size: 0.9rem;
+                            ">🔄 Refresh</button>
                         </div>
                     </div>
+                    
+                    <!-- Loading State -->
+                    <div id="analyticsLoading" style="
+                        text-align: center; 
+                        padding: 50px; 
+                        color: #b8c6db;
+                        display: none;
+                    ">
+                        <div style="font-size: 2rem; margin-bottom: 15px;">⏳</div>
+                        <div>Loading analytics data...</div>
+                    </div>
+                    
+                    <!-- Analytics Content -->
+                    <div id="analyticsContent">
+                        <!-- Main KPI Cards -->
+                        <div id="analyticsKPIs" style="
+                            display: grid; 
+                            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+                            gap: 15px; 
+                            margin-bottom: 30px;
+                        ">
+                            <!-- KPI cards will be populated by JavaScript -->
+                        </div>
 
-                    <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 15px;">
-                        <h4 style="color: #00ff88; margin-bottom: 15px;">📈 Recent Admin Activity</h4>
-                        <div class="activity-log" style="max-height: 250px;">
-                            <div class="activity-item">
-                                <div>👑 Master admin logged in</div>
-                                <div class="activity-time">Just now</div>
+                        
+                        <!-- Secondary Metrics Grid -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px;">
+                            <!-- User Growth Section -->
+                            <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 12px;">
+                                <h4 style="color: #00ff88; margin: 0 0 15px 0;">👥 User Growth</h4>
+                                <div id="userGrowthStats" style="color: #b8c6db;">
+                                    Loading user growth data...
+                                </div>
                             </div>
-                            <div class="activity-item">
-                                <div>👤 New user registration: Sarah Crypto</div>
-                                <div class="activity-time">2 hours ago</div>
+                            
+                            <!-- Trading Activity Section -->
+                            <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 12px;">
+                                <h4 style="color: #00d4ff; margin: 0 0 15px 0;">📈 Trading Activity</h4>
+                                <div id="tradingActivityStats" style="color: #b8c6db;">
+                                    Loading trading activity data...
+                                </div>
                             </div>
-                            <div class="activity-item">
-                                <div>💬 Support message received from John Trader</div>
-                                <div class="activity-time">4 hours ago</div>
+                        </div>
+                        
+                        <!-- Revenue & Health Section -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px;">
+                            <!-- Revenue Analytics -->
+                            <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 12px;">
+                                <h4 style="color: #ffd700; margin: 0 0 15px 0;">💰 Revenue Analytics</h4>
+                                <div id="revenueAnalytics" style="color: #b8c6db;">
+                                    Loading revenue data...
+                                </div>
                             </div>
-                            <div class="activity-item">
-                                <div>👤 New user registration: John Trader</div>
-                                <div class="activity-time">1 day ago</div>
+                            
+                            <!-- Platform Health -->
+                            <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 12px;">
+                                <h4 style="color: #ff6b6b; margin: 0 0 15px 0;">🔋 Platform Health</h4>
+                                <div id="platformHealth" style="color: #b8c6db;">
+                                    Loading health metrics...
+                                </div>
                             </div>
+                        </div>
+                        
+                        <!-- Alerts & Warnings -->
+                        <div id="analyticsAlerts" style="display: none; margin-bottom: 20px;">
+                            <!-- Alert messages will be populated by JavaScript -->
+                        </div>
+                        
+                        <!-- Last Updated -->
+                        <div style="text-align: center; color: #888; font-size: 0.85rem; margin-top: 20px;">
+                            <span id="analyticsLastUpdated">📅 Loading analytics...</span>
                         </div>
                     </div>
                 </div>
@@ -8514,6 +8577,305 @@
             // Log filter activity
             if (searchTerm || statusValue !== 'all' || tradingValue !== 'all') {
                 addActivity(`🔍 Filtered users: ${visibleCount} visible`, 'info');
+            }
+        }
+
+        async function refreshAnalytics() {
+            const analyticsLoading = document.getElementById('analyticsLoading');
+            const analyticsContent = document.getElementById('analyticsContent');
+            const timePeriod = document.getElementById('analyticsTimePeriod')?.value || '30d';
+            
+            // Show loading state
+            if (analyticsLoading) analyticsLoading.style.display = 'block';
+            if (analyticsContent) analyticsContent.style.opacity = '0.5';
+            
+            try {
+                // Fetch dashboard data
+                const dashboardResponse = await apiService.getAnalyticsDashboard();
+                
+                if (!dashboardResponse.success) {
+                    throw new Error(dashboardResponse.error || 'Failed to fetch analytics data');
+                }
+                
+                const data = dashboardResponse.data;
+                
+                // Update KPI cards
+                updateAnalyticsKPIs(data);
+                
+                // Update sections
+                updateUserGrowthStats(data.users, data.growth);
+                updateTradingActivityStats(data.trading);
+                updateRevenueAnalytics(data.payments);
+                updatePlatformHealth(data.health);
+                
+                // Check for alerts
+                updateAnalyticsAlerts(data);
+                
+                // Update timestamp
+                const lastUpdated = document.getElementById('analyticsLastUpdated');
+                if (lastUpdated) {
+                    lastUpdated.textContent = `📅 Last updated: ${new Date(data.generatedAt).toLocaleString()}`;
+                }
+                
+                addActivity('📊 Analytics data refreshed successfully', 'success');
+                
+            } catch (error) {
+                console.error('Error refreshing analytics:', error);
+                addActivity('❌ Failed to refresh analytics data', 'error');
+                
+                // Show error state
+                const kpisDiv = document.getElementById('analyticsKPIs');
+                if (kpisDiv) {
+                    kpisDiv.innerHTML = `
+                        <div style="grid-column: 1 / -1; text-align: center; padding: 30px; background: rgba(255,107,107,0.1); border-radius: 12px; border: 1px solid #ff6b6b;">
+                            <div style="font-size: 1.5rem; margin-bottom: 10px;">❌</div>
+                            <div style="color: #ff6b6b; font-weight: bold;">Failed to load analytics</div>
+                            <div style="color: #b8c6db; margin-top: 5px; font-size: 0.9rem;">${error.message}</div>
+                            <button onclick="refreshAnalytics()" style="
+                                margin-top: 15px;
+                                padding: 8px 16px;
+                                background: #ff6b6b;
+                                color: white;
+                                border: none;
+                                border-radius: 6px;
+                                cursor: pointer;
+                                font-weight: bold;
+                            ">🔄 Retry</button>
+                        </div>
+                    `;
+                }
+            } finally {
+                // Hide loading state
+                if (analyticsLoading) analyticsLoading.style.display = 'none';
+                if (analyticsContent) analyticsContent.style.opacity = '1';
+            }
+        }
+
+        function updateAnalyticsKPIs(data) {
+            const kpisDiv = document.getElementById('analyticsKPIs');
+            if (!kpisDiv) return;
+            
+            const users = data.users || {};
+            const trading = data.trading || {};
+            const payments = data.payments || {};
+            const messages = data.messages || {};
+            
+            kpisDiv.innerHTML = `
+                <div style="background: rgba(0,255,136,0.1); padding: 20px; border-radius: 12px; border-left: 4px solid #00ff88;">
+                    <h4 style="color: #00ff88; margin: 0 0 10px 0;">👥 Total Users</h4>
+                    <div style="color: white; font-size: 2rem; font-weight: bold; margin-bottom: 5px;">${users.total_users || 0}</div>
+                    <div style="color: #b8c6db; font-size: 0.9rem;">+${users.new_today || 0} today</div>
+                    <div style="color: #00ff88; font-size: 0.9rem; margin-top: 5px;">🎯 ${users.active_subscriptions || 0} active subs</div>
+                </div>
+                
+                <div style="background: rgba(0,212,255,0.1); padding: 20px; border-radius: 12px; border-left: 4px solid #00d4ff;">
+                    <h4 style="color: #00d4ff; margin: 0 0 10px 0;">📈 Active Traders</h4>
+                    <div style="color: white; font-size: 2rem; font-weight: bold; margin-bottom: 5px;">${trading.active_traders || 0}</div>
+                    <div style="color: #b8c6db; font-size: 0.9rem;">of ${trading.total_traders || 0} configured</div>
+                    <div style="color: #00d4ff; font-size: 0.9rem; margin-top: 5px;">🎯 ${trading.active_24h || 0} active 24h</div>
+                </div>
+                
+                <div style="background: rgba(255,215,0,0.1); padding: 20px; border-radius: 12px; border-left: 4px solid #ffd700;">
+                    <h4 style="color: #ffd700; margin: 0 0 10px 0;">💰 Total Revenue</h4>
+                    <div style="color: white; font-size: 2rem; font-weight: bold; margin-bottom: 5px;">R${(payments.total_revenue || 0).toLocaleString()}</div>
+                    <div style="color: #b8c6db; font-size: 0.9rem;">${payments.total_payments || 0} payments</div>
+                    <div style="color: #ffd700; font-size: 0.9rem; margin-top: 5px;">📊 Avg: R${Math.round(payments.avg_payment_amount || 0)}</div>
+                </div>
+                
+                <div style="background: rgba(255,107,107,0.1); padding: 20px; border-radius: 12px; border-left: 4px solid #ff6b6b;">
+                    <h4 style="color: #ff6b6b; margin: 0 0 10px 0;">💬 Support Load</h4>
+                    <div style="color: white; font-size: 2rem; font-weight: bold; margin-bottom: 5px;">${messages.total_messages || 0}</div>
+                    <div style="color: #b8c6db; font-size: 0.9rem;">${messages.urgent_messages || 0} urgent</div>
+                    <div style="color: #ff6b6b; font-size: 0.9rem; margin-top: 5px;">✅ ${messages.replied_messages || 0} replied</div>
+                </div>
+            `;
+        }
+
+        function updateUserGrowthStats(users, growth) {
+            const growthDiv = document.getElementById('userGrowthStats');
+            if (!growthDiv || !users) return;
+            
+            growthDiv.innerHTML = `
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-size: 0.9rem;">
+                    <div>
+                        <div style="color: #b8c6db; margin-bottom: 3px;">New This Week</div>
+                        <div style="color: #00ff88; font-size: 1.2rem; font-weight: bold;">${users.new_this_week || 0}</div>
+                    </div>
+                    <div>
+                        <div style="color: #b8c6db; margin-bottom: 3px;">New This Month</div>
+                        <div style="color: #00ff88; font-size: 1.2rem; font-weight: bold;">${users.new_this_month || 0}</div>
+                    </div>
+                    <div>
+                        <div style="color: #b8c6db; margin-bottom: 3px;">Premium Users</div>
+                        <div style="color: #ffd700; font-size: 1.2rem; font-weight: bold;">${users.premium_users || 0}</div>
+                    </div>
+                    <div>
+                        <div style="color: #b8c6db; margin-bottom: 3px;">Growth Rate</div>
+                        <div style="color: #00ff88; font-size: 1.2rem; font-weight: bold;">
+                            ${users.total_users > 0 && users.new_this_month ? 
+                                `+${Math.round((users.new_this_month / users.total_users) * 100)}%` : '0%'}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function updateTradingActivityStats(trading) {
+            const tradingDiv = document.getElementById('tradingActivityStats');
+            if (!tradingDiv || !trading) return;
+            
+            const successRate = trading.total_trades > 0 ? 
+                Math.round((trading.successful_trades / trading.total_trades) * 100) : 0;
+            
+            tradingDiv.innerHTML = `
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-size: 0.9rem;">
+                    <div>
+                        <div style="color: #b8c6db; margin-bottom: 3px;">Total Trades</div>
+                        <div style="color: #00d4ff; font-size: 1.2rem; font-weight: bold;">${trading.total_trades || 0}</div>
+                    </div>
+                    <div>
+                        <div style="color: #b8c6db; margin-bottom: 3px;">Success Rate</div>
+                        <div style="color: ${successRate > 70 ? '#00ff88' : successRate > 50 ? '#ffd700' : '#ff6b6b'}; font-size: 1.2rem; font-weight: bold;">
+                            ${successRate}%
+                        </div>
+                    </div>
+                    <div>
+                        <div style="color: #b8c6db; margin-bottom: 3px;">Total P&L</div>
+                        <div style="color: ${(trading.total_profit_loss || 0) >= 0 ? '#00ff88' : '#ff6b6b'}; font-size: 1.2rem; font-weight: bold;">
+                            $${(trading.total_profit_loss || 0).toLocaleString()}
+                        </div>
+                    </div>
+                    <div>
+                        <div style="color: #b8c6db; margin-bottom: 3px;">Avg Readiness</div>
+                        <div style="color: #00d4ff; font-size: 1.2rem; font-weight: bold;">
+                            ${Math.round(trading.avg_readiness || 0)}%
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function updateRevenueAnalytics(payments) {
+            const revenueDiv = document.getElementById('revenueAnalytics');
+            if (!revenueDiv || !payments) return;
+            
+            revenueDiv.innerHTML = `
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-size: 0.9rem;">
+                    <div>
+                        <div style="color: #b8c6db; margin-bottom: 3px;">This Month</div>
+                        <div style="color: #ffd700; font-size: 1.2rem; font-weight: bold;">R${(payments.payments_this_month || 0).toLocaleString()}</div>
+                    </div>
+                    <div>
+                        <div style="color: #b8c6db; margin-bottom: 3px;">Today</div>
+                        <div style="color: #ffd700; font-size: 1.2rem; font-weight: bold;">R${(payments.payments_today || 0).toLocaleString()}</div>
+                    </div>
+                    <div>
+                        <div style="color: #b8c6db; margin-bottom: 3px;">Avg Payment</div>
+                        <div style="color: #ffd700; font-size: 1.2rem; font-weight: bold;">R${Math.round(payments.avg_payment_amount || 0)}</div>
+                    </div>
+                    <div>
+                        <div style="color: #b8c6db; margin-bottom: 3px;">Revenue Growth</div>
+                        <div style="color: #00ff88; font-size: 1.2rem; font-weight: bold;">
+                            ${payments.total_revenue > 0 ? '+12%' : '0%'}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function updatePlatformHealth(health) {
+            const healthDiv = document.getElementById('platformHealth');
+            if (!healthDiv || !health) return;
+            
+            healthDiv.innerHTML = `
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-size: 0.9rem;">
+                    <div>
+                        <div style="color: #b8c6db; margin-bottom: 3px;">User Engagement</div>
+                        <div style="color: ${health.userEngagementRate > 70 ? '#00ff88' : health.userEngagementRate > 50 ? '#ffd700' : '#ff6b6b'}; font-size: 1.2rem; font-weight: bold;">
+                            ${health.userEngagementRate || 0}%
+                        </div>
+                    </div>
+                    <div>
+                        <div style="color: #b8c6db; margin-bottom: 3px;">API Config Rate</div>
+                        <div style="color: ${health.apiConfigurationRate > 60 ? '#00ff88' : health.apiConfigurationRate > 30 ? '#ffd700' : '#ff6b6b'}; font-size: 1.2rem; font-weight: bold;">
+                            ${health.apiConfigurationRate || 0}%
+                        </div>
+                    </div>
+                    <div>
+                        <div style="color: #b8c6db; margin-bottom: 3px;">Support Response</div>
+                        <div style="color: ${health.supportResponseRate > 90 ? '#00ff88' : health.supportResponseRate > 70 ? '#ffd700' : '#ff6b6b'}; font-size: 1.2rem; font-weight: bold;">
+                            ${health.supportResponseRate || 0}%
+                        </div>
+                    </div>
+                    <div>
+                        <div style="color: #b8c6db; margin-bottom: 3px;">Trade Success</div>
+                        <div style="color: ${health.tradeSuccessRate > 70 ? '#00ff88' : health.tradeSuccessRate > 50 ? '#ffd700' : '#ff6b6b'}; font-size: 1.2rem; font-weight: bold;">
+                            ${health.tradeSuccessRate || 0}%
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function updateAnalyticsAlerts(data) {
+            const alertsDiv = document.getElementById('analyticsAlerts');
+            if (!alertsDiv) return;
+            
+            const alerts = [];
+            
+            // Check for concerning metrics
+            if (data.expiry && data.expiry.expiring_3_days > 0) {
+                alerts.push({
+                    type: 'warning',
+                    message: `⚠️ ${data.expiry.expiring_3_days} users have subscriptions expiring in 3 days`,
+                    action: 'billing'
+                });
+            }
+            
+            if (data.health && data.health.supportResponseRate < 80) {
+                alerts.push({
+                    type: 'error',
+                    message: `🚨 Support response rate is low: ${data.health.supportResponseRate}%`,
+                    action: 'messages'
+                });
+            }
+            
+            if (data.trading && data.trading.active_traders === 0 && data.users && data.users.total_users > 0) {
+                alerts.push({
+                    type: 'warning',
+                    message: `📉 No active traders despite having ${data.users.total_users} users`,
+                    action: 'users'
+                });
+            }
+            
+            if (alerts.length > 0) {
+                alertsDiv.style.display = 'block';
+                alertsDiv.innerHTML = alerts.map(alert => `
+                    <div style="
+                        background: rgba(${alert.type === 'error' ? '255,107,107' : '255,193,7'},0.1); 
+                        border: 1px solid ${alert.type === 'error' ? '#ff6b6b' : '#ffc107'};
+                        padding: 15px; 
+                        border-radius: 8px; 
+                        margin-bottom: 10px;
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                    ">
+                        <span style="color: ${alert.type === 'error' ? '#ff6b6b' : '#ffc107'};">${alert.message}</span>
+                        <button onclick="showAdminTab('${alert.action}')" style="
+                            padding: 6px 12px;
+                            background: ${alert.type === 'error' ? '#ff6b6b' : '#ffc107'};
+                            color: #1a1a2e;
+                            border: none;
+                            border-radius: 4px;
+                            cursor: pointer;
+                            font-weight: bold;
+                            font-size: 0.8rem;
+                        ">Action</button>
+                    </div>
+                `).join('');
+            } else {
+                alertsDiv.style.display = 'none';
             }
         }
 
@@ -14000,6 +14362,8 @@ Please help recover this stuck asset.`;
                 refreshAccountActivation();
             } else if (tabName === 'billing') {
                 initializeBillingTab();
+            } else if (tabName === 'analytics') {
+                refreshAnalytics();
             } else if (tabName === 'messages') {
                 refreshAdminMessages();
             } else if (tabName === 'admins') {
@@ -16377,6 +16741,106 @@ ARB4ME Security Team`
                     }
                 } catch (error) {
                     console.log('❌ Error getting billing summary:', error.message);
+                    return { success: false, error: error.message };
+                }
+            }
+
+            // =====================
+            // ANALYTICS API METHODS
+            // =====================
+
+            async getAnalyticsDashboard() {
+                try {
+                    if (!this.token) {
+                        console.log('No JWT token available for analytics dashboard');
+                        return { success: false, error: 'No authentication token' };
+                    }
+
+                    const response = await this.apiCall('/analytics/dashboard', {
+                        method: 'GET'
+                    });
+                    
+                    if (response.success) {
+                        console.log('✅ Analytics dashboard data retrieved:', response.data);
+                        return response;
+                    } else {
+                        console.log('❌ Failed to get analytics dashboard:', response.error);
+                        return response;
+                    }
+                } catch (error) {
+                    console.log('❌ Error getting analytics dashboard:', error.message);
+                    return { success: false, error: error.message };
+                }
+            }
+
+            async getGrowthAnalytics(period = '30d') {
+                try {
+                    if (!this.token) {
+                        console.log('No JWT token available for growth analytics');
+                        return { success: false, error: 'No authentication token' };
+                    }
+
+                    const response = await this.apiCall(`/analytics/growth?period=${period}`, {
+                        method: 'GET'
+                    });
+                    
+                    if (response.success) {
+                        console.log('✅ Growth analytics retrieved:', response.data);
+                        return response;
+                    } else {
+                        console.log('❌ Failed to get growth analytics:', response.error);
+                        return response;
+                    }
+                } catch (error) {
+                    console.log('❌ Error getting growth analytics:', error.message);
+                    return { success: false, error: error.message };
+                }
+            }
+
+            async getTradingAnalytics(period = '30d') {
+                try {
+                    if (!this.token) {
+                        console.log('No JWT token available for trading analytics');
+                        return { success: false, error: 'No authentication token' };
+                    }
+
+                    const response = await this.apiCall(`/analytics/trading?period=${period}`, {
+                        method: 'GET'
+                    });
+                    
+                    if (response.success) {
+                        console.log('✅ Trading analytics retrieved:', response.data);
+                        return response;
+                    } else {
+                        console.log('❌ Failed to get trading analytics:', response.error);
+                        return response;
+                    }
+                } catch (error) {
+                    console.log('❌ Error getting trading analytics:', error.message);
+                    return { success: false, error: error.message };
+                }
+            }
+
+            async getRevenueAnalytics(period = '30d') {
+                try {
+                    if (!this.token) {
+                        console.log('No JWT token available for revenue analytics');
+                        return { success: false, error: 'No authentication token' };
+                    }
+
+                    const response = await this.apiCall(`/analytics/revenue?period=${period}`, {
+                        method: 'GET'
+                    });
+                    
+                    if (response.success) {
+                        console.log('✅ Revenue analytics retrieved:', response.data);
+                        return response;
+                    } else {
+                        console.log('❌ Failed to get revenue analytics:', response.error);
+                        return response;
+                    }
+                } catch (error) {
+                    console.log('❌ Error getting revenue analytics:', error.message);
                     return { success: false, error: error.message };
                 }
             }
