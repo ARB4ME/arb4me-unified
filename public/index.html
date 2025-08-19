@@ -18690,6 +18690,13 @@ ARB4ME Security Team`
                             <strong style="color: #00d4ff;">Trades:</strong> ${user.total_trades_count || 0}
                         </div>
                     </div>
+                    <div style="margin-top: 10px; padding: 8px; background: rgba(255, 215, 0, 0.1); border-radius: 6px; border-left: 3px solid #ffd700;">
+                        <strong style="color: #ffd700;">💳 Payment Reference:</strong> 
+                        <span style="color: #ffd700; font-family: monospace; font-weight: bold; font-size: 1.1rem;">
+                            ${user.payment_reference || user.paymentReference || 'Not Set'}
+                        </span>
+                    </div>
+                    </div>
                 </div>
             `;
         }
