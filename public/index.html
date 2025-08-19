@@ -5706,20 +5706,20 @@
                 </div>
 
                 <div id="adminBillingTab" class="admin-content" style="display: none;">
-                    <h3 style="color: #00d4ff; margin-bottom: 15px;">💰 Billing Overview</h3>
+                    <h3 style="color: #00d4ff; margin-bottom: 15px;">💰 Billing & Payment Management</h3>
                     
                     <div class="stats-grid" style="margin-bottom: 20px;">
                         <div class="stat-card">
-                            <div class="stat-value" id="adminTotalRevenue">$0.00</div>
+                            <div class="stat-value" id="adminTotalRevenue">R0.00</div>
                             <div class="stat-label">Total Monthly Revenue</div>
                         </div>
                         <div class="stat-card">
-                            <div class="stat-value" id="adminPendingPayments">0</div>
-                            <div class="stat-label">Pending Payments</div>
+                            <div class="stat-value" id="adminExpiringUsers">0</div>
+                            <div class="stat-label">Expiring in 7 Days</div>
                         </div>
                         <div class="stat-card">
-                            <div class="stat-value" id="adminOverduePayments">0</div>
-                            <div class="stat-label">Overdue Payments</div>
+                            <div class="stat-value" id="adminExpiredUsers">0</div>
+                            <div class="stat-label">Expired Users</div>
                         </div>
                         <div class="stat-card">
                             <div class="stat-value" id="adminSuspendedAccounts">0</div>
@@ -5727,17 +5727,88 @@
                         </div>
                     </div>
 
-                    <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px;">
-                        <h4 style="color: #00ff88; margin-bottom: 15px;">User Billing Status</h4>
-                        <div id="adminUserBillingList">
-                            <!-- User billing cards will be dynamically loaded here -->
+                    <!-- Mark Payment Received Section -->
+                    <div style="background: linear-gradient(135deg, rgba(0,255,136,0.1), rgba(0,212,255,0.1)); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 1px solid rgba(0,255,136,0.3);">
+                        <h4 style="color: #00ff88; margin-bottom: 15px;">✅ Mark Payment Received</h4>
+                        <form id="markPaymentForm" onsubmit="recordPayment(event)" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div>
+                                <label style="color: #b8c6db; font-size: 0.9rem;">Select User</label>
+                                <select id="paymentUserId" required style="width: 100%; padding: 10px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; color: white; margin-top: 5px;">
+                                    <option value="">-- Select User --</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="color: #b8c6db; font-size: 0.9rem;">Amount (R)</label>
+                                <input type="number" id="paymentAmount" value="500" min="0.01" step="0.01" required style="width: 100%; padding: 10px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; color: white; margin-top: 5px;">
+                            </div>
+                            <div>
+                                <label style="color: #b8c6db; font-size: 0.9rem;">Bank Reference</label>
+                                <input type="text" id="bankReference" placeholder="e.g., FNB-12345" style="width: 100%; padding: 10px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; color: white; margin-top: 5px;">
+                            </div>
+                            <div>
+                                <label style="color: #b8c6db; font-size: 0.9rem;">Payment Date</label>
+                                <input type="date" id="paymentDate" required style="width: 100%; padding: 10px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; color: white; margin-top: 5px;">
+                            </div>
+                            <div style="grid-column: 1 / -1;">
+                                <label style="color: #b8c6db; font-size: 0.9rem;">Notes (Optional)</label>
+                                <textarea id="paymentNotes" rows="2" style="width: 100%; padding: 10px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; color: white; margin-top: 5px; resize: vertical;"></textarea>
+                            </div>
+                            <div style="grid-column: 1 / -1; display: flex; gap: 10px;">
+                                <button type="submit" style="padding: 12px 30px; background: linear-gradient(45deg, #00ff88, #00d4ff); color: #0a0e27; border: none; border-radius: 25px; font-weight: bold; cursor: pointer;">
+                                    💰 Record Payment
+                                </button>
+                                <button type="button" onclick="refreshBillingData()" style="padding: 12px 30px; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); border-radius: 25px; cursor: pointer;">
+                                    🔄 Refresh Data
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Expiry Management Section -->
+                    <div style="background: rgba(255,107,107,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 1px solid rgba(255,107,107,0.3);">
+                        <h4 style="color: #ff6b6b; margin-bottom: 15px;">⚠️ Expiry Management</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                            <div>
+                                <h5 style="color: #ffa500; margin-bottom: 10px;">📅 Expiring Soon (7 Days)</h5>
+                                <div id="expiringUsersList" style="max-height: 200px; overflow-y: auto;">
+                                    <!-- Expiring users will be loaded here -->
+                                </div>
+                            </div>
+                            <div>
+                                <h5 style="color: #ff6b6b; margin-bottom: 10px;">❌ Already Expired</h5>
+                                <div id="expiredUsersList" style="max-height: 200px; overflow-y: auto;">
+                                    <!-- Expired users will be loaded here -->
+                                </div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 15px; display: flex; gap: 10px;">
+                            <button onclick="sendPaymentReminders()" style="padding: 10px 20px; background: linear-gradient(45deg, #ffa500, #ff6b00); color: white; border: none; border-radius: 20px; cursor: pointer;">
+                                📧 Send Reminders
+                            </button>
+                            <button onclick="suspendExpiredUsers()" style="padding: 10px 20px; background: linear-gradient(45deg, #ff6b6b, #ff0000); color: white; border: none; border-radius: 20px; cursor: pointer;">
+                                🚫 Suspend Expired Users
+                            </button>
                         </div>
                     </div>
 
+                    <!-- Payment History Section -->
+                    <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px;">
+                        <h4 style="color: #00ff88; margin-bottom: 15px;">📜 Payment History</h4>
+                        <div style="margin-bottom: 15px;">
+                            <input type="text" id="paymentSearchUser" placeholder="Search by user email or reference..." 
+                                   onkeyup="filterPaymentHistory()" 
+                                   style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; color: white;">
+                        </div>
+                        <div id="paymentHistoryList" style="max-height: 400px; overflow-y: auto;">
+                            <!-- Payment history will be loaded here -->
+                        </div>
+                    </div>
+
+                    <!-- User Billing Status -->
                     <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 15px;">
-                        <h4 style="color: #00ff88; margin-bottom: 15px;">Recent Payment Activity</h4>
-                        <div id="adminRecentPayments" style="max-height: 300px; overflow-y: auto;">
-                            <!-- Recent payments will be loaded here -->
+                        <h4 style="color: #00ff88; margin-bottom: 15px;">👥 User Billing Status</h4>
+                        <div id="adminUserBillingList">
+                            <!-- User billing cards will be dynamically loaded here -->
                         </div>
                     </div>
                 </div>
@@ -13412,7 +13483,7 @@ Please help recover this stuck asset.`;
             } else if (tabName === 'activation') {
                 refreshAccountActivation();
             } else if (tabName === 'billing') {
-                refreshBillingData();
+                initializeBillingTab();
             } else if (tabName === 'messages') {
                 refreshAdminMessages();
             } else if (tabName === 'admins') {
@@ -15584,10 +15655,483 @@ ARB4ME Security Team`
                     return { success: false, error: error.message };
                 }
             }
+
+            // =====================
+            // BILLING API METHODS
+            // =====================
+
+            async markPaymentReceived(userId, amount, bankReference, paymentDate, notes) {
+                try {
+                    if (!this.token) {
+                        console.log('No JWT token available for payment recording');
+                        return { success: false, error: 'No authentication token' };
+                    }
+
+                    const response = await this.apiCall('/admin/payments/mark-received', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            userId,
+                            amount: parseFloat(amount),
+                            bankReference,
+                            paymentDate,
+                            notes
+                        })
+                    });
+                    
+                    if (response.success) {
+                        console.log('✅ Payment recorded successfully:', response.data);
+                        return response;
+                    } else {
+                        console.log('❌ Failed to record payment:', response.error);
+                        return response;
+                    }
+                } catch (error) {
+                    console.log('❌ Error recording payment:', error.message);
+                    return { success: false, error: error.message };
+                }
+            }
+
+            async getPaymentHistory(userId = null) {
+                try {
+                    if (!this.token) {
+                        console.log('No JWT token available for payment history');
+                        return { success: false, error: 'No authentication token' };
+                    }
+
+                    const endpoint = userId ? `/admin/payments/history/${userId}` : '/admin/payments/all';
+                    const response = await this.apiCall(endpoint, {
+                        method: 'GET'
+                    });
+                    
+                    if (response.success) {
+                        console.log('✅ Payment history retrieved:', response.data);
+                        return response;
+                    } else {
+                        console.log('❌ Failed to get payment history:', response.error);
+                        return response;
+                    }
+                } catch (error) {
+                    console.log('❌ Error getting payment history:', error.message);
+                    return { success: false, error: error.message };
+                }
+            }
+
+            async getExpiringUsers(days = 7) {
+                try {
+                    if (!this.token) {
+                        console.log('No JWT token available for expiring users');
+                        return { success: false, error: 'No authentication token' };
+                    }
+
+                    const response = await this.apiCall(`/admin/payments/users/expiring?days=${days}`, {
+                        method: 'GET'
+                    });
+                    
+                    if (response.success) {
+                        console.log('✅ Expiring users retrieved:', response.data);
+                        return response;
+                    } else {
+                        console.log('❌ Failed to get expiring users:', response.error);
+                        return response;
+                    }
+                } catch (error) {
+                    console.log('❌ Error getting expiring users:', error.message);
+                    return { success: false, error: error.message };
+                }
+            }
+
+            async getExpiredUsers() {
+                try {
+                    if (!this.token) {
+                        console.log('No JWT token available for expired users');
+                        return { success: false, error: 'No authentication token' };
+                    }
+
+                    const response = await this.apiCall('/admin/payments/users/expired', {
+                        method: 'GET'
+                    });
+                    
+                    if (response.success) {
+                        console.log('✅ Expired users retrieved:', response.data);
+                        return response;
+                    } else {
+                        console.log('❌ Failed to get expired users:', response.error);
+                        return response;
+                    }
+                } catch (error) {
+                    console.log('❌ Error getting expired users:', error.message);
+                    return { success: false, error: error.message };
+                }
+            }
+
+            async suspendExpiredUsers() {
+                try {
+                    if (!this.token) {
+                        console.log('No JWT token available for suspending expired users');
+                        return { success: false, error: 'No authentication token' };
+                    }
+
+                    const response = await this.apiCall('/admin/payments/users/suspend-expired', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                    
+                    if (response.success) {
+                        console.log('✅ Expired users suspended:', response.data);
+                        return response;
+                    } else {
+                        console.log('❌ Failed to suspend expired users:', response.error);
+                        return response;
+                    }
+                } catch (error) {
+                    console.log('❌ Error suspending expired users:', error.message);
+                    return { success: false, error: error.message };
+                }
+            }
+
+            async sendPaymentReminders() {
+                try {
+                    if (!this.token) {
+                        console.log('No JWT token available for sending reminders');
+                        return { success: false, error: 'No authentication token' };
+                    }
+
+                    const response = await this.apiCall('/admin/payments/reminders/send', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                    
+                    if (response.success) {
+                        console.log('✅ Payment reminders sent:', response.data);
+                        return response;
+                    } else {
+                        console.log('❌ Failed to send reminders:', response.error);
+                        return response;
+                    }
+                } catch (error) {
+                    console.log('❌ Error sending reminders:', error.message);
+                    return { success: false, error: error.message };
+                }
+            }
+
+            async getBillingSummary() {
+                try {
+                    if (!this.token) {
+                        console.log('No JWT token available for billing summary');
+                        return { success: false, error: 'No authentication token' };
+                    }
+
+                    const response = await this.apiCall('/admin/payments/summary', {
+                        method: 'GET'
+                    });
+                    
+                    if (response.success) {
+                        console.log('✅ Billing summary retrieved:', response.data);
+                        return response;
+                    } else {
+                        console.log('❌ Failed to get billing summary:', response.error);
+                        return response;
+                    }
+                } catch (error) {
+                    console.log('❌ Error getting billing summary:', error.message);
+                    return { success: false, error: error.message };
+                }
+            }
         }
 
         // Initialize API Service
         const apiService = new APIService();
+
+        // =====================
+        // BILLING MANAGEMENT FUNCTIONS
+        // =====================
+
+        // Record payment form submission
+        async function recordPayment(event) {
+            event.preventDefault();
+            
+            const userId = document.getElementById('paymentUserId').value;
+            const amount = document.getElementById('paymentAmount').value;
+            const bankReference = document.getElementById('bankReference').value;
+            const paymentDate = document.getElementById('paymentDate').value;
+            const notes = document.getElementById('paymentNotes').value;
+            
+            if (!userId || !amount || !paymentDate) {
+                addActivity('❌ Please fill in all required fields', 'error');
+                return;
+            }
+            
+            const submitBtn = event.target.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = '💰 Recording...';
+            submitBtn.disabled = true;
+            
+            try {
+                const response = await apiService.markPaymentReceived(userId, amount, bankReference, paymentDate, notes);
+                
+                if (response.success) {
+                    addActivity(`✅ Payment recorded: R${amount} for ${response.data.user.email}`, 'success');
+                    
+                    // Clear form
+                    document.getElementById('markPaymentForm').reset();
+                    document.getElementById('paymentDate').value = new Date().toISOString().split('T')[0];
+                    
+                    // Refresh billing data
+                    await refreshBillingData();
+                } else {
+                    addActivity(`❌ Failed to record payment: ${response.error}`, 'error');
+                }
+            } catch (error) {
+                addActivity(`❌ Error recording payment: ${error.message}`, 'error');
+            } finally {
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+            }
+        }
+
+        // Refresh all billing data
+        async function refreshBillingData() {
+            addActivity('🔄 Refreshing billing data...', 'info');
+            
+            try {
+                // Load users for payment dropdown
+                await populatePaymentUserDropdown();
+                
+                // Load payment history
+                await loadPaymentHistory();
+                
+                // Load expiring/expired users
+                await loadExpiryData();
+                
+                // Update summary stats
+                await updateBillingSummary();
+                
+                addActivity('✅ Billing data refreshed', 'success');
+            } catch (error) {
+                addActivity(`❌ Error refreshing billing data: ${error.message}`, 'error');
+            }
+        }
+
+        // Populate user dropdown for payment recording
+        async function populatePaymentUserDropdown() {
+            const dropdown = document.getElementById('paymentUserId');
+            dropdown.innerHTML = '<option value="">-- Select User --</option>';
+            
+            try {
+                const response = await apiService.getAdminUsers();
+                if (response.success && response.data.users) {
+                    response.data.users.forEach(user => {
+                        const option = document.createElement('option');
+                        option.value = user.id;
+                        option.textContent = `${user.email} (${user.payment_reference})`;
+                        dropdown.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error populating user dropdown:', error);
+            }
+        }
+
+        // Load payment history
+        async function loadPaymentHistory() {
+            const container = document.getElementById('paymentHistoryList');
+            container.innerHTML = '<div style="text-align: center; color: #b8c6db;">Loading...</div>';
+            
+            try {
+                const response = await apiService.getPaymentHistory();
+                if (response.success && response.data.payments) {
+                    displayPaymentHistory(response.data.payments);
+                } else {
+                    container.innerHTML = '<div style="text-align: center; color: #ff6b6b;">No payment history found</div>';
+                }
+            } catch (error) {
+                container.innerHTML = '<div style="text-align: center; color: #ff6b6b;">Error loading payment history</div>';
+            }
+        }
+
+        // Display payment history
+        function displayPaymentHistory(payments) {
+            const container = document.getElementById('paymentHistoryList');
+            
+            if (!payments || payments.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: #b8c6db;">No payments recorded yet</div>';
+                return;
+            }
+            
+            const html = payments.map(payment => `
+                <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; margin-bottom: 10px; border-left: 4px solid #00ff88;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; align-items: center;">
+                        <div>
+                            <div style="font-weight: bold; color: white;">${payment.user_name || payment.email}</div>
+                            <div style="color: #b8c6db; font-size: 0.9rem;">${payment.payment_reference}</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-weight: bold; color: #00ff88;">R${payment.amount}</div>
+                            <div style="color: #b8c6db; font-size: 0.9rem;">${new Date(payment.payment_date).toLocaleDateString()}</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="color: #ffd700; font-size: 0.9rem;">${payment.bank_reference || 'No ref'}</div>
+                            <div style="color: #b8c6db; font-size: 0.8rem;">by ${payment.recorded_by || 'System'}</div>
+                        </div>
+                    </div>
+                    ${payment.notes ? `<div style="margin-top: 10px; color: #b8c6db; font-size: 0.9rem; font-style: italic;">${payment.notes}</div>` : ''}
+                </div>
+            `).join('');
+            
+            container.innerHTML = html;
+        }
+
+        // Filter payment history
+        function filterPaymentHistory() {
+            const searchTerm = document.getElementById('paymentSearchUser').value.toLowerCase();
+            const paymentItems = document.querySelectorAll('#paymentHistoryList > div');
+            
+            paymentItems.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                if (text.includes(searchTerm)) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        // Load expiry data
+        async function loadExpiryData() {
+            try {
+                // Load expiring users
+                const expiringResponse = await apiService.getExpiringUsers();
+                if (expiringResponse.success) {
+                    displayExpiringUsers(expiringResponse.data.users);
+                    document.getElementById('adminExpiringUsers').textContent = expiringResponse.data.count;
+                }
+                
+                // Load expired users
+                const expiredResponse = await apiService.getExpiredUsers();
+                if (expiredResponse.success) {
+                    displayExpiredUsers(expiredResponse.data.users);
+                    document.getElementById('adminExpiredUsers').textContent = expiredResponse.data.count;
+                }
+            } catch (error) {
+                console.error('Error loading expiry data:', error);
+            }
+        }
+
+        // Display expiring users
+        function displayExpiringUsers(users) {
+            const container = document.getElementById('expiringUsersList');
+            
+            if (!users || users.length === 0) {
+                container.innerHTML = '<div style="color: #b8c6db; text-align: center;">No users expiring soon</div>';
+                return;
+            }
+            
+            const html = users.map(user => `
+                <div style="background: rgba(255,165,0,0.1); padding: 10px; border-radius: 8px; margin-bottom: 8px; border-left: 3px solid #ffa500;">
+                    <div style="font-weight: bold; color: white;">${user.first_name} ${user.last_name}</div>
+                    <div style="color: #b8c6db; font-size: 0.9rem;">${user.email}</div>
+                    <div style="color: #ffa500; font-size: 0.9rem;">Expires in ${user.days_remaining} days</div>
+                    <div style="color: #b8c6db; font-size: 0.8rem;">${user.payment_reference}</div>
+                </div>
+            `).join('');
+            
+            container.innerHTML = html;
+        }
+
+        // Display expired users
+        function displayExpiredUsers(users) {
+            const container = document.getElementById('expiredUsersList');
+            
+            if (!users || users.length === 0) {
+                container.innerHTML = '<div style="color: #b8c6db; text-align: center;">No expired users</div>';
+                return;
+            }
+            
+            const html = users.map(user => `
+                <div style="background: rgba(255,107,107,0.1); padding: 10px; border-radius: 8px; margin-bottom: 8px; border-left: 3px solid #ff6b6b;">
+                    <div style="font-weight: bold; color: white;">${user.first_name} ${user.last_name}</div>
+                    <div style="color: #b8c6db; font-size: 0.9rem;">${user.email}</div>
+                    <div style="color: #ff6b6b; font-size: 0.9rem;">Expired ${user.days_expired} days ago</div>
+                    <div style="color: #b8c6db; font-size: 0.8rem;">${user.payment_reference}</div>
+                </div>
+            `).join('');
+            
+            container.innerHTML = html;
+        }
+
+        // Send payment reminders
+        async function sendPaymentReminders() {
+            const btn = event.target;
+            const originalText = btn.textContent;
+            btn.textContent = '📧 Sending...';
+            btn.disabled = true;
+            
+            try {
+                const response = await apiService.sendPaymentReminders();
+                if (response.success) {
+                    addActivity(`✅ Reminders sent to ${response.data.sent_count} users`, 'success');
+                } else {
+                    addActivity(`❌ Failed to send reminders: ${response.error}`, 'error');
+                }
+            } catch (error) {
+                addActivity(`❌ Error sending reminders: ${error.message}`, 'error');
+            } finally {
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        // Suspend expired users
+        async function suspendExpiredUsers() {
+            if (!confirm('Are you sure you want to suspend all expired users? This action cannot be undone.')) {
+                return;
+            }
+            
+            const btn = event.target;
+            const originalText = btn.textContent;
+            btn.textContent = '🚫 Suspending...';
+            btn.disabled = true;
+            
+            try {
+                const response = await apiService.suspendExpiredUsers();
+                if (response.success) {
+                    addActivity(`✅ Suspended ${response.data.suspended_count} expired users`, 'success');
+                    await loadExpiryData(); // Refresh the lists
+                } else {
+                    addActivity(`❌ Failed to suspend users: ${response.error}`, 'error');
+                }
+            } catch (error) {
+                addActivity(`❌ Error suspending users: ${error.message}`, 'error');
+            } finally {
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        // Update billing summary stats
+        async function updateBillingSummary() {
+            try {
+                const response = await apiService.getBillingSummary();
+                if (response.success && response.data.summary) {
+                    const summary = response.data.summary;
+                    document.getElementById('adminTotalRevenue').textContent = `R${summary.total_revenue || 0}`;
+                }
+            } catch (error) {
+                console.error('Error updating billing summary:', error);
+            }
+        }
+
+        // Set default payment date to today
+        function initializeBillingTab() {
+            const paymentDateField = document.getElementById('paymentDate');
+            if (paymentDateField) {
+                paymentDateField.value = new Date().toISOString().split('T')[0];
+            }
+            
+            // Load initial data when billing tab is opened
+            refreshBillingData();
+        }
 
         // PASSWORD VISIBILITY TOGGLE SYSTEM
         function togglePasswordVisibility(passwordFieldId) {
