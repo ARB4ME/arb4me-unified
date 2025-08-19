@@ -8515,13 +8515,7 @@
                     throw new Error(`Failed to fetch users - Response: ${JSON.stringify(response)}`);
                 }
                 
-                console.log('📋 Users for display:', allUsers.map(u => ({
-                    name: `${u.first_name || u.firstName} ${u.last_name || u.lastName}`,
-                    payment_ref: u.payment_reference || u.paymentReference,
-                    id: u.id,
-                    all_fields: Object.keys(u)
-                })));
-                console.log('🔍 First user full object:', allUsers[0]);
+                console.log('📋 Users with payment references loaded:', allUsers.length);
                 
                 // Update stats
                 updateUserManagementStats(allUsers);
@@ -8539,10 +8533,10 @@
             
             // Generate user cards with admin role indicators
             usersList.innerHTML = allUsers.map(user => {
-                // Handle both database format and localStorage format
+                // Handle both database format and localStorage format  
                 const adminRole = user.admin_role || user.adminRole;
-                const firstName = user.first_name || user.firstName;
-                const lastName = user.last_name || user.lastName;
+                const firstName = user.first_name || user.firstName || user.name?.split(' ')[0];
+                const lastName = user.last_name || user.lastName || user.name?.split(' ')[1];
                 const createdAt = user.created_at || user.createdAt;
                 
                 const roleIcon = getRoleIcon(adminRole);

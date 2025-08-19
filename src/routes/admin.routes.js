@@ -453,6 +453,7 @@ router.get('/users', asyncHandler(async (req, res) => {
         SELECT 
             u.id, u.first_name, u.last_name, u.email, u.mobile, u.country,
             u.account_status, u.subscription_plan, u.subscription_expires_at,
+            u.payment_reference,
             u.created_at, u.updated_at, u.last_login_at,
             ta.exchanges_connected_count, ta.trading_active, ta.auto_trading_enabled,
             ta.total_trades_count, ta.successful_trades_count, ta.profit_loss_total,
