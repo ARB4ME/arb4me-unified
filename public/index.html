@@ -5501,20 +5501,58 @@
                     
                     <div class="stats-grid" style="margin-bottom: 20px;">
                         <div class="stat-card">
-                            <div class="stat-value" id="adminTotalUsers">2</div>
+                            <div class="stat-value" id="adminTotalUsers">0</div>
                             <div class="stat-label">Total Users</div>
                         </div>
                         <div class="stat-card">
-                            <div class="stat-value" id="adminNewToday">1</div>
+                            <div class="stat-value" id="adminNewToday">0</div>
                             <div class="stat-label">New Today</div>
                         </div>
                         <div class="stat-card">
-                            <div class="stat-value" id="adminActiveTraders">1</div>
+                            <div class="stat-value" id="adminActiveTraders">0</div>
                             <div class="stat-label">Active Traders</div>
                         </div>
                         <div class="stat-card">
-                            <div class="stat-value" id="adminApiConnected">1</div>
+                            <div class="stat-value" id="adminApiConnected">0</div>
                             <div class="stat-label">API Connected</div>
+                        </div>
+                    </div>
+
+                    <!-- Search and Filter Section -->
+                    <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+                        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                            <input type="text" id="userSearchInput" placeholder="🔍 Search users by name or email..." 
+                                style="flex: 1; min-width: 200px; padding: 8px 12px; background: rgba(255,255,255,0.1); 
+                                       border: 1px solid #00d4ff; border-radius: 6px; color: white;"
+                                onkeyup="filterUsers()">
+                            
+                            <select id="userStatusFilter" onchange="filterUsers()" 
+                                style="padding: 8px 12px; background: rgba(255,255,255,0.1); 
+                                       border: 1px solid #00d4ff; border-radius: 6px; color: white;">
+                                <option value="all">All Status</option>
+                                <option value="active">Active</option>
+                                <option value="suspended">Suspended</option>
+                                <option value="trial">Trial</option>
+                            </select>
+                            
+                            <select id="userTradingFilter" onchange="filterUsers()" 
+                                style="padding: 8px 12px; background: rgba(255,255,255,0.1); 
+                                       border: 1px solid #00d4ff; border-radius: 6px; color: white;">
+                                <option value="all">All Trading</option>
+                                <option value="configured">APIs Configured</option>
+                                <option value="not_configured">APIs Not Set</option>
+                                <option value="active_trading">Active Trading</option>
+                            </select>
+                            
+                            <button onclick="refreshAllUsersList()" style="
+                                padding: 8px 16px;
+                                background: linear-gradient(45deg, #00ff88, #00d4aa);
+                                color: #1a1a2e;
+                                border: none;
+                                border-radius: 6px;
+                                cursor: pointer;
+                                font-weight: bold;
+                            ">🔄 Refresh</button>
                         </div>
                     </div>
 
@@ -8201,22 +8239,42 @@
             addActivity('👑 Admin refreshed user status view', 'info');
         }
 
-        function refreshAllUsersList(users = null) {
-            const allUsers = users || loadAllUsers();
+        async function refreshAllUsersList() {
             const usersList = document.getElementById('allUsersList');
             
             if (!usersList) return;
             
-            if (allUsers.length === 0) {
-                usersList.innerHTML = `
-                    <div style="text-align: center; padding: 30px; color: #b8c6db;">
-                        <div style="font-size: 1.5rem; margin-bottom: 10px;">👥</div>
-                        <div>No users registered yet</div>
-                        <div style="margin-top: 5px; font-size: 0.9rem;">Users will appear here as they sign up</div>
-                    </div>
-                `;
-                return;
-            }
+            // Show loading state
+            usersList.innerHTML = `
+                <div style="text-align: center; padding: 30px; color: #b8c6db;">
+                    <div style="font-size: 1.5rem; margin-bottom: 10px;">⏳</div>
+                    <div>Loading users from database...</div>
+                </div>
+            `;
+            
+            try {
+                // Fetch real users from backend
+                const response = await apiService.getAllUsers();
+                
+                if (!response.success || !response.data || !response.data.users) {
+                    throw new Error('Failed to fetch users');
+                }
+                
+                const allUsers = response.data.users;
+                
+                // Update stats
+                updateUserManagementStats(allUsers);
+                
+                if (allUsers.length === 0) {
+                    usersList.innerHTML = `
+                        <div style="text-align: center; padding: 30px; color: #b8c6db;">
+                            <div style="font-size: 1.5rem; margin-bottom: 10px;">👥</div>
+                            <div>No users registered yet</div>
+                            <div style="margin-top: 5px; font-size: 0.9rem;">Users will appear here as they sign up</div>
+                        </div>
+                    `;
+                    return;
+                }
             
             // Generate user cards with admin role indicators
             usersList.innerHTML = allUsers.map(user => {
@@ -8260,17 +8318,58 @@
                         
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; font-size: 0.8rem; margin-bottom: 15px;">
                             <div style="color: #b8c6db;">
-                                <span style="color: #00d4ff;">📅 Joined:</span> ${new Date(user.createdAt).toLocaleDateString()}
+                                <span style="color: #00d4ff;">📅 Joined:</span> ${new Date(createdAt).toLocaleDateString()}
                             </div>
                             <div style="color: #b8c6db;">
-                                <span style="color: #00d4ff;">🔄 Last Login:</span> ${new Date(user.lastLogin).toLocaleDateString()}
+                                <span style="color: #00d4ff;">🔄 Last Login:</span> ${user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString() : 'Never'}
                             </div>
                             <div style="color: #b8c6db;">
                                 <span style="color: #00d4ff;">📱 Country:</span> ${getCountryName(user.country)}
                             </div>
                             <div style="color: #b8c6db;">
-                                <span style="color: #00d4ff;">✅ Status:</span> ${user.isActive ? 'Active' : 'Inactive'}
+                                <span style="color: #00d4ff;">✅ Status:</span> 
+                                <span style="color: ${user.accountStatus === 'active' ? '#00ff88' : '#ff6b6b'};">
+                                    ${user.accountStatus || 'Unknown'}
+                                </span>
                             </div>
+                        </div>
+                        
+                        <!-- Trading Activity Section -->
+                        <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; margin-bottom: 15px;">
+                            <h6 style="color: #feca57; margin: 0 0 8px 0; font-size: 0.85rem;">📊 Trading Activity</h6>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; font-size: 0.75rem;">
+                                <div style="color: #b8c6db;">
+                                    <span style="color: #00ff88;">🔌 APIs:</span> 
+                                    ${user.apiKeysConfigured ? '✅ Configured' : '❌ Not Set'}
+                                </div>
+                                <div style="color: #b8c6db;">
+                                    <span style="color: #00ff88;">💱 Exchanges:</span> 
+                                    ${user.exchangesConnectedCount || 0}
+                                </div>
+                                <div style="color: #b8c6db;">
+                                    <span style="color: #00ff88;">🪙 Assets:</span> 
+                                    ${user.selectedCryptoAssets ? JSON.parse(user.selectedCryptoAssets).length : 0}
+                                </div>
+                                <div style="color: #b8c6db;">
+                                    <span style="color: #00ff88;">📈 Trades:</span> 
+                                    ${user.totalTradesCount || 0}
+                                </div>
+                                <div style="color: #b8c6db;">
+                                    <span style="color: #00ff88;">💰 Profit:</span> 
+                                    $${(user.profitLossTotal || 0).toFixed(2)}
+                                </div>
+                                <div style="color: #b8c6db;">
+                                    <span style="color: #00ff88;">🎯 Ready:</span> 
+                                    <span style="color: ${user.autoTradingReadinessPercent >= 75 ? '#00ff88' : user.autoTradingReadinessPercent >= 50 ? '#feca57' : '#ff6b6b'};">
+                                        ${user.autoTradingReadinessPercent || 0}%
+                                    </span>
+                                </div>
+                            </div>
+                            ${user.lastTradingActivity ? `
+                                <div style="color: #b8c6db; font-size: 0.7rem; margin-top: 5px;">
+                                    Last activity: ${new Date(user.lastTradingActivity).toLocaleString()}
+                                </div>
+                            ` : ''}
                         </div>
                         
                         <!-- Admin Actions -->
@@ -8310,7 +8409,148 @@
                 `;
             }).join('');
             
-            addActivity('👑 Admin refreshed all users list', 'info');
+            addActivity('✅ Loaded ' + allUsers.length + ' users from database', 'success');
+            
+            } catch (error) {
+                console.error('Error fetching users:', error);
+                addActivity('❌ Failed to load users from database', 'error');
+                
+                // Show error message
+                usersList.innerHTML = `
+                    <div style="text-align: center; padding: 30px; color: #ff6b6b;">
+                        <div style="font-size: 1.5rem; margin-bottom: 10px;">❌</div>
+                        <div>Failed to load users from database</div>
+                        <div style="margin-top: 5px; font-size: 0.9rem;">Error: ${error.message}</div>
+                        <button onclick="refreshAllUsersList()" style="
+                            margin-top: 15px;
+                            padding: 8px 16px;
+                            background: #00ff88;
+                            color: #1a1a2e;
+                            border: none;
+                            border-radius: 6px;
+                            cursor: pointer;
+                            font-weight: bold;
+                        ">🔄 Retry</button>
+                    </div>
+                `;
+            }
+        }
+
+        function filterUsers() {
+            const searchInput = document.getElementById('userSearchInput');
+            const statusFilter = document.getElementById('userStatusFilter');
+            const tradingFilter = document.getElementById('userTradingFilter');
+            
+            if (!searchInput || !statusFilter || !tradingFilter) return;
+            
+            const searchTerm = searchInput.value.toLowerCase();
+            const statusValue = statusFilter.value;
+            const tradingValue = tradingFilter.value;
+            
+            const userCards = document.querySelectorAll('.user-card');
+            let visibleCount = 0;
+            
+            userCards.forEach(card => {
+                const userText = card.textContent.toLowerCase();
+                
+                // Search filter
+                const matchesSearch = searchTerm === '' || userText.includes(searchTerm);
+                
+                // Status filter
+                let matchesStatus = true;
+                if (statusValue !== 'all') {
+                    const statusSpan = card.querySelector('[style*="color: #00ff88"], [style*="color: #ff6b6b"], [style*="color: #ffd700"]');
+                    if (statusSpan) {
+                        const statusText = statusSpan.textContent.toLowerCase();
+                        matchesStatus = statusText.includes(statusValue);
+                    } else {
+                        matchesStatus = statusValue === 'basic'; // Default status
+                    }
+                }
+                
+                // Trading filter
+                let matchesTrading = true;
+                if (tradingValue !== 'all') {
+                    if (tradingValue === 'configured') {
+                        matchesTrading = userText.includes('apis configured: yes') || userText.includes('✅ configured');
+                    } else if (tradingValue === 'not_configured') {
+                        matchesTrading = userText.includes('apis configured: no') || userText.includes('❌ not set');
+                    } else if (tradingValue === 'active_trading') {
+                        matchesTrading = userText.includes('trading: active') || userText.includes('📈 active');
+                    }
+                }
+                
+                // Show/hide card
+                const shouldShow = matchesSearch && matchesStatus && matchesTrading;
+                card.style.display = shouldShow ? 'block' : 'none';
+                
+                if (shouldShow) visibleCount++;
+            });
+            
+            // Update results count
+            const usersList = document.getElementById('allUsersList');
+            if (usersList && visibleCount === 0 && userCards.length > 0) {
+                // Show no results message if all cards are hidden
+                const noResultsDiv = usersList.querySelector('.no-filter-results');
+                if (!noResultsDiv) {
+                    const noResults = document.createElement('div');
+                    noResults.className = 'no-filter-results';
+                    noResults.style.cssText = 'text-align: center; padding: 30px; color: #b8c6db; border-top: 1px solid rgba(255,255,255,0.1);';
+                    noResults.innerHTML = `
+                        <div style="font-size: 1.2rem; margin-bottom: 10px;">🔍</div>
+                        <div>No users match your current filters</div>
+                        <div style="margin-top: 5px; font-size: 0.9rem;">Try adjusting your search or filter criteria</div>
+                    `;
+                    usersList.appendChild(noResults);
+                }
+            } else {
+                // Remove no results message if it exists
+                const noResultsDiv = usersList?.querySelector('.no-filter-results');
+                if (noResultsDiv) {
+                    noResultsDiv.remove();
+                }
+            }
+            
+            // Log filter activity
+            if (searchTerm || statusValue !== 'all' || tradingValue !== 'all') {
+                addActivity(`🔍 Filtered users: ${visibleCount} visible`, 'info');
+            }
+        }
+
+        function updateUserManagementStats(users) {
+            // Calculate statistics
+            const totalUsers = users.length;
+            const newToday = users.filter(u => {
+                const createdDate = new Date(u.createdAt || u.created_at);
+                const today = new Date();
+                return createdDate.toDateString() === today.toDateString();
+            }).length;
+            
+            const activeTraders = users.filter(u => u.tradingActive).length;
+            const apiConnected = users.filter(u => u.apiKeysConfigured).length;
+            
+            // Update the stats display
+            const statsContainer = document.querySelector('#adminUsersTab .stats-grid');
+            if (statsContainer) {
+                statsContainer.innerHTML = `
+                    <div class="stat-card">
+                        <div class="stat-value">${totalUsers}</div>
+                        <div class="stat-label">Total Users</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${newToday}</div>
+                        <div class="stat-label">New Today</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${activeTraders}</div>
+                        <div class="stat-label">Active Traders</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${apiConnected}</div>
+                        <div class="stat-label">API Connected</div>
+                    </div>
+                `;
+            }
         }
 
         function getRoleIcon(adminRole) {
