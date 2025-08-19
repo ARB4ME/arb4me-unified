@@ -24,6 +24,7 @@ const adminRoutes = require('./src/routes/admin.routes');
 const tradingRoutes = require('./src/routes/trading.routes');
 const billingRoutes = require('./src/routes/billing.routes');
 const migrationRoutes = require('./src/routes/migration.routes');
+const tradingActivityRoutes = require('./src/routes/trading-activity.routes');
 
 // Initialize Express app
 const app = express();
@@ -76,6 +77,7 @@ app.use(`${API_PREFIX}/admin`, adminRoutes);
 app.use(`${API_PREFIX}/admin/payments`, billingRoutes);
 app.use(`${API_PREFIX}/migration`, migrationRoutes);
 app.use(`${API_PREFIX}/trading`, tradingRoutes);
+app.use(`${API_PREFIX}/trading-activity`, tradingActivityRoutes);
 
 // Serve PWA static files
 app.use(express.static('public'));
