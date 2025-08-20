@@ -94,9 +94,21 @@ router.get('/messages-test', authenticateUser, requireAdmin, asyncHandler(async 
 
 // Test user creation directly - no auth for debugging
 router.post('/debug-create-test-user', asyncHandler(async (req, res) => {
+    // Try to get next sequence value first
+    let testUserId;
+    let sequenceWorked = false;
+    
+    try {
+        const seqResult = await query("SELECT nextval('user_payment_ref_seq') as ref_num");
+        testUserId = `user_${seqResult.rows[0].ref_num}`;
+        sequenceWorked = true;
+    } catch (seqError) {
+        // Fallback to SHORT timestamp
+        const shortTimestamp = Date.now().toString().slice(-6); // Last 6 digits only
+        testUserId = `user_${shortTimestamp}`;
+    }
+    
     const timestamp = Date.now();
-    const random = Math.floor(Math.random() * 1000000);
-    const testUserId = `user_${timestamp}_${random}`;
     const testEmail = `test_${timestamp}@debug.com`;
     
     try {
@@ -114,13 +126,18 @@ router.post('/debug-create-test-user', asyncHandler(async (req, res) => {
             success: true,
             created: result.rows[0],
             verified: verify.rows.length > 0,
+            sequenceWorked: sequenceWorked,
+            userId: testUserId,
             message: `Test user ${testUserId} created and verified`
         });
     } catch (error) {
         res.json({
             success: false,
             error: error.message,
-            detail: error.detail
+            detail: error.detail,
+            code: error.code,
+            sequenceWorked: sequenceWorked,
+            attemptedId: testUserId
         });
     }
 }));

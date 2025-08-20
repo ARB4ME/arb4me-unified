@@ -47,11 +47,13 @@ const generateUserIdAndPaymentRef = async (client) => {
         };
     } catch (error) {
         console.error('🔴 Error getting sequence:', error.message);
-        // Fallback to timestamp-based ID if sequence doesn't exist
-        const timestamp = Date.now();
+        // Fallback to SHORTER timestamp-based ID if sequence doesn't exist
+        // Use only last 6 digits of timestamp + random 3 digits
+        const shortTimestamp = Date.now().toString().slice(-6);
+        const random = Math.floor(Math.random() * 1000);
         return {
-            userId: `user_${timestamp}`,
-            paymentReference: `ARB-${timestamp}`
+            userId: `user_${shortTimestamp}_${random}`,
+            paymentReference: `ARB-${shortTimestamp}`
         };
     }
 };
