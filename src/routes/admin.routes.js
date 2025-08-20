@@ -92,6 +92,39 @@ router.get('/messages-test', authenticateUser, requireAdmin, asyncHandler(async 
     });
 }));
 
+// Test user creation directly - no auth for debugging
+router.post('/debug-create-test-user', asyncHandler(async (req, res) => {
+    const timestamp = Date.now();
+    const random = Math.floor(Math.random() * 1000000);
+    const testUserId = `user_${timestamp}_${random}`;
+    const testEmail = `test_${timestamp}@debug.com`;
+    
+    try {
+        // Direct insert without transaction
+        const result = await query(`
+            INSERT INTO users (id, first_name, last_name, email, mobile, country, password_hash, account_status)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            RETURNING id, email
+        `, [testUserId, 'Test', 'Debug', testEmail, '1234567890', 'ZA', 'dummy_hash', 'active']);
+        
+        // Verify it was saved
+        const verify = await query('SELECT id, email FROM users WHERE id = $1', [testUserId]);
+        
+        res.json({
+            success: true,
+            created: result.rows[0],
+            verified: verify.rows.length > 0,
+            message: `Test user ${testUserId} created and verified`
+        });
+    } catch (error) {
+        res.json({
+            success: false,
+            error: error.message,
+            detail: error.detail
+        });
+    }
+}));
+
 // Direct database check - no auth for debugging
 router.get('/debug-users-count', asyncHandler(async (req, res) => {
     const result = await query(`
