@@ -91,7 +91,8 @@ router.post('/register', registerValidation, asyncHandler(async (req, res) => {
         
         if (existingUser.rows.length > 0) {
             console.log(`🔍 User already exists: ${existingUser.rows[0].id} - ${existingUser.rows[0].first_name} ${existingUser.rows[0].last_name} - ${existingUser.rows[0].email}`);
-            throw new APIError('User with this email already exists', 409, 'USER_EXISTS');
+            // Include debug info in the error for troubleshooting
+            throw new APIError(`User with this email already exists. Debug: Found ${existingUser.rows.length} users: ${JSON.stringify(existingUser.rows)}`, 409, 'USER_EXISTS');
         }
         
         console.log(`🔍 No existing user found for ${email}, proceeding with registration`);
