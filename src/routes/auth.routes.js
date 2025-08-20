@@ -35,14 +35,25 @@ const generateToken = (userId) => {
 
 // Helper function to generate unified user ID and payment reference
 const generateUserIdAndPaymentRef = async (client) => {
-    // Get next number from the payment reference sequence
-    const result = await client.query('SELECT nextval(\'user_payment_ref_seq\') as ref_num');
-    const refNum = result.rows[0].ref_num;
-    
-    return {
-        userId: `user_${refNum}`,
-        paymentReference: `ARB-${refNum}`
-    };
+    try {
+        // Get next number from the payment reference sequence
+        const result = await client.query('SELECT nextval(\'user_payment_ref_seq\') as ref_num');
+        const refNum = result.rows[0].ref_num;
+        console.log('🔍 Sequence nextval result:', refNum);
+        
+        return {
+            userId: `user_${refNum}`,
+            paymentReference: `ARB-${refNum}`
+        };
+    } catch (error) {
+        console.error('🔴 Error getting sequence:', error.message);
+        // Fallback to timestamp-based ID if sequence doesn't exist
+        const timestamp = Date.now();
+        return {
+            userId: `user_${timestamp}`,
+            paymentReference: `ARB-${timestamp}`
+        };
+    }
 };
 
 // Apply auth rate limiting to all routes
@@ -59,7 +70,11 @@ router.post('/register', registerValidation, asyncHandler(async (req, res) => {
     
     const { firstName, lastName, email, mobile, country, password } = req.body;
     
-    await transaction(async (client) => {
+    console.log('🔍 Registration attempt:', { email, firstName, lastName, country });
+    systemLogger.auth('Registration attempt started', { email, firstName, lastName });
+    
+    const transactionResult = await transaction(async (client) => {
+        console.log('🔍 Transaction started for:', email);
         // Check if user already exists
         const existingUser = await client.query(
             'SELECT id FROM users WHERE email = $1',
@@ -77,7 +92,10 @@ router.post('/register', registerValidation, asyncHandler(async (req, res) => {
         // Generate unified user ID and payment reference
         const { userId, paymentReference } = await generateUserIdAndPaymentRef(client);
         
+        console.log('🔍 Generated userId:', userId, 'paymentRef:', paymentReference);
+        
         // Insert user with explicit payment reference
+        console.log('🔍 Attempting to insert user into database...');
         const userResult = await client.query(
             `INSERT INTO users (id, first_name, last_name, email, mobile, country, password_hash, account_status, payment_reference) 
              VALUES ($1, $2, $3, $4, $5, $6, $7, 'active', $8) 
@@ -85,7 +103,9 @@ router.post('/register', registerValidation, asyncHandler(async (req, res) => {
             [userId, firstName, lastName, email, mobile, country, passwordHash, paymentReference]
         );
         
+        console.log('🔍 User insert result:', userResult.rowCount, 'rows affected');
         const user = userResult.rows[0];
+        console.log('🔍 User created:', user.id, user.email);
         
         // Create trading activity record
         await client.query(
@@ -154,9 +174,19 @@ The ARB4ME Team`,
             ]
         );
         
+        console.log('🔍 Transaction completed successfully for user:', userId);
+        
         // Generate token
         const token = generateToken(userId);
         
+        // Return the result to be handled after transaction
+        return { user, token };
+    });
+    
+    console.log('🔍 Transaction committed, sending response...');
+    
+    if (transactionResult) {
+        const { user, token } = transactionResult;
         res.status(201).json({
             success: true,
             data: {
@@ -172,7 +202,10 @@ The ARB4ME Team`,
             },
             message: 'Registration successful'
         });
-    });
+    } else {
+        console.error('🔴 No transaction result returned');
+        throw new APIError('Registration failed - no result', 500, 'REGISTRATION_FAILED');
+    }
 }));
 
 // POST /api/v1/auth/login - User login
