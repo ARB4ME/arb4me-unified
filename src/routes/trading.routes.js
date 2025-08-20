@@ -2029,6 +2029,176 @@ async function createXagoAuth(apiKey, apiSecret) {
     }
 }
 
+// AltCoinTrader Buy Order Endpoint
+router.post('/altcointrader/buy-order', tradingRateLimit, optionalAuth, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('pair').notEmpty().withMessage('Trading pair is required'),
+    body('amount').isFloat({ min: 0.01 }).withMessage('Amount must be a positive number'),
+    body('price').optional().isFloat({ min: 0.01 }).withMessage('Price must be a positive number')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey, apiSecret, pair, amount, price } = req.body;
+    
+    try {
+        systemLogger.trading('AltCoinTrader buy order initiated', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'altcointrader',
+            endpoint: 'buy-order',
+            pair,
+            amount,
+            price
+        });
+        
+        // Format pair for AltCoinTrader (remove ZAR suffix if present)
+        const altCoinTraderPair = pair.replace('ZAR', '').replace('USDT', '');
+        
+        const orderData = {
+            coin: altCoinTraderPair,
+            amount: amount.toString(),
+            price: (price || 0).toString()
+        };
+        
+        const response = await fetch(`${ALTCOINTRADER_CONFIG.baseUrl}/v3/simple-buy-order`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'X-API-SECRET': apiSecret,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(orderData)
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const orderResult = await response.json();
+        
+        systemLogger.trading('AltCoinTrader buy order placed successfully', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'altcointrader',
+            orderId: orderResult.uuid,
+            pair: altCoinTraderPair,
+            amount,
+            price: orderResult.price
+        });
+        
+        res.json({
+            success: true,
+            order: {
+                orderId: orderResult.uuid,
+                price: parseFloat(orderResult.price),
+                amount: parseFloat(orderResult.amount),
+                fee: parseFloat(orderResult.fee || 0),
+                status: orderResult.status,
+                timestamp: orderResult.created_at
+            }
+        });
+        
+    } catch (error) {
+        systemLogger.trading('AltCoinTrader buy order failed', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'altcointrader',
+            error: error.message,
+            pair,
+            amount
+        });
+        
+        throw new APIError(`AltCoinTrader buy order failed: ${error.message}`, 500, 'ALTCOINTRADER_BUY_ORDER_ERROR');
+    }
+}));
+
+// AltCoinTrader Sell Order Endpoint
+router.post('/altcointrader/sell-order', tradingRateLimit, optionalAuth, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('pair').notEmpty().withMessage('Trading pair is required'),
+    body('amount').isFloat({ min: 0.01 }).withMessage('Amount must be a positive number'),
+    body('price').optional().isFloat({ min: 0.01 }).withMessage('Price must be a positive number')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey, apiSecret, pair, amount, price } = req.body;
+    
+    try {
+        systemLogger.trading('AltCoinTrader sell order initiated', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'altcointrader',
+            endpoint: 'sell-order',
+            pair,
+            amount,
+            price
+        });
+        
+        // Format pair for AltCoinTrader (remove ZAR suffix if present)
+        const altCoinTraderPair = pair.replace('ZAR', '').replace('USDT', '');
+        
+        const orderData = {
+            coin: altCoinTraderPair,
+            amount: amount.toString(),
+            price: (price || 0).toString()
+        };
+        
+        const response = await fetch(`${ALTCOINTRADER_CONFIG.baseUrl}/v3/simple-sell-order`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'X-API-SECRET': apiSecret,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(orderData)
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const orderResult = await response.json();
+        
+        systemLogger.trading('AltCoinTrader sell order placed successfully', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'altcointrader',
+            orderId: orderResult.uuid,
+            pair: altCoinTraderPair,
+            amount,
+            price: orderResult.price
+        });
+        
+        res.json({
+            success: true,
+            order: {
+                orderId: orderResult.uuid,
+                price: parseFloat(orderResult.price),
+                amount: parseFloat(orderResult.amount),
+                fee: parseFloat(orderResult.fee || 0),
+                status: orderResult.status,
+                timestamp: orderResult.created_at
+            }
+        });
+        
+    } catch (error) {
+        systemLogger.trading('AltCoinTrader sell order failed', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'altcointrader',
+            error: error.message,
+            pair,
+            amount
+        });
+        
+        throw new APIError(`AltCoinTrader sell order failed: ${error.message}`, 500, 'ALTCOINTRADER_SELL_ORDER_ERROR');
+    }
+}));
+
 // XAGO Balance Endpoint
 router.post('/xago/balance', tradingRateLimit, optionalAuth, [
     body('apiKey').notEmpty().withMessage('API key is required'),
@@ -2234,6 +2404,190 @@ router.post('/xago/test', tradingRateLimit, optionalAuth, [
         });
         
         throw new APIError(`XAGO connection test failed: ${error.message}`, 500, 'XAGO_CONNECTION_ERROR');
+    }
+}));
+
+// XAGO Buy Order Endpoint
+router.post('/xago/buy-order', tradingRateLimit, optionalAuth, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('pair').notEmpty().withMessage('Trading pair is required'),
+    body('amount').isFloat({ min: 0.01 }).withMessage('Amount must be a positive number'),
+    body('price').optional().isFloat({ min: 0.01 }).withMessage('Price must be a positive number')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey, apiSecret, pair, amount, price } = req.body;
+    
+    try {
+        systemLogger.trading('XAGO buy order initiated', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'xago',
+            endpoint: 'buy-order',
+            pair,
+            amount,
+            price
+        });
+        
+        // Format pair for XAGO (convert USDT pairs to ZAR)
+        let xagoPair = pair.replace('USDT', 'ZAR');
+        
+        const auth = await createXagoAuth(apiKey, apiSecret);
+        
+        const orderData = {
+            symbol: xagoPair,
+            side: 'BUY',
+            type: price ? 'LIMIT' : 'MARKET',
+            quantity: amount.toString(),
+            ...(price && { price: price.toString() })
+        };
+        
+        const response = await fetch(`${XAGO_CONFIG.baseUrl}${XAGO_CONFIG.endpoints.order}`, {
+            method: 'POST',
+            headers: {
+                'X-API-KEY': auth.apiKey,
+                'X-TIMESTAMP': auth.timestamp,
+                'X-SIGNATURE': auth.signature,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(orderData)
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const orderResult = await response.json();
+        
+        systemLogger.trading('XAGO buy order placed successfully', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'xago',
+            orderId: orderResult.orderId,
+            pair: xagoPair,
+            amount,
+            price: orderResult.price
+        });
+        
+        res.json({
+            success: true,
+            order: {
+                orderId: orderResult.orderId,
+                symbol: xagoPair,
+                side: 'BUY',
+                type: orderResult.type,
+                quantity: parseFloat(orderResult.origQty || amount),
+                price: parseFloat(orderResult.price || price || 0),
+                status: orderResult.status,
+                timestamp: orderResult.transactTime || new Date()
+            }
+        });
+        
+    } catch (error) {
+        systemLogger.trading('XAGO buy order failed', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'xago',
+            error: error.message,
+            pair,
+            amount
+        });
+        
+        throw new APIError(`XAGO buy order failed: ${error.message}`, 500, 'XAGO_BUY_ORDER_ERROR');
+    }
+}));
+
+// XAGO Sell Order Endpoint
+router.post('/xago/sell-order', tradingRateLimit, optionalAuth, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('pair').notEmpty().withMessage('Trading pair is required'),
+    body('amount').isFloat({ min: 0.01 }).withMessage('Amount must be a positive number'),
+    body('price').optional().isFloat({ min: 0.01 }).withMessage('Price must be a positive number')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey, apiSecret, pair, amount, price } = req.body;
+    
+    try {
+        systemLogger.trading('XAGO sell order initiated', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'xago',
+            endpoint: 'sell-order',
+            pair,
+            amount,
+            price
+        });
+        
+        // Format pair for XAGO (convert USDT pairs to ZAR)
+        let xagoPair = pair.replace('USDT', 'ZAR');
+        
+        const auth = await createXagoAuth(apiKey, apiSecret);
+        
+        const orderData = {
+            symbol: xagoPair,
+            side: 'SELL',
+            type: price ? 'LIMIT' : 'MARKET',
+            quantity: amount.toString(),
+            ...(price && { price: price.toString() })
+        };
+        
+        const response = await fetch(`${XAGO_CONFIG.baseUrl}${XAGO_CONFIG.endpoints.order}`, {
+            method: 'POST',
+            headers: {
+                'X-API-KEY': auth.apiKey,
+                'X-TIMESTAMP': auth.timestamp,
+                'X-SIGNATURE': auth.signature,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(orderData)
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const orderResult = await response.json();
+        
+        systemLogger.trading('XAGO sell order placed successfully', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'xago',
+            orderId: orderResult.orderId,
+            pair: xagoPair,
+            amount,
+            price: orderResult.price
+        });
+        
+        res.json({
+            success: true,
+            order: {
+                orderId: orderResult.orderId,
+                symbol: xagoPair,
+                side: 'SELL',
+                type: orderResult.type,
+                quantity: parseFloat(orderResult.origQty || amount),
+                price: parseFloat(orderResult.price || price || 0),
+                status: orderResult.status,
+                timestamp: orderResult.transactTime || new Date()
+            }
+        });
+        
+    } catch (error) {
+        systemLogger.trading('XAGO sell order failed', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'xago',
+            error: error.message,
+            pair,
+            amount
+        });
+        
+        throw new APIError(`XAGO sell order failed: ${error.message}`, 500, 'XAGO_SELL_ORDER_ERROR');
     }
 }));
 
@@ -2478,6 +2832,190 @@ router.post('/chainex/test', tradingRateLimit, optionalAuth, [
     }
 }));
 
+// ChainEX Buy Order Endpoint
+router.post('/chainex/buy-order', tradingRateLimit, optionalAuth, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('pair').notEmpty().withMessage('Trading pair is required'),
+    body('amount').isFloat({ min: 0.01 }).withMessage('Amount must be a positive number'),
+    body('price').optional().isFloat({ min: 0.01 }).withMessage('Price must be a positive number')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey, apiSecret, pair, amount, price } = req.body;
+    
+    try {
+        systemLogger.trading('ChainEX buy order initiated', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'chainex',
+            endpoint: 'buy-order',
+            pair,
+            amount,
+            price
+        });
+        
+        // Format pair for ChainEX (convert USDT pairs to ZAR if needed)
+        let chainexPair = pair.replace('USDT', 'ZAR');
+        
+        const auth = await createChainEXAuth(apiKey, apiSecret);
+        
+        const orderData = {
+            market: chainexPair,
+            side: 'buy',
+            amount: amount.toString(),
+            type: price ? 'limit' : 'market',
+            ...(price && { price: price.toString() })
+        };
+        
+        const response = await fetch(`${CHAINEX_CONFIG.baseUrl}${CHAINEX_CONFIG.endpoints.order}`, {
+            method: 'POST',
+            headers: {
+                'X-API-KEY': auth.apiKey,
+                'X-TIMESTAMP': auth.timestamp,
+                'X-SIGNATURE': auth.signature,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(orderData)
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const orderResult = await response.json();
+        
+        systemLogger.trading('ChainEX buy order placed successfully', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'chainex',
+            orderId: orderResult.id,
+            pair: chainexPair,
+            amount,
+            price: orderResult.price
+        });
+        
+        res.json({
+            success: true,
+            order: {
+                orderId: orderResult.id,
+                market: chainexPair,
+                side: 'buy',
+                type: orderResult.type,
+                amount: parseFloat(orderResult.amount || amount),
+                price: parseFloat(orderResult.price || price || 0),
+                status: orderResult.state,
+                timestamp: orderResult.created_at || new Date()
+            }
+        });
+        
+    } catch (error) {
+        systemLogger.trading('ChainEX buy order failed', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'chainex',
+            error: error.message,
+            pair,
+            amount
+        });
+        
+        throw new APIError(`ChainEX buy order failed: ${error.message}`, 500, 'CHAINEX_BUY_ORDER_ERROR');
+    }
+}));
+
+// ChainEX Sell Order Endpoint
+router.post('/chainex/sell-order', tradingRateLimit, optionalAuth, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('pair').notEmpty().withMessage('Trading pair is required'),
+    body('amount').isFloat({ min: 0.01 }).withMessage('Amount must be a positive number'),
+    body('price').optional().isFloat({ min: 0.01 }).withMessage('Price must be a positive number')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey, apiSecret, pair, amount, price } = req.body;
+    
+    try {
+        systemLogger.trading('ChainEX sell order initiated', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'chainex',
+            endpoint: 'sell-order',
+            pair,
+            amount,
+            price
+        });
+        
+        // Format pair for ChainEX (convert USDT pairs to ZAR if needed)
+        let chainexPair = pair.replace('USDT', 'ZAR');
+        
+        const auth = await createChainEXAuth(apiKey, apiSecret);
+        
+        const orderData = {
+            market: chainexPair,
+            side: 'sell',
+            amount: amount.toString(),
+            type: price ? 'limit' : 'market',
+            ...(price && { price: price.toString() })
+        };
+        
+        const response = await fetch(`${CHAINEX_CONFIG.baseUrl}${CHAINEX_CONFIG.endpoints.order}`, {
+            method: 'POST',
+            headers: {
+                'X-API-KEY': auth.apiKey,
+                'X-TIMESTAMP': auth.timestamp,
+                'X-SIGNATURE': auth.signature,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(orderData)
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const orderResult = await response.json();
+        
+        systemLogger.trading('ChainEX sell order placed successfully', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'chainex',
+            orderId: orderResult.id,
+            pair: chainexPair,
+            amount,
+            price: orderResult.price
+        });
+        
+        res.json({
+            success: true,
+            order: {
+                orderId: orderResult.id,
+                market: chainexPair,
+                side: 'sell',
+                type: orderResult.type,
+                amount: parseFloat(orderResult.amount || amount),
+                price: parseFloat(orderResult.price || price || 0),
+                status: orderResult.state,
+                timestamp: orderResult.created_at || new Date()
+            }
+        });
+        
+    } catch (error) {
+        systemLogger.trading('ChainEX sell order failed', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'chainex',
+            error: error.message,
+            pair,
+            amount
+        });
+        
+        throw new APIError(`ChainEX sell order failed: ${error.message}`, 500, 'CHAINEX_SELL_ORDER_ERROR');
+    }
+}));
+
 // ============================================================================
 // BINANCE EXCHANGE API PROXY ENDPOINTS
 // ============================================================================
@@ -2705,6 +3243,200 @@ router.post('/binance/test', tradingRateLimit, optionalAuth, [
         });
         
         throw new APIError(`Binance connection test failed: ${error.message}`, 500, 'BINANCE_CONNECTION_ERROR');
+    }
+}));
+
+// Binance Buy Order Endpoint
+router.post('/binance/buy-order', tradingRateLimit, optionalAuth, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('pair').notEmpty().withMessage('Trading pair is required'),
+    body('quantity').isFloat({ min: 0.01 }).withMessage('Quantity must be a positive number'),
+    body('price').optional().isFloat({ min: 0.01 }).withMessage('Price must be a positive number')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey, apiSecret, pair, quantity, price } = req.body;
+    
+    try {
+        systemLogger.trading('Binance buy order initiated', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'binance',
+            endpoint: 'buy-order',
+            pair,
+            quantity,
+            price
+        });
+        
+        const auth = createBinanceAuth(apiKey, apiSecret);
+        const timestamp = Date.now();
+        
+        const orderData = {
+            symbol: pair,
+            side: 'BUY',
+            type: price ? 'LIMIT' : 'MARKET',
+            quantity: quantity.toString(),
+            timestamp: timestamp.toString(),
+            ...(price && { price: price.toString(), timeInForce: 'GTC' })
+        };
+        
+        const queryString = new URLSearchParams(orderData).toString();
+        const signature = crypto
+            .createHmac('sha256', apiSecret)
+            .update(queryString)
+            .digest('hex');
+            
+        orderData.signature = signature;
+        
+        const response = await fetch(`${BINANCE_CONFIG.baseUrl}${BINANCE_CONFIG.endpoints.order}`, {
+            method: 'POST',
+            headers: {
+                'X-MBX-APIKEY': apiKey,
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: new URLSearchParams(orderData).toString()
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const orderResult = await response.json();
+        
+        systemLogger.trading('Binance buy order placed successfully', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'binance',
+            orderId: orderResult.orderId,
+            pair,
+            quantity,
+            price: orderResult.price
+        });
+        
+        res.json({
+            success: true,
+            order: {
+                orderId: orderResult.orderId,
+                symbol: orderResult.symbol,
+                side: 'BUY',
+                type: orderResult.type,
+                quantity: parseFloat(orderResult.origQty || quantity),
+                price: parseFloat(orderResult.price || price || 0),
+                status: orderResult.status,
+                timestamp: orderResult.transactTime || new Date()
+            }
+        });
+        
+    } catch (error) {
+        systemLogger.trading('Binance buy order failed', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'binance',
+            error: error.message,
+            pair,
+            quantity
+        });
+        
+        throw new APIError(`Binance buy order failed: ${error.message}`, 500, 'BINANCE_BUY_ORDER_ERROR');
+    }
+}));
+
+// Binance Sell Order Endpoint
+router.post('/binance/sell-order', tradingRateLimit, optionalAuth, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('pair').notEmpty().withMessage('Trading pair is required'),
+    body('quantity').isFloat({ min: 0.01 }).withMessage('Quantity must be a positive number'),
+    body('price').optional().isFloat({ min: 0.01 }).withMessage('Price must be a positive number')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey, apiSecret, pair, quantity, price } = req.body;
+    
+    try {
+        systemLogger.trading('Binance sell order initiated', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'binance',
+            endpoint: 'sell-order',
+            pair,
+            quantity,
+            price
+        });
+        
+        const auth = createBinanceAuth(apiKey, apiSecret);
+        const timestamp = Date.now();
+        
+        const orderData = {
+            symbol: pair,
+            side: 'SELL',
+            type: price ? 'LIMIT' : 'MARKET',
+            quantity: quantity.toString(),
+            timestamp: timestamp.toString(),
+            ...(price && { price: price.toString(), timeInForce: 'GTC' })
+        };
+        
+        const queryString = new URLSearchParams(orderData).toString();
+        const signature = crypto
+            .createHmac('sha256', apiSecret)
+            .update(queryString)
+            .digest('hex');
+            
+        orderData.signature = signature;
+        
+        const response = await fetch(`${BINANCE_CONFIG.baseUrl}${BINANCE_CONFIG.endpoints.order}`, {
+            method: 'POST',
+            headers: {
+                'X-MBX-APIKEY': apiKey,
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: new URLSearchParams(orderData).toString()
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const orderResult = await response.json();
+        
+        systemLogger.trading('Binance sell order placed successfully', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'binance',
+            orderId: orderResult.orderId,
+            pair,
+            quantity,
+            price: orderResult.price
+        });
+        
+        res.json({
+            success: true,
+            order: {
+                orderId: orderResult.orderId,
+                symbol: orderResult.symbol,
+                side: 'SELL',
+                type: orderResult.type,
+                quantity: parseFloat(orderResult.origQty || quantity),
+                price: parseFloat(orderResult.price || price || 0),
+                status: orderResult.status,
+                timestamp: orderResult.transactTime || new Date()
+            }
+        });
+        
+    } catch (error) {
+        systemLogger.trading('Binance sell order failed', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'binance',
+            error: error.message,
+            pair,
+            quantity
+        });
+        
+        throw new APIError(`Binance sell order failed: ${error.message}`, 500, 'BINANCE_SELL_ORDER_ERROR');
     }
 }));
 
@@ -2980,6 +3712,208 @@ router.post('/kraken/test', tradingRateLimit, optionalAuth, [
     }
 }));
 
+// Kraken Buy Order Endpoint
+router.post('/kraken/buy-order', tradingRateLimit, optionalAuth, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('pair').notEmpty().withMessage('Trading pair is required'),
+    body('volume').isFloat({ min: 0.01 }).withMessage('Volume must be a positive number'),
+    body('price').optional().isFloat({ min: 0.01 }).withMessage('Price must be a positive number')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey, apiSecret, pair, volume, price } = req.body;
+    
+    try {
+        systemLogger.trading('Kraken buy order initiated', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'kraken',
+            endpoint: 'buy-order',
+            pair,
+            volume,
+            price
+        });
+        
+        const auth = createKrakenAuth(apiKey, apiSecret);
+        const nonce = Date.now() * 1000;
+        
+        const orderData = {
+            nonce: nonce.toString(),
+            ordertype: price ? 'limit' : 'market',
+            type: 'buy',
+            volume: volume.toString(),
+            pair,
+            ...(price && { price: price.toString() })
+        };
+        
+        const postData = new URLSearchParams(orderData).toString();
+        const path = KRAKEN_CONFIG.endpoints.order;
+        const signature = crypto
+            .createHmac('sha512', Buffer.from(apiSecret, 'base64'))
+            .update(path + crypto.createHash('sha256').update(nonce + postData).digest())
+            .digest('base64');
+        
+        const response = await fetch(`${KRAKEN_CONFIG.baseUrl}${path}`, {
+            method: 'POST',
+            headers: {
+                'API-Key': apiKey,
+                'API-Sign': signature,
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: postData
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.error && data.error.length > 0) {
+            throw new Error(data.error.join(', '));
+        }
+        
+        systemLogger.trading('Kraken buy order placed successfully', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'kraken',
+            txId: data.result?.txid?.[0],
+            pair,
+            volume,
+            price
+        });
+        
+        res.json({
+            success: true,
+            order: {
+                txId: data.result?.txid?.[0],
+                pair,
+                type: 'buy',
+                ordertype: price ? 'limit' : 'market',
+                volume: parseFloat(volume),
+                price: parseFloat(price || 0),
+                status: 'pending',
+                timestamp: new Date()
+            }
+        });
+        
+    } catch (error) {
+        systemLogger.trading('Kraken buy order failed', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'kraken',
+            error: error.message,
+            pair,
+            volume
+        });
+        
+        throw new APIError(`Kraken buy order failed: ${error.message}`, 500, 'KRAKEN_BUY_ORDER_ERROR');
+    }
+}));
+
+// Kraken Sell Order Endpoint
+router.post('/kraken/sell-order', tradingRateLimit, optionalAuth, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('pair').notEmpty().withMessage('Trading pair is required'),
+    body('volume').isFloat({ min: 0.01 }).withMessage('Volume must be a positive number'),
+    body('price').optional().isFloat({ min: 0.01 }).withMessage('Price must be a positive number')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey, apiSecret, pair, volume, price } = req.body;
+    
+    try {
+        systemLogger.trading('Kraken sell order initiated', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'kraken',
+            endpoint: 'sell-order',
+            pair,
+            volume,
+            price
+        });
+        
+        const auth = createKrakenAuth(apiKey, apiSecret);
+        const nonce = Date.now() * 1000;
+        
+        const orderData = {
+            nonce: nonce.toString(),
+            ordertype: price ? 'limit' : 'market',
+            type: 'sell',
+            volume: volume.toString(),
+            pair,
+            ...(price && { price: price.toString() })
+        };
+        
+        const postData = new URLSearchParams(orderData).toString();
+        const path = KRAKEN_CONFIG.endpoints.order;
+        const signature = crypto
+            .createHmac('sha512', Buffer.from(apiSecret, 'base64'))
+            .update(path + crypto.createHash('sha256').update(nonce + postData).digest())
+            .digest('base64');
+        
+        const response = await fetch(`${KRAKEN_CONFIG.baseUrl}${path}`, {
+            method: 'POST',
+            headers: {
+                'API-Key': apiKey,
+                'API-Sign': signature,
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: postData
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.error && data.error.length > 0) {
+            throw new Error(data.error.join(', '));
+        }
+        
+        systemLogger.trading('Kraken sell order placed successfully', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'kraken',
+            txId: data.result?.txid?.[0],
+            pair,
+            volume,
+            price
+        });
+        
+        res.json({
+            success: true,
+            order: {
+                txId: data.result?.txid?.[0],
+                pair,
+                type: 'sell',
+                ordertype: price ? 'limit' : 'market',
+                volume: parseFloat(volume),
+                price: parseFloat(price || 0),
+                status: 'pending',
+                timestamp: new Date()
+            }
+        });
+        
+    } catch (error) {
+        systemLogger.trading('Kraken sell order failed', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'kraken',
+            error: error.message,
+            pair,
+            volume
+        });
+        
+        throw new APIError(`Kraken sell order failed: ${error.message}`, 500, 'KRAKEN_SELL_ORDER_ERROR');
+    }
+}));
+
 // ============================================================================
 // BYBIT EXCHANGE API PROXY ENDPOINTS
 // ============================================================================
@@ -3248,6 +4182,214 @@ router.post('/bybit/test', tradingRateLimit, optionalAuth, [
     }
 }));
 
+// ByBit Buy Order Endpoint
+router.post('/bybit/buy-order', tradingRateLimit, optionalAuth, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('symbol').notEmpty().withMessage('Trading symbol is required'),
+    body('qty').isFloat({ min: 0.01 }).withMessage('Quantity must be a positive number'),
+    body('price').optional().isFloat({ min: 0.01 }).withMessage('Price must be a positive number')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey, apiSecret, symbol, qty, price } = req.body;
+    
+    try {
+        systemLogger.trading('ByBit buy order initiated', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'bybit',
+            endpoint: 'buy-order',
+            symbol,
+            qty,
+            price
+        });
+        
+        const timestamp = Date.now();
+        const orderData = {
+            category: 'spot',
+            symbol,
+            side: 'Buy',
+            orderType: price ? 'Limit' : 'Market',
+            qty: qty.toString(),
+            ...(price && { price: price.toString() })
+        };
+        
+        const queryString = Object.keys(orderData)
+            .sort()
+            .map(key => `${key}=${orderData[key]}`)
+            .join('&');
+            
+        const signature = crypto
+            .createHmac('sha256', apiSecret)
+            .update(timestamp + apiKey + queryString)
+            .digest('hex');
+        
+        const response = await fetch(`${BYBIT_CONFIG.baseUrl}${BYBIT_CONFIG.endpoints.order}`, {
+            method: 'POST',
+            headers: {
+                'X-BAPI-API-KEY': apiKey,
+                'X-BAPI-SIGN': signature,
+                'X-BAPI-TIMESTAMP': timestamp.toString(),
+                'X-BAPI-RECV-WINDOW': '5000',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(orderData)
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const orderResult = await response.json();
+        
+        if (orderResult.retCode !== 0) {
+            throw new Error(orderResult.retMsg);
+        }
+        
+        systemLogger.trading('ByBit buy order placed successfully', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'bybit',
+            orderId: orderResult.result?.orderId,
+            symbol,
+            qty,
+            price
+        });
+        
+        res.json({
+            success: true,
+            order: {
+                orderId: orderResult.result?.orderId,
+                symbol,
+                side: 'Buy',
+                orderType: price ? 'Limit' : 'Market',
+                qty: parseFloat(qty),
+                price: parseFloat(price || 0),
+                status: orderResult.result?.orderStatus || 'New',
+                timestamp: new Date()
+            }
+        });
+        
+    } catch (error) {
+        systemLogger.trading('ByBit buy order failed', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'bybit',
+            error: error.message,
+            symbol,
+            qty
+        });
+        
+        throw new APIError(`ByBit buy order failed: ${error.message}`, 500, 'BYBIT_BUY_ORDER_ERROR');
+    }
+}));
+
+// ByBit Sell Order Endpoint
+router.post('/bybit/sell-order', tradingRateLimit, optionalAuth, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('symbol').notEmpty().withMessage('Trading symbol is required'),
+    body('qty').isFloat({ min: 0.01 }).withMessage('Quantity must be a positive number'),
+    body('price').optional().isFloat({ min: 0.01 }).withMessage('Price must be a positive number')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey, apiSecret, symbol, qty, price } = req.body;
+    
+    try {
+        systemLogger.trading('ByBit sell order initiated', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'bybit',
+            endpoint: 'sell-order',
+            symbol,
+            qty,
+            price
+        });
+        
+        const timestamp = Date.now();
+        const orderData = {
+            category: 'spot',
+            symbol,
+            side: 'Sell',
+            orderType: price ? 'Limit' : 'Market',
+            qty: qty.toString(),
+            ...(price && { price: price.toString() })
+        };
+        
+        const queryString = Object.keys(orderData)
+            .sort()
+            .map(key => `${key}=${orderData[key]}`)
+            .join('&');
+            
+        const signature = crypto
+            .createHmac('sha256', apiSecret)
+            .update(timestamp + apiKey + queryString)
+            .digest('hex');
+        
+        const response = await fetch(`${BYBIT_CONFIG.baseUrl}${BYBIT_CONFIG.endpoints.order}`, {
+            method: 'POST',
+            headers: {
+                'X-BAPI-API-KEY': apiKey,
+                'X-BAPI-SIGN': signature,
+                'X-BAPI-TIMESTAMP': timestamp.toString(),
+                'X-BAPI-RECV-WINDOW': '5000',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(orderData)
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const orderResult = await response.json();
+        
+        if (orderResult.retCode !== 0) {
+            throw new Error(orderResult.retMsg);
+        }
+        
+        systemLogger.trading('ByBit sell order placed successfully', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'bybit',
+            orderId: orderResult.result?.orderId,
+            symbol,
+            qty,
+            price
+        });
+        
+        res.json({
+            success: true,
+            order: {
+                orderId: orderResult.result?.orderId,
+                symbol,
+                side: 'Sell',
+                orderType: price ? 'Limit' : 'Market',
+                qty: parseFloat(qty),
+                price: parseFloat(price || 0),
+                status: orderResult.result?.orderStatus || 'New',
+                timestamp: new Date()
+            }
+        });
+        
+    } catch (error) {
+        systemLogger.trading('ByBit sell order failed', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'bybit',
+            error: error.message,
+            symbol,
+            qty
+        });
+        
+        throw new APIError(`ByBit sell order failed: ${error.message}`, 500, 'BYBIT_SELL_ORDER_ERROR');
+    }
+}));
+
 // ============================================================================
 // GATE.IO EXCHANGE API PROXY ENDPOINTS  
 // ============================================================================
@@ -3507,6 +4649,200 @@ router.post('/gateio/test', tradingRateLimit, optionalAuth, [
                 error: error.message
             }
         });
+    }
+}));
+
+// Gate.io Buy Order Endpoint
+router.post('/gateio/buy-order', tradingRateLimit, optionalAuth, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('currencyPair').notEmpty().withMessage('Currency pair is required'),
+    body('amount').isFloat({ min: 0.01 }).withMessage('Amount must be a positive number'),
+    body('price').optional().isFloat({ min: 0.01 }).withMessage('Price must be a positive number')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey, apiSecret, currencyPair, amount, price } = req.body;
+    
+    try {
+        systemLogger.trading('Gate.io buy order initiated', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'gateio',
+            endpoint: 'buy-order',
+            currencyPair,
+            amount,
+            price
+        });
+        
+        // Format pair for Gate.io (ensure underscore format like BTC_USDT)
+        const gateioSymbol = currencyPair.replace(/([A-Z]+)([A-Z]{3,4})$/, '$1_$2');
+        
+        const timestamp = Math.floor(Date.now() / 1000);
+        const orderData = {
+            currency_pair: gateioSymbol,
+            type: price ? 'limit' : 'market',
+            account: 'spot',
+            side: 'buy',
+            amount: amount.toString(),
+            ...(price && { price: price.toString() })
+        };
+        
+        const body = JSON.stringify(orderData);
+        const payloadHash = crypto.createHash('sha512').update(body).digest('hex');
+        const signString = `POST\n/api/v4/spot/orders\n\n${payloadHash}\n${timestamp}`;
+        const signature = crypto.createHmac('sha512', apiSecret).update(signString).digest('hex');
+        
+        const response = await fetch(`${GATEIO_CONFIG.baseUrl}${GATEIO_CONFIG.endpoints.order}`, {
+            method: 'POST',
+            headers: {
+                'KEY': apiKey,
+                'SIGN': signature,
+                'Timestamp': timestamp.toString(),
+                'Content-Type': 'application/json'
+            },
+            body: body
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const orderResult = await response.json();
+        
+        systemLogger.trading('Gate.io buy order placed successfully', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'gateio',
+            orderId: orderResult.id,
+            currencyPair: gateioSymbol,
+            amount,
+            price
+        });
+        
+        res.json({
+            success: true,
+            order: {
+                orderId: orderResult.id,
+                currencyPair: gateioSymbol,
+                type: price ? 'limit' : 'market',
+                side: 'buy',
+                amount: parseFloat(orderResult.amount || amount),
+                price: parseFloat(orderResult.price || price || 0),
+                status: orderResult.status,
+                timestamp: new Date(orderResult.create_time * 1000)
+            }
+        });
+        
+    } catch (error) {
+        systemLogger.trading('Gate.io buy order failed', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'gateio',
+            error: error.message,
+            currencyPair,
+            amount
+        });
+        
+        throw new APIError(`Gate.io buy order failed: ${error.message}`, 500, 'GATEIO_BUY_ORDER_ERROR');
+    }
+}));
+
+// Gate.io Sell Order Endpoint
+router.post('/gateio/sell-order', tradingRateLimit, optionalAuth, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('currencyPair').notEmpty().withMessage('Currency pair is required'),
+    body('amount').isFloat({ min: 0.01 }).withMessage('Amount must be a positive number'),
+    body('price').optional().isFloat({ min: 0.01 }).withMessage('Price must be a positive number')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey, apiSecret, currencyPair, amount, price } = req.body;
+    
+    try {
+        systemLogger.trading('Gate.io sell order initiated', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'gateio',
+            endpoint: 'sell-order',
+            currencyPair,
+            amount,
+            price
+        });
+        
+        // Format pair for Gate.io (ensure underscore format like BTC_USDT)
+        const gateioSymbol = currencyPair.replace(/([A-Z]+)([A-Z]{3,4})$/, '$1_$2');
+        
+        const timestamp = Math.floor(Date.now() / 1000);
+        const orderData = {
+            currency_pair: gateioSymbol,
+            type: price ? 'limit' : 'market',
+            account: 'spot',
+            side: 'sell',
+            amount: amount.toString(),
+            ...(price && { price: price.toString() })
+        };
+        
+        const body = JSON.stringify(orderData);
+        const payloadHash = crypto.createHash('sha512').update(body).digest('hex');
+        const signString = `POST\n/api/v4/spot/orders\n\n${payloadHash}\n${timestamp}`;
+        const signature = crypto.createHmac('sha512', apiSecret).update(signString).digest('hex');
+        
+        const response = await fetch(`${GATEIO_CONFIG.baseUrl}${GATEIO_CONFIG.endpoints.order}`, {
+            method: 'POST',
+            headers: {
+                'KEY': apiKey,
+                'SIGN': signature,
+                'Timestamp': timestamp.toString(),
+                'Content-Type': 'application/json'
+            },
+            body: body
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const orderResult = await response.json();
+        
+        systemLogger.trading('Gate.io sell order placed successfully', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'gateio',
+            orderId: orderResult.id,
+            currencyPair: gateioSymbol,
+            amount,
+            price
+        });
+        
+        res.json({
+            success: true,
+            order: {
+                orderId: orderResult.id,
+                currencyPair: gateioSymbol,
+                type: price ? 'limit' : 'market',
+                side: 'sell',
+                amount: parseFloat(orderResult.amount || amount),
+                price: parseFloat(orderResult.price || price || 0),
+                status: orderResult.status,
+                timestamp: new Date(orderResult.create_time * 1000)
+            }
+        });
+        
+    } catch (error) {
+        systemLogger.trading('Gate.io sell order failed', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'gateio',
+            error: error.message,
+            currencyPair,
+            amount
+        });
+        
+        throw new APIError(`Gate.io sell order failed: ${error.message}`, 500, 'GATEIO_SELL_ORDER_ERROR');
     }
 }));
 
@@ -3781,6 +5117,208 @@ router.post('/okx/test', tradingRateLimit, optionalAuth, [
     }
 }));
 
+// OKX Buy Order Endpoint
+router.post('/okx/buy-order', tradingRateLimit, optionalAuth, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('passphrase').notEmpty().withMessage('Passphrase is required'),
+    body('instId').notEmpty().withMessage('Instrument ID is required'),
+    body('sz').isFloat({ min: 0.01 }).withMessage('Size must be a positive number'),
+    body('px').optional().isFloat({ min: 0.01 }).withMessage('Price must be a positive number')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey, apiSecret, passphrase, instId, sz, px } = req.body;
+    
+    try {
+        systemLogger.trading('OKX buy order initiated', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'okx',
+            endpoint: 'buy-order',
+            instId,
+            sz,
+            px
+        });
+        
+        const timestamp = new Date().toISOString();
+        const orderData = {
+            instId,
+            tdMode: 'cash',
+            side: 'buy',
+            ordType: px ? 'limit' : 'market',
+            sz: sz.toString(),
+            ...(px && { px: px.toString() })
+        };
+        
+        const body = JSON.stringify(orderData);
+        const method = 'POST';
+        const requestPath = '/api/v5/trade/order';
+        const signature = createOKXSignature(timestamp, method, requestPath, body, apiSecret);
+        
+        const response = await fetch(`${OKX_CONFIG.baseUrl}${requestPath}`, {
+            method: 'POST',
+            headers: {
+                'OK-ACCESS-KEY': apiKey,
+                'OK-ACCESS-SIGN': signature,
+                'OK-ACCESS-TIMESTAMP': timestamp,
+                'OK-ACCESS-PASSPHRASE': passphrase,
+                'Content-Type': 'application/json'
+            },
+            body: body
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const orderResult = await response.json();
+        
+        if (orderResult.code !== '0') {
+            throw new Error(orderResult.msg || 'Order placement failed');
+        }
+        
+        systemLogger.trading('OKX buy order placed successfully', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'okx',
+            ordId: orderResult.data?.[0]?.ordId,
+            instId,
+            sz,
+            px
+        });
+        
+        res.json({
+            success: true,
+            order: {
+                ordId: orderResult.data?.[0]?.ordId,
+                instId,
+                tdMode: 'cash',
+                side: 'buy',
+                ordType: px ? 'limit' : 'market',
+                sz: parseFloat(sz),
+                px: parseFloat(px || 0),
+                state: orderResult.data?.[0]?.sCode || 'live',
+                timestamp: new Date()
+            }
+        });
+        
+    } catch (error) {
+        systemLogger.trading('OKX buy order failed', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'okx',
+            error: error.message,
+            instId,
+            sz
+        });
+        
+        throw new APIError(`OKX buy order failed: ${error.message}`, 500, 'OKX_BUY_ORDER_ERROR');
+    }
+}));
+
+// OKX Sell Order Endpoint
+router.post('/okx/sell-order', tradingRateLimit, optionalAuth, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('passphrase').notEmpty().withMessage('Passphrase is required'),
+    body('instId').notEmpty().withMessage('Instrument ID is required'),
+    body('sz').isFloat({ min: 0.01 }).withMessage('Size must be a positive number'),
+    body('px').optional().isFloat({ min: 0.01 }).withMessage('Price must be a positive number')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey, apiSecret, passphrase, instId, sz, px } = req.body;
+    
+    try {
+        systemLogger.trading('OKX sell order initiated', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'okx',
+            endpoint: 'sell-order',
+            instId,
+            sz,
+            px
+        });
+        
+        const timestamp = new Date().toISOString();
+        const orderData = {
+            instId,
+            tdMode: 'cash',
+            side: 'sell',
+            ordType: px ? 'limit' : 'market',
+            sz: sz.toString(),
+            ...(px && { px: px.toString() })
+        };
+        
+        const body = JSON.stringify(orderData);
+        const method = 'POST';
+        const requestPath = '/api/v5/trade/order';
+        const signature = createOKXSignature(timestamp, method, requestPath, body, apiSecret);
+        
+        const response = await fetch(`${OKX_CONFIG.baseUrl}${requestPath}`, {
+            method: 'POST',
+            headers: {
+                'OK-ACCESS-KEY': apiKey,
+                'OK-ACCESS-SIGN': signature,
+                'OK-ACCESS-TIMESTAMP': timestamp,
+                'OK-ACCESS-PASSPHRASE': passphrase,
+                'Content-Type': 'application/json'
+            },
+            body: body
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const orderResult = await response.json();
+        
+        if (orderResult.code !== '0') {
+            throw new Error(orderResult.msg || 'Order placement failed');
+        }
+        
+        systemLogger.trading('OKX sell order placed successfully', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'okx',
+            ordId: orderResult.data?.[0]?.ordId,
+            instId,
+            sz,
+            px
+        });
+        
+        res.json({
+            success: true,
+            order: {
+                ordId: orderResult.data?.[0]?.ordId,
+                instId,
+                tdMode: 'cash',
+                side: 'sell',
+                ordType: px ? 'limit' : 'market',
+                sz: parseFloat(sz),
+                px: parseFloat(px || 0),
+                state: orderResult.data?.[0]?.sCode || 'live',
+                timestamp: new Date()
+            }
+        });
+        
+    } catch (error) {
+        systemLogger.trading('OKX sell order failed', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'okx',
+            error: error.message,
+            instId,
+            sz
+        });
+        
+        throw new APIError(`OKX sell order failed: ${error.message}`, 500, 'OKX_SELL_ORDER_ERROR');
+    }
+}));
+
 // ============================================================================
 // MEXC EXCHANGE API PROXY ENDPOINTS
 // ============================================================================
@@ -4031,6 +5569,196 @@ router.post('/mexc/test', tradingRateLimit, optionalAuth, [
                 error: error.message
             }
         });
+    }
+}));
+
+// MEXC Buy Order Endpoint
+router.post('/mexc/buy-order', tradingRateLimit, optionalAuth, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('symbol').notEmpty().withMessage('Trading symbol is required'),
+    body('quantity').isFloat({ min: 0.01 }).withMessage('Quantity must be a positive number'),
+    body('price').optional().isFloat({ min: 0.01 }).withMessage('Price must be a positive number')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey, apiSecret, symbol, quantity, price } = req.body;
+    
+    try {
+        systemLogger.trading('MEXC buy order initiated', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'mexc',
+            endpoint: 'buy-order',
+            symbol,
+            quantity,
+            price
+        });
+        
+        const timestamp = Date.now();
+        const orderData = {
+            symbol,
+            side: 'BUY',
+            type: price ? 'LIMIT' : 'MARKET',
+            quantity: quantity.toString(),
+            timestamp: timestamp.toString(),
+            ...(price && { price: price.toString(), timeInForce: 'GTC' })
+        };
+        
+        const queryString = new URLSearchParams(orderData).toString();
+        const signature = crypto
+            .createHmac('sha256', apiSecret)
+            .update(queryString)
+            .digest('hex');
+            
+        orderData.signature = signature;
+        
+        const response = await fetch(`${MEXC_CONFIG.baseUrl}${MEXC_CONFIG.endpoints.order}`, {
+            method: 'POST',
+            headers: {
+                'X-MEXC-APIKEY': apiKey,
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: new URLSearchParams(orderData).toString()
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const orderResult = await response.json();
+        
+        systemLogger.trading('MEXC buy order placed successfully', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'mexc',
+            orderId: orderResult.orderId,
+            symbol,
+            quantity,
+            price: orderResult.price
+        });
+        
+        res.json({
+            success: true,
+            order: {
+                orderId: orderResult.orderId,
+                symbol: orderResult.symbol,
+                side: 'BUY',
+                type: orderResult.type,
+                quantity: parseFloat(orderResult.origQty || quantity),
+                price: parseFloat(orderResult.price || price || 0),
+                status: orderResult.status,
+                timestamp: orderResult.transactTime || new Date()
+            }
+        });
+        
+    } catch (error) {
+        systemLogger.trading('MEXC buy order failed', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'mexc',
+            error: error.message,
+            symbol,
+            quantity
+        });
+        
+        throw new APIError(`MEXC buy order failed: ${error.message}`, 500, 'MEXC_BUY_ORDER_ERROR');
+    }
+}));
+
+// MEXC Sell Order Endpoint
+router.post('/mexc/sell-order', tradingRateLimit, optionalAuth, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('symbol').notEmpty().withMessage('Trading symbol is required'),
+    body('quantity').isFloat({ min: 0.01 }).withMessage('Quantity must be a positive number'),
+    body('price').optional().isFloat({ min: 0.01 }).withMessage('Price must be a positive number')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey, apiSecret, symbol, quantity, price } = req.body;
+    
+    try {
+        systemLogger.trading('MEXC sell order initiated', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'mexc',
+            endpoint: 'sell-order',
+            symbol,
+            quantity,
+            price
+        });
+        
+        const timestamp = Date.now();
+        const orderData = {
+            symbol,
+            side: 'SELL',
+            type: price ? 'LIMIT' : 'MARKET',
+            quantity: quantity.toString(),
+            timestamp: timestamp.toString(),
+            ...(price && { price: price.toString(), timeInForce: 'GTC' })
+        };
+        
+        const queryString = new URLSearchParams(orderData).toString();
+        const signature = crypto
+            .createHmac('sha256', apiSecret)
+            .update(queryString)
+            .digest('hex');
+            
+        orderData.signature = signature;
+        
+        const response = await fetch(`${MEXC_CONFIG.baseUrl}${MEXC_CONFIG.endpoints.order}`, {
+            method: 'POST',
+            headers: {
+                'X-MEXC-APIKEY': apiKey,
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: new URLSearchParams(orderData).toString()
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const orderResult = await response.json();
+        
+        systemLogger.trading('MEXC sell order placed successfully', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'mexc',
+            orderId: orderResult.orderId,
+            symbol,
+            quantity,
+            price: orderResult.price
+        });
+        
+        res.json({
+            success: true,
+            order: {
+                orderId: orderResult.orderId,
+                symbol: orderResult.symbol,
+                side: 'SELL',
+                type: orderResult.type,
+                quantity: parseFloat(orderResult.origQty || quantity),
+                price: parseFloat(orderResult.price || price || 0),
+                status: orderResult.status,
+                timestamp: orderResult.transactTime || new Date()
+            }
+        });
+        
+    } catch (error) {
+        systemLogger.trading('MEXC sell order failed', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'mexc',
+            error: error.message,
+            symbol,
+            quantity
+        });
+        
+        throw new APIError(`MEXC sell order failed: ${error.message}`, 500, 'MEXC_SELL_ORDER_ERROR');
     }
 }));
 
@@ -4571,6 +6299,212 @@ router.post('/xt/test', tradingRateLimit, optionalAuth, [
     }
 }));
 
+// XT.com Buy Order Endpoint
+router.post('/xt/buy-order', tradingRateLimit, optionalAuth, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('symbol').notEmpty().withMessage('Trading symbol is required'),
+    body('quantity').isFloat({ min: 0.01 }).withMessage('Quantity must be a positive number'),
+    body('price').optional().isFloat({ min: 0.01 }).withMessage('Price must be a positive number')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey, apiSecret, symbol, quantity, price } = req.body;
+    
+    try {
+        systemLogger.trading('XT.com buy order initiated', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'xt',
+            endpoint: 'buy-order',
+            symbol,
+            quantity,
+            price
+        });
+        
+        const timestamp = Date.now();
+        const method = 'POST';
+        const endpoint = '/v4/order';
+        
+        const orderData = {
+            symbol: symbol.toLowerCase().replace(/([a-z]+)([a-z]{3,4})$/, '$1_$2'), // Convert btcusdt -> btc_usdt
+            side: 'BUY',
+            type: price ? 'LIMIT' : 'MARKET',
+            quantity: quantity.toString(),
+            ...(price && { price: price.toString() })
+        };
+        
+        const signature = createXTSignature(timestamp, method, endpoint, orderData, apiSecret);
+        
+        const response = await fetch(`${XT_CONFIG.baseUrl}${endpoint}`, {
+            method: 'POST',
+            headers: {
+                'xt-validate-algorithms': 'HmacSHA256',
+                'xt-validate-appkey': apiKey,
+                'xt-validate-recvwindow': '5000',
+                'xt-validate-timestamp': timestamp.toString(),
+                'xt-validate-signature': signature,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(orderData)
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const orderResult = await response.json();
+        
+        if (orderResult.rc !== 0) {
+            throw new Error(orderResult.msg || 'Order placement failed');
+        }
+        
+        systemLogger.trading('XT.com buy order placed successfully', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'xt',
+            orderId: orderResult.result?.orderId,
+            symbol,
+            quantity,
+            price
+        });
+        
+        res.json({
+            success: true,
+            order: {
+                orderId: orderResult.result?.orderId,
+                symbol: orderData.symbol,
+                side: 'buy',
+                type: price ? 'limit' : 'market',
+                quantity: parseFloat(quantity),
+                price: parseFloat(price || 0),
+                status: 'submitted',
+                timestamp: new Date()
+            }
+        });
+        
+    } catch (error) {
+        systemLogger.trading('XT.com buy order failed', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'xt',
+            symbol,
+            quantity,
+            price,
+            error: error.message
+        });
+        
+        res.json({
+            success: false,
+            error: error.message
+        });
+    }
+}));
+
+// XT.com Sell Order Endpoint
+router.post('/xt/sell-order', tradingRateLimit, optionalAuth, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('symbol').notEmpty().withMessage('Trading symbol is required'),
+    body('quantity').isFloat({ min: 0.01 }).withMessage('Quantity must be a positive number'),
+    body('price').optional().isFloat({ min: 0.01 }).withMessage('Price must be a positive number')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey, apiSecret, symbol, quantity, price } = req.body;
+    
+    try {
+        systemLogger.trading('XT.com sell order initiated', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'xt',
+            endpoint: 'sell-order',
+            symbol,
+            quantity,
+            price
+        });
+        
+        const timestamp = Date.now();
+        const method = 'POST';
+        const endpoint = '/v4/order';
+        
+        const orderData = {
+            symbol: symbol.toLowerCase().replace(/([a-z]+)([a-z]{3,4})$/, '$1_$2'), // Convert btcusdt -> btc_usdt
+            side: 'SELL',
+            type: price ? 'LIMIT' : 'MARKET',
+            quantity: quantity.toString(),
+            ...(price && { price: price.toString() })
+        };
+        
+        const signature = createXTSignature(timestamp, method, endpoint, orderData, apiSecret);
+        
+        const response = await fetch(`${XT_CONFIG.baseUrl}${endpoint}`, {
+            method: 'POST',
+            headers: {
+                'xt-validate-algorithms': 'HmacSHA256',
+                'xt-validate-appkey': apiKey,
+                'xt-validate-recvwindow': '5000',
+                'xt-validate-timestamp': timestamp.toString(),
+                'xt-validate-signature': signature,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(orderData)
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const orderResult = await response.json();
+        
+        if (orderResult.rc !== 0) {
+            throw new Error(orderResult.msg || 'Order placement failed');
+        }
+        
+        systemLogger.trading('XT.com sell order placed successfully', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'xt',
+            orderId: orderResult.result?.orderId,
+            symbol,
+            quantity,
+            price
+        });
+        
+        res.json({
+            success: true,
+            order: {
+                orderId: orderResult.result?.orderId,
+                symbol: orderData.symbol,
+                side: 'sell',
+                type: price ? 'limit' : 'market',
+                quantity: parseFloat(quantity),
+                price: parseFloat(price || 0),
+                status: 'submitted',
+                timestamp: new Date()
+            }
+        });
+        
+    } catch (error) {
+        systemLogger.trading('XT.com sell order failed', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'xt',
+            symbol,
+            quantity,
+            price,
+            error: error.message
+        });
+        
+        res.json({
+            success: false,
+            error: error.message
+        });
+    }
+}));
+
 // ============================================================================
 // ASCENDEX EXCHANGE API PROXY ENDPOINTS
 // ============================================================================
@@ -4829,6 +6763,204 @@ router.post('/ascendex/test', tradingRateLimit, optionalAuth, [
                 connected: false,
                 error: error.message
             }
+        });
+    }
+}));
+
+// AscendEX Buy Order Endpoint
+router.post('/ascendex/buy-order', tradingRateLimit, optionalAuth, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('symbol').notEmpty().withMessage('Trading symbol is required'),
+    body('orderQty').isFloat({ min: 0.01 }).withMessage('Order quantity must be a positive number'),
+    body('orderPrice').optional().isFloat({ min: 0.01 }).withMessage('Order price must be a positive number')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey, apiSecret, symbol, orderQty, orderPrice } = req.body;
+    
+    try {
+        systemLogger.trading('AscendEX buy order initiated', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'ascendex',
+            endpoint: 'buy-order',
+            symbol,
+            orderQty,
+            orderPrice
+        });
+        
+        const timestamp = Date.now();
+        const orderData = {
+            symbol: symbol.replace(/([A-Z]+)([A-Z]{3,4})$/, '$1/$2'), // Convert BTCUSDT -> BTC/USDT
+            orderQty: orderQty.toString(),
+            side: 'Buy',
+            orderType: orderPrice ? 'Limit' : 'Market',
+            ...(orderPrice && { orderPrice: orderPrice.toString() })
+        };
+        
+        const path = '/api/pro/v1/order';
+        const signature = createAscendEXSignature(timestamp, path, apiSecret);
+        
+        const response = await fetch(`${ASCENDEX_CONFIG.baseUrl}${path}`, {
+            method: 'POST',
+            headers: {
+                'x-auth-key': apiKey,
+                'x-auth-timestamp': timestamp.toString(),
+                'x-auth-signature': signature,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(orderData)
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const orderResult = await response.json();
+        
+        if (orderResult.code !== 0) {
+            throw new Error(orderResult.message || 'Order placement failed');
+        }
+        
+        systemLogger.trading('AscendEX buy order placed successfully', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'ascendex',
+            orderId: orderResult.data?.orderId,
+            symbol,
+            orderQty,
+            orderPrice
+        });
+        
+        res.json({
+            success: true,
+            order: {
+                orderId: orderResult.data?.orderId,
+                symbol: orderData.symbol,
+                side: 'buy',
+                type: orderPrice ? 'limit' : 'market',
+                quantity: parseFloat(orderQty),
+                price: parseFloat(orderPrice || 0),
+                status: 'submitted',
+                timestamp: new Date()
+            }
+        });
+        
+    } catch (error) {
+        systemLogger.trading('AscendEX buy order failed', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'ascendex',
+            symbol,
+            orderQty,
+            orderPrice,
+            error: error.message
+        });
+        
+        res.json({
+            success: false,
+            error: error.message
+        });
+    }
+}));
+
+// AscendEX Sell Order Endpoint
+router.post('/ascendex/sell-order', tradingRateLimit, optionalAuth, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('symbol').notEmpty().withMessage('Trading symbol is required'),
+    body('orderQty').isFloat({ min: 0.01 }).withMessage('Order quantity must be a positive number'),
+    body('orderPrice').optional().isFloat({ min: 0.01 }).withMessage('Order price must be a positive number')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey, apiSecret, symbol, orderQty, orderPrice } = req.body;
+    
+    try {
+        systemLogger.trading('AscendEX sell order initiated', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'ascendex',
+            endpoint: 'sell-order',
+            symbol,
+            orderQty,
+            orderPrice
+        });
+        
+        const timestamp = Date.now();
+        const orderData = {
+            symbol: symbol.replace(/([A-Z]+)([A-Z]{3,4})$/, '$1/$2'), // Convert BTCUSDT -> BTC/USDT
+            orderQty: orderQty.toString(),
+            side: 'Sell',
+            orderType: orderPrice ? 'Limit' : 'Market',
+            ...(orderPrice && { orderPrice: orderPrice.toString() })
+        };
+        
+        const path = '/api/pro/v1/order';
+        const signature = createAscendEXSignature(timestamp, path, apiSecret);
+        
+        const response = await fetch(`${ASCENDEX_CONFIG.baseUrl}${path}`, {
+            method: 'POST',
+            headers: {
+                'x-auth-key': apiKey,
+                'x-auth-timestamp': timestamp.toString(),
+                'x-auth-signature': signature,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(orderData)
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const orderResult = await response.json();
+        
+        if (orderResult.code !== 0) {
+            throw new Error(orderResult.message || 'Order placement failed');
+        }
+        
+        systemLogger.trading('AscendEX sell order placed successfully', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'ascendex',
+            orderId: orderResult.data?.orderId,
+            symbol,
+            orderQty,
+            orderPrice
+        });
+        
+        res.json({
+            success: true,
+            order: {
+                orderId: orderResult.data?.orderId,
+                symbol: orderData.symbol,
+                side: 'sell',
+                type: orderPrice ? 'limit' : 'market',
+                quantity: parseFloat(orderQty),
+                price: parseFloat(orderPrice || 0),
+                status: 'submitted',
+                timestamp: new Date()
+            }
+        });
+        
+    } catch (error) {
+        systemLogger.trading('AscendEX sell order failed', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'ascendex',
+            symbol,
+            orderQty,
+            orderPrice,
+            error: error.message
+        });
+        
+        res.json({
+            success: false,
+            error: error.message
         });
     }
 }));
@@ -5126,6 +7258,508 @@ router.post('/htx/test', tradingRateLimit, optionalAuth, [
     }
 }));
 
+// HTX Buy Order Endpoint
+router.post('/htx/buy-order', tradingRateLimit, optionalAuth, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('symbol').notEmpty().withMessage('Trading symbol is required'),
+    body('amount').isFloat({ min: 0.01 }).withMessage('Amount must be a positive number'),
+    body('price').optional().isFloat({ min: 0.01 }).withMessage('Price must be a positive number')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey, apiSecret, symbol, amount, price } = req.body;
+    
+    try {
+        systemLogger.trading('HTX buy order initiated', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'htx',
+            endpoint: 'buy-order',
+            symbol,
+            amount,
+            price
+        });
+        
+        // First get account ID
+        const timestamp = new Date().toISOString().replace(/\.\d{3}/, '');
+        const accountParams = {
+            AccessKeyId: apiKey,
+            SignatureMethod: 'HmacSHA256',
+            SignatureVersion: '2',
+            Timestamp: timestamp
+        };
+        
+        const accountSignature = createHTXSignature('GET', 'api.huobi.pro', '/v1/account/accounts', accountParams, apiSecret);
+        accountParams.Signature = accountSignature;
+        
+        const accountQuery = Object.keys(accountParams).sort().map(key => `${key}=${encodeURIComponent(accountParams[key])}`).join('&');
+        
+        const accountResponse = await fetch(`${HTX_CONFIG.baseUrl}/v1/account/accounts?${accountQuery}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (!accountResponse.ok) {
+            const errorText = await accountResponse.text();
+            throw new Error(`Account fetch failed: ${errorText}`);
+        }
+        
+        const accountData = await accountResponse.json();
+        
+        if (accountData.status !== 'ok' || !accountData.data || accountData.data.length === 0) {
+            throw new Error(accountData['err-msg'] || 'No trading accounts found');
+        }
+        
+        const spotAccount = accountData.data.find(acc => acc.type === 'spot');
+        if (!spotAccount) {
+            throw new Error('Spot trading account not found');
+        }
+        
+        // Now place order
+        const orderTimestamp = new Date().toISOString().replace(/\.\d{3}/, '');
+        const orderData = {
+            'account-id': spotAccount.id.toString(),
+            symbol: symbol.toLowerCase(),
+            type: price ? 'buy-limit' : 'buy-market',
+            amount: amount.toString(),
+            ...(price && { price: price.toString() })
+        };
+        
+        const orderBody = JSON.stringify(orderData);
+        const orderParams = {
+            AccessKeyId: apiKey,
+            SignatureMethod: 'HmacSHA256',
+            SignatureVersion: '2',
+            Timestamp: orderTimestamp
+        };
+        
+        const orderSignature = createHTXSignature('POST', 'api.huobi.pro', '/v1/order/orders/place', orderParams, apiSecret);
+        orderParams.Signature = orderSignature;
+        
+        const orderQuery = Object.keys(orderParams).sort().map(key => `${key}=${encodeURIComponent(orderParams[key])}`).join('&');
+        
+        const orderResponse = await fetch(`${HTX_CONFIG.baseUrl}/v1/order/orders/place?${orderQuery}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: orderBody
+        });
+        
+        if (!orderResponse.ok) {
+            const errorText = await orderResponse.text();
+            throw new Error(`HTTP ${orderResponse.status}: ${errorText}`);
+        }
+        
+        const orderResult = await orderResponse.json();
+        
+        if (orderResult.status !== 'ok') {
+            throw new Error(orderResult['err-msg'] || 'Order placement failed');
+        }
+        
+        systemLogger.trading('HTX buy order placed successfully', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'htx',
+            orderId: orderResult.data,
+            symbol,
+            amount,
+            price
+        });
+        
+        res.json({
+            success: true,
+            order: {
+                orderId: orderResult.data,
+                symbol: symbol.toLowerCase(),
+                side: 'buy',
+                type: price ? 'limit' : 'market',
+                amount: parseFloat(amount),
+                price: parseFloat(price || 0),
+                status: 'submitted',
+                timestamp: new Date()
+            }
+        });
+        
+    } catch (error) {
+        systemLogger.trading('HTX buy order failed', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'htx',
+            symbol,
+            amount,
+            price,
+            error: error.message
+        });
+        
+        res.json({
+            success: false,
+            error: error.message
+        });
+    }
+}));
+
+// HTX Sell Order Endpoint
+router.post('/htx/sell-order', tradingRateLimit, optionalAuth, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('symbol').notEmpty().withMessage('Trading symbol is required'),
+    body('amount').isFloat({ min: 0.01 }).withMessage('Amount must be a positive number'),
+    body('price').optional().isFloat({ min: 0.01 }).withMessage('Price must be a positive number')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey, apiSecret, symbol, amount, price } = req.body;
+    
+    try {
+        systemLogger.trading('HTX sell order initiated', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'htx',
+            endpoint: 'sell-order',
+            symbol,
+            amount,
+            price
+        });
+        
+        // First get account ID
+        const timestamp = new Date().toISOString().replace(/\.\d{3}/, '');
+        const accountParams = {
+            AccessKeyId: apiKey,
+            SignatureMethod: 'HmacSHA256',
+            SignatureVersion: '2',
+            Timestamp: timestamp
+        };
+        
+        const accountSignature = createHTXSignature('GET', 'api.huobi.pro', '/v1/account/accounts', accountParams, apiSecret);
+        accountParams.Signature = accountSignature;
+        
+        const accountQuery = Object.keys(accountParams).sort().map(key => `${key}=${encodeURIComponent(accountParams[key])}`).join('&');
+        
+        const accountResponse = await fetch(`${HTX_CONFIG.baseUrl}/v1/account/accounts?${accountQuery}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (!accountResponse.ok) {
+            const errorText = await accountResponse.text();
+            throw new Error(`Account fetch failed: ${errorText}`);
+        }
+        
+        const accountData = await accountResponse.json();
+        
+        if (accountData.status !== 'ok' || !accountData.data || accountData.data.length === 0) {
+            throw new Error(accountData['err-msg'] || 'No trading accounts found');
+        }
+        
+        const spotAccount = accountData.data.find(acc => acc.type === 'spot');
+        if (!spotAccount) {
+            throw new Error('Spot trading account not found');
+        }
+        
+        // Now place order
+        const orderTimestamp = new Date().toISOString().replace(/\.\d{3}/, '');
+        const orderData = {
+            'account-id': spotAccount.id.toString(),
+            symbol: symbol.toLowerCase(),
+            type: price ? 'sell-limit' : 'sell-market',
+            amount: amount.toString(),
+            ...(price && { price: price.toString() })
+        };
+        
+        const orderBody = JSON.stringify(orderData);
+        const orderParams = {
+            AccessKeyId: apiKey,
+            SignatureMethod: 'HmacSHA256',
+            SignatureVersion: '2',
+            Timestamp: orderTimestamp
+        };
+        
+        const orderSignature = createHTXSignature('POST', 'api.huobi.pro', '/v1/order/orders/place', orderParams, apiSecret);
+        orderParams.Signature = orderSignature;
+        
+        const orderQuery = Object.keys(orderParams).sort().map(key => `${key}=${encodeURIComponent(orderParams[key])}`).join('&');
+        
+        const orderResponse = await fetch(`${HTX_CONFIG.baseUrl}/v1/order/orders/place?${orderQuery}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: orderBody
+        });
+        
+        if (!orderResponse.ok) {
+            const errorText = await orderResponse.text();
+            throw new Error(`HTTP ${orderResponse.status}: ${errorText}`);
+        }
+        
+        const orderResult = await orderResponse.json();
+        
+        if (orderResult.status !== 'ok') {
+            throw new Error(orderResult['err-msg'] || 'Order placement failed');
+        }
+        
+        systemLogger.trading('HTX sell order placed successfully', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'htx',
+            orderId: orderResult.data,
+            symbol,
+            amount,
+            price
+        });
+        
+        res.json({
+            success: true,
+            order: {
+                orderId: orderResult.data,
+                symbol: symbol.toLowerCase(),
+                side: 'sell',
+                type: price ? 'limit' : 'market',
+                amount: parseFloat(amount),
+                price: parseFloat(price || 0),
+                status: 'submitted',
+                timestamp: new Date()
+            }
+        });
+        
+    } catch (error) {
+        systemLogger.trading('HTX sell order failed', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'htx',
+            symbol,
+            amount,
+            price,
+            error: error.message
+        });
+        
+        res.json({
+            success: false,
+            error: error.message
+        });
+    }
+}));
+
+// KuCoin Buy Order Endpoint
+router.post('/kucoin/buy-order', tradingRateLimit, optionalAuth, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('passphrase').notEmpty().withMessage('Passphrase is required'),
+    body('symbol').notEmpty().withMessage('Trading symbol is required'),
+    body('size').isFloat({ min: 0.01 }).withMessage('Size must be a positive number'),
+    body('price').optional().isFloat({ min: 0.01 }).withMessage('Price must be a positive number')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey, apiSecret, passphrase, symbol, size, price } = req.body;
+    
+    try {
+        systemLogger.trading('KuCoin buy order initiated', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'kucoin',
+            endpoint: 'buy-order',
+            symbol,
+            size,
+            price
+        });
+        
+        const timestamp = Date.now();
+        const orderData = {
+            clientOid: `${timestamp}`,
+            side: 'buy',
+            symbol,
+            type: price ? 'limit' : 'market',
+            size: size.toString(),
+            ...(price && { price: price.toString() })
+        };
+        
+        const body = JSON.stringify(orderData);
+        const str_to_sign = timestamp + 'POST' + '/api/v1/orders' + body;
+        const signature = crypto
+            .createHmac('sha256', apiSecret)
+            .update(str_to_sign)
+            .digest('base64');
+        
+        const response = await fetch(`${KUCOIN_CONFIG.baseUrl}/api/v1/orders`, {
+            method: 'POST',
+            headers: {
+                'KC-API-KEY': apiKey,
+                'KC-API-SIGN': signature,
+                'KC-API-TIMESTAMP': timestamp.toString(),
+                'KC-API-PASSPHRASE': crypto
+                    .createHmac('sha256', apiSecret)
+                    .update(passphrase)
+                    .digest('base64'),
+                'KC-API-KEY-VERSION': '2',
+                'Content-Type': 'application/json'
+            },
+            body: body
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const orderResult = await response.json();
+        
+        if (orderResult.code !== '200000') {
+            throw new Error(orderResult.msg || 'Order placement failed');
+        }
+        
+        systemLogger.trading('KuCoin buy order placed successfully', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'kucoin',
+            orderId: orderResult.data?.orderId,
+            symbol,
+            size,
+            price
+        });
+        
+        res.json({
+            success: true,
+            order: {
+                orderId: orderResult.data?.orderId,
+                clientOid: `${timestamp}`,
+                symbol,
+                side: 'buy',
+                type: price ? 'limit' : 'market',
+                size: parseFloat(size),
+                price: parseFloat(price || 0),
+                status: 'active',
+                timestamp: new Date()
+            }
+        });
+        
+    } catch (error) {
+        systemLogger.trading('KuCoin buy order failed', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'kucoin',
+            error: error.message,
+            symbol,
+            size
+        });
+        
+        throw new APIError(`KuCoin buy order failed: ${error.message}`, 500, 'KUCOIN_BUY_ORDER_ERROR');
+    }
+}));
+
+// KuCoin Sell Order Endpoint
+router.post('/kucoin/sell-order', tradingRateLimit, optionalAuth, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('passphrase').notEmpty().withMessage('Passphrase is required'),
+    body('symbol').notEmpty().withMessage('Trading symbol is required'),
+    body('size').isFloat({ min: 0.01 }).withMessage('Size must be a positive number'),
+    body('price').optional().isFloat({ min: 0.01 }).withMessage('Price must be a positive number')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey, apiSecret, passphrase, symbol, size, price } = req.body;
+    
+    try {
+        systemLogger.trading('KuCoin sell order initiated', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'kucoin',
+            endpoint: 'sell-order',
+            symbol,
+            size,
+            price
+        });
+        
+        const timestamp = Date.now();
+        const orderData = {
+            clientOid: `${timestamp}`,
+            side: 'sell',
+            symbol,
+            type: price ? 'limit' : 'market',
+            size: size.toString(),
+            ...(price && { price: price.toString() })
+        };
+        
+        const body = JSON.stringify(orderData);
+        const str_to_sign = timestamp + 'POST' + '/api/v1/orders' + body;
+        const signature = crypto
+            .createHmac('sha256', apiSecret)
+            .update(str_to_sign)
+            .digest('base64');
+        
+        const response = await fetch(`${KUCOIN_CONFIG.baseUrl}/api/v1/orders`, {
+            method: 'POST',
+            headers: {
+                'KC-API-KEY': apiKey,
+                'KC-API-SIGN': signature,
+                'KC-API-TIMESTAMP': timestamp.toString(),
+                'KC-API-PASSPHRASE': crypto
+                    .createHmac('sha256', apiSecret)
+                    .update(passphrase)
+                    .digest('base64'),
+                'KC-API-KEY-VERSION': '2',
+                'Content-Type': 'application/json'
+            },
+            body: body
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const orderResult = await response.json();
+        
+        if (orderResult.code !== '200000') {
+            throw new Error(orderResult.msg || 'Order placement failed');
+        }
+        
+        systemLogger.trading('KuCoin sell order placed successfully', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'kucoin',
+            orderId: orderResult.data?.orderId,
+            symbol,
+            size,
+            price
+        });
+        
+        res.json({
+            success: true,
+            order: {
+                orderId: orderResult.data?.orderId,
+                clientOid: `${timestamp}`,
+                symbol,
+                side: 'sell',
+                type: price ? 'limit' : 'market',
+                size: parseFloat(size),
+                price: parseFloat(price || 0),
+                status: 'active',
+                timestamp: new Date()
+            }
+        });
+        
+    } catch (error) {
+        systemLogger.trading('KuCoin sell order failed', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'kucoin',
+            error: error.message,
+            symbol,
+            size
+        });
+        
+        throw new APIError(`KuCoin sell order failed: ${error.message}`, 500, 'KUCOIN_SELL_ORDER_ERROR');
+    }
+}));
+
 // ============================================================================
 // BINGX EXCHANGE API PROXY ENDPOINTS
 // ============================================================================
@@ -5333,6 +7967,204 @@ router.post('/bingx/test', tradingRateLimit, optionalAuth, [
                 error: error.message
             }
         });
+    }
+}));
+
+// BingX Buy Order Endpoint
+router.post('/bingx/buy-order', tradingRateLimit, optionalAuth, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('symbol').notEmpty().withMessage('Trading symbol is required'),
+    body('quantity').isFloat({ min: 0.01 }).withMessage('Quantity must be a positive number'),
+    body('price').optional().isFloat({ min: 0.01 }).withMessage('Price must be a positive number')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey, apiSecret, symbol, quantity, price } = req.body;
+    
+    try {
+        systemLogger.trading('BingX buy order initiated', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'bingx',
+            endpoint: 'buy-order',
+            symbol,
+            quantity,
+            price
+        });
+        
+        const timestamp = Date.now();
+        const orderData = {
+            symbol,
+            side: 'BUY',
+            type: price ? 'LIMIT' : 'MARKET',
+            quantity: quantity.toString(),
+            timestamp: timestamp.toString(),
+            ...(price && { price: price.toString(), timeInForce: 'GTC' })
+        };
+        
+        const queryString = new URLSearchParams(orderData).toString();
+        const signature = crypto
+            .createHmac('sha256', apiSecret)
+            .update(queryString)
+            .digest('hex');
+            
+        orderData.signature = signature;
+        
+        const response = await fetch(`${BINGX_CONFIG.baseUrl}${BINGX_CONFIG.endpoints.order}`, {
+            method: 'POST',
+            headers: {
+                'X-BX-APIKEY': apiKey,
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: new URLSearchParams(orderData).toString()
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const orderResult = await response.json();
+        
+        if (orderResult.code !== 0) {
+            throw new Error(orderResult.msg || 'Order placement failed');
+        }
+        
+        systemLogger.trading('BingX buy order placed successfully', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'bingx',
+            orderId: orderResult.data?.orderId,
+            symbol,
+            quantity,
+            price
+        });
+        
+        res.json({
+            success: true,
+            order: {
+                orderId: orderResult.data?.orderId,
+                symbol: orderResult.data?.symbol,
+                side: 'BUY',
+                type: price ? 'LIMIT' : 'MARKET',
+                quantity: parseFloat(quantity),
+                price: parseFloat(price || 0),
+                status: orderResult.data?.status || 'NEW',
+                timestamp: new Date()
+            }
+        });
+        
+    } catch (error) {
+        systemLogger.trading('BingX buy order failed', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'bingx',
+            error: error.message,
+            symbol,
+            quantity
+        });
+        
+        throw new APIError(`BingX buy order failed: ${error.message}`, 500, 'BINGX_BUY_ORDER_ERROR');
+    }
+}));
+
+// BingX Sell Order Endpoint
+router.post('/bingx/sell-order', tradingRateLimit, optionalAuth, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('symbol').notEmpty().withMessage('Trading symbol is required'),
+    body('quantity').isFloat({ min: 0.01 }).withMessage('Quantity must be a positive number'),
+    body('price').optional().isFloat({ min: 0.01 }).withMessage('Price must be a positive number')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey, apiSecret, symbol, quantity, price } = req.body;
+    
+    try {
+        systemLogger.trading('BingX sell order initiated', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'bingx',
+            endpoint: 'sell-order',
+            symbol,
+            quantity,
+            price
+        });
+        
+        const timestamp = Date.now();
+        const orderData = {
+            symbol,
+            side: 'SELL',
+            type: price ? 'LIMIT' : 'MARKET',
+            quantity: quantity.toString(),
+            timestamp: timestamp.toString(),
+            ...(price && { price: price.toString(), timeInForce: 'GTC' })
+        };
+        
+        const queryString = new URLSearchParams(orderData).toString();
+        const signature = crypto
+            .createHmac('sha256', apiSecret)
+            .update(queryString)
+            .digest('hex');
+            
+        orderData.signature = signature;
+        
+        const response = await fetch(`${BINGX_CONFIG.baseUrl}${BINGX_CONFIG.endpoints.order}`, {
+            method: 'POST',
+            headers: {
+                'X-BX-APIKEY': apiKey,
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: new URLSearchParams(orderData).toString()
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const orderResult = await response.json();
+        
+        if (orderResult.code !== 0) {
+            throw new Error(orderResult.msg || 'Order placement failed');
+        }
+        
+        systemLogger.trading('BingX sell order placed successfully', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'bingx',
+            orderId: orderResult.data?.orderId,
+            symbol,
+            quantity,
+            price
+        });
+        
+        res.json({
+            success: true,
+            order: {
+                orderId: orderResult.data?.orderId,
+                symbol: orderResult.data?.symbol,
+                side: 'SELL',
+                type: price ? 'LIMIT' : 'MARKET',
+                quantity: parseFloat(quantity),
+                price: parseFloat(price || 0),
+                status: orderResult.data?.status || 'NEW',
+                timestamp: new Date()
+            }
+        });
+        
+    } catch (error) {
+        systemLogger.trading('BingX sell order failed', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'bingx',
+            error: error.message,
+            symbol,
+            quantity
+        });
+        
+        throw new APIError(`BingX sell order failed: ${error.message}`, 500, 'BINGX_SELL_ORDER_ERROR');
     }
 }));
 
@@ -5554,6 +8386,200 @@ router.post('/bitget/test', tradingRateLimit, optionalAuth, [
     }
 }));
 
+// Bitget Buy Order Endpoint
+router.post('/bitget/buy-order', tradingRateLimit, optionalAuth, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('passphrase').notEmpty().withMessage('Passphrase is required'),
+    body('symbol').notEmpty().withMessage('Trading symbol is required'),
+    body('size').isFloat({ min: 0.01 }).withMessage('Size must be a positive number'),
+    body('price').optional().isFloat({ min: 0.01 }).withMessage('Price must be a positive number')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey, apiSecret, passphrase, symbol, size, price } = req.body;
+    
+    try {
+        systemLogger.trading('Bitget buy order initiated', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'bitget',
+            endpoint: 'buy-order',
+            symbol,
+            size,
+            price
+        });
+        
+        const timestamp = Date.now().toString();
+        const orderData = {
+            symbol,
+            side: 'buy',
+            orderType: price ? 'limit' : 'market',
+            size: size.toString(),
+            ...(price && { price: price.toString() })
+        };
+        
+        const body = JSON.stringify(orderData);
+        const signature = createBitgetSignature(timestamp, 'POST', '/api/spot/v1/trade/orders', body, apiSecret);
+        
+        const response = await fetch(`${BITGET_CONFIG.baseUrl}/api/spot/v1/trade/orders`, {
+            method: 'POST',
+            headers: {
+                'ACCESS-KEY': apiKey,
+                'ACCESS-SIGN': signature,
+                'ACCESS-TIMESTAMP': timestamp,
+                'ACCESS-PASSPHRASE': passphrase,
+                'Content-Type': 'application/json'
+            },
+            body: body
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const orderResult = await response.json();
+        
+        if (orderResult.code !== '00000') {
+            throw new Error(orderResult.msg || 'Order placement failed');
+        }
+        
+        systemLogger.trading('Bitget buy order placed successfully', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'bitget',
+            orderId: orderResult.data?.orderId,
+            symbol,
+            size,
+            price
+        });
+        
+        res.json({
+            success: true,
+            order: {
+                orderId: orderResult.data?.orderId,
+                symbol,
+                side: 'buy',
+                orderType: price ? 'limit' : 'market',
+                size: parseFloat(size),
+                price: parseFloat(price || 0),
+                status: orderResult.data?.status || 'new',
+                timestamp: new Date()
+            }
+        });
+        
+    } catch (error) {
+        systemLogger.trading('Bitget buy order failed', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'bitget',
+            error: error.message,
+            symbol,
+            size
+        });
+        
+        throw new APIError(`Bitget buy order failed: ${error.message}`, 500, 'BITGET_BUY_ORDER_ERROR');
+    }
+}));
+
+// Bitget Sell Order Endpoint
+router.post('/bitget/sell-order', tradingRateLimit, optionalAuth, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('passphrase').notEmpty().withMessage('Passphrase is required'),
+    body('symbol').notEmpty().withMessage('Trading symbol is required'),
+    body('size').isFloat({ min: 0.01 }).withMessage('Size must be a positive number'),
+    body('price').optional().isFloat({ min: 0.01 }).withMessage('Price must be a positive number')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey, apiSecret, passphrase, symbol, size, price } = req.body;
+    
+    try {
+        systemLogger.trading('Bitget sell order initiated', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'bitget',
+            endpoint: 'sell-order',
+            symbol,
+            size,
+            price
+        });
+        
+        const timestamp = Date.now().toString();
+        const orderData = {
+            symbol,
+            side: 'sell',
+            orderType: price ? 'limit' : 'market',
+            size: size.toString(),
+            ...(price && { price: price.toString() })
+        };
+        
+        const body = JSON.stringify(orderData);
+        const signature = createBitgetSignature(timestamp, 'POST', '/api/spot/v1/trade/orders', body, apiSecret);
+        
+        const response = await fetch(`${BITGET_CONFIG.baseUrl}/api/spot/v1/trade/orders`, {
+            method: 'POST',
+            headers: {
+                'ACCESS-KEY': apiKey,
+                'ACCESS-SIGN': signature,
+                'ACCESS-TIMESTAMP': timestamp,
+                'ACCESS-PASSPHRASE': passphrase,
+                'Content-Type': 'application/json'
+            },
+            body: body
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const orderResult = await response.json();
+        
+        if (orderResult.code !== '00000') {
+            throw new Error(orderResult.msg || 'Order placement failed');
+        }
+        
+        systemLogger.trading('Bitget sell order placed successfully', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'bitget',
+            orderId: orderResult.data?.orderId,
+            symbol,
+            size,
+            price
+        });
+        
+        res.json({
+            success: true,
+            order: {
+                orderId: orderResult.data?.orderId,
+                symbol,
+                side: 'sell',
+                orderType: price ? 'limit' : 'market',
+                size: parseFloat(size),
+                price: parseFloat(price || 0),
+                status: orderResult.data?.status || 'new',
+                timestamp: new Date()
+            }
+        });
+        
+    } catch (error) {
+        systemLogger.trading('Bitget sell order failed', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'bitget',
+            error: error.message,
+            symbol,
+            size
+        });
+        
+        throw new APIError(`Bitget sell order failed: ${error.message}`, 500, 'BITGET_SELL_ORDER_ERROR');
+    }
+}));
+
 // ============================================================================
 // BITMART EXCHANGE API PROXY ENDPOINTS
 // ============================================================================
@@ -5769,6 +8795,200 @@ router.post('/bitmart/test', tradingRateLimit, optionalAuth, [
                 error: error.message
             }
         });
+    }
+}));
+
+// BitMart Buy Order Endpoint
+router.post('/bitmart/buy-order', tradingRateLimit, optionalAuth, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('memo').notEmpty().withMessage('Memo is required'),
+    body('symbol').notEmpty().withMessage('Trading symbol is required'),
+    body('size').isFloat({ min: 0.01 }).withMessage('Size must be a positive number'),
+    body('price').optional().isFloat({ min: 0.01 }).withMessage('Price must be a positive number')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey, apiSecret, memo, symbol, size, price } = req.body;
+    
+    try {
+        systemLogger.trading('BitMart buy order initiated', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'bitmart',
+            endpoint: 'buy-order',
+            symbol,
+            size,
+            price
+        });
+        
+        const timestamp = Date.now().toString();
+        const orderData = {
+            symbol,
+            side: 'buy',
+            type: price ? 'limit' : 'market',
+            size: size.toString(),
+            ...(price && { price: price.toString() })
+        };
+        
+        const body = JSON.stringify(orderData);
+        const signature = createBitMartSignature(timestamp, 'POST', '/spot/v2/submit_order', body, apiSecret);
+        
+        const response = await fetch(`${BITMART_CONFIG.baseUrl}/spot/v2/submit_order`, {
+            method: 'POST',
+            headers: {
+                'X-BM-KEY': apiKey,
+                'X-BM-SIGN': signature,
+                'X-BM-TIMESTAMP': timestamp,
+                'X-BM-MEMO': memo,
+                'Content-Type': 'application/json'
+            },
+            body: body
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const orderResult = await response.json();
+        
+        if (orderResult.code !== 1000) {
+            throw new Error(orderResult.message || 'Order placement failed');
+        }
+        
+        systemLogger.trading('BitMart buy order placed successfully', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'bitmart',
+            orderId: orderResult.data?.order_id,
+            symbol,
+            size,
+            price
+        });
+        
+        res.json({
+            success: true,
+            order: {
+                orderId: orderResult.data?.order_id,
+                symbol,
+                side: 'buy',
+                type: price ? 'limit' : 'market',
+                size: parseFloat(size),
+                price: parseFloat(price || 0),
+                status: 'submitted',
+                timestamp: new Date()
+            }
+        });
+        
+    } catch (error) {
+        systemLogger.trading('BitMart buy order failed', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'bitmart',
+            error: error.message,
+            symbol,
+            size
+        });
+        
+        throw new APIError(`BitMart buy order failed: ${error.message}`, 500, 'BITMART_BUY_ORDER_ERROR');
+    }
+}));
+
+// BitMart Sell Order Endpoint
+router.post('/bitmart/sell-order', tradingRateLimit, optionalAuth, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('memo').notEmpty().withMessage('Memo is required'),
+    body('symbol').notEmpty().withMessage('Trading symbol is required'),
+    body('size').isFloat({ min: 0.01 }).withMessage('Size must be a positive number'),
+    body('price').optional().isFloat({ min: 0.01 }).withMessage('Price must be a positive number')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey, apiSecret, memo, symbol, size, price } = req.body;
+    
+    try {
+        systemLogger.trading('BitMart sell order initiated', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'bitmart',
+            endpoint: 'sell-order',
+            symbol,
+            size,
+            price
+        });
+        
+        const timestamp = Date.now().toString();
+        const orderData = {
+            symbol,
+            side: 'sell',
+            type: price ? 'limit' : 'market',
+            size: size.toString(),
+            ...(price && { price: price.toString() })
+        };
+        
+        const body = JSON.stringify(orderData);
+        const signature = createBitMartSignature(timestamp, 'POST', '/spot/v2/submit_order', body, apiSecret);
+        
+        const response = await fetch(`${BITMART_CONFIG.baseUrl}/spot/v2/submit_order`, {
+            method: 'POST',
+            headers: {
+                'X-BM-KEY': apiKey,
+                'X-BM-SIGN': signature,
+                'X-BM-TIMESTAMP': timestamp,
+                'X-BM-MEMO': memo,
+                'Content-Type': 'application/json'
+            },
+            body: body
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const orderResult = await response.json();
+        
+        if (orderResult.code !== 1000) {
+            throw new Error(orderResult.message || 'Order placement failed');
+        }
+        
+        systemLogger.trading('BitMart sell order placed successfully', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'bitmart',
+            orderId: orderResult.data?.order_id,
+            symbol,
+            size,
+            price
+        });
+        
+        res.json({
+            success: true,
+            order: {
+                orderId: orderResult.data?.order_id,
+                symbol,
+                side: 'sell',
+                type: price ? 'limit' : 'market',
+                size: parseFloat(size),
+                price: parseFloat(price || 0),
+                status: 'submitted',
+                timestamp: new Date()
+            }
+        });
+        
+    } catch (error) {
+        systemLogger.trading('BitMart sell order failed', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'bitmart',
+            error: error.message,
+            symbol,
+            size
+        });
+        
+        throw new APIError(`BitMart sell order failed: ${error.message}`, 500, 'BITMART_SELL_ORDER_ERROR');
     }
 }));
 
@@ -6179,6 +9399,196 @@ router.post('/gemini/test', tradingRateLimit, optionalAuth, [
     }
 }));
 
+// Bitrue Buy Order Endpoint
+router.post('/bitrue/buy-order', tradingRateLimit, optionalAuth, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('symbol').notEmpty().withMessage('Trading symbol is required'),
+    body('quantity').isFloat({ min: 0.01 }).withMessage('Quantity must be a positive number'),
+    body('price').optional().isFloat({ min: 0.01 }).withMessage('Price must be a positive number')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey, apiSecret, symbol, quantity, price } = req.body;
+    
+    try {
+        systemLogger.trading('Bitrue buy order initiated', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'bitrue',
+            endpoint: 'buy-order',
+            symbol,
+            quantity,
+            price
+        });
+        
+        const timestamp = Date.now();
+        const orderData = {
+            symbol,
+            side: 'BUY',
+            type: price ? 'LIMIT' : 'MARKET',
+            quantity: quantity.toString(),
+            timestamp: timestamp.toString(),
+            ...(price && { price: price.toString(), timeInForce: 'GTC' })
+        };
+        
+        const queryString = new URLSearchParams(orderData).toString();
+        const signature = crypto
+            .createHmac('sha256', apiSecret)
+            .update(queryString)
+            .digest('hex');
+            
+        orderData.signature = signature;
+        
+        const response = await fetch(`${BITRUE_CONFIG.baseUrl}${BITRUE_CONFIG.endpoints.order}`, {
+            method: 'POST',
+            headers: {
+                'X-MBX-APIKEY': apiKey,
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: new URLSearchParams(orderData).toString()
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const orderResult = await response.json();
+        
+        systemLogger.trading('Bitrue buy order placed successfully', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'bitrue',
+            orderId: orderResult.orderId,
+            symbol,
+            quantity,
+            price: orderResult.price
+        });
+        
+        res.json({
+            success: true,
+            order: {
+                orderId: orderResult.orderId,
+                symbol: orderResult.symbol,
+                side: 'BUY',
+                type: orderResult.type,
+                quantity: parseFloat(orderResult.origQty || quantity),
+                price: parseFloat(orderResult.price || price || 0),
+                status: orderResult.status,
+                timestamp: orderResult.transactTime || new Date()
+            }
+        });
+        
+    } catch (error) {
+        systemLogger.trading('Bitrue buy order failed', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'bitrue',
+            error: error.message,
+            symbol,
+            quantity
+        });
+        
+        throw new APIError(`Bitrue buy order failed: ${error.message}`, 500, 'BITRUE_BUY_ORDER_ERROR');
+    }
+}));
+
+// Bitrue Sell Order Endpoint
+router.post('/bitrue/sell-order', tradingRateLimit, optionalAuth, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('symbol').notEmpty().withMessage('Trading symbol is required'),
+    body('quantity').isFloat({ min: 0.01 }).withMessage('Quantity must be a positive number'),
+    body('price').optional().isFloat({ min: 0.01 }).withMessage('Price must be a positive number')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey, apiSecret, symbol, quantity, price } = req.body;
+    
+    try {
+        systemLogger.trading('Bitrue sell order initiated', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'bitrue',
+            endpoint: 'sell-order',
+            symbol,
+            quantity,
+            price
+        });
+        
+        const timestamp = Date.now();
+        const orderData = {
+            symbol,
+            side: 'SELL',
+            type: price ? 'LIMIT' : 'MARKET',
+            quantity: quantity.toString(),
+            timestamp: timestamp.toString(),
+            ...(price && { price: price.toString(), timeInForce: 'GTC' })
+        };
+        
+        const queryString = new URLSearchParams(orderData).toString();
+        const signature = crypto
+            .createHmac('sha256', apiSecret)
+            .update(queryString)
+            .digest('hex');
+            
+        orderData.signature = signature;
+        
+        const response = await fetch(`${BITRUE_CONFIG.baseUrl}${BITRUE_CONFIG.endpoints.order}`, {
+            method: 'POST',
+            headers: {
+                'X-MBX-APIKEY': apiKey,
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: new URLSearchParams(orderData).toString()
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const orderResult = await response.json();
+        
+        systemLogger.trading('Bitrue sell order placed successfully', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'bitrue',
+            orderId: orderResult.orderId,
+            symbol,
+            quantity,
+            price: orderResult.price
+        });
+        
+        res.json({
+            success: true,
+            order: {
+                orderId: orderResult.orderId,
+                symbol: orderResult.symbol,
+                side: 'SELL',
+                type: orderResult.type,
+                quantity: parseFloat(orderResult.origQty || quantity),
+                price: parseFloat(orderResult.price || price || 0),
+                status: orderResult.status,
+                timestamp: orderResult.transactTime || new Date()
+            }
+        });
+        
+    } catch (error) {
+        systemLogger.trading('Bitrue sell order failed', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'bitrue',
+            error: error.message,
+            symbol,
+            quantity
+        });
+        
+        throw new APIError(`Bitrue sell order failed: ${error.message}`, 500, 'BITRUE_SELL_ORDER_ERROR');
+    }
+}));
+
 // ============================================================================
 // CRYPTO.COM EXCHANGE API PROXY ENDPOINTS
 // ============================================================================
@@ -6400,6 +9810,212 @@ router.post('/cryptocom/test', tradingRateLimit, optionalAuth, [
     }
 }));
 
+// Crypto.com Buy Order Endpoint
+router.post('/cryptocom/buy-order', tradingRateLimit, optionalAuth, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('instrument_name').notEmpty().withMessage('Instrument name is required'),
+    body('quantity').isFloat({ min: 0.01 }).withMessage('Quantity must be a positive number'),
+    body('price').optional().isFloat({ min: 0.01 }).withMessage('Price must be a positive number')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey, apiSecret, instrument_name, quantity, price } = req.body;
+    
+    try {
+        systemLogger.trading('Crypto.com buy order initiated', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'cryptocom',
+            endpoint: 'buy-order',
+            instrument_name,
+            quantity,
+            price
+        });
+        
+        const timestamp = Date.now();
+        const orderData = {
+            instrument_name,
+            side: 'BUY',
+            type: price ? 'LIMIT' : 'MARKET',
+            quantity: quantity.toString(),
+            ...(price && { price: price.toString() })
+        };
+        
+        const nonce = timestamp;
+        const method = 'POST';
+        const requestPath = '/v2/private/create-order';
+        const body = JSON.stringify(orderData);
+        
+        const signaturePayload = method + requestPath + body + nonce;
+        const signature = crypto
+            .createHmac('sha256', apiSecret)
+            .update(signaturePayload)
+            .digest('hex');
+        
+        const response = await fetch(`${CRYPTOCOM_CONFIG.baseUrl}${requestPath}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'api-key': apiKey,
+                'signature': signature,
+                'nonce': nonce.toString()
+            },
+            body: body
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const orderResult = await response.json();
+        
+        if (orderResult.code !== 0) {
+            throw new Error(orderResult.message || 'Order placement failed');
+        }
+        
+        systemLogger.trading('Crypto.com buy order placed successfully', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'cryptocom',
+            orderId: orderResult.result?.order_id,
+            instrument_name,
+            quantity,
+            price
+        });
+        
+        res.json({
+            success: true,
+            order: {
+                orderId: orderResult.result?.order_id,
+                instrument_name,
+                side: 'BUY',
+                type: price ? 'LIMIT' : 'MARKET',
+                quantity: parseFloat(quantity),
+                price: parseFloat(price || 0),
+                status: orderResult.result?.status || 'PENDING',
+                timestamp: new Date()
+            }
+        });
+        
+    } catch (error) {
+        systemLogger.trading('Crypto.com buy order failed', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'cryptocom',
+            error: error.message,
+            instrument_name,
+            quantity
+        });
+        
+        throw new APIError(`Crypto.com buy order failed: ${error.message}`, 500, 'CRYPTOCOM_BUY_ORDER_ERROR');
+    }
+}));
+
+// Crypto.com Sell Order Endpoint
+router.post('/cryptocom/sell-order', tradingRateLimit, optionalAuth, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('instrument_name').notEmpty().withMessage('Instrument name is required'),
+    body('quantity').isFloat({ min: 0.01 }).withMessage('Quantity must be a positive number'),
+    body('price').optional().isFloat({ min: 0.01 }).withMessage('Price must be a positive number')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey, apiSecret, instrument_name, quantity, price } = req.body;
+    
+    try {
+        systemLogger.trading('Crypto.com sell order initiated', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'cryptocom',
+            endpoint: 'sell-order',
+            instrument_name,
+            quantity,
+            price
+        });
+        
+        const timestamp = Date.now();
+        const orderData = {
+            instrument_name,
+            side: 'SELL',
+            type: price ? 'LIMIT' : 'MARKET',
+            quantity: quantity.toString(),
+            ...(price && { price: price.toString() })
+        };
+        
+        const nonce = timestamp;
+        const method = 'POST';
+        const requestPath = '/v2/private/create-order';
+        const body = JSON.stringify(orderData);
+        
+        const signaturePayload = method + requestPath + body + nonce;
+        const signature = crypto
+            .createHmac('sha256', apiSecret)
+            .update(signaturePayload)
+            .digest('hex');
+        
+        const response = await fetch(`${CRYPTOCOM_CONFIG.baseUrl}${requestPath}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'api-key': apiKey,
+                'signature': signature,
+                'nonce': nonce.toString()
+            },
+            body: body
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const orderResult = await response.json();
+        
+        if (orderResult.code !== 0) {
+            throw new Error(orderResult.message || 'Order placement failed');
+        }
+        
+        systemLogger.trading('Crypto.com sell order placed successfully', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'cryptocom',
+            orderId: orderResult.result?.order_id,
+            instrument_name,
+            quantity,
+            price
+        });
+        
+        res.json({
+            success: true,
+            order: {
+                orderId: orderResult.result?.order_id,
+                instrument_name,
+                side: 'SELL',
+                type: price ? 'LIMIT' : 'MARKET',
+                quantity: parseFloat(quantity),
+                price: parseFloat(price || 0),
+                status: orderResult.result?.status || 'PENDING',
+                timestamp: new Date()
+            }
+        });
+        
+    } catch (error) {
+        systemLogger.trading('Crypto.com sell order failed', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'cryptocom',
+            error: error.message,
+            instrument_name,
+            quantity
+        });
+        
+        throw new APIError(`Crypto.com sell order failed: ${error.message}`, 500, 'CRYPTOCOM_SELL_ORDER_ERROR');
+    }
+}));
+
 // ============================================================================
 // COINCATCH EXCHANGE API PROXY ENDPOINTS
 // ============================================================================
@@ -6604,6 +10220,206 @@ router.post('/coincatch/test', tradingRateLimit, optionalAuth, [
                 error: error.message
             }
         });
+    }
+}));
+
+// CoinCatch Buy Order Endpoint
+router.post('/coincatch/buy-order', tradingRateLimit, optionalAuth, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('symbol').notEmpty().withMessage('Trading symbol is required'),
+    body('size').isFloat({ min: 0.01 }).withMessage('Size must be a positive number'),
+    body('price').optional().isFloat({ min: 0.01 }).withMessage('Price must be a positive number')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey, apiSecret, symbol, size, price } = req.body;
+    
+    try {
+        systemLogger.trading('CoinCatch buy order initiated', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'coincatch',
+            endpoint: 'buy-order',
+            symbol,
+            size,
+            price
+        });
+        
+        const timestamp = Date.now().toString();
+        const orderData = {
+            instId: symbol,
+            tdMode: 'cash',
+            side: 'buy',
+            ordType: price ? 'limit' : 'market',
+            sz: size.toString(),
+            ...(price && { px: price.toString() })
+        };
+        
+        const body = JSON.stringify(orderData);
+        const signature = crypto
+            .createHmac('sha256', apiSecret)
+            .update(timestamp + 'POST' + '/api/v5/trade/order' + body)
+            .digest('base64');
+        
+        const response = await fetch(`${COINCATCH_CONFIG.baseUrl}/api/v5/trade/order`, {
+            method: 'POST',
+            headers: {
+                'OK-ACCESS-KEY': apiKey,
+                'OK-ACCESS-SIGN': signature,
+                'OK-ACCESS-TIMESTAMP': timestamp,
+                'OK-ACCESS-PASSPHRASE': apiSecret,
+                'Content-Type': 'application/json'
+            },
+            body: body
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const orderResult = await response.json();
+        
+        if (orderResult.code !== '0') {
+            throw new Error(orderResult.msg || 'Order placement failed');
+        }
+        
+        systemLogger.trading('CoinCatch buy order placed successfully', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'coincatch',
+            orderId: orderResult.data?.[0]?.ordId,
+            symbol,
+            size,
+            price
+        });
+        
+        res.json({
+            success: true,
+            order: {
+                orderId: orderResult.data?.[0]?.ordId,
+                instId: symbol,
+                side: 'buy',
+                ordType: price ? 'limit' : 'market',
+                sz: parseFloat(size),
+                px: parseFloat(price || 0),
+                state: orderResult.data?.[0]?.sCode || 'pending',
+                timestamp: new Date()
+            }
+        });
+        
+    } catch (error) {
+        systemLogger.trading('CoinCatch buy order failed', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'coincatch',
+            error: error.message,
+            symbol,
+            size
+        });
+        
+        throw new APIError(`CoinCatch buy order failed: ${error.message}`, 500, 'COINCATCH_BUY_ORDER_ERROR');
+    }
+}));
+
+// CoinCatch Sell Order Endpoint
+router.post('/coincatch/sell-order', tradingRateLimit, optionalAuth, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('symbol').notEmpty().withMessage('Trading symbol is required'),
+    body('size').isFloat({ min: 0.01 }).withMessage('Size must be a positive number'),
+    body('price').optional().isFloat({ min: 0.01 }).withMessage('Price must be a positive number')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey, apiSecret, symbol, size, price } = req.body;
+    
+    try {
+        systemLogger.trading('CoinCatch sell order initiated', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'coincatch',
+            endpoint: 'sell-order',
+            symbol,
+            size,
+            price
+        });
+        
+        const timestamp = Date.now().toString();
+        const orderData = {
+            instId: symbol,
+            tdMode: 'cash',
+            side: 'sell',
+            ordType: price ? 'limit' : 'market',
+            sz: size.toString(),
+            ...(price && { px: price.toString() })
+        };
+        
+        const body = JSON.stringify(orderData);
+        const signature = crypto
+            .createHmac('sha256', apiSecret)
+            .update(timestamp + 'POST' + '/api/v5/trade/order' + body)
+            .digest('base64');
+        
+        const response = await fetch(`${COINCATCH_CONFIG.baseUrl}/api/v5/trade/order`, {
+            method: 'POST',
+            headers: {
+                'OK-ACCESS-KEY': apiKey,
+                'OK-ACCESS-SIGN': signature,
+                'OK-ACCESS-TIMESTAMP': timestamp,
+                'OK-ACCESS-PASSPHRASE': apiSecret,
+                'Content-Type': 'application/json'
+            },
+            body: body
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const orderResult = await response.json();
+        
+        if (orderResult.code !== '0') {
+            throw new Error(orderResult.msg || 'Order placement failed');
+        }
+        
+        systemLogger.trading('CoinCatch sell order placed successfully', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'coincatch',
+            orderId: orderResult.data?.[0]?.ordId,
+            symbol,
+            size,
+            price
+        });
+        
+        res.json({
+            success: true,
+            order: {
+                orderId: orderResult.data?.[0]?.ordId,
+                instId: symbol,
+                side: 'sell',
+                ordType: price ? 'limit' : 'market',
+                sz: parseFloat(size),
+                px: parseFloat(price || 0),
+                state: orderResult.data?.[0]?.sCode || 'pending',
+                timestamp: new Date()
+            }
+        });
+        
+    } catch (error) {
+        systemLogger.trading('CoinCatch sell order failed', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'coincatch',
+            error: error.message,
+            symbol,
+            size
+        });
+        
+        throw new APIError(`CoinCatch sell order failed: ${error.message}`, 500, 'COINCATCH_SELL_ORDER_ERROR');
     }
 }));
 

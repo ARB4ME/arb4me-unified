@@ -18745,7 +18745,7 @@ ARB4ME Security Team`
             const tradingEnabled = user.setupProgress.tradingEnabled || false;
             
             // Check for API keys and funding
-            const allExchanges = ['valr', 'luno', 'altcointrader', 'xago', 'chainex', 'kraken', 'binance', 'bybit', 'gateio', 'okx', 'mexc', 'kucoin', 'xt', 'ascendex', 'htx', 'bingx', 'bitget', 'bitmart'];
+            const allExchanges = ['valr', 'luno', 'altcointrader', 'xago', 'chainex', 'kraken', 'binance', 'bybit', 'gateio', 'okx', 'mexc', 'kucoin', 'xt', 'ascendex', 'htx', 'bingx', 'bitget', 'bitmart', 'bitrue', 'cryptocom', 'coincatch'];
             const hasApiKeys = allExchanges.some(ex => 
                 (user.apiKeys && user.apiKeys[ex]) || 
                 connectedExchanges.includes(ex)
@@ -18864,7 +18864,7 @@ ARB4ME Security Team`
             const tradingEnabled = user.setupProgress.tradingEnabled || false;
             
             // Check for stored API keys (regardless of connection status)
-            const allExchanges = ['valr', 'luno', 'altcointrader', 'xago', 'chainex', 'kraken', 'binance', 'bybit', 'gateio', 'okx', 'mexc', 'kucoin', 'xt', 'ascendex', 'htx', 'bingx', 'bitget', 'bitmart'];
+            const allExchanges = ['valr', 'luno', 'altcointrader', 'xago', 'chainex', 'kraken', 'binance', 'bybit', 'gateio', 'okx', 'mexc', 'kucoin', 'xt', 'ascendex', 'htx', 'bingx', 'bitget', 'bitmart', 'bitrue', 'cryptocom', 'coincatch'];
             const exchangesWithApiKeys = [];
             const fundedExchanges = [];
             
@@ -20316,7 +20316,7 @@ ARB4ME Security Team`
             
             // Test the connection using backend for LUNO and Valr
             try {
-                if (exchangeName === 'valr' || exchangeName === 'luno' || exchangeName === 'altcointrader' || exchangeName === 'xago' || exchangeName === 'chainex' || exchangeName === 'kraken' || exchangeName === 'binance' || exchangeName === 'bybit' || exchangeName === 'gateio' || exchangeName === 'bitmart' || exchangeName === 'bitrue' || exchangeName === 'gemini' || exchangeName === 'cryptocom' || exchangeName === 'coincatch') {
+                if (exchangeName === 'valr' || exchangeName === 'luno' || exchangeName === 'altcointrader' || exchangeName === 'xago' || exchangeName === 'chainex' || exchangeName === 'kraken' || exchangeName === 'binance' || exchangeName === 'bybit' || exchangeName === 'gateio' || exchangeName === 'bitmart' || exchangeName === 'bitrue' || exchangeName === 'gemini' || exchangeName === 'cryptocom' || exchangeName === 'coincatch' || exchangeName === 'bitget' || exchangeName === 'okx') {
                     const testResponse = await fetch(`/api/v1/trading/${exchangeName}/test`, {
                         method: 'POST',
                         headers: {
@@ -20884,7 +20884,7 @@ ARB4ME Security Team`
             }
 
             // Use backend server for all exchanges to avoid CORS issues
-            if (exchange === 'luno' || exchange === 'valr' || exchange === 'altcointrader' || exchange === 'xago' || exchange === 'chainex' || exchange === 'kraken' || exchange === 'binance' || exchange === 'bybit' || exchange === 'gateio' || exchange === 'bitmart' || exchange === 'bitrue') {
+            if (exchange === 'luno' || exchange === 'valr' || exchange === 'altcointrader' || exchange === 'xago' || exchange === 'chainex' || exchange === 'kraken' || exchange === 'binance' || exchange === 'bybit' || exchange === 'gateio' || exchange === 'bitmart' || exchange === 'bitrue' || exchange === 'cryptocom' || exchange === 'coincatch' || exchange === 'bitget' || exchange === 'okx') {
                 // Use Railway for VALR and LUNO (production deployment), localhost for others (for now)
                 const backendUrl = (exchange === 'valr' || exchange === 'luno') 
                     ? 'https://arb4me-unified-production.up.railway.app' 
@@ -21208,7 +21208,7 @@ ARB4ME Security Team`
                 let pair = asset;
                 
                 // Use backend server for all exchanges to avoid CORS issues
-                if (exchange === 'luno' || exchange === 'valr' || exchange === 'altcointrader' || exchange === 'xago' || exchange === 'chainex' || exchange === 'kraken' || exchange === 'binance' || exchange === 'bybit' || exchange === 'gateio' || exchange === 'okx' || exchange === 'mexc' || exchange === 'kucoin' || exchange === 'xt' || exchange === 'ascendex' || exchange === 'htx' || exchange === 'bingx' || exchange === 'bitget' || exchange === 'bitmart' || exchange === 'bitrue') {
+                if (exchange === 'luno' || exchange === 'valr' || exchange === 'altcointrader' || exchange === 'xago' || exchange === 'chainex' || exchange === 'kraken' || exchange === 'binance' || exchange === 'bybit' || exchange === 'gateio' || exchange === 'okx' || exchange === 'mexc' || exchange === 'kucoin' || exchange === 'xt' || exchange === 'ascendex' || exchange === 'htx' || exchange === 'bingx' || exchange === 'bitget' || exchange === 'bitmart' || exchange === 'bitrue' || exchange === 'cryptocom' || exchange === 'coincatch') {
                     
                     // Use new trading routes for supported exchanges
                     let tickerEndpoint;
@@ -22336,7 +22336,7 @@ ARB4ME Security Team`
         // Find the best opportunity below threshold for display purposes
         async function findBestBelowThresholdOpportunity() {
             const allOpportunities = [];
-            const connectedExchanges = ['valr', 'luno', 'altcointrader', 'xago', 'chainex', 'kraken', 'binance', 'bybit', 'gateio', 'okx', 'mexc', 'kucoin', 'xt', 'ascendex', 'htx', 'bingx', 'bitget', 'bitmart'].filter(ex => state.exchanges[ex].connected);
+            const connectedExchanges = ['valr', 'luno', 'altcointrader', 'xago', 'chainex', 'kraken', 'binance', 'bybit', 'gateio', 'okx', 'mexc', 'kucoin', 'xt', 'ascendex', 'htx', 'bingx', 'bitget', 'bitmart', 'bitrue', 'cryptocom', 'coincatch'].filter(ex => state.exchanges[ex].connected);
             
             if (connectedExchanges.length < 2) {
                 return null;
@@ -22460,7 +22460,7 @@ ARB4ME Security Team`
         }
         
         function getAvailableExchangesForPair(asset) {
-            const connectedExchanges = ['valr', 'luno', 'altcointrader', 'xago', 'chainex', 'kraken', 'binance', 'bybit', 'gateio', 'okx', 'mexc', 'kucoin', 'xt', 'ascendex', 'htx', 'bingx', 'bitget', 'bitmart'].filter(ex => state.exchanges[ex].connected);
+            const connectedExchanges = ['valr', 'luno', 'altcointrader', 'xago', 'chainex', 'kraken', 'binance', 'bybit', 'gateio', 'okx', 'mexc', 'kucoin', 'xt', 'ascendex', 'htx', 'bingx', 'bitget', 'bitmart', 'bitrue', 'cryptocom', 'coincatch'].filter(ex => state.exchanges[ex].connected);
             const cacheKey = `${asset}`;
             const now = Date.now();
             
@@ -22477,7 +22477,7 @@ ARB4ME Security Team`
         // NEW: Real arbitrage opportunity detection
         async function scanForRealArbitrageOpportunities() {
             const opportunities = [];
-            const connectedExchanges = ['valr', 'luno', 'altcointrader', 'xago', 'chainex', 'kraken', 'binance', 'bybit', 'gateio', 'okx', 'mexc', 'kucoin', 'xt', 'ascendex', 'htx', 'bingx', 'bitget', 'bitmart'].filter(ex => state.exchanges[ex].connected);
+            const connectedExchanges = ['valr', 'luno', 'altcointrader', 'xago', 'chainex', 'kraken', 'binance', 'bybit', 'gateio', 'okx', 'mexc', 'kucoin', 'xt', 'ascendex', 'htx', 'bingx', 'bitget', 'bitmart', 'bitrue', 'cryptocom', 'coincatch'].filter(ex => state.exchanges[ex].connected);
             
             if (connectedExchanges.length < 2) {
                 console.log('❌ Need at least 2 connected exchanges for arbitrage');
