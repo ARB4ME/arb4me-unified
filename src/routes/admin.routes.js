@@ -94,6 +94,9 @@ router.get('/messages-test', authenticateUser, requireAdmin, asyncHandler(async 
 
 // Get all users for compose modal with proper authentication  
 router.get('/all-users-test', authenticateUser, requireAdmin, asyncHandler(async (req, res) => {
+    // Debug: Check total user count first
+    const countResult = await query('SELECT COUNT(*) as total_users FROM users WHERE admin_role IS NULL OR admin_role != \'master\'');
+    console.log(`🔍 Debug: Total regular users in database: ${countResult.rows[0].total_users}`);
     // Try with payment_reference, fallback without if column doesn't exist
     let usersResult;
     try {
@@ -111,6 +114,7 @@ router.get('/all-users-test', authenticateUser, requireAdmin, asyncHandler(async
             WHERE u.admin_role IS NULL OR u.admin_role != 'master'
             ORDER BY u.first_name ASC, u.last_name ASC
         `);
+        console.log(`🔍 Debug: Retrieved ${usersResult.rows.length} users with payment_reference`);
     } catch (error) {
         // If payment_reference column doesn't exist, query without it
         console.log('Payment reference column not found, querying without it');
@@ -127,7 +131,14 @@ router.get('/all-users-test', authenticateUser, requireAdmin, asyncHandler(async
             WHERE u.admin_role IS NULL OR u.admin_role != 'master'
             ORDER BY u.first_name ASC, u.last_name ASC
         `);
+        console.log(`🔍 Debug: Retrieved ${usersResult.rows.length} users without payment_reference`);
     }
+    
+    // Debug: Show recent users
+    console.log('🔍 Debug: Recent 3 users:');
+    usersResult.rows.slice(-3).forEach(user => {
+        console.log(`   - ${user.first_name} ${user.last_name} (${user.email}) - Created: ${user.created_at}`);
+    });
     
     const users = usersResult.rows.map(row => ({
         id: row.id,
