@@ -77,18 +77,24 @@ router.post('/register', registerValidation, asyncHandler(async (req, res) => {
     
     const transactionResult = await transaction(async (client) => {
         console.log('🔍 Transaction started for:', email);
-        // Check if user already exists
+        // Check if user already exists - EXACT same query as debug endpoint
+        console.log(`🔍 About to check for existing user with email: "${email}"`);
         const existingUser = await client.query(
-            'SELECT id, first_name, last_name FROM users WHERE email = $1',
+            'SELECT id, first_name, last_name, email FROM users WHERE email = $1',
             [email]
         );
         
-        console.log(`🔍 Checking for existing user with email ${email}: Found ${existingUser.rows.length} users`);
+        console.log(`🔍 Existing user query result: Found ${existingUser.rows.length} users`);
+        if (existingUser.rows.length > 0) {
+            console.log(`🔍 Found users:`, existingUser.rows);
+        }
         
         if (existingUser.rows.length > 0) {
-            console.log(`🔍 User already exists: ${existingUser.rows[0].id} - ${existingUser.rows[0].first_name} ${existingUser.rows[0].last_name}`);
+            console.log(`🔍 User already exists: ${existingUser.rows[0].id} - ${existingUser.rows[0].first_name} ${existingUser.rows[0].last_name} - ${existingUser.rows[0].email}`);
             throw new APIError('User with this email already exists', 409, 'USER_EXISTS');
         }
+        
+        console.log(`🔍 No existing user found for ${email}, proceeding with registration`);
         
         // Hash password
         const saltRounds = 12;
