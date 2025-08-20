@@ -142,6 +142,40 @@ router.post('/debug-create-test-user', asyncHandler(async (req, res) => {
     }
 }));
 
+// Debug email check 
+router.get('/debug-check-email/:email', asyncHandler(async (req, res) => {
+    const email = req.params.email;
+    
+    try {
+        // Exact same query as registration uses
+        const result = await query(
+            'SELECT id, first_name, last_name, email FROM users WHERE email = $1',
+            [email]
+        );
+        
+        // Also check with normalization
+        const normalizedEmail = email.toLowerCase().trim();
+        const normalizedResult = await query(
+            'SELECT id, first_name, last_name, email FROM users WHERE LOWER(TRIM(email)) = $1',
+            [normalizedEmail]
+        );
+        
+        res.json({
+            email: email,
+            exactMatch: result.rows,
+            exactCount: result.rows.length,
+            normalizedMatch: normalizedResult.rows,
+            normalizedCount: normalizedResult.rows.length,
+            message: result.rows.length > 0 ? 'Email exists!' : 'Email does not exist'
+        });
+    } catch (error) {
+        res.json({
+            error: error.message,
+            detail: error.detail
+        });
+    }
+}));
+
 // Check if sequence exists
 router.get('/debug-check-sequence', asyncHandler(async (req, res) => {
     try {
