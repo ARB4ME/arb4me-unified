@@ -2,7 +2,7 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const { query, transaction } = require('../database/connection');
 const { asyncHandler, APIError } = require('../middleware/errorHandler');
-const { authenticateUser, requireOwnershipOrAdmin, requireAdmin } = require('../middleware/auth');
+const { authenticateUser, requireOwnershipOrAdmin, requireAdmin, optionalAuth } = require('../middleware/auth');
 const { tradingRateLimit, authenticatedRateLimit, adminRateLimit } = require('../middleware/rateLimiter');
 const { systemLogger } = require('../utils/logger');
 const { broadcastToAdmins } = require('../websocket/socketManager');
@@ -13,12 +13,11 @@ const https = require('https');
 
 const router = express.Router();
 
-// Apply authentication to all trading routes
-router.use(authenticatedRateLimit);
-router.use(authenticateUser);
+// Note: We'll apply authentication selectively per route, not globally
+// This allows balance endpoints to work without JWT when API keys are provided
 
 // GET /api/v1/trading/activity - Get user's trading activity
-router.get('/activity', asyncHandler(async (req, res) => {
+router.get('/activity', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
     const activityResult = await query(`
         SELECT 
             exchanges_connected, exchanges_connected_count, selected_crypto_assets,
@@ -62,7 +61,7 @@ router.get('/activity', asyncHandler(async (req, res) => {
 }));
 
 // PUT /api/v1/trading/activity - Update trading activity (bulk update)
-router.put('/activity', tradingRateLimit, [
+router.put('/activity', authenticatedRateLimit, authenticateUser, tradingRateLimit, [
     body('exchangesConnected').optional().isArray().withMessage('Exchanges connected must be an array'),
     body('selectedCryptoAssets').optional().isArray().withMessage('Selected crypto assets must be an array'),
     body('tradingActive').optional().isBoolean().withMessage('Trading active must be boolean'),
@@ -205,7 +204,7 @@ router.put('/activity', tradingRateLimit, [
 }));
 
 // POST /api/v1/trading/trades - Record a completed trade
-router.post('/trades', tradingRateLimit, [
+router.post('/trades', authenticatedRateLimit, authenticateUser, tradingRateLimit, [
     body('exchangePair').notEmpty().withMessage('Exchange pair is required'),
     body('asset').notEmpty().withMessage('Asset is required'),
     body('buyExchange').notEmpty().withMessage('Buy exchange is required'),
@@ -332,7 +331,7 @@ router.post('/trades', tradingRateLimit, [
 }));
 
 // GET /api/v1/trading/trades/history - Get user's trade history
-router.get('/trades/history', asyncHandler(async (req, res) => {
+router.get('/trades/history', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = Math.min(parseInt(req.query.limit) || 50, 100);
     const offset = (page - 1) * limit;
@@ -397,7 +396,7 @@ router.get('/trades/history', asyncHandler(async (req, res) => {
 }));
 
 // GET /api/v1/trading/stats - Get trading statistics and analytics
-router.get('/stats', asyncHandler(async (req, res) => {
+router.get('/stats', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
     const timeRange = req.query.range || '30d'; // 7d, 30d, 90d, all
     
     let interval = '30 days';
@@ -716,7 +715,7 @@ function createLunoAuth(apiKey, apiSecret) {
 }
 
 // LUNO Balance Endpoint
-router.post('/luno/balance', tradingRateLimit, [
+router.post('/luno/balance', tradingRateLimit, optionalAuth, [
     body('apiKey').notEmpty().withMessage('API key is required'),
     body('apiSecret').notEmpty().withMessage('API secret is required')
 ], asyncHandler(async (req, res) => {
@@ -729,7 +728,7 @@ router.post('/luno/balance', tradingRateLimit, [
     
     try {
         systemLogger.trading('LUNO balance request initiated', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'luno',
             endpoint: 'balance'
         });
@@ -760,7 +759,7 @@ router.post('/luno/balance', tradingRateLimit, [
         }
         
         systemLogger.trading('LUNO balance retrieved successfully', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'luno',
             balanceCount: Object.keys(balances).length
         });
@@ -851,7 +850,7 @@ router.post('/luno/ticker', tradingRateLimit, [
 }));
 
 // LUNO Test Endpoint
-router.post('/luno/test', tradingRateLimit, [
+router.post('/luno/test', tradingRateLimit, optionalAuth, [
     body('apiKey').notEmpty().withMessage('API key is required'),
     body('apiSecret').notEmpty().withMessage('API secret is required')
 ], asyncHandler(async (req, res) => {
@@ -1293,7 +1292,7 @@ function makeValrRequest(endpoint, method, apiKey, apiSecret, body = null) {
 }
 
 // VALR Balance Endpoint
-router.post('/valr/balance', tradingRateLimit, [
+router.post('/valr/balance', tradingRateLimit, optionalAuth, [
     body('apiKey').notEmpty().withMessage('API key is required'),
     body('apiSecret').notEmpty().withMessage('API secret is required')
 ], asyncHandler(async (req, res) => {
@@ -1306,7 +1305,7 @@ router.post('/valr/balance', tradingRateLimit, [
     
     try {
         systemLogger.trading('VALR balance request initiated', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'valr',
             endpoint: 'balance'
         });
@@ -1326,7 +1325,7 @@ router.post('/valr/balance', tradingRateLimit, [
         });
         
         systemLogger.trading('VALR balance retrieved successfully', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'valr',
             balanceCount: Object.keys(balances).length
         });
@@ -1413,7 +1412,7 @@ router.post('/valr/ticker', tradingRateLimit, asyncHandler(async (req, res) => {
 }));
 
 // VALR Test Endpoint
-router.post('/valr/test', tradingRateLimit, [
+router.post('/valr/test', tradingRateLimit, optionalAuth, [
     body('apiKey').notEmpty().withMessage('API key is required'),
     body('apiSecret').notEmpty().withMessage('API secret is required')
 ], asyncHandler(async (req, res) => {
