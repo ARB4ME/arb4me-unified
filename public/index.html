@@ -13898,14 +13898,16 @@ Please help recover this stuck asset.`;
                 
                 console.log(`🚀 Executing BUY order: ${amount} ${opportunity.asset} on ${exchange}`);
                 
-                // Use Railway for VALR, localhost for others
-                const backendUrl = exchange === 'valr' 
+                // Use Railway for VALR and LUNO, localhost for others
+                const backendUrl = (exchange === 'valr' || exchange === 'luno') 
                     ? 'https://arb4me-unified-production.up.railway.app' 
                     : 'http://localhost:3001';
                 
-                // Use correct endpoint for VALR
+                // Use correct endpoints for VALR and LUNO
                 const orderEndpoint = exchange === 'valr' 
                     ? `/api/v1/trading/valr/buy-order`
+                    : exchange === 'luno'
+                    ? `/api/v1/trading/luno/buy-order`
                     : `/api/${exchange}/order`;
                 
                 // Prepare headers
@@ -13913,8 +13915,8 @@ Please help recover this stuck asset.`;
                     'Content-Type': 'application/json'
                 };
                 
-                // Add JWT token for Railway endpoints (VALR)
-                if (exchange === 'valr') {
+                // Add JWT token for Railway endpoints (VALR and LUNO)
+                if (exchange === 'valr' || exchange === 'luno') {
                     const token = localStorage.getItem('arb4me_jwt_token');
                     if (token) {
                         headers['Authorization'] = `Bearer ${token}`;
@@ -14043,14 +14045,16 @@ Please help recover this stuck asset.`;
                 
                 console.log(`💰 Executing SELL order: ${amount} ${opportunity.asset} on ${exchange}`);
                 
-                // Use Railway for VALR, localhost for others
-                const backendUrl = exchange === 'valr' 
+                // Use Railway for VALR and LUNO, localhost for others
+                const backendUrl = (exchange === 'valr' || exchange === 'luno') 
                     ? 'https://arb4me-unified-production.up.railway.app' 
                     : 'http://localhost:3001';
                 
-                // Use correct endpoint for VALR
+                // Use correct endpoints for VALR and LUNO
                 const orderEndpoint = exchange === 'valr' 
                     ? `/api/v1/trading/valr/sell-order`
+                    : exchange === 'luno'
+                    ? `/api/v1/trading/luno/sell-order`
                     : `/api/${exchange}/order`;
                 
                 // Prepare headers
@@ -14058,8 +14062,8 @@ Please help recover this stuck asset.`;
                     'Content-Type': 'application/json'
                 };
                 
-                // Add JWT token for Railway endpoints (VALR)
-                if (exchange === 'valr') {
+                // Add JWT token for Railway endpoints (VALR and LUNO)
+                if (exchange === 'valr' || exchange === 'luno') {
                     const token = localStorage.getItem('arb4me_jwt_token');
                     if (token) {
                         headers['Authorization'] = `Bearer ${token}`;

@@ -168,7 +168,7 @@ router.put('/activity', authenticatedRateLimit, authenticateUser, tradingRateLim
     // Notify admins if significant changes
     if (tradingActive !== undefined || autoTradingEnabled !== undefined) {
         broadcastToAdmins('user_trading_status_changed', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             userName: `${req.user.first_name} ${req.user.last_name}`,
             tradingActive: updatedActivity.trading_active,
             autoTradingEnabled: updatedActivity.auto_trading_enabled,
@@ -281,7 +281,7 @@ router.post('/trades', authenticatedRateLimit, authenticateUser, tradingRateLimi
         // Notify admins of significant trades or failures
         if (!successful || Math.abs(profit) > 100) { // Failed trades or large profits
             broadcastToAdmins('significant_trade_event', {
-                userId: req.user.id,
+                userId: req.user?.id || 'anonymous',
                 userName: `${req.user.first_name} ${req.user.last_name}`,
                 asset,
                 profit,
@@ -293,7 +293,7 @@ router.post('/trades', authenticatedRateLimit, authenticateUser, tradingRateLimi
         }
         
         systemLogger.trading('Trade recorded', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             asset,
             profit,
             successful,
@@ -771,7 +771,7 @@ router.post('/luno/balance', tradingRateLimit, optionalAuth, [
         
     } catch (error) {
         systemLogger.error('LUNO balance request failed', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'luno',
             error: error.message
         });
@@ -839,7 +839,7 @@ router.post('/luno/ticker', tickerRateLimit, optionalAuth, [
         
     } catch (error) {
         systemLogger.error('LUNO ticker request failed', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'luno',
             error: error.message,
             pair: pair
@@ -863,7 +863,7 @@ router.post('/luno/test', tradingRateLimit, optionalAuth, [
     
     try {
         systemLogger.trading('LUNO connection test initiated', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'luno',
             endpoint: 'test'
         });
@@ -887,7 +887,7 @@ router.post('/luno/test', tradingRateLimit, optionalAuth, [
         const balanceData = await response.json();
         
         systemLogger.trading('LUNO connection test successful', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'luno'
         });
         
@@ -902,7 +902,7 @@ router.post('/luno/test', tradingRateLimit, optionalAuth, [
         
     } catch (error) {
         systemLogger.error('LUNO connection test failed', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'luno',
             error: error.message
         });
@@ -912,7 +912,7 @@ router.post('/luno/test', tradingRateLimit, optionalAuth, [
 }));
 
 // LUNO Buy Order Endpoint
-router.post('/luno/buy-order', tradingRateLimit, [
+router.post('/luno/buy-order', tradingRateLimit, optionalAuth, [
     body('apiKey').notEmpty().withMessage('API key is required'),
     body('apiSecret').notEmpty().withMessage('API secret is required'),
     body('pair').notEmpty().withMessage('Trading pair is required'),
@@ -927,7 +927,7 @@ router.post('/luno/buy-order', tradingRateLimit, [
     
     try {
         systemLogger.trading('LUNO buy order initiated', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'luno',
             endpoint: 'buy-order',
             pair,
@@ -965,7 +965,7 @@ router.post('/luno/buy-order', tradingRateLimit, [
         const orderResult = await response.json();
         
         systemLogger.trading('LUNO buy order placed successfully', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'luno',
             orderId: orderResult.order_id,
             pair: lunoPair,
@@ -986,7 +986,7 @@ router.post('/luno/buy-order', tradingRateLimit, [
         
         // Notify admins of trading activity
         broadcastToAdmins('user_trading_order', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             userName: `${req.user.first_name} ${req.user.last_name}`,
             exchange: 'LUNO',
             orderType: 'BUY',
@@ -1014,7 +1014,7 @@ router.post('/luno/buy-order', tradingRateLimit, [
         
     } catch (error) {
         systemLogger.error('LUNO buy order failed', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'luno',
             error: error.message,
             pair,
@@ -1037,7 +1037,7 @@ router.post('/luno/buy-order', tradingRateLimit, [
 }));
 
 // LUNO Sell Order Endpoint
-router.post('/luno/sell-order', tradingRateLimit, [
+router.post('/luno/sell-order', tradingRateLimit, optionalAuth, [
     body('apiKey').notEmpty().withMessage('API key is required'),
     body('apiSecret').notEmpty().withMessage('API secret is required'),
     body('pair').notEmpty().withMessage('Trading pair is required'),
@@ -1052,7 +1052,7 @@ router.post('/luno/sell-order', tradingRateLimit, [
     
     try {
         systemLogger.trading('LUNO sell order initiated', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'luno',
             endpoint: 'sell-order',
             pair,
@@ -1090,7 +1090,7 @@ router.post('/luno/sell-order', tradingRateLimit, [
         const orderResult = await response.json();
         
         systemLogger.trading('LUNO sell order placed successfully', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'luno',
             orderId: orderResult.order_id,
             pair: lunoPair,
@@ -1111,7 +1111,7 @@ router.post('/luno/sell-order', tradingRateLimit, [
         
         // Notify admins of trading activity
         broadcastToAdmins('user_trading_order', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             userName: `${req.user.first_name} ${req.user.last_name}`,
             exchange: 'LUNO',
             orderType: 'SELL',
@@ -1139,7 +1139,7 @@ router.post('/luno/sell-order', tradingRateLimit, [
         
     } catch (error) {
         systemLogger.error('LUNO sell order failed', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'luno',
             error: error.message,
             pair,
@@ -1337,7 +1337,7 @@ router.post('/valr/balance', tradingRateLimit, optionalAuth, [
         
     } catch (error) {
         systemLogger.error('VALR balance request failed', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'valr',
             error: error.message
         });
@@ -1402,7 +1402,7 @@ router.post('/valr/ticker', tickerRateLimit, optionalAuth, asyncHandler(async (r
         
     } catch (error) {
         systemLogger.error('VALR ticker request failed', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'valr',
             error: error.message
         });
@@ -1425,7 +1425,7 @@ router.post('/valr/test', tradingRateLimit, optionalAuth, [
     
     try {
         systemLogger.trading('VALR connection test initiated', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'valr',
             endpoint: 'test'
         });
@@ -1439,7 +1439,7 @@ router.post('/valr/test', tradingRateLimit, optionalAuth, [
         );
         
         systemLogger.trading('VALR connection test successful', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'valr'
         });
         
@@ -1454,7 +1454,7 @@ router.post('/valr/test', tradingRateLimit, optionalAuth, [
         
     } catch (error) {
         systemLogger.error('VALR connection test failed', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'valr',
             error: error.message
         });
@@ -1464,7 +1464,7 @@ router.post('/valr/test', tradingRateLimit, optionalAuth, [
 }));
 
 // VALR Buy Order Endpoint
-router.post('/valr/buy-order', tradingRateLimit, [
+router.post('/valr/buy-order', tradingRateLimit, optionalAuth, [
     body('apiKey').notEmpty().withMessage('API key is required'),
     body('apiSecret').notEmpty().withMessage('API secret is required'),
     body('pair').notEmpty().withMessage('Trading pair is required'),
@@ -1481,7 +1481,7 @@ router.post('/valr/buy-order', tradingRateLimit, [
     
     try {
         systemLogger.trading('VALR buy order initiated', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'valr',
             endpoint: 'buy-order',
             pair,
@@ -1509,7 +1509,7 @@ router.post('/valr/buy-order', tradingRateLimit, [
         
         // Log successful order
         systemLogger.trading('VALR buy order placed successfully', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'valr',
             orderId: orderData.id,
             pair,
@@ -1533,7 +1533,7 @@ router.post('/valr/buy-order', tradingRateLimit, [
         
         // Notify admins of trading activity
         broadcastToAdmins('user_trading_order', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             userName: `${req.user.first_name} ${req.user.last_name}`,
             exchange: 'VALR',
             orderType: 'BUY',
@@ -1563,7 +1563,7 @@ router.post('/valr/buy-order', tradingRateLimit, [
         
     } catch (error) {
         systemLogger.error('VALR buy order failed', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'valr',
             error: error.message,
             pair,
@@ -1587,7 +1587,7 @@ router.post('/valr/buy-order', tradingRateLimit, [
 }));
 
 // VALR Sell Order Endpoint
-router.post('/valr/sell-order', tradingRateLimit, [
+router.post('/valr/sell-order', tradingRateLimit, optionalAuth, [
     body('apiKey').notEmpty().withMessage('API key is required'),
     body('apiSecret').notEmpty().withMessage('API secret is required'),
     body('pair').notEmpty().withMessage('Trading pair is required'),
@@ -1603,7 +1603,7 @@ router.post('/valr/sell-order', tradingRateLimit, [
     
     try {
         systemLogger.trading('VALR sell order initiated', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'valr',
             endpoint: 'sell-order',
             pair,
@@ -1629,7 +1629,7 @@ router.post('/valr/sell-order', tradingRateLimit, [
         
         // Log successful order
         systemLogger.trading('VALR sell order placed successfully', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'valr',
             orderId: orderData.id,
             pair,
@@ -1652,7 +1652,7 @@ router.post('/valr/sell-order', tradingRateLimit, [
         
         // Notify admins of trading activity
         broadcastToAdmins('user_trading_order', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             userName: `${req.user.first_name} ${req.user.last_name}`,
             exchange: 'VALR',
             orderType: 'SELL',
@@ -1680,7 +1680,7 @@ router.post('/valr/sell-order', tradingRateLimit, [
         
     } catch (error) {
         systemLogger.error('VALR sell order failed', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'valr',
             error: error.message,
             pair,
@@ -1717,7 +1717,7 @@ router.post('/valr/order-status', tradingRateLimit, [
     
     try {
         systemLogger.trading('VALR order status check initiated', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'valr',
             endpoint: 'order-status',
             orderId
@@ -1732,7 +1732,7 @@ router.post('/valr/order-status', tradingRateLimit, [
         );
         
         systemLogger.trading('VALR order status retrieved', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'valr',
             orderId,
             status: orderData.status
@@ -1747,7 +1747,7 @@ router.post('/valr/order-status', tradingRateLimit, [
         
     } catch (error) {
         systemLogger.error('VALR order status check failed', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'valr',
             error: error.message,
             orderId
@@ -1814,7 +1814,7 @@ router.post('/altcointrader/balance', tradingRateLimit, optionalAuth, [
     
     try {
         systemLogger.trading('AltCoinTrader balance request initiated', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'altcointrader',
             endpoint: 'balance'
         });
@@ -1847,7 +1847,7 @@ router.post('/altcointrader/balance', tradingRateLimit, optionalAuth, [
         }
         
         systemLogger.trading('AltCoinTrader balance retrieved successfully', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'altcointrader',
             balanceCount: Object.keys(balances).length
         });
@@ -1859,7 +1859,7 @@ router.post('/altcointrader/balance', tradingRateLimit, optionalAuth, [
         
     } catch (error) {
         systemLogger.error('AltCoinTrader balance request failed', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'altcointrader',
             error: error.message
         });
@@ -1881,7 +1881,7 @@ router.post('/altcointrader/ticker', tickerRateLimit, optionalAuth, [
     
     try {
         systemLogger.trading('AltCoinTrader ticker request initiated', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'altcointrader',
             endpoint: 'ticker',
             pair: pair
@@ -1915,7 +1915,7 @@ router.post('/altcointrader/ticker', tickerRateLimit, optionalAuth, [
         }
         
         systemLogger.trading('AltCoinTrader ticker retrieved successfully', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'altcointrader',
             pair: currency
         });
@@ -1937,7 +1937,7 @@ router.post('/altcointrader/ticker', tickerRateLimit, optionalAuth, [
         
     } catch (error) {
         systemLogger.error('AltCoinTrader ticker request failed', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'altcointrader',
             error: error.message,
             pair: pair
@@ -1961,7 +1961,7 @@ router.post('/altcointrader/test', tradingRateLimit, optionalAuth, [
     
     try {
         systemLogger.trading('AltCoinTrader connection test initiated', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'altcointrader',
             endpoint: 'test'
         });
@@ -1970,7 +1970,7 @@ router.post('/altcointrader/test', tradingRateLimit, optionalAuth, [
         const authToken = await createAltCoinTraderAuth(username, password);
         
         systemLogger.trading('AltCoinTrader connection test successful', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'altcointrader'
         });
         
@@ -1985,7 +1985,7 @@ router.post('/altcointrader/test', tradingRateLimit, optionalAuth, [
         
     } catch (error) {
         systemLogger.error('AltCoinTrader connection test failed', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'altcointrader',
             error: error.message
         });
@@ -2043,7 +2043,7 @@ router.post('/xago/balance', tradingRateLimit, optionalAuth, [
     
     try {
         systemLogger.trading('XAGO balance request initiated', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'xago',
             endpoint: 'balance'
         });
@@ -2076,7 +2076,7 @@ router.post('/xago/balance', tradingRateLimit, optionalAuth, [
         }
         
         systemLogger.trading('XAGO balance retrieved successfully', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'xago',
             balanceCount: Object.keys(balances).length
         });
@@ -2088,7 +2088,7 @@ router.post('/xago/balance', tradingRateLimit, optionalAuth, [
         
     } catch (error) {
         systemLogger.error('XAGO balance request failed', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'xago',
             error: error.message
         });
@@ -2110,7 +2110,7 @@ router.post('/xago/ticker', tickerRateLimit, optionalAuth, [
     
     try {
         systemLogger.trading('XAGO ticker request initiated', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'xago',
             endpoint: 'ticker',
             pair: pair
@@ -2140,7 +2140,7 @@ router.post('/xago/ticker', tickerRateLimit, optionalAuth, [
         const pairData = tickerData.data;
         
         systemLogger.trading('XAGO ticker retrieved successfully', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'xago',
             pair: xagoPair
         });
@@ -2163,7 +2163,7 @@ router.post('/xago/ticker', tickerRateLimit, optionalAuth, [
         
     } catch (error) {
         systemLogger.error('XAGO ticker request failed', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'xago',
             error: error.message,
             pair: pair
@@ -2187,7 +2187,7 @@ router.post('/xago/test', tradingRateLimit, optionalAuth, [
     
     try {
         systemLogger.trading('XAGO connection test initiated', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'xago',
             endpoint: 'test'
         });
@@ -2213,7 +2213,7 @@ router.post('/xago/test', tradingRateLimit, optionalAuth, [
         const balanceData = await response.json();
         
         systemLogger.trading('XAGO connection test successful', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'xago'
         });
         
@@ -2228,7 +2228,7 @@ router.post('/xago/test', tradingRateLimit, optionalAuth, [
         
     } catch (error) {
         systemLogger.error('XAGO connection test failed', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'xago',
             error: error.message
         });
@@ -2286,7 +2286,7 @@ router.post('/chainex/balance', tradingRateLimit, optionalAuth, [
     
     try {
         systemLogger.trading('ChainEX balance request initiated', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'chainex',
             endpoint: 'balance'
         });
@@ -2319,7 +2319,7 @@ router.post('/chainex/balance', tradingRateLimit, optionalAuth, [
         }
         
         systemLogger.trading('ChainEX balance retrieved successfully', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'chainex',
             balanceCount: Object.keys(balances).length
         });
@@ -2331,7 +2331,7 @@ router.post('/chainex/balance', tradingRateLimit, optionalAuth, [
         
     } catch (error) {
         systemLogger.error('ChainEX balance request failed', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'chainex',
             error: error.message
         });
@@ -2353,7 +2353,7 @@ router.post('/chainex/ticker', tickerRateLimit, optionalAuth, [
     
     try {
         systemLogger.trading('ChainEX ticker request initiated', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'chainex',
             endpoint: 'ticker',
             pair: pair
@@ -2381,7 +2381,7 @@ router.post('/chainex/ticker', tickerRateLimit, optionalAuth, [
         }
         
         systemLogger.trading('ChainEX ticker retrieved successfully', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'chainex',
             pair: chainexPair
         });
@@ -2404,7 +2404,7 @@ router.post('/chainex/ticker', tickerRateLimit, optionalAuth, [
         
     } catch (error) {
         systemLogger.error('ChainEX ticker request failed', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'chainex',
             error: error.message,
             pair: pair
@@ -2428,7 +2428,7 @@ router.post('/chainex/test', tradingRateLimit, optionalAuth, [
     
     try {
         systemLogger.trading('ChainEX connection test initiated', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'chainex',
             endpoint: 'test'
         });
@@ -2454,7 +2454,7 @@ router.post('/chainex/test', tradingRateLimit, optionalAuth, [
         const balanceData = await response.json();
         
         systemLogger.trading('ChainEX connection test successful', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'chainex'
         });
         
@@ -2469,7 +2469,7 @@ router.post('/chainex/test', tradingRateLimit, optionalAuth, [
         
     } catch (error) {
         systemLogger.error('ChainEX connection test failed', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'chainex',
             error: error.message
         });
@@ -2516,7 +2516,7 @@ router.post('/binance/balance', tradingRateLimit, optionalAuth, [
     
     try {
         systemLogger.trading('Binance balance request initiated', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'binance',
             endpoint: 'balance'
         });
@@ -2552,7 +2552,7 @@ router.post('/binance/balance', tradingRateLimit, optionalAuth, [
         }
         
         systemLogger.trading('Binance balance retrieved successfully', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'binance',
             balanceCount: Object.keys(balances).length
         });
@@ -2564,7 +2564,7 @@ router.post('/binance/balance', tradingRateLimit, optionalAuth, [
         
     } catch (error) {
         systemLogger.error('Binance balance request failed', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'binance',
             error: error.message
         });
@@ -2586,7 +2586,7 @@ router.post('/binance/ticker', tickerRateLimit, optionalAuth, [
     
     try {
         systemLogger.trading('Binance ticker request initiated', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'binance',
             endpoint: 'ticker',
             pair: pair
@@ -2610,7 +2610,7 @@ router.post('/binance/ticker', tickerRateLimit, optionalAuth, [
         const statsData = await statsResponse.json();
         
         systemLogger.trading('Binance ticker retrieved successfully', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'binance',
             pair: binancePair
         });
@@ -2633,7 +2633,7 @@ router.post('/binance/ticker', tickerRateLimit, optionalAuth, [
         
     } catch (error) {
         systemLogger.error('Binance ticker request failed', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'binance',
             error: error.message,
             pair: pair
@@ -2657,7 +2657,7 @@ router.post('/binance/test', tradingRateLimit, optionalAuth, [
     
     try {
         systemLogger.trading('Binance connection test initiated', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'binance',
             endpoint: 'test'
         });
@@ -2683,7 +2683,7 @@ router.post('/binance/test', tradingRateLimit, optionalAuth, [
         const accountData = await response.json();
         
         systemLogger.trading('Binance connection test successful', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'binance'
         });
         
@@ -2699,7 +2699,7 @@ router.post('/binance/test', tradingRateLimit, optionalAuth, [
         
     } catch (error) {
         systemLogger.error('Binance connection test failed', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'binance',
             error: error.message
         });
