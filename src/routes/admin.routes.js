@@ -142,6 +142,40 @@ router.post('/debug-create-test-user', asyncHandler(async (req, res) => {
     }
 }));
 
+// Check if sequence exists
+router.get('/debug-check-sequence', asyncHandler(async (req, res) => {
+    try {
+        // Check if sequence exists
+        const seqCheck = await query(`
+            SELECT EXISTS (
+                SELECT 1 FROM pg_sequences 
+                WHERE schemaname = 'public' 
+                AND sequencename = 'user_payment_ref_seq'
+            ) as sequence_exists
+        `);
+        
+        let currentValue = null;
+        if (seqCheck.rows[0].sequence_exists) {
+            // Get current value
+            const currentVal = await query("SELECT last_value FROM user_payment_ref_seq");
+            currentValue = currentVal.rows[0].last_value;
+        }
+        
+        res.json({
+            sequenceExists: seqCheck.rows[0].sequence_exists,
+            currentValue: currentValue,
+            message: seqCheck.rows[0].sequence_exists ? 
+                `Sequence exists at value ${currentValue}` : 
+                'Sequence does not exist - this is the problem!'
+        });
+    } catch (error) {
+        res.json({
+            error: error.message,
+            detail: error.detail
+        });
+    }
+}));
+
 // Direct database check - no auth for debugging
 router.get('/debug-users-count', asyncHandler(async (req, res) => {
     const result = await query(`
