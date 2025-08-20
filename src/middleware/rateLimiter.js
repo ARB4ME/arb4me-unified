@@ -120,6 +120,18 @@ const tradingRateLimit = rateLimit({
     keyGenerator: (req) => req.user?.id || req.ip
 });
 
+// Ticker data rate limiter (very permissive for price fetching)
+const tickerRateLimit = rateLimit({
+    windowMs: 1 * 60 * 1000, // 1 minute
+    max: 100, // 100 requests per minute for ticker/price data
+    message: 'Too many price data requests, please wait before trying again.',
+    handler: rateLimitHandler,
+    skip: rateLimitSkip,
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: (req) => req.user?.id || req.ip
+});
+
 // Message rate limiter (prevent spam)
 const messageRateLimit = rateLimit({
     windowMs: 60 * 1000, // 1 minute
@@ -154,6 +166,7 @@ module.exports = {
     authenticatedRateLimit,
     adminRateLimit,
     tradingRateLimit,
+    tickerRateLimit,
     messageRateLimit,
     rateLimitViolations
 };

@@ -3,7 +3,7 @@ const { body, validationResult } = require('express-validator');
 const { query, transaction } = require('../database/connection');
 const { asyncHandler, APIError } = require('../middleware/errorHandler');
 const { authenticateUser, requireOwnershipOrAdmin, requireAdmin, optionalAuth } = require('../middleware/auth');
-const { tradingRateLimit, authenticatedRateLimit, adminRateLimit } = require('../middleware/rateLimiter');
+const { tradingRateLimit, tickerRateLimit, authenticatedRateLimit, adminRateLimit } = require('../middleware/rateLimiter');
 const { systemLogger } = require('../utils/logger');
 const { broadcastToAdmins } = require('../websocket/socketManager');
 
@@ -781,7 +781,7 @@ router.post('/luno/balance', tradingRateLimit, optionalAuth, [
 }));
 
 // LUNO Ticker Endpoint
-router.post('/luno/ticker', tradingRateLimit, optionalAuth, [
+router.post('/luno/ticker', tickerRateLimit, optionalAuth, [
     body('pair').notEmpty().withMessage('Trading pair is required')
 ], asyncHandler(async (req, res) => {
     const errors = validationResult(req);
@@ -1347,7 +1347,7 @@ router.post('/valr/balance', tradingRateLimit, optionalAuth, [
 }));
 
 // VALR Ticker Endpoint  
-router.post('/valr/ticker', tradingRateLimit, optionalAuth, asyncHandler(async (req, res) => {
+router.post('/valr/ticker', tickerRateLimit, optionalAuth, asyncHandler(async (req, res) => {
     const { pair } = req.body;
     
     try {
