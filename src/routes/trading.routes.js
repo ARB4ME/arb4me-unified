@@ -1869,7 +1869,7 @@ router.post('/altcointrader/balance', tradingRateLimit, optionalAuth, [
 }));
 
 // AltCoinTrader Ticker Endpoint
-router.post('/altcointrader/ticker', tradingRateLimit, [
+router.post('/altcointrader/ticker', tickerRateLimit, optionalAuth, [
     body('pair').notEmpty().withMessage('Trading pair is required')
 ], asyncHandler(async (req, res) => {
     const errors = validationResult(req);
@@ -2098,7 +2098,7 @@ router.post('/xago/balance', tradingRateLimit, optionalAuth, [
 }));
 
 // XAGO Ticker Endpoint
-router.post('/xago/ticker', tradingRateLimit, [
+router.post('/xago/ticker', tickerRateLimit, optionalAuth, [
     body('pair').notEmpty().withMessage('Trading pair is required')
 ], asyncHandler(async (req, res) => {
     const errors = validationResult(req);
@@ -2341,7 +2341,7 @@ router.post('/chainex/balance', tradingRateLimit, optionalAuth, [
 }));
 
 // ChainEX Ticker Endpoint
-router.post('/chainex/ticker', tradingRateLimit, [
+router.post('/chainex/ticker', tickerRateLimit, optionalAuth, [
     body('pair').notEmpty().withMessage('Trading pair is required')
 ], asyncHandler(async (req, res) => {
     const errors = validationResult(req);
