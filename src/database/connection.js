@@ -50,9 +50,26 @@ async function connectDatabase() {
         // Test connection
         const client = await pool.connect();
         const result = await client.query('SELECT NOW()');
-        client.release();
-        
         logger.info('Database connection established at:', result.rows[0].now);
+        
+        // Ensure required sequences exist
+        try {
+            await client.query(`
+                DO $$ 
+                BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM pg_sequences WHERE schemaname = 'public' AND sequencename = 'user_payment_ref_seq') THEN
+                        CREATE SEQUENCE user_payment_ref_seq START WITH 1000 INCREMENT BY 1;
+                        RAISE NOTICE 'Created user_payment_ref_seq sequence';
+                    END IF;
+                END $$;
+            `);
+            logger.info('Database sequences verified/created');
+        } catch (seqError) {
+            logger.error('Failed to create sequence:', seqError);
+            // Continue anyway - will use fallback in registration
+        }
+        
+        client.release();
         return pool;
     } catch (error) {
         logger.error('Database connection failed:', error);
