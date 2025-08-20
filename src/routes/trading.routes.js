@@ -2574,7 +2574,7 @@ router.post('/binance/balance', tradingRateLimit, optionalAuth, [
 }));
 
 // Binance Ticker Endpoint
-router.post('/binance/ticker', tradingRateLimit, [
+router.post('/binance/ticker', tickerRateLimit, optionalAuth, [
     body('pair').notEmpty().withMessage('Trading pair is required')
 ], asyncHandler(async (req, res) => {
     const errors = validationResult(req);
@@ -2814,7 +2814,7 @@ router.post('/kraken/balance', tradingRateLimit, optionalAuth, [
 }));
 
 // POST /api/v1/trading/kraken/ticker - Get Kraken ticker data
-router.post('/kraken/ticker', tradingRateLimit, [
+router.post('/kraken/ticker', tickerRateLimit, optionalAuth, [
     body('pair').notEmpty().withMessage('Trading pair is required')
 ], asyncHandler(async (req, res) => {
     const errors = validationResult(req);
@@ -3086,7 +3086,7 @@ router.post('/bybit/balance', tradingRateLimit, optionalAuth, [
 }));
 
 // POST /api/v1/trading/bybit/ticker - Get ByBit ticker data
-router.post('/bybit/ticker', tradingRateLimit, [
+router.post('/bybit/ticker', tickerRateLimit, optionalAuth, [
     body('pair').notEmpty().withMessage('Trading pair is required')
 ], asyncHandler(async (req, res) => {
     const errors = validationResult(req);
@@ -3348,7 +3348,7 @@ router.post('/gateio/balance', tradingRateLimit, optionalAuth, [
 }));
 
 // POST /api/v1/trading/gateio/ticker - Get Gate.io ticker data
-router.post('/gateio/ticker', tradingRateLimit, [
+router.post('/gateio/ticker', tickerRateLimit, optionalAuth, [
     body('pair').notEmpty().withMessage('Trading pair is required')
 ], asyncHandler(async (req, res) => {
     const errors = validationResult(req);
@@ -3616,7 +3616,7 @@ router.post('/okx/balance', tradingRateLimit, optionalAuth, [
 }));
 
 // POST /api/v1/trading/okx/ticker - Get OKX ticker data
-router.post('/okx/ticker', tradingRateLimit, [
+router.post('/okx/ticker', tickerRateLimit, optionalAuth, [
     body('pair').notEmpty().withMessage('Trading pair is required')
 ], asyncHandler(async (req, res) => {
     const errors = validationResult(req);
@@ -3878,7 +3878,7 @@ router.post('/mexc/balance', tradingRateLimit, optionalAuth, [
 }));
 
 // POST /api/v1/trading/mexc/ticker - Get MEXC ticker data
-router.post('/mexc/ticker', tradingRateLimit, [
+router.post('/mexc/ticker', tickerRateLimit, optionalAuth, [
     body('pair').notEmpty().withMessage('Trading pair is required')
 ], asyncHandler(async (req, res) => {
     const errors = validationResult(req);
@@ -4140,7 +4140,7 @@ router.post('/kucoin/balance', tradingRateLimit, optionalAuth, [
 }));
 
 // POST /api/v1/trading/kucoin/ticker - Get KuCoin ticker data
-router.post('/kucoin/ticker', tradingRateLimit, [
+router.post('/kucoin/ticker', tickerRateLimit, optionalAuth, [
     body('pair').notEmpty().withMessage('Trading pair is required')
 ], asyncHandler(async (req, res) => {
     const errors = validationResult(req);
@@ -4408,7 +4408,7 @@ router.post('/xt/balance', tradingRateLimit, optionalAuth, [
 }));
 
 // POST /api/v1/trading/xt/ticker - Get XT.com ticker data
-router.post('/xt/ticker', tradingRateLimit, [
+router.post('/xt/ticker', tickerRateLimit, optionalAuth, [
     body('pair').notEmpty().withMessage('Trading pair is required')
 ], asyncHandler(async (req, res) => {
     const errors = validationResult(req);
@@ -4671,7 +4671,7 @@ router.post('/ascendex/balance', tradingRateLimit, optionalAuth, [
 }));
 
 // POST /api/v1/trading/ascendex/ticker - Get AscendEX ticker data
-router.post('/ascendex/ticker', tradingRateLimit, [
+router.post('/ascendex/ticker', tickerRateLimit, optionalAuth, [
     body('pair').notEmpty().withMessage('Trading pair is required')
 ], asyncHandler(async (req, res) => {
     const errors = validationResult(req);
@@ -4965,7 +4965,7 @@ router.post('/htx/balance', tradingRateLimit, optionalAuth, [
 }));
 
 // POST /api/v1/trading/htx/ticker - Get HTX ticker data
-router.post('/htx/ticker', tradingRateLimit, [
+router.post('/htx/ticker', tickerRateLimit, optionalAuth, [
     body('pair').notEmpty().withMessage('Trading pair is required')
 ], asyncHandler(async (req, res) => {
     const errors = validationResult(req);
@@ -5213,7 +5213,7 @@ router.post('/bingx/balance', tradingRateLimit, optionalAuth, [
 }));
 
 // POST /api/v1/trading/bingx/ticker - Get BingX ticker data
-router.post('/bingx/ticker', tradingRateLimit, [
+router.post('/bingx/ticker', tickerRateLimit, optionalAuth, [
     body('pair').notEmpty().withMessage('Trading pair is required')
 ], asyncHandler(async (req, res) => {
     const errors = validationResult(req);
@@ -5423,7 +5423,7 @@ router.post('/bitget/balance', tradingRateLimit, optionalAuth, [
 }));
 
 // POST /api/v1/trading/bitget/ticker - Get Bitget ticker data
-router.post('/bitget/ticker', tradingRateLimit, [
+router.post('/bitget/ticker', tickerRateLimit, optionalAuth, [
     body('pair').notEmpty().withMessage('Trading pair is required')
 ], asyncHandler(async (req, res) => {
     const errors = validationResult(req);
@@ -5641,7 +5641,7 @@ router.post('/bitmart/balance', tradingRateLimit, optionalAuth, [
 }));
 
 // POST /api/v1/trading/bitmart/ticker - Get BitMart ticker data
-router.post('/bitmart/ticker', tradingRateLimit, [
+router.post('/bitmart/ticker', tickerRateLimit, optionalAuth, [
     body('pair').notEmpty().withMessage('Trading pair is required')
 ], asyncHandler(async (req, res) => {
     const errors = validationResult(req);
@@ -5849,7 +5849,7 @@ router.post('/bitrue/balance', tradingRateLimit, optionalAuth, [
 }));
 
 // POST /api/v1/trading/bitrue/ticker - Get Bitrue ticker data
-router.post('/bitrue/ticker', tradingRateLimit, [
+router.post('/bitrue/ticker', tickerRateLimit, optionalAuth, [
     body('pair').notEmpty().withMessage('Trading pair is required')
 ], asyncHandler(async (req, res) => {
     const errors = validationResult(req);
@@ -6051,7 +6051,7 @@ router.post('/gemini/balance', tradingRateLimit, optionalAuth, [
 }));
 
 // POST /api/v1/trading/gemini/ticker - Get Gemini ticker data
-router.post('/gemini/ticker', tradingRateLimit, [
+router.post('/gemini/ticker', tickerRateLimit, optionalAuth, [
     body('pair').notEmpty().withMessage('Trading pair is required')
 ], asyncHandler(async (req, res) => {
     const errors = validationResult(req);
@@ -6267,7 +6267,7 @@ router.post('/cryptocom/balance', tradingRateLimit, optionalAuth, [
 }));
 
 // POST /api/v1/trading/cryptocom/ticker - Get Crypto.com ticker data
-router.post('/cryptocom/ticker', tradingRateLimit, [
+router.post('/cryptocom/ticker', tickerRateLimit, optionalAuth, [
     body('pair').notEmpty().withMessage('Trading pair is required')
 ], asyncHandler(async (req, res) => {
     const errors = validationResult(req);
@@ -6483,7 +6483,7 @@ router.post('/coincatch/balance', tradingRateLimit, optionalAuth, [
 }));
 
 // POST /api/v1/trading/coincatch/ticker - Get CoinCatch ticker data
-router.post('/coincatch/ticker', tradingRateLimit, [
+router.post('/coincatch/ticker', tickerRateLimit, optionalAuth, [
     body('pair').notEmpty().withMessage('Trading pair is required')
 ], asyncHandler(async (req, res) => {
     const errors = validationResult(req);
