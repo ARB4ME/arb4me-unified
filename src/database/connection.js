@@ -61,6 +61,17 @@ async function connectDatabase() {
                         CREATE SEQUENCE user_payment_ref_seq START WITH 1000 INCREMENT BY 1;
                         RAISE NOTICE 'Created user_payment_ref_seq sequence';
                     END IF;
+                    
+                    -- Set sequence to safe value above existing payment references
+                    PERFORM setval('user_payment_ref_seq', 
+                        GREATEST(
+                            (SELECT COALESCE(MAX(CAST(SUBSTRING(payment_reference FROM 5) AS INTEGER)), 100000) 
+                             FROM users 
+                             WHERE payment_reference LIKE 'ARB-%' 
+                             AND payment_reference ~ '^ARB-[0-9]+$'),
+                            100010
+                        ) + 1
+                    );
                 END $$;
             `);
             logger.info('Database sequences verified/created');
