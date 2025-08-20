@@ -92,6 +92,27 @@ router.get('/messages-test', authenticateUser, requireAdmin, asyncHandler(async 
     });
 }));
 
+// Direct database check - no auth for debugging
+router.get('/debug-users-count', asyncHandler(async (req, res) => {
+    const result = await query(`
+        SELECT id, email, first_name, last_name, created_at 
+        FROM users 
+        WHERE admin_role IS NULL OR admin_role != 'master'
+        ORDER BY created_at DESC
+        LIMIT 20
+    `);
+    
+    res.json({
+        total: result.rows.length,
+        users: result.rows.map(u => ({
+            id: u.id,
+            email: u.email,
+            name: `${u.first_name} ${u.last_name}`,
+            created: u.created_at
+        }))
+    });
+}));
+
 // Get all users for compose modal with proper authentication  
 router.get('/all-users-test', authenticateUser, requireAdmin, asyncHandler(async (req, res) => {
     // Debug: Check total user count first

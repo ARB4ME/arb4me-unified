@@ -77,11 +77,14 @@ router.post('/register', registerValidation, asyncHandler(async (req, res) => {
         console.log('🔍 Transaction started for:', email);
         // Check if user already exists
         const existingUser = await client.query(
-            'SELECT id FROM users WHERE email = $1',
+            'SELECT id, first_name, last_name FROM users WHERE email = $1',
             [email]
         );
         
+        console.log(`🔍 Checking for existing user with email ${email}: Found ${existingUser.rows.length} users`);
+        
         if (existingUser.rows.length > 0) {
+            console.log(`🔍 User already exists: ${existingUser.rows[0].id} - ${existingUser.rows[0].first_name} ${existingUser.rows[0].last_name}`);
             throw new APIError('User with this email already exists', 409, 'USER_EXISTS');
         }
         
@@ -184,6 +187,10 @@ The ARB4ME Team`,
     });
     
     console.log('🔍 Transaction committed, sending response...');
+    
+    // Verify the user was actually saved
+    const verifyResult = await query('SELECT id, email FROM users WHERE id = $1', [transactionResult?.user?.id]);
+    console.log(`🔍 Verification: User ${transactionResult?.user?.id} exists in DB: ${verifyResult.rows.length > 0}`);
     
     if (transactionResult) {
         const { user, token } = transactionResult;
