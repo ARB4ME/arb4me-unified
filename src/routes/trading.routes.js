@@ -1801,7 +1801,7 @@ async function createAltCoinTraderAuth(username, password) {
 }
 
 // AltCoinTrader Balance Endpoint
-router.post('/altcointrader/balance', tradingRateLimit, [
+router.post('/altcointrader/balance', tradingRateLimit, optionalAuth, [
     body('apiKey').notEmpty().withMessage('Username is required'),
     body('apiSecret').notEmpty().withMessage('Password is required')
 ], asyncHandler(async (req, res) => {
@@ -1948,7 +1948,7 @@ router.post('/altcointrader/ticker', tradingRateLimit, [
 }));
 
 // AltCoinTrader Test Endpoint
-router.post('/altcointrader/test', tradingRateLimit, [
+router.post('/altcointrader/test', tradingRateLimit, optionalAuth, [
     body('apiKey').notEmpty().withMessage('Username is required'),
     body('apiSecret').notEmpty().withMessage('Password is required')
 ], asyncHandler(async (req, res) => {
@@ -2030,7 +2030,7 @@ async function createXagoAuth(apiKey, apiSecret) {
 }
 
 // XAGO Balance Endpoint
-router.post('/xago/balance', tradingRateLimit, [
+router.post('/xago/balance', tradingRateLimit, optionalAuth, [
     body('apiKey').notEmpty().withMessage('API key is required'),
     body('apiSecret').notEmpty().withMessage('API secret is required')
 ], asyncHandler(async (req, res) => {
@@ -2174,7 +2174,7 @@ router.post('/xago/ticker', tradingRateLimit, [
 }));
 
 // XAGO Test Endpoint
-router.post('/xago/test', tradingRateLimit, [
+router.post('/xago/test', tradingRateLimit, optionalAuth, [
     body('apiKey').notEmpty().withMessage('API key is required'),
     body('apiSecret').notEmpty().withMessage('API secret is required')
 ], asyncHandler(async (req, res) => {
@@ -2273,7 +2273,7 @@ async function createChainEXAuth(apiKey, apiSecret) {
 }
 
 // ChainEX Balance Endpoint
-router.post('/chainex/balance', tradingRateLimit, [
+router.post('/chainex/balance', tradingRateLimit, optionalAuth, [
     body('apiKey').notEmpty().withMessage('API key is required'),
     body('apiSecret').notEmpty().withMessage('API secret is required')
 ], asyncHandler(async (req, res) => {
@@ -2415,7 +2415,7 @@ router.post('/chainex/ticker', tradingRateLimit, [
 }));
 
 // ChainEX Test Endpoint
-router.post('/chainex/test', tradingRateLimit, [
+router.post('/chainex/test', tradingRateLimit, optionalAuth, [
     body('apiKey').notEmpty().withMessage('API key is required'),
     body('apiSecret').notEmpty().withMessage('API secret is required')
 ], asyncHandler(async (req, res) => {
@@ -2503,7 +2503,7 @@ function createBinanceSignature(queryString, apiSecret) {
 }
 
 // Binance Balance Endpoint
-router.post('/binance/balance', tradingRateLimit, [
+router.post('/binance/balance', tradingRateLimit, optionalAuth, [
     body('apiKey').notEmpty().withMessage('API key is required'),
     body('apiSecret').notEmpty().withMessage('API secret is required')
 ], asyncHandler(async (req, res) => {
@@ -2644,7 +2644,7 @@ router.post('/binance/ticker', tradingRateLimit, [
 }));
 
 // Binance Test Endpoint
-router.post('/binance/test', tradingRateLimit, [
+router.post('/binance/test', tradingRateLimit, optionalAuth, [
     body('apiKey').notEmpty().withMessage('API key is required'),
     body('apiSecret').notEmpty().withMessage('API secret is required')
 ], asyncHandler(async (req, res) => {
@@ -2734,7 +2734,7 @@ function createKrakenSignature(path, postdata, apiSecret, nonce) {
 }
 
 // POST /api/v1/trading/kraken/balance - Get Kraken account balance
-router.post('/kraken/balance', tradingRateLimit, [
+router.post('/kraken/balance', tradingRateLimit, optionalAuth, [
     body('apiKey').notEmpty().withMessage('API key is required'),
     body('apiSecret').notEmpty().withMessage('API secret is required')
 ], asyncHandler(async (req, res) => {
@@ -2904,7 +2904,7 @@ router.post('/kraken/ticker', tradingRateLimit, [
 }));
 
 // POST /api/v1/trading/kraken/test - Test Kraken API connection
-router.post('/kraken/test', tradingRateLimit, [
+router.post('/kraken/test', tradingRateLimit, optionalAuth, [
     body('apiKey').notEmpty().withMessage('API key is required'),
     body('apiSecret').notEmpty().withMessage('API secret is required')
 ], asyncHandler(async (req, res) => {
@@ -3001,7 +3001,7 @@ function createByBitSignature(timestamp, apiKey, apiSecret, recv_window, querySt
 }
 
 // POST /api/v1/trading/bybit/balance - Get ByBit account balance
-router.post('/bybit/balance', tradingRateLimit, [
+router.post('/bybit/balance', tradingRateLimit, optionalAuth, [
     body('apiKey').notEmpty().withMessage('API key is required'),
     body('apiSecret').notEmpty().withMessage('API secret is required')
 ], asyncHandler(async (req, res) => {
@@ -3170,7 +3170,7 @@ router.post('/bybit/ticker', tradingRateLimit, [
 }));
 
 // POST /api/v1/trading/bybit/test - Test ByBit API connection
-router.post('/bybit/test', tradingRateLimit, [
+router.post('/bybit/test', tradingRateLimit, optionalAuth, [
     body('apiKey').notEmpty().withMessage('API key is required'),
     body('apiSecret').notEmpty().withMessage('API secret is required')
 ], asyncHandler(async (req, res) => {
@@ -3270,7 +3270,7 @@ function createGateioSignature(method, url, queryString, body, timestamp, apiSec
 }
 
 // POST /api/v1/trading/gateio/balance - Get Gate.io account balance
-router.post('/gateio/balance', tradingRateLimit, [
+router.post('/gateio/balance', tradingRateLimit, optionalAuth, [
     body('apiKey').notEmpty().withMessage('API key is required'),
     body('apiSecret').notEmpty().withMessage('API secret is required')
 ], asyncHandler(async (req, res) => {
@@ -3432,7 +3432,7 @@ router.post('/gateio/ticker', tradingRateLimit, [
 }));
 
 // POST /api/v1/trading/gateio/test - Test Gate.io API connection
-router.post('/gateio/test', tradingRateLimit, [
+router.post('/gateio/test', tradingRateLimit, optionalAuth, [
     body('apiKey').notEmpty().withMessage('API key is required'),
     body('apiSecret').notEmpty().withMessage('API secret is required')
 ], asyncHandler(async (req, res) => {
@@ -3531,7 +3531,7 @@ function createOKXSignature(timestamp, method, requestPath, body, apiSecret) {
 }
 
 // POST /api/v1/trading/okx/balance - Get OKX account balance
-router.post('/okx/balance', tradingRateLimit, [
+router.post('/okx/balance', tradingRateLimit, optionalAuth, [
     body('apiKey').notEmpty().withMessage('API key is required'),
     body('apiSecret').notEmpty().withMessage('API secret is required'),
     body('passphrase').notEmpty().withMessage('Passphrase is required')
@@ -3703,7 +3703,7 @@ router.post('/okx/ticker', tradingRateLimit, [
 }));
 
 // POST /api/v1/trading/okx/test - Test OKX API connection
-router.post('/okx/test', tradingRateLimit, [
+router.post('/okx/test', tradingRateLimit, optionalAuth, [
     body('apiKey').notEmpty().withMessage('API key is required'),
     body('apiSecret').notEmpty().withMessage('API secret is required'),
     body('passphrase').notEmpty().withMessage('Passphrase is required')
@@ -3801,7 +3801,7 @@ function createMEXCSignature(queryString, apiSecret) {
 }
 
 // POST /api/v1/trading/mexc/balance - Get MEXC account balance
-router.post('/mexc/balance', tradingRateLimit, [
+router.post('/mexc/balance', tradingRateLimit, optionalAuth, [
     body('apiKey').notEmpty().withMessage('API key is required'),
     body('apiSecret').notEmpty().withMessage('API secret is required')
 ], asyncHandler(async (req, res) => {
@@ -3961,7 +3961,7 @@ router.post('/mexc/ticker', tradingRateLimit, [
 }));
 
 // POST /api/v1/trading/mexc/test - Test MEXC API connection
-router.post('/mexc/test', tradingRateLimit, [
+router.post('/mexc/test', tradingRateLimit, optionalAuth, [
     body('apiKey').notEmpty().withMessage('API key is required'),
     body('apiSecret').notEmpty().withMessage('API secret is required')
 ], asyncHandler(async (req, res) => {
@@ -4056,7 +4056,7 @@ function createKuCoinSignature(timestamp, method, endpoint, body, apiSecret) {
 }
 
 // POST /api/v1/trading/kucoin/balance - Get KuCoin account balance
-router.post('/kucoin/balance', tradingRateLimit, [
+router.post('/kucoin/balance', tradingRateLimit, optionalAuth, [
     body('apiKey').notEmpty().withMessage('API key is required'),
     body('apiSecret').notEmpty().withMessage('API secret is required'),
     body('passphrase').notEmpty().withMessage('Passphrase is required')
@@ -4226,7 +4226,7 @@ router.post('/kucoin/ticker', tradingRateLimit, [
 }));
 
 // POST /api/v1/trading/kucoin/test - Test KuCoin API connection
-router.post('/kucoin/test', tradingRateLimit, [
+router.post('/kucoin/test', tradingRateLimit, optionalAuth, [
     body('apiKey').notEmpty().withMessage('API key is required'),
     body('apiSecret').notEmpty().withMessage('API secret is required'),
     body('passphrase').notEmpty().withMessage('Passphrase is required')
@@ -4328,7 +4328,7 @@ function createXTSignature(timestamp, method, endpoint, params, apiSecret) {
 }
 
 // POST /api/v1/trading/xt/balance - Get XT.com account balance
-router.post('/xt/balance', tradingRateLimit, [
+router.post('/xt/balance', tradingRateLimit, optionalAuth, [
     body('apiKey').notEmpty().withMessage('API key is required'),
     body('apiSecret').notEmpty().withMessage('API secret is required')
 ], asyncHandler(async (req, res) => {
@@ -4495,7 +4495,7 @@ router.post('/xt/ticker', tradingRateLimit, [
 }));
 
 // POST /api/v1/trading/xt/test - Test XT.com API connection
-router.post('/xt/test', tradingRateLimit, [
+router.post('/xt/test', tradingRateLimit, optionalAuth, [
     body('apiKey').notEmpty().withMessage('API key is required'),
     body('apiSecret').notEmpty().withMessage('API secret is required')
 ], asyncHandler(async (req, res) => {
@@ -4592,7 +4592,7 @@ function createAscendEXSignature(timestamp, path, apiSecret) {
 }
 
 // POST /api/v1/trading/ascendex/balance - Get AscendEX account balance
-router.post('/ascendex/balance', tradingRateLimit, [
+router.post('/ascendex/balance', tradingRateLimit, optionalAuth, [
     body('apiKey').notEmpty().withMessage('API key is required'),
     body('apiSecret').notEmpty().withMessage('API secret is required')
 ], asyncHandler(async (req, res) => {
@@ -4758,7 +4758,7 @@ router.post('/ascendex/ticker', tradingRateLimit, [
 }));
 
 // POST /api/v1/trading/ascendex/test - Test AscendEX API connection
-router.post('/ascendex/test', tradingRateLimit, [
+router.post('/ascendex/test', tradingRateLimit, optionalAuth, [
     body('apiKey').notEmpty().withMessage('API key is required'),
     body('apiSecret').notEmpty().withMessage('API secret is required')
 ], asyncHandler(async (req, res) => {
@@ -4856,7 +4856,7 @@ function createHTXSignature(method, host, path, params, apiSecret) {
 }
 
 // POST /api/v1/trading/htx/balance - Get HTX account balance
-router.post('/htx/balance', tradingRateLimit, [
+router.post('/htx/balance', tradingRateLimit, optionalAuth, [
     body('apiKey').notEmpty().withMessage('API key is required'),
     body('apiSecret').notEmpty().withMessage('API secret is required')
 ], asyncHandler(async (req, res) => {
@@ -5051,7 +5051,7 @@ router.post('/htx/ticker', tradingRateLimit, [
 }));
 
 // POST /api/v1/trading/htx/test - Test HTX API connection
-router.post('/htx/test', tradingRateLimit, [
+router.post('/htx/test', tradingRateLimit, optionalAuth, [
     body('apiKey').notEmpty().withMessage('API key is required'),
     body('apiSecret').notEmpty().withMessage('API secret is required')
 ], asyncHandler(async (req, res) => {
@@ -5146,7 +5146,7 @@ function createBingXSignature(queryString, apiSecret) {
 }
 
 // POST /api/v1/trading/bingx/balance - Get BingX account balance
-router.post('/bingx/balance', tradingRateLimit, [
+router.post('/bingx/balance', tradingRateLimit, optionalAuth, [
     body('apiKey').notEmpty().withMessage('API key is required'),
     body('apiSecret').notEmpty().withMessage('API secret is required')
 ], asyncHandler(async (req, res) => {
@@ -5277,7 +5277,7 @@ router.post('/bingx/ticker', tradingRateLimit, [
 }));
 
 // POST /api/v1/trading/bingx/test - Test BingX API connection
-router.post('/bingx/test', tradingRateLimit, [
+router.post('/bingx/test', tradingRateLimit, optionalAuth, [
     body('apiKey').notEmpty().withMessage('API key is required'),
     body('apiSecret').notEmpty().withMessage('API secret is required')
 ], asyncHandler(async (req, res) => {
@@ -5357,7 +5357,7 @@ function createBitgetSignature(timestamp, method, requestPath, body, apiSecret) 
 }
 
 // POST /api/v1/trading/bitget/balance - Get Bitget account balance
-router.post('/bitget/balance', tradingRateLimit, [
+router.post('/bitget/balance', tradingRateLimit, optionalAuth, [
     body('apiKey').notEmpty().withMessage('API key is required'),
     body('apiSecret').notEmpty().withMessage('API secret is required'),
     body('passphrase').notEmpty().withMessage('Passphrase is required')
@@ -5490,7 +5490,7 @@ router.post('/bitget/ticker', tradingRateLimit, [
 }));
 
 // POST /api/v1/trading/bitget/test - Test Bitget API connection
-router.post('/bitget/test', tradingRateLimit, [
+router.post('/bitget/test', tradingRateLimit, optionalAuth, [
     body('apiKey').notEmpty().withMessage('API key is required'),
     body('apiSecret').notEmpty().withMessage('API secret is required'),
     body('passphrase').notEmpty().withMessage('Passphrase is required')
@@ -5575,7 +5575,7 @@ function createBitMartSignature(timestamp, method, requestPath, body, apiSecret)
 }
 
 // POST /api/v1/trading/bitmart/balance - Get BitMart account balance
-router.post('/bitmart/balance', tradingRateLimit, [
+router.post('/bitmart/balance', tradingRateLimit, optionalAuth, [
     body('apiKey').notEmpty().withMessage('API key is required'),
     body('apiSecret').notEmpty().withMessage('API secret is required'),
     body('memo').notEmpty().withMessage('Memo is required')
@@ -5708,7 +5708,7 @@ router.post('/bitmart/ticker', tradingRateLimit, [
 }));
 
 // POST /api/v1/trading/bitmart/test - Test BitMart API connection
-router.post('/bitmart/test', tradingRateLimit, [
+router.post('/bitmart/test', tradingRateLimit, optionalAuth, [
     body('apiKey').notEmpty().withMessage('API key is required'),
     body('apiSecret').notEmpty().withMessage('API secret is required'),
     body('memo').notEmpty().withMessage('Memo is required')
@@ -5792,7 +5792,7 @@ function createBitrueSignature(queryString, apiSecret) {
 }
 
 // POST /api/v1/trading/bitrue/balance - Get Bitrue account balance
-router.post('/bitrue/balance', tradingRateLimit, [
+router.post('/bitrue/balance', tradingRateLimit, optionalAuth, [
     body('apiKey').notEmpty().withMessage('API key is required'),
     body('apiSecret').notEmpty().withMessage('API secret is required')
 ], asyncHandler(async (req, res) => {
@@ -5909,7 +5909,7 @@ router.post('/bitrue/ticker', tradingRateLimit, [
 }));
 
 // POST /api/v1/trading/bitrue/test - Test Bitrue API connection
-router.post('/bitrue/test', tradingRateLimit, [
+router.post('/bitrue/test', tradingRateLimit, optionalAuth, [
     body('apiKey').notEmpty().withMessage('API key is required'),
     body('apiSecret').notEmpty().withMessage('API secret is required')
 ], asyncHandler(async (req, res) => {
@@ -5988,7 +5988,7 @@ function createGeminiSignature(payload, apiSecret) {
 }
 
 // POST /api/v1/trading/gemini/balance - Get Gemini account balance
-router.post('/gemini/balance', tradingRateLimit, [
+router.post('/gemini/balance', tradingRateLimit, optionalAuth, [
     body('apiKey').notEmpty().withMessage('API key is required'),
     body('apiSecret').notEmpty().withMessage('API secret is required')
 ], asyncHandler(async (req, res) => {
@@ -6114,7 +6114,7 @@ router.post('/gemini/ticker', tradingRateLimit, [
 }));
 
 // POST /api/v1/trading/gemini/test - Test Gemini API connection
-router.post('/gemini/test', tradingRateLimit, [
+router.post('/gemini/test', tradingRateLimit, optionalAuth, [
     body('apiKey').notEmpty().withMessage('API key is required'),
     body('apiSecret').notEmpty().withMessage('API secret is required')
 ], asyncHandler(async (req, res) => {
@@ -6200,7 +6200,7 @@ function createCryptoComSignature(method, requestPath, body, apiSecret, timestam
 }
 
 // POST /api/v1/trading/cryptocom/balance - Get Crypto.com account balance
-router.post('/cryptocom/balance', tradingRateLimit, [
+router.post('/cryptocom/balance', tradingRateLimit, optionalAuth, [
     body('apiKey').notEmpty().withMessage('API key is required'),
     body('apiSecret').notEmpty().withMessage('API secret is required')
 ], asyncHandler(async (req, res) => {
@@ -6331,7 +6331,7 @@ router.post('/cryptocom/ticker', tradingRateLimit, [
 }));
 
 // POST /api/v1/trading/cryptocom/test - Test Crypto.com API connection
-router.post('/cryptocom/test', tradingRateLimit, [
+router.post('/cryptocom/test', tradingRateLimit, optionalAuth, [
     body('apiKey').notEmpty().withMessage('API key is required'),
     body('apiSecret').notEmpty().withMessage('API secret is required')
 ], asyncHandler(async (req, res) => {
@@ -6421,7 +6421,7 @@ function createCoinCatchSignature(timestamp, method, requestPath, body, apiSecre
 }
 
 // POST /api/v1/trading/coincatch/balance - Get CoinCatch account balance
-router.post('/coincatch/balance', tradingRateLimit, [
+router.post('/coincatch/balance', tradingRateLimit, optionalAuth, [
     body('apiKey').notEmpty().withMessage('API key is required'),
     body('apiSecret').notEmpty().withMessage('API secret is required'),
     body('passphrase').notEmpty().withMessage('Passphrase is required')
@@ -6543,7 +6543,7 @@ router.post('/coincatch/ticker', tradingRateLimit, [
 }));
 
 // POST /api/v1/trading/coincatch/test - Test CoinCatch API connection
-router.post('/coincatch/test', tradingRateLimit, [
+router.post('/coincatch/test', tradingRateLimit, optionalAuth, [
     body('apiKey').notEmpty().withMessage('API key is required'),
     body('apiSecret').notEmpty().withMessage('API secret is required'),
     body('passphrase').notEmpty().withMessage('Passphrase is required')
