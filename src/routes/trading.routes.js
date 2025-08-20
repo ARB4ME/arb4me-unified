@@ -781,7 +781,7 @@ router.post('/luno/balance', tradingRateLimit, optionalAuth, [
 }));
 
 // LUNO Ticker Endpoint
-router.post('/luno/ticker', tradingRateLimit, [
+router.post('/luno/ticker', tradingRateLimit, optionalAuth, [
     body('pair').notEmpty().withMessage('Trading pair is required')
 ], asyncHandler(async (req, res) => {
     const errors = validationResult(req);
@@ -793,7 +793,7 @@ router.post('/luno/ticker', tradingRateLimit, [
     
     try {
         systemLogger.trading('LUNO ticker request initiated', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'luno',
             endpoint: 'ticker',
             pair: pair
@@ -820,7 +820,7 @@ router.post('/luno/ticker', tradingRateLimit, [
         const tickerData = await response.json();
         
         systemLogger.trading('LUNO ticker retrieved successfully', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'luno',
             pair: lunoPair
         });
@@ -1347,12 +1347,12 @@ router.post('/valr/balance', tradingRateLimit, optionalAuth, [
 }));
 
 // VALR Ticker Endpoint  
-router.post('/valr/ticker', tradingRateLimit, asyncHandler(async (req, res) => {
+router.post('/valr/ticker', tradingRateLimit, optionalAuth, asyncHandler(async (req, res) => {
     const { pair } = req.body;
     
     try {
         systemLogger.trading('VALR ticker request initiated', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'valr',
             endpoint: 'ticker',
             pair: pair
@@ -1387,7 +1387,7 @@ router.post('/valr/ticker', tradingRateLimit, asyncHandler(async (req, res) => {
         };
         
         systemLogger.trading('VALR ticker retrieved successfully', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'valr',
             pair: valrPair,
             lastPrice: formattedTicker.lastPrice
