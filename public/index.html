@@ -10643,12 +10643,12 @@
                 const currentMonth = new Date().getMonth();
                 const currentYear = new Date().getFullYear();
             
-            let totalRevenue = 0;
-            let pendingPayments = 0;
-            let overduePayments = 0;
-            let suspendedAccounts = 0;
-            
-            const userBillingData = allUsers.map(user => {
+                let totalRevenue = 0;
+                let pendingPayments = 0;
+                let overduePayments = 0;
+                let suspendedAccounts = 0;
+                
+                const userBillingData = allUsers.map(user => {
                 // Calculate user's monthly profit (this would come from their trade history)
                 const trades = JSON.parse(localStorage.getItem(`arb4me_trades_${user.id}`) || '[]');
                 const monthlyTrades = trades.filter(trade => {
@@ -10704,26 +10704,26 @@
                     paymentStatus,
                     tradeCount: monthlyTrades.length
                 };
-            });
+                });
 
-            // Update admin stats (with null checks)
-            const totalRevenueEl = document.getElementById('adminTotalRevenue');
-            if (totalRevenueEl) totalRevenueEl.textContent = `R${totalRevenue.toFixed(2)}`;
-            
-            const pendingPaymentsEl = document.getElementById('adminPendingPayments');
-            if (pendingPaymentsEl) pendingPaymentsEl.textContent = pendingPayments;
-            
-            const overduePaymentsEl = document.getElementById('adminOverduePayments');
-            if (overduePaymentsEl) overduePaymentsEl.textContent = overduePayments;
-            
-            const suspendedAccountsEl = document.getElementById('adminSuspendedAccounts');
-            if (suspendedAccountsEl) suspendedAccountsEl.textContent = suspendedAccounts;
+                // Update admin stats (with null checks)
+                const totalRevenueEl = document.getElementById('adminTotalRevenue');
+                if (totalRevenueEl) totalRevenueEl.textContent = `R${totalRevenue.toFixed(2)}`;
+                
+                const pendingPaymentsEl = document.getElementById('adminPendingPayments');
+                if (pendingPaymentsEl) pendingPaymentsEl.textContent = pendingPayments;
+                
+                const overduePaymentsEl = document.getElementById('adminOverduePayments');
+                if (overduePaymentsEl) overduePaymentsEl.textContent = overduePayments;
+                
+                const suspendedAccountsEl = document.getElementById('adminSuspendedAccounts');
+                if (suspendedAccountsEl) suspendedAccountsEl.textContent = suspendedAccounts;
 
-            // Update user billing list
-            updateAdminUserBillingList(userBillingData);
-            
-            // Update recent payments
-            updateAdminRecentPayments();
+                // Update user billing list
+                updateAdminUserBillingList(userBillingData);
+                
+                // Update recent payments
+                updateAdminRecentPayments();
         }
 
         function updateAdminUserBillingList(userBillingData) {
