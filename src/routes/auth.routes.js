@@ -35,27 +35,17 @@ const generateToken = (userId) => {
 
 // Helper function to generate unified user ID and payment reference
 const generateUserIdAndPaymentRef = async (client) => {
-    try {
-        // Get next number from the payment reference sequence
-        const result = await client.query('SELECT nextval(\'user_payment_ref_seq\') as ref_num');
-        const refNum = result.rows[0].ref_num;
-        console.log('🔍 Sequence nextval result:', refNum);
-        
-        return {
-            userId: `user_${refNum}`,
-            paymentReference: `ARB-${refNum}`
-        };
-    } catch (error) {
-        console.error('🔴 Error getting sequence:', error.message);
-        // Fallback to SHORTER timestamp-based ID if sequence doesn't exist
-        // Use only last 6 digits of timestamp + random 3 digits
-        const shortTimestamp = Date.now().toString().slice(-6);
-        const random = Math.floor(Math.random() * 1000);
-        return {
-            userId: `user_${shortTimestamp}_${random}`,
-            paymentReference: `ARB-${shortTimestamp}`
-        };
-    }
+    // Use short timestamp (last 8 digits) + 2-digit random for unique 10-digit ID
+    const shortTimestamp = Date.now().toString().slice(-8); // 8 digits from timestamp
+    const random = Math.floor(Math.random() * 100).toString().padStart(2, '0'); // 2-digit random
+    const shortId = shortTimestamp + random; // Total: 10 digits max
+    
+    console.log('🔍 Generated short timestamp ID:', shortId);
+    
+    return {
+        userId: `user_${shortId}`,
+        paymentReference: null // Will be set to NULL, no sequence conflicts
+    };
 };
 
 // Apply auth rate limiting to all routes
