@@ -222,6 +222,7 @@ router.get('/debug-users-count', asyncHandler(async (req, res) => {
     
     res.json({
         total: result.rows.length,
+        timestamp: new Date().toISOString(),
         users: result.rows.map(u => ({
             id: u.id,
             email: u.email,
