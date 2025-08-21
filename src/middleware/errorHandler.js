@@ -14,7 +14,9 @@ class APIError extends Error {
 // Database error handler
 const handleDatabaseError = (error) => {
     if (error.code === '23505') { // Unique constraint violation
-        return new APIError('Resource already exists', 409, 'DUPLICATE_ENTRY');
+        // Include constraint details for debugging
+        const constraintInfo = error.constraint || error.detail || 'Unknown constraint';
+        return new APIError(`Resource already exists: ${constraintInfo}`, 409, 'DUPLICATE_ENTRY');
     }
     
     if (error.code === '23503') { // Foreign key constraint violation
