@@ -458,4 +458,200 @@ router.post('/change-password', [
     }
 }));
 
+// Helper function for safe user ID generation
+const generateSafeUserId = () => {
+    // Component 1: Timestamp (6 digits) - changes every second
+    const timestamp = Date.now().toString().slice(-6);
+    
+    // Component 2: Process unique (2 digits) - unique per server instance  
+    const processId = (process.pid % 100).toString().padStart(2, '0');
+    
+    // Component 3: Random (2 digits) - additional entropy
+    const random = Math.floor(Math.random() * 100).toString().padStart(2, '0');
+    
+    // Result: user_TTTTTTPPRRR (10 digits total)
+    const safeId = `user_${timestamp}${processId}${random}`;
+    console.log('🆔 Generated safe user ID:', safeId);
+    return safeId;
+};
+
+// Async function to create supporting records (doesn't block registration)
+const createSupportingRecords = async (userId, email, firstName) => {
+    console.log('🔄 Creating supporting records for:', userId);
+    
+    // Trading Activity (with error handling)
+    try {
+        await query('INSERT INTO trading_activity (user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING', [userId]);
+        console.log('✅ Trading activity created for:', userId);
+    } catch (err) {
+        console.error('❌ Failed to create trading_activity for', userId, ':', err.message);
+    }
+    
+    // User Activity Log
+    try {
+        await query(
+            'INSERT INTO user_activity (user_id, activity_type, activity_details, ip_address, user_agent) VALUES ($1, $2, $3, $4, $5)',
+            [userId, 'registration_v2', { email, method: 'register-v2' }, 'system', 'registration-service']
+        );
+        console.log('✅ User activity logged for:', userId);
+    } catch (err) {
+        console.error('❌ Failed to log activity for', userId, ':', err.message);
+    }
+    
+    // Welcome Message
+    try {
+        await query(
+            `INSERT INTO messages (user_id, subject, content, message_type, status, admin_user_id) VALUES ($1, $2, $3, $4, $5, $6)`,
+            [
+                userId,
+                'Welcome to ARB4ME - Complete Setup Guide to Activate Trading',
+                `🎉 Welcome to ARB4ME!
+
+Hi ${firstName}! 👋
+
+Congratulations on joining the ARB4ME arbitrage trading platform! We're excited to have you on board.
+
+🚀 **TO ACTIVATE TRADING, PLEASE FOLLOW THESE STEPS:**
+
+**Step 1:** Go to the SETTINGS button on the dashboard and set your screen timeout setting.
+**Step 2:** Go to the PROFILE button on the dashboard and update your profile if required.
+**Step 3:** Go to the ABOUT button on the dashboard and read all the about info.
+**Step 4:** Go to the ARB INFO button on the dashboard and read all the info.
+**Step 5:** Go to the API button on the dashboard and read how to get your APIs.
+**Step 6:** Register on your favorite Crypto Exchanges and complete the verification processes.
+**Step 7:** Get your API keys from the exchanges and insert them into the SETUP section of the App.
+**Step 8:** Fund your selected exchanges and ensure you have USDT available to arbitrage.
+**Step 9:** Go to SETTINGS and select the Crypto Assets you want to arbitrage. Set your Trading Parameters.
+
+✅ **FINAL STEP:** Once completed, you can switch AUTO Trading from OFF to ON.
+
+🔒 **Security Reminder:** Your account is protected with advanced security features.
+
+Happy trading! 📈
+The ARB4ME Team`,
+                'admin_to_user',
+                'sent',
+                'user_admin_master'
+            ]
+        );
+        console.log('✅ Welcome message sent to:', userId);
+    } catch (err) {
+        console.error('❌ Failed to send welcome message to', userId, ':', err.message);
+    }
+};
+
+// POST /api/v1/auth/register-v2 - New bulletproof registration
+router.post('/register-v2', registerValidation, asyncHandler(async (req, res) => {
+    console.log('🚀 Registration v2 attempt started');
+    
+    // Check validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        const errorMessages = errors.array().map(error => `${error.param}: ${error.msg}`).join(', ');
+        throw new APIError(`Validation failed: ${errorMessages}`, 400, 'VALIDATION_ERROR');
+    }
+    
+    const { firstName, lastName, email, mobile, country, password } = req.body;
+    console.log('✅ Input validation passed for:', email);
+    
+    // Step 1: Check email uniqueness (simple, fast query)
+    const existingUser = await query('SELECT id FROM users WHERE email = $1', [email]);
+    if (existingUser.rows.length > 0) {
+        console.log('❌ Email already exists:', email);
+        throw new APIError('User with this email already exists', 409, 'EMAIL_EXISTS');
+    }
+    console.log('✅ Email is unique:', email);
+    
+    // Step 2: Generate safe, unique user ID
+    let userId = generateSafeUserId();
+    let attempts = 0;
+    const maxAttempts = 5;
+    
+    // Step 3: Hash password
+    const saltRounds = 12;
+    const passwordHash = await bcrypt.hash(password, saltRounds);
+    console.log('✅ Password hashed');
+    
+    // Step 4: Create user with retry logic for ID conflicts
+    while (attempts < maxAttempts) {
+        try {
+            console.log(`🔄 User creation attempt ${attempts + 1} with ID:`, userId);
+            
+            // Simple, direct INSERT (no transaction complexity)
+            const result = await query(
+                `INSERT INTO users (id, first_name, last_name, email, mobile, country, password_hash, account_status, payment_reference)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, 'active', NULL)
+                 RETURNING id, first_name, last_name, email, created_at`,
+                [userId, firstName, lastName, email, mobile, country, passwordHash]
+            );
+            
+            const user = result.rows[0];
+            console.log('🎉 User created successfully:', user.id, user.email);
+            
+            // Step 5: Generate JWT token
+            const token = generateToken(userId);
+            console.log('✅ JWT token generated');
+            
+            // Step 6: Queue async supporting records (don't wait for them)
+            setImmediate(() => {
+                createSupportingRecords(userId, email, firstName).catch(err => {
+                    console.error('❌ Supporting records failed for', userId, ':', err.message);
+                });
+            });
+            console.log('🔄 Supporting records queued for async processing');
+            
+            // Step 7: Log successful registration
+            systemLogger.auth('User registered via v2', {
+                userId: userId,
+                email: email,
+                method: 'register-v2',
+                ip: req.ip,
+                userAgent: req.get('User-Agent')
+            });
+            
+            // Step 8: Return success immediately (don't wait for supporting records)
+            return res.status(201).json({
+                success: true,
+                data: {
+                    user: {
+                        id: user.id,
+                        firstName: user.first_name,
+                        lastName: user.last_name,
+                        email: user.email,
+                        createdAt: user.created_at
+                    },
+                    token
+                },
+                message: 'Registration successful'
+            });
+            
+        } catch (error) {
+            attempts++;
+            console.log(`❌ User creation attempt ${attempts} failed:`, error.message);
+            
+            if (error.code === '23505') { // Unique constraint violation
+                if (error.constraint === 'users_pkey') {
+                    // User ID collision - generate new ID and retry
+                    userId = generateSafeUserId();
+                    console.log(`🔄 ID collision detected, retrying with new ID:`, userId);
+                    continue;
+                } else if (error.constraint && error.constraint.includes('email')) {
+                    // Email collision (shouldn't happen due to our check above)
+                    throw new APIError('Email already exists', 409, 'EMAIL_EXISTS');
+                } else {
+                    throw new APIError(`Registration failed: ${error.constraint || 'Database constraint'}`, 409, 'CONSTRAINT_ERROR');
+                }
+            } else {
+                // Other database error
+                console.error('❌ Database error during registration:', error);
+                throw new APIError('Registration failed due to database error', 500, 'DATABASE_ERROR');
+            }
+        }
+    }
+    
+    // If we get here, all retry attempts failed
+    console.error('❌ Registration failed after', maxAttempts, 'attempts for:', email);
+    throw new APIError('Registration failed after multiple attempts', 500, 'REGISTRATION_FAILED');
+}));
+
 module.exports = router;
