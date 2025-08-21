@@ -106,11 +106,11 @@ router.post('/register', registerValidation, asyncHandler(async (req, res) => {
         
         console.log('🔍 Generated userId:', userId, 'paymentRef:', paymentReference);
         
-        // Insert user - let database generate payment_reference automatically
+        // Insert user with NULL payment_reference (like working debug users)
         console.log('🔍 Attempting to insert user into database...');
         const userResult = await client.query(
-            `INSERT INTO users (id, first_name, last_name, email, mobile, country, password_hash, account_status) 
-             VALUES ($1, $2, $3, $4, $5, $6, $7, 'active') 
+            `INSERT INTO users (id, first_name, last_name, email, mobile, country, password_hash, account_status, payment_reference) 
+             VALUES ($1, $2, $3, $4, $5, $6, $7, 'active', NULL) 
              RETURNING id, first_name, last_name, email, created_at, payment_reference`,
             [userId, firstName, lastName, email, mobile, country, passwordHash]
         );
