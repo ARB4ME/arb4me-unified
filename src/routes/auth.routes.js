@@ -460,18 +460,18 @@ router.post('/change-password', [
 
 // Helper function for safe user ID generation
 const generateSafeUserId = () => {
-    // Component 1: Timestamp (6 digits) - changes every second
-    const timestamp = Date.now().toString().slice(-6);
+    // Component 1: Timestamp (3 digits) - last 3 digits of timestamp
+    const timestamp = Date.now().toString().slice(-3);
     
-    // Component 2: Process unique (2 digits) - unique per server instance  
-    const processId = (process.pid % 100).toString().padStart(2, '0');
+    // Component 2: Process unique (1 digit) - unique per server instance  
+    const processId = (process.pid % 10).toString();
     
-    // Component 3: Random (2 digits) - additional entropy
-    const random = Math.floor(Math.random() * 100).toString().padStart(2, '0');
+    // Component 3: Random (1 digit) - additional entropy
+    const random = Math.floor(Math.random() * 10).toString();
     
-    // Result: user_TTTTTTPPRRR (10 digits total)
+    // Result: user_TTTPR (5 digits total) - Much shorter and more manageable
     const safeId = `user_${timestamp}${processId}${random}`;
-    console.log('🆔 Generated safe user ID:', safeId);
+    console.log('🆔 Generated short user ID:', safeId);
     return safeId;
 };
 
@@ -577,12 +577,17 @@ router.post('/register-v2', registerValidation, asyncHandler(async (req, res) =>
         try {
             console.log(`🔄 User creation attempt ${attempts + 1} with ID:`, userId);
             
-            // Simple, direct INSERT (no transaction complexity)
+            // Extract timestamp number from userId for unified payment reference
+            const timestampNumber = userId.replace('user_', '');
+            const paymentReference = `ARB-${timestampNumber}`;
+            console.log('🔄 Using unified payment reference:', paymentReference);
+            
+            // Simple, direct INSERT with unified ID system
             const result = await query(
                 `INSERT INTO users (id, first_name, last_name, email, mobile, country, password_hash, account_status, payment_reference)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, 'active', NULL)
-                 RETURNING id, first_name, last_name, email, created_at`,
-                [userId, firstName, lastName, email, mobile, country, passwordHash]
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, 'active', $8)
+                 RETURNING id, first_name, last_name, email, created_at, payment_reference`,
+                [userId, firstName, lastName, email, mobile, country, passwordHash, paymentReference]
             );
             
             const user = result.rows[0];
@@ -618,7 +623,8 @@ router.post('/register-v2', registerValidation, asyncHandler(async (req, res) =>
                         firstName: user.first_name,
                         lastName: user.last_name,
                         email: user.email,
-                        createdAt: user.created_at
+                        createdAt: user.created_at,
+                        paymentReference: user.payment_reference
                     },
                     token
                 },
