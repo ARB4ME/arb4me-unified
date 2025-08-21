@@ -95,17 +95,17 @@ router.get('/messages-test', authenticateUser, requireAdmin, asyncHandler(async 
 // Force sequence update to much higher value
 router.post('/debug-force-sequence-high', asyncHandler(async (req, res) => {
     try {
-        // Set sequence to 200000 to avoid ALL possible conflicts
-        const result = await query("SELECT setval('user_payment_ref_seq', 200000)");
+        // Set sequence to 200010 to avoid ALL possible conflicts (we have user_200003)
+        const result = await query("SELECT setval('user_payment_ref_seq', 200010)");
         
         // Verify new value
         const verify = await query("SELECT last_value FROM user_payment_ref_seq");
         
         res.json({
             success: true,
-            oldValue: 100013,
+            oldValue: 200003,
             newValue: verify.rows[0].last_value,
-            message: 'Sequence forced to 200000 to avoid all conflicts'
+            message: 'Sequence forced to 200010 to avoid all conflicts'
         });
     } catch (error) {
         res.json({
