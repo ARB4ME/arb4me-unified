@@ -92,6 +92,30 @@ router.get('/messages-test', authenticateUser, requireAdmin, asyncHandler(async 
     });
 }));
 
+// Force sequence update to much higher value
+router.post('/debug-force-sequence-high', asyncHandler(async (req, res) => {
+    try {
+        // Set sequence to 200000 to avoid ALL possible conflicts
+        const result = await query("SELECT setval('user_payment_ref_seq', 200000)");
+        
+        // Verify new value
+        const verify = await query("SELECT last_value FROM user_payment_ref_seq");
+        
+        res.json({
+            success: true,
+            oldValue: 100013,
+            newValue: verify.rows[0].last_value,
+            message: 'Sequence forced to 200000 to avoid all conflicts'
+        });
+    } catch (error) {
+        res.json({
+            success: false,
+            error: error.message,
+            detail: error.detail
+        });
+    }
+}));
+
 // Test user creation directly - no auth for debugging
 router.post('/debug-create-test-user', asyncHandler(async (req, res) => {
     // Try to get next sequence value first
