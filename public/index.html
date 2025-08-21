@@ -16367,7 +16367,7 @@ ARB4ME Security Team`
                     console.log('🔍 Registration data being sent:', registrationData);
                     
                     // Try backend registration
-                    const response = await this.apiCall('/auth/register', {
+                    const response = await this.apiCall('/auth/register-v2', {
                         method: 'POST',
                         body: JSON.stringify(registrationData)
                     });
