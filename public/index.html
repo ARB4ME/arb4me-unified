@@ -10867,6 +10867,12 @@
         function updateAdminRecentPayments(recentPayments = null) {
             const container = document.getElementById('adminRecentPayments');
             
+            // If container doesn't exist, skip update silently
+            if (!container) {
+                console.log('⚠️ adminRecentPayments container not found, skipping payments update');
+                return;
+            }
+            
             // Use provided payments or default demo data
             const payments = recentPayments || [
                 {
@@ -18020,8 +18026,9 @@ ARB4ME Security Team`
                 paymentDateField.value = new Date().toISOString().split('T')[0];
             }
             
-            // Load initial data when billing tab is opened
-            refreshBillingData();
+            // Use the working billing overview function instead of failing API calls
+            console.log('🔄 Initializing billing tab with database users...');
+            updateAdminBillingOverview();
         }
 
         // PASSWORD VISIBILITY TOGGLE SYSTEM
