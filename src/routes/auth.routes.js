@@ -35,12 +35,12 @@ const generateToken = (userId) => {
 
 // Helper function to generate unified user ID and payment reference
 const generateUserIdAndPaymentRef = async (client) => {
-    // Use short timestamp (last 8 digits) + 2-digit random for unique 10-digit ID
-    const shortTimestamp = Date.now().toString().slice(-8); // 8 digits from timestamp
-    const random = Math.floor(Math.random() * 100).toString().padStart(2, '0'); // 2-digit random
-    const shortId = shortTimestamp + random; // Total: 10 digits max
+    // Use timestamp + high entropy random for uniqueness (under 10 digits)
+    const timestamp = Date.now().toString().slice(-6); // Last 6 digits of timestamp
+    const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0'); // 4-digit random
+    const shortId = timestamp + random; // Total: 10 digits max
     
-    console.log('🔍 Generated short timestamp ID:', shortId);
+    console.log('🔍 Generated unique timestamp ID:', shortId);
     
     return {
         userId: `user_${shortId}`,
