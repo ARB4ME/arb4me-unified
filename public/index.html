@@ -17792,41 +17792,62 @@ ARB4ME Security Team`
             addActivity('🔄 Refreshing billing data...', 'info');
             
             try {
-                // Load users for payment dropdown
+                // Load users for payment dropdown (now uses working API)
                 await populatePaymentUserDropdown();
                 
-                // Load payment history
-                await loadPaymentHistory();
+                // Update billing overview with live database data
+                await updateAdminBillingOverview();
                 
-                // Load expiring/expired users
-                await loadExpiryData();
-                
-                // Update summary stats
-                await updateBillingSummary();
-                
-                addActivity('✅ Billing data refreshed', 'success');
+                addActivity('✅ Billing data refreshed from database', 'success');
             } catch (error) {
                 addActivity(`❌ Error refreshing billing data: ${error.message}`, 'error');
+                console.error('Billing refresh error:', error);
             }
         }
 
         // Populate user dropdown for payment recording
         async function populatePaymentUserDropdown() {
             const dropdown = document.getElementById('paymentUserId');
+            if (!dropdown) {
+                console.log('⚠️ paymentUserId dropdown not found');
+                return;
+            }
+            
             dropdown.innerHTML = '<option value="">-- Select User --</option>';
             
             try {
-                const response = await apiService.getAdminUsers();
-                if (response.success && response.data.users) {
-                    response.data.users.forEach(user => {
-                        const option = document.createElement('option');
-                        option.value = user.id;
-                        option.textContent = `${user.email} (${user.payment_reference})`;
-                        dropdown.appendChild(option);
-                    });
+                // Use the working getAllUsers() instead of failing getAdminUsers()
+                const response = await apiService.getAllUsers();
+                console.log('✅ Got users for payment dropdown:', response);
+                
+                let users;
+                if (response.success && response.data && response.data.users) {
+                    users = response.data.users;
+                } else if (response.users && Array.isArray(response.users)) {
+                    users = response.users;
+                } else {
+                    console.error('❌ Invalid user data structure:', response);
+                    return;
                 }
+                
+                users.forEach(user => {
+                    const option = document.createElement('option');
+                    option.value = user.id;
+                    // Show user name and payment reference for easy identification
+                    const paymentRef = user.payment_reference || user.paymentReference || 'No Ref';
+                    option.textContent = `${user.first_name} ${user.last_name} (${paymentRef})`;
+                    dropdown.appendChild(option);
+                });
+                
+                console.log(`✅ Populated dropdown with ${users.length} users`);
+                
             } catch (error) {
-                console.error('Error populating user dropdown:', error);
+                console.error('❌ Error populating user dropdown:', error);
+                // Add error option to dropdown
+                const errorOption = document.createElement('option');
+                errorOption.value = '';
+                errorOption.textContent = 'Error loading users';
+                dropdown.appendChild(errorOption);
             }
         }
 
@@ -18020,15 +18041,20 @@ ARB4ME Security Team`
         }
 
         // Set default payment date to today
-        function initializeBillingTab() {
+        async function initializeBillingTab() {
             const paymentDateField = document.getElementById('paymentDate');
             if (paymentDateField) {
                 paymentDateField.value = new Date().toISOString().split('T')[0];
             }
             
-            // Use the working billing overview function instead of failing API calls
+            // Initialize billing data
             console.log('🔄 Initializing billing tab with database users...');
+            
+            // Load billing overview with user data
             updateAdminBillingOverview();
+            
+            // Populate the payment dropdown
+            await populatePaymentUserDropdown();
         }
 
         // PASSWORD VISIBILITY TOGGLE SYSTEM
