@@ -10724,6 +10724,28 @@
                 
                 // Update recent payments
                 updateAdminRecentPayments();
+                
+            } catch (error) {
+                console.error('❌ Error loading billing data from database:', error);
+                if (container) {
+                    container.innerHTML = `
+                        <div style="text-align: center; color: #ff6b6b; padding: 20px;">
+                            <div style="font-size: 1.5rem; margin-bottom: 10px;">❌</div>
+                            <div>Failed to load billing data from database</div>
+                            <div style="margin-top: 5px; font-size: 0.9rem;">Error: ${error.message}</div>
+                            <button onclick="updateAdminBillingOverview()" style="
+                                margin-top: 15px;
+                                padding: 8px 16px;
+                                background: #00ff88;
+                                color: #1a1a2e;
+                                border: none;
+                                border-radius: 6px;
+                                cursor: pointer;
+                            ">🔄 Retry</button>
+                        </div>
+                    `;
+                }
+            }
         }
 
         function updateAdminUserBillingList(userBillingData) {
@@ -10915,33 +10937,6 @@
                 stats[1].textContent = '0'; // Pending Payments
                 stats[2].textContent = '0'; // Overdue Payments  
                 stats[3].textContent = suspendedUsers; // Suspended Accounts
-            }
-            
-                // Update user billing list
-                updateAdminUserBillingList(userBillingData);
-                
-                console.log(`💰 Billing overview updated: R${totalRevenue} from ${allUsers.length} users (${activeUsers} active)`);
-                
-            } catch (error) {
-                console.error('❌ Error loading billing data from database:', error);
-                if (container) {
-                    container.innerHTML = `
-                        <div style="text-align: center; color: #ff6b6b; padding: 20px;">
-                            <div style="font-size: 1.5rem; margin-bottom: 10px;">❌</div>
-                            <div>Failed to load billing data from database</div>
-                            <div style="margin-top: 5px; font-size: 0.9rem;">Error: ${error.message}</div>
-                            <button onclick="updateAdminBillingOverview()" style="
-                                margin-top: 15px;
-                                padding: 8px 16px;
-                                background: #00ff88;
-                                color: #1a1a2e;
-                                border: none;
-                                border-radius: 6px;
-                                cursor: pointer;
-                            ">🔄 Retry</button>
-                        </div>
-                    `;
-                }
             }
         }
 
