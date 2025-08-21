@@ -2410,17 +2410,6 @@
             </div>
         </div>
 
-        <!-- ADMIN TABS - CAREFULLY INJECTED -->
-        <div class="admin-tabs" id="adminTabs">
-            <button class="admin-tab-btn active" onclick="showAdminTab('users')">👥 User Management</button>
-            <button class="admin-tab-btn" onclick="showAdminTab('activation')">✅ Account Activation</button>
-            <button class="admin-tab-btn" onclick="showAdminTab('messages')">💬 Messages</button>
-            <button class="admin-tab-btn" onclick="showAdminTab('billing')">💰 Billing</button>
-            <button class="admin-tab-btn" onclick="showAdminTab('admins')">🔐 Admin Management</button>
-            <button class="admin-tab-btn" onclick="showAdminTab('security')">🛡️ Security Monitor</button>
-            <button class="admin-tab-btn" onclick="showAdminTab('analytics')">📊 Analytics</button>
-            <button class="admin-tab-btn" onclick="showAdminTab('settings')">⚙️ Settings</button>
-        </div>
 
         <div id="signupTab" class="tab-content">
             <div style="max-width: 500px; margin: 0 auto; padding: 20px;">
@@ -5529,6 +5518,18 @@
                     ">
                         🚪 Logout
                     </button>
+                </div>
+
+                <!-- ADMIN TABS - PROPERLY POSITIONED INSIDE DASHBOARD -->
+                <div class="admin-tabs" id="adminTabs">
+                    <button class="admin-tab-btn active" onclick="showAdminTab('users')">👥 User Management</button>
+                    <button class="admin-tab-btn" onclick="showAdminTab('activation')">✅ Account Activation</button>
+                    <button class="admin-tab-btn" onclick="showAdminTab('messages')">💬 Messages</button>
+                    <button class="admin-tab-btn" onclick="showAdminTab('billing')">💰 Billing</button>
+                    <button class="admin-tab-btn" onclick="showAdminTab('admins')">🔐 Admin Management</button>
+                    <button class="admin-tab-btn" onclick="showAdminTab('security')">🛡️ Security Monitor</button>
+                    <button class="admin-tab-btn" onclick="showAdminTab('analytics')">📊 Analytics</button>
+                    <button class="admin-tab-btn" onclick="showAdminTab('settings')">⚙️ Settings</button>
                 </div>
 
                 <div id="adminUsersTab" class="admin-content">
