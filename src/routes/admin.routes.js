@@ -213,11 +213,11 @@ router.get('/debug-check-sequence', asyncHandler(async (req, res) => {
 // Direct database check - no auth for debugging
 router.get('/debug-users-count', asyncHandler(async (req, res) => {
     const result = await query(`
-        SELECT id, email, first_name, last_name, created_at 
+        SELECT id, email, first_name, last_name, created_at, payment_reference
         FROM users 
         WHERE admin_role IS NULL OR admin_role != 'master'
         ORDER BY created_at DESC
-        LIMIT 20
+        LIMIT 50
     `);
     
     res.json({
@@ -226,6 +226,7 @@ router.get('/debug-users-count', asyncHandler(async (req, res) => {
             id: u.id,
             email: u.email,
             name: `${u.first_name} ${u.last_name}`,
+            payment_ref: u.payment_reference,
             created: u.created_at
         }))
     });
