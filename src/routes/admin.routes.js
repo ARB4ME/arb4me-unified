@@ -2921,7 +2921,7 @@ router.post('/record-payment',
 );
 
 // GET /api/v1/admin/users-expiring - Get users expiring within N days  
-router.get('/users-expiring', requireAdminPerm, asyncHandler(async (req, res) => {
+router.get('/users-expiring', authenticateUser, requireAdmin, asyncHandler(async (req, res) => {
         console.log('🔍 users-expiring endpoint hit, user:', req.user?.id, 'admin role:', req.user?.admin_role, 'user object:', req.user);
         const days = parseInt(req.query.days) || 7;
 
@@ -2959,7 +2959,7 @@ router.get('/users-expiring', requireAdminPerm, asyncHandler(async (req, res) =>
 );
 
 // GET /api/v1/admin/users-expired - Get expired users
-router.get('/users-expired', requireAdminPerm, asyncHandler(async (req, res) => {
+router.get('/users-expired', authenticateUser, requireAdmin, asyncHandler(async (req, res) => {
         const result = await query(`
             SELECT 
                 id, first_name, last_name, email, payment_reference,
@@ -3149,7 +3149,7 @@ router.post('/suspend-expired-users',
 );
 
 // GET /api/v1/admin/payment-history - Get payment history
-router.get('/payment-history', requireAdminPerm, asyncHandler(async (req, res) => {
+router.get('/payment-history', authenticateUser, requireAdmin, asyncHandler(async (req, res) => {
         const page = parseInt(req.query.page) || 1;
         const limit = Math.min(parseInt(req.query.limit) || 50, 100);
         const offset = (page - 1) * limit;
