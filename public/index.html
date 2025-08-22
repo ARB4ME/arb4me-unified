@@ -5924,9 +5924,9 @@
                     <!-- Expiry Management Section -->
                     <div style="background: rgba(255,107,107,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 1px solid rgba(255,107,107,0.3);">
                         <h4 style="color: #ff6b6b; margin-bottom: 15px;">⚠️ Expiry Management</h4>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
                             <div>
-                                <button onclick="toggleExpiringUsers()" id="expiringUsersBtn" style="width: 100%; padding: 12px; background: linear-gradient(45deg, #ffa500, #ff6b00); color: white; border: none; border-radius: 10px; cursor: pointer; margin-bottom: 10px; font-weight: bold;">
+                                <button onclick="toggleExpiringUsers()" id="expiringUsersBtn" style="width: 100%; padding: 12px; background: linear-gradient(45deg, #ffa500, #ff6b00); color: white; border: none; border-radius: 10px; cursor: pointer; margin-bottom: 10px; font-weight: bold; font-size: 0.9rem;">
                                     📅 Expiring Soon (7 Days) - <span id="expiringCount">Loading...</span> ▼
                                 </button>
                                 <div id="expiringUsersList" style="max-height: 200px; overflow-y: auto; display: none;">
@@ -5934,11 +5934,19 @@
                                 </div>
                             </div>
                             <div>
-                                <button onclick="toggleExpiredUsers()" id="expiredUsersBtn" style="width: 100%; padding: 12px; background: linear-gradient(45deg, #ff6b6b, #ff0000); color: white; border: none; border-radius: 10px; cursor: pointer; margin-bottom: 10px; font-weight: bold;">
+                                <button onclick="toggleExpiredUsers()" id="expiredUsersBtn" style="width: 100%; padding: 12px; background: linear-gradient(45deg, #ff6b6b, #ff0000); color: white; border: none; border-radius: 10px; cursor: pointer; margin-bottom: 10px; font-weight: bold; font-size: 0.9rem;">
                                     ❌ Already Expired - <span id="expiredCount">Loading...</span> ▼
                                 </button>
                                 <div id="expiredUsersList" style="max-height: 200px; overflow-y: auto; display: none;">
                                     <div style="color: #888; padding: 10px; text-align: center;">Loading expired users...</div>
+                                </div>
+                            </div>
+                            <div>
+                                <button onclick="toggleAutoReminders()" id="autoRemindersBtn" style="width: 100%; padding: 12px; background: linear-gradient(45deg, #00d4ff, #0099cc); color: white; border: none; border-radius: 10px; cursor: pointer; margin-bottom: 10px; font-weight: bold; font-size: 0.9rem;">
+                                    🤖 Auto Reminders Sent - <span id="autoRemindersCount">Loading...</span> ▼
+                                </button>
+                                <div id="autoRemindersList" style="max-height: 200px; overflow-y: auto; display: none;">
+                                    <div style="color: #888; padding: 10px; text-align: center;">Loading auto reminders...</div>
                                 </div>
                             </div>
                         </div>
@@ -24269,7 +24277,119 @@ ARB4ME Security Team`
             await populatePaymentUserDropdown();
             await loadExpiringUsersCount();
             await loadExpiredUsersCount();
+            await loadAutoRemindersCount();
             await loadPaymentHistory();
+        }
+
+        // =====================================
+        // AUTO-REMINDER FUNCTIONS
+        // =====================================
+
+        // Toggle auto reminders dropdown
+        async function toggleAutoReminders() {
+            const dropdown = document.getElementById('autoRemindersList');
+            const button = document.getElementById('autoRemindersBtn');
+            
+            if (dropdown.style.display === 'none' || !dropdown.style.display) {
+                // Load data if not already loaded
+                await loadAutoRemindersHistory();
+                dropdown.style.display = 'block';
+                button.innerHTML = button.innerHTML.replace('▼', '▲');
+            } else {
+                dropdown.style.display = 'none';
+                button.innerHTML = button.innerHTML.replace('▲', '▼');
+            }
+        }
+
+        // Load auto reminders count
+        async function loadAutoRemindersCount() {
+            const countSpan = document.getElementById('autoRemindersCount');
+            try {
+                const result = await apiService.apiCall('/admin/auto-reminders-history?days=1');
+                if (result.success && countSpan) {
+                    // Count today's reminders
+                    const today = new Date().toISOString().split('T')[0];
+                    const todayReminders = result.data.remindersByDate[today] || [];
+                    countSpan.textContent = `${todayReminders.length} today`;
+                }
+            } catch (error) {
+                console.error('Error loading auto reminders count:', error);
+                if (countSpan) countSpan.textContent = '0 today';
+            }
+        }
+
+        // Load auto reminders history (7 days)
+        async function loadAutoRemindersHistory() {
+            const listDiv = document.getElementById('autoRemindersList');
+            const countSpan = document.getElementById('autoRemindersCount');
+            
+            try {
+                const result = await apiService.apiCall('/admin/auto-reminders-history?days=7');
+                
+                if (result.success) {
+                    const remindersByDate = result.data.remindersByDate;
+                    const totalReminders = result.data.totalReminders;
+                    
+                    // Update button count with today's count
+                    const today = new Date().toISOString().split('T')[0];
+                    const todayReminders = remindersByDate[today] || [];
+                    if (countSpan) {
+                        countSpan.textContent = `${todayReminders.length} today`;
+                    }
+                    
+                    if (totalReminders === 0) {
+                        listDiv.innerHTML = '<div style="color: #888; padding: 10px; text-align: center;">No auto-reminders sent in the last 7 days</div>';
+                        return;
+                    }
+
+                    // Build HTML for each date
+                    let html = '';
+                    const sortedDates = Object.keys(remindersByDate).sort().reverse(); // Most recent first
+                    
+                    sortedDates.forEach(date => {
+                        const reminders = remindersByDate[date];
+                        if (reminders.length === 0) return;
+                        
+                        const isToday = date === today;
+                        const dateLabel = isToday ? 'Today' : 
+                                         date === new Date(Date.now() - 86400000).toISOString().split('T')[0] ? 'Yesterday' :
+                                         new Date(date).toLocaleDateString();
+                        
+                        html += `
+                            <div style="margin-bottom: 15px;">
+                                <div style="font-weight: bold; color: ${isToday ? '#00ff88' : '#00d4ff'}; margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px;">
+                                    ${dateLabel} (${reminders.length} reminder${reminders.length !== 1 ? 's' : ''} sent)
+                                </div>
+                                ${reminders.map(reminder => `
+                                    <div style="background: rgba(0,212,255,0.05); padding: 8px; margin-bottom: 5px; border-radius: 6px; border-left: 3px solid ${reminder.reminderType === '7day' ? '#ffa500' : '#ff6b6b'};">
+                                        <div style="font-size: 0.9rem; color: white; font-weight: bold;">${reminder.userName}</div>
+                                        <div style="font-size: 0.8rem; color: #ccc;">${reminder.userEmail}</div>
+                                        <div style="font-size: 0.8rem; margin-top: 3px;">
+                                            <span style="color: ${reminder.reminderType === '7day' ? '#ffa500' : '#ff6b6b'}; font-weight: bold;">
+                                                ${reminder.reminderType === '7day' ? '📅 7-day' : '🚨 1-day'} reminder
+                                            </span>
+                                            <span style="color: #888; margin-left: 10px;">
+                                                ⏰ ${new Date(reminder.sentAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                            </span>
+                                        </div>
+                                        <div style="font-size: 0.7rem; color: #888; margin-top: 2px;">
+                                            Expires: ${new Date(reminder.subscriptionExpiresAt).toDateString()}
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        `;
+                    });
+                    
+                    listDiv.innerHTML = html;
+                } else {
+                    throw new Error(result.message);
+                }
+            } catch (error) {
+                console.error('Error loading auto reminders history:', error);
+                listDiv.innerHTML = '<div style="color: #ff6b6b; padding: 10px; text-align: center;">Error loading auto reminders data</div>';
+                if (countSpan) countSpan.textContent = 'Error';
+            }
         }
 
         // Modify existing showBillingTab function to initialize data

@@ -3237,4 +3237,249 @@ router.get('/payment-history', authenticateUser, requireAdmin, asyncHandler(asyn
     })
 );
 
+// =====================================
+// AUTO-REMINDER SYSTEM API ENDPOINTS
+// =====================================
+
+// GET /api/v1/admin/auto-reminders-history - Get 7-day history of auto-reminders
+router.get('/auto-reminders-history', authenticateUser, requireAdmin, asyncHandler(async (req, res) => {
+    const days = parseInt(req.query.days) || 7;
+    const today = new Date();
+    const startDate = new Date(today);
+    startDate.setDate(startDate.getDate() - days);
+    
+    // Get reminders from auto_reminders_log table
+    const remindersResult = await query(`
+        SELECT 
+            arl.*,
+            u.first_name,
+            u.last_name,
+            u.email
+        FROM auto_reminders_log arl
+        LEFT JOIN users u ON arl.user_id = u.id
+        WHERE arl.sent_date >= $1
+        ORDER BY arl.sent_date DESC, arl.sent_at DESC
+    `, [startDate.toISOString().split('T')[0]]);
+    
+    // Group by date for easy display
+    const remindersByDate = {};
+    remindersResult.rows.forEach(reminder => {
+        const date = reminder.sent_date;
+        if (!remindersByDate[date]) {
+            remindersByDate[date] = [];
+        }
+        remindersByDate[date].push({
+            id: reminder.id,
+            userId: reminder.user_id,
+            userName: `${reminder.first_name || ''} ${reminder.last_name || ''}`.trim(),
+            userEmail: reminder.user_email || reminder.email,
+            reminderType: reminder.reminder_type,
+            daysUntilExpiry: reminder.days_until_expiry,
+            subscriptionExpiresAt: reminder.subscription_expires_at,
+            sentAt: reminder.sent_at,
+            messageId: reminder.message_id,
+            notes: reminder.notes
+        });
+    });
+    
+    res.json({
+        success: true,
+        data: {
+            remindersByDate,
+            totalReminders: remindersResult.rows.length,
+            dateRange: {
+                from: startDate.toISOString().split('T')[0],
+                to: today.toISOString().split('T')[0]
+            }
+        }
+    });
+}));
+
+// GET /api/v1/admin/user-reminder-status/:userId - Get reminder status for specific user
+router.get('/user-reminder-status/:userId', authenticateUser, requireAdmin, asyncHandler(async (req, res) => {
+    const { userId } = req.params;
+    
+    // Get user's current reminder status and subscription info
+    const userResult = await query(`
+        SELECT 
+            id, first_name, last_name, email,
+            subscription_expires_at, last_payment_date,
+            last_reminder_type, last_reminder_date,
+            seven_day_reminder_sent, one_day_reminder_sent
+        FROM users 
+        WHERE id = $1
+    `, [userId]);
+    
+    if (userResult.rows.length === 0) {
+        throw new APIError('User not found', 404, 'USER_NOT_FOUND');
+    }
+    
+    const user = userResult.rows[0];
+    
+    // Get reminder history for this user
+    const historyResult = await query(`
+        SELECT *
+        FROM auto_reminders_log
+        WHERE user_id = $1
+        ORDER BY sent_at DESC
+        LIMIT 10
+    `, [userId]);
+    
+    // Calculate expiry status
+    let expiryStatus = 'active';
+    let daysUntilExpiry = null;
+    
+    if (user.subscription_expires_at) {
+        const expiryDate = new Date(user.subscription_expires_at);
+        const now = new Date();
+        daysUntilExpiry = Math.ceil((expiryDate - now) / (1000 * 60 * 60 * 24));
+        
+        if (daysUntilExpiry < 0) {
+            expiryStatus = 'expired';
+        } else if (daysUntilExpiry <= 1) {
+            expiryStatus = 'expires_tomorrow';
+        } else if (daysUntilExpiry <= 7) {
+            expiryStatus = 'expires_soon';
+        }
+    }
+    
+    res.json({
+        success: true,
+        data: {
+            user: {
+                id: user.id,
+                firstName: user.first_name,
+                lastName: user.last_name,
+                email: user.email,
+                subscriptionExpiresAt: user.subscription_expires_at,
+                lastPaymentDate: user.last_payment_date
+            },
+            reminderStatus: {
+                lastReminderType: user.last_reminder_type,
+                lastReminderDate: user.last_reminder_date,
+                sevenDayReminderSent: user.seven_day_reminder_sent,
+                oneDayReminderSent: user.one_day_reminder_sent
+            },
+            expiryInfo: {
+                status: expiryStatus,
+                daysUntilExpiry: daysUntilExpiry,
+                subscriptionExpiresAt: user.subscription_expires_at
+            },
+            reminderHistory: historyResult.rows
+        }
+    });
+}));
+
+// Update the existing record-payment endpoint to reset reminder flags
+const originalRecordPaymentIndex = router.stack.findIndex(layer => 
+    layer.route && layer.route.path === '/record-payment' && layer.route.methods.post
+);
+
+if (originalRecordPaymentIndex !== -1) {
+    // Remove the old endpoint
+    router.stack.splice(originalRecordPaymentIndex, 1);
+}
+
+// POST /api/v1/admin/record-payment - Record payment and reset reminder flags
+router.post('/record-payment', 
+    authenticateUser,
+    requireAdmin,
+    [
+        body('userId').notEmpty().withMessage('User ID is required'),
+        body('amount').isFloat({ min: 0 }).withMessage('Amount must be a positive number'),
+        body('paymentDate').isISO8601().withMessage('Valid payment date required'),
+        body('bankReference').optional().isString().withMessage('Bank reference must be a string'),
+        body('paymentMonth').matches(/^\d{4}-\d{2}$/).withMessage('Payment month must be in YYYY-MM format'),
+        body('notes').optional().isString().withMessage('Notes must be a string')
+    ],
+    asyncHandler(async (req, res) => {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+        }
+
+        const { userId, amount, paymentDate, bankReference, paymentMonth, notes } = req.body;
+
+        const result = await transaction(async (client) => {
+            // Get user details
+            const userResult = await client.query(
+                'SELECT id, first_name, last_name, email, payment_reference FROM users WHERE id = $1',
+                [userId]
+            );
+
+            if (userResult.rows.length === 0) {
+                throw new APIError('User not found', 404, 'USER_NOT_FOUND');
+            }
+
+            const user = userResult.rows[0];
+
+            // Insert payment record
+            const paymentResult = await client.query(`
+                INSERT INTO payments (user_id, payment_reference, amount, payment_date, bank_reference, marked_by_admin_id, payment_month, notes)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                RETURNING *
+            `, [userId, user.payment_reference, amount, paymentDate, bankReference, req.user.id, paymentMonth, notes]);
+
+            // Calculate new expiry date (add 30 days from payment date)
+            const newExpiryDate = new Date(paymentDate);
+            newExpiryDate.setDate(newExpiryDate.getDate() + 30);
+
+            // Update user's subscription AND reset reminder flags
+            await client.query(`
+                UPDATE users 
+                SET 
+                    subscription_expires_at = $2,
+                    last_payment_date = $3,
+                    seven_day_reminder_sent = FALSE,
+                    one_day_reminder_sent = FALSE,
+                    last_reminder_type = NULL,
+                    last_reminder_date = NULL
+                WHERE id = $1
+            `, [userId, newExpiryDate, paymentDate]);
+
+            // Send confirmation message to user
+            await client.query(`
+                INSERT INTO messages (user_id, subject, content, message_type, status, admin_user_id)
+                VALUES ($1, $2, $3, $4, $5, $6)
+            `, [
+                userId,
+                'Payment Confirmed - Subscription Extended',
+                `Hi ${user.first_name}!\n\nGreat news! We've received your payment of R${amount}.\n\n✅ Payment Details:\n- Amount: R${amount}\n- Date: ${new Date(paymentDate).toDateString()}\n- Reference: ${user.payment_reference}\n${bankReference ? `- Bank Reference: ${bankReference}\n` : ''}\n\n📅 Your subscription has been extended until ${newExpiryDate.toDateString()}.\n\nYou can now continue enjoying full access to ARB4ME trading features.\n\nThank you for being part of ARB4ME!\n\nThe ARB4ME Team`,
+                'admin_to_user',
+                'sent',
+                req.user.id
+            ]);
+
+            return {
+                payment: paymentResult.rows[0],
+                user: user,
+                newExpiryDate: newExpiryDate
+            };
+        });
+
+        await logAdminActivity(
+            req.user.id,
+            'payment_recorded',
+            { 
+                payment_amount: amount,
+                user_id: userId,
+                payment_month: paymentMonth,
+                reminder_flags_reset: true
+            },
+            req.ip,
+            req.get('User-Agent'),
+            {
+                category: 'billing',
+                severity: 'info'
+            }
+        );
+
+        res.json({
+            success: true,
+            data: result,
+            message: 'Payment recorded and reminder flags reset successfully'
+        });
+    })
+);
+
 module.exports = router;

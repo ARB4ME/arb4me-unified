@@ -15,6 +15,7 @@ const { connectDatabase } = require('./src/database/connection');
 const { setupWebSocket } = require('./src/websocket/socketManager');
 const { errorHandler } = require('./src/middleware/errorHandler');
 const { generalRateLimit } = require('./src/middleware/rateLimiter');
+const autoReminderService = require('./src/services/autoReminderService');
 
 // Import routes
 const authRoutes = require('./src/routes/auth.routes');
@@ -123,6 +124,10 @@ async function startServer() {
         // Setup WebSocket
         setupWebSocket(io);
         logger.info('WebSocket server initialized');
+        
+        // Initialize Auto-Reminder Service
+        autoReminderService.initialize();
+        logger.info('Auto-reminder service initialized');
 
         // Start HTTP server
         const PORT = process.env.PORT || 3000;
