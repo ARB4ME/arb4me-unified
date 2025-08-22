@@ -16409,6 +16409,13 @@ ARB4ME Security Team`
             // Helper method to make API calls
             async apiCall(endpoint, options = {}) {
                 try {
+                    // Always get fresh token from localStorage in case it was updated
+                    const currentToken = localStorage.getItem('arb4me_jwt_token');
+                    if (currentToken && currentToken !== this.token) {
+                        this.token = currentToken;
+                        console.log('🔄 Token refreshed from localStorage');
+                    }
+                    
                     const headers = {
                         'Content-Type': 'application/json',
                         ...options.headers
