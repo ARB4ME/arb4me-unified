@@ -1,0 +1,4 @@
+DEPLOYMENT_TRIGGER=2025-08-22-auto-reminder-system
+COMMIT=ad08c1a
+FEATURES=auto-reminders,cron-job,database-migration
+STATUS=ready-for-deployment
