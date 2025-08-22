@@ -117,17 +117,23 @@ async function startServer() {
             
             // Skip automatic migration - should be run separately
             // Migration can be triggered via npm run migrate
+            
+            // Initialize Auto-Reminder Service only if database is connected
+            try {
+                autoReminderService.initialize();
+                logger.info('Auto-reminder service initialized');
+            } catch (error) {
+                logger.warn('Auto-reminder service failed to initialize', { error: error.message });
+                // Don't crash the server if auto-reminder fails
+            }
         } else {
             logger.warn('Running without database - PWA will use localStorage only');
+            logger.warn('Auto-reminder service disabled - requires database connection');
         }
 
         // Setup WebSocket
         setupWebSocket(io);
         logger.info('WebSocket server initialized');
-        
-        // Initialize Auto-Reminder Service
-        autoReminderService.initialize();
-        logger.info('Auto-reminder service initialized');
 
         // Start HTTP server
         const PORT = process.env.PORT || 3000;
