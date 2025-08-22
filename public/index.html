@@ -15889,7 +15889,7 @@ ARB4ME Security Team`
         let socket = null;
         let socketConnected = false;
         let reconnectAttempts = 0;
-        const maxReconnectAttempts = 5;
+        const maxReconnectAttempts = 10;  // Increased from 5 to allow longer retry period
         
         function initializeWebSocket() {
             const token = localStorage.getItem('arb4me_jwt_token');
@@ -15907,8 +15907,8 @@ ARB4ME Security Team`
                     token: token
                 },
                 reconnection: true,
-                reconnectionDelay: 1000,
-                reconnectionDelayMax: 5000,
+                reconnectionDelay: 2000,      // Start with 2 seconds instead of 1
+                reconnectionDelayMax: 30000,  // Max 30 seconds instead of 5
                 reconnectionAttempts: maxReconnectAttempts
             });
             
