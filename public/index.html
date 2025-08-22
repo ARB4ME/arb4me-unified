@@ -24349,28 +24349,24 @@ ARB4ME Security Team`
                 }
                 
                 // Since we have valid users data, show the system status message
-                    listDiv.innerHTML = `
-                        <div style="color: #888; padding: 10px; text-align: center;">
-                            📋 Auto-Reminder System Active
-                            <div style="margin-top: 10px; font-size: 0.9rem;">
-                                • Checks daily at 9:00 AM SA time<br>
-                                • Sends 7-day reminders to users expiring in 7 days<br>
-                                • Sends 1-day urgent reminders to users expiring tomorrow<br>
-                                • History will appear here once reminders are sent
-                            </div>
-                            <div style="margin-top: 10px; font-size: 0.8rem; color: #00ff88;">
-                                System is running - no reminders sent today
-                            </div>
+                listDiv.innerHTML = `
+                    <div style="color: #888; padding: 10px; text-align: center;">
+                        📋 Auto-Reminder System Active
+                        <div style="margin-top: 10px; font-size: 0.9rem;">
+                            • Checks daily at 9:00 AM SA time<br>
+                            • Sends 7-day reminders to users expiring in 7 days<br>
+                            • Sends 1-day urgent reminders to users expiring tomorrow<br>
+                            • History will appear here once reminders are sent
                         </div>
-                    `;
-                    
-                    // Update count
-                    if (countSpan) {
-                        countSpan.textContent = '0 today';
-                    }
-
-                } else {
-                    throw new Error('Failed to verify system status');
+                        <div style="margin-top: 10px; font-size: 0.8rem; color: #00ff88;">
+                            System is running - no reminders sent today
+                        </div>
+                    </div>
+                `;
+                
+                // Update count
+                if (countSpan) {
+                    countSpan.textContent = '0 today';
                 }
             } catch (error) {
                 console.error('Error loading auto reminders history:', error);
