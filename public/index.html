@@ -9470,7 +9470,7 @@
                     }
                 });
                 
-                const result = await response.json();
+                
                 
                 if (result.success) {
                     addActivity('✅ Settings migration completed successfully', 'success');
@@ -11505,7 +11505,7 @@
                 if (activityLogState.filters.severity) params.append('severity', activityLogState.filters.severity);
                 if (activityLogState.filters.adminUserId) params.append('adminUserId', activityLogState.filters.adminUserId);
 
-                const response = await apiService.apiCall(`/admin/reports/export?${params.toString()}`, {
+                const result = await apiService.apiCall(`/admin/reports/export?${params.toString()}`, {
                     method: 'GET',
                     headers: {
                         'Accept': format === 'json' ? 'application/json' : 'text/csv'
@@ -11557,7 +11557,7 @@
             resultsDiv.innerHTML = '<div style="text-align: center; color: #00d4ff; padding: 20px;">🔄 Generating report...</div>';
             
             try {
-                const response = await apiService.apiCall(`/admin/reports/summary?type=${reportType}&period=${period}`, {
+                const result = await apiService.apiCall(`/admin/reports/summary?type=${reportType}&period=${period}`, {
                     method: 'GET'
                 });
                 
@@ -11601,7 +11601,7 @@
             }
             
             try {
-                const response = await apiService.apiCall(`/admin/reports/summary?type=${type}&period=${period}`, {
+                const result = await apiService.apiCall(`/admin/reports/summary?type=${type}&period=${period}`, {
                     method: 'GET'
                 });
                 
@@ -11755,7 +11755,7 @@
 
         async function refreshSecurityHealth() {
             try {
-                const response = await apiService.apiCall('/admin/security/health', { method: 'GET' });
+                const result = await apiService.apiCall('/admin/security/health', { method: 'GET' });
                 
                 if (response.success) {
                     securityData.health = response.data;
@@ -11808,7 +11808,7 @@
             const period = document.getElementById('securityPeriod').value;
             
             try {
-                const response = await apiService.apiCall(`/admin/security/dashboard?period=${period}`, { method: 'GET' });
+                const result = await apiService.apiCall(`/admin/security/dashboard?period=${period}`, { method: 'GET' });
                 
                 if (response.success) {
                     securityData.dashboard = response.data;
@@ -11894,7 +11894,7 @@
 
         async function refreshSecurityAlerts() {
             try {
-                const response = await apiService.apiCall('/admin/security/alerts', { method: 'GET' });
+                const result = await apiService.apiCall('/admin/security/alerts', { method: 'GET' });
                 
                 if (response.success) {
                     securityData.alerts = response.data;
@@ -11967,7 +11967,7 @@
             const notes = prompt('Additional notes (optional):') || '';
             
             try {
-                const response = await apiService.apiCall(`/admin/security/alerts/${alertId}/resolve`, {
+                const result = await apiService.apiCall(`/admin/security/alerts/${alertId}/resolve`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ resolution, notes })
@@ -12014,7 +12014,7 @@
             }
             
             try {
-                const response = await apiService.apiCall('/admin/security/incidents/create', {
+                const result = await apiService.apiCall('/admin/security/incidents/create', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -12056,7 +12056,7 @@
 
         async function refreshMaintenanceStats() {
             try {
-                const response = await apiService.apiCall('/admin/maintenance/logs', { method: 'GET' });
+                const result = await apiService.apiCall('/admin/maintenance/logs', { method: 'GET' });
                 
                 if (response.success) {
                     maintenanceData.statistics = response.data;
@@ -12146,7 +12146,7 @@
             try {
                 showMaintenanceResults(`🔄 ${dryRun ? 'Simulating' : 'Executing'} log cleanup...`);
                 
-                const response = await apiService.apiCall('/admin/maintenance/cleanup', {
+                const result = await apiService.apiCall('/admin/maintenance/cleanup', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ dryRun, categories: [] })
@@ -12207,7 +12207,7 @@
             try {
                 showMaintenanceResults('🔄 Archiving old logs...');
                 
-                const response = await apiService.apiCall('/admin/maintenance/archive', {
+                const result = await apiService.apiCall('/admin/maintenance/archive', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ archiveBefore: archiveDate, categories: [] })
@@ -12258,7 +12258,7 @@
             try {
                 showMaintenanceResults('🔄 Optimizing database tables...');
                 
-                const response = await apiService.apiCall('/admin/maintenance/vacuum', {
+                const result = await apiService.apiCall('/admin/maintenance/vacuum', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ tables: ['admin_activity_log', 'security_events', 'user_sessions'] })
@@ -14022,7 +14022,7 @@ Please help recover this stuck asset.`;
                     throw new Error(error.details || error.error || `HTTP ${response.status}`);
                 }
                 
-                const result = await response.json();
+                
                 
                 if (result.success && result.order) {
                     return {
@@ -14169,7 +14169,7 @@ Please help recover this stuck asset.`;
                     throw new Error(error.details || error.error || `HTTP ${response.status}`);
                 }
                 
-                const result = await response.json();
+                
                 
                 if (result.success && result.order) {
                     return {
@@ -15691,7 +15691,7 @@ ARB4ME Security Team`
                 console.log('📢 Sending broadcast message:', { subject, priority });
                 
                 // Send to backend API
-                const response = await apiService.apiCall('/messages/broadcast', {
+                const result = await apiService.apiCall('/messages/broadcast', {
                     method: 'POST',
                     body: JSON.stringify({
                         subject: `[BROADCAST] ${subject}`,
@@ -15861,7 +15861,7 @@ ARB4ME Security Team`
                 console.log('📤 Sending admin reply to backend:', { parentMessageId, targetUserId, subject });
                 
                 // Use the same working endpoint as compose messages
-                const response = await apiService.apiCall('/messages/send', {
+                const result = await apiService.apiCall('/messages/send', {
                     method: 'POST',
                     body: JSON.stringify({
                         targetUserId: targetUserId,
@@ -16093,7 +16093,7 @@ ARB4ME Security Team`
                     priority: messageData.priority
                 });
                 
-                const response = await apiService.apiCall('/messages/send', {
+                const result = await apiService.apiCall('/messages/send', {
                     method: 'POST',
                     body: JSON.stringify({
                         subject: messageData.subject,
@@ -23829,12 +23829,8 @@ ARB4ME Security Team`
             const paymentMonth = paymentDate.substring(0, 7);
 
             try {
-                const response = await fetch('/api/v1/admin/record-payment', {
+                const result = await apiService.apiCall('/admin/record-payment', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('arb4me_jwt_token')}`
-                    },
                     body: JSON.stringify({
                         userId: selectedUserId,
                         amount: parseFloat(amount),
@@ -23844,8 +23840,6 @@ ARB4ME Security Team`
                         notes: notes.trim() || null
                     })
                 });
-
-                const result = await response.json();
 
                 if (result.success) {
                     showNotification('Payment recorded successfully! User has been notified.', 'success');
@@ -23894,13 +23888,13 @@ ARB4ME Security Team`
             const countSpan = document.getElementById('expiringCount');
             
             try {
-                const response = await fetch('/api/v1/admin/users-expiring?days=7', {
+                const result = await apiService.apiCall('/admin/users-expiring?days=7', {
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('arb4me_jwt_token')}`
                     }
                 });
 
-                const result = await response.json();
+                
 
                 if (result.success) {
                     const container = document.getElementById('expiringUsersList');
@@ -23960,13 +23954,13 @@ ARB4ME Security Team`
             const countSpan = document.getElementById('expiredCount');
             
             try {
-                const response = await fetch('/api/v1/admin/users-expired', {
+                const result = await apiService.apiCall('/admin/users-expired', {
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('arb4me_jwt_token')}`
                     }
                 });
 
-                const result = await response.json();
+                
 
                 if (result.success) {
                     const container = document.getElementById('expiredUsersList');
@@ -24005,7 +23999,7 @@ ARB4ME Security Team`
         // Send payment reminders
         async function sendPaymentReminders() {
             try {
-                const response = await fetch('/api/v1/admin/send-expiry-reminders', {
+                const result = await apiService.apiCall('/admin/send-expiry-reminders', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -24014,7 +24008,7 @@ ARB4ME Security Team`
                     body: JSON.stringify({ days: 7 })
                 });
 
-                const result = await response.json();
+                
 
                 if (result.success) {
                     showNotification(`Successfully sent ${result.data.count} expiry reminder(s)`, 'success');
@@ -24035,7 +24029,7 @@ ARB4ME Security Team`
             }
 
             try {
-                const response = await fetch('/api/v1/admin/suspend-expired-users', {
+                const result = await apiService.apiCall('/admin/suspend-expired-users', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -24044,7 +24038,7 @@ ARB4ME Security Team`
                     body: JSON.stringify({ graceDays: 0 }) // No grace period
                 });
 
-                const result = await response.json();
+                
 
                 if (result.success) {
                     showNotification(`Successfully suspended ${result.data.count} expired user account(s)`, 'success');
@@ -24061,13 +24055,13 @@ ARB4ME Security Team`
         // Load payment history
         async function loadPaymentHistory() {
             try {
-                const response = await fetch('/api/v1/admin/payment-history?limit=20', {
+                const result = await apiService.apiCall('/admin/payment-history?limit=20', {
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('arb4me_jwt_token')}`
                     }
                 });
 
-                const result = await response.json();
+                
 
                 if (result.success) {
                     const container = document.getElementById('paymentHistoryList');
@@ -24113,13 +24107,13 @@ ARB4ME Security Team`
             }
 
             try {
-                const response = await fetch('/api/v1/admin/payment-history?limit=50', {
+                const result = await apiService.apiCall('/admin/payment-history?limit=50', {
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('arb4me_jwt_token')}`
                     }
                 });
 
-                const result = await response.json();
+                
 
                 if (result.success) {
                     const filteredPayments = result.data.payments.filter(payment => 
@@ -24173,10 +24167,7 @@ ARB4ME Security Team`
         async function loadExpiringUsersCount() {
             const countSpan = document.getElementById('expiringCount');
             try {
-                const response = await fetch('/api/v1/admin/users-expiring?days=7', {
-                    headers: { 'Authorization': `Bearer ${localStorage.getItem('arb4me_jwt_token')}` }
-                });
-                const result = await response.json();
+                const result = await apiService.apiCall('/admin/users-expiring?days=7');
                 if (result.success && countSpan) {
                     countSpan.textContent = result.data.users.length;
                 }
@@ -24188,10 +24179,7 @@ ARB4ME Security Team`
         async function loadExpiredUsersCount() {
             const countSpan = document.getElementById('expiredCount');
             try {
-                const response = await fetch('/api/v1/admin/users-expired', {
-                    headers: { 'Authorization': `Bearer ${localStorage.getItem('arb4me_jwt_token')}` }
-                });
-                const result = await response.json();
+                const result = await apiService.apiCall('/admin/users-expired');
                 if (result.success && countSpan) {
                     countSpan.textContent = result.data.users.length;
                 }
