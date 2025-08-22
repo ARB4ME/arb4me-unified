@@ -2920,8 +2920,9 @@ router.post('/record-payment',
     })
 );
 
-// GET /api/v1/admin/users-expiring - Get users expiring within N days
+// GET /api/v1/admin/users-expiring - Get users expiring within N days  
 router.get('/users-expiring', asyncHandler(async (req, res) => {
+        console.log('🔍 users-expiring endpoint hit, user:', req.user?.id, 'admin role:', req.user?.admin_role, 'user object:', req.user);
         const days = parseInt(req.query.days) || 7;
 
         const result = await query(`
