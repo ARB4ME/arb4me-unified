@@ -23801,6 +23801,325 @@ ARB4ME Security Team`
         console.log('🔥 ARB4ME - LIVE TRADING SYSTEM + ADMIN DASHBOARD + COMPLETE FAILURE MANAGEMENT loaded successfully!');
         console.log('💡 TIP: Run cleanupARB4ME() in console to clear all stored data and start fresh.');
         console.log('🧹 TIP: Run createCleanDeployment() to prepare app for sharing (removes all user data traces).');
+
+        // =====================================
+        // BILLING & PAYMENT MANAGEMENT FUNCTIONS
+        // =====================================
+
+        // Record payment for a user
+        async function recordPayment(event) {
+            if (event) event.preventDefault(); // Prevent form submission
+            
+            const selectedUserId = document.getElementById('paymentUserId').value;
+            const amount = document.getElementById('paymentAmount').value;
+            const paymentDate = document.getElementById('paymentDate').value;
+            const bankReference = document.getElementById('bankReference').value;
+            const notes = document.getElementById('paymentNotes').value;
+
+            if (!selectedUserId || !amount || !paymentDate) {
+                showNotification('Please fill in all required fields', 'error');
+                return;
+            }
+
+            // Generate payment month from date (YYYY-MM format)
+            const paymentMonth = paymentDate.substring(0, 7);
+
+            try {
+                const response = await fetch('/api/v1/admin/record-payment', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({
+                        userId: selectedUserId,
+                        amount: parseFloat(amount),
+                        paymentDate: paymentDate,
+                        bankReference: bankReference.trim() || null,
+                        paymentMonth: paymentMonth,
+                        notes: notes.trim() || null
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showNotification('Payment recorded successfully! User has been notified.', 'success');
+                    
+                    // Clear the form
+                    document.getElementById('paymentAmount').value = '';
+                    document.getElementById('paymentDate').value = '';
+                    document.getElementById('bankReference').value = '';
+                    document.getElementById('paymentNotes').value = '';
+                    
+                    // Refresh the billing data
+                    await loadExpiringUsers();
+                    await loadExpiredUsers();
+                    await loadPaymentHistory();
+                    await updateAdminBillingOverview();
+                } else {
+                    showNotification(`Error recording payment: ${result.message}`, 'error');
+                }
+            } catch (error) {
+                console.error('Payment recording error:', error);
+                showNotification('Failed to record payment. Please try again.', 'error');
+            }
+        }
+
+        // Load users expiring soon (7 days)
+        async function loadExpiringUsers() {
+            try {
+                const response = await fetch('/api/v1/admin/users-expiring?days=7', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    const container = document.getElementById('expiringUsersList');
+                    
+                    if (result.data.users.length === 0) {
+                        container.innerHTML = '<div style="color: #888; padding: 10px; text-align: center;">No users expiring soon</div>';
+                        return;
+                    }
+
+                    container.innerHTML = result.data.users.map(user => `
+                        <div style="background: rgba(255,149,0,0.1); padding: 10px; margin-bottom: 8px; border-radius: 8px; border-left: 3px solid #ff9500;">
+                            <div style="font-weight: bold; color: white;">${user.firstName} ${user.lastName}</div>
+                            <div style="font-size: 0.9rem; color: #ccc;">${user.email}</div>
+                            <div style="font-size: 0.8rem; color: #ff9500;">Expires: ${new Date(user.subscriptionExpiresAt).toDateString()}</div>
+                            <div style="font-size: 0.8rem; color: #ffa500;">${user.daysUntilExpiry} days remaining</div>
+                            ${user.paymentReminderSent ? '<div style="font-size: 0.7rem; color: #888;">✉️ Reminder sent</div>' : ''}
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Error loading expiring users:', error);
+            }
+        }
+
+        // Load expired users
+        async function loadExpiredUsers() {
+            try {
+                const response = await fetch('/api/v1/admin/users-expired', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    const container = document.getElementById('expiredUsersList');
+                    
+                    if (result.data.users.length === 0) {
+                        container.innerHTML = '<div style="color: #888; padding: 10px; text-align: center;">No expired users</div>';
+                        return;
+                    }
+
+                    container.innerHTML = result.data.users.map(user => `
+                        <div style="background: rgba(255,107,107,0.1); padding: 10px; margin-bottom: 8px; border-radius: 8px; border-left: 3px solid #ff6b6b;">
+                            <div style="font-weight: bold; color: white;">${user.firstName} ${user.lastName}</div>
+                            <div style="font-size: 0.9rem; color: #ccc;">${user.email}</div>
+                            <div style="font-size: 0.8rem; color: #ff6b6b;">Expired: ${new Date(user.subscriptionExpiresAt).toDateString()}</div>
+                            <div style="font-size: 0.8rem; color: #ff8888;">${user.daysExpired} days ago</div>
+                            <div style="font-size: 0.8rem; color: ${user.accountStatus === 'suspended' ? '#ff6b6b' : '#ffa500'};">Status: ${user.accountStatus}</div>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Error loading expired users:', error);
+            }
+        }
+
+        // Send payment reminders
+        async function sendPaymentReminders() {
+            try {
+                const response = await fetch('/api/v1/admin/send-expiry-reminders', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({ days: 7 })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showNotification(`Successfully sent ${result.data.count} expiry reminder(s)`, 'success');
+                    await loadExpiringUsers(); // Refresh the list
+                } else {
+                    showNotification(`Error sending reminders: ${result.message}`, 'error');
+                }
+            } catch (error) {
+                console.error('Error sending reminders:', error);
+                showNotification('Failed to send reminders. Please try again.', 'error');
+            }
+        }
+
+        // Suspend expired users
+        async function suspendExpiredUsers() {
+            if (!confirm('Are you sure you want to suspend all expired user accounts? This action will prevent them from logging in.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/v1/admin/suspend-expired-users', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({ graceDays: 0 }) // No grace period
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showNotification(`Successfully suspended ${result.data.count} expired user account(s)`, 'success');
+                    await loadExpiredUsers(); // Refresh the list
+                } else {
+                    showNotification(`Error suspending users: ${result.message}`, 'error');
+                }
+            } catch (error) {
+                console.error('Error suspending users:', error);
+                showNotification('Failed to suspend users. Please try again.', 'error');
+            }
+        }
+
+        // Load payment history
+        async function loadPaymentHistory() {
+            try {
+                const response = await fetch('/api/v1/admin/payment-history?limit=20', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    const container = document.getElementById('paymentHistoryList');
+                    
+                    if (result.data.payments.length === 0) {
+                        container.innerHTML = '<div style="color: #888; padding: 20px; text-align: center;">No payment history found</div>';
+                        return;
+                    }
+
+                    container.innerHTML = result.data.payments.map(payment => `
+                        <div style="background: rgba(255,255,255,0.05); padding: 15px; margin-bottom: 10px; border-radius: 10px; border-left: 3px solid #00ff88;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                                <div>
+                                    <div style="font-weight: bold; color: white;">${payment.user.firstName} ${payment.user.lastName}</div>
+                                    <div style="font-size: 0.9rem; color: #ccc;">${payment.user.email}</div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div style="font-weight: bold; color: #00ff88; font-size: 1.1rem;">R${payment.amount.toFixed(2)}</div>
+                                    <div style="font-size: 0.8rem; color: #888;">${payment.paymentMonth}</div>
+                                </div>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: #aaa;">
+                                <div>Payment Date: ${new Date(payment.paymentDate).toDateString()}</div>
+                                <div>Ref: ${payment.paymentReference}</div>
+                            </div>
+                            ${payment.bankReference ? `<div style="font-size: 0.8rem; color: #888; margin-top: 5px;">Bank Ref: ${payment.bankReference}</div>` : ''}
+                            ${payment.notes ? `<div style="font-size: 0.8rem; color: #888; margin-top: 5px; font-style: italic;">Notes: ${payment.notes}</div>` : ''}
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Error loading payment history:', error);
+            }
+        }
+
+        // Filter payment history based on search input
+        async function filterPaymentHistory() {
+            const searchTerm = document.getElementById('paymentSearchUser').value.toLowerCase();
+            
+            if (!searchTerm.trim()) {
+                await loadPaymentHistory();
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/v1/admin/payment-history?limit=50', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    const filteredPayments = result.data.payments.filter(payment => 
+                        payment.user.firstName.toLowerCase().includes(searchTerm) ||
+                        payment.user.lastName.toLowerCase().includes(searchTerm) ||
+                        payment.user.email.toLowerCase().includes(searchTerm) ||
+                        payment.paymentReference.toLowerCase().includes(searchTerm)
+                    );
+
+                    const container = document.getElementById('paymentHistoryList');
+                    
+                    if (filteredPayments.length === 0) {
+                        container.innerHTML = '<div style="color: #888; padding: 20px; text-align: center;">No payments found matching your search</div>';
+                        return;
+                    }
+
+                    container.innerHTML = filteredPayments.map(payment => `
+                        <div style="background: rgba(255,255,255,0.05); padding: 15px; margin-bottom: 10px; border-radius: 10px; border-left: 3px solid #00ff88;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                                <div>
+                                    <div style="font-weight: bold; color: white;">${payment.user.firstName} ${payment.user.lastName}</div>
+                                    <div style="font-size: 0.9rem; color: #ccc;">${payment.user.email}</div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div style="font-weight: bold; color: #00ff88; font-size: 1.1rem;">R${payment.amount.toFixed(2)}</div>
+                                    <div style="font-size: 0.8rem; color: #888;">${payment.paymentMonth}</div>
+                                </div>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: #aaa;">
+                                <div>Payment Date: ${new Date(payment.paymentDate).toDateString()}</div>
+                                <div>Ref: ${payment.paymentReference}</div>
+                            </div>
+                            ${payment.bankReference ? `<div style="font-size: 0.8rem; color: #888; margin-top: 5px;">Bank Ref: ${payment.bankReference}</div>` : ''}
+                            ${payment.notes ? `<div style="font-size: 0.8rem; color: #888; margin-top: 5px; font-style: italic;">Notes: ${payment.notes}</div>` : ''}
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Error filtering payment history:', error);
+            }
+        }
+
+        // Refresh all billing data
+        async function refreshBillingData() {
+            await initializeBillingData();
+            await updateAdminBillingOverview();
+            showNotification('Billing data refreshed successfully', 'success');
+        }
+
+        // Initialize billing data when switching to billing tab
+        async function initializeBillingData() {
+            await populatePaymentUserDropdown();
+            await loadExpiringUsers();
+            await loadExpiredUsers();
+            await loadPaymentHistory();
+        }
+
+        // Modify existing showBillingTab function to initialize data
+        const originalShowBillingTab = window.showBillingTab;
+        window.showBillingTab = function() {
+            if (originalShowBillingTab) {
+                originalShowBillingTab();
+            }
+            // Initialize billing data when tab is shown
+            setTimeout(() => {
+                initializeBillingData();
+            }, 100);
+        };
     </script>
 
     <!-- Crypto Asset Selection Confirmation Modal -->

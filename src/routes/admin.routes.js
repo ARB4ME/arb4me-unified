@@ -2818,4 +2818,437 @@ router.post('/maintenance/vacuum', authenticateUser, requireAdmin, requirePermis
     });
 }));
 
+// =====================================
+// BILLING & PAYMENT MANAGEMENT ENDPOINTS
+// =====================================
+
+// POST /api/v1/admin/record-payment - Record payment for user
+router.post('/record-payment', 
+    authenticateUser, 
+    requireAdmin, 
+    requireAdminPerm, 
+    [
+        body('userId').notEmpty().withMessage('User ID is required'),
+        body('amount').isFloat({ min: 0 }).withMessage('Amount must be a positive number'),
+        body('paymentDate').isISO8601().withMessage('Valid payment date required'),
+        body('bankReference').optional().isString().withMessage('Bank reference must be a string'),
+        body('paymentMonth').matches(/^\d{4}-\d{2}$/).withMessage('Payment month must be in YYYY-MM format'),
+        body('notes').optional().isString().withMessage('Notes must be a string')
+    ],
+    asyncHandler(async (req, res) => {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+        }
+
+        const { userId, amount, paymentDate, bankReference, paymentMonth, notes } = req.body;
+
+        const result = await transaction(async (client) => {
+            // Get user details
+            const userResult = await client.query(
+                'SELECT id, first_name, last_name, email, payment_reference FROM users WHERE id = $1',
+                [userId]
+            );
+
+            if (userResult.rows.length === 0) {
+                throw new APIError('User not found', 404, 'USER_NOT_FOUND');
+            }
+
+            const user = userResult.rows[0];
+
+            // Insert payment record
+            const paymentResult = await client.query(`
+                INSERT INTO payments (user_id, payment_reference, amount, payment_date, bank_reference, marked_by_admin_id, payment_month, notes)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                RETURNING *
+            `, [userId, user.payment_reference, amount, paymentDate, bankReference, req.userId, paymentMonth, notes]);
+
+            // Calculate new expiry date (add 30 days from payment date)
+            const newExpiryDate = new Date(paymentDate);
+            newExpiryDate.setDate(newExpiryDate.getDate() + 30);
+
+            // Update user's subscription
+            await client.query(`
+                UPDATE users 
+                SET subscription_expires_at = $1, 
+                    last_payment_date = $2, 
+                    payment_reminder_sent = FALSE, 
+                    reminder_sent_date = NULL,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = $3
+            `, [newExpiryDate, paymentDate, userId]);
+
+            // Send confirmation message to user
+            await client.query(`
+                INSERT INTO messages (user_id, subject, content, message_type, status, admin_user_id)
+                VALUES ($1, $2, $3, $4, $5, $6)
+            `, [
+                userId,
+                'Payment Received - Subscription Extended',
+                `Hi ${user.first_name}!\n\nWe have received your payment of R${amount} for ${paymentMonth}.\n\nYour subscription has been extended until ${newExpiryDate.toDateString()}.\n\nThank you for using ARB4ME!\n\nThe ARB4ME Team`,
+                'admin_to_user',
+                'sent',
+                req.userId
+            ]);
+
+            return {
+                payment: paymentResult.rows[0],
+                user: user,
+                newExpiryDate: newExpiryDate
+            };
+        });
+
+        await logAdminActivity(
+            req.userId,
+            'payment_recorded',
+            { 
+                target_user_id: userId,
+                amount: amount,
+                payment_month: paymentMonth
+            },
+            req.ip,
+            req.get('User-Agent'),
+            {
+                category: 'billing',
+                severity: 'info'
+            }
+        );
+
+        res.json({
+            success: true,
+            data: result,
+            message: 'Payment recorded successfully'
+        });
+    })
+);
+
+// GET /api/v1/admin/users-expiring - Get users expiring within N days
+router.get('/users-expiring',
+    authenticateUser,
+    requireAdmin,
+    asyncHandler(async (req, res) => {
+        const days = parseInt(req.query.days) || 7;
+
+        const result = await query(`
+            SELECT 
+                id, first_name, last_name, email, payment_reference,
+                subscription_expires_at, last_payment_date, payment_reminder_sent
+            FROM users 
+            WHERE subscription_expires_at IS NOT NULL 
+            AND subscription_expires_at <= CURRENT_DATE + INTERVAL '${days} days'
+            AND subscription_expires_at > CURRENT_DATE
+            AND account_status = 'active'
+            ORDER BY subscription_expires_at ASC
+        `);
+
+        res.json({
+            success: true,
+            data: {
+                users: result.rows.map(row => ({
+                    id: row.id,
+                    firstName: row.first_name,
+                    lastName: row.last_name,
+                    email: row.email,
+                    paymentReference: row.payment_reference,
+                    subscriptionExpiresAt: row.subscription_expires_at,
+                    lastPaymentDate: row.last_payment_date,
+                    paymentReminderSent: row.payment_reminder_sent,
+                    daysUntilExpiry: Math.ceil((new Date(row.subscription_expires_at) - new Date()) / (1000 * 60 * 60 * 24))
+                })),
+                count: result.rows.length,
+                searchedDays: days
+            }
+        });
+    })
+);
+
+// GET /api/v1/admin/users-expired - Get expired users
+router.get('/users-expired',
+    authenticateUser,
+    requireAdmin,
+    asyncHandler(async (req, res) => {
+        const result = await query(`
+            SELECT 
+                id, first_name, last_name, email, payment_reference,
+                subscription_expires_at, last_payment_date, account_status
+            FROM users 
+            WHERE subscription_expires_at IS NOT NULL 
+            AND subscription_expires_at < CURRENT_DATE
+            ORDER BY subscription_expires_at DESC
+        `);
+
+        res.json({
+            success: true,
+            data: {
+                users: result.rows.map(row => ({
+                    id: row.id,
+                    firstName: row.first_name,
+                    lastName: row.last_name,
+                    email: row.email,
+                    paymentReference: row.payment_reference,
+                    subscriptionExpiresAt: row.subscription_expires_at,
+                    lastPaymentDate: row.last_payment_date,
+                    accountStatus: row.account_status,
+                    daysExpired: Math.floor((new Date() - new Date(row.subscription_expires_at)) / (1000 * 60 * 60 * 24))
+                })),
+                count: result.rows.length
+            }
+        });
+    })
+);
+
+// POST /api/v1/admin/send-expiry-reminders - Send reminders to expiring users
+router.post('/send-expiry-reminders',
+    authenticateUser,
+    requireAdmin,
+    requireAdminPerm,
+    asyncHandler(async (req, res) => {
+        const days = parseInt(req.body.days) || 7;
+
+        const result = await transaction(async (client) => {
+            // Get users expiring soon who haven't received reminders
+            const usersResult = await client.query(`
+                SELECT id, first_name, email, subscription_expires_at
+                FROM users 
+                WHERE subscription_expires_at IS NOT NULL 
+                AND subscription_expires_at <= CURRENT_DATE + INTERVAL '${days} days'
+                AND subscription_expires_at > CURRENT_DATE
+                AND account_status = 'active'
+                AND (payment_reminder_sent = FALSE OR payment_reminder_sent IS NULL)
+            `);
+
+            const remindersSent = [];
+
+            for (const user of usersResult.rows) {
+                // Send reminder message
+                await client.query(`
+                    INSERT INTO messages (user_id, subject, content, message_type, status, admin_user_id)
+                    VALUES ($1, $2, $3, $4, $5, $6)
+                `, [
+                    user.id,
+                    'Subscription Expiry Reminder - Action Required',
+                    `Hi ${user.first_name}!\n\nThis is a friendly reminder that your ARB4ME subscription will expire on ${new Date(user.subscription_expires_at).toDateString()}.\n\nTo continue enjoying uninterrupted access to our arbitrage trading platform, please ensure your R500 payment is made before the expiry date.\n\nPayment details:\n- Amount: R500\n- Reference: Use your unique payment reference\n- Contact admin if you need assistance\n\nThank you for being part of ARB4ME!\n\nThe ARB4ME Team`,
+                    'admin_to_user',
+                    'sent',
+                    req.userId
+                ]);
+
+                // Mark reminder as sent
+                await client.query(`
+                    UPDATE users 
+                    SET payment_reminder_sent = TRUE, reminder_sent_date = CURRENT_DATE
+                    WHERE id = $1
+                `, [user.id]);
+
+                remindersSent.push({
+                    userId: user.id,
+                    email: user.email,
+                    firstName: user.first_name,
+                    expiryDate: user.subscription_expires_at
+                });
+            }
+
+            return remindersSent;
+        });
+
+        await logAdminActivity(
+            req.userId,
+            'expiry_reminders_sent',
+            { 
+                reminders_count: result.length,
+                days_threshold: days
+            },
+            req.ip,
+            req.get('User-Agent'),
+            {
+                category: 'billing',
+                severity: 'info'
+            }
+        );
+
+        res.json({
+            success: true,
+            data: {
+                remindersSent: result,
+                count: result.length
+            },
+            message: `Sent ${result.length} expiry reminder(s)`
+        });
+    })
+);
+
+// POST /api/v1/admin/suspend-expired-users - Suspend expired user accounts
+router.post('/suspend-expired-users',
+    authenticateUser,
+    requireAdmin,
+    requireAdminPerm,
+    asyncHandler(async (req, res) => {
+        const graceDays = parseInt(req.body.graceDays) || 0;
+
+        const result = await transaction(async (client) => {
+            // Get users who expired more than graceDays ago and are still active
+            const cutoffDate = new Date();
+            cutoffDate.setDate(cutoffDate.getDate() - graceDays);
+
+            const usersResult = await client.query(`
+                SELECT id, first_name, last_name, email, subscription_expires_at
+                FROM users 
+                WHERE subscription_expires_at IS NOT NULL 
+                AND subscription_expires_at < $1
+                AND account_status = 'active'
+            `, [cutoffDate]);
+
+            const suspendedUsers = [];
+
+            for (const user of usersResult.rows) {
+                // Suspend the user
+                await client.query(`
+                    UPDATE users 
+                    SET account_status = 'suspended', updated_at = CURRENT_TIMESTAMP
+                    WHERE id = $1
+                `, [user.id]);
+
+                // Send suspension notification
+                await client.query(`
+                    INSERT INTO messages (user_id, subject, content, message_type, status, admin_user_id)
+                    VALUES ($1, $2, $3, $4, $5, $6)
+                `, [
+                    user.id,
+                    'Account Suspended - Payment Required',
+                    `Hi ${user.first_name},\n\nYour ARB4ME account has been suspended due to an expired subscription.\n\nYour subscription expired on ${new Date(user.subscription_expires_at).toDateString()}.\n\nTo reactivate your account:\n1. Make your R500 payment\n2. Contact admin to process the payment\n3. Your account will be reactivated immediately\n\nWe look forward to having you back on the platform!\n\nThe ARB4ME Team`,
+                    'admin_to_user',
+                    'sent',
+                    req.userId
+                ]);
+
+                suspendedUsers.push({
+                    userId: user.id,
+                    email: user.email,
+                    firstName: user.first_name,
+                    lastName: user.last_name,
+                    expiredDate: user.subscription_expires_at
+                });
+            }
+
+            return suspendedUsers;
+        });
+
+        await logAdminActivity(
+            req.userId,
+            'users_suspended',
+            { 
+                suspended_count: result.length,
+                grace_days: graceDays
+            },
+            req.ip,
+            req.get('User-Agent'),
+            {
+                category: 'billing',
+                severity: 'warning'
+            }
+        );
+
+        res.json({
+            success: true,
+            data: {
+                suspendedUsers: result,
+                count: result.length
+            },
+            message: `Suspended ${result.length} expired user account(s)`
+        });
+    })
+);
+
+// GET /api/v1/admin/payment-history - Get payment history
+router.get('/payment-history',
+    authenticateUser,
+    requireAdmin,
+    asyncHandler(async (req, res) => {
+        const page = parseInt(req.query.page) || 1;
+        const limit = Math.min(parseInt(req.query.limit) || 50, 100);
+        const offset = (page - 1) * limit;
+        const userId = req.query.userId;
+        const month = req.query.month; // YYYY-MM format
+
+        let whereClause = 'WHERE 1=1';
+        const queryParams = [];
+        let paramIndex = 1;
+
+        if (userId) {
+            whereClause += ` AND p.user_id = $${paramIndex++}`;
+            queryParams.push(userId);
+        }
+
+        if (month) {
+            whereClause += ` AND p.payment_month = $${paramIndex++}`;
+            queryParams.push(month);
+        }
+
+        queryParams.push(limit, offset);
+
+        const paymentsResult = await query(`
+            SELECT 
+                p.id, p.user_id, p.payment_reference, p.amount, p.payment_date, 
+                p.bank_reference, p.payment_month, p.notes, p.created_at,
+                u.first_name, u.last_name, u.email,
+                admin_u.first_name as admin_first_name, admin_u.last_name as admin_last_name
+            FROM payments p
+            JOIN users u ON p.user_id = u.id
+            LEFT JOIN users admin_u ON p.marked_by_admin_id = admin_u.id
+            ${whereClause}
+            ORDER BY p.payment_date DESC, p.created_at DESC
+            LIMIT $${paramIndex++} OFFSET $${paramIndex++}
+        `, queryParams);
+
+        // Get total count
+        const countParams = queryParams.slice(0, -2);
+        const countResult = await query(`
+            SELECT COUNT(*) as total
+            FROM payments p
+            JOIN users u ON p.user_id = u.id
+            ${whereClause.replace(/\$(\d+)/g, (match, num) => {
+                const newNum = parseInt(num);
+                return newNum <= countParams.length ? match : '';
+            })}
+        `, countParams);
+
+        const total = parseInt(countResult.rows[0].total);
+        const totalPages = Math.ceil(total / limit);
+
+        const payments = paymentsResult.rows.map(row => ({
+            id: row.id,
+            userId: row.user_id,
+            paymentReference: row.payment_reference,
+            amount: parseFloat(row.amount),
+            paymentDate: row.payment_date,
+            bankReference: row.bank_reference,
+            paymentMonth: row.payment_month,
+            notes: row.notes,
+            createdAt: row.created_at,
+            user: {
+                firstName: row.first_name,
+                lastName: row.last_name,
+                email: row.email
+            },
+            markedBy: row.admin_first_name ? {
+                firstName: row.admin_first_name,
+                lastName: row.admin_last_name
+            } : null
+        }));
+
+        res.json({
+            success: true,
+            data: {
+                payments,
+                pagination: {
+                    currentPage: page,
+                    totalPages,
+                    totalRecords: total,
+                    recordsPerPage: limit
+                }
+            }
+        });
+    })
+);
+
 module.exports = router;
