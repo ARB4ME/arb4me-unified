@@ -24308,11 +24308,20 @@ ARB4ME Security Team`
                 // Use the working getAllUsers() endpoint instead of the failing one
                 const response = await apiService.getAllUsers();
                 
-                if (response.success && response.data && response.data.users && countSpan) {
-                    // Since we don't have actual reminder data yet, show placeholder
-                    countSpan.textContent = '0 today';
+                // Handle different response formats (same as other billing functions)
+                let allUsers;
+                if (response.success && response.data && response.data.users) {
+                    allUsers = response.data.users;
+                } else if (response.users && Array.isArray(response.users)) {
+                    allUsers = response.users;
                 } else {
                     if (countSpan) countSpan.textContent = '0 today';
+                    return;
+                }
+                
+                // Since we have valid users data, show count
+                if (countSpan) {
+                    countSpan.textContent = '0 today';
                 }
             } catch (error) {
                 console.error('Error loading auto reminders count:', error);
@@ -24329,8 +24338,17 @@ ARB4ME Security Team`
                 // Use the working getAllUsers() endpoint instead of the failing one
                 const response = await apiService.getAllUsers();
                 
+                // Handle different response formats (same as other billing functions)
+                let allUsers;
                 if (response.success && response.data && response.data.users) {
-                    // Since we don't have actual reminder history yet, show placeholder message
+                    allUsers = response.data.users;
+                } else if (response.users && Array.isArray(response.users)) {
+                    allUsers = response.users;
+                } else {
+                    throw new Error('Invalid response structure');
+                }
+                
+                // Since we have valid users data, show the system status message
                     listDiv.innerHTML = `
                         <div style="color: #888; padding: 10px; text-align: center;">
                             📋 Auto-Reminder System Active
