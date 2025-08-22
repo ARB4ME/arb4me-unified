@@ -2824,8 +2824,6 @@ router.post('/maintenance/vacuum', authenticateUser, requireAdmin, requirePermis
 
 // POST /api/v1/admin/record-payment - Record payment for user
 router.post('/record-payment', 
-    authenticateUser, 
-    requireAdmin, 
     requireAdminPerm, 
     [
         body('userId').notEmpty().withMessage('User ID is required'),
@@ -2923,10 +2921,7 @@ router.post('/record-payment',
 );
 
 // GET /api/v1/admin/users-expiring - Get users expiring within N days
-router.get('/users-expiring',
-    authenticateUser,
-    requireAdmin,
-    asyncHandler(async (req, res) => {
+router.get('/users-expiring', asyncHandler(async (req, res) => {
         const days = parseInt(req.query.days) || 7;
 
         const result = await query(`
@@ -2963,10 +2958,7 @@ router.get('/users-expiring',
 );
 
 // GET /api/v1/admin/users-expired - Get expired users
-router.get('/users-expired',
-    authenticateUser,
-    requireAdmin,
-    asyncHandler(async (req, res) => {
+router.get('/users-expired', asyncHandler(async (req, res) => {
         const result = await query(`
             SELECT 
                 id, first_name, last_name, email, payment_reference,
@@ -2999,8 +2991,6 @@ router.get('/users-expired',
 
 // POST /api/v1/admin/send-expiry-reminders - Send reminders to expiring users
 router.post('/send-expiry-reminders',
-    authenticateUser,
-    requireAdmin,
     requireAdminPerm,
     asyncHandler(async (req, res) => {
         const days = parseInt(req.body.days) || 7;
@@ -3079,8 +3069,6 @@ router.post('/send-expiry-reminders',
 
 // POST /api/v1/admin/suspend-expired-users - Suspend expired user accounts
 router.post('/suspend-expired-users',
-    authenticateUser,
-    requireAdmin,
     requireAdminPerm,
     asyncHandler(async (req, res) => {
         const graceDays = parseInt(req.body.graceDays) || 0;
@@ -3160,10 +3148,7 @@ router.post('/suspend-expired-users',
 );
 
 // GET /api/v1/admin/payment-history - Get payment history
-router.get('/payment-history',
-    authenticateUser,
-    requireAdmin,
-    asyncHandler(async (req, res) => {
+router.get('/payment-history', asyncHandler(async (req, res) => {
         const page = parseInt(req.query.page) || 1;
         const limit = Math.min(parseInt(req.query.limit) || 50, 100);
         const offset = (page - 1) * limit;
