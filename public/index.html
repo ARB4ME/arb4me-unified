@@ -18165,11 +18165,7 @@ ARB4ME Security Team`
                     return;
                 }
 
-                const result = await apiService.apiCall(`/admin/payment-history?user_id=${selectedUserId}&limit=50`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
+                const result = await apiService.apiCall(`/admin/payment-history?user_id=${selectedUserId}&limit=50`);
 
                 if (result.success) {
                     displayPaymentHistory(result.data.payments);
@@ -24325,9 +24321,11 @@ ARB4ME Security Team`
 
         // Load payment history
         async function loadPaymentHistory() {
+            console.log('🚀 loadPaymentHistory() called - starting debug');
             try {
                 // Check authentication before making API call
                 const token = localStorage.getItem('arb4me_jwt_token');
+                console.log('🔑 Token exists:', !!token);
                 if (!token) {
                     console.log('No authentication token available for payment history');
                     const container = document.getElementById('paymentHistoryList');
@@ -24354,11 +24352,8 @@ ARB4ME Security Team`
                     console.log('❌ all-users-test failed:', e.message);
                 }
 
-                const result = await apiService.apiCall('/admin/payment-history?limit=20', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
+                // Try using the same approach as getAllUsers() which works
+                const result = await apiService.apiCall('/admin/payment-history?limit=20');
 
                 if (result.success) {
                     const container = document.getElementById('paymentHistoryList');
