@@ -16537,16 +16537,34 @@ ARB4ME Security Team`
                 const messageDate = new Date(msg.timestamp).toLocaleDateString();
                 const messageTime = new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
                 
+                // Check if this is an auto-reminder
+                const isAutoReminder = msg.reminder_type || msg.reminderType;
+                let reminderBadge = '';
+                let reminderBorderColor = '#00ff88';
+                
+                if (isAutoReminder) {
+                    if (msg.reminder_type === '1day' || msg.reminderType === '1day') {
+                        reminderBadge = '<span style="background: #ff6b6b; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; margin-left: 8px;">🚨 AUTO-REMINDER: 1 DAY</span>';
+                        reminderBorderColor = '#ff6b6b';
+                    } else if (msg.reminder_type === '7day' || msg.reminderType === '7day') {
+                        reminderBadge = '<span style="background: #ffa500; color: black; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; margin-left: 8px;">📅 AUTO-REMINDER: 7 DAYS</span>';
+                        reminderBorderColor = '#ffa500';
+                    }
+                }
+                
                 if (isAdminMessage) {
                     return `
-                        <div style="margin-bottom: 15px; padding: 15px; background: rgba(0,255,136,0.1); border-radius: 10px; border-left: 4px solid #00ff88;">
+                        <div style="margin-bottom: 15px; padding: 15px; background: ${isAutoReminder ? 'rgba(255,149,0,0.05)' : 'rgba(0,255,136,0.1)'}; border-radius: 10px; border-left: 4px solid ${reminderBorderColor};">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                                <h4 style="color: #00ff88; margin: 0;">${msg.isBroadcastMessage ? '📢' : '👨‍💼'} ${msg.subject}</h4>
+                                <h4 style="color: ${isAutoReminder ? reminderBorderColor : '#00ff88'}; margin: 0;">
+                                    ${isAutoReminder ? '🤖' : msg.isBroadcastMessage ? '📢' : '👨‍💼'} ${msg.subject}
+                                    ${reminderBadge}
+                                </h4>
                                 <span style="font-size: 0.8rem; color: #888; margin-left: auto;">${messageDate} ${messageTime}</span>
                             </div>
                             <p style="color: #e0e0e0; margin: 0; line-height: 1.4; white-space: pre-wrap;">${msg.content}</p>
-                            <div style="margin-top: 8px; font-size: 0.8rem; color: #00ff88;">
-                                From: <strong>${msg.adminName}</strong> ${msg.isBroadcastMessage ? '(Announcement)' : '(Support Team)'}
+                            <div style="margin-top: 8px; font-size: 0.8rem; color: ${isAutoReminder ? reminderBorderColor : '#00ff88'};">
+                                From: <strong>${isAutoReminder ? 'Auto-Reminder System' : msg.adminName}</strong> ${isAutoReminder ? '(Automated)' : msg.isBroadcastMessage ? '(Announcement)' : '(Support Team)'}
                             </div>
                         </div>
                     `;

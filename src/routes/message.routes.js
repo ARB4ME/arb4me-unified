@@ -140,7 +140,7 @@ router.get('/inbox', asyncHandler(async (req, res) => {
     
     const messagesResult = await query(`
         SELECT m.id, m.subject, m.content, m.priority, m.message_type, m.status,
-               m.created_at, m.thread_id, m.parent_message_id,
+               m.created_at, m.thread_id, m.parent_message_id, m.reminder_type,
                m.admin_user_id, m.admin_read_at, m.admin_replied_at,
                CASE 
                    WHEN m.admin_user_id IS NOT NULL THEN 
@@ -232,7 +232,7 @@ router.get('/thread/:threadId', asyncHandler(async (req, res) => {
     // Get all messages in thread, ensuring user owns the thread
     const threadResult = await query(`
         SELECT m.id, m.subject, m.content, m.priority, m.message_type, m.status,
-               m.created_at, m.thread_id, m.parent_message_id, m.user_id,
+               m.created_at, m.thread_id, m.parent_message_id, m.user_id, m.reminder_type,
                m.admin_user_id, m.admin_read_at, m.admin_replied_at,
                CASE 
                    WHEN m.admin_user_id IS NOT NULL THEN 
