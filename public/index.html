@@ -17183,31 +17183,26 @@ ARB4ME Security Team`
 
             async promoteUser(userId, newRole) {
                 try {
-                    // Use admin session token for admin functions
-                    const adminToken = localStorage.getItem('arb4me_admin_session');
-                    if (!adminToken) {
-                        console.log('No admin session available for promote user');
-                        return { success: false, error: 'No admin authentication' };
+                    if (!this.token) {
+                        console.log('No JWT token available for promote user');
+                        return { success: false, error: 'No authentication token' };
                     }
 
-                    // Direct fetch call with admin session token
-                    const response = await fetch('/api/v1/admin/admins/' + userId + '/promote', {
+                    const response = await this.apiCall(`/admin/promote`, {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${adminToken}`
-                        },
-                        body: JSON.stringify({ newRole })
+                        body: JSON.stringify({ 
+                            userId: userId,
+                            adminRole: newRole,
+                            adminPin: '123456' // Default admin PIN for promotion
+                        })
                     });
-
-                    const data = await response.json();
                     
-                    if (data.success || response.ok) {
-                        console.log('✅ User promoted:', data);
-                        return data;
+                    if (response.success) {
+                        console.log('✅ User promoted:', response.data);
+                        return response;
                     } else {
-                        console.log('❌ Failed to promote user:', data);
-                        return data;
+                        console.log('❌ Failed to promote user:', response.error);
+                        return response;
                     }
                 } catch (error) {
                     console.log('❌ Error promoting user:', error.message);
