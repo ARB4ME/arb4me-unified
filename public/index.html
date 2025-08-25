@@ -10306,6 +10306,11 @@
         
         // Load and display user's reminder status
         async function loadUserReminderStatus() {
+            // Only load reminder status if user is logged in and has a token
+            if (!userState.isLoggedIn || !apiService.token) {
+                return;
+            }
+            
             try {
                 const response = await apiService.apiCall('/user/my-reminder-status');
                 
@@ -10620,6 +10625,11 @@
         
         // Load reminder timeline for detailed billing modal
         async function loadReminderTimeline() {
+            // Only load reminder timeline if user is logged in and has a token
+            if (!userState.isLoggedIn || !apiService.token) {
+                return;
+            }
+            
             try {
                 const response = await apiService.apiCall('/user/my-reminder-status');
                 

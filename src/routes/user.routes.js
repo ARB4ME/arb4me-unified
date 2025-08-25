@@ -543,15 +543,30 @@ router.get('/my-reminder-status', asyncHandler(async (req, res) => {
     const userId = req.user.id;
     
     // Get user's current reminder status and subscription info
-    const userResult = await query(`
-        SELECT 
-            id, first_name, last_name, email,
-            subscription_expires_at, last_payment_date,
-            last_reminder_type, last_reminder_date,
-            seven_day_reminder_sent, one_day_reminder_sent
-        FROM users
-        WHERE id = $1
-    `, [userId]);
+    // Use a try-catch to handle cases where reminder fields might not exist yet
+    let userResult;
+    try {
+        userResult = await query(`
+            SELECT 
+                id, first_name, last_name, email,
+                subscription_expires_at, last_payment_date,
+                last_reminder_type, last_reminder_date,
+                seven_day_reminder_sent, one_day_reminder_sent
+            FROM users
+            WHERE id = $1
+        `, [userId]);
+    } catch (error) {
+        // If reminder fields don't exist, fall back to basic user info
+        userResult = await query(`
+            SELECT 
+                id, first_name, last_name, email,
+                subscription_expires_at, last_payment_date,
+                NULL as last_reminder_type, NULL as last_reminder_date,
+                FALSE as seven_day_reminder_sent, FALSE as one_day_reminder_sent
+            FROM users
+            WHERE id = $1
+        `, [userId]);
+    }
     
     if (userResult.rows.length === 0) {
         throw new APIError('User not found', 404);
@@ -560,14 +575,21 @@ router.get('/my-reminder-status', asyncHandler(async (req, res) => {
     const user = userResult.rows[0];
     
     // Get reminder history for this user (last 30 days)
-    const historyResult = await query(`
-        SELECT 
-            reminder_type, sent_at, days_until_expiry, message_id
-        FROM auto_reminders_log
-        WHERE user_id = $1
-        AND sent_date >= CURRENT_DATE - INTERVAL '30 days'
-        ORDER BY sent_at DESC
-    `, [userId]);
+    // Handle case where auto_reminders_log table might not exist yet
+    let historyResult;
+    try {
+        historyResult = await query(`
+            SELECT 
+                reminder_type, sent_at, days_until_expiry, message_id
+            FROM auto_reminders_log
+            WHERE user_id = $1
+            AND sent_date >= CURRENT_DATE - INTERVAL '30 days'
+            ORDER BY sent_at DESC
+        `, [userId]);
+    } catch (error) {
+        // If auto_reminders_log table doesn't exist, return empty history
+        historyResult = { rows: [] };
+    }
     
     // Calculate days until expiry
     let daysUntilExpiry = null;

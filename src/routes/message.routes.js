@@ -138,21 +138,42 @@ router.get('/inbox', asyncHandler(async (req, res) => {
         queryParams.push(status);
     }
     
-    const messagesResult = await query(`
-        SELECT m.id, m.subject, m.content, m.priority, m.message_type, m.status,
-               m.created_at, m.thread_id, m.parent_message_id, m.reminder_type,
-               m.admin_user_id, m.admin_read_at, m.admin_replied_at,
-               CASE 
-                   WHEN m.admin_user_id IS NOT NULL THEN 
-                       (SELECT CONCAT(first_name, ' ', last_name) FROM users WHERE id = m.admin_user_id)
-                   ELSE 'ARB4ME Admin'
-               END as admin_name
-        FROM messages m
-        WHERE (m.user_id = $1 OR (m.message_type = 'admin_to_user' AND m.user_id = $1))
-        ${statusCondition}
-        ORDER BY m.thread_id DESC, m.created_at ASC
-        LIMIT $2 OFFSET $3
-    `, queryParams);
+    // Try to get messages with reminder_type field, fall back if column doesn't exist
+    let messagesResult;
+    try {
+        messagesResult = await query(`
+            SELECT m.id, m.subject, m.content, m.priority, m.message_type, m.status,
+                   m.created_at, m.thread_id, m.parent_message_id, m.reminder_type,
+                   m.admin_user_id, m.admin_read_at, m.admin_replied_at,
+                   CASE 
+                       WHEN m.admin_user_id IS NOT NULL THEN 
+                           (SELECT CONCAT(first_name, ' ', last_name) FROM users WHERE id = m.admin_user_id)
+                       ELSE 'ARB4ME Admin'
+                   END as admin_name
+            FROM messages m
+            WHERE (m.user_id = $1 OR (m.message_type = 'admin_to_user' AND m.user_id = $1))
+            ${statusCondition}
+            ORDER BY m.thread_id DESC, m.created_at ASC
+            LIMIT $2 OFFSET $3
+        `, queryParams);
+    } catch (error) {
+        // Fall back to query without reminder_type if column doesn't exist
+        messagesResult = await query(`
+            SELECT m.id, m.subject, m.content, m.priority, m.message_type, m.status,
+                   m.created_at, m.thread_id, m.parent_message_id, NULL as reminder_type,
+                   m.admin_user_id, m.admin_read_at, m.admin_replied_at,
+                   CASE 
+                       WHEN m.admin_user_id IS NOT NULL THEN 
+                           (SELECT CONCAT(first_name, ' ', last_name) FROM users WHERE id = m.admin_user_id)
+                       ELSE 'ARB4ME Admin'
+                   END as admin_name
+            FROM messages m
+            WHERE (m.user_id = $1 OR (m.message_type = 'admin_to_user' AND m.user_id = $1))
+            ${statusCondition}
+            ORDER BY m.thread_id DESC, m.created_at ASC
+            LIMIT $2 OFFSET $3
+        `, queryParams);
+    }
     
     // Get total count
     const countParams = [req.user.id];
