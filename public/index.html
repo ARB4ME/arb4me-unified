@@ -24362,9 +24362,9 @@ ARB4ME Security Team`
                     console.log('❌ all-users-test failed:', e.message);
                 }
 
-                // Try using the alternative payment endpoint that might work
-                console.log('🧪 Trying alternative payment endpoint...');
-                const result = await apiService.apiCall('/admin/payments/all');
+                // Use the correct payment history endpoint from admin.routes.js
+                console.log('🧪 Loading payment history...');
+                const result = await apiService.apiCall('/admin/payment-history?limit=20');
 
                 if (result.success) {
                     const container = document.getElementById('paymentHistoryList');
