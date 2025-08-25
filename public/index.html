@@ -1742,6 +1742,24 @@
             background: rgba(255,255,255,0.1) !important;
             color: white !important;
         }
+        
+        /* Enhanced styling for promote user dropdown */
+        #promoteUserId, #promoteRole {
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255,255,255,0.2) !important;
+        }
+        
+        #promoteUserId:hover, #promoteRole:hover {
+            border: 1px solid #00d4ff !important;
+            box-shadow: 0 0 10px rgba(0,212,255,0.3);
+            background: rgba(255,255,255,0.15) !important;
+        }
+        
+        #promoteUserId:focus, #promoteRole:focus {
+            outline: none;
+            border: 1px solid #ff9500 !important;
+            box-shadow: 0 0 15px rgba(255,149,0,0.4);
+        }
     </style>
 </head>
 <body>
@@ -6143,16 +6161,16 @@
                         <div class="grid-2">
                             <div class="form-group">
                                 <label>User ID to Promote:</label>
-                                <select id="promoteUserId" style="width: 100%; padding: 10px; border: 1px solid #333; border-radius: 5px; background: rgba(0,0,0,0.3); color: white;">
-                                    <option value="">🔍 Select User to Promote...</option>
+                                <select id="promoteUserId" style="width: 100%; padding: 10px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; color: white; font-size: 0.9rem; font-weight: 500; cursor: pointer;">
+                                    <option value="" style="background: #1a1a2e; color: white;">🔍 Select User to Promote...</option>
                                 </select>
                             </div>
                             <div class="form-group">
                                 <label>Admin Role:</label>
-                                <select id="promoteRole" style="width: 100%; padding: 10px; border: 1px solid #333; border-radius: 5px; background: rgba(0,0,0,0.3); color: white;">
-                                    <option value="support">Support</option>
-                                    <option value="manager">Manager</option>
-                                    <option value="admin">Admin</option>
+                                <select id="promoteRole" style="width: 100%; padding: 10px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; color: white; font-size: 0.9rem; font-weight: 500; cursor: pointer;">
+                                    <option value="support" style="background: #1a1a2e; color: white;">📞 Support Admin</option>
+                                    <option value="manager" style="background: #1a1a2e; color: white;">👥 Manager Admin</option>
+                                    <option value="admin" style="background: #1a1a2e; color: white;">🔧 Full Admin</option>
                                 </select>
                             </div>
                         </div>
@@ -11387,33 +11405,59 @@
         // Populate promote user dropdown with non-admin users
         async function populatePromoteUserDropdown() {
             try {
+                console.log('🔄 Starting to populate promote user dropdown...');
                 const dropdown = document.getElementById('promoteUserId');
-                if (!dropdown) return;
+                if (!dropdown) {
+                    console.log('❌ Dropdown element not found');
+                    return;
+                }
 
                 // Get all users
+                console.log('📡 Calling getAllUsers API...');
                 const response = await apiService.getAllUsers();
+                console.log('📊 getAllUsers API response:', response);
+                
                 if (!response.success || !response.data) {
-                    console.log('Failed to load users for promotion dropdown');
+                    console.log('❌ Failed to load users for promotion dropdown. Response:', response);
                     return;
                 }
 
                 // Clear existing options except placeholder
-                dropdown.innerHTML = '<option value="">🔍 Select User to Promote...</option>';
+                dropdown.innerHTML = '<option value="" style="background: #1a1a2e; color: white;">🔍 Select User to Promote...</option>';
 
-                // Filter non-admin users and add them to dropdown
-                const users = Array.isArray(response.data) ? response.data : 
-                             response.data.users ? response.data.users : [];
-
-                const nonAdminUsers = users.filter(user => !user.admin_role);
+                // Get all users (same logic as payment dropdown)
+                let users;
+                if (response.success && response.data && response.data.users) {
+                    users = response.data.users;
+                } else if (response.users && Array.isArray(response.users)) {
+                    users = response.users;
+                } else {
+                    console.error('❌ Invalid user data structure:', response);
+                    return;
+                }
                 
-                nonAdminUsers.forEach(user => {
+                console.log('👥 Total users found:', users.length);
+                
+                if (users.length === 0) {
+                    dropdown.innerHTML = '<option value="" style="background: #1a1a2e; color: white;">⚠️ No users available</option>';
+                    console.log('⚠️ No users available for promotion');
+                    return;
+                }
+                
+                // Add ALL users to dropdown (like payment dropdown)
+                users.forEach(user => {
                     const option = document.createElement('option');
                     option.value = user.id;
-                    option.textContent = `${user.first_name} ${user.last_name} (${user.email})`;
+                    // Show admin status for clarity
+                    const adminStatus = user.admin_role ? ` [${user.admin_role.toUpperCase()}]` : '';
+                    option.textContent = `👤 ${user.first_name} ${user.last_name}${adminStatus} (${user.email})`;
+                    option.style.background = '#1a1a2e';
+                    option.style.color = 'white';
+                    option.style.padding = '8px';
                     dropdown.appendChild(option);
                 });
 
-                console.log(`✅ Populated promotion dropdown with ${nonAdminUsers.length} non-admin users`);
+                console.log(`✅ Populated promotion dropdown with ${users.length} users`);
             } catch (error) {
                 console.error('❌ Error populating promote user dropdown:', error);
             }
@@ -16981,7 +17025,7 @@ ARB4ME Security Team`
                         return { users: [] };
                     }
 
-                    const response = await this.apiCall('/admin/all-users-test');
+                    const response = await this.apiCall('/api/v1/admin/all-users-test');
                     
                     if (response.success && response.data.users) {
                         console.log('👥 Fetched all users from backend:', response.data.users.length);
