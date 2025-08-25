@@ -17025,7 +17025,7 @@ ARB4ME Security Team`
                         return { users: [] };
                     }
 
-                    const response = await this.apiCall('/api/v1/admin/all-users-test');
+                    const response = await this.apiCall('/admin/all-users-test');
                     
                     if (response.success && response.data.users) {
                         console.log('👥 Fetched all users from backend:', response.data.users.length);
