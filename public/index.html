@@ -24394,13 +24394,14 @@ ARB4ME Security Team`
         async function refreshPaymentHistory() {
             const token = localStorage.getItem('arb4me_jwt_token');
             if (!token) {
-                showNotification('Please log in to view payment history', 'error');
+                console.log('Please log in to view payment history');
+                alert('Please log in to view payment history');
                 return;
             }
             
             await loadPaymentHistory();
             await populatePaymentHistoryUserDropdown();
-            showNotification('Payment history refreshed successfully', 'success');
+            console.log('Payment history refreshed successfully');
         }
 
         // Populate user dropdown for payment history filtering
@@ -24432,7 +24433,9 @@ ARB4ME Security Team`
                 users.forEach(user => {
                     const option = document.createElement('option');
                     option.value = user.id;
-                    option.textContent = `${user.firstName} ${user.lastName} (${user.email})`;
+                    
+                    // Use the same format as the working payment dropdown
+                    option.textContent = `${user.first_name} ${user.last_name} (${user.email})`;
                     dropdown.appendChild(option);
                 });
                 
