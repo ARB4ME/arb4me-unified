@@ -108,10 +108,10 @@ router.post('/promote-admin', async (req, res) => {
     try {
         const userId = req.user.id;
         
-        // Update user to admin role
+        // Update user to master admin role
         await query(`
             UPDATE users 
-            SET admin_role = 'admin', updated_at = CURRENT_TIMESTAMP 
+            SET admin_role = 'master', updated_at = CURRENT_TIMESTAMP 
             WHERE id = $1
         `, [userId]);
 

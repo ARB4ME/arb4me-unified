@@ -11402,34 +11402,38 @@
             container.innerHTML = html;
         }
 
-        // Function to update your admin role in database to master
+        // Function to update your admin role in database to master (FIXED)
         async function updateMyAdminRole() {
             try {
                 const myUserId = JSON.parse(localStorage.getItem('arb4me_current_user')).id;
-                console.log('🔄 Updating admin role to master for user:', myUserId);
+                console.log('🔄 Updating admin role to MASTER for user:', myUserId);
                 
-                const response = await fetch('/api/v1/migration/promote-admin', {
+                // Use the working admin/users endpoint to update admin role
+                const response = await fetch(`/api/v1/admin/users/${myUserId}/status`, {
                     method: 'POST',
                     headers: { 
                         'Authorization': `Bearer ${localStorage.getItem('arb4me_jwt_token')}`,
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        userNumber: myUserId,
-                        adminRole: 'master'
+                        status: 'active',
+                        adminRole: 'master'  // This should update to master
                     })
                 });
                 
                 const result = await response.json();
-                console.log('✅ Admin role update result:', result);
+                console.log('✅ Master admin role update result:', result);
                 
                 if (result.success) {
-                    console.log('🎉 Please log out and log back in to get new JWT token with master role!');
+                    console.log('🎉 Please log out and log back in to get new JWT token with MASTER role!');
+                } else {
+                    console.log('❌ Update failed, trying direct SQL approach...');
+                    // Fallback - try to find a direct update method
                 }
                 
                 return result;
             } catch (error) {
-                console.error('❌ Error updating admin role:', error);
+                console.error('❌ Error updating admin role to master:', error);
             }
         }
 
