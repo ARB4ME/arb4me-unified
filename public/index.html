@@ -6143,7 +6143,9 @@
                         <div class="grid-2">
                             <div class="form-group">
                                 <label>User ID to Promote:</label>
-                                <input type="text" id="promoteUserId" placeholder="Enter user ID" style="width: 100%; padding: 10px; border: 1px solid #333; border-radius: 5px; background: rgba(0,0,0,0.3); color: white;">
+                                <select id="promoteUserId" style="width: 100%; padding: 10px; border: 1px solid #333; border-radius: 5px; background: rgba(0,0,0,0.3); color: white;">
+                                    <option value="">🔍 Select User to Promote...</option>
+                                </select>
                             </div>
                             <div class="form-group">
                                 <label>Admin Role:</label>
@@ -11382,12 +11384,47 @@
             container.innerHTML = html;
         }
 
+        // Populate promote user dropdown with non-admin users
+        async function populatePromoteUserDropdown() {
+            try {
+                const dropdown = document.getElementById('promoteUserId');
+                if (!dropdown) return;
+
+                // Get all users
+                const response = await apiService.getAllUsers();
+                if (!response.success || !response.data) {
+                    console.log('Failed to load users for promotion dropdown');
+                    return;
+                }
+
+                // Clear existing options except placeholder
+                dropdown.innerHTML = '<option value="">🔍 Select User to Promote...</option>';
+
+                // Filter non-admin users and add them to dropdown
+                const users = Array.isArray(response.data) ? response.data : 
+                             response.data.users ? response.data.users : [];
+
+                const nonAdminUsers = users.filter(user => !user.admin_role);
+                
+                nonAdminUsers.forEach(user => {
+                    const option = document.createElement('option');
+                    option.value = user.id;
+                    option.textContent = `${user.first_name} ${user.last_name} (${user.email})`;
+                    dropdown.appendChild(option);
+                });
+
+                console.log(`✅ Populated promotion dropdown with ${nonAdminUsers.length} non-admin users`);
+            } catch (error) {
+                console.error('❌ Error populating promote user dropdown:', error);
+            }
+        }
+
         async function promoteUserToAdmin() {
             const userId = document.getElementById('promoteUserId').value.trim();
             const role = document.getElementById('promoteRole').value;
 
             if (!userId) {
-                showNotification('Please enter a user ID', 'error');
+                alert('Please select a user to promote');
                 return;
             }
 
@@ -11400,15 +11437,16 @@
                 const response = await apiService.promoteUser(userId, role);
                 
                 if (response.success) {
-                    showNotification(`User promoted to ${role} successfully!`, 'success');
+                    alert(`User promoted to ${role} successfully!`);
                     document.getElementById('promoteUserId').value = '';
                     refreshAdminUsers();
+                    populatePromoteUserDropdown(); // Refresh the dropdown
                 } else {
-                    showNotification('Failed to promote user: ' + (response.error || 'Unknown error'), 'error');
+                    alert('Failed to promote user: ' + (response.error || 'Unknown error'));
                 }
             } catch (error) {
                 console.error('Error promoting user:', error);
-                showNotification('Error promoting user. Please try again.', 'error');
+                alert('Error promoting user. Please try again.');
             }
         }
 
@@ -15271,6 +15309,7 @@ Please help recover this stuck asset.`;
             } else if (tabName === 'admins') {
                 refreshAdminUsers();
                 refreshActivityLog();
+                populatePromoteUserDropdown();
             } else if (tabName === 'security') {
                 initializeSecurityMonitoring();
             }
