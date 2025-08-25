@@ -11402,64 +11402,53 @@
             container.innerHTML = html;
         }
 
-        // Populate promote user dropdown with non-admin users
-        async function populatePromoteUserDropdown() {
+        // Simple direct approach to load promote user dropdown
+        async function loadPromoteDropdown() {
+            const dropdown = document.getElementById('promoteUserId');
+            if (!dropdown) {
+                console.log('❌ Promote dropdown not found');
+                return;
+            }
+
+            // Show loading state
+            dropdown.innerHTML = '<option value="" style="background: #1a1a2e; color: white;">🔄 Loading users...</option>';
+            
             try {
-                console.log('🔄 Starting to populate promote user dropdown...');
-                const dropdown = document.getElementById('promoteUserId');
-                if (!dropdown) {
-                    console.log('❌ Dropdown element not found');
-                    return;
-                }
-
-                // Get all users
-                console.log('📡 Calling getAllUsers API...');
-                const response = await apiService.getAllUsers();
-                console.log('📊 getAllUsers API response:', response);
-                
-                if (!response.success || !response.data) {
-                    console.log('❌ Failed to load users for promotion dropdown. Response:', response);
-                    return;
-                }
-
-                // Clear existing options except placeholder
-                dropdown.innerHTML = '<option value="" style="background: #1a1a2e; color: white;">🔍 Select User to Promote...</option>';
-
-                // Get all users - handle the {users: Array} format
-                let users;
-                if (response.users && Array.isArray(response.users)) {
-                    users = response.users;
-                } else if (response.success && response.data && response.data.users) {
-                    users = response.data.users;
-                } else {
-                    console.error('❌ Invalid user data structure:', response);
-                    return;
-                }
-                
-                console.log('👥 Total users found:', users.length);
-                
-                if (users.length === 0) {
-                    dropdown.innerHTML = '<option value="" style="background: #1a1a2e; color: white;">⚠️ No users available</option>';
-                    console.log('⚠️ No users available for promotion');
-                    return;
-                }
-                
-                // Add ALL users to dropdown (like payment dropdown)
-                users.forEach(user => {
-                    const option = document.createElement('option');
-                    option.value = user.id;
-                    // Show admin status for clarity
-                    const adminStatus = user.admin_role ? ` [${user.admin_role.toUpperCase()}]` : '';
-                    option.textContent = `👤 ${user.first_name} ${user.last_name}${adminStatus} (${user.email})`;
-                    option.style.background = '#1a1a2e';
-                    option.style.color = 'white';
-                    option.style.padding = '8px';
-                    dropdown.appendChild(option);
+                // Direct fetch call to get users
+                const response = await fetch('/api/v1/admin/all-users-test', {
+                    headers: { 
+                        'Authorization': `Bearer ${localStorage.getItem('jwt_token')}`,
+                        'Content-Type': 'application/json'
+                    }
                 });
-
-                console.log(`✅ Populated promotion dropdown with ${users.length} users`);
+                
+                const data = await response.json();
+                console.log('✅ Users loaded directly:', data);
+                
+                // Clear loading and add placeholder
+                dropdown.innerHTML = '<option value="" style="background: #1a1a2e; color: white;">🔍 Select User to Promote...</option>';
+                
+                // Add users to dropdown
+                if (data.users && Array.isArray(data.users)) {
+                    data.users.forEach(user => {
+                        const option = document.createElement('option');
+                        option.value = user.id;
+                        // Show admin status for clarity
+                        const adminStatus = user.admin_role ? ` [${user.admin_role.toUpperCase()}]` : '';
+                        option.textContent = `👤 ${user.first_name} ${user.last_name}${adminStatus} (${user.email})`;
+                        option.style.background = '#1a1a2e';
+                        option.style.color = 'white';
+                        option.style.padding = '8px';
+                        dropdown.appendChild(option);
+                    });
+                    console.log(`✅ Added ${data.users.length} users to promote dropdown`);
+                } else {
+                    dropdown.innerHTML = '<option value="" style="background: #1a1a2e; color: white;">⚠️ No users found</option>';
+                }
+                
             } catch (error) {
-                console.error('❌ Error populating promote user dropdown:', error);
+                console.error('❌ Error loading users:', error);
+                dropdown.innerHTML = '<option value="" style="background: #1a1a2e; color: white;">❌ Error loading users</option>';
             }
         }
 
@@ -11484,7 +11473,7 @@
                     alert(`User promoted to ${role} successfully!`);
                     document.getElementById('promoteUserId').value = '';
                     refreshAdminUsers();
-                    populatePromoteUserDropdown(); // Refresh the dropdown
+                    loadPromoteDropdown(); // Refresh the dropdown
                 } else {
                     alert('Failed to promote user: ' + (response.error || 'Unknown error'));
                 }
@@ -15353,7 +15342,7 @@ Please help recover this stuck asset.`;
             } else if (tabName === 'admins') {
                 refreshAdminUsers();
                 refreshActivityLog();
-                populatePromoteUserDropdown();
+                loadPromoteDropdown();
             } else if (tabName === 'security') {
                 initializeSecurityMonitoring();
             }
