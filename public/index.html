@@ -17183,22 +17183,31 @@ ARB4ME Security Team`
 
             async promoteUser(userId, newRole) {
                 try {
-                    if (!this.token) {
-                        console.log('No JWT token available for promote user');
-                        return { success: false, error: 'No authentication token' };
+                    // Use admin session token for admin functions
+                    const adminToken = localStorage.getItem('arb4me_admin_session');
+                    if (!adminToken) {
+                        console.log('No admin session available for promote user');
+                        return { success: false, error: 'No admin authentication' };
                     }
 
-                    const response = await this.apiCall(`/admin/admins/${userId}/promote`, {
+                    // Direct fetch call with admin session token
+                    const response = await fetch('/api/v1/admin/admins/' + userId + '/promote', {
                         method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${adminToken}`
+                        },
                         body: JSON.stringify({ newRole })
                     });
+
+                    const data = await response.json();
                     
-                    if (response.success) {
-                        console.log('✅ User promoted:', response.data);
-                        return response;
+                    if (data.success || response.ok) {
+                        console.log('✅ User promoted:', data);
+                        return data;
                     } else {
-                        console.log('❌ Failed to promote user:', response.error);
-                        return response;
+                        console.log('❌ Failed to promote user:', data);
+                        return data;
                     }
                 } catch (error) {
                     console.log('❌ Error promoting user:', error.message);
