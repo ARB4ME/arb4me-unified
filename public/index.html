@@ -11425,12 +11425,12 @@
                 // Clear existing options except placeholder
                 dropdown.innerHTML = '<option value="" style="background: #1a1a2e; color: white;">🔍 Select User to Promote...</option>';
 
-                // Get all users (same logic as payment dropdown)
+                // Get all users - handle the {users: Array} format
                 let users;
-                if (response.success && response.data && response.data.users) {
-                    users = response.data.users;
-                } else if (response.users && Array.isArray(response.users)) {
+                if (response.users && Array.isArray(response.users)) {
                     users = response.users;
+                } else if (response.success && response.data && response.data.users) {
+                    users = response.data.users;
                 } else {
                     console.error('❌ Invalid user data structure:', response);
                     return;
