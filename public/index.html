@@ -5970,10 +5970,27 @@
                     <!-- Payment History Section -->
                     <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px;">
                         <h4 style="color: #00ff88; margin-bottom: 15px;">📜 Payment History</h4>
-                        <div style="margin-bottom: 15px;">
-                            <input type="text" id="paymentSearchUser" placeholder="Search by user email or reference..." 
-                                   onkeyup="filterPaymentHistory()" 
-                                   style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; color: white;">
+                        <div style="margin-bottom: 15px; display: flex; gap: 15px; align-items: center;">
+                            <div style="flex: 1;">
+                                <label style="color: #00ff88; font-size: 0.9rem; margin-bottom: 5px; display: block;">Filter by User:</label>
+                                <select id="paymentUserFilter" onchange="filterPaymentHistoryByUser()" 
+                                        style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; color: white;">
+                                    <option value="">🔍 All Users - View Complete Payment History</option>
+                                    <!-- Users will be populated here -->
+                                </select>
+                            </div>
+                            <div>
+                                <button onclick="refreshPaymentHistory()" style="
+                                    padding: 10px 15px; 
+                                    background: linear-gradient(45deg, #00d4ff, #00ff88); 
+                                    color: #1a1a2e; 
+                                    border: none; 
+                                    border-radius: 8px; 
+                                    cursor: pointer;
+                                    font-weight: bold;
+                                    margin-top: 20px;
+                                ">🔄 Refresh</button>
+                            </div>
                         </div>
                         <div id="paymentHistoryList" style="max-height: 400px; overflow-y: auto;">
                             <!-- Payment history will be loaded here -->
@@ -18127,19 +18144,30 @@ ARB4ME Security Team`
             container.innerHTML = html;
         }
 
-        // Filter payment history
-        function filterPaymentHistory() {
-            const searchTerm = document.getElementById('paymentSearchUser').value.toLowerCase();
-            const paymentItems = document.querySelectorAll('#paymentHistoryList > div');
+        // Filter payment history by selected user
+        async function filterPaymentHistoryByUser() {
+            const selectedUserId = document.getElementById('paymentUserFilter').value;
             
-            paymentItems.forEach(item => {
-                const text = item.textContent.toLowerCase();
-                if (text.includes(searchTerm)) {
-                    item.style.display = 'block';
+            if (!selectedUserId) {
+                await loadPaymentHistory();
+                return;
+            }
+
+            try {
+                const result = await apiService.apiCall(`/admin/payment-history?user_id=${selectedUserId}&limit=50`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('arb4me_jwt_token')}`
+                    }
+                });
+
+                if (result.success) {
+                    displayPaymentHistory(result.data.payments);
                 } else {
-                    item.style.display = 'none';
+                    console.error('Error filtering payment history:', result.error);
                 }
-            });
+            } catch (error) {
+                console.error('Error filtering payment history:', error);
+            }
         }
 
         // Load expiry data
@@ -24346,62 +24374,36 @@ ARB4ME Security Team`
             }
         }
 
-        // Filter payment history based on search input
-        async function filterPaymentHistory() {
-            const searchTerm = document.getElementById('paymentSearchUser').value.toLowerCase();
-            
-            if (!searchTerm.trim()) {
-                await loadPaymentHistory();
-                return;
-            }
+        // Refresh payment history
+        async function refreshPaymentHistory() {
+            await loadPaymentHistory();
+            await populatePaymentHistoryUserDropdown();
+        }
 
+        // Populate user dropdown for payment history filtering
+        async function populatePaymentHistoryUserDropdown() {
             try {
-                const result = await apiService.apiCall('/admin/payment-history?limit=50', {
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('arb4me_jwt_token')}`
-                    }
-                });
-
+                const result = await apiService.getAllUsers();
                 
-
                 if (result.success) {
-                    const filteredPayments = result.data.payments.filter(payment => 
-                        payment.user.firstName.toLowerCase().includes(searchTerm) ||
-                        payment.user.lastName.toLowerCase().includes(searchTerm) ||
-                        payment.user.email.toLowerCase().includes(searchTerm) ||
-                        payment.paymentReference.toLowerCase().includes(searchTerm)
-                    );
-
-                    const container = document.getElementById('paymentHistoryList');
+                    const dropdown = document.getElementById('paymentUserFilter');
+                    const users = result.data.users;
                     
-                    if (filteredPayments.length === 0) {
-                        container.innerHTML = '<div style="color: #888; padding: 20px; text-align: center;">No payments found matching your search</div>';
-                        return;
-                    }
-
-                    container.innerHTML = filteredPayments.map(payment => `
-                        <div style="background: rgba(255,255,255,0.05); padding: 15px; margin-bottom: 10px; border-radius: 10px; border-left: 3px solid #00ff88;">
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                                <div>
-                                    <div style="font-weight: bold; color: white;">${payment.user.firstName} ${payment.user.lastName}</div>
-                                    <div style="font-size: 0.9rem; color: #ccc;">${payment.user.email}</div>
-                                </div>
-                                <div style="text-align: right;">
-                                    <div style="font-weight: bold; color: #00ff88; font-size: 1.1rem;">R${payment.amount.toFixed(2)}</div>
-                                    <div style="font-size: 0.8rem; color: #888;">${payment.paymentMonth}</div>
-                                </div>
-                            </div>
-                            <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: #aaa;">
-                                <div>Payment Date: ${new Date(payment.paymentDate).toDateString()}</div>
-                                <div>Ref: ${payment.paymentReference}</div>
-                            </div>
-                            ${payment.bankReference ? `<div style="font-size: 0.8rem; color: #888; margin-top: 5px;">Bank Ref: ${payment.bankReference}</div>` : ''}
-                            ${payment.notes ? `<div style="font-size: 0.8rem; color: #888; margin-top: 5px; font-style: italic;">Notes: ${payment.notes}</div>` : ''}
-                        </div>
-                    `).join('');
+                    // Clear existing options (except the "All Users" option)
+                    dropdown.innerHTML = '<option value="">🔍 All Users - View Complete Payment History</option>';
+                    
+                    // Add all users to dropdown
+                    users.forEach(user => {
+                        const option = document.createElement('option');
+                        option.value = user.id;
+                        option.textContent = `${user.firstName} ${user.lastName} (${user.email})`;
+                        dropdown.appendChild(option);
+                    });
+                } else {
+                    console.error('Error loading users for dropdown:', result.error);
                 }
             } catch (error) {
-                console.error('Error filtering payment history:', error);
+                console.error('Error populating payment history user dropdown:', error);
             }
         }
 
@@ -24481,6 +24483,7 @@ ARB4ME Security Team`
         // Initialize billing data when switching to billing tab
         async function initializeBillingData() {
             await populatePaymentUserDropdown();
+            await populatePaymentHistoryUserDropdown();
             await loadExpiringUsersCount();
             await loadExpiredUsersCount();
             await loadAutoRemindersCount();
