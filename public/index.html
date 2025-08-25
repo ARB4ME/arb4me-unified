@@ -24344,11 +24344,18 @@ ARB4ME Security Team`
                     console.log('Could not parse token payload for debugging');
                 }
 
-                // Debug: Test both endpoints to compare
+                // Debug: Test both endpoints to compare AND show current user info
                 console.log('🧪 Testing both admin endpoints...');
                 try {
                     const usersTest = await apiService.apiCall('/admin/all-users-test?limit=1');
                     console.log('✅ all-users-test works:', usersTest.success);
+                    
+                    // Show current user's admin role
+                    console.log('🔍 Current user data:', {
+                        userId: localStorage.getItem('user_id'),
+                        adminRole: localStorage.getItem('admin_role'),
+                        email: localStorage.getItem('user_email')
+                    });
                 } catch (e) {
                     console.log('❌ all-users-test failed:', e.message);
                 }
