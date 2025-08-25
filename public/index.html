@@ -11402,6 +11402,33 @@
             container.innerHTML = html;
         }
 
+        // Debug function to check current user's admin role in database
+        async function checkMyAdminRole() {
+            try {
+                const response = await fetch('/api/v1/admin/all-users-test', {
+                    headers: { 
+                        'Authorization': `Bearer ${localStorage.getItem('arb4me_jwt_token')}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                const myUserId = JSON.parse(localStorage.getItem('arb4me_current_user')).id;
+                const myUser = data.data.users.find(u => u.id === myUserId);
+                
+                console.log('🔍 MY DATABASE ADMIN ROLE CHECK:');
+                console.log('My User ID:', myUserId);
+                console.log('My Database Record:', myUser);
+                console.log('Database admin_role:', myUser?.admin_role);
+                console.log('LocalStorage adminRole:', JSON.parse(localStorage.getItem('arb4me_current_user')).adminRole);
+                console.log('JWT admin_role:', JSON.parse(atob(localStorage.getItem('arb4me_jwt_token').split('.')[1])).admin_role);
+                
+                return myUser;
+            } catch (error) {
+                console.error('❌ Error checking admin role:', error);
+            }
+        }
+
         // Simple direct approach to load promote user dropdown
         async function loadPromoteDropdown() {
             const dropdown = document.getElementById('promoteUserId');
