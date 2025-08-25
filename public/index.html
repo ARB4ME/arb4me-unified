@@ -24060,7 +24060,8 @@ ARB4ME Security Team`
             const notes = document.getElementById('paymentNotes').value;
 
             if (!selectedUserId || !amount || !paymentDate) {
-                showNotification('Please fill in all required fields', 'error');
+                alert('Please fill in all required fields');
+                console.log('Missing required fields for payment recording');
                 return;
             }
 
@@ -24081,7 +24082,8 @@ ARB4ME Security Team`
                 });
 
                 if (result.success) {
-                    showNotification('Payment recorded successfully! User has been notified.', 'success');
+                    alert('✅ Payment recorded successfully! User has been notified.');
+                    console.log('Payment recorded successfully');
                     
                     // Clear the form
                     document.getElementById('paymentAmount').value = '';
@@ -24095,11 +24097,12 @@ ARB4ME Security Team`
                     await loadPaymentHistory();
                     await updateAdminBillingOverview();
                 } else {
-                    showNotification(`Error recording payment: ${result.message}`, 'error');
+                    alert(`Error recording payment: ${result.message || 'Unknown error'}`);
+                    console.error('Payment recording failed:', result);
                 }
             } catch (error) {
                 console.error('Payment recording error:', error);
-                showNotification('Failed to record payment. Please try again.', 'error');
+                alert('Failed to record payment. Please check console for details.');
             }
         }
 
