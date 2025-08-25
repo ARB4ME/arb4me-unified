@@ -11402,6 +11402,37 @@
             container.innerHTML = html;
         }
 
+        // Function to update your admin role in database to master
+        async function updateMyAdminRole() {
+            try {
+                const myUserId = JSON.parse(localStorage.getItem('arb4me_current_user')).id;
+                console.log('🔄 Updating admin role to master for user:', myUserId);
+                
+                const response = await fetch('/api/v1/migration/promote-admin', {
+                    method: 'POST',
+                    headers: { 
+                        'Authorization': `Bearer ${localStorage.getItem('arb4me_jwt_token')}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        userNumber: myUserId,
+                        adminRole: 'master'
+                    })
+                });
+                
+                const result = await response.json();
+                console.log('✅ Admin role update result:', result);
+                
+                if (result.success) {
+                    console.log('🎉 Please log out and log back in to get new JWT token with master role!');
+                }
+                
+                return result;
+            } catch (error) {
+                console.error('❌ Error updating admin role:', error);
+            }
+        }
+
         // Debug function to check current user's admin role in database
         async function checkMyAdminRole() {
             try {
