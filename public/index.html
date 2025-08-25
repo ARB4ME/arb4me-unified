@@ -24337,6 +24337,23 @@ ARB4ME Security Team`
                     return;
                 }
 
+                // Debug: Log token payload to check admin role
+                try {
+                    const tokenPayload = JSON.parse(atob(token.split('.')[1]));
+                    console.log('🔍 Current JWT token payload:', tokenPayload);
+                } catch (e) {
+                    console.log('Could not parse token payload for debugging');
+                }
+
+                // Debug: Test both endpoints to compare
+                console.log('🧪 Testing both admin endpoints...');
+                try {
+                    const usersTest = await apiService.apiCall('/admin/all-users-test?limit=1');
+                    console.log('✅ all-users-test works:', usersTest.success);
+                } catch (e) {
+                    console.log('❌ all-users-test failed:', e.message);
+                }
+
                 const result = await apiService.apiCall('/admin/payment-history?limit=20', {
                     headers: {
                         'Authorization': `Bearer ${token}`
