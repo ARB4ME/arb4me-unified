@@ -29,8 +29,12 @@ const loginValidation = [
 ];
 
 // Helper function to generate JWT
-const generateToken = (userId) => {
-    return jwt.sign({ userId }, JWT_SECRET, { expiresIn: JWT_EXPIRY });
+const generateToken = (userId, adminRole = null) => {
+    const payload = { userId };
+    if (adminRole) {
+        payload.admin_role = adminRole;
+    }
+    return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRY });
 };
 
 // Helper function to generate unified user ID and payment reference
@@ -283,8 +287,8 @@ router.post('/login', loginValidation, asyncHandler(async (req, res) => {
         ip: req.ip
     });
     
-    // Generate token
-    const token = generateToken(user.id);
+    // Generate token with admin role if available
+    const token = generateToken(user.id, user.admin_role);
     
     res.json({
         success: true,
