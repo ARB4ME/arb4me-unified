@@ -4608,7 +4608,14 @@
                                     <div>
                                         <div style="color: #e0e0e0; margin-bottom: 5px;">Account Status: <span id="accountStatus" style="color: #00ff88; font-weight: bold;">ACTIVE</span></div>
                                         <div style="color: #e0e0e0; margin-bottom: 5px;">Payment Status: <span id="paymentStatus" style="color: #feca57; font-weight: bold;">No Payment Due</span></div>
-                                        <div style="color: #e0e0e0;">Next Payment Date: <span id="nextPaymentDate" style="color: #00d4ff;">End of Month</span></div>
+                                        <div style="color: #e0e0e0; margin-bottom: 5px;">Next Payment Date: <span id="nextPaymentDate" style="color: #00d4ff;">End of Month</span></div>
+                                        <div id="reminderStatusDiv" style="color: #e0e0e0; margin-top: 8px; display: none;">
+                                            <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 8px;">
+                                                <div style="font-size: 0.9rem; color: #ffa500; margin-bottom: 3px;" id="reminderStatusText">📅 Reminder Status</div>
+                                                <div style="font-size: 0.8rem; color: #888;" id="lastReminderInfo"></div>
+                                                <div style="font-size: 0.8rem; color: #888;" id="nextReminderInfo"></div>
+                                            </div>
+                                        </div>
                                     </div>
                                     <div style="text-align: right;">
                                         <div style="color: #b8c6db; font-size: 0.9rem; margin-bottom: 5px;">Your Payment Reference:</div>
@@ -10285,12 +10292,78 @@
 
                 // Enforce subscription limits on UI
                 enforceSubscriptionLimits();
+                
+                // Load reminder status for logged-in users
+                await loadUserReminderStatus();
 
             } catch (error) {
                 console.error('Error updating account status:', error);
                 // Fallback to safe status
                 updateStatusDisplay('accountStatus', 'UNKNOWN', '#feca57');
                 updateStatusDisplay('paymentStatus', 'Check Required', '#feca57');
+            }
+        }
+        
+        // Load and display user's reminder status
+        async function loadUserReminderStatus() {
+            try {
+                const response = await apiService.apiCall('/user/my-reminder-status');
+                
+                if (response.success && response.data) {
+                    const { currentStatus, nextReminder, reminderHistory } = response.data;
+                    const reminderDiv = document.getElementById('reminderStatusDiv');
+                    const reminderText = document.getElementById('reminderStatusText');
+                    const lastReminderInfo = document.getElementById('lastReminderInfo');
+                    const nextReminderInfo = document.getElementById('nextReminderInfo');
+                    
+                    if (!reminderDiv) return;
+                    
+                    // Check if any reminders have been sent
+                    if (currentStatus.sevenDayReminderSent || currentStatus.oneDayReminderSent) {
+                        reminderDiv.style.display = 'block';
+                        
+                        // Update reminder status text with appropriate urgency
+                        if (currentStatus.oneDayReminderSent) {
+                            reminderText.innerHTML = '🚨 <span style="color: #ff6b6b; font-weight: bold;">URGENT: 1-Day Reminder Sent!</span>';
+                            reminderText.style.color = '#ff6b6b';
+                        } else if (currentStatus.sevenDayReminderSent) {
+                            reminderText.innerHTML = '📅 <span style="color: #ffa500; font-weight: bold;">7-Day Reminder Sent</span>';
+                            reminderText.style.color = '#ffa500';
+                        }
+                        
+                        // Show last reminder info
+                        if (currentStatus.lastReminderDate) {
+                            const reminderDate = new Date(currentStatus.lastReminderDate);
+                            lastReminderInfo.innerHTML = `Last reminder: ${reminderDate.toDateString()} (${currentStatus.lastReminderType})`;
+                            lastReminderInfo.style.display = 'block';
+                        }
+                        
+                        // Show days until expiry with urgency
+                        if (currentStatus.daysUntilExpiry !== null && currentStatus.daysUntilExpiry >= 0) {
+                            if (currentStatus.daysUntilExpiry === 0) {
+                                nextReminderInfo.innerHTML = '<span style="color: #ff6b6b; font-weight: bold;">⚠️ Expires TODAY!</span>';
+                            } else if (currentStatus.daysUntilExpiry === 1) {
+                                nextReminderInfo.innerHTML = '<span style="color: #ff6b6b; font-weight: bold;">⚠️ Expires TOMORROW!</span>';
+                            } else {
+                                nextReminderInfo.innerHTML = `${currentStatus.daysUntilExpiry} days until expiry`;
+                            }
+                            nextReminderInfo.style.display = 'block';
+                        }
+                    } else if (nextReminder) {
+                        // Show when next reminder is expected
+                        reminderDiv.style.display = 'block';
+                        reminderText.innerHTML = '📅 Reminder Status';
+                        reminderText.style.color = '#888';
+                        
+                        const expectedDate = new Date(nextReminder.expectedDate);
+                        nextReminderInfo.innerHTML = `Next ${nextReminder.type} reminder: ${expectedDate.toDateString()}`;
+                        nextReminderInfo.style.display = 'block';
+                        lastReminderInfo.style.display = 'none';
+                    }
+                }
+            } catch (error) {
+                console.log('Could not load reminder status:', error);
+                // Silent fail - reminders are supplementary info
             }
         }
 
@@ -10526,6 +10599,13 @@
                         </div>
                     </div>
                     
+                    <div id="reminderTimelineSection" style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; margin-top: 20px; display: none;">
+                        <h4 style="color: #ffa500; margin-bottom: 10px;">📅 Reminder Timeline</h4>
+                        <div id="reminderTimelineContent" style="max-height: 200px; overflow-y: auto;">
+                            <!-- Timeline will be loaded here -->
+                        </div>
+                    </div>
+                    
                     <button onclick="this.parentElement.parentElement.remove()" class="btn" style="margin-top: 20px; width: 100%;">
                         Close
                     </button>
@@ -10533,6 +10613,73 @@
             `;
             
             document.body.appendChild(modal);
+            
+            // Load reminder timeline after modal is created
+            loadReminderTimeline();
+        }
+        
+        // Load reminder timeline for detailed billing modal
+        async function loadReminderTimeline() {
+            try {
+                const response = await apiService.apiCall('/user/my-reminder-status');
+                
+                if (response.success && response.data) {
+                    const { currentStatus, reminderHistory } = response.data;
+                    const section = document.getElementById('reminderTimelineSection');
+                    const content = document.getElementById('reminderTimelineContent');
+                    
+                    if (!section || !content) return;
+                    
+                    if (reminderHistory && reminderHistory.length > 0) {
+                        section.style.display = 'block';
+                        
+                        content.innerHTML = reminderHistory.map(reminder => {
+                            const sentDate = new Date(reminder.sentAt);
+                            const typeColor = reminder.type === '1day' ? '#ff6b6b' : '#ffa500';
+                            const typeIcon = reminder.type === '1day' ? '🚨' : '📅';
+                            const typeText = reminder.type === '1day' ? 'Urgent 1-Day' : '7-Day';
+                            
+                            return `
+                                <div style="background: rgba(255,255,255,0.05); padding: 10px; margin-bottom: 10px; border-radius: 8px; border-left: 3px solid ${typeColor};">
+                                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                                        <div>
+                                            <span style="color: ${typeColor}; font-weight: bold;">
+                                                ${typeIcon} ${typeText} Reminder
+                                            </span>
+                                            <div style="color: #888; font-size: 0.8rem; margin-top: 3px;">
+                                                Sent: ${sentDate.toLocaleDateString()} at ${sentDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                            </div>
+                                        </div>
+                                        <div style="text-align: right;">
+                                            <span style="color: #666; font-size: 0.8rem;">
+                                                ${reminder.daysUntilExpiry} days before expiry
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('');
+                    } else if (currentStatus.sevenDayReminderSent || currentStatus.oneDayReminderSent) {
+                        // Show current reminder status if no history
+                        section.style.display = 'block';
+                        
+                        let statusHTML = '';
+                        if (currentStatus.oneDayReminderSent) {
+                            statusHTML = '<div style="color: #ff6b6b; padding: 10px;">🚨 1-Day urgent reminder has been sent</div>';
+                        } else if (currentStatus.sevenDayReminderSent) {
+                            statusHTML = '<div style="color: #ffa500; padding: 10px;">📅 7-Day reminder has been sent</div>';
+                        }
+                        
+                        if (currentStatus.lastReminderDate) {
+                            statusHTML += `<div style="color: #888; font-size: 0.9rem; padding: 0 10px;">Last reminder: ${new Date(currentStatus.lastReminderDate).toDateString()}</div>`;
+                        }
+                        
+                        content.innerHTML = statusHTML;
+                    }
+                }
+            } catch (error) {
+                console.log('Could not load reminder timeline:', error);
+            }
         }
 
         function showPaymentInstructions() {
