@@ -11417,7 +11417,7 @@
                 // Direct fetch call to get users
                 const response = await fetch('/api/v1/admin/all-users-test', {
                     headers: { 
-                        'Authorization': `Bearer ${localStorage.getItem('jwt_token')}`,
+                        'Authorization': `Bearer ${localStorage.getItem('arb4me_jwt_token')}`,
                         'Content-Type': 'application/json'
                     }
                 });
