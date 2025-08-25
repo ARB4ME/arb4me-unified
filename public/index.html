@@ -24392,8 +24392,15 @@ ARB4ME Security Team`
 
         // Refresh payment history
         async function refreshPaymentHistory() {
+            const token = localStorage.getItem('arb4me_jwt_token');
+            if (!token) {
+                showNotification('Please log in to view payment history', 'error');
+                return;
+            }
+            
             await loadPaymentHistory();
             await populatePaymentHistoryUserDropdown();
+            showNotification('Payment history refreshed successfully', 'success');
         }
 
         // Populate user dropdown for payment history filtering
@@ -24515,7 +24522,18 @@ ARB4ME Security Team`
             await loadExpiringUsersCount();
             await loadExpiredUsersCount();
             await loadAutoRemindersCount();
-            await loadPaymentHistory();
+            
+            // Only load payment history if user is authenticated
+            const token = localStorage.getItem('arb4me_jwt_token');
+            if (token) {
+                await loadPaymentHistory();
+            } else {
+                // Show a message that payment history will load after authentication
+                const container = document.getElementById('paymentHistoryList');
+                if (container) {
+                    container.innerHTML = '<div style="color: #888; padding: 20px; text-align: center;">🔐 Payment history will load after authentication...</div>';
+                }
+            }
         }
 
         // =====================================
