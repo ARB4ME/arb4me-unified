@@ -11428,9 +11428,10 @@
                 // Clear loading and add placeholder
                 dropdown.innerHTML = '<option value="" style="background: #1a1a2e; color: white;">🔍 Select User to Promote...</option>';
                 
-                // Add users to dropdown
-                if (data.users && Array.isArray(data.users)) {
-                    data.users.forEach(user => {
+                // Add users to dropdown - handle {success: true, data: {users: []}} format
+                const users = data.data?.users || data.users || [];
+                if (users && Array.isArray(users)) {
+                    users.forEach(user => {
                         const option = document.createElement('option');
                         option.value = user.id;
                         // Show admin status for clarity
@@ -11441,7 +11442,7 @@
                         option.style.padding = '8px';
                         dropdown.appendChild(option);
                     });
-                    console.log(`✅ Added ${data.users.length} users to promote dropdown`);
+                    console.log(`✅ Added ${users.length} users to promote dropdown`);
                 } else {
                     dropdown.innerHTML = '<option value="" style="background: #1a1a2e; color: white;">⚠️ No users found</option>';
                 }
