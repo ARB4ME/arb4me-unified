@@ -18158,9 +18158,16 @@ ARB4ME Security Team`
             }
 
             try {
+                // Check authentication before making API call
+                const token = localStorage.getItem('arb4me_jwt_token');
+                if (!token) {
+                    console.log('No authentication token available for filtering payment history');
+                    return;
+                }
+
                 const result = await apiService.apiCall(`/admin/payment-history?user_id=${selectedUserId}&limit=50`, {
                     headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('arb4me_jwt_token')}`
+                        'Authorization': `Bearer ${token}`
                     }
                 });
 
@@ -24319,13 +24326,18 @@ ARB4ME Security Team`
         // Load payment history
         async function loadPaymentHistory() {
             try {
+                // Check authentication before making API call
+                const token = localStorage.getItem('arb4me_jwt_token');
+                if (!token) {
+                    console.log('No authentication token available for payment history');
+                    return;
+                }
+
                 const result = await apiService.apiCall('/admin/payment-history?limit=20', {
                     headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('arb4me_jwt_token')}`
+                        'Authorization': `Bearer ${token}`
                     }
                 });
-
-                
 
                 if (result.success) {
                     const container = document.getElementById('paymentHistoryList');
@@ -24389,23 +24401,35 @@ ARB4ME Security Team`
             try {
                 const result = await apiService.getAllUsers();
                 
-                if (result.success) {
-                    const dropdown = document.getElementById('paymentUserFilter');
-                    const users = result.data.users;
-                    
-                    // Clear existing options (except the "All Users" option)
-                    dropdown.innerHTML = '<option value="">🔍 All Users - View Complete Payment History</option>';
-                    
-                    // Add all users to dropdown
-                    users.forEach(user => {
-                        const option = document.createElement('option');
-                        option.value = user.id;
-                        option.textContent = `${user.firstName} ${user.lastName} (${user.email})`;
-                        dropdown.appendChild(option);
-                    });
+                // Handle different response formats from getAllUsers()
+                let users;
+                if (result.success && result.data && result.data.users) {
+                    users = result.data.users;
+                } else if (result.users && Array.isArray(result.users)) {
+                    users = result.users;
                 } else {
-                    console.error('Error loading users for dropdown:', result.error);
+                    console.log('No users found in response:', result);
+                    return;
                 }
+                
+                const dropdown = document.getElementById('paymentUserFilter');
+                if (!dropdown) {
+                    console.log('Payment user filter dropdown not found');
+                    return;
+                }
+                
+                // Clear existing options (except the "All Users" option)
+                dropdown.innerHTML = '<option value="">🔍 All Users - View Complete Payment History</option>';
+                
+                // Add all users to dropdown
+                users.forEach(user => {
+                    const option = document.createElement('option');
+                    option.value = user.id;
+                    option.textContent = `${user.firstName} ${user.lastName} (${user.email})`;
+                    dropdown.appendChild(option);
+                });
+                
+                console.log(`✅ Populated payment history dropdown with ${users.length} users`);
             } catch (error) {
                 console.error('Error populating payment history user dropdown:', error);
             }
