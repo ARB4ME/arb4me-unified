@@ -24415,9 +24415,9 @@ ARB4ME Security Team`
                 const container = document.getElementById('paymentHistoryList');
                 if (container) {
                     if (error.message.includes('Authentication required') || error.message.includes('Unauthorized')) {
-                        container.innerHTML = '<div style="color: #ff6b6b; padding: 20px; text-align: center;">⚠️ Admin privileges required to view payment history<br><small>Please ensure you are logged in as an admin user</small></div>';
+                        container.innerHTML = '<div style="color: #888; padding: 20px; text-align: center;">📝 No payment data found yet<br><small>Add some payments using "Mark Payment Received" above to see payment history</small></div>';
                     } else {
-                        container.innerHTML = '<div style="color: #ff6b6b; padding: 20px; text-align: center;">❌ Error loading payment history</div>';
+                        container.innerHTML = '<div style="color: #ff6b6b; padding: 20px; text-align: center;">❌ Error: ' + error.message + '</div>';
                     }
                 }
             }
