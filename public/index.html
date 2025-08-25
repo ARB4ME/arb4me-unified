@@ -24330,6 +24330,10 @@ ARB4ME Security Team`
                 const token = localStorage.getItem('arb4me_jwt_token');
                 if (!token) {
                     console.log('No authentication token available for payment history');
+                    const container = document.getElementById('paymentHistoryList');
+                    if (container) {
+                        container.innerHTML = '<div style="color: #ff6b6b; padding: 20px; text-align: center;">🔐 Please log in to view payment history</div>';
+                    }
                     return;
                 }
 
@@ -24387,6 +24391,14 @@ ARB4ME Security Team`
                 }
             } catch (error) {
                 console.error('Error loading payment history:', error);
+                const container = document.getElementById('paymentHistoryList');
+                if (container) {
+                    if (error.message.includes('Authentication required') || error.message.includes('Unauthorized')) {
+                        container.innerHTML = '<div style="color: #ff6b6b; padding: 20px; text-align: center;">⚠️ Admin privileges required to view payment history<br><small>Please ensure you are logged in as an admin user</small></div>';
+                    } else {
+                        container.innerHTML = '<div style="color: #ff6b6b; padding: 20px; text-align: center;">❌ Error loading payment history</div>';
+                    }
+                }
             }
         }
 
