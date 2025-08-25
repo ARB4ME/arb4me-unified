@@ -271,6 +271,8 @@ router.get('/all-users-test', authenticateUser, requireAdmin, asyncHandler(async
                 u.account_status, u.subscription_plan, u.subscription_expires_at,
                 u.payment_reference,
                 u.created_at, u.updated_at, u.last_login_at,
+                u.last_reminder_type, u.last_reminder_date,
+                u.seven_day_reminder_sent, u.one_day_reminder_sent,
                 ta.exchanges_connected_count, ta.trading_active, ta.auto_trading_enabled,
                 ta.total_trades_count, ta.successful_trades_count, ta.profit_loss_total,
                 ta.last_trading_activity
@@ -326,6 +328,15 @@ router.get('/all-users-test', authenticateUser, requireAdmin, asyncHandler(async
         lastLogin: row.last_login_at,
         payment_reference: row.payment_reference,
         paymentReference: row.payment_reference,
+        // Reminder fields
+        last_reminder_type: row.last_reminder_type,
+        lastReminderType: row.last_reminder_type,
+        last_reminder_date: row.last_reminder_date,
+        lastReminderDate: row.last_reminder_date,
+        seven_day_reminder_sent: row.seven_day_reminder_sent,
+        sevenDayReminderSent: row.seven_day_reminder_sent,
+        one_day_reminder_sent: row.one_day_reminder_sent,
+        oneDayReminderSent: row.one_day_reminder_sent,
         // Trading activity fields
         exchanges_connected_count: row.exchanges_connected_count || 0,
         exchangesConnectedCount: row.exchanges_connected_count || 0,

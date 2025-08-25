@@ -10808,12 +10808,25 @@
                     'paid': 'Paid'
                 };
 
+                // Check reminder status
+                let reminderBadge = '';
+                if (userData.user.one_day_reminder_sent || userData.user.oneDayReminderSent) {
+                    reminderBadge = '<span style="background: #ff6b6b; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; margin-left: 8px;">🚨 1-day reminder sent</span>';
+                } else if (userData.user.seven_day_reminder_sent || userData.user.sevenDayReminderSent) {
+                    reminderBadge = '<span style="background: #ffa500; color: black; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; margin-left: 8px;">📅 7-day reminder sent</span>';
+                }
+                
+                const lastReminderDate = userData.user.last_reminder_date || userData.user.lastReminderDate;
+                const reminderInfo = lastReminderDate ? 
+                    `<div style="color: #888; font-size: 0.7rem; margin-top: 3px;">Last reminder: ${new Date(lastReminderDate).toDateString()}</div>` : '';
+
                 return `
                     <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; margin-bottom: 15px; ${userData.paymentStatus === 'overdue' ? 'border-left: 4px solid #ff6b6b;' : ''}">
                         <div style="display: flex; justify-content: between; align-items: center; flex-wrap: wrap; gap: 15px;">
                             <div style="flex: 1;">
                                 <div style="color: #00d4ff; font-weight: bold; margin-bottom: 5px;">
                                     ${userData.user.firstName} ${userData.user.lastName}
+                                    ${reminderBadge}
                                 </div>
                                 <div style="color: #e0e0e0; font-size: 0.9rem;">
                                     ${userData.user.email} | ID: ${userData.user.paymentReference || userData.user.payment_reference || 'ARB-' + userData.user.id.split('_')[1] || userData.user.id}
@@ -10821,6 +10834,7 @@
                                 <div style="color: #ffd700; font-size: 0.9rem; font-weight: bold;">
                                     💳 Payment Ref: ${userData.user.paymentReference || userData.user.payment_reference || 'Not Set'}
                                 </div>
+                                ${reminderInfo}
                                 <div style="color: #b8c6db; font-size: 0.8rem; margin-top: 3px;">
                                     ${userData.tradeCount} trades • $${userData.monthlyProfit.toFixed(2)} profit
                                 </div>
