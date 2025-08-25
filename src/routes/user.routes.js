@@ -538,4 +538,100 @@ router.delete('/account', asyncHandler(async (req, res) => {
     });
 }));
 
+// GET /api/v1/user/my-reminder-status - Get current user's reminder status
+router.get('/my-reminder-status', asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+    
+    // Get user's current reminder status and subscription info
+    const userResult = await query(`
+        SELECT 
+            id, first_name, last_name, email,
+            subscription_expires_at, last_payment_date,
+            last_reminder_type, last_reminder_date,
+            seven_day_reminder_sent, one_day_reminder_sent
+        FROM users
+        WHERE id = $1
+    `, [userId]);
+    
+    if (userResult.rows.length === 0) {
+        throw new APIError('User not found', 404);
+    }
+    
+    const user = userResult.rows[0];
+    
+    // Get reminder history for this user (last 30 days)
+    const historyResult = await query(`
+        SELECT 
+            reminder_type, sent_at, days_until_expiry, message_id
+        FROM auto_reminders_log
+        WHERE user_id = $1
+        AND sent_date >= CURRENT_DATE - INTERVAL '30 days'
+        ORDER BY sent_at DESC
+    `, [userId]);
+    
+    // Calculate days until expiry
+    let daysUntilExpiry = null;
+    let expiryStatus = 'no_subscription';
+    
+    if (user.subscription_expires_at) {
+        const expiryDate = new Date(user.subscription_expires_at);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        expiryDate.setHours(0, 0, 0, 0);
+        
+        daysUntilExpiry = Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24));
+        
+        if (daysUntilExpiry < 0) {
+            expiryStatus = 'expired';
+        } else if (daysUntilExpiry === 0) {
+            expiryStatus = 'expires_today';
+        } else if (daysUntilExpiry === 1) {
+            expiryStatus = 'expires_tomorrow';
+        } else if (daysUntilExpiry <= 7) {
+            expiryStatus = 'expires_soon';
+        } else {
+            expiryStatus = 'active';
+        }
+    }
+    
+    // Determine next expected reminder
+    let nextReminder = null;
+    if (user.subscription_expires_at && daysUntilExpiry > 0) {
+        if (!user.seven_day_reminder_sent && daysUntilExpiry > 7) {
+            nextReminder = {
+                type: '7day',
+                expectedDate: new Date(new Date(user.subscription_expires_at).getTime() - 7 * 24 * 60 * 60 * 1000)
+            };
+        } else if (!user.one_day_reminder_sent && daysUntilExpiry > 1) {
+            nextReminder = {
+                type: '1day',
+                expectedDate: new Date(new Date(user.subscription_expires_at).getTime() - 24 * 60 * 60 * 1000)
+            };
+        }
+    }
+    
+    res.json({
+        success: true,
+        data: {
+            currentStatus: {
+                subscriptionExpiresAt: user.subscription_expires_at,
+                lastPaymentDate: user.last_payment_date,
+                daysUntilExpiry,
+                expiryStatus,
+                lastReminderType: user.last_reminder_type,
+                lastReminderDate: user.last_reminder_date,
+                sevenDayReminderSent: user.seven_day_reminder_sent,
+                oneDayReminderSent: user.one_day_reminder_sent
+            },
+            nextReminder,
+            reminderHistory: historyResult.rows.map(r => ({
+                type: r.reminder_type,
+                sentAt: r.sent_at,
+                daysUntilExpiry: r.days_until_expiry,
+                messageId: r.message_id
+            }))
+        }
+    });
+}));
+
 module.exports = router;

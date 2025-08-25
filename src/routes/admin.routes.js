@@ -3177,6 +3177,8 @@ router.get('/payment-history', authenticateUser, requireAdmin, asyncHandler(asyn
                 p.id, p.user_id, p.payment_reference, p.amount, p.payment_date, 
                 p.bank_reference, p.payment_month, p.notes, p.created_at,
                 u.first_name, u.last_name, u.email,
+                u.last_reminder_type, u.last_reminder_date,
+                u.seven_day_reminder_sent, u.one_day_reminder_sent,
                 admin_u.first_name as admin_first_name, admin_u.last_name as admin_last_name
             FROM payments p
             JOIN users u ON p.user_id = u.id
@@ -3215,6 +3217,13 @@ router.get('/payment-history', authenticateUser, requireAdmin, asyncHandler(asyn
                 firstName: row.first_name,
                 lastName: row.last_name,
                 email: row.email
+            },
+            reminderStatus: {
+                lastReminderType: row.last_reminder_type,
+                lastReminderDate: row.last_reminder_date,
+                sevenDayReminderSent: row.seven_day_reminder_sent,
+                oneDayReminderSent: row.one_day_reminder_sent,
+                paidAfterReminder: row.last_reminder_date && new Date(row.payment_date) > new Date(row.last_reminder_date)
             },
             markedBy: row.admin_first_name ? {
                 firstName: row.admin_first_name,

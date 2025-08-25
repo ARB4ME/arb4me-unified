@@ -24114,11 +24114,27 @@ ARB4ME Security Team`
                         return;
                     }
 
-                    container.innerHTML = result.data.payments.map(payment => `
-                        <div style="background: rgba(255,255,255,0.05); padding: 15px; margin-bottom: 10px; border-radius: 10px; border-left: 3px solid #00ff88;">
+                    container.innerHTML = result.data.payments.map(payment => {
+                        // Determine reminder badge
+                        let reminderBadge = '';
+                        if (payment.reminderStatus) {
+                            if (payment.reminderStatus.paidAfterReminder) {
+                                if (payment.reminderStatus.lastReminderType === '7day') {
+                                    reminderBadge = '<span style="background: #ffa500; color: black; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; margin-left: 8px;">📅 Paid after 7-day reminder</span>';
+                                } else if (payment.reminderStatus.lastReminderType === '1day') {
+                                    reminderBadge = '<span style="background: #ff6b6b; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; margin-left: 8px;">🚨 Paid after urgent reminder</span>';
+                                }
+                            }
+                        }
+                        
+                        return `
+                        <div style="background: rgba(255,255,255,0.05); padding: 15px; margin-bottom: 10px; border-radius: 10px; border-left: 3px solid ${payment.reminderStatus?.paidAfterReminder ? '#ffa500' : '#00ff88'};">
                             <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
                                 <div>
-                                    <div style="font-weight: bold; color: white;">${payment.user.firstName} ${payment.user.lastName}</div>
+                                    <div style="font-weight: bold; color: white;">
+                                        ${payment.user.firstName} ${payment.user.lastName}
+                                        ${reminderBadge}
+                                    </div>
                                     <div style="font-size: 0.9rem; color: #ccc;">${payment.user.email}</div>
                                 </div>
                                 <div style="text-align: right;">
@@ -24132,8 +24148,9 @@ ARB4ME Security Team`
                             </div>
                             ${payment.bankReference ? `<div style="font-size: 0.8rem; color: #888; margin-top: 5px;">Bank Ref: ${payment.bankReference}</div>` : ''}
                             ${payment.notes ? `<div style="font-size: 0.8rem; color: #888; margin-top: 5px; font-style: italic;">Notes: ${payment.notes}</div>` : ''}
+                            ${payment.reminderStatus?.lastReminderDate ? `<div style="font-size: 0.7rem; color: #666; margin-top: 5px;">Last reminder sent: ${new Date(payment.reminderStatus.lastReminderDate).toDateString()}</div>` : ''}
                         </div>
-                    `).join('');
+                    `}).join('');
                 }
             } catch (error) {
                 console.error('Error loading payment history:', error);
