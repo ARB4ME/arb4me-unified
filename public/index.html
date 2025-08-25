@@ -11402,38 +11402,33 @@
             container.innerHTML = html;
         }
 
-        // Function to update your admin role in database to master (FIXED)
+        // Function to update your admin role in database to master (MIGRATION FIX)
         async function updateMyAdminRole() {
             try {
-                const myUserId = JSON.parse(localStorage.getItem('arb4me_current_user')).id;
-                console.log('🔄 Updating admin role to MASTER for user:', myUserId);
+                console.log('🔄 Using migration endpoint to set admin role to MASTER...');
                 
-                // Use the working admin/users endpoint to update admin role
-                const response = await fetch(`/api/v1/admin/users/${myUserId}/status`, {
+                // Use migration endpoint that directly updates current user to master
+                const response = await fetch('/api/v1/migration/promote-admin', {
                     method: 'POST',
                     headers: { 
                         'Authorization': `Bearer ${localStorage.getItem('arb4me_jwt_token')}`,
                         'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        status: 'active',
-                        adminRole: 'master'  // This should update to master
-                    })
+                    }
                 });
                 
                 const result = await response.json();
-                console.log('✅ Master admin role update result:', result);
+                console.log('✅ Migration promote-admin result:', result);
                 
                 if (result.success) {
-                    console.log('🎉 Please log out and log back in to get new JWT token with MASTER role!');
+                    console.log('🎉 SUCCESS! Admin role set to MASTER via migration endpoint!');
+                    console.log('📝 Please log out and log back in to get new JWT token with MASTER role!');
                 } else {
-                    console.log('❌ Update failed, trying direct SQL approach...');
-                    // Fallback - try to find a direct update method
+                    console.log('❌ Migration endpoint failed:', result.error);
                 }
                 
                 return result;
             } catch (error) {
-                console.error('❌ Error updating admin role to master:', error);
+                console.error('❌ Error using migration endpoint:', error);
             }
         }
 
