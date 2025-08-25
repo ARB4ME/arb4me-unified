@@ -24321,7 +24321,8 @@ ARB4ME Security Team`
 
         // Load payment history
         async function loadPaymentHistory() {
-            console.log('🚀 loadPaymentHistory() called - starting debug');
+            console.log('🚀🚀🚀 PAYMENT HISTORY DEBUG START 🚀🚀🚀');
+            console.log('Current time:', new Date().toLocaleString());
             try {
                 // Check authentication before making API call
                 const token = localStorage.getItem('arb4me_jwt_token');
@@ -24352,8 +24353,9 @@ ARB4ME Security Team`
                     console.log('❌ all-users-test failed:', e.message);
                 }
 
-                // Try using the same approach as getAllUsers() which works
-                const result = await apiService.apiCall('/admin/payment-history?limit=20');
+                // Try using the alternative payment endpoint that might work
+                console.log('🧪 Trying alternative payment endpoint...');
+                const result = await apiService.apiCall('/admin/payments/all');
 
                 if (result.success) {
                     const container = document.getElementById('paymentHistoryList');
@@ -24416,6 +24418,7 @@ ARB4ME Security Team`
 
         // Refresh payment history
         async function refreshPaymentHistory() {
+            console.log('🔥🔥🔥 REFRESH BUTTON CLICKED - NEW VERSION 2024 🔥🔥🔥');
             const token = localStorage.getItem('arb4me_jwt_token');
             if (!token) {
                 console.log('Please log in to view payment history');
