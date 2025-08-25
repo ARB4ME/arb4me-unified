@@ -17067,7 +17067,7 @@ ARB4ME Security Team`
                         return { success: false, error: 'No authentication token' };
                     }
 
-                    const response = await this.apiCall(`/admin/admins`, {
+                    const response = await this.apiCall(`/api/v1/admin/admins`, {
                         method: 'GET'
                     });
                     
@@ -17115,7 +17115,7 @@ ARB4ME Security Team`
                         return { success: false, error: 'No authentication token' };
                     }
 
-                    const response = await this.apiCall(`/admin/admins/${userId}/promote`, {
+                    const response = await this.apiCall(`/api/v1/admin/admins/${userId}/promote`, {
                         method: 'POST',
                         body: JSON.stringify({ newRole })
                     });
@@ -17140,7 +17140,7 @@ ARB4ME Security Team`
                         return { success: false, error: 'No authentication token' };
                     }
 
-                    const response = await this.apiCall(`/admin/admins/${userId}/demote`, {
+                    const response = await this.apiCall(`/api/v1/admin/admins/${userId}/demote`, {
                         method: 'POST',
                         body: JSON.stringify({})
                     });
