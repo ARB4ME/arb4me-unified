@@ -28,17 +28,22 @@ const authenticateUser = async (req, res, next) => {
         );
         
         if (userResult.rows.length === 0) {
-            // Special case: If JWT has admin_role, create minimal user object from JWT
-            if (decoded.admin_role) {
-                console.log(`✅ User ${decoded.userId} not found in DB, but JWT has admin_role: ${decoded.admin_role} - Creating user object from JWT`);
+            // Special case for master admin user that might not be in DB
+            if (decoded.userId === 'user_1754937705_554733' || decoded.admin_role) {
+                console.log(`✅ Special case: User ${decoded.userId} with admin_role: ${decoded.admin_role || 'checking...'}`);
+                
+                // For the master admin, always use master role
+                const adminRole = decoded.userId === 'user_1754937705_554733' ? 'master' : decoded.admin_role;
+                
                 req.user = {
                     id: decoded.userId,
-                    admin_role: decoded.admin_role,
+                    admin_role: adminRole,
                     account_status: 'active',
                     first_name: 'Master',
                     last_name: 'Admin',
                     email: 'master@arb4me.com'
                 };
+                console.log(`✅ Created user object with admin_role: ${adminRole}`);
                 return next();
             }
             console.log(`❌ User ${decoded.userId} not found and no admin_role in JWT`);
