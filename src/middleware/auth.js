@@ -83,7 +83,9 @@ const authenticateUser = async (req, res, next) => {
 
 // Require admin role middleware
 const requireAdmin = (req, res, next) => {
+    console.log(`🔐 requireAdmin check - req.user exists: ${!!req.user}, user ID: ${req.user?.id || 'none'}`);
     if (!req.user) {
+        console.log('❌ requireAdmin: No req.user object found');
         return next(new APIError('Authentication required', 401, 'AUTH_REQUIRED'));
     }
     

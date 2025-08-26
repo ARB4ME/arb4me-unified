@@ -518,6 +518,8 @@ router.post('/reply-test', authenticateUser, requireAdmin, asyncHandler(async (r
     });
 }));
 
+// Apply authentication and admin check to all routes below this point
+router.use(authenticateUser);
 router.use(requireAdmin);
 
 // GET /api/v1/admin/dashboard - Main dashboard statistics
@@ -882,7 +884,8 @@ router.get('/users/:userId', asyncHandler(async (req, res) => {
 }));
 
 // PUT /api/v1/admin/users/:userId/status - Update user account status
-router.put('/users/:userId/status', authenticateUser, requireAdminRole('manager'), [
+// Note: authenticateUser and requireAdmin already applied globally above
+router.put('/users/:userId/status', requireAdminRole('manager'), [
     body('status').isIn(['active', 'suspended', 'trial']).withMessage('Invalid status'),
     body('reason').optional().trim().isLength({ min: 5, max: 500 }).withMessage('Reason must be 5-500 characters')
 ], asyncHandler(async (req, res) => {
@@ -1256,7 +1259,8 @@ router.get('/analytics', asyncHandler(async (req, res) => {
 }));
 
 // POST /api/v1/admin/promote - Promote user to admin (master admin only)
-router.post('/promote', authenticateUser, requireAdminRole('master'), [
+// Note: authenticateUser and requireAdmin already applied globally above
+router.post('/promote', requireAdminRole('master'), [
     body('userId').notEmpty().withMessage('User ID is required'),
     body('adminRole').isIn(['support', 'manager', 'admin']).withMessage('Invalid admin role'),
     body('adminPin').isLength({ min: 6, max: 20 }).withMessage('Admin PIN must be 6-20 characters')
