@@ -5607,21 +5607,21 @@
                                 onkeyup="filterUsers()">
                             
                             <select id="userStatusFilter" onchange="filterUsers()" 
-                                style="padding: 8px 12px; background: rgba(255,255,255,0.1); 
-                                       border: 1px solid #00d4ff; border-radius: 6px; color: white;">
-                                <option value="all">All Status</option>
-                                <option value="active">Active</option>
-                                <option value="suspended">Suspended</option>
-                                <option value="trial">Trial</option>
+                                style="padding: 8px 12px; background: rgba(30,30,50,0.9); 
+                                       border: 1px solid #00d4ff; border-radius: 6px; color: white; cursor: pointer;">
+                                <option value="all" style="background: #1a1a2e; color: white;">All Status</option>
+                                <option value="active" style="background: #1a1a2e; color: white;">✅ Active</option>
+                                <option value="suspended" style="background: #1a1a2e; color: white;">🚫 Suspended</option>
+                                <option value="trial" style="background: #1a1a2e; color: white;">🧪 Trial</option>
                             </select>
                             
                             <select id="userTradingFilter" onchange="filterUsers()" 
-                                style="padding: 8px 12px; background: rgba(255,255,255,0.1); 
-                                       border: 1px solid #00d4ff; border-radius: 6px; color: white;">
-                                <option value="all">All Trading</option>
-                                <option value="configured">APIs Configured</option>
-                                <option value="not_configured">APIs Not Set</option>
-                                <option value="active_trading">Active Trading</option>
+                                style="padding: 8px 12px; background: rgba(30,30,50,0.9); 
+                                       border: 1px solid #00d4ff; border-radius: 6px; color: white; cursor: pointer;">
+                                <option value="all" style="background: #1a1a2e; color: white;">All Trading Status</option>
+                                <option value="configured" style="background: #1a1a2e; color: white;">✅ APIs Configured</option>
+                                <option value="not_configured" style="background: #1a1a2e; color: white;">❌ APIs Not Set</option>
+                                <option value="active_trading" style="background: #1a1a2e; color: white;">🚀 Active Trading</option>
                             </select>
                             
                             <button onclick="refreshAllUsersList()" style="
