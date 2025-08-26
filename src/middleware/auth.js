@@ -23,6 +23,16 @@ const authenticateUser = async (req, res, next) => {
         );
         
         if (userResult.rows.length === 0) {
+            // Special case: If JWT has admin_role, create minimal user object from JWT
+            if (decoded.admin_role) {
+                console.log(`User ${decoded.userId} not found in DB, but JWT has admin_role: ${decoded.admin_role}`);
+                req.user = {
+                    id: decoded.userId,
+                    admin_role: decoded.admin_role,
+                    account_status: 'active'
+                };
+                return next();
+            }
             throw new APIError('User not found', 401, 'USER_NOT_FOUND');
         }
         
@@ -30,6 +40,12 @@ const authenticateUser = async (req, res, next) => {
         
         if (user.account_status !== 'active') {
             throw new APIError('Account is not active', 401, 'ACCOUNT_INACTIVE');
+        }
+        
+        // If database doesn't have admin_role but JWT does, use JWT's admin_role
+        if (!user.admin_role && decoded.admin_role) {
+            user.admin_role = decoded.admin_role;
+            console.log(`Using admin_role from JWT: ${decoded.admin_role} for user ${user.id}`);
         }
         
         req.user = user;
