@@ -6142,7 +6142,7 @@
                     <div style="background: rgba(0,212,255,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px;">
                         <h4 style="color: #00d4ff; margin-bottom: 15px;">👑 Admin Users</h4>
                         <div style="margin-bottom: 15px;">
-                            <button onclick="refreshAdminUsers()" style="padding: 8px 16px; background: linear-gradient(45deg, #00d4ff, #0099cc); color: white; border: none; border-radius: 20px; cursor: pointer; margin-right: 10px;">
+                            <button onclick="loadAdminUsersList()" style="padding: 8px 16px; background: linear-gradient(45deg, #00d4ff, #0099cc); color: white; border: none; border-radius: 20px; cursor: pointer; margin-right: 10px;">
                                 🔄 Refresh
                             </button>
                             <button onclick="showRolePermissions()" style="padding: 8px 16px; background: linear-gradient(45deg, #ff9500, #ff6b00); color: white; border: none; border-radius: 20px; cursor: pointer;">
@@ -11315,7 +11315,7 @@
             activityLog: []
         };
 
-        async function refreshAdminUsers() {
+        async function loadAdminUsersList() {
             try {
                 const response = await apiService.getAdminUsers();
                 
@@ -11530,7 +11530,7 @@
                 if (response.success) {
                     alert(`User promoted to ${role} successfully!`);
                     document.getElementById('promoteUserId').value = '';
-                    refreshAdminUsers();
+                    loadAdminUsersList();
                     loadPromoteDropdown(); // Refresh the dropdown
                 } else {
                     alert('Failed to promote user: ' + (response.error || 'Unknown error'));
@@ -11552,7 +11552,7 @@
                 
                 if (response.success) {
                     showNotification('Admin user demoted successfully!', 'success');
-                    refreshAdminUsers();
+                    loadAdminUsersList();
                 } else {
                     showNotification('Failed to demote admin: ' + (response.error || 'Unknown error'), 'error');
                 }
@@ -15398,7 +15398,7 @@ Please help recover this stuck asset.`;
             } else if (tabName === 'messages') {
                 refreshAdminMessages();
             } else if (tabName === 'admins') {
-                refreshAdminUsers();
+                loadAdminUsersList();
                 refreshActivityLog();
                 loadPromoteDropdown();
             } else if (tabName === 'security') {
