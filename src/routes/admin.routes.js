@@ -1821,30 +1821,20 @@ router.get('/activity-log', asyncHandler(async (req, res) => {
         severity
     } = req.query;
     
-    // Use the enhanced query function for filtering
+    // Simple activity log query
     const logs = await query(`
-        SELECT * FROM get_activity_logs($1, $2, $3, $4, $5, $6, $7)
+        SELECT * FROM admin_activity_log 
+        ORDER BY created_at DESC 
+        LIMIT $1 OFFSET $2
     `, [
-        startDate || null,
-        endDate || null,
-        adminUserId || null,
-        category || null,
-        severity || null,
         parseInt(limit),
         parseInt(offset)
     ]);
     
     // Get total count for pagination
     const countResult = await query(`
-        SELECT COUNT(*) as total
-        FROM admin_activity_log al
-        WHERE 
-            ($1::TIMESTAMP IS NULL OR al.created_at >= $1) AND
-            ($2::TIMESTAMP IS NULL OR al.created_at <= $2) AND
-            ($3::VARCHAR IS NULL OR al.admin_user_id = $3) AND
-            ($4::VARCHAR IS NULL OR al.category = $4) AND
-            ($5::VARCHAR IS NULL OR al.severity = $5)
-    `, [startDate, endDate, adminUserId, category, severity]);
+        SELECT COUNT(*) as total FROM admin_activity_log
+    `);
     
     res.json({
         success: true,
