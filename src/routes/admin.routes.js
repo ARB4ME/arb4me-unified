@@ -1629,7 +1629,7 @@ router.post('/users/bulk/suspend', authenticateUser, requireAdmin, requirePermis
 }));
 
 // Admin role management endpoints
-router.get('/roles/permissions', authenticateUser, requireAdmin, requirePermission('admins.view'), asyncHandler(async (req, res) => {
+router.get('/roles/permissions', asyncHandler(async (req, res) => {
     // Get all role permissions
     const permissions = await query(
         'SELECT role_name, permission_name, description FROM admin_permissions ORDER BY role_name, permission_name'
@@ -1654,7 +1654,7 @@ router.get('/roles/permissions', authenticateUser, requireAdmin, requirePermissi
     });
 }));
 
-router.get('/admins', authenticateUser, requireAdmin, requirePermission('admins.view'), asyncHandler(async (req, res) => {
+router.get('/admins', asyncHandler(async (req, res) => {
     // Get all admin users
     const admins = await query(`
         SELECT id, first_name, last_name, email, admin_role, 

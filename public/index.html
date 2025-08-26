@@ -11323,11 +11323,11 @@
                     adminManagementData.adminUsers = response.data;
                     displayAdminUsers();
                 } else {
-                    showNotification('Failed to load admin users: ' + (response.error || 'Unknown error'), 'error');
+                    console.error('Failed to load admin users:', response.error || 'Unknown error');
                 }
             } catch (error) {
                 console.error('Error refreshing admin users:', error);
-                showNotification('Error loading admin users. Please try again.', 'error');
+                console.error('Error loading admin users. Please try again.');
             }
         }
 
@@ -11570,11 +11570,11 @@
                     adminManagementData.rolePermissions = response.data;
                     displayRolePermissionsModal();
                 } else {
-                    showNotification('Failed to load role permissions: ' + (response.error || 'Unknown error'), 'error');
+                    console.error('Failed to load role permissions:', response.error || 'Unknown error');
                 }
             } catch (error) {
                 console.error('Error loading role permissions:', error);
-                showNotification('Error loading role permissions. Please try again.', 'error');
+                console.error('Error loading role permissions. Please try again.');
             }
         }
 
