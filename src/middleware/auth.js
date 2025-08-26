@@ -8,13 +8,18 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 // Authenticate user middleware
 const authenticateUser = async (req, res, next) => {
     try {
-        const token = req.headers.authorization?.split(' ')[1];
+        const authHeader = req.headers.authorization;
+        console.log(`🔐 Auth check for ${req.method} ${req.originalUrl} - Header: ${authHeader ? 'Present' : 'Missing'}`);
+        
+        const token = authHeader?.split(' ')[1];
         
         if (!token) {
+            console.log('❌ No token found in Authorization header');
             throw new APIError('Authentication token required', 401, 'TOKEN_REQUIRED');
         }
         
         const decoded = jwt.verify(token, JWT_SECRET);
+        console.log(`🎫 Token decoded - userId: ${decoded.userId}, admin_role: ${decoded.admin_role || 'none'}`);
         
         // Get user details from database
         const userResult = await query(
@@ -25,14 +30,18 @@ const authenticateUser = async (req, res, next) => {
         if (userResult.rows.length === 0) {
             // Special case: If JWT has admin_role, create minimal user object from JWT
             if (decoded.admin_role) {
-                console.log(`User ${decoded.userId} not found in DB, but JWT has admin_role: ${decoded.admin_role}`);
+                console.log(`✅ User ${decoded.userId} not found in DB, but JWT has admin_role: ${decoded.admin_role} - Creating user object from JWT`);
                 req.user = {
                     id: decoded.userId,
                     admin_role: decoded.admin_role,
-                    account_status: 'active'
+                    account_status: 'active',
+                    first_name: 'Master',
+                    last_name: 'Admin',
+                    email: 'master@arb4me.com'
                 };
                 return next();
             }
+            console.log(`❌ User ${decoded.userId} not found and no admin_role in JWT`);
             throw new APIError('User not found', 401, 'USER_NOT_FOUND');
         }
         
@@ -95,12 +104,17 @@ const requireAdminRole = (minRole) => {
     };
     
     return (req, res, next) => {
+        console.log(`🛡️ Admin role check - Required: ${minRole}, User has: ${req.user?.admin_role || 'none'}, User ID: ${req.user?.id || 'no user'}`);
+        
         if (!req.user || !req.user.admin_role) {
+            console.log('❌ No user or admin_role in request');
             return next(new APIError('Admin privileges required', 403, 'INSUFFICIENT_PRIVILEGES'));
         }
         
         const userRoleLevel = roleHierarchy[req.user.admin_role] || 0;
         const requiredRoleLevel = roleHierarchy[minRole] || 999;
+        
+        console.log(`🔢 Role levels - User: ${userRoleLevel} (${req.user.admin_role}), Required: ${requiredRoleLevel} (${minRole})`);
         
         if (userRoleLevel < requiredRoleLevel) {
             systemLogger.security('Insufficient admin privileges attempted', {
@@ -113,6 +127,7 @@ const requireAdminRole = (minRole) => {
             return next(new APIError('Insufficient admin privileges', 403, 'INSUFFICIENT_PRIVILEGES'));
         }
         
+        console.log(`✅ Admin role check passed for ${req.user.id}`);
         next();
     };
 };
