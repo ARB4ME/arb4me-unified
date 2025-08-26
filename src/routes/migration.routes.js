@@ -220,4 +220,56 @@ router.post('/run-settings', async (req, res) => {
     }
 });
 
+// POST /api/v1/migration/create-position-admins - Create position-based admin accounts
+router.post('/create-position-admins', async (req, res) => {
+    try {
+        console.log('🔄 Creating position-based admin accounts...');
+        
+        // Read the migration file content
+        const fs = require('fs');
+        const path = require('path');
+        const migrationPath = path.join(__dirname, '../database/migrations/008_position_based_admin_accounts.sql');
+        
+        let migrationSQL;
+        try {
+            migrationSQL = fs.readFileSync(migrationPath, 'utf8');
+        } catch (error) {
+            return res.status(500).json({
+                success: false,
+                error: 'Migration file not found',
+                details: error.message
+            });
+        }
+
+        // Execute the entire migration as one transaction
+        console.log('Executing position-based admin accounts migration...');
+        const result = await query(migrationSQL);
+        
+        console.log('✅ Position-based admin accounts created');
+        
+        res.json({
+            success: true,
+            message: 'Position-based admin accounts created successfully',
+            accounts: [
+                { username: 'support', password: 'admin456', level: 'support' },
+                { username: 'manager', password: 'admin789', level: 'manager' }, 
+                { username: 'admin', password: 'admin999', level: 'admin' }
+            ],
+            summary: {
+                executed: 'Position-based admin accounts migration',
+                successful: 1,
+                errors: 0
+            }
+        });
+
+    } catch (error) {
+        console.error('❌ Position admin accounts migration failed:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Migration failed',
+            details: error.message
+        });
+    }
+});
+
 module.exports = router;

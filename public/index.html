@@ -2437,7 +2437,7 @@
                 <button class="tab" data-tab="history">📈 History</button>
                 <button class="tab" data-tab="messages">💬 Messages</button>
                 <button class="tab" data-tab="about">ℹ️ About</button>
-                <button id="adminAccessBtn" class="tab" onclick="showAdminAccessModal()" style="display: none; background: linear-gradient(45deg, #ffd700, #ffed4e); color: #1a1a2e; font-weight: bold;">👑 Admin Panel</button>
+                <!-- Yellow Admin Panel button removed - now use direct admin login -->
             </div>
             <div class="tab-row">
                 <button class="tab" data-tab="profile">👤 Profile</button>
@@ -15288,8 +15288,19 @@ Please help recover this stuck asset.`;
             addActivity('🔐 Checking administrator credentials...', 'info');
             
             setTimeout(() => {
-                // Check credentials (master/admin123 for demo)
-                if (username === 'master' && password === 'admin123' && level === 'master') {
+                // Check position-based admin credentials
+                const validCredentials = [
+                    { username: 'master', password: 'admin123', level: 'master' },
+                    { username: 'admin', password: 'admin999', level: 'admin' },
+                    { username: 'manager', password: 'admin789', level: 'manager' },
+                    { username: 'support', password: 'admin456', level: 'support' }
+                ];
+                
+                const isValidLogin = validCredentials.some(cred => 
+                    username === cred.username && password === cred.password && level === cred.level
+                );
+                
+                if (isValidLogin) {
                     adminState.isLoggedIn = true;
                     adminState.userData = { username: username, level: level };
                     adminState.accessLevel = level;
@@ -15332,7 +15343,7 @@ Please help recover this stuck asset.`;
                     // Refresh all users list since Users tab is active by default
                     refreshAllUsersList();
                     
-                    addActivity('👑 Master administrator logged in successfully', 'success');
+                    addActivity(`👑 ${level.charAt(0).toUpperCase() + level.slice(1)} administrator logged in successfully`, 'success');
                     addActivity('🎯 Admin dashboard access granted', 'success');
                     
                     // Refresh admin dashboard with real data
