@@ -5601,10 +5601,11 @@
                     <!-- Search and Filter Section -->
                     <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
                         <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                            <input type="text" id="userSearchInput" placeholder="🔍 Search users by name or email..." 
-                                style="flex: 1; min-width: 200px; padding: 8px 12px; background: rgba(255,255,255,0.1); 
-                                       border: 1px solid #00d4ff; border-radius: 6px; color: white;"
-                                onkeyup="filterUsers()">
+                            <select id="userSelectFilter" onchange="filterUsers()" 
+                                style="flex: 1; min-width: 200px; padding: 8px 12px; background: rgba(30,30,50,0.9); 
+                                       border: 1px solid #00d4ff; border-radius: 6px; color: white; cursor: pointer;">
+                                <option value="all" style="background: #1a1a2e; color: white;">👥 All Users</option>
+                            </select>
                             
                             <select id="userStatusFilter" onchange="filterUsers()" 
                                 style="padding: 8px 12px; background: rgba(30,30,50,0.9); 
@@ -8564,6 +8565,43 @@
             addActivity('👑 Admin refreshed user status view', 'info');
         }
 
+        // Function to populate the user select dropdown
+        function populateUserSelectDropdown(users) {
+            const dropdown = document.getElementById('userSelectFilter');
+            if (!dropdown) return;
+            
+            // Clear existing options except the first one (All Users)
+            dropdown.innerHTML = '<option value="all" style="background: #1a1a2e; color: white;">👥 All Users</option>';
+            
+            // Sort users alphabetically by name
+            const sortedUsers = [...users].sort((a, b) => {
+                const nameA = `${a.first_name || a.firstName || ''} ${a.last_name || a.lastName || ''}`.trim();
+                const nameB = `${b.first_name || b.firstName || ''} ${b.last_name || b.lastName || ''}`.trim();
+                return nameA.localeCompare(nameB);
+            });
+            
+            // Add users to dropdown
+            sortedUsers.forEach(user => {
+                const firstName = user.first_name || user.firstName || '';
+                const lastName = user.last_name || user.lastName || '';
+                const email = user.email || '';
+                const adminRole = user.admin_role || user.adminRole;
+                
+                const roleIcon = adminRole ? getRoleIcon(adminRole) : '👤';
+                const displayName = `${firstName} ${lastName}`.trim() || email.split('@')[0];
+                
+                const option = document.createElement('option');
+                option.value = user.id;
+                option.style.background = '#1a1a2e';
+                option.style.color = 'white';
+                option.textContent = `${roleIcon} ${displayName} (${email})`;
+                
+                dropdown.appendChild(option);
+            });
+            
+            console.log(`✅ Populated user dropdown with ${users.length} users`);
+        }
+
         async function refreshAllUsersList() {
             const usersList = document.getElementById('allUsersList');
             
@@ -8600,6 +8638,9 @@
                 // Update stats
                 updateUserManagementStats(allUsers);
                 
+                // Populate user dropdown filter
+                populateUserSelectDropdown(allUsers);
+                
                 if (allUsers.length === 0) {
                     usersList.innerHTML = `
                         <div style="text-align: center; padding: 30px; color: #b8c6db;">
@@ -8624,7 +8665,7 @@
                 const roleColor = getRoleColor(adminRole);
                 
                 return `
-                    <div class="user-card" style="margin-bottom: 12px; padding: 15px;">
+                    <div class="user-card" data-user-id="${user.id}" style="margin-bottom: 12px; padding: 15px;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                             <div>
                                 <h5 style="color: #00ff88; margin: 0; font-size: 1rem;">
@@ -8782,13 +8823,13 @@
         }
 
         function filterUsers() {
-            const searchInput = document.getElementById('userSearchInput');
+            const userSelectFilter = document.getElementById('userSelectFilter');
             const statusFilter = document.getElementById('userStatusFilter');
             const tradingFilter = document.getElementById('userTradingFilter');
             
-            if (!searchInput || !statusFilter || !tradingFilter) return;
+            if (!userSelectFilter || !statusFilter || !tradingFilter) return;
             
-            const searchTerm = searchInput.value.toLowerCase();
+            const selectedUserId = userSelectFilter.value;
             const statusValue = statusFilter.value;
             const tradingValue = tradingFilter.value;
             
@@ -8798,8 +8839,14 @@
             userCards.forEach(card => {
                 const userText = card.textContent.toLowerCase();
                 
-                // Search filter
-                const matchesSearch = searchTerm === '' || userText.includes(searchTerm);
+                // User selection filter - check if specific user is selected
+                let matchesUser = true;
+                if (selectedUserId !== 'all') {
+                    // Find user ID in the card data attribute or text
+                    const userIdElement = card.querySelector('[data-user-id]');
+                    const cardUserId = userIdElement ? userIdElement.getAttribute('data-user-id') : null;
+                    matchesUser = cardUserId === selectedUserId || userText.includes(selectedUserId);
+                }
                 
                 // Status filter
                 let matchesStatus = true;
@@ -8826,7 +8873,7 @@
                 }
                 
                 // Show/hide card
-                const shouldShow = matchesSearch && matchesStatus && matchesTrading;
+                const shouldShow = matchesUser && matchesStatus && matchesTrading;
                 card.style.display = shouldShow ? 'block' : 'none';
                 
                 if (shouldShow) visibleCount++;
