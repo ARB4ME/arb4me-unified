@@ -11402,6 +11402,39 @@
             container.innerHTML = html;
         }
 
+        // Function to create position-based admin accounts
+        async function createPositionAdminAccounts() {
+            try {
+                console.log('🔄 Creating position-based admin accounts...');
+                
+                const response = await fetch('/api/v1/migration/create-position-admins', {
+                    method: 'POST',
+                    headers: { 
+                        'Authorization': `Bearer ${localStorage.getItem('arb4me_jwt_token')}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const result = await response.json();
+                console.log('✅ Position admin accounts result:', result);
+                
+                if (result.success) {
+                    console.log('🎉 SUCCESS! Position-based admin accounts created!');
+                    console.log('📋 Available credentials:');
+                    result.accounts.forEach(acc => {
+                        console.log(`   ${acc.username}/${acc.password} (${acc.level})`);
+                    });
+                    console.log('📝 Tell Grant to use: admin/admin999');
+                } else {
+                    console.log('❌ Failed to create accounts:', result.error);
+                }
+                
+                return result;
+            } catch (error) {
+                console.error('❌ Error creating position admin accounts:', error);
+            }
+        }
+
         // Function to update your admin role in database to master (MIGRATION FIX)
         async function updateMyAdminRole() {
             try {
