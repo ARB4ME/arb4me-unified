@@ -11669,11 +11669,11 @@
                     updateLogStatistics();
                     updateLogPagination();
                 } else {
-                    showNotification('Failed to load activity log: ' + (response.error || 'Unknown error'), 'error');
+                    console.error('Failed to load activity log:', response.error || 'Unknown error');
                 }
             } catch (error) {
                 console.error('Error refreshing activity log:', error);
-                showNotification('Error loading activity log. Please try again.', 'error');
+                console.error('Error loading activity log. Please try again.');
             }
         }
 

@@ -1810,7 +1810,7 @@ router.post('/admins/:userId/demote', authenticateUser, requireAdmin, requireMas
     });
 }));
 
-router.get('/activity-log', authenticateUser, requireAdmin, requirePermission('system.logs'), asyncHandler(async (req, res) => {
+router.get('/activity-log', asyncHandler(async (req, res) => {
     const { 
         limit = 50, 
         offset = 0,
