@@ -20620,40 +20620,40 @@ ARB4ME Security Team`
                     },
                     apiKeys: {
                         valr: {
-                            key: state.exchanges.valr.api ? simpleEncrypt(state.exchanges.valr.api.key) : '',
-                            secret: state.exchanges.valr.api ? simpleEncrypt(state.exchanges.valr.api.secret) : ''
+                            key: state.exchanges.valr.api && state.exchanges.valr.api.key ? simpleEncrypt(state.exchanges.valr.api.key) : '',
+                            secret: state.exchanges.valr.api && state.exchanges.valr.api.secret ? simpleEncrypt(state.exchanges.valr.api.secret) : ''
                         },
                         luno: {
-                            key: state.exchanges.luno.api ? simpleEncrypt(state.exchanges.luno.api.key) : '',
-                            secret: state.exchanges.luno.api ? simpleEncrypt(state.exchanges.luno.api.secret) : ''
+                            key: state.exchanges.luno.api && state.exchanges.luno.api.key ? simpleEncrypt(state.exchanges.luno.api.key) : '',
+                            secret: state.exchanges.luno.api && state.exchanges.luno.api.secret ? simpleEncrypt(state.exchanges.luno.api.secret) : ''
                         },
                         altcointrader: {
-                            key: state.exchanges.altcointrader.api ? simpleEncrypt(state.exchanges.altcointrader.api.key) : '',
-                            secret: state.exchanges.altcointrader.api ? simpleEncrypt(state.exchanges.altcointrader.api.secret) : ''
+                            key: state.exchanges.altcointrader.api && state.exchanges.altcointrader.api.key ? simpleEncrypt(state.exchanges.altcointrader.api.key) : '',
+                            secret: state.exchanges.altcointrader.api && state.exchanges.altcointrader.api.secret ? simpleEncrypt(state.exchanges.altcointrader.api.secret) : ''
                         },
                         xago: {
-                            key: state.exchanges.xago.api ? simpleEncrypt(state.exchanges.xago.api.key) : '',
-                            secret: state.exchanges.xago.api ? simpleEncrypt(state.exchanges.xago.api.secret) : ''
+                            key: state.exchanges.xago.api && state.exchanges.xago.api.key ? simpleEncrypt(state.exchanges.xago.api.key) : '',
+                            secret: state.exchanges.xago.api && state.exchanges.xago.api.secret ? simpleEncrypt(state.exchanges.xago.api.secret) : ''
                         },
                         chainex: {
-                            key: state.exchanges.chainex.api ? simpleEncrypt(state.exchanges.chainex.api.key) : '',
-                            secret: state.exchanges.chainex.api ? simpleEncrypt(state.exchanges.chainex.api.secret) : ''
+                            key: state.exchanges.chainex.api && state.exchanges.chainex.api.key ? simpleEncrypt(state.exchanges.chainex.api.key) : '',
+                            secret: state.exchanges.chainex.api && state.exchanges.chainex.api.secret ? simpleEncrypt(state.exchanges.chainex.api.secret) : ''
                         },
                         kraken: {
-                            key: state.exchanges.kraken.api ? simpleEncrypt(state.exchanges.kraken.api.key) : '',
-                            secret: state.exchanges.kraken.api ? simpleEncrypt(state.exchanges.kraken.api.secret) : ''
+                            key: state.exchanges.kraken.api && state.exchanges.kraken.api.key ? simpleEncrypt(state.exchanges.kraken.api.key) : '',
+                            secret: state.exchanges.kraken.api && state.exchanges.kraken.api.secret ? simpleEncrypt(state.exchanges.kraken.api.secret) : ''
                         },
                         binance: {
-                            key: state.exchanges.binance.api ? simpleEncrypt(state.exchanges.binance.api.key) : '',
-                            secret: state.exchanges.binance.api ? simpleEncrypt(state.exchanges.binance.api.secret) : ''
+                            key: state.exchanges.binance.api && state.exchanges.binance.api.key ? simpleEncrypt(state.exchanges.binance.api.key) : '',
+                            secret: state.exchanges.binance.api && state.exchanges.binance.api.secret ? simpleEncrypt(state.exchanges.binance.api.secret) : ''
                         },
                         bybit: {
-                            key: state.exchanges.bybit.api ? simpleEncrypt(state.exchanges.bybit.api.key) : '',
-                            secret: state.exchanges.bybit.api ? simpleEncrypt(state.exchanges.bybit.api.secret) : ''
+                            key: state.exchanges.bybit.api && state.exchanges.bybit.api.key ? simpleEncrypt(state.exchanges.bybit.api.key) : '',
+                            secret: state.exchanges.bybit.api && state.exchanges.bybit.api.secret ? simpleEncrypt(state.exchanges.bybit.api.secret) : ''
                         },
                         gateio: {
-                            key: state.exchanges.gateio.api ? simpleEncrypt(state.exchanges.gateio.api.key) : '',
-                            secret: state.exchanges.gateio.api ? simpleEncrypt(state.exchanges.gateio.api.secret) : ''
+                            key: state.exchanges.gateio.api && state.exchanges.gateio.api.key ? simpleEncrypt(state.exchanges.gateio.api.key) : '',
+                            secret: state.exchanges.gateio.api && state.exchanges.gateio.api.secret ? simpleEncrypt(state.exchanges.gateio.api.secret) : ''
                         },
                         okx: {
                             key: state.exchanges.okx.api ? simpleEncrypt(state.exchanges.okx.api.key) : '',
@@ -20700,16 +20700,16 @@ ARB4ME Security Team`
                             secret: state.exchanges.bitrue.api ? simpleEncrypt(state.exchanges.bitrue.api.secret) : ''
                         },
                         gemini: {
-                            key: state.exchanges.gemini.api ? simpleEncrypt(state.exchanges.gemini.api.key) : '',
-                            secret: state.exchanges.gemini.api ? simpleEncrypt(state.exchanges.gemini.api.secret) : ''
+                            key: state.exchanges.gemini.api && state.exchanges.gemini.api.key ? simpleEncrypt(state.exchanges.gemini.api.key) : '',
+                            secret: state.exchanges.gemini.api && state.exchanges.gemini.api.secret ? simpleEncrypt(state.exchanges.gemini.api.secret) : ''
                         },
                         cryptocom: {
-                            key: state.exchanges.cryptocom.api ? simpleEncrypt(state.exchanges.cryptocom.api.key) : '',
-                            secret: state.exchanges.cryptocom.api ? simpleEncrypt(state.exchanges.cryptocom.api.secret) : ''
+                            key: state.exchanges.cryptocom.api && state.exchanges.cryptocom.api.key ? simpleEncrypt(state.exchanges.cryptocom.api.key) : '',
+                            secret: state.exchanges.cryptocom.api && state.exchanges.cryptocom.api.secret ? simpleEncrypt(state.exchanges.cryptocom.api.secret) : ''
                         },
                         coincatch: {
-                            key: state.exchanges.coincatch.api ? simpleEncrypt(state.exchanges.coincatch.api.key) : '',
-                            secret: state.exchanges.coincatch.api ? simpleEncrypt(state.exchanges.coincatch.api.secret) : ''
+                            key: state.exchanges.coincatch.api && state.exchanges.coincatch.api.key ? simpleEncrypt(state.exchanges.coincatch.api.key) : '',
+                            secret: state.exchanges.coincatch.api && state.exchanges.coincatch.api.secret ? simpleEncrypt(state.exchanges.coincatch.api.secret) : ''
                         }
                     },
                     recovery: {
