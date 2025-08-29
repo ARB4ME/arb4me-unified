@@ -9204,7 +9204,7 @@ const GEMINI_CONFIG = {
 
 // Gemini Authentication Helper
 function createGeminiSignature(payload, apiSecret) {
-    return crypto.createHmac('sha384', Buffer.from(apiSecret, 'base64')).update(payload).digest('hex');
+    return crypto.createHmac('sha384', apiSecret).update(payload).digest('hex');
 }
 
 // POST /api/v1/trading/gemini/balance - Get Gemini account balance
