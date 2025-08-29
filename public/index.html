@@ -20894,7 +20894,7 @@ ARB4ME Security Team`
             
             // Test the connection using backend for LUNO and Valr
             try {
-                if (exchangeName === 'valr' || exchangeName === 'luno' || exchangeName === 'altcointrader' || exchangeName === 'xago' || exchangeName === 'chainex' || exchangeName === 'kraken' || exchangeName === 'binance' || exchangeName === 'bybit' || exchangeName === 'gateio' || exchangeName === 'bitmart' || exchangeName === 'bitrue' || exchangeName === 'gemini' || exchangeName === 'cryptocom' || exchangeName === 'coincatch' || exchangeName === 'bitget' || exchangeName === 'okx') {
+                if (exchangeName === 'valr' || exchangeName === 'luno' || exchangeName === 'altcointrader' || exchangeName === 'xago' || exchangeName === 'chainex' || exchangeName === 'kraken' || exchangeName === 'binance' || exchangeName === 'bybit' || exchangeName === 'gateio' || exchangeName === 'bitmart' || exchangeName === 'bitrue' || exchangeName === 'cryptocom' || exchangeName === 'coincatch' || exchangeName === 'bitget' || exchangeName === 'okx') {
                     const testResponse = await fetch(`/api/v1/trading/${exchangeName}/test`, {
                         method: 'POST',
                         headers: {
