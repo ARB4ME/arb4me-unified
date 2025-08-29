@@ -9198,7 +9198,7 @@ const GEMINI_CONFIG = {
     endpoints: {
         balance: '/v1/balances',
         ticker: '/v1/pubticker',
-        test: '/v1/balances'
+        test: '/v1/heartbeat'
     }
 };
 
