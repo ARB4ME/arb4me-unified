@@ -22026,6 +22026,14 @@ ARB4ME Security Team`
                     const response = await makeAuthenticatedRequest(exchange, '/api/v1/account');
                     // Backend returns formatted balances from the Node.js server
                     return response;
+                } else if (exchange === 'gemini') {
+                    const response = await makeAuthenticatedRequest(exchange, '/v1/balances');
+                    // Backend returns formatted balances from the Node.js server
+                    return response;
+                } else if (exchange === 'coincatch') {
+                    const response = await makeAuthenticatedRequest(exchange, '/api/v1/balances');
+                    // Backend returns formatted balances from the Node.js server
+                    return response;
                 }
             } catch (error) {
                 console.error(`Failed to fetch balances for ${exchange}:`, error);
