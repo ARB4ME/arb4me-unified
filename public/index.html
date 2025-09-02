@@ -20590,7 +20590,13 @@ ARB4ME Security Team`
 
         // Simple encryption/decryption for API keys
         function simpleEncrypt(text) {
-            return btoa(text.split('').map(char => 
+            // Handle undefined, null, or non-string values
+            if (text === undefined || text === null) {
+                return '';
+            }
+            // Convert to string if not already
+            const textStr = String(text);
+            return btoa(textStr.split('').map(char => 
                 String.fromCharCode(char.charCodeAt(0) + 7)
             ).join(''));
         }
