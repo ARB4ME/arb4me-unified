@@ -705,9 +705,64 @@ const LUNO_CONFIG = {
     endpoints: {
         balance: '/api/1/balance',
         ticker: '/api/1/ticker',
+        tickers: '/api/1/tickers',
         order: '/api/1/marketorder'
     }
 };
+
+// LUNO Trading Pairs Endpoint
+router.get('/luno/pairs', tickerRateLimit, asyncHandler(async (req, res) => {
+    try {
+        systemLogger.trading('LUNO pairs request initiated', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'luno',
+            endpoint: 'pairs'
+        });
+
+        const response = await fetch(`${LUNO_CONFIG.baseUrl}${LUNO_CONFIG.endpoints.tickers}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+
+        const tickersData = await response.json();
+        
+        // Extract pairs from tickers response
+        const pairs = tickersData.tickers.map(ticker => ({
+            pair: ticker.pair,
+            status: ticker.status,
+            last_trade: ticker.last_trade,
+            rolling_24_hour_volume: ticker.rolling_24_hour_volume
+        }));
+        
+        systemLogger.trading('LUNO pairs retrieved successfully', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'luno',
+            pairCount: pairs.length
+        });
+
+        res.json({
+            success: true,
+            pairs: pairs,
+            exchange: 'LUNO'
+        });
+
+    } catch (error) {
+        systemLogger.error('LUNO pairs request failed', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'luno',
+            error: error.message
+        });
+
+        throw new APIError(`LUNO pairs request failed: ${error.message}`, 500, 'LUNO_PAIRS_ERROR');
+    }
+}));
 
 // LUNO Authentication Helper - Simple Basic Auth
 function createLunoAuth(apiKey, apiSecret) {
@@ -1178,6 +1233,52 @@ const VALR_CONFIG = {
         orderBook: '/v1/public/:pair/orderbook'
     }
 };
+
+// VALR Trading Pairs Endpoint
+router.get('/valr/pairs', tickerRateLimit, asyncHandler(async (req, res) => {
+    try {
+        systemLogger.trading('VALR pairs request initiated', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'valr',
+            endpoint: 'pairs'
+        });
+
+        const response = await fetch(`${VALR_CONFIG.baseUrl}${VALR_CONFIG.endpoints.pairs}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+
+        const pairsData = await response.json();
+        
+        systemLogger.trading('VALR pairs retrieved successfully', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'valr',
+            pairCount: pairsData.length
+        });
+
+        res.json({
+            success: true,
+            pairs: pairsData,
+            exchange: 'VALR'
+        });
+
+    } catch (error) {
+        systemLogger.error('VALR pairs request failed', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'valr',
+            error: error.message
+        });
+
+        throw new APIError(`VALR pairs request failed: ${error.message}`, 500, 'VALR_PAIRS_ERROR');
+    }
+}));
 
 // VALR Authentication Helper - FIXED TO MATCH FRONTEND BASE64 ENCODING
 function createValrSignature(apiSecret, timestamp, verb, path, body = '') {
@@ -2601,9 +2702,65 @@ const CHAINEX_CONFIG = {
     endpoints: {
         balance: '/wallet/balances',
         ticker: '/market/summary',
+        markets: '/market/summary',
         order: '/trading/order'
     }
 };
+
+// ChainEX Trading Pairs Endpoint
+router.get('/chainex/pairs', tickerRateLimit, asyncHandler(async (req, res) => {
+    try {
+        systemLogger.trading('ChainEX pairs request initiated', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'chainex',
+            endpoint: 'pairs'
+        });
+
+        const response = await fetch(`${CHAINEX_CONFIG.baseUrl}${CHAINEX_CONFIG.endpoints.markets}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+
+        const marketsData = await response.json();
+        
+        // Extract pairs from markets summary
+        const pairs = Object.keys(marketsData).map(pair => ({
+            pair: pair,
+            last: marketsData[pair].last,
+            high: marketsData[pair].high,
+            low: marketsData[pair].low,
+            volume: marketsData[pair].volume
+        }));
+        
+        systemLogger.trading('ChainEX pairs retrieved successfully', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'chainex',
+            pairCount: pairs.length
+        });
+
+        res.json({
+            success: true,
+            pairs: pairs,
+            exchange: 'CHAINEX'
+        });
+
+    } catch (error) {
+        systemLogger.error('ChainEX pairs request failed', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'chainex',
+            error: error.message
+        });
+
+        throw new APIError(`ChainEX pairs request failed: ${error.message}`, 500, 'CHAINEX_PAIRS_ERROR');
+    }
+}));
 
 // ChainEX Authentication Helper
 function createChainEXAuth(apiKey, apiSecret, endpoint, queryParams = {}) {
