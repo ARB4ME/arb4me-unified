@@ -2599,27 +2599,40 @@ router.post('/xago/sell-order', tradingRateLimit, optionalAuth, [
 const CHAINEX_CONFIG = {
     baseUrl: 'https://api.chainex.io',
     endpoints: {
-        balance: '/v1/account/balances',
-        ticker: '/v1/market/ticker',
-        order: '/v1/order'
+        balance: '/wallet/balances',
+        ticker: '/market/summary',
+        order: '/trading/order'
     }
 };
 
 // ChainEX Authentication Helper
-async function createChainEXAuth(apiKey, apiSecret) {
-    // ChainEX uses API key/secret with timestamp and signature
+function createChainEXAuth(apiKey, apiSecret, endpoint, queryParams = {}) {
+    // ChainEX uses query string authentication with HMAC-SHA-256
     try {
-        const timestamp = Date.now();
-        const message = `${timestamp}${apiKey}`;
-        const signature = crypto
+        const time = Math.floor(Date.now() / 1000); // Unix timestamp
+        
+        // Build query string
+        const params = new URLSearchParams({
+            time: time.toString(),
+            key: apiKey,
+            ...queryParams
+        });
+        
+        // Create full URL for hashing
+        const fullUrl = `${CHAINEX_CONFIG.baseUrl}${endpoint}?${params.toString()}`;
+        
+        // Create hash of full URL
+        const hash = crypto
             .createHmac('sha256', apiSecret)
-            .update(message)
+            .update(fullUrl)
             .digest('hex');
         
+        // Add hash to params
+        params.append('hash', hash);
+        
         return {
-            apiKey,
-            timestamp: timestamp.toString(),
-            signature
+            queryString: params.toString(),
+            fullUrl: `${CHAINEX_CONFIG.baseUrl}${endpoint}?${params.toString()}`
         };
     } catch (error) {
         throw new Error(`ChainEX authentication failed: ${error.message}`);
@@ -2645,16 +2658,10 @@ router.post('/chainex/balance', tradingRateLimit, optionalAuth, [
             endpoint: 'balance'
         });
         
-        const auth = await createChainEXAuth(apiKey, apiSecret);
+        const auth = createChainEXAuth(apiKey, apiSecret, CHAINEX_CONFIG.endpoints.balance);
         
-        const response = await fetch(`${CHAINEX_CONFIG.baseUrl}${CHAINEX_CONFIG.endpoints.balance}`, {
-            method: 'GET',
-            headers: {
-                'X-API-KEY': auth.apiKey,
-                'X-TIMESTAMP': auth.timestamp,
-                'X-SIGNATURE': auth.signature,
-                'Content-Type': 'application/json'
-            }
+        const response = await fetch(auth.fullUrl, {
+            method: 'GET'
         });
 
         if (!response.ok) {
@@ -2664,11 +2671,16 @@ router.post('/chainex/balance', tradingRateLimit, optionalAuth, [
         
         const balanceData = await response.json();
         
+        // ChainEX returns {status, count, data: [{code, balance_available, balance_held, ...}]}
+        if (balanceData.status !== 'success') {
+            throw new Error(`ChainEX API error: ${balanceData.message || 'Unknown error'}`);
+        }
+        
         // Transform ChainEX response to expected format
         const balances = {};
-        if (balanceData && Array.isArray(balanceData)) {
-            balanceData.forEach(balance => {
-                balances[balance.asset] = parseFloat(balance.free || 0) + parseFloat(balance.locked || 0);
+        if (balanceData.data && Array.isArray(balanceData.data)) {
+            balanceData.data.forEach(balance => {
+                balances[balance.code] = parseFloat(balance.balance_available || 0) + parseFloat(balance.balance_held || 0);
             });
         }
         
@@ -2787,17 +2799,11 @@ router.post('/chainex/test', tradingRateLimit, optionalAuth, [
             endpoint: 'test'
         });
         
-        const auth = await createChainEXAuth(apiKey, apiSecret);
+        const auth = createChainEXAuth(apiKey, apiSecret, CHAINEX_CONFIG.endpoints.balance);
         
         // Test connection by getting balance
-        const response = await fetch(`${CHAINEX_CONFIG.baseUrl}${CHAINEX_CONFIG.endpoints.balance}`, {
-            method: 'GET',
-            headers: {
-                'X-API-KEY': auth.apiKey,
-                'X-TIMESTAMP': auth.timestamp,
-                'X-SIGNATURE': auth.signature,
-                'Content-Type': 'application/json'
-            }
+        const response = await fetch(auth.fullUrl, {
+            method: 'GET'
         });
 
         if (!response.ok) {
@@ -2806,6 +2812,11 @@ router.post('/chainex/test', tradingRateLimit, optionalAuth, [
         }
         
         const balanceData = await response.json();
+        
+        // Check ChainEX response status
+        if (balanceData.status !== 'success') {
+            throw new Error(`ChainEX API error: ${balanceData.message || 'Unknown error'}`);
+        }
         
         systemLogger.trading('ChainEX connection test successful', {
             userId: req.user?.id || 'anonymous',
@@ -2817,7 +2828,7 @@ router.post('/chainex/test', tradingRateLimit, optionalAuth, [
             message: 'ChainEX connection successful',
             data: {
                 connected: true,
-                balanceCount: Array.isArray(balanceData) ? balanceData.length : 0
+                balanceCount: balanceData.data ? balanceData.data.length : 0
             }
         });
         
