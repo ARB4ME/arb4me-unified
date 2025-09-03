@@ -14395,9 +14395,9 @@ Please help recover this stuck asset.`;
                 console.log(`🚀 Executing BUY order: ${amount} ${opportunity.asset} on ${exchange}`);
                 
                 // Use Railway for VALR and LUNO, localhost for others
-                const backendUrl = (exchange === 'valr' || exchange === 'luno') 
+                const backendUrl = (exchange === 'valr' || exchange === 'luno' || exchange === 'chainex') 
                     ? 'https://arb4me-unified-production.up.railway.app' 
-                    : 'http://localhost:3001';
+                    : 'http://localhost:3000';
                 
                 // Use correct endpoints for VALR and LUNO
                 const orderEndpoint = exchange === 'valr' 
@@ -14542,9 +14542,9 @@ Please help recover this stuck asset.`;
                 console.log(`💰 Executing SELL order: ${amount} ${opportunity.asset} on ${exchange}`);
                 
                 // Use Railway for VALR and LUNO, localhost for others
-                const backendUrl = (exchange === 'valr' || exchange === 'luno') 
+                const backendUrl = (exchange === 'valr' || exchange === 'luno' || exchange === 'chainex') 
                     ? 'https://arb4me-unified-production.up.railway.app' 
-                    : 'http://localhost:3001';
+                    : 'http://localhost:3000';
                 
                 // Use correct endpoints for VALR and LUNO
                 const orderEndpoint = exchange === 'valr' 
@@ -21470,9 +21470,9 @@ ARB4ME Security Team`
             // Use backend server for all exchanges to avoid CORS issues
             if (exchange === 'luno' || exchange === 'valr' || exchange === 'altcointrader' || exchange === 'xago' || exchange === 'chainex' || exchange === 'kraken' || exchange === 'binance' || exchange === 'bybit' || exchange === 'gateio' || exchange === 'bitmart' || exchange === 'bitrue' || exchange === 'cryptocom' || exchange === 'coincatch' || exchange === 'bitget' || exchange === 'okx') {
                 // Use Railway for VALR and LUNO (production deployment), localhost for others (for now)
-                const backendUrl = (exchange === 'valr' || exchange === 'luno') 
+                const backendUrl = (exchange === 'valr' || exchange === 'luno' || exchange === 'chainex') 
                     ? 'https://arb4me-unified-production.up.railway.app' 
-                    : 'http://localhost:3001';
+                    : 'http://localhost:3000';
                 
                 try {
                     // Map endpoints to backend routes
