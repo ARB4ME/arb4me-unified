@@ -23091,6 +23091,103 @@ ARB4ME Security Team`
             });
         }
 
+        // NEW: Triangular Arbitrage Detection
+        async function scanTriangularArbitrage(exchange) {
+            const opportunities = [];
+            const baseCurrency = 'USDT'; // Always start and end with USDT
+            
+            console.log(`🔍 Starting triangular arbitrage scan on ${exchange}`);
+            
+            // Get all selected assets that could form triangles
+            const allSelectedAssets = state.settings.selectedAssets || ['BTC', 'ETH', 'XRP', 'SOL', 'LINK', 'DOGE', 'ADA', 'DOT', 'AVAX', 'MATIC'];
+            
+            // Try to find triangular opportunities: USDT → A → B → USDT
+            for (let i = 0; i < allSelectedAssets.length; i++) {
+                for (let j = i + 1; j < allSelectedAssets.length; j++) {
+                    const currencyA = allSelectedAssets[i].replace('USDT', '').replace('BTC', ''); // Clean currency name
+                    const currencyB = allSelectedAssets[j].replace('USDT', '').replace('BTC', ''); // Clean currency name
+                    
+                    if (currencyA === currencyB) continue; // Skip same currency
+                    
+                    try {
+                        // Check if we have the required triangle: USDT→A→B→USDT
+                        const opportunity = await calculateTriangularProfit(exchange, baseCurrency, currencyA, currencyB);
+                        
+                        if (opportunity && opportunity.profitPercent > 0.5) { // Above 0.5% threshold
+                            opportunities.push(opportunity);
+                            console.log(`💰 Triangular opportunity found on ${exchange}: ${opportunity.path} (${opportunity.profitPercent.toFixed(2)}% profit)`);
+                        }
+                    } catch (error) {
+                        // Skip this triangle if calculation fails
+                        continue;
+                    }
+                }
+            }
+            
+            return opportunities;
+        }
+
+        // Calculate triangular arbitrage profit potential
+        async function calculateTriangularProfit(exchange, baseCurrency, currencyA, currencyB) {
+            try {
+                // Get prices for the three legs of the triangle
+                const priceA_BASE = await getRealPrice(`${currencyA}${baseCurrency}`, exchange); // e.g., BTCUSDT
+                const priceB_BASE = await getRealPrice(`${currencyB}${baseCurrency}`, exchange); // e.g., ETHUSDT
+                const priceA_B = await getRealPrice(`${currencyA}${currencyB}`, exchange);       // e.g., BTCETH
+                
+                // If any price is null/undefined, this triangle is not possible on this exchange
+                if (!priceA_BASE || !priceB_BASE || !priceA_B) {
+                    // Try reverse pair for the connecting pair
+                    const priceB_A = await getRealPrice(`${currencyB}${currencyA}`, exchange); // e.g., ETHBTC
+                    if (!priceB_A) {
+                        return null; // Triangle not possible
+                    }
+                    // Use reverse rate
+                    const reversedRate = 1 / priceB_A;
+                    return calculateTrianglePath(exchange, baseCurrency, currencyA, currencyB, priceA_BASE, priceB_BASE, reversedRate);
+                }
+                
+                return calculateTrianglePath(exchange, baseCurrency, currencyA, currencyB, priceA_BASE, priceB_BASE, priceA_B);
+                
+            } catch (error) {
+                console.warn(`Failed to calculate triangular profit for ${currencyA}/${currencyB} on ${exchange}:`, error.message);
+                return null;
+            }
+        }
+
+        // Calculate the actual triangle path and profit
+        function calculateTrianglePath(exchange, base, currencyA, currencyB, priceA_BASE, priceB_BASE, priceA_B) {
+            const startAmount = 100; // Test with $100 USDT
+            
+            // Path: USDT → A → B → USDT
+            const step1 = startAmount / priceA_BASE;        // USDT to A (e.g., buy BTC)
+            const step2 = step1 * priceA_B;                 // A to B (e.g., BTC to ETH)  
+            const step3 = step2 * priceB_BASE;              // B back to USDT (e.g., sell ETH)
+            
+            const profit = step3 - startAmount;
+            const profitPercent = (profit / startAmount) * 100;
+            
+            // Only return if profitable
+            if (profitPercent <= 0) return null;
+            
+            return {
+                type: 'triangular',
+                exchange,
+                path: `${base} → ${currencyA} → ${currencyB} → ${base}`,
+                startAmount,
+                endAmount: step3,
+                profit,
+                profitPercent,
+                asset: `${currencyA}/${currencyB} Triangle`,
+                tradeValueUSDT: startAmount,
+                trades: [
+                    { action: 'BUY', pair: `${currencyA}${base}`, amount: step1, price: priceA_BASE },
+                    { action: 'SELL', pair: `${currencyA}${currencyB}`, amount: step1, price: priceA_B },
+                    { action: 'SELL', pair: `${currencyB}${base}`, amount: step2, price: priceB_BASE }
+                ]
+            };
+        }
+
         // NEW: Real arbitrage opportunity detection
         async function scanForRealArbitrageOpportunities() {
             const opportunities = [];
@@ -23321,6 +23418,25 @@ ARB4ME Security Team`
                     }
                 } catch (error) {
                     console.error(`Error scanning ${asset}:`, error);
+                }
+            }
+            
+            // PHASE 1B: Add triangular arbitrage scanning for each connected exchange
+            console.log('🔺 Starting triangular arbitrage scanning...');
+            for (const exchange of connectedExchanges) {
+                try {
+                    console.log(`🔍 Scanning triangular opportunities on ${exchange}...`);
+                    const triangularOpportunities = await scanTriangularArbitrage(exchange);
+                    
+                    if (triangularOpportunities && triangularOpportunities.length > 0) {
+                        console.log(`✅ Found ${triangularOpportunities.length} triangular opportunities on ${exchange}`);
+                        // Add triangular opportunities to the main opportunities array
+                        opportunities.push(...triangularOpportunities);
+                    } else {
+                        console.log(`⭕ No triangular opportunities found on ${exchange}`);
+                    }
+                } catch (error) {
+                    console.error(`❌ Error scanning triangular opportunities on ${exchange}:`, error);
                 }
             }
             
