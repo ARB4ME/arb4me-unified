@@ -21969,11 +21969,13 @@ ARB4ME Security Team`
                     }
                     return formattedBalances;
                 } else if (exchange === 'chainex') {
-                    const balances = await makeAuthenticatedRequest(exchange, '/v1/spot/account');
+                    const response = await makeAuthenticatedRequest(exchange, '/chainex/balance');
                     const formattedBalances = {};
-                    balances.balances.forEach(balance => {
-                        formattedBalances[balance.asset] = parseFloat(balance.free);
-                    });
+                    if (response.success && response.balances) {
+                        Object.keys(response.balances).forEach(currency => {
+                            formattedBalances[currency] = response.balances[currency];
+                        });
+                    }
                     return formattedBalances;
                 } else if (exchange === 'kraken') {
                     const response = await makeAuthenticatedRequest(exchange, '/0/private/Balance');
