@@ -22869,8 +22869,8 @@ ARB4ME Security Team`
             console.log('🔍 SCAN DEBUG: User live mode:', userState.liveMode);
             console.log('🔍 SCAN DEBUG: Auto trading:', state.autoTrading);
             
-            if (connectedExchanges.length < 2) {
-                addActivity('❌ Need at least 2 connected exchanges to scan for arbitrage', 'error');
+            if (connectedExchanges.length < 1) {
+                addActivity('❌ Need at least 1 connected exchange to scan for triangular arbitrage', 'error');
                 return;
             }
             
