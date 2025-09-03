@@ -21971,9 +21971,10 @@ ARB4ME Security Team`
                 } else if (exchange === 'chainex') {
                     const response = await makeAuthenticatedRequest(exchange, '/chainex/balance');
                     const formattedBalances = {};
-                    if (response.success && response.balances) {
-                        Object.keys(response.balances).forEach(currency => {
-                            formattedBalances[currency] = response.balances[currency];
+                    if (response && typeof response === 'object') {
+                        // ChainEX returns direct format: {USDT: 55.38889767, ZAR: 0.01}
+                        Object.keys(response).forEach(currency => {
+                            formattedBalances[currency] = response[currency];
                         });
                     }
                     return formattedBalances;
