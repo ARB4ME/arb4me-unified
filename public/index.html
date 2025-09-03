@@ -23193,8 +23193,8 @@ ARB4ME Security Team`
             const opportunities = [];
             const connectedExchanges = ['valr', 'luno', 'altcointrader', 'xago', 'chainex', 'kraken', 'binance', 'bybit', 'gateio', 'okx', 'mexc', 'kucoin', 'xt', 'ascendex', 'htx', 'bingx', 'bitget', 'bitmart', 'bitrue', 'cryptocom', 'coincatch'].filter(ex => state.exchanges[ex].connected);
             
-            if (connectedExchanges.length < 2) {
-                console.log('❌ Need at least 2 connected exchanges for arbitrage');
+            if (connectedExchanges.length < 1) {
+                console.log('❌ Need at least 1 connected exchange for triangular arbitrage');
                 return opportunities;
             }
             
