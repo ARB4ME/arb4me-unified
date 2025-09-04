@@ -6,7 +6,7 @@ const { logger } = require('../utils/logger');
 let pool = null;
 
 // TEMPORARY: Skip database connection if variables not available
-const skipDatabase = !process.env.DATABASE_URL && !process.env.DB_HOST && process.env.NODE_ENV === 'production';
+const skipDatabase = !process.env.DATABASE_URL && !process.env.DB_HOST;
 
 // Use DATABASE_URL if available (Railway), otherwise use individual vars
 const dbConfig = process.env.DATABASE_URL ? 

@@ -1,0 +1,12 @@
+2025-09-04 13:27:30 [ERROR]: Database connection failed: | {"code":"ECONNREFUSED"}
+AggregateError [ECONNREFUSED]: 
+    at C:\Users\Jonathan\OneDrive\Documents\Work\JONO WORK\AIM Arbitrage\2023\IDATCO\ARB4ME\arb4me-unified\node_modules\pg-pool\index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async connectDatabase (C:\Users\Jonathan\OneDrive\Documents\Work\JONO WORK\AIM Arbitrage\2023\IDATCO\ARB4ME\arb4me-unified\src\database\connection.js:51:24)
+    at async startServer (C:\Users\Jonathan\OneDrive\Documents\Work\JONO WORK\AIM Arbitrage\2023\IDATCO\ARB4ME\arb4me-unified\server.js:114:30)
+2025-09-04 13:33:42 [ERROR]: Database connection failed: | {"code":"ECONNREFUSED"}
+AggregateError [ECONNREFUSED]: 
+    at C:\Users\Jonathan\OneDrive\Documents\Work\JONO WORK\AIM Arbitrage\2023\IDATCO\ARB4ME\arb4me-unified\node_modules\pg-pool\index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async connectDatabase (C:\Users\Jonathan\OneDrive\Documents\Work\JONO WORK\AIM Arbitrage\2023\IDATCO\ARB4ME\arb4me-unified\src\database\connection.js:51:24)
+    at async startServer (C:\Users\Jonathan\OneDrive\Documents\Work\JONO WORK\AIM Arbitrage\2023\IDATCO\ARB4ME\arb4me-unified\server.js:114:30)

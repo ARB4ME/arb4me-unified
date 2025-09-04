@@ -22632,25 +22632,43 @@ ARB4ME Security Team`
                 clearInterval(state.triangularScanInterval);
             }
             
-            // Track scan count to reduce UI spam
+            // Track scan statistics
             let scanCount = 0;
+            let lastBestOpportunity = null;
+            let totalPathsScanned = 0;
             
             // Start scanning every 10 seconds
             state.triangularScanInterval = setInterval(async () => {
                 scanCount++;
                 try {
+                    const scanResults = {
+                        exchangesScanned: [],
+                        totalOpportunities: [],
+                        bestOpportunity: null,
+                        profitableCount: 0
+                    };
+                    
                     const connectedExchanges = Object.keys(state.exchanges).filter(ex => state.exchanges[ex].connected);
                     
                     for (const exchange of connectedExchanges) {
                         const balance = state.balances?.[exchange]?.USDT || 0;
                         if (balance >= 10) { // Only scan exchanges with sufficient balance
+                            scanResults.exchangesScanned.push(exchange);
                             
                             if (exchange === 'luno') {
-                                // Show activity less frequently to avoid spam
-                                const showActivity = scanCount % 3 === 1; // Show every 3rd scan
-                                const opportunities = await scanLunoTriangularOpportunities(showActivity);
+                                // Don't show individual activity, we'll show consolidated report
+                                const opportunities = await scanLunoTriangularOpportunities(false);
+                                scanResults.totalOpportunities.push(...opportunities);
                                 
-                                // Execute best opportunity if profitable
+                                // Track best opportunity
+                                opportunities.forEach(opp => {
+                                    if (!scanResults.bestOpportunity || opp.netProfitPercent > scanResults.bestOpportunity.netProfitPercent) {
+                                        scanResults.bestOpportunity = opp;
+                                    }
+                                    if (opp.profitable) scanResults.profitableCount++;
+                                });
+                                
+                                // Execute profitable opportunities
                                 const profitable = opportunities.filter(opp => opp.profitable);
                                 if (profitable.length > 0) {
                                     const best = profitable.sort((a, b) => b.netProfitPercent - a.netProfitPercent)[0];
@@ -22661,13 +22679,42 @@ ARB4ME Security Team`
                             // if (exchange === 'valr') { ... }
                         }
                     }
+                    
+                    // Consolidated reporting - only show significant updates
+                    if (scanResults.exchangesScanned.length > 0) {
+                        totalPathsScanned = scanResults.totalOpportunities.length;
+                        
+                        // Report if: first scan, every 30 seconds, profitable found, or significant change
+                        const shouldReport = scanCount === 1 || 
+                                           scanCount % 3 === 0 || 
+                                           scanResults.profitableCount > 0 ||
+                                           (lastBestOpportunity && scanResults.bestOpportunity && 
+                                            Math.abs(scanResults.bestOpportunity.netProfitPercent - lastBestOpportunity.netProfitPercent) > 0.2);
+                        
+                        if (shouldReport && scanResults.bestOpportunity) {
+                            const best = scanResults.bestOpportunity;
+                            const exchangeCount = scanResults.exchangesScanned.length;
+                            const pathCount = scanResults.totalOpportunities.length;
+                            
+                            if (scanResults.profitableCount > 0) {
+                                addActivity(`✅ PROFITABLE: ${scanResults.profitableCount} triangular opportunities found! Best: ${best.pathName.split(' → ')[1]} at ${best.netProfitPercent.toFixed(2)}%`, 'success');
+                            } else if (best.netProfitPercent > -0.3) { // Getting close to profitable
+                                addActivity(`📊 Triangular: ${exchangeCount} exchange${exchangeCount > 1 ? 's' : ''}, ${pathCount} paths, best: ${best.pathName.split(' → ')[1]} at ${best.netProfitPercent.toFixed(2)}% (need +0.8%)`, 'info');
+                            } else if (scanCount === 1 || scanCount % 6 === 0) { // Report status every minute
+                                addActivity(`🔺 Triangular: Monitoring ${exchangeCount} exchange${exchangeCount > 1 ? 's' : ''}, ${pathCount} paths, best opportunity at ${best.netProfitPercent.toFixed(2)}%`, 'info');
+                            }
+                            
+                            lastBestOpportunity = scanResults.bestOpportunity;
+                        }
+                    }
+                    
                 } catch (error) {
                     console.error('Triangular scanning error:', error);
                     addActivity(`⚠️ Triangular scan error: ${error.message}`, 'error');
                 }
             }, 10000); // 10 second intervals
             
-            addActivity('🔺 Triangular scanner started - checking every 10 seconds', 'info');
+            addActivity('🔺 Triangular scanner started - consolidated reporting enabled', 'info');
         }
 
         // Stop triangular arbitrage scanning
@@ -22681,21 +22728,240 @@ ARB4ME Security Team`
 
         // Execute triangular opportunity
         async function executeTriangularOpportunity(opportunity) {
-            const tradeAmount = Math.min(
-                state.settings.maxTradeAmount || 50,
-                (state.balances?.[opportunity.exchange.toLowerCase()]?.USDT || 0) * (state.settings.tradeSize || 15) / 100
-            );
+            try {
+                const tradeAmount = Math.min(
+                    state.settings.maxTradeAmount || 50,
+                    (state.balances?.[opportunity.exchange.toLowerCase()]?.USDT || 0) * (state.settings.tradeSize || 15) / 100
+                );
+                
+                console.log(`🔺 Starting triangular execution: ${opportunity.pathName}`);
+                console.log(`💰 Trade amount: $${tradeAmount.toFixed(2)} USDT`);
+                console.log(`📈 Expected profit: ${opportunity.netProfitPercent.toFixed(3)}%`);
+                
+                addActivity(`🔺 EXECUTING: ${opportunity.pathName} - ${opportunity.netProfitPercent.toFixed(3)}% profit with $${tradeAmount.toFixed(2)}`, 'success');
+                
+                // Get fresh prices to validate opportunity is still profitable
+                const freshPrices = await Promise.all(
+                    opportunity.prices.map(async (pair, index) => {
+                        const price = await getRealPrice(pair, opportunity.exchange.toLowerCase());
+                        console.log(`Fresh price for ${pair}: ${price}`);
+                        return price;
+                    })
+                );
+                
+                // Recalculate with fresh prices
+                const freshOpportunity = await calculateLunoTriangularProfit({
+                    pairs: opportunity.prices,
+                    sequence: opportunity.pathName,
+                    baseCurrency: 'USDT'
+                }, tradeAmount);
+                
+                if (!freshOpportunity || !freshOpportunity.profitable) {
+                    console.log('❌ Opportunity no longer profitable with fresh prices');
+                    addActivity(`❌ Trade cancelled: ${opportunity.pathName} no longer profitable`, 'error');
+                    return;
+                }
+                
+                console.log(`✅ Opportunity still valid. Proceeding with execution...`);
+                
+                // Execute the three trades in sequence
+                const exchange = opportunity.exchange.toLowerCase();
+                let currentAmount = tradeAmount;
+                let currentAsset = 'USDT';
+                const executionResults = [];
+                
+                // Step 1: USDT → BTC (Buy BTC with USDT)
+                console.log(`Step 1: ${currentAsset} → BTC`);
+                const step1Result = await executeTrade({
+                    exchange: exchange,
+                    pair: opportunity.prices[0], // XBTUSDT
+                    side: 'BUY',
+                    amount: currentAmount,
+                    expectedPrice: freshPrices[0],
+                    step: 1,
+                    totalSteps: 3
+                });
+                
+                if (!step1Result.success) {
+                    addActivity(`❌ Step 1 failed: ${step1Result.error}`, 'error');
+                    return;
+                }
+                
+                executionResults.push(step1Result);
+                currentAmount = step1Result.receivedAmount;
+                currentAsset = 'BTC';
+                console.log(`Step 1 complete: Received ${currentAmount} BTC`);
+                
+                // Rate limiting delay
+                await delay(1000);
+                
+                // Step 2: BTC → ETH (Trade BTC for ETH)
+                console.log(`Step 2: ${currentAsset} → ETH`);
+                const step2Result = await executeTrade({
+                    exchange: exchange,
+                    pair: opportunity.prices[1], // ETHXBT
+                    side: 'SELL', // Selling BTC for ETH (since ETHXBT is BTC per ETH)
+                    amount: currentAmount,
+                    expectedPrice: freshPrices[1],
+                    step: 2,
+                    totalSteps: 3
+                });
+                
+                if (!step2Result.success) {
+                    addActivity(`❌ Step 2 failed: ${step2Result.error}`, 'error');
+                    // TODO: Implement rollback - sell BTC back to USDT
+                    return;
+                }
+                
+                executionResults.push(step2Result);
+                currentAmount = step2Result.receivedAmount;
+                currentAsset = 'ETH';
+                console.log(`Step 2 complete: Received ${currentAmount} ETH`);
+                
+                // Rate limiting delay
+                await delay(1000);
+                
+                // Step 3: ETH → USDT (Sell ETH for USDT)
+                console.log(`Step 3: ${currentAsset} → USDT`);
+                const step3Result = await executeTrade({
+                    exchange: exchange,
+                    pair: opportunity.prices[2], // ETHUSDT
+                    side: 'SELL',
+                    amount: currentAmount,
+                    expectedPrice: freshPrices[2],
+                    step: 3,
+                    totalSteps: 3
+                });
+                
+                if (!step3Result.success) {
+                    addActivity(`❌ Step 3 failed: ${step3Result.error}`, 'error');
+                    // TODO: Implement rollback - sell ETH back to BTC, then to USDT
+                    return;
+                }
+                
+                executionResults.push(step3Result);
+                const finalAmount = step3Result.receivedAmount;
+                console.log(`Step 3 complete: Received ${finalAmount} USDT`);
+                
+                // Calculate actual profit
+                const actualProfit = finalAmount - tradeAmount;
+                const actualProfitPercent = (actualProfit / tradeAmount) * 100;
+                
+                console.log(`🎯 Triangular arbitrage complete!`);
+                console.log(`💰 Started with: ${tradeAmount} USDT`);
+                console.log(`💰 Ended with: ${finalAmount} USDT`);
+                console.log(`📈 Actual profit: ${actualProfit.toFixed(4)} USDT (${actualProfitPercent.toFixed(3)}%)`);
+                
+                // Update activity and balances
+                addActivity(
+                    `✅ Triangle Complete: ${opportunity.pathName} - Profit: ${actualProfit.toFixed(4)} USDT (${actualProfitPercent.toFixed(2)}%)`,
+                    actualProfit > 0 ? 'success' : 'warning'
+                );
+                
+                // Update balance (simplified - in real implementation would sync with exchange)
+                if (state.balances[exchange]) {
+                    state.balances[exchange].USDT = (state.balances[exchange].USDT || 0) + actualProfit;
+                }
+                
+                // Record trade in history
+                recordTriangularTrade({
+                    opportunity,
+                    executionResults,
+                    startAmount: tradeAmount,
+                    endAmount: finalAmount,
+                    actualProfit,
+                    actualProfitPercent,
+                    timestamp: new Date().toISOString()
+                });
+                
+            } catch (error) {
+                console.error('❌ Triangular execution failed:', error);
+                addActivity(`❌ Execution error: ${error.message}`, 'error');
+            }
+        }
+        
+        // Execute a single trade step in triangular arbitrage
+        async function executeTrade({ exchange, pair, side, amount, expectedPrice, step, totalSteps }) {
+            try {
+                console.log(`📊 Step ${step}/${totalSteps}: ${side} ${amount} on ${pair} at ~${expectedPrice}`);
+                
+                // For now, simulate trade execution with paper trading
+                // In production, this would call the actual exchange API
+                
+                addActivity(`🔄 Step ${step}/${totalSteps}: ${side} ${pair} - $${amount.toFixed(2)}`, 'info');
+                
+                // Simulate trade execution delay
+                await delay(500 + Math.random() * 1000); // 0.5-1.5 second delay
+                
+                // Calculate received amount (simplified)
+                let receivedAmount;
+                if (side === 'BUY') {
+                    // Buying: divide by price to get asset amount
+                    receivedAmount = amount / expectedPrice;
+                } else {
+                    // Selling: multiply by price to get base amount  
+                    receivedAmount = amount * expectedPrice;
+                }
+                
+                // Apply simulated trading fees (0.2% for Luno)
+                const feeRate = 0.002; // 0.2%
+                const fee = receivedAmount * feeRate;
+                receivedAmount = receivedAmount - fee;
+                
+                console.log(`✅ Step ${step} completed: Received ${receivedAmount.toFixed(6)} (fee: ${fee.toFixed(6)})`);
+                
+                return {
+                    success: true,
+                    pair: pair,
+                    side: side,
+                    amountTraded: amount,
+                    receivedAmount: receivedAmount,
+                    executedPrice: expectedPrice,
+                    fee: fee,
+                    timestamp: new Date().toISOString()
+                };
+                
+            } catch (error) {
+                console.error(`❌ Trade execution failed:`, error);
+                return {
+                    success: false,
+                    error: error.message,
+                    pair: pair,
+                    side: side,
+                    amountTraded: amount
+                };
+            }
+        }
+        
+        // Record triangular trade in history
+        function recordTriangularTrade(tradeData) {
+            const tradeRecord = {
+                id: `tri-${Date.now()}`,
+                type: 'triangular',
+                timestamp: tradeData.timestamp,
+                exchange: tradeData.opportunity.exchange,
+                path: tradeData.opportunity.pathName,
+                startAmount: tradeData.startAmount,
+                endAmount: tradeData.endAmount,
+                profit: tradeData.actualProfit,
+                profitPercent: tradeData.actualProfitPercent,
+                expectedProfit: tradeData.opportunity.netProfitPercent,
+                steps: tradeData.executionResults,
+                status: tradeData.actualProfit > 0 ? 'profitable' : 'loss'
+            };
             
-            addActivity(`🔺 EXECUTING: ${opportunity.pathName} - ${opportunity.netProfitPercent.toFixed(3)}% profit with $${tradeAmount.toFixed(2)}`, 'success');
+            // Add to trade history (simplified)
+            if (!window.triangularTradeHistory) {
+                window.triangularTradeHistory = [];
+            }
+            window.triangularTradeHistory.unshift(tradeRecord);
             
-            // TODO: Add actual trade execution logic here
-            // For now, just log the opportunity
-            console.log('Would execute triangular trade:', {
-                opportunity,
-                tradeAmount,
-                exchange: opportunity.exchange,
-                profit: opportunity.netProfitPercent
-            });
+            // Keep only last 100 trades
+            if (window.triangularTradeHistory.length > 100) {
+                window.triangularTradeHistory = window.triangularTradeHistory.slice(0, 100);
+            }
+            
+            console.log('📊 Trade recorded:', tradeRecord);
         }
 
         // Helper Functions
@@ -23468,12 +23734,9 @@ ARB4ME Security Team`
         }
         
         // Scan all Luno triangular opportunities
-        async function scanLunoTriangularOpportunities(showActivity = true) {
+        async function scanLunoTriangularOpportunities(showActivity = false) {
             console.log('🔺 Starting Luno triangular arbitrage scan...');
-            if (showActivity) {
-                // Only show activity every 3rd scan to reduce spam
-                addActivity('🔺 Scanning Luno triangular opportunities...', 'info');
-            }
+            // Activity reporting now handled by consolidated reporter
             const opportunities = [];
             
             // Only scan USDT paths for now (since user has USDT)
@@ -23495,6 +23758,26 @@ ARB4ME Security Team`
                             `🔺 Luno Triangular Opportunity: ${result.pathName} - ${result.netProfitPercent.toFixed(3)}% profit (after ${lunoConfig.fees.total*100}% fees)`,
                             result.netProfitPercent > 1 ? 'success' : 'warning'
                         );
+                        
+                        // Execute triangular arbitrage if triangular auto-trading is enabled
+                        if (state.triangularArbitrage) {
+                            console.log(`🚀 Auto-trading enabled - executing triangular opportunity: ${pathName}`);
+                            
+                            // Add execution data to result
+                            const opportunityWithExecution = {
+                                ...result,
+                                prices: pathConfig.pairs,
+                                exchange: 'LUNO'
+                            };
+                            
+                            // Execute the opportunity (async, don't wait)
+                            executeTriangularOpportunity(opportunityWithExecution).catch(error => {
+                                console.error('Failed to execute triangular opportunity:', error);
+                                addActivity(`❌ Failed to execute ${pathName}: ${error.message}`, 'error');
+                            });
+                        } else {
+                            console.log(`💡 Profitable opportunity found but auto-trading disabled for triangular`);
+                        }
                     } else {
                         console.log(`❌ Not profitable: ${pathName} - ${result.netProfitPercent.toFixed(3)}% (need ${lunoConfig.profitThreshold}%+)`);
                     }
