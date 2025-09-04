@@ -23608,26 +23608,8 @@ ARB4ME Security Team`
                 baseCurrency: 'USDT',
                 verified: true
             },
-            USDT_BTC_SOL: {
-                pairs: ['XBTUSDT', 'SOLXBT', 'SOLUSDT'],
-                sequence: 'USDT → BTC → SOL → USDT',
-                baseCurrency: 'USDT',
-                verified: true
-            },
-            USDT_BTC_INJ: {
-                pairs: ['XBTUSDT', 'INJXBT', 'INJUSDT'],
-                sequence: 'USDT → BTC → INJ → USDT',
-                baseCurrency: 'USDT',
-                verified: true // CONFIRMED: INJUSDT exists in Luno pairs data
-            },
-            
-            // Additional verified USDT triangular paths
-            USDT_ETH_USDC: {
-                pairs: ['ETHUSDT', 'ETHUSDC', 'USDCUSDT'],
-                sequence: 'USDT → ETH → USDC → USDT',
-                baseCurrency: 'USDT',
-                verified: true // CONFIRMED: All pairs exist in Luno data
-            },
+            // Note: SOLXBT and INJXBT pairs don't exist on Luno
+            // Note: ETHUSDC path calculation is incorrect - removed
             
             // ZAR-based triangles (SECONDARY) - Verified against Luno pairs data
             ZAR_BTC_ETH: {
