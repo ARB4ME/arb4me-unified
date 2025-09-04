@@ -23260,15 +23260,14 @@ ARB4ME Security Team`
                 
                 // Calculate triangular arbitrage
                 // Step 1: Base currency to BTC
-                const btcAmount = pair1.includes('ZAR') ? 
-                    amount / price1 :  // For XBTZAR: ZAR/price = BTC
-                    amount / price1;    // For XBTUSDT: USDT/price = BTC
+                const btcAmount = amount / price1;  // USDT/XBTUSDT = BTC
                 
                 // Step 2: BTC to intermediate currency (ETH, XRP, SOL, etc.)
-                const intermediateAmount = btcAmount * price2;
+                // IMPORTANT: Luno's XBT pairs (ETHXBT, XRPXBT) are "BTC per crypto", so we need to divide
+                const intermediateAmount = btcAmount / price2;  // BTC ÷ ETHXBT = ETH
                 
                 // Step 3: Intermediate back to base currency
-                const finalAmount = intermediateAmount * price3;
+                const finalAmount = intermediateAmount * price3;  // ETH × ETHUSDT = USDT
                 
                 // Calculate profit
                 const profit = finalAmount - amount;
