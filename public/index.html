@@ -22675,6 +22675,28 @@ ARB4ME Security Team`
                                     await executeTriangularOpportunity(best);
                                 }
                             }
+                            
+                            if (exchange === 'chainex') {
+                                // ChainEX triangular arbitrage scanning
+                                const opportunities = await scanChainexTriangularOpportunities(false);
+                                scanResults.totalOpportunities.push(...opportunities);
+                                
+                                // Track best opportunity
+                                opportunities.forEach(opp => {
+                                    if (!scanResults.bestOpportunity || opp.netProfitPercent > scanResults.bestOpportunity.netProfitPercent) {
+                                        scanResults.bestOpportunity = opp;
+                                    }
+                                    if (opp.profitable) scanResults.profitableCount++;
+                                });
+                                
+                                // Execute profitable opportunities
+                                const profitable = opportunities.filter(opp => opp.profitable);
+                                if (profitable.length > 0) {
+                                    const best = profitable.sort((a, b) => b.netProfitPercent - a.netProfitPercent)[0];
+                                    await executeTriangularOpportunity(best);
+                                }
+                            }
+                            
                             // Add more exchanges here as we implement them
                             // if (exchange === 'valr') { ... }
                         }
@@ -23905,6 +23927,300 @@ ARB4ME Security Team`
             })));
             return results;
         };
+        
+        // ============================================
+        // CHAINEX TRIANGULAR ARBITRAGE IMPLEMENTATION  
+        // ============================================
+        
+        // ChainEX triangular paths configuration
+        const chainexTriangularPaths = {
+            // ZAR-based triangles (using USDT as bridge)
+            ZAR_USDT_BTC: {
+                pairs: ['USDT/ZAR', 'BTC/USDT', 'BTC/ZAR'],
+                sequence: 'ZAR → USDT → BTC → ZAR',
+                baseCurrency: 'ZAR',
+                verified: true
+            },
+            ZAR_USDT_ETH: {
+                pairs: ['USDT/ZAR', 'ETH/USDT', 'ETH/ZAR'],
+                sequence: 'ZAR → USDT → ETH → ZAR',
+                baseCurrency: 'ZAR',
+                verified: true
+            },
+            ZAR_USDT_XRP: {
+                pairs: ['USDT/ZAR', 'XRP/USDT', 'XRP/ZAR'],
+                sequence: 'ZAR → USDT → XRP → ZAR',
+                baseCurrency: 'ZAR',
+                verified: true
+            },
+            ZAR_USDT_LTC: {
+                pairs: ['USDT/ZAR', 'LTC/USDT', 'LTC/ZAR'],
+                sequence: 'ZAR → USDT → LTC → ZAR',
+                baseCurrency: 'ZAR',
+                verified: true
+            },
+            
+            // USDT-based triangles (using ZAR as bridge)
+            USDT_ZAR_BTC: {
+                pairs: ['USDT/ZAR', 'BTC/ZAR', 'BTC/USDT'],
+                sequence: 'USDT → ZAR → BTC → USDT',
+                baseCurrency: 'USDT',
+                verified: true
+            },
+            USDT_ZAR_ETH: {
+                pairs: ['USDT/ZAR', 'ETH/ZAR', 'ETH/USDT'],
+                sequence: 'USDT → ZAR → ETH → USDT',
+                baseCurrency: 'USDT',
+                verified: true
+            },
+            USDT_ZAR_XRP: {
+                pairs: ['USDT/ZAR', 'XRP/ZAR', 'XRP/USDT'],
+                sequence: 'USDT → ZAR → XRP → USDT',
+                baseCurrency: 'USDT',
+                verified: true
+            },
+            USDT_ZAR_LTC: {
+                pairs: ['USDT/ZAR', 'LTC/ZAR', 'LTC/USDT'],
+                sequence: 'USDT → ZAR → LTC → USDT',
+                baseCurrency: 'USDT',
+                verified: true
+            }
+        };
+        
+        // ChainEX price cache for efficient API usage
+        const chainexPriceCache = {
+            prices: {},
+            lastUpdate: 0,
+            ttl: 8000 // Cache for 8 seconds (optimized for ChainEX rate limits)
+        };
+        
+        // ChainEX-specific configuration
+        const chainexConfig = {
+            fees: {
+                maker: -0.10,        // -10% (GET PAID for maker orders!)
+                taker: 0.001,        // 0.10% per trade
+                total: 0.003         // 0.30% for 3 taker trades (worst case)
+            },
+            profitThreshold: 0.4,    // Need 0.4% profit to overcome 0.3% fees
+            rateLimits: {
+                triangular: {
+                    delayBetween: 250,   // 250ms between calls
+                    maxPerMinute: 120,   // Conservative limit
+                    cacheMs: 8000        // 8 second cache
+                }
+            }
+        };
+        
+        // Get ChainEX price with caching - Uses market summary endpoint
+        async function getChainexPriceWithCache(pair) {
+            const now = Date.now();
+            
+            // Check if cache is still valid
+            if (chainexPriceCache.prices[pair] && (now - chainexPriceCache.lastUpdate) < chainexPriceCache.ttl) {
+                console.log(`📦 Using cached ChainEX price for ${pair}: ${chainexPriceCache.prices[pair]}`);
+                return chainexPriceCache.prices[pair];
+            }
+            
+            try {
+                // Use our existing ChainEX pairs endpoint for public price data
+                const response = await fetch(`/api/v1/trading/chainex/pairs`);
+                
+                if (!response.ok) {
+                    throw new Error(`ChainEX API error: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                if (!data.success || !data.pairs) {
+                    throw new Error('Invalid response from ChainEX pairs endpoint');
+                }
+                
+                // Find the specific pair price
+                const pairData = data.pairs.find(p => p.symbol === pair);
+                if (!pairData) {
+                    throw new Error(`Pair ${pair} not found on ChainEX`);
+                }
+                
+                const price = parseFloat(pairData.price);
+                chainexPriceCache.prices[pair] = price;
+                chainexPriceCache.lastUpdate = now;
+                console.log(`🔄 Fetched fresh ChainEX price for ${pair}: ${price}`);
+                return price;
+                
+            } catch (error) {
+                console.error(`Failed to get ChainEX price for ${pair}:`, error);
+                return null;
+            }
+        }
+        
+        // Calculate ChainEX triangular profit
+        async function calculateChainexTriangularProfit(pathConfig, amount = 100) {
+            const [pair1, pair2, pair3] = pathConfig.pairs;
+            const startTime = Date.now();
+            
+            try {
+                // Get all prices with rate limiting
+                const price1 = await getChainexPriceWithCache(pair1);
+                await delay(chainexConfig.rateLimits.triangular.delayBetween);
+                
+                const price2 = await getChainexPriceWithCache(pair2);
+                await delay(chainexConfig.rateLimits.triangular.delayBetween);
+                
+                const price3 = await getChainexPriceWithCache(pair3);
+                
+                if (!price1 || !price2 || !price3) {
+                    console.error('Failed to get all ChainEX prices for triangular calculation');
+                    return null;
+                }
+                
+                console.log(`ChainEX prices - ${pair1}: ${price1}, ${pair2}: ${price2}, ${pair3}: ${price3}`);
+                
+                // Calculate triangular arbitrage based on path type
+                let intermediateAmount, finalAmount;
+                
+                if (pathConfig.baseCurrency === 'ZAR') {
+                    // ZAR → USDT → Crypto → ZAR
+                    const usdtAmount = amount / price1;           // ZAR → USDT
+                    const cryptoAmount = usdtAmount / price2;     // USDT → Crypto  
+                    finalAmount = cryptoAmount * price3;         // Crypto → ZAR
+                } else {
+                    // USDT → ZAR → Crypto → USDT  
+                    const zarAmount = amount * price1;           // USDT → ZAR
+                    const cryptoAmount = zarAmount / price3;     // ZAR → Crypto (reverse of pair3)
+                    finalAmount = cryptoAmount * price2;        // Crypto → USDT
+                }
+                
+                // Calculate profit
+                const profit = finalAmount - amount;
+                const profitPercent = (profit / amount) * 100;
+                
+                // Calculate fees using ChainEX-specific configuration
+                const totalFees = amount * chainexConfig.fees.total;
+                const netProfit = profit - totalFees;
+                const netProfitPercent = (netProfit / amount) * 100;
+                
+                const executionTime = Date.now() - startTime;
+                
+                return {
+                    pathName: pathConfig.sequence,
+                    pairs: pathConfig.pairs,
+                    prices: { [pair1]: price1, [pair2]: price2, [pair3]: price3 },
+                    baseCurrency: pathConfig.baseCurrency,
+                    startAmount: amount,
+                    finalAmount: finalAmount,
+                    profit: profit,
+                    profitPercent: profitPercent,
+                    netProfit: netProfit,
+                    netProfitPercent: netProfitPercent,
+                    fees: totalFees,
+                    profitable: netProfitPercent > chainexConfig.profitThreshold,
+                    executionTimeMs: executionTime,
+                    timestamp: new Date().toISOString(),
+                    exchange: 'CHAINEX',
+                    feeStructure: chainexConfig.fees
+                };
+                
+            } catch (error) {
+                console.error('Error calculating ChainEX triangular profit:', error);
+                return null;
+            }
+        }
+        
+        // Manual test function for console
+        window.testChainexTriangular = async function() {
+            console.log('🧪 Testing ChainEX triangular arbitrage scanner...');
+            
+            // Test one path manually
+            const testPath = chainexTriangularPaths.ZAR_USDT_BTC;
+            const result = await calculateChainexTriangularProfit(testPath);
+            
+            if (result) {
+                console.table([{
+                    Path: result.pathName,
+                    'Profit %': result.netProfitPercent.toFixed(3),
+                    'Net Profit': result.netProfit.toFixed(2),
+                    'Fees': result.fees.toFixed(2),
+                    'Profitable': result.profitable ? '✅' : '❌'
+                }]);
+            } else {
+                console.log('❌ Test failed - could not calculate ChainEX triangular profit');
+            }
+            
+            return result;
+        };
+        
+        // Scan all ChainEX triangular opportunities
+        async function scanChainexTriangularOpportunities(showActivity = false) {
+            console.log('🔺 Starting ChainEX triangular arbitrage scan...');
+            const opportunities = [];
+            
+            // Auto-detect funded currencies from balances
+            const chainexBalances = state.balances?.chainex || {};
+            const fundedCurrencies = Object.keys(chainexBalances).filter(currency => (chainexBalances[currency] || 0) >= 10);
+            
+            console.log('💰 Funded currencies on ChainEX:', fundedCurrencies);
+            console.log('🔍 Available balances:', chainexBalances);
+            
+            // Scan paths for all funded currencies
+            const fundedPaths = Object.entries(chainexTriangularPaths)
+                .filter(([key, config]) => {
+                    return config.verified && fundedCurrencies.includes(config.baseCurrency);
+                });
+            
+            console.log(`📊 Scanning ${fundedPaths.length} ChainEX triangular paths across ${fundedCurrencies.length} funded currencies`);
+            
+            for (const [pathName, pathConfig] of fundedPaths) {
+                console.log(`Checking ${pathName}...`);
+                const result = await calculateChainexTriangularProfit(pathConfig);
+                
+                if (result) {
+                    opportunities.push(result);
+                    
+                    if (result.profitable) {
+                        console.log(`✅ PROFITABLE: ${pathName} - ${result.netProfitPercent.toFixed(3)}% profit (threshold: ${chainexConfig.profitThreshold}%)`);
+                        
+                        // Add to activity log
+                        addActivity(
+                            `🔺 ChainEX Triangular Opportunity: ${result.pathName} - ${result.netProfitPercent.toFixed(3)}% profit (after ${chainexConfig.fees.total*100}% fees)`,
+                            result.netProfitPercent > 1 ? 'success' : 'warning'
+                        );
+                        
+                        // Execute triangular arbitrage if triangular auto-trading is enabled
+                        if (state.triangularArbitrage) {
+                            console.log(`🚀 Auto-trading enabled - executing ChainEX triangular opportunity: ${pathName}`);
+                            
+                            // Add execution data to result
+                            const opportunityWithExecution = {
+                                ...result,
+                                prices: pathConfig.pairs,
+                                exchange: 'CHAINEX'
+                            };
+                            
+                            // Execute the opportunity (async, don't wait)
+                            executeTriangularOpportunity(opportunityWithExecution).catch(error => {
+                                console.error('Failed to execute ChainEX triangular opportunity:', error);
+                                addActivity(`❌ Failed to execute ${pathName}: ${error.message}`, 'error');
+                            });
+                        } else {
+                            console.log(`💡 Profitable ChainEX opportunity found but auto-trading disabled for triangular`);
+                        }
+                    } else {
+                        console.log(`❌ Not profitable: ${pathName} - ${result.netProfitPercent.toFixed(3)}% (need ${chainexConfig.profitThreshold}%+)`);
+                    }
+                }
+                
+                // Dynamic rate limiting based on path count (ChainEX optimized)
+                const pathDelay = fundedPaths.length > 6 ? 600 : 400;
+                await delay(pathDelay);
+            }
+            
+            // Sort by profit percentage
+            opportunities.sort((a, b) => b.netProfitPercent - a.netProfitPercent);
+            
+            const profitableCount = opportunities.filter(o => o.profitable).length;
+            console.log(`🔺 ChainEX scan complete. Found ${profitableCount} profitable opportunities`);
+            
+            return opportunities;
+        }
         
         // Calculate triangular arbitrage profit potential (ORIGINAL FUNCTION - KEEP FOR COMPATIBILITY)
         async function calculateTriangularProfit(exchange, baseCurrency, currencyA, currencyB) {
