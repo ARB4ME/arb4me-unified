@@ -22632,8 +22632,12 @@ ARB4ME Security Team`
                 clearInterval(state.triangularScanInterval);
             }
             
+            // Track scan count to reduce UI spam
+            let scanCount = 0;
+            
             // Start scanning every 10 seconds
             state.triangularScanInterval = setInterval(async () => {
+                scanCount++;
                 try {
                     const connectedExchanges = Object.keys(state.exchanges).filter(ex => state.exchanges[ex].connected);
                     
@@ -22642,7 +22646,9 @@ ARB4ME Security Team`
                         if (balance >= 10) { // Only scan exchanges with sufficient balance
                             
                             if (exchange === 'luno') {
-                                const opportunities = await scanLunoTriangularOpportunities();
+                                // Show activity less frequently to avoid spam
+                                const showActivity = scanCount % 3 === 1; // Show every 3rd scan
+                                const opportunities = await scanLunoTriangularOpportunities(showActivity);
                                 
                                 // Execute best opportunity if profitable
                                 const profitable = opportunities.filter(opp => opp.profitable);
@@ -23462,8 +23468,12 @@ ARB4ME Security Team`
         }
         
         // Scan all Luno triangular opportunities
-        async function scanLunoTriangularOpportunities() {
+        async function scanLunoTriangularOpportunities(showActivity = true) {
             console.log('🔺 Starting Luno triangular arbitrage scan...');
+            if (showActivity) {
+                // Only show activity every 3rd scan to reduce spam
+                addActivity('🔺 Scanning Luno triangular opportunities...', 'info');
+            }
             const opportunities = [];
             
             // Only scan USDT paths for now (since user has USDT)
@@ -23497,7 +23507,16 @@ ARB4ME Security Team`
             // Sort by profit percentage
             opportunities.sort((a, b) => b.netProfitPercent - a.netProfitPercent);
             
-            console.log(`🔺 Luno scan complete. Found ${opportunities.filter(o => o.profitable).length} profitable opportunities`);
+            const profitableCount = opportunities.filter(o => o.profitable).length;
+            console.log(`🔺 Luno scan complete. Found ${profitableCount} profitable opportunities`);
+            
+            // Show scan results in UI
+            if (profitableCount > 0) {
+                addActivity(`✅ Found ${profitableCount} profitable Luno triangular opportunities!`, 'success');
+            } else if (opportunities.length > 0) {
+                const best = opportunities[0];
+                addActivity(`📊 Best Luno triangle: ${best.pathName.split(' → ')[1]} at ${best.netProfitPercent.toFixed(2)}% (need 0.8%+)`, 'info');
+            }
             
             return opportunities;
         }
