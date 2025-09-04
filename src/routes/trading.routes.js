@@ -2730,27 +2730,44 @@ router.get('/chainex/pairs', tickerRateLimit, asyncHandler(async (req, res) => {
 
         const marketsData = await response.json();
         
-        // ChainEX /market/summary returns a direct object with market pairs as keys
-        // Format: { "BTCZAR": {last: "...", high: "...", low: "...", volume: "..."}, ... }
-        let pairs = [];
-        
-        // Filter out any metadata fields and only get actual market pairs
-        const marketPairs = Object.keys(marketsData).filter(key => {
-            // Skip metadata fields
-            if (key === 'status' || key === 'count' || key === 'data' || key === 'message') {
-                return false;
-            }
-            // Check if it looks like a trading pair (contains currency codes)
-            return marketsData[key] && typeof marketsData[key] === 'object' && marketsData[key].last;
+        // Log the structure for debugging
+        systemLogger.trading('ChainEX raw response structure', {
+            hasStatus: !!marketsData.status,
+            hasCount: !!marketsData.count,
+            hasData: !!marketsData.data,
+            dataType: marketsData.data ? typeof marketsData.data : 'no data field',
+            dataIsArray: Array.isArray(marketsData.data),
+            topLevelKeys: Object.keys(marketsData).slice(0, 10),
+            sampleData: marketsData.data ? JSON.stringify(marketsData.data).slice(0, 200) : 'none'
         });
         
-        pairs = marketPairs.map(pair => ({
-            pair: pair,
-            last: marketsData[pair].last,
-            high: marketsData[pair].high,
-            low: marketsData[pair].low,
-            volume: marketsData[pair].volume
-        }));
+        let pairs = [];
+        
+        // ChainEX returns {status: "success", count: X, data: [...]}
+        if (marketsData.status === 'success' && marketsData.data && Array.isArray(marketsData.data)) {
+            pairs = marketsData.data.map(market => ({
+                pair: market.market || market.pair || market.symbol || 'unknown',
+                last: market.last || market.lastPrice || market.price || '0',
+                high: market.high || market.highPrice || '0',
+                low: market.low || market.lowPrice || '0',
+                volume: market.volume || market.baseVolume || '0'
+            }));
+        } else if (typeof marketsData === 'object') {
+            // Fallback: direct object with pairs as keys
+            const marketPairs = Object.keys(marketsData).filter(key => {
+                return key !== 'status' && key !== 'count' && key !== 'data' && 
+                       key !== 'message' && marketsData[key] && 
+                       typeof marketsData[key] === 'object';
+            });
+            
+            pairs = marketPairs.map(pair => ({
+                pair: pair,
+                last: marketsData[pair].last || '0',
+                high: marketsData[pair].high || '0',
+                low: marketsData[pair].low || '0',
+                volume: marketsData[pair].volume || '0'
+            }));
+        }
         
         systemLogger.trading('ChainEX pairs retrieved successfully', {
             userId: req.user?.id || 'anonymous',
