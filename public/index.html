@@ -23193,13 +23193,21 @@ ARB4ME Security Team`
             ttl: 3000 // Cache for 3 seconds
         };
         
-        // Luno-specific rate limiting
-        const lunoRateLimits = {
-            triangular: {
-                priceChecks: 7,      // 7 prices needed for all paths
-                intervalMs: 5000,    // Every 5 seconds
-                delayBetween: 200,   // 200ms between each call
-                maxPerMinute: 84     // Well under Luno's limits
+        // Luno-specific configuration
+        const lunoConfig = {
+            fees: {
+                maker: 0.001,        // 0.1%
+                taker: 0.002,        // 0.2% 
+                total: 0.006         // 0.6% for 3 taker trades (0.2% × 3)
+            },
+            profitThreshold: 0.8,    // Need 0.8% profit to overcome 0.6% fees
+            rateLimits: {
+                triangular: {
+                    priceChecks: 7,      // 7 prices needed for all paths
+                    intervalMs: 5000,    // Every 5 seconds
+                    delayBetween: 200,   // 200ms between each call
+                    maxPerMinute: 84     // Well under Luno's limits
+                }
             }
         };
         
@@ -23246,10 +23254,10 @@ ARB4ME Security Team`
             try {
                 // Get all prices with rate limiting
                 const price1 = await getLunoPriceWithCache(pair1);
-                await delay(lunoRateLimits.triangular.delayBetween);
+                await delay(lunoConfig.rateLimits.triangular.delayBetween);
                 
                 const price2 = await getLunoPriceWithCache(pair2);
-                await delay(lunoRateLimits.triangular.delayBetween);
+                await delay(lunoConfig.rateLimits.triangular.delayBetween);
                 
                 const price3 = await getLunoPriceWithCache(pair3);
                 
@@ -23273,8 +23281,8 @@ ARB4ME Security Team`
                 const profit = finalAmount - amount;
                 const profitPercent = (profit / amount) * 100;
                 
-                // Calculate fees (Luno: 0.1% maker, 0.2% taker - assume taker for worst case)
-                const totalFees = amount * 0.006; // 0.2% × 3 trades
+                // Calculate fees using exchange-specific configuration
+                const totalFees = amount * lunoConfig.fees.total;
                 const netProfit = profit - totalFees;
                 const netProfitPercent = (netProfit / amount) * 100;
                 
@@ -23291,9 +23299,11 @@ ARB4ME Security Team`
                     netProfit: netProfit,
                     netProfitPercent: netProfitPercent,
                     fees: totalFees,
-                    profitable: netProfitPercent > 0.5, // 0.5% threshold after fees
+                    profitable: netProfitPercent > lunoConfig.profitThreshold, // Exchange-specific threshold
                     executionTimeMs: executionTime,
-                    timestamp: new Date().toISOString()
+                    timestamp: new Date().toISOString(),
+                    exchange: 'LUNO',
+                    feeStructure: lunoConfig.fees
                 };
                 
             } catch (error) {
@@ -23319,15 +23329,15 @@ ARB4ME Security Team`
                     opportunities.push(result);
                     
                     if (result.profitable) {
-                        console.log(`✅ PROFITABLE: ${pathName} - ${result.netProfitPercent.toFixed(3)}% profit`);
+                        console.log(`✅ PROFITABLE: ${pathName} - ${result.netProfitPercent.toFixed(3)}% profit (threshold: ${lunoConfig.profitThreshold}%)`);
                         
                         // Add to activity log
                         addActivity(
-                            `🔺 Luno Triangular Opportunity: ${result.pathName} - ${result.netProfitPercent.toFixed(3)}% profit`,
+                            `🔺 Luno Triangular Opportunity: ${result.pathName} - ${result.netProfitPercent.toFixed(3)}% profit (after ${lunoConfig.fees.total*100}% fees)`,
                             result.netProfitPercent > 1 ? 'success' : 'warning'
                         );
                     } else {
-                        console.log(`❌ Not profitable: ${pathName} - ${result.netProfitPercent.toFixed(3)}%`);
+                        console.log(`❌ Not profitable: ${pathName} - ${result.netProfitPercent.toFixed(3)}% (need ${lunoConfig.profitThreshold}%+)`);
                     }
                 }
                 
