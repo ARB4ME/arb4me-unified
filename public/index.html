@@ -23127,7 +23127,231 @@ ARB4ME Security Team`
             return opportunities;
         }
 
-        // Calculate triangular arbitrage profit potential
+        // ============================================
+        // LUNO TRIANGULAR ARBITRAGE IMPLEMENTATION
+        // ============================================
+        
+        // Define Luno's validated triangular paths
+        const lunoTriangularPaths = {
+            // USDT-based triangles (PRIMARY)
+            USDT_BTC_ETH: {
+                pairs: ['XBTUSDT', 'ETHXBT', 'ETHUSDT'],
+                sequence: 'USDT → BTC → ETH → USDT',
+                baseCurrency: 'USDT',
+                verified: true
+            },
+            USDT_BTC_XRP: {
+                pairs: ['XBTUSDT', 'XRPXBT', 'XRPUSDT'],
+                sequence: 'USDT → BTC → XRP → USDT',
+                baseCurrency: 'USDT',
+                verified: true
+            },
+            USDT_BTC_SOL: {
+                pairs: ['XBTUSDT', 'SOLXBT', 'SOLUSDT'],
+                sequence: 'USDT → BTC → SOL → USDT',
+                baseCurrency: 'USDT',
+                verified: true
+            },
+            USDT_BTC_INJ: {
+                pairs: ['XBTUSDT', 'INJXBT', 'INJUSDT'],
+                sequence: 'USDT → BTC → INJ → USDT',
+                baseCurrency: 'USDT',
+                verified: false // Need to verify if INJ pairs exist
+            },
+            
+            // ZAR-based triangles (SECONDARY)
+            ZAR_BTC_ETH: {
+                pairs: ['XBTZAR', 'ETHXBT', 'ETHZAR'],
+                sequence: 'ZAR → BTC → ETH → ZAR',
+                baseCurrency: 'ZAR',
+                verified: true
+            },
+            ZAR_BTC_XRP: {
+                pairs: ['XBTZAR', 'XRPXBT', 'XRPZAR'],
+                sequence: 'ZAR → BTC → XRP → ZAR',
+                baseCurrency: 'ZAR',
+                verified: true
+            },
+            ZAR_BTC_LTC: {
+                pairs: ['XBTZAR', 'LTCXBT', 'LTCZAR'],
+                sequence: 'ZAR → BTC → LTC → ZAR',
+                baseCurrency: 'ZAR',
+                verified: true
+            },
+            ZAR_BTC_SOL: {
+                pairs: ['XBTZAR', 'SOLXBT', 'SOLZAR'],
+                sequence: 'ZAR → BTC → SOL → ZAR',
+                baseCurrency: 'ZAR',
+                verified: true
+            }
+        };
+        
+        // Price cache for efficient API usage
+        const lunoPriceCache = {
+            prices: {},
+            lastUpdate: 0,
+            ttl: 3000 // Cache for 3 seconds
+        };
+        
+        // Luno-specific rate limiting
+        const lunoRateLimits = {
+            triangular: {
+                priceChecks: 7,      // 7 prices needed for all paths
+                intervalMs: 5000,    // Every 5 seconds
+                delayBetween: 200,   // 200ms between each call
+                maxPerMinute: 84     // Well under Luno's limits
+            }
+        };
+        
+        // Get Luno price with caching
+        async function getLunoPriceWithCache(pair) {
+            const now = Date.now();
+            
+            // Check if cache is still valid
+            if (lunoPriceCache.prices[pair] && (now - lunoPriceCache.lastUpdate) < lunoPriceCache.ttl) {
+                console.log(`📦 Using cached price for ${pair}: ${lunoPriceCache.prices[pair]}`);
+                return lunoPriceCache.prices[pair];
+            }
+            
+            // Fetch fresh price
+            try {
+                const price = await getRealPrice(pair, 'luno');
+                lunoPriceCache.prices[pair] = price;
+                lunoPriceCache.lastUpdate = now;
+                console.log(`🔄 Fetched fresh price for ${pair}: ${price}`);
+                return price;
+            } catch (error) {
+                console.error(`Failed to get price for ${pair}:`, error);
+                return null;
+            }
+        }
+        
+        // Calculate Luno triangular profit
+        async function calculateLunoTriangularProfit(pathConfig, amount = 100) {
+            const [pair1, pair2, pair3] = pathConfig.pairs;
+            const startTime = Date.now();
+            
+            try {
+                // Get all prices with rate limiting
+                const price1 = await getLunoPriceWithCache(pair1);
+                await delay(lunoRateLimits.triangular.delayBetween);
+                
+                const price2 = await getLunoPriceWithCache(pair2);
+                await delay(lunoRateLimits.triangular.delayBetween);
+                
+                const price3 = await getLunoPriceWithCache(pair3);
+                
+                if (!price1 || !price2 || !price3) {
+                    console.error('Failed to get all prices for triangular calculation');
+                    return null;
+                }
+                
+                // Calculate triangular arbitrage
+                // Step 1: Base currency to BTC
+                const btcAmount = pair1.includes('ZAR') ? 
+                    amount / price1 :  // For XBTZAR: ZAR/price = BTC
+                    amount / price1;    // For XBTUSDT: USDT/price = BTC
+                
+                // Step 2: BTC to intermediate currency (ETH, XRP, SOL, etc.)
+                const intermediateAmount = btcAmount * price2;
+                
+                // Step 3: Intermediate back to base currency
+                const finalAmount = intermediateAmount * price3;
+                
+                // Calculate profit
+                const profit = finalAmount - amount;
+                const profitPercent = (profit / amount) * 100;
+                
+                // Calculate fees (Luno: 0.1% maker, 0.2% taker - assume taker for worst case)
+                const totalFees = amount * 0.006; // 0.2% × 3 trades
+                const netProfit = profit - totalFees;
+                const netProfitPercent = (netProfit / amount) * 100;
+                
+                const executionTime = Date.now() - startTime;
+                
+                return {
+                    pathName: pathConfig.sequence,
+                    pairs: pathConfig.pairs,
+                    prices: { [pair1]: price1, [pair2]: price2, [pair3]: price3 },
+                    startAmount: amount,
+                    finalAmount: finalAmount,
+                    profit: profit,
+                    profitPercent: profitPercent,
+                    netProfit: netProfit,
+                    netProfitPercent: netProfitPercent,
+                    fees: totalFees,
+                    profitable: netProfitPercent > 0.5, // 0.5% threshold after fees
+                    executionTimeMs: executionTime,
+                    timestamp: new Date().toISOString()
+                };
+                
+            } catch (error) {
+                console.error('Error calculating Luno triangular profit:', error);
+                return null;
+            }
+        }
+        
+        // Scan all Luno triangular opportunities
+        async function scanLunoTriangularOpportunities() {
+            console.log('🔺 Starting Luno triangular arbitrage scan...');
+            const opportunities = [];
+            
+            // Only scan USDT paths for now (since user has USDT)
+            const usdtPaths = Object.entries(lunoTriangularPaths)
+                .filter(([key, config]) => config.baseCurrency === 'USDT' && config.verified);
+            
+            for (const [pathName, pathConfig] of usdtPaths) {
+                console.log(`Checking ${pathName}...`);
+                const result = await calculateLunoTriangularProfit(pathConfig);
+                
+                if (result) {
+                    opportunities.push(result);
+                    
+                    if (result.profitable) {
+                        console.log(`✅ PROFITABLE: ${pathName} - ${result.netProfitPercent.toFixed(3)}% profit`);
+                        
+                        // Add to activity log
+                        addActivity(
+                            `🔺 Luno Triangular Opportunity: ${result.pathName} - ${result.netProfitPercent.toFixed(3)}% profit`,
+                            result.netProfitPercent > 1 ? 'success' : 'warning'
+                        );
+                    } else {
+                        console.log(`❌ Not profitable: ${pathName} - ${result.netProfitPercent.toFixed(3)}%`);
+                    }
+                }
+                
+                // Rate limiting between path checks
+                await delay(1000);
+            }
+            
+            // Sort by profit percentage
+            opportunities.sort((a, b) => b.netProfitPercent - a.netProfitPercent);
+            
+            console.log(`🔺 Luno scan complete. Found ${opportunities.filter(o => o.profitable).length} profitable opportunities`);
+            
+            return opportunities;
+        }
+        
+        // Helper function for delay
+        function delay(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+        
+        // Manual test function for console
+        window.testLunoTriangular = async function() {
+            console.log('🧪 Testing Luno triangular arbitrage scanner...');
+            const results = await scanLunoTriangularOpportunities();
+            console.table(results.map(r => ({
+                Path: r.pathName,
+                'Profit %': r.netProfitPercent.toFixed(3),
+                'Net Profit': r.netProfit.toFixed(2),
+                'Fees': r.fees.toFixed(2),
+                'Profitable': r.profitable ? '✅' : '❌'
+            })));
+            return results;
+        };
+        
+        // Calculate triangular arbitrage profit potential (ORIGINAL FUNCTION - KEEP FOR COMPATIBILITY)
         async function calculateTriangularProfit(exchange, baseCurrency, currencyA, currencyB) {
             try {
                 // Get prices for the three legs of the triangle
