@@ -2425,6 +2425,14 @@
             <span id="tradingStatus" style="color: #b8c6db;">⚠️ REAL MONEY MODE - Start with small amounts!</span>
         </div>
 
+        <div class="toggle-container" style="margin-top: 15px;">
+            <span id="triangularToggleLabel" style="font-size: 1.1rem; font-weight: bold;">🔺 Triangular Arbitrage: OFF</span>
+            <div class="toggle-switch" id="triangularTradingToggle">
+                <div class="toggle-knob"></div>
+            </div>
+            <span id="triangularStatus" style="color: #b8c6db;">💎 Single-exchange arbitrage - Lower funding requirements</span>
+        </div>
+
         <div class="tabs">
             <div class="tab-row">
                 <button class="tab" data-tab="signup">📝 Sign Up</button>
@@ -22057,6 +22065,7 @@ ARB4ME Security Team`
         // Global State
         const state = {
             autoTrading: false,
+            triangularArbitrage: false,
             exchanges: {
                 valr: { connected: false, api: null, credentials: null },
                 luno: { connected: false, api: null, credentials: null },
@@ -22124,6 +22133,7 @@ ARB4ME Security Team`
             failedTrades: [], // Failed trades (for debugging, not shown in Box 1)
             liveActivity: [], // Store last 10 trading activity messages
             scanInterval: null,
+            triangularScanInterval: null,
             nextScanTime: 30,
             priceCache: {},
             lastPriceUpdate: {}
@@ -22541,6 +22551,145 @@ ARB4ME Security Team`
                     refreshAdminDashboard();
                 }
             }
+        }
+
+        // Triangular Arbitrage Toggle Function
+        function toggleTriangularArbitrage() {
+            console.log('Toggle triangular arbitrage clicked');
+            
+            // Check if user is trying to turn ON triangular arbitrage
+            if (!state.triangularArbitrage) {
+                // Check subscription status
+                if (!enforceSubscriptionLimits()) {
+                    addActivity('❌ Cannot start triangular arbitrage: subscription expired', 'error');
+                    openBillingDashboard();
+                    return;
+                }
+                
+                // Check if at least one exchange is connected and funded
+                const triangularRequirements = checkTriangularRequirements();
+                if (!triangularRequirements.canTrade) {
+                    addActivity(`❌ Triangular arbitrage requirements not met: ${triangularRequirements.reason}`, 'error');
+                    return;
+                }
+                
+                addActivity('🔺 Triangular arbitrage requirements met! Starting...', 'success');
+            }
+
+            // Toggle the state
+            state.triangularArbitrage = !state.triangularArbitrage;
+            
+            const toggle = document.getElementById('triangularTradingToggle');
+            const label = document.getElementById('triangularToggleLabel');
+            const status = document.getElementById('triangularStatus');
+            
+            if (state.triangularArbitrage) {
+                toggle.classList.add('active');
+                label.textContent = '🔺 Triangular Arbitrage: ON';
+                label.style.color = '#00ff88';
+                status.textContent = `Scanning triangular paths on connected exchanges`;
+                status.style.color = '#00ff88';
+                
+                startTriangularScanning();
+                addActivity('🔺 Triangular arbitrage enabled - monitoring single-exchange opportunities', 'success');
+            } else {
+                toggle.classList.remove('active');
+                label.textContent = '🔺 Triangular Arbitrage: OFF';
+                label.style.color = 'white';
+                status.textContent = '💎 Single-exchange arbitrage - Lower funding requirements';
+                status.style.color = '#b8c6db';
+                
+                stopTriangularScanning();
+                addActivity('⏸️ Triangular arbitrage disabled', 'warning');
+            }
+        }
+
+        // Check triangular arbitrage requirements
+        function checkTriangularRequirements() {
+            const connectedExchanges = Object.keys(state.exchanges).filter(ex => state.exchanges[ex].connected);
+            
+            if (connectedExchanges.length === 0) {
+                return { canTrade: false, reason: 'No exchanges connected' };
+            }
+            
+            // Check for funded exchanges with triangular capability
+            const fundedExchanges = connectedExchanges.filter(exchange => {
+                const balance = state.balances?.[exchange]?.USDT || 0;
+                return balance >= 10; // Minimum $10 USDT needed
+            });
+            
+            if (fundedExchanges.length === 0) {
+                return { canTrade: false, reason: 'No exchanges have sufficient USDT balance (minimum $10)' };
+            }
+            
+            return { canTrade: true, exchanges: fundedExchanges };
+        }
+
+        // Start triangular arbitrage scanning
+        function startTriangularScanning() {
+            // Clear any existing interval
+            if (state.triangularScanInterval) {
+                clearInterval(state.triangularScanInterval);
+            }
+            
+            // Start scanning every 10 seconds
+            state.triangularScanInterval = setInterval(async () => {
+                try {
+                    const connectedExchanges = Object.keys(state.exchanges).filter(ex => state.exchanges[ex].connected);
+                    
+                    for (const exchange of connectedExchanges) {
+                        const balance = state.balances?.[exchange]?.USDT || 0;
+                        if (balance >= 10) { // Only scan exchanges with sufficient balance
+                            
+                            if (exchange === 'luno') {
+                                const opportunities = await scanLunoTriangularOpportunities();
+                                
+                                // Execute best opportunity if profitable
+                                const profitable = opportunities.filter(opp => opp.profitable);
+                                if (profitable.length > 0) {
+                                    const best = profitable.sort((a, b) => b.netProfitPercent - a.netProfitPercent)[0];
+                                    await executeTriangularOpportunity(best);
+                                }
+                            }
+                            // Add more exchanges here as we implement them
+                            // if (exchange === 'valr') { ... }
+                        }
+                    }
+                } catch (error) {
+                    console.error('Triangular scanning error:', error);
+                    addActivity(`⚠️ Triangular scan error: ${error.message}`, 'error');
+                }
+            }, 10000); // 10 second intervals
+            
+            addActivity('🔺 Triangular scanner started - checking every 10 seconds', 'info');
+        }
+
+        // Stop triangular arbitrage scanning
+        function stopTriangularScanning() {
+            if (state.triangularScanInterval) {
+                clearInterval(state.triangularScanInterval);
+                state.triangularScanInterval = null;
+            }
+            addActivity('⏸️ Triangular scanner stopped', 'warning');
+        }
+
+        // Execute triangular opportunity
+        async function executeTriangularOpportunity(opportunity) {
+            const tradeAmount = Math.min(
+                state.settings.maxTradeAmount || 50,
+                (state.balances?.[opportunity.exchange.toLowerCase()]?.USDT || 0) * (state.settings.tradeSize || 15) / 100
+            );
+            
+            addActivity(`🔺 EXECUTING: ${opportunity.pathName} - ${opportunity.netProfitPercent.toFixed(3)}% profit with $${tradeAmount.toFixed(2)}`, 'success');
+            
+            // TODO: Add actual trade execution logic here
+            // For now, just log the opportunity
+            console.log('Would execute triangular trade:', {
+                opportunity,
+                tradeAmount,
+                exchange: opportunity.exchange,
+                profit: opportunity.netProfitPercent
+            });
         }
 
         // Helper Functions
@@ -24195,6 +24344,9 @@ ARB4ME Security Team`
             
             // Auto-trading toggle (ENHANCED with failure checking)
             document.getElementById('autoTradingToggle').addEventListener('click', toggleAutoTrading);
+            
+            // Triangular arbitrage toggle
+            document.getElementById('triangularTradingToggle').addEventListener('click', toggleTriangularArbitrage);
             
             // Connect buttons
             document.getElementById('valrConnectBtn').addEventListener('click', () => connectExchange('valr'));
