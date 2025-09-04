@@ -23676,11 +23676,11 @@ ARB4ME Security Team`
             }
         };
         
-        // Price cache for efficient API usage
+        // Price cache for efficient API usage (extended for multi-currency scanning)
         const lunoPriceCache = {
             prices: {},
             lastUpdate: 0,
-            ttl: 3000 // Cache for 3 seconds
+            ttl: 10000 // Cache for 10 seconds (handles 15+ paths within rate limits)
         };
         
         // Luno-specific configuration
@@ -23693,10 +23693,11 @@ ARB4ME Security Team`
             profitThreshold: 0.8,    // Need 0.8% profit to overcome 0.6% fees
             rateLimits: {
                 triangular: {
-                    priceChecks: 7,      // 7 prices needed for all paths
-                    intervalMs: 5000,    // Every 5 seconds
-                    delayBetween: 200,   // 200ms between each call
-                    maxPerMinute: 84     // Well under Luno's limits
+                    priceChecks: 7,      // 7 prices per 5s window (Luno limit)
+                    intervalMs: 5000,    // Every 5 seconds  
+                    delayBetween: 300,   // 300ms between calls (more conservative)
+                    maxPerMinute: 70,    // Conservative limit for 15+ paths
+                    cacheExtended: true  // Use 10s cache for multi-path scanning
                 }
             }
         };
@@ -23864,8 +23865,9 @@ ARB4ME Security Team`
                     }
                 }
                 
-                // Rate limiting between path checks
-                await delay(1000);
+                // Dynamic rate limiting based on path count (more paths = longer delays)
+                const pathDelay = fundedPaths.length > 10 ? 800 : 500;
+                await delay(pathDelay);
             }
             
             // Sort by profit percentage
