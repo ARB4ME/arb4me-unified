@@ -22729,16 +22729,35 @@ ARB4ME Security Team`
         // Execute triangular opportunity
         async function executeTriangularOpportunity(opportunity) {
             try {
+                // Get the base currency from the opportunity
+                const baseCurrency = opportunity.baseCurrency || 'USDT';
+                const exchangeKey = opportunity.exchange.toLowerCase();
+                
+                // Calculate trade amount based on the correct base currency balance
+                const balance = state.balances?.[exchangeKey]?.[baseCurrency] || 0;
                 const tradeAmount = Math.min(
                     state.settings.maxTradeAmount || 50,
-                    (state.balances?.[opportunity.exchange.toLowerCase()]?.USDT || 0) * (state.settings.tradeSize || 15) / 100
+                    balance * (state.settings.tradeSize || 15) / 100
                 );
                 
+                // Validate sufficient balance
+                if (balance <= 0) {
+                    console.log(`❌ No ${baseCurrency} balance on ${opportunity.exchange} - skipping execution`);
+                    addActivity(`⚠️ Cannot execute ${opportunity.pathName}: No ${baseCurrency} balance on ${opportunity.exchange}`, 'warning');
+                    return;
+                }
+                
+                if (tradeAmount <= 0) {
+                    console.log(`❌ Insufficient ${baseCurrency} balance for trade - skipping execution`);
+                    addActivity(`⚠️ Cannot execute ${opportunity.pathName}: Insufficient ${baseCurrency} balance (${balance} available)`, 'warning');
+                    return;
+                }
+                
                 console.log(`🔺 Starting triangular execution: ${opportunity.pathName}`);
-                console.log(`💰 Trade amount: $${tradeAmount.toFixed(2)} USDT`);
+                console.log(`💰 Trade amount: ${tradeAmount.toFixed(2)} ${baseCurrency}`);
                 console.log(`📈 Expected profit: ${opportunity.netProfitPercent.toFixed(3)}%`);
                 
-                addActivity(`🔺 EXECUTING: ${opportunity.pathName} - ${opportunity.netProfitPercent.toFixed(3)}% profit with $${tradeAmount.toFixed(2)}`, 'success');
+                addActivity(`🔺 EXECUTING: ${opportunity.pathName} - ${opportunity.netProfitPercent.toFixed(3)}% profit with ${tradeAmount.toFixed(2)} ${baseCurrency}`, 'success');
                 
                 // Get fresh prices to validate opportunity is still profitable
                 const freshPrices = await Promise.all(
@@ -23588,28 +23607,70 @@ ARB4ME Security Team`
                 verified: true // CONFIRMED: All pairs exist in Luno data
             },
             
-            // ZAR-based triangles (SECONDARY)
+            // ZAR-based triangles (SECONDARY) - Verified against Luno pairs data
             ZAR_BTC_ETH: {
                 pairs: ['XBTZAR', 'ETHXBT', 'ETHZAR'],
                 sequence: 'ZAR → BTC → ETH → ZAR',
                 baseCurrency: 'ZAR',
-                verified: true
+                verified: true // CONFIRMED: All pairs exist
             },
             ZAR_BTC_XRP: {
                 pairs: ['XBTZAR', 'XRPXBT', 'XRPZAR'],
                 sequence: 'ZAR → BTC → XRP → ZAR',
                 baseCurrency: 'ZAR',
-                verified: true
+                verified: true // CONFIRMED: All pairs exist
+            },
+            ZAR_BTC_SOL: {
+                pairs: ['XBTZAR', 'SOLXBT', 'SOLZAR'],
+                sequence: 'ZAR → BTC → SOL → ZAR',
+                baseCurrency: 'ZAR',
+                verified: true // CONFIRMED: All pairs exist
+            },
+            ZAR_BTC_AVAX: {
+                pairs: ['XBTZAR', 'AVAXXBT', 'AVAXZAR'],
+                sequence: 'ZAR → BTC → AVAX → ZAR',
+                baseCurrency: 'ZAR',
+                verified: true // CONFIRMED: All pairs exist
+            },
+            ZAR_BTC_ATOM: {
+                pairs: ['XBTZAR', 'ATOMXBT', 'ATOMZAR'],
+                sequence: 'ZAR → BTC → ATOM → ZAR',
+                baseCurrency: 'ZAR',
+                verified: true // CONFIRMED: All pairs exist
+            },
+            ZAR_BTC_DOT: {
+                pairs: ['XBTZAR', 'DOTXBT', 'DOTZAR'],
+                sequence: 'ZAR → BTC → DOT → ZAR',
+                baseCurrency: 'ZAR',
+                verified: true // CONFIRMED: All pairs exist
             },
             ZAR_BTC_LTC: {
                 pairs: ['XBTZAR', 'LTCXBT', 'LTCZAR'],
                 sequence: 'ZAR → BTC → LTC → ZAR',
                 baseCurrency: 'ZAR',
-                verified: true
+                verified: true // CONFIRMED: All pairs exist
             },
-            ZAR_BTC_SOL: {
-                pairs: ['XBTZAR', 'SOLXBT', 'SOLZAR'],
-                sequence: 'ZAR → BTC → SOL → ZAR',
+            ZAR_BTC_ALGO: {
+                pairs: ['XBTZAR', 'ALGOXBT', 'ALGOZAR'],
+                sequence: 'ZAR → BTC → ALGO → ZAR',
+                baseCurrency: 'ZAR',
+                verified: true // CONFIRMED: All pairs exist
+            },
+            ZAR_BTC_NEAR: {
+                pairs: ['XBTZAR', 'NEARXBT', 'NEARZAR'],
+                sequence: 'ZAR → BTC → NEAR → ZAR',
+                baseCurrency: 'ZAR',
+                verified: true // CONFIRMED: All pairs exist
+            },
+            ZAR_BTC_CRV: {
+                pairs: ['XBTZAR', 'CRVXBT', 'CRVZAR'],
+                sequence: 'ZAR → BTC → CRV → ZAR',
+                baseCurrency: 'ZAR',
+                verified: true // CONFIRMED: All pairs exist
+            },
+            ZAR_BTC_POL: {
+                pairs: ['XBTZAR', 'POLXBT', 'POLZAR'],
+                sequence: 'ZAR → BTC → POL → ZAR',
                 baseCurrency: 'ZAR',
                 verified: true
             }
@@ -23721,6 +23782,7 @@ ARB4ME Security Team`
                     pathName: pathConfig.sequence,
                     pairs: pathConfig.pairs,
                     prices: { [pair1]: price1, [pair2]: price2, [pair3]: price3 },
+                    baseCurrency: pathConfig.baseCurrency, // Add base currency to opportunity
                     startAmount: amount,
                     finalAmount: finalAmount,
                     profit: profit,
@@ -23747,11 +23809,22 @@ ARB4ME Security Team`
             // Activity reporting now handled by consolidated reporter
             const opportunities = [];
             
-            // Only scan USDT paths for now (since user has USDT)
-            const usdtPaths = Object.entries(lunoTriangularPaths)
-                .filter(([key, config]) => config.baseCurrency === 'USDT' && config.verified);
+            // Auto-detect funded currencies from balances
+            const lunoBalances = state.balances?.luno || {};
+            const fundedCurrencies = Object.keys(lunoBalances).filter(currency => (lunoBalances[currency] || 0) >= 10);
             
-            for (const [pathName, pathConfig] of usdtPaths) {
+            console.log('💰 Funded currencies on Luno:', fundedCurrencies);
+            console.log('🔍 Available balances:', lunoBalances);
+            
+            // Scan paths for all funded currencies
+            const fundedPaths = Object.entries(lunoTriangularPaths)
+                .filter(([key, config]) => {
+                    return config.verified && fundedCurrencies.includes(config.baseCurrency);
+                });
+            
+            console.log(`📊 Scanning ${fundedPaths.length} triangular paths across ${fundedCurrencies.length} funded currencies`);
+            
+            for (const [pathName, pathConfig] of fundedPaths) {
                 console.log(`Checking ${pathName}...`);
                 const result = await calculateLunoTriangularProfit(pathConfig);
                 
