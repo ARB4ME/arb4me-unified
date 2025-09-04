@@ -2730,26 +2730,27 @@ router.get('/chainex/pairs', tickerRateLimit, asyncHandler(async (req, res) => {
 
         const marketsData = await response.json();
         
-        // ChainEX returns {status, count, data: {pair1: {...}, pair2: {...}}}
+        // ChainEX /market/summary returns a direct object with market pairs as keys
+        // Format: { "BTCZAR": {last: "...", high: "...", low: "...", volume: "..."}, ... }
         let pairs = [];
-        if (marketsData.data && typeof marketsData.data === 'object') {
-            pairs = Object.keys(marketsData.data).map(pair => ({
-                pair: pair,
-                last: marketsData.data[pair].last,
-                high: marketsData.data[pair].high,
-                low: marketsData.data[pair].low,
-                volume: marketsData.data[pair].volume
-            }));
-        } else if (!marketsData.status && !marketsData.count && !marketsData.data) {
-            // Fallback: if it's just a plain object of pairs
-            pairs = Object.keys(marketsData).map(pair => ({
-                pair: pair,
-                last: marketsData[pair].last,
-                high: marketsData[pair].high,
-                low: marketsData[pair].low,
-                volume: marketsData[pair].volume
-            }));
-        }
+        
+        // Filter out any metadata fields and only get actual market pairs
+        const marketPairs = Object.keys(marketsData).filter(key => {
+            // Skip metadata fields
+            if (key === 'status' || key === 'count' || key === 'data' || key === 'message') {
+                return false;
+            }
+            // Check if it looks like a trading pair (contains currency codes)
+            return marketsData[key] && typeof marketsData[key] === 'object' && marketsData[key].last;
+        });
+        
+        pairs = marketPairs.map(pair => ({
+            pair: pair,
+            last: marketsData[pair].last,
+            high: marketsData[pair].high,
+            low: marketsData[pair].low,
+            volume: marketsData[pair].volume
+        }));
         
         systemLogger.trading('ChainEX pairs retrieved successfully', {
             userId: req.user?.id || 'anonymous',
