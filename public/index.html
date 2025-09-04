@@ -23942,16 +23942,28 @@ ARB4ME Security Team`
                 verified: true
             },
             
-            // USDT-based paths for USDT-funded accounts
-            USDT_BTC_ETH: {
-                pairs: ['BTCUSDT', 'ETHUSDT', 'ETHBTC'], 
-                sequence: 'USDT → BTC → ETH → USDT',
+            // USDT-based paths using ZAR bridge (actual ChainEX pairs)
+            USDT_ZAR_BTC: {
+                pairs: ['USDT/ZAR', 'BTC/ZAR', 'BTC/USDT'],
+                sequence: 'USDT → ZAR → BTC → USDT',
                 baseCurrency: 'USDT',
                 verified: true
             },
-            USDT_BTC_XRP: {
-                pairs: ['BTCUSDT', 'XRPUSDT', 'XRPBTC'],
-                sequence: 'USDT → BTC → XRP → USDT', 
+            USDT_ZAR_ETH: {
+                pairs: ['USDT/ZAR', 'ETH/ZAR', 'ETH/USDT'],
+                sequence: 'USDT → ZAR → ETH → USDT', 
+                baseCurrency: 'USDT',
+                verified: true
+            },
+            USDT_ZAR_XRP: {
+                pairs: ['USDT/ZAR', 'XRP/ZAR', 'XRP/USDT'],
+                sequence: 'USDT → ZAR → XRP → USDT',
+                baseCurrency: 'USDT',
+                verified: true
+            },
+            USDT_ZAR_LTC: {
+                pairs: ['USDT/ZAR', 'LTC/ZAR', 'LTC/USDT'],
+                sequence: 'USDT → ZAR → LTC → USDT',
                 baseCurrency: 'USDT',
                 verified: true
             }
@@ -24054,11 +24066,11 @@ ARB4ME Security Team`
                     const crypto2Amount = crypto1Amount * price3; // BTC × ETHBTC = ETH  
                     finalAmount = crypto2Amount * price2;         // ETH × ETHZAR = ZAR
                 } else {
-                    // USDT-based: USDT → CRYPTO1 → CRYPTO2 → USDT  
-                    // Example: USDT → BTC → ETH → USDT using ['BTCUSDT', 'ETHUSDT', 'ETHBTC']
-                    const crypto1Amount = amount / price1;        // USDT ÷ BTCUSDT = BTC
-                    const crypto2Amount = crypto1Amount * price3; // BTC × ETHBTC = ETH
-                    finalAmount = crypto2Amount * price2;         // ETH × ETHUSDT = USDT
+                    // USDT-based: USDT → ZAR → CRYPTO → USDT (ZAR bridge)
+                    // Example: USDT → ZAR → BTC → USDT using ['USDT/ZAR', 'BTC/ZAR', 'BTC/USDT']
+                    const zarAmount = amount / price1;            // USDT ÷ (USDT/ZAR) = ZAR
+                    const cryptoAmount = zarAmount / price2;      // ZAR ÷ (BTC/ZAR) = BTC
+                    finalAmount = cryptoAmount * price3;         // BTC × (BTC/USDT) = USDT
                 }
                 
                 // Calculate profit
