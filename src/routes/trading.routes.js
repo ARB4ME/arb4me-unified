@@ -2746,11 +2746,13 @@ router.get('/chainex/pairs', tickerRateLimit, asyncHandler(async (req, res) => {
         // ChainEX returns {status: "success", count: X, data: [...]}
         if (marketsData.status === 'success' && marketsData.data && Array.isArray(marketsData.data)) {
             pairs = marketsData.data.map(market => ({
-                pair: market.market || market.pair || market.symbol || 'unknown',
-                last: market.last || market.lastPrice || market.price || '0',
-                high: market.high || market.highPrice || '0',
-                low: market.low || market.lowPrice || '0',
-                volume: market.volume || market.baseVolume || '0'
+                pair: market.market,  // ChainEX uses "market" field for pair name
+                last: market.last_price || market.last || '0',
+                high: market.high_price || market.high || '0',
+                low: market.low_price || market.low || '0',
+                volume: market.volume || market.baseVolume || '0',
+                yesterday_price: market.yesterday_price,
+                change_24h: market.change_24h
             }));
         } else if (typeof marketsData === 'object') {
             // Fallback: direct object with pairs as keys
