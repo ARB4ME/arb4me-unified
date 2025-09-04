@@ -22684,12 +22684,12 @@ ARB4ME Security Team`
                     if (scanResults.exchangesScanned.length > 0) {
                         totalPathsScanned = scanResults.totalOpportunities.length;
                         
-                        // Report if: first scan, every 30 seconds, profitable found, or significant change
+                        // Report more frequently for better user feedback
                         const shouldReport = scanCount === 1 || 
-                                           scanCount % 3 === 0 || 
+                                           scanCount % 2 === 0 || // Every 20 seconds instead of 30
                                            scanResults.profitableCount > 0 ||
                                            (lastBestOpportunity && scanResults.bestOpportunity && 
-                                            Math.abs(scanResults.bestOpportunity.netProfitPercent - lastBestOpportunity.netProfitPercent) > 0.2);
+                                            Math.abs(scanResults.bestOpportunity.netProfitPercent - lastBestOpportunity.netProfitPercent) > 0.1);
                         
                         if (shouldReport && scanResults.bestOpportunity) {
                             const best = scanResults.bestOpportunity;
@@ -22698,10 +22698,10 @@ ARB4ME Security Team`
                             
                             if (scanResults.profitableCount > 0) {
                                 addActivity(`✅ PROFITABLE: ${scanResults.profitableCount} triangular opportunities found! Best: ${best.pathName.split(' → ')[1]} at ${best.netProfitPercent.toFixed(2)}%`, 'success');
-                            } else if (best.netProfitPercent > -0.3) { // Getting close to profitable
-                                addActivity(`📊 Triangular: ${exchangeCount} exchange${exchangeCount > 1 ? 's' : ''}, ${pathCount} paths, best: ${best.pathName.split(' → ')[1]} at ${best.netProfitPercent.toFixed(2)}% (need +0.8%)`, 'info');
-                            } else if (scanCount === 1 || scanCount % 6 === 0) { // Report status every minute
-                                addActivity(`🔺 Triangular: Monitoring ${exchangeCount} exchange${exchangeCount > 1 ? 's' : ''}, ${pathCount} paths, best opportunity at ${best.netProfitPercent.toFixed(2)}%`, 'info');
+                            } else if (best.netProfitPercent > -0.5) { // Show more results (was -0.3, now -0.5)
+                                addActivity(`📊 Triangular: ${exchangeCount} exchange${exchangeCount > 1 ? 's' : ''}, ${pathCount} paths, best: ${best.pathName.split(' → ')[1]} at ${best.netProfitPercent.toFixed(2)}% (need 0.8%+)`, 'info');
+                            } else if (scanCount === 1 || scanCount % 3 === 0) { // Report status every 30 seconds
+                                addActivity(`🔺 Triangular: Monitoring ${exchangeCount} exchange${exchangeCount > 1 ? 's' : ''}, ${pathCount} paths, best at ${best.netProfitPercent.toFixed(2)}%`, 'info');
                             }
                             
                             lastBestOpportunity = scanResults.bestOpportunity;

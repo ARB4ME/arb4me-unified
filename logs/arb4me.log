@@ -1,3 +1,11 @@
 {"level":"info","logLevel":"info","logsDirectory":"C:\\Users\\Jonathan\\OneDrive\\Documents\\Work\\JONO WORK\\AIM Arbitrage\\2023\\IDATCO\\ARB4ME\\arb4me-unified\\logs","message":"ARB4ME Backend Logger initialized","timestamp":"2025-08-22 09:44:00"}
 {"level":"info","logLevel":"info","logsDirectory":"C:\\Users\\Jonathan\\OneDrive\\Documents\\Work\\JONO WORK\\AIM Arbitrage\\2023\\IDATCO\\ARB4ME\\arb4me-unified\\logs","message":"ARB4ME Backend Logger initialized","timestamp":"2025-09-04 13:33:40"}
 {"code":"ECONNREFUSED","level":"error","message":"Database connection failed:","stack":"AggregateError [ECONNREFUSED]: \n    at C:\\Users\\Jonathan\\OneDrive\\Documents\\Work\\JONO WORK\\AIM Arbitrage\\2023\\IDATCO\\ARB4ME\\arb4me-unified\\node_modules\\pg-pool\\index.js:45:11\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async connectDatabase (C:\\Users\\Jonathan\\OneDrive\\Documents\\Work\\JONO WORK\\AIM Arbitrage\\2023\\IDATCO\\ARB4ME\\arb4me-unified\\src\\database\\connection.js:51:24)\n    at async startServer (C:\\Users\\Jonathan\\OneDrive\\Documents\\Work\\JONO WORK\\AIM Arbitrage\\2023\\IDATCO\\ARB4ME\\arb4me-unified\\server.js:114:30)","timestamp":"2025-09-04 13:33:42"}
+{"level":"info","logLevel":"info","logsDirectory":"C:\\Users\\Jonathan\\OneDrive\\Documents\\Work\\JONO WORK\\AIM Arbitrage\\2023\\IDATCO\\ARB4ME\\arb4me-unified\\logs","message":"ARB4ME Backend Logger initialized","timestamp":"2025-09-04 13:34:06"}
+{"level":"warn","message":"Running without database - using in-memory storage","timestamp":"2025-09-04 13:34:07"}
+{"level":"warn","message":"Running without database - PWA will use localStorage only","timestamp":"2025-09-04 13:34:07"}
+{"level":"warn","message":"Auto-reminder service disabled - requires database connection","timestamp":"2025-09-04 13:34:07"}
+{"level":"info","message":"[WEBSOCKET] WebSocket server initialized","timestamp":"2025-09-04 13:34:07"}
+{"level":"info","message":"WebSocket server initialized","timestamp":"2025-09-04 13:34:07"}
+{"level":"info","message":"Server running on port 3000 in undefined mode","timestamp":"2025-09-04 13:34:07"}
+{"level":"info","message":"API available at http://localhost:3000/api/v1","timestamp":"2025-09-04 13:34:07"}
