@@ -23203,7 +23203,7 @@ ARB4ME Security Team`
             }
         };
         
-        // Get Luno price with caching
+        // Get Luno price with caching - FIXED to use pairs endpoint for correct USD prices
         async function getLunoPriceWithCache(pair) {
             const now = Date.now();
             
@@ -23213,12 +23213,24 @@ ARB4ME Security Team`
                 return lunoPriceCache.prices[pair];
             }
             
-            // Fetch fresh price
+            // Fetch fresh price using pairs endpoint (has correct USD prices)
             try {
-                const price = await getRealPrice(pair, 'luno');
+                const response = await fetch('/api/v1/trading/luno/pairs');
+                const data = await response.json();
+                
+                if (!data.success || !data.pairs) {
+                    throw new Error('Invalid response from Luno pairs endpoint');
+                }
+                
+                const pairData = data.pairs.find(p => p.pair === pair);
+                if (!pairData) {
+                    throw new Error(`Pair ${pair} not found on Luno`);
+                }
+                
+                const price = parseFloat(pairData.last_trade);
                 lunoPriceCache.prices[pair] = price;
                 lunoPriceCache.lastUpdate = now;
-                console.log(`🔄 Fetched fresh price for ${pair}: ${price}`);
+                console.log(`🔄 Fetched fresh USD price for ${pair}: ${price}`);
                 return price;
             } catch (error) {
                 console.error(`Failed to get price for ${pair}:`, error);
