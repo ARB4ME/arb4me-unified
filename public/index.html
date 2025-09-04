@@ -23940,6 +23940,20 @@ ARB4ME Security Team`
                 sequence: 'ZAR → ETH → XRP → ZAR',
                 baseCurrency: 'ZAR',
                 verified: true
+            },
+            
+            // USDT-based paths for USDT-funded accounts
+            USDT_BTC_ETH: {
+                pairs: ['BTCUSDT', 'ETHUSDT', 'ETHBTC'], 
+                sequence: 'USDT → BTC → ETH → USDT',
+                baseCurrency: 'USDT',
+                verified: true
+            },
+            USDT_BTC_XRP: {
+                pairs: ['BTCUSDT', 'XRPUSDT', 'XRPBTC'],
+                sequence: 'USDT → BTC → XRP → USDT', 
+                baseCurrency: 'USDT',
+                verified: true
             }
         };
         
@@ -24030,13 +24044,22 @@ ARB4ME Security Team`
                 
                 console.log(`ChainEX prices - ${pair1}: ${price1}, ${pair2}: ${price2}, ${pair3}: ${price3}`);
                 
-                // Calculate triangular arbitrage for ZAR-based direct paths
-                // Format: ZAR → CRYPTO1 → CRYPTO2 → ZAR
-                // Example: ZAR → BTC → ETH → ZAR using pairs ['BTCZAR', 'ETHZAR', 'ETHBTC']
+                // Calculate triangular arbitrage based on base currency
+                let finalAmount;
                 
-                const crypto1Amount = amount / price1;        // ZAR ÷ BTCZAR = BTC
-                const crypto2Amount = crypto1Amount * price3; // BTC × ETHBTC = ETH  
-                const finalAmount = crypto2Amount * price2;   // ETH × ETHZAR = ZAR
+                if (pathConfig.baseCurrency === 'ZAR') {
+                    // ZAR-based: ZAR → CRYPTO1 → CRYPTO2 → ZAR
+                    // Example: ZAR → BTC → ETH → ZAR using ['BTCZAR', 'ETHZAR', 'ETHBTC']
+                    const crypto1Amount = amount / price1;        // ZAR ÷ BTCZAR = BTC
+                    const crypto2Amount = crypto1Amount * price3; // BTC × ETHBTC = ETH  
+                    finalAmount = crypto2Amount * price2;         // ETH × ETHZAR = ZAR
+                } else {
+                    // USDT-based: USDT → CRYPTO1 → CRYPTO2 → USDT  
+                    // Example: USDT → BTC → ETH → USDT using ['BTCUSDT', 'ETHUSDT', 'ETHBTC']
+                    const crypto1Amount = amount / price1;        // USDT ÷ BTCUSDT = BTC
+                    const crypto2Amount = crypto1Amount * price3; // BTC × ETHBTC = ETH
+                    finalAmount = crypto2Amount * price2;         // ETH × ETHUSDT = USDT
+                }
                 
                 // Calculate profit
                 const profit = finalAmount - amount;
