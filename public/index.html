@@ -23291,7 +23291,7 @@ ARB4ME Security Team`
             console.log('🔍 SCAN DEBUG: Auto trading:', state.autoTrading);
             
             if (connectedExchanges.length < 1) {
-                addActivity('❌ Need at least 1 connected exchange to scan for triangular arbitrage', 'error');
+                addActivity('❌ Need at least 1 connected exchange to scan for cross-exchange arbitrage', 'error');
                 return;
             }
             
@@ -23889,8 +23889,8 @@ ARB4ME Security Team`
             const opportunities = [];
             const connectedExchanges = ['valr', 'luno', 'altcointrader', 'xago', 'chainex', 'kraken', 'binance', 'bybit', 'gateio', 'okx', 'mexc', 'kucoin', 'xt', 'ascendex', 'htx', 'bingx', 'bitget', 'bitmart', 'bitrue', 'cryptocom', 'coincatch'].filter(ex => state.exchanges[ex].connected);
             
-            if (connectedExchanges.length < 1) {
-                console.log('❌ Need at least 1 connected exchange for triangular arbitrage');
+            if (connectedExchanges.length < 2) {
+                console.log('❌ Need at least 2 connected exchanges for cross-exchange arbitrage');
                 return opportunities;
             }
             
