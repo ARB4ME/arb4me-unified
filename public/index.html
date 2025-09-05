@@ -22817,12 +22817,27 @@ ARB4ME Security Team`
                     })
                 );
                 
-                // Recalculate with fresh prices
-                const freshOpportunity = await calculateLunoTriangularProfit({
-                    pairs: opportunity.prices,
-                    sequence: opportunity.pathName,
-                    baseCurrency: 'USDT'
-                }, tradeAmount);
+                // Recalculate with fresh prices using the correct exchange calculator
+                let freshOpportunity;
+                if (opportunity.exchange === 'LUNO') {
+                    freshOpportunity = await calculateLunoTriangularProfit({
+                        pairs: opportunity.prices,
+                        sequence: opportunity.pathName,
+                        baseCurrency: opportunity.baseCurrency || 'USDT'
+                    }, tradeAmount);
+                } else if (opportunity.exchange === 'VALR') {
+                    freshOpportunity = await calculateValrTriangularProfit({
+                        pairs: opportunity.prices,
+                        sequence: opportunity.pathName,
+                        baseCurrency: opportunity.baseCurrency || 'ZAR'
+                    }, tradeAmount);
+                } else if (opportunity.exchange === 'CHAINEX') {
+                    freshOpportunity = await calculateChainexTriangularProfit({
+                        pairs: opportunity.prices,
+                        sequence: opportunity.pathName,
+                        baseCurrency: opportunity.baseCurrency || 'ZAR'
+                    }, tradeAmount);
+                }
                 
                 if (!freshOpportunity || !freshOpportunity.profitable) {
                     console.log('❌ Opportunity no longer profitable with fresh prices');
@@ -23622,13 +23637,13 @@ ARB4ME Security Team`
                 verified: false  // Disabled: XRPBTC pair doesn't exist on VALR
             },
             ZAR_USDT_BTC: {
-                pairs: ['ZARUSDT', 'BTCUSDT', 'BTCZAR'],  // Fixed: USDTZAR -> ZARUSDT
+                pairs: ['USDTZAR', 'BTCUSDT', 'BTCZAR'],  // VALR uses USDTZAR format
                 sequence: 'ZAR → USDT → BTC → ZAR',
                 baseCurrency: 'ZAR',
                 verified: true
             },
             ZAR_USDT_ETH: {
-                pairs: ['ZARUSDT', 'ETHUSDT', 'ETHZAR'],  // Fixed: USDTZAR -> ZARUSDT
+                pairs: ['USDTZAR', 'ETHUSDT', 'ETHZAR'],  // VALR uses USDTZAR format
                 sequence: 'ZAR → USDT → ETH → ZAR',
                 baseCurrency: 'ZAR',
                 verified: true
@@ -23648,16 +23663,16 @@ ARB4ME Security Team`
                 verified: true
             },
             USDT_ZAR_BTC: {
-                pairs: ['ZARUSDT', 'BTCZAR', 'BTCUSDT'],  // Fixed: USDTZAR -> ZARUSDT (inverted pair)
+                pairs: ['USDTZAR', 'BTCZAR', 'BTCUSDT'],  // Using standard VALR format
                 sequence: 'USDT → ZAR → BTC → USDT',
                 baseCurrency: 'USDT',
                 verified: true
             },
             USDT_USDC_BTC: {
-                pairs: ['USDCUSDT', 'BTCUSDC', 'BTCUSDT'],  // Fixed: USDTUSDC -> USDCUSDT
+                pairs: ['USDTUSDC', 'BTCUSDC', 'BTCUSDT'],  // Using standard VALR format
                 sequence: 'USDT → USDC → BTC → USDT',
                 baseCurrency: 'USDT',
-                verified: true
+                verified: false  // Disabled: USDTUSDC pair may not exist
             }
         };
 
@@ -23739,17 +23754,45 @@ ARB4ME Security Team`
                 
                 console.log(`VALR prices - ${pair1}: ${price1}, ${pair2}: ${price2}, ${pair3}: ${price3}`);
                 
-                // Handle ZARUSDT inversion - VALR returns ZARUSDT as ZAR per USDT, we need USDT per ZAR
-                if (pair1 === 'ZARUSDT') {
-                    // For ZAR → USDT conversion, we need 1/ZARUSDT price
-                    price1 = 1 / price1;
-                    console.log(`📊 Inverted ZARUSDT for calculation: ${price1.toFixed(6)} USDT per ZAR`);
-                }
+                // Calculate based on the specific path
+                let step1Amount, step2Amount, finalAmount;
                 
-                // Standard sequential triangular calculation for ZAR → BTC → ETH → ZAR
-                const step1Amount = amount / price1;        // ZAR ÷ BTCZAR = BTC
-                const step2Amount = step1Amount / price3;   // BTC ÷ ETHBTC = ETH (since ETHBTC = ETH/BTC ratio)
-                const finalAmount = step2Amount * price2;   // ETH × ETHZAR = ZAR
+                if (pathConfig.sequence === 'ZAR → USDT → BTC → ZAR') {
+                    // USDTZAR is price of USDT in ZAR, so ZAR ÷ USDTZAR = USDT
+                    step1Amount = amount / price1;        // ZAR ÷ USDTZAR = USDT
+                    step2Amount = step1Amount / price2;   // USDT ÷ BTCUSDT = BTC
+                    finalAmount = step2Amount * price3;   // BTC × BTCZAR = ZAR
+                } else if (pathConfig.sequence === 'ZAR → USDT → ETH → ZAR') {
+                    // USDTZAR is price of USDT in ZAR
+                    step1Amount = amount / price1;        // ZAR ÷ USDTZAR = USDT
+                    step2Amount = step1Amount / price2;   // USDT ÷ ETHUSDT = ETH
+                    finalAmount = step2Amount * price3;   // ETH × ETHZAR = ZAR
+                } else if (pathConfig.sequence === 'USDT → ZAR → BTC → USDT') {
+                    // USDTZAR is price of USDT in ZAR
+                    step1Amount = amount * price1;        // USDT × USDTZAR = ZAR
+                    step2Amount = step1Amount / price2;   // ZAR ÷ BTCZAR = BTC
+                    finalAmount = step2Amount * price3;   // BTC × BTCUSDT = USDT
+                } else if (pathConfig.sequence === 'ZAR → BTC → ETH → ZAR') {
+                    // Standard BTC/ETH triangle
+                    step1Amount = amount / price1;        // ZAR ÷ BTCZAR = BTC
+                    step2Amount = step1Amount / price3;   // BTC ÷ ETHBTC = ETH (since ETHBTC = ETH/BTC ratio)
+                    finalAmount = step2Amount * price2;   // ETH × ETHZAR = ZAR
+                } else if (pathConfig.sequence === 'USDT → BTC → ETH → USDT') {
+                    // USDT-based triangle
+                    step1Amount = amount / price1;        // USDT ÷ BTCUSDT = BTC
+                    step2Amount = step1Amount / price3;   // BTC ÷ ETHBTC = ETH
+                    finalAmount = step2Amount * price2;   // ETH × ETHUSDT = USDT
+                } else if (pathConfig.sequence === 'ZAR → USDC → BTC → ZAR') {
+                    // USDC-based path
+                    step1Amount = amount / price1;        // ZAR ÷ USDCZAR = USDC
+                    step2Amount = step1Amount / price2;   // USDC ÷ BTCUSDC = BTC
+                    finalAmount = step2Amount * price3;   // BTC × BTCZAR = ZAR
+                } else {
+                    // Default calculation
+                    step1Amount = amount / price1;
+                    step2Amount = step1Amount / price3;
+                    finalAmount = step2Amount * price2;
+                }
                 
                 console.log(`🔄 VALR Step 1: ${amount} ${pathConfig.baseCurrency} → ${step1Amount.toFixed(6)}`);
                 console.log(`🔄 VALR Step 2: ${step1Amount.toFixed(6)} → ${step2Amount.toFixed(8)}`);
