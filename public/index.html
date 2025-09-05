@@ -24022,14 +24022,21 @@ ARB4ME Security Team`
                 }
                 
                 const data = await response.json();
-                if (!data.success || !data.ticker) {
+                console.log(`ChainEX ticker response for ${pair}:`, data);
+                
+                // ChainEX API returns data in data.data.ticker structure
+                if (!data.success || (!data.ticker && !data.data?.ticker)) {
+                    console.error('ChainEX ticker data structure:', data);
                     throw new Error('Invalid response from ChainEX ticker endpoint');
                 }
                 
+                // Extract ticker data (handle both data.ticker and data.data.ticker)
+                const ticker = data.ticker || data.data?.ticker || {};
+                
                 // Extract the price from ticker response
-                const price = parseFloat(data.ticker.price || data.ticker.lastPrice || data.ticker.last);
-                if (isNaN(price)) {
-                    throw new Error(`Invalid price data for ${pair}`);
+                const price = parseFloat(ticker.lastPrice || ticker.price || ticker.last || 0);
+                if (isNaN(price) || price === 0) {
+                    throw new Error(`Invalid price data for ${pair}: ${price}`);
                 }
                 
                 chainexPriceCache.prices[pair] = price;
