@@ -22651,8 +22651,14 @@ ARB4ME Security Team`
                     const connectedExchanges = Object.keys(state.exchanges).filter(ex => state.exchanges[ex].connected);
                     
                     for (const exchange of connectedExchanges) {
-                        const balance = state.balances?.[exchange]?.USDT || 0;
-                        if (balance >= 10) { // Only scan exchanges with sufficient balance
+                        // Check for any funded currency (USDT, ZAR, USDC) for triangular arbitrage
+                        const balances = state.balances?.[exchange] || {};
+                        const hasTriangularFunds = 
+                            (balances.USDT >= 10) || 
+                            (balances.ZAR >= 100) || 
+                            (balances.USDC >= 10);
+                        
+                        if (hasTriangularFunds) { // Only scan exchanges with sufficient balance in any base currency
                             scanResults.exchangesScanned.push(exchange);
                             
                             if (exchange === 'luno') {
@@ -22697,8 +22703,29 @@ ARB4ME Security Team`
                                 }
                             }
                             
+                            if (exchange === 'valr') {
+                                // VALR triangular arbitrage scanning
+                                console.log('🔺 Running VALR triangular scan...');
+                                const opportunities = await scanValrTriangularOpportunities(false);
+                                scanResults.totalOpportunities.push(...opportunities);
+                                
+                                // Track best opportunity
+                                opportunities.forEach(opp => {
+                                    if (!scanResults.bestOpportunity || opp.netProfitPercent > scanResults.bestOpportunity.netProfitPercent) {
+                                        scanResults.bestOpportunity = opp;
+                                    }
+                                    if (opp.profitable) scanResults.profitableCount++;
+                                });
+                                
+                                // Execute profitable opportunities
+                                const profitable = opportunities.filter(opp => opp.profitable);
+                                if (profitable.length > 0) {
+                                    const best = profitable.sort((a, b) => b.netProfitPercent - a.netProfitPercent)[0];
+                                    await executeTriangularOpportunity(best);
+                                }
+                            }
+                            
                             // Add more exchanges here as we implement them
-                            // if (exchange === 'valr') { ... }
                         }
                     }
                     
@@ -23765,9 +23792,11 @@ ARB4ME Security Team`
         // Scan VALR triangular opportunities
         async function scanValrTriangularOpportunities(showActivity = false) {
             try {
-                if (showActivity) {
-                    console.log('🔺 Starting VALR triangular arbitrage scan...');
-                }
+                console.log('🔺 Starting VALR triangular arbitrage scan...');
+                console.log('Current state:', { 
+                    triangularArbitrage: state.triangularArbitrage,
+                    valrConnected: state.exchanges.valr?.connected
+                });
                 
                 // Get VALR balances to determine funded currencies
                 const valrBalances = state.balances.valr || {};
