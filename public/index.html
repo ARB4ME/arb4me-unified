@@ -24500,23 +24500,33 @@ ARB4ME Security Team`
                 }
             }
             
-            // PHASE 1B: Add triangular arbitrage scanning for each connected exchange
-            console.log('🔺 Starting triangular arbitrage scanning...');
-            for (const exchange of connectedExchanges) {
-                try {
-                    console.log(`🔍 Scanning triangular opportunities on ${exchange}...`);
-                    const triangularOpportunities = await scanTriangularArbitrage(exchange);
-                    
-                    if (triangularOpportunities && triangularOpportunities.length > 0) {
-                        console.log(`✅ Found ${triangularOpportunities.length} triangular opportunities on ${exchange}`);
-                        // Add triangular opportunities to the main opportunities array
-                        opportunities.push(...triangularOpportunities);
-                    } else {
-                        console.log(`⭕ No triangular opportunities found on ${exchange}`);
+            // PHASE 1B: Add triangular arbitrage scanning ONLY if triangular toggle is ON
+            if (state.triangularArbitrage) {
+                console.log('🔺 Starting triangular arbitrage scanning (toggle is ON)...');
+                for (const exchange of connectedExchanges) {
+                    // Only scan triangular on exchanges that support it
+                    if (exchange !== 'luno' && exchange !== 'chainex') {
+                        console.log(`⏭️ Skipping triangular scan for ${exchange} (not supported)`);
+                        continue;
                     }
-                } catch (error) {
-                    console.error(`❌ Error scanning triangular opportunities on ${exchange}:`, error);
+                    
+                    try {
+                        console.log(`🔍 Scanning triangular opportunities on ${exchange}...`);
+                        const triangularOpportunities = await scanTriangularArbitrage(exchange);
+                        
+                        if (triangularOpportunities && triangularOpportunities.length > 0) {
+                            console.log(`✅ Found ${triangularOpportunities.length} triangular opportunities on ${exchange}`);
+                            // Add triangular opportunities to the main opportunities array
+                            opportunities.push(...triangularOpportunities);
+                        } else {
+                            console.log(`⭕ No triangular opportunities found on ${exchange}`);
+                        }
+                    } catch (error) {
+                        console.error(`❌ Error scanning triangular opportunities on ${exchange}:`, error);
+                    }
                 }
+            } else {
+                console.log('⏭️ Triangular arbitrage scanning skipped (toggle is OFF)');
             }
             
             return opportunities;
