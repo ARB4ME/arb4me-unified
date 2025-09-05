@@ -23712,10 +23712,10 @@ ARB4ME Security Team`
                 
                 console.log(`VALR prices - ${pair1}: ${price1}, ${pair2}: ${price2}, ${pair3}: ${price3}`);
                 
-                // Standard sequential triangular calculation
-                const step1Amount = amount / price1;        // Base → Intermediate1
-                const step2Amount = step1Amount / price2;   // Intermediate1 → Intermediate2  
-                const finalAmount = step2Amount * price3;   // Intermediate2 → Base
+                // Standard sequential triangular calculation for ZAR → BTC → ETH → ZAR
+                const step1Amount = amount / price1;        // ZAR ÷ BTCZAR = BTC
+                const step2Amount = step1Amount * price3;   // BTC × ETHBTC = ETH  
+                const finalAmount = step2Amount * price2;   // ETH × ETHZAR = ZAR
                 
                 console.log(`🔄 VALR Step 1: ${amount} ${pathConfig.baseCurrency} → ${step1Amount.toFixed(6)}`);
                 console.log(`🔄 VALR Step 2: ${step1Amount.toFixed(6)} → ${step2Amount.toFixed(8)}`);
