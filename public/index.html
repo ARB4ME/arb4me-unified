@@ -23770,7 +23770,7 @@ ARB4ME Security Team`
                 }
                 
                 // Get VALR balances to determine funded currencies
-                const valrBalances = state.exchanges.valr.balances || {};
+                const valrBalances = state.balances.valr || {};
                 const fundedCurrencies = Object.keys(valrBalances).filter(currency => 
                     valrBalances[currency] > 10 // Minimum balance threshold
                 );
