@@ -23714,7 +23714,7 @@ ARB4ME Security Team`
                 
                 // Standard sequential triangular calculation for ZAR → BTC → ETH → ZAR
                 const step1Amount = amount / price1;        // ZAR ÷ BTCZAR = BTC
-                const step2Amount = step1Amount * price3;   // BTC × ETHBTC = ETH  
+                const step2Amount = step1Amount / price3;   // BTC ÷ ETHBTC = ETH (since ETHBTC = ETH/BTC ratio)
                 const finalAmount = step2Amount * price2;   // ETH × ETHZAR = ZAR
                 
                 console.log(`🔄 VALR Step 1: ${amount} ${pathConfig.baseCurrency} → ${step1Amount.toFixed(6)}`);
