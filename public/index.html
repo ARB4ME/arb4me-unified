@@ -23553,41 +23553,294 @@ ARB4ME Security Team`
             });
         }
 
-        // NEW: Triangular Arbitrage Detection
+        // NEW: Exchange-Specific Triangular Arbitrage Detection
         async function scanTriangularArbitrage(exchange) {
-            const opportunities = [];
-            const baseCurrency = 'USDT'; // Always start and end with USDT
-            
             console.log(`🔍 Starting triangular arbitrage scan on ${exchange}`);
             
-            // Get all selected assets that could form triangles
-            const allSelectedAssets = state.settings.selectedAssets || ['BTC', 'ETH', 'XRP', 'SOL', 'LINK', 'DOGE', 'ADA', 'DOT', 'AVAX', 'MATIC'];
+            try {
+                // Call the appropriate exchange-specific scanner
+                if (exchange === 'luno') {
+                    return await scanLunoTriangularOpportunities(false);
+                } else if (exchange === 'chainex') {
+                    return await scanChainexTriangularOpportunities(false);
+                } else if (exchange === 'valr') {
+                    return await scanValrTriangularOpportunities(false);
+                } else {
+                    console.log(`⚠️ Triangular arbitrage not yet implemented for ${exchange}`);
+                    return [];
+                }
+            } catch (error) {
+                console.error(`❌ Error scanning triangular opportunities on ${exchange}:`, error);
+                return [];
+            }
+        }
+
+        // ============================================
+        // VALR TRIANGULAR ARBITRAGE IMPLEMENTATION  
+        // ============================================
+        
+        // VALR triangular paths configuration
+        const valrTriangularPaths = {
+            // ZAR-based triangles (PRIMARY - highest liquidity)
+            ZAR_BTC_ETH: {
+                pairs: ['BTCZAR', 'ETHZAR', 'ETHBTC'],
+                sequence: 'ZAR → BTC → ETH → ZAR',
+                baseCurrency: 'ZAR',
+                verified: true
+            },
+            ZAR_BTC_XRP: {
+                pairs: ['BTCZAR', 'XRPZAR', 'XRPBTC'],
+                sequence: 'ZAR → BTC → XRP → ZAR',
+                baseCurrency: 'ZAR',
+                verified: true
+            },
+            ZAR_USDT_BTC: {
+                pairs: ['USDTZAR', 'BTCUSDT', 'BTCZAR'],
+                sequence: 'ZAR → USDT → BTC → ZAR',
+                baseCurrency: 'ZAR',
+                verified: true
+            },
+            ZAR_USDT_ETH: {
+                pairs: ['USDTZAR', 'ETHUSDT', 'ETHZAR'],
+                sequence: 'ZAR → USDT → ETH → ZAR',
+                baseCurrency: 'ZAR',
+                verified: true
+            },
+            ZAR_USDC_BTC: {
+                pairs: ['USDCZAR', 'BTCUSDC', 'BTCZAR'],
+                sequence: 'ZAR → USDC → BTC → ZAR',
+                baseCurrency: 'ZAR',
+                verified: true
+            },
             
-            // Try to find triangular opportunities: USDT → A → B → USDT
-            for (let i = 0; i < allSelectedAssets.length; i++) {
-                for (let j = i + 1; j < allSelectedAssets.length; j++) {
-                    const currencyA = allSelectedAssets[i].replace('USDT', '').replace('BTC', ''); // Clean currency name
-                    const currencyB = allSelectedAssets[j].replace('USDT', '').replace('BTC', ''); // Clean currency name
-                    
-                    if (currencyA === currencyB) continue; // Skip same currency
-                    
-                    try {
-                        // Check if we have the required triangle: USDT→A→B→USDT
-                        const opportunity = await calculateTriangularProfit(exchange, baseCurrency, currencyA, currencyB);
-                        
-                        if (opportunity && opportunity.profitPercent > 0.5) { // Above 0.5% threshold
-                            opportunities.push(opportunity);
-                            console.log(`💰 Triangular opportunity found on ${exchange}: ${opportunity.path} (${opportunity.profitPercent.toFixed(2)}% profit)`);
-                        }
-                    } catch (error) {
-                        // Skip this triangle if calculation fails
-                        continue;
-                    }
+            // USDT-based triangles (SECONDARY - for USDT funding)
+            USDT_BTC_ETH: {
+                pairs: ['BTCUSDT', 'ETHUSDT', 'ETHBTC'],
+                sequence: 'USDT → BTC → ETH → USDT',
+                baseCurrency: 'USDT',
+                verified: true
+            },
+            USDT_ZAR_BTC: {
+                pairs: ['USDTZAR', 'BTCZAR', 'BTCUSDT'],
+                sequence: 'USDT → ZAR → BTC → USDT',
+                baseCurrency: 'USDT',
+                verified: true
+            },
+            USDT_USDC_BTC: {
+                pairs: ['USDTUSDC', 'BTCUSDC', 'BTCUSDT'],
+                sequence: 'USDT → USDC → BTC → USDT',
+                baseCurrency: 'USDT',
+                verified: true
+            }
+        };
+
+        // VALR-specific configuration  
+        const valrConfig = {
+            fees: {
+                maker: 0.0010,      // 0.10% maker
+                taker: 0.0015,      // 0.15% taker  
+                total: 0.0045       // 0.45% for 3 taker trades (conservative)
+            },
+            profitThreshold: 0.6,   // Need 0.6% profit to overcome 0.45% fees
+            rateLimits: {
+                triangular: {
+                    delayBetween: 200,   // 200ms between calls
+                    maxPerMinute: 150,   // VALR allows higher rate
+                    cacheMs: 5000        // 5 second cache
                 }
             }
+        };
+
+        // VALR price cache for triangular
+        const valrTriangularPriceCache = {
+            prices: {},
+            lastUpdate: 0,
+            ttl: 5000 // Cache for 5 seconds
+        };
+
+        // Get VALR price for triangular (uses existing working cross-exchange endpoint)
+        async function getValrTriangularPrice(pair) {
+            const now = Date.now();
             
-            return opportunities;
+            // Check cache first
+            if (valrTriangularPriceCache.prices[pair] && (now - valrTriangularPriceCache.lastUpdate) < valrTriangularPriceCache.ttl) {
+                console.log(`📦 Using cached VALR price for ${pair}: ${valrTriangularPriceCache.prices[pair]}`);
+                return valrTriangularPriceCache.prices[pair];
+            }
+            
+            try {
+                // Use the same getRealPrice function that works for cross-exchange
+                const price = await getRealPrice(pair, 'valr');
+                
+                if (price && price > 0) {
+                    valrTriangularPriceCache.prices[pair] = price;
+                    valrTriangularPriceCache.lastUpdate = now;
+                    console.log(`🔄 Fetched fresh VALR price for ${pair}: ${price}`);
+                    return price;
+                }
+                
+                throw new Error(`Invalid price data for ${pair}: ${price}`);
+                
+            } catch (error) {
+                console.error(`Failed to get VALR price for ${pair}:`, error);
+                return null;
+            }
         }
+
+        // Calculate VALR triangular profit
+        async function calculateValrTriangularProfit(pathConfig, amount = 100) {
+            const [pair1, pair2, pair3] = pathConfig.pairs;
+            const startTime = Date.now();
+            
+            try {
+                console.log(`🔺 Calculating VALR profit for path: ${pathConfig.sequence}`);
+                console.log(`💰 Amount: ${amount} ${pathConfig.baseCurrency}`);
+                
+                // Get all prices with rate limiting
+                const price1 = await getValrTriangularPrice(pair1);
+                await delay(valrConfig.rateLimits.triangular.delayBetween);
+                
+                const price2 = await getValrTriangularPrice(pair2);
+                await delay(valrConfig.rateLimits.triangular.delayBetween);
+                
+                const price3 = await getValrTriangularPrice(pair3);
+                
+                if (!price1 || !price2 || !price3) {
+                    console.error('Failed to get all VALR prices for triangular calculation');
+                    return null;
+                }
+                
+                console.log(`VALR prices - ${pair1}: ${price1}, ${pair2}: ${price2}, ${pair3}: ${price3}`);
+                
+                // Standard sequential triangular calculation
+                const step1Amount = amount / price1;        // Base → Intermediate1
+                const step2Amount = step1Amount / price2;   // Intermediate1 → Intermediate2  
+                const finalAmount = step2Amount * price3;   // Intermediate2 → Base
+                
+                console.log(`🔄 VALR Step 1: ${amount} ${pathConfig.baseCurrency} → ${step1Amount.toFixed(6)}`);
+                console.log(`🔄 VALR Step 2: ${step1Amount.toFixed(6)} → ${step2Amount.toFixed(8)}`);
+                console.log(`🔄 VALR Step 3: ${step2Amount.toFixed(8)} → ${finalAmount.toFixed(4)} ${pathConfig.baseCurrency}`);
+                
+                // Calculate profit before fees
+                const profit = finalAmount - amount;
+                const profitPercent = (profit / amount) * 100;
+                
+                // Calculate fees using VALR-specific configuration
+                const totalFees = amount * valrConfig.fees.total;
+                const netProfit = profit - totalFees;
+                const netProfitPercent = (netProfit / amount) * 100;
+                
+                console.log(`💵 Gross profit: ${profit.toFixed(4)} ${pathConfig.baseCurrency} (${profitPercent.toFixed(3)}%)`);
+                console.log(`🏦 Total fees: ${totalFees.toFixed(4)} ${pathConfig.baseCurrency}`);
+                console.log(`💰 Net profit: ${netProfit.toFixed(4)} ${pathConfig.baseCurrency} (${netProfitPercent.toFixed(3)}%)`);
+                console.log(`✅ Profitable: ${netProfitPercent > valrConfig.profitThreshold ? 'YES' : 'NO'} (threshold: ${valrConfig.profitThreshold}%)`);
+                
+                const executionTime = Date.now() - startTime;
+                
+                return {
+                    pathName: pathConfig.sequence,
+                    pairs: pathConfig.pairs,
+                    prices: { [pair1]: price1, [pair2]: price2, [pair3]: price3 },
+                    baseCurrency: pathConfig.baseCurrency,
+                    startAmount: amount,
+                    finalAmount: finalAmount,
+                    profit: profit,
+                    profitPercent: profitPercent,
+                    netProfit: netProfit,
+                    netProfitPercent: netProfitPercent,
+                    fees: totalFees,
+                    profitable: netProfitPercent > valrConfig.profitThreshold,
+                    executionTimeMs: executionTime,
+                    timestamp: new Date().toISOString(),
+                    exchange: 'VALR',
+                    feeStructure: valrConfig.fees
+                };
+                
+            } catch (error) {
+                console.error('Error calculating VALR triangular profit:', error);
+                return null;
+            }
+        }
+
+        // Scan VALR triangular opportunities
+        async function scanValrTriangularOpportunities(showActivity = false) {
+            try {
+                if (showActivity) {
+                    console.log('🔺 Starting VALR triangular arbitrage scan...');
+                }
+                
+                // Get VALR balances to determine funded currencies
+                const valrBalances = state.exchanges.valr.balances || {};
+                const fundedCurrencies = Object.keys(valrBalances).filter(currency => 
+                    valrBalances[currency] > 10 // Minimum balance threshold
+                );
+                
+                console.log('💰 Funded currencies on VALR:', fundedCurrencies);
+                console.log('🔍 Available balances:', valrBalances);
+                
+                // Filter paths based on funded currencies
+                const fundedPaths = Object.entries(valrTriangularPaths)
+                    .filter(([key, config]) => {
+                        return config.verified && fundedCurrencies.includes(config.baseCurrency);
+                    });
+                
+                console.log(`📊 Scanning ${fundedPaths.length} VALR triangular paths across ${fundedCurrencies.length} funded currencies`);
+                
+                const opportunities = [];
+                
+                for (const [pathName, pathConfig] of fundedPaths) {
+                    console.log(`Checking ${pathName}...`);
+                    
+                    const result = await calculateValrTriangularProfit(pathConfig, 100);
+                    
+                    if (result) {
+                        if (result.profitable) {
+                            opportunities.push(result);
+                            if (showActivity) {
+                                addActivity(`✅ VALR Triangle: ${result.pathName} - ${result.netProfitPercent.toFixed(2)}% profit`, 'success');
+                            }
+                        } else if (showActivity) {
+                            console.log(`❌ Not profitable: ${pathName} - ${result.netProfitPercent.toFixed(3)}% (need ${valrConfig.profitThreshold}%+)`);
+                        }
+                    }
+                    
+                    // Rate limiting between path checks
+                    await delay(valrConfig.rateLimits.triangular.delayBetween);
+                }
+                
+                console.log(`🔺 VALR scan complete. Found ${opportunities.length} profitable opportunities`);
+                
+                // Show scan results in UI
+                if (opportunities.length > 0) {
+                    addActivity(`✅ Found ${opportunities.length} profitable VALR triangular opportunities!`, 'success');
+                } else if (fundedPaths.length > 0) {
+                    const bestPath = await calculateValrTriangularProfit(valrTriangularPaths.ZAR_BTC_ETH, 100);
+                    if (bestPath) {
+                        addActivity(`📊 Best VALR triangle: ${bestPath.pathName.split(' → ')[1]} at ${bestPath.netProfitPercent.toFixed(2)}% (need ${valrConfig.profitThreshold}%+)`, 'info');
+                    }
+                }
+                
+                return opportunities;
+                
+            } catch (error) {
+                console.error('Error scanning VALR triangular opportunities:', error);
+                return [];
+            }
+        }
+
+        // Manual test function for VALR triangular
+        window.testValrTriangular = async function() {
+            console.log('🧪 Testing VALR triangular arbitrage scanner...');
+            const results = await scanValrTriangularOpportunities(true);
+            console.table(results.map(r => ({
+                Path: r.pathName,
+                'Profit %': r.netProfitPercent.toFixed(3),
+                'Net Profit': r.netProfit.toFixed(2),
+                'Fees': r.fees.toFixed(2),
+                'Profitable': r.profitable ? '✅' : '❌'
+            })));
+            return results;
+        };
 
         // ============================================
         // LUNO TRIANGULAR ARBITRAGE IMPLEMENTATION
@@ -24521,7 +24774,7 @@ ARB4ME Security Team`
                 console.log('🔺 Starting triangular arbitrage scanning (toggle is ON)...');
                 for (const exchange of connectedExchanges) {
                     // Only scan triangular on exchanges that support it
-                    if (exchange !== 'luno' && exchange !== 'chainex') {
+                    if (exchange !== 'luno' && exchange !== 'chainex' && exchange !== 'valr') {
                         console.log(`⏭️ Skipping triangular scan for ${exchange} (not supported)`);
                         continue;
                     }
