@@ -23619,16 +23619,16 @@ ARB4ME Security Team`
                 pairs: ['BTCZAR', 'XRPZAR', 'XRPBTC'],
                 sequence: 'ZAR → BTC → XRP → ZAR',
                 baseCurrency: 'ZAR',
-                verified: true
+                verified: false  // Disabled: XRPBTC pair doesn't exist on VALR
             },
             ZAR_USDT_BTC: {
-                pairs: ['USDTZAR', 'BTCUSDT', 'BTCZAR'],
+                pairs: ['ZARUSDT', 'BTCUSDT', 'BTCZAR'],  // Fixed: USDTZAR -> ZARUSDT
                 sequence: 'ZAR → USDT → BTC → ZAR',
                 baseCurrency: 'ZAR',
                 verified: true
             },
             ZAR_USDT_ETH: {
-                pairs: ['USDTZAR', 'ETHUSDT', 'ETHZAR'],
+                pairs: ['ZARUSDT', 'ETHUSDT', 'ETHZAR'],  // Fixed: USDTZAR -> ZARUSDT
                 sequence: 'ZAR → USDT → ETH → ZAR',
                 baseCurrency: 'ZAR',
                 verified: true
@@ -23648,13 +23648,13 @@ ARB4ME Security Team`
                 verified: true
             },
             USDT_ZAR_BTC: {
-                pairs: ['USDTZAR', 'BTCZAR', 'BTCUSDT'],
+                pairs: ['ZARUSDT', 'BTCZAR', 'BTCUSDT'],  // Fixed: USDTZAR -> ZARUSDT (inverted pair)
                 sequence: 'USDT → ZAR → BTC → USDT',
                 baseCurrency: 'USDT',
                 verified: true
             },
             USDT_USDC_BTC: {
-                pairs: ['USDTUSDC', 'BTCUSDC', 'BTCUSDT'],
+                pairs: ['USDCUSDT', 'BTCUSDC', 'BTCUSDT'],  // Fixed: USDTUSDC -> USDCUSDT
                 sequence: 'USDT → USDC → BTC → USDT',
                 baseCurrency: 'USDT',
                 verified: true
@@ -23739,6 +23739,13 @@ ARB4ME Security Team`
                 
                 console.log(`VALR prices - ${pair1}: ${price1}, ${pair2}: ${price2}, ${pair3}: ${price3}`);
                 
+                // Handle ZARUSDT inversion - VALR returns ZARUSDT as ZAR per USDT, we need USDT per ZAR
+                if (pair1 === 'ZARUSDT') {
+                    // For ZAR → USDT conversion, we need 1/ZARUSDT price
+                    price1 = 1 / price1;
+                    console.log(`📊 Inverted ZARUSDT for calculation: ${price1.toFixed(6)} USDT per ZAR`);
+                }
+                
                 // Standard sequential triangular calculation for ZAR → BTC → ETH → ZAR
                 const step1Amount = amount / price1;        // ZAR ÷ BTCZAR = BTC
                 const step2Amount = step1Amount / price3;   // BTC ÷ ETHBTC = ETH (since ETHBTC = ETH/BTC ratio)
@@ -23767,7 +23774,8 @@ ARB4ME Security Team`
                 return {
                     pathName: pathConfig.sequence,
                     pairs: pathConfig.pairs,
-                    prices: { [pair1]: price1, [pair2]: price2, [pair3]: price3 },
+                    prices: pathConfig.pairs,  // Changed to array for execution compatibility
+                    priceValues: { [pair1]: price1, [pair2]: price2, [pair3]: price3 },
                     baseCurrency: pathConfig.baseCurrency,
                     startAmount: amount,
                     finalAmount: finalAmount,
