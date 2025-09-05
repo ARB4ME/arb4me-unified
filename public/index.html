@@ -23993,7 +23993,7 @@ ARB4ME Security Team`
             }
         };
         
-        // Get ChainEX price with caching - Uses market summary endpoint
+        // Get ChainEX price with caching - Uses same ticker endpoint as cross-exchange
         async function getChainexPriceWithCache(pair) {
             const now = Date.now();
             
@@ -24004,25 +24004,34 @@ ARB4ME Security Team`
             }
             
             try {
-                // Use our existing ChainEX pairs endpoint for public price data
-                const response = await fetch(`/api/v1/trading/chainex/pairs`);
+                // Convert pair format from 'USDT/ZAR' to 'USDTZAR' for ChainEX API
+                const chainexPair = pair.replace('/', '');
+                
+                // Use the same ticker endpoint as cross-exchange (which works!)
+                const response = await fetch('/api/v1/trading/chainex/ticker', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ pair: chainexPair })
+                });
                 
                 if (!response.ok) {
-                    throw new Error(`ChainEX API error: ${response.status}`);
+                    const errorData = await response.text();
+                    throw new Error(`ChainEX ticker error: ${response.status} - ${errorData}`);
                 }
                 
                 const data = await response.json();
-                if (!data.success || !data.pairs) {
-                    throw new Error('Invalid response from ChainEX pairs endpoint');
+                if (!data.success || !data.ticker) {
+                    throw new Error('Invalid response from ChainEX ticker endpoint');
                 }
                 
-                // Find the specific pair price
-                const pairData = data.pairs.find(p => p.symbol === pair);
-                if (!pairData) {
-                    throw new Error(`Pair ${pair} not found on ChainEX`);
+                // Extract the price from ticker response
+                const price = parseFloat(data.ticker.price || data.ticker.lastPrice || data.ticker.last);
+                if (isNaN(price)) {
+                    throw new Error(`Invalid price data for ${pair}`);
                 }
                 
-                const price = parseFloat(pairData.price);
                 chainexPriceCache.prices[pair] = price;
                 chainexPriceCache.lastUpdate = now;
                 console.log(`🔄 Fetched fresh ChainEX price for ${pair}: ${price}`);
