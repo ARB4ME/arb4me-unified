@@ -21722,14 +21722,27 @@ ARB4ME Security Team`
                         }
                     }
 
+                    // Prepare request body with API credentials
+                    const requestBody = {
+                        apiKey: exchangeData.api.key,
+                        apiSecret: exchangeData.api.secret,
+                        ...body
+                    };
+                    
+                    // Add passphrase for exchanges that require it (OKX, KuCoin, Bitget)
+                    if ((exchange === 'okx' || exchange === 'kucoin' || exchange === 'bitget') && exchangeData.api.passphrase) {
+                        requestBody.passphrase = exchangeData.api.passphrase;
+                    }
+                    
+                    // Add memo for BitMart
+                    if (exchange === 'bitmart' && exchangeData.api.memo) {
+                        requestBody.memo = exchangeData.api.memo;
+                    }
+
                     const response = await fetch(`${backendUrl}${backendEndpoint}`, {
                         method: 'POST',
                         headers,
-                        body: JSON.stringify({
-                            apiKey: exchangeData.api.key,
-                            apiSecret: exchangeData.api.secret,
-                            ...body
-                        })
+                        body: JSON.stringify(requestBody)
                     });
 
                     if (!response.ok) {
