@@ -2915,7 +2915,17 @@ router.post('/chainex/ticker', tickerRateLimit, optionalAuth, [
         });
         
         // Handle ChainEX's pair naming: convert USDT pairs to ZAR pairs for SA market
-        let chainexPair = pair.replace('USDT', 'ZAR');
+        let chainexPair;
+        if (pair === 'USDTZAR') {
+            // Don't change USDTZAR - it's already correct
+            chainexPair = 'USDTZAR';
+        } else if (pair.endsWith('USDT')) {
+            // Convert crypto/USDT pairs to crypto/ZAR (e.g., BTCUSDT → BTCZAR)
+            chainexPair = pair.replace('USDT', 'ZAR');
+        } else {
+            // Keep other pairs as is (BTCZAR, ETHZAR, etc.)
+            chainexPair = pair;
+        }
         
         const response = await fetch(`${CHAINEX_CONFIG.baseUrl}${CHAINEX_CONFIG.endpoints.ticker}/${chainexPair}`, {
             method: 'GET',
