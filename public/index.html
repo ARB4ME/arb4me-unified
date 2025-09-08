@@ -25,6 +25,27 @@
     <!-- Socket.io Client for Real-time WebSocket Communication -->
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     
+    <!-- TRIANGULAR ARBITRAGE MODULES -->
+    <script>
+    console.log('🔺 About to load triangular modules...');
+    
+    // Test inline script to verify this location works
+    console.log('🔺 Inline script test - this should show up!');
+    
+    // Quick test - can we access window?
+    console.log('🔺 Window available:', typeof window !== 'undefined');
+    </script>
+    <script src="exchange-pairs-data.js"></script>
+    <script>console.log('🔺 exchange-pairs-data.js loaded');</script>
+    <script src="luno-triangular.js"></script>
+    <script>console.log('🔺 luno-triangular.js loaded');</script>
+    <script src="valr-triangular.js"></script>
+    <script>console.log('🔺 valr-triangular.js loaded');</script>
+    <script src="chainex-triangular.js"></script>
+    <script>console.log('🔺 chainex-triangular.js loaded');</script>
+    <script src="triangular-manager.js"></script>
+    <script>console.log('🔺 triangular-manager.js loaded');</script>
+    
     <style>
         * { 
             margin: 0; 
@@ -7954,6 +7975,7 @@
 
     <script>
         console.log('🚀 ARB4ME JavaScript loading...');
+        console.log('🔺 Triangular modules should be loaded');
         
         // 🔍 CRYPTO ASSET SEARCH DATA - All Available Assets
         const cryptoAssets = [
@@ -21477,8 +21499,8 @@ ARB4ME Security Team`
 
             // Use backend server for all exchanges to avoid CORS issues
             if (exchange === 'luno' || exchange === 'valr' || exchange === 'altcointrader' || exchange === 'xago' || exchange === 'chainex' || exchange === 'kraken' || exchange === 'binance' || exchange === 'bybit' || exchange === 'gateio' || exchange === 'bitmart' || exchange === 'bitrue' || exchange === 'cryptocom' || exchange === 'coincatch' || exchange === 'bitget' || exchange === 'okx') {
-                // Use Railway for VALR and LUNO (production deployment), localhost for others (for now)
-                const backendUrl = (exchange === 'valr' || exchange === 'luno' || exchange === 'chainex') 
+                // Use Railway for all exchanges (production deployment)
+                const backendUrl = (exchange === 'valr' || exchange === 'luno' || exchange === 'chainex' || exchange === 'okx') 
                     ? 'https://arb4me-unified-production.up.railway.app' 
                     : 'http://localhost:3000';
                 
@@ -22850,11 +22872,14 @@ ARB4ME Security Team`
                 // Execute the three trades in sequence
                 const exchange = opportunity.exchange.toLowerCase();
                 let currentAmount = tradeAmount;
-                let currentAsset = 'USDT';
+                let currentAsset = opportunity.baseCurrency || 'USDT';  // Use the actual base currency
                 const executionResults = [];
                 
-                // Step 1: USDT → BTC (Buy BTC with USDT)
-                console.log(`Step 1: ${currentAsset} → BTC`);
+                // Determine the execution path based on the sequence
+                const pathSteps = opportunity.pathName.split(' → ');
+                
+                // Step 1
+                console.log(`Step 1: ${pathSteps[0]} → ${pathSteps[1]}`);
                 const step1Result = await executeTrade({
                     exchange: exchange,
                     pair: opportunity.prices[0], // XBTUSDT
