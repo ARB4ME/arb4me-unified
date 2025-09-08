@@ -21754,7 +21754,8 @@ ARB4ME Security Team`
                     
                     // Return the balances in the expected format
                     if (endpoint.includes('balance')) {
-                        return data.balances;
+                        // Handle different backend response formats
+                        return data.balances || data.data?.balances || data.data || data;
                     }
                     
                     return data;
