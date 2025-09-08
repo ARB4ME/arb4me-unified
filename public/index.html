@@ -23105,7 +23105,7 @@ ARB4ME Security Team`
                 return '$0.00';
             }
             
-            const currencyOrder = ['USDT', 'ZAR', 'XRP', 'BTC', 'ETH'];
+            const currencyOrder = ['USDT', 'ZAR', 'XRP', 'BTC', 'ETH', 'LINK', 'DOGE', 'LTC'];
             const displayParts = [];
             
             // Check each currency in order
@@ -23130,6 +23130,15 @@ ARB4ME Security Team`
                             break;
                         case 'ETH':
                             formattedBalance = `${balance.toFixed(3)} ETH`;
+                            break;
+                        case 'LINK':
+                            formattedBalance = `${balance.toFixed(1)} LINK`;
+                            break;
+                        case 'DOGE':
+                            formattedBalance = `${balance.toFixed(0)} DOGE`;
+                            break;
+                        case 'LTC':
+                            formattedBalance = `${balance.toFixed(3)} LTC`;
                             break;
                         default:
                             formattedBalance = `${balance.toFixed(2)} ${currency}`;
