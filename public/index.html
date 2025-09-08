@@ -23286,10 +23286,16 @@ ARB4ME Security Team`
                 if (realApiKey && realSecretKey && !realApiKey.includes('*')) {
                     document.getElementById(`${exchangeName}ApiKey`).value = obfuscateApiKey(realApiKey);
                     document.getElementById(`${exchangeName}SecretKey`).value = obfuscateApiKey(realSecretKey);
-                    // Also obfuscate OKX and KuCoin passphrase
+                    // Also obfuscate OKX and KuCoin passphrase in UI only (keep real passphrase in state)
                     if (exchangeName === 'okx' && realPassphrase && !realPassphrase.includes('*')) {
+                        // Ensure real passphrase stays in state before obfuscating UI
+                        if (!state.exchanges[exchangeName].api) state.exchanges[exchangeName].api = {};
+                        state.exchanges[exchangeName].api.passphrase = realPassphrase;
                         document.getElementById('okxPassphrase').value = obfuscateApiKey(realPassphrase);
                     } else if (exchangeName === 'kucoin' && realPassphrase && !realPassphrase.includes('*')) {
+                        // Ensure real passphrase stays in state before obfuscating UI
+                        if (!state.exchanges[exchangeName].api) state.exchanges[exchangeName].api = {};
+                        state.exchanges[exchangeName].api.passphrase = realPassphrase;
                         document.getElementById('kucoinPassphrase').value = obfuscateApiKey(realPassphrase);
                     }
                 }
