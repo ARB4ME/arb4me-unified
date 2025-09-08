@@ -5163,8 +5163,24 @@ router.post('/okx/ticker', tickerRateLimit, optionalAuth, [
     const { pair } = req.body;
     
     try {
-        // Convert pair format (BTCUSDT -> BTC-USDT for OKX)
-        const okxSymbol = pair.replace(/([A-Z]+)([A-Z]{3,4})$/, '$1-$2');
+        // Convert pair format for OKX (BTCUSDT -> BTC-USDT)
+        let okxSymbol;
+        if (pair.includes('USDT')) {
+            // Handle USDT pairs: BTCUSDT -> BTC-USDT
+            okxSymbol = pair.replace('USDT', '-USDT');
+        } else if (pair.includes('USDC')) {
+            // Handle USDC pairs: BTCUSDC -> BTC-USDC
+            okxSymbol = pair.replace('USDC', '-USDC');
+        } else if (pair.includes('BTC') && !pair.startsWith('BTC')) {
+            // Handle pairs with BTC as quote: ETHBTC -> ETH-BTC
+            okxSymbol = pair.replace('BTC', '-BTC');
+        } else if (pair.includes('ETH') && !pair.startsWith('ETH')) {
+            // Handle pairs with ETH as quote: XRPETH -> XRP-ETH
+            okxSymbol = pair.replace('ETH', '-ETH');
+        } else {
+            // Fallback - try to add hyphen before last 3-4 characters
+            okxSymbol = pair.replace(/([A-Z]+)([A-Z]{3,4})$/, '$1-$2');
+        }
         
         const response = await fetch(`${OKX_CONFIG.baseUrl}${OKX_CONFIG.endpoints.ticker}?instId=${okxSymbol}`, {
             method: 'GET',
