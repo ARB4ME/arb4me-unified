@@ -3240,6 +3240,17 @@ router.post('/chainex/sell-order', tradingRateLimit, optionalAuth, [
 // BINANCE EXCHANGE API PROXY ENDPOINTS
 // ============================================================================
 
+// Get server IP endpoint
+router.get('/server-ip', asyncHandler(async (req, res) => {
+    try {
+        const response = await fetch('https://api.ipify.org?format=json');
+        const data = await response.json();
+        res.json({ ip: data.ip, source: 'Railway Server' });
+    } catch (error) {
+        res.json({ error: 'Could not determine server IP' });
+    }
+}));
+
 // Binance API Configuration
 const BINANCE_CONFIG = {
     baseUrl: 'https://api.binance.com',
