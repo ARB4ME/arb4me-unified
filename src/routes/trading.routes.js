@@ -3293,10 +3293,25 @@ router.post('/binance/balance', tradingRateLimit, optionalAuth, [
 
         if (!response.ok) {
             const errorText = await response.text();
+            systemLogger.error('Binance balance API error', {
+                userId: req.user?.id || 'anonymous',
+                status: response.status,
+                error: errorText
+            });
             throw new Error(`HTTP ${response.status}: ${errorText}`);
         }
         
         const accountData = await response.json();
+        
+        // Check for Binance-specific errors
+        if (accountData.code && accountData.msg) {
+            systemLogger.error('Binance API returned error', {
+                userId: req.user?.id || 'anonymous',
+                code: accountData.code,
+                message: accountData.msg
+            });
+            throw new APIError(`Binance error ${accountData.code}: ${accountData.msg}`, 400, 'BINANCE_API_ERROR');
+        }
         
         // Transform Binance response to expected format
         const balances = {};
@@ -3317,7 +3332,10 @@ router.post('/binance/balance', tradingRateLimit, optionalAuth, [
         
         res.json({
             success: true,
-            balances: balances
+            data: {
+                exchange: 'binance',
+                balances: balances
+            }
         });
         
     } catch (error) {
