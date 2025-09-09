@@ -21554,7 +21554,7 @@ ARB4ME Security Team`
                         }
                     } else if (exchange === 'binance') {
                         // Use new BINANCE trading routes
-                        if (endpoint.includes('balance')) {
+                        if (endpoint.includes('balance') || endpoint.includes('account')) {
                             backendEndpoint = `/api/v1/trading/binance/balance`;
                         } else if (endpoint.includes('ticker')) {
                             backendEndpoint = `/api/v1/trading/binance/ticker`;
