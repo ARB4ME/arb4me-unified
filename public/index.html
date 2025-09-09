@@ -22024,7 +22024,12 @@ ARB4ME Security Team`
                     return formattedBalances;
                 } else if (exchange === 'kraken') {
                     const response = await makeAuthenticatedRequest(exchange, '/0/private/Balance');
-                    // Backend returns formatted balances from the Node.js server
+                    // Backend returns {success: true, data: {balances: {...}}}
+                    if (response && response.data && response.data.balances) {
+                        return response.data.balances;
+                    } else if (response && response.balances) {
+                        return response.balances;
+                    }
                     return response;
                 } else if (exchange === 'binance') {
                     const response = await makeAuthenticatedRequest(exchange, '/api/v3/account');
