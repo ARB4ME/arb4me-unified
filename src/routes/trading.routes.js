@@ -3273,9 +3273,19 @@ router.post('/binance/balance', tradingRateLimit, optionalAuth, [
     const { apiKey, apiSecret } = req.body;
     
     try {
-        // Decode base64-encoded credentials (like Kraken does)
-        const decodedApiKey = Buffer.from(apiKey, 'base64').toString();
-        const decodedApiSecret = Buffer.from(apiSecret, 'base64').toString();
+        // Decrypt credentials using the same algorithm as frontend
+        function simpleDecrypt(encoded) {
+            try {
+                return Buffer.from(encoded, 'base64').toString().split('').map(char => 
+                    String.fromCharCode(char.charCodeAt(0) - 7)
+                ).join('');
+            } catch {
+                return encoded; // Return original if decryption fails
+            }
+        }
+        
+        const decryptedApiKey = simpleDecrypt(apiKey);
+        const decryptedApiSecret = simpleDecrypt(apiSecret);
         
         systemLogger.trading('Binance balance request initiated', {
             userId: req.user?.id || 'anonymous',
@@ -3285,12 +3295,12 @@ router.post('/binance/balance', tradingRateLimit, optionalAuth, [
         
         const timestamp = Date.now();
         const queryString = `timestamp=${timestamp}`;
-        const signature = createBinanceSignature(queryString, decodedApiSecret);
+        const signature = createBinanceSignature(queryString, decryptedApiSecret);
         
         const response = await fetch(`${BINANCE_CONFIG.baseUrl}${BINANCE_CONFIG.endpoints.balance}?${queryString}&signature=${signature}`, {
             method: 'GET',
             headers: {
-                'X-MBX-APIKEY': decodedApiKey,
+                'X-MBX-APIKEY': decryptedApiKey,
                 'Content-Type': 'application/json'
             }
         });
