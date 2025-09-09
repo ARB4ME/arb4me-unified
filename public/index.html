@@ -21746,8 +21746,13 @@ ARB4ME Security Team`
                     });
 
                     if (!response.ok) {
-                        const error = await response.json();
-                        throw new Error(error.error || `HTTP ${response.status}`);
+                        const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+                        console.error(`API Error Details for ${exchange}:`, {
+                            status: response.status,
+                            endpoint: backendEndpoint,
+                            error: error
+                        });
+                        throw new Error(error.message || error.error || `HTTP ${response.status}`);
                     }
 
                     const data = await response.json();
@@ -22095,11 +22100,8 @@ ARB4ME Security Team`
                 }
             } catch (error) {
                 console.error(`Failed to fetch balances for ${exchange}:`, error);
-                return {
-                    ZAR: 10000 + Math.random() * 5000,
-                    BTC: 0.001 + Math.random() * 0.0005,
-                    ETH: 0.05 + Math.random() * 0.02
-                };
+                // Don't return fake balances - let the error bubble up
+                throw error;
             }
         }
 
