@@ -21750,7 +21750,8 @@ ARB4ME Security Team`
                         console.error(`API Error Details for ${exchange}:`, {
                             status: response.status,
                             endpoint: backendEndpoint,
-                            error: error
+                            error: error,
+                            fullErrorString: JSON.stringify(error, null, 2)
                         });
                         throw new Error(error.message || error.error || `HTTP ${response.status}`);
                     }
