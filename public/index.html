@@ -21761,6 +21761,14 @@ ARB4ME Security Team`
                     // Return the balances in the expected format
                     if (endpoint.includes('balance')) {
                         // Handle different backend response formats
+                        // Check if the response has success: true/false structure
+                        if (data.success === true && data.data) {
+                            return data.data.balances || data.data;
+                        } else if (data.success === false) {
+                            // Backend returned an error
+                            throw new Error(data.error || data.message || 'Failed to fetch balance');
+                        }
+                        // Fallback for other formats
                         return data.balances || data.data?.balances || data.data || data;
                     }
                     

@@ -5617,7 +5617,8 @@ router.post('/mexc/balance', tradingRateLimit, optionalAuth, [
     
     try {
         const timestamp = Date.now();
-        const queryString = `timestamp=${timestamp}`;
+        const recvWindow = 5000; // 5 second window for timing security
+        const queryString = `recvWindow=${recvWindow}&timestamp=${timestamp}`;
         const signature = createMEXCSignature(queryString, apiSecret);
 
         const response = await fetch(`${MEXC_CONFIG.baseUrl}${MEXC_CONFIG.endpoints.balance}?${queryString}&signature=${signature}`, {
@@ -5777,7 +5778,8 @@ router.post('/mexc/test', tradingRateLimit, optionalAuth, [
     
     try {
         const timestamp = Date.now();
-        const queryString = `timestamp=${timestamp}`;
+        const recvWindow = 5000; // 5 second window for timing security
+        const queryString = `recvWindow=${recvWindow}&timestamp=${timestamp}`;
         const signature = createMEXCSignature(queryString, apiSecret);
 
         const response = await fetch(`${MEXC_CONFIG.baseUrl}${MEXC_CONFIG.endpoints.test}?${queryString}&signature=${signature}`, {
