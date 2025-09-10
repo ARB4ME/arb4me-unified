@@ -5594,7 +5594,8 @@ const MEXC_CONFIG = {
     endpoints: {
         balance: '/api/v3/account',
         ticker: '/api/v3/ticker/24hr',
-        test: '/api/v3/account'
+        test: '/api/v3/account',
+        order: '/api/v3/order'
     }
 };
 
