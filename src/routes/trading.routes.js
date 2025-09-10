@@ -3291,8 +3291,8 @@ router.post('/binance/balance', tradingRateLimit, optionalAuth, [
         });
         
         const timestamp = Date.now();
-        const recvWindow = 5000; // 5 second window for timing security
-        const queryString = `timestamp=${timestamp}&recvWindow=${recvWindow}`;
+        // Binance doesn't require recvWindow for basic balance queries
+        const queryString = `timestamp=${timestamp}`;
         const signature = createBinanceSignature(queryString, apiSecret);
         
         const response = await fetch(`${BINANCE_CONFIG.baseUrl}${BINANCE_CONFIG.endpoints.balance}?${queryString}&signature=${signature}`, {
