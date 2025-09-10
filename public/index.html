@@ -21599,7 +21599,7 @@ ARB4ME Security Team`
                         }
                     } else if (exchange === 'mexc') {
                         // Use new MEXC trading routes
-                        if (endpoint.includes('balance')) {
+                        if (endpoint.includes('balance') || endpoint.includes('/api/v3/account')) {
                             backendEndpoint = `/api/v1/trading/mexc/balance`;
                         } else if (endpoint.includes('ticker')) {
                             backendEndpoint = `/api/v1/trading/mexc/ticker`;
