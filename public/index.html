@@ -21563,7 +21563,7 @@ ARB4ME Security Team`
                         }
                     } else if (exchange === 'kraken') {
                         // Use new KRAKEN trading routes
-                        if (endpoint.includes('balance')) {
+                        if (endpoint.includes('balance') || endpoint.includes('/0/private/Balance')) {
                             backendEndpoint = `/api/v1/trading/kraken/balance`;
                         } else if (endpoint.includes('ticker')) {
                             backendEndpoint = `/api/v1/trading/kraken/ticker`;
