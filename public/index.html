@@ -21608,7 +21608,7 @@ ARB4ME Security Team`
                         }
                     } else if (exchange === 'kucoin') {
                         // Use new KUCOIN trading routes
-                        if (endpoint.includes('balance')) {
+                        if (endpoint.includes('balance') || endpoint.includes('/api/v1/accounts')) {
                             backendEndpoint = `/api/v1/trading/kucoin/balance`;
                         } else if (endpoint.includes('ticker')) {
                             backendEndpoint = `/api/v1/trading/kucoin/ticker`;
