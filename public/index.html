@@ -23377,8 +23377,13 @@ ARB4ME Security Team`
                     const balances = await getRealBalances(exchangeName);
                     console.log(`${exchangeName} balances:`, balances);
                     
-                    // Check if MEXC returned an error
-                    if (exchangeName === 'mexc' && balances && balances.success === false) {
+                    // Handle MEXC response format
+                    let actualBalances = balances;
+                    if (exchangeName === 'mexc' && balances && balances.success === true && balances.data && balances.data.balances) {
+                        // Extract the actual balances from the MEXC response structure
+                        actualBalances = balances.data.balances;
+                        console.log('MEXC extracted balances:', actualBalances);
+                    } else if (exchangeName === 'mexc' && balances && balances.success === false) {
                         console.error('MEXC Balance Error Details:', balances.data);
                         if (balances.data && balances.data.error) {
                             console.error('MEXC Error Message:', balances.data.error);
@@ -23390,9 +23395,9 @@ ARB4ME Security Team`
                     let mainBalance = 0;
                     let currency = 'USDT';
                     
-                    if (balances) {
+                    if (actualBalances) {
                         // All exchanges now use USDT for trading
-                        mainBalance = balances['USDT'] || 0;
+                        mainBalance = actualBalances['USDT'] || 0;
                     }
                     
                     // Use enhanced multi-currency balance display
