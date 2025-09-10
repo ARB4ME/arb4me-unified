@@ -5641,8 +5641,24 @@ router.post('/mexc/balance', tradingRateLimit, optionalAuth, [
 
         const data = await response.json();
         
-        if (data.code && data.code !== 200) {
-            throw new APIError(`MEXC error: ${data.msg}`, 400, 'MEXC_ERROR');
+        // MEXC uses code field for errors (code 0 or undefined means success)
+        if (data.code && data.code !== 0 && data.code !== '0') {
+            systemLogger.trading('MEXC API returned error code', {
+                userId: req.user?.id,
+                code: data.code,
+                msg: data.msg
+            });
+            
+            // Return detailed error to frontend for debugging
+            res.json({
+                success: false,
+                data: {
+                    exchange: 'mexc',
+                    error: data.msg || 'Unknown MEXC error',
+                    code: data.code
+                }
+            });
+            return;
         }
 
         const balances = {};
@@ -5674,10 +5690,14 @@ router.post('/mexc/balance', tradingRateLimit, optionalAuth, [
             error: error.message
         });
         
-        if (error instanceof APIError) {
-            throw error;
-        }
-        throw new APIError('Failed to fetch MEXC balance', 500, 'MEXC_BALANCE_ERROR');
+        // Return error details to frontend
+        res.json({
+            success: false,
+            data: {
+                exchange: 'mexc',
+                error: error.message || 'Failed to fetch MEXC balance'
+            }
+        });
     }
 }));
 

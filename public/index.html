@@ -23377,6 +23377,15 @@ ARB4ME Security Team`
                     const balances = await getRealBalances(exchangeName);
                     console.log(`${exchangeName} balances:`, balances);
                     
+                    // Check if MEXC returned an error
+                    if (exchangeName === 'mexc' && balances && balances.success === false) {
+                        console.error('MEXC Balance Error Details:', balances.data);
+                        if (balances.data && balances.data.error) {
+                            console.error('MEXC Error Message:', balances.data.error);
+                            console.error('MEXC Error Code:', balances.data.code);
+                        }
+                    }
+                    
                     // Look for main balance currency based on exchange
                     let mainBalance = 0;
                     let currency = 'USDT';
