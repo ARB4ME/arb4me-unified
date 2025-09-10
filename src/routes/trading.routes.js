@@ -6407,8 +6407,14 @@ router.post('/xt/balance', tradingRateLimit, optionalAuth, [
 
         const data = await response.json();
         
+        // Log the actual response for debugging
+        systemLogger.trading('XT.com balance response', {
+            userId: req.user?.id,
+            responseData: JSON.stringify(data)
+        });
+        
         if (data.rc !== 0 && data.code !== 200) {
-            throw new APIError(`XT.com error: ${data.msg || data.message}`, 400, 'XT_ERROR');
+            throw new APIError(`XT.com error: ${data.msg || data.message || JSON.stringify(data)}`, 400, 'XT_ERROR');
         }
 
         const balances = {};
