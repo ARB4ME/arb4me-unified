@@ -5642,6 +5642,14 @@ router.post('/mexc/balance', tradingRateLimit, optionalAuth, [
 
         const data = await response.json();
         
+        // Log the raw MEXC response for debugging
+        systemLogger.trading('MEXC raw response', {
+            userId: req.user?.id,
+            hasBalances: !!data.balances,
+            balanceCount: data.balances ? data.balances.length : 0,
+            sampleBalance: data.balances && data.balances.length > 0 ? data.balances[0] : null
+        });
+        
         // MEXC uses code field for errors (code 0 or undefined means success)
         if (data.code && data.code !== 0 && data.code !== '0') {
             systemLogger.trading('MEXC API returned error code', {
@@ -5663,12 +5671,18 @@ router.post('/mexc/balance', tradingRateLimit, optionalAuth, [
         }
 
         const balances = {};
+        // MEXC returns balances array directly in the response
         if (data.balances && Array.isArray(data.balances)) {
             data.balances.forEach(balance => {
                 const free = parseFloat(balance.free);
-                if (free > 0) {
-                    balances[balance.asset] = free;
-                }
+                // Include all balances, even 0, for debugging
+                balances[balance.asset] = free;
+            });
+        } else if (Array.isArray(data)) {
+            // Sometimes MEXC returns the array directly
+            data.forEach(balance => {
+                const free = parseFloat(balance.free);
+                balances[balance.asset] = free;
             });
         }
 
