@@ -3291,7 +3291,8 @@ router.post('/binance/balance', tradingRateLimit, optionalAuth, [
         });
         
         const timestamp = Date.now();
-        const queryString = `timestamp=${timestamp}`;
+        const recvWindow = 5000; // 5 second window for timing security
+        const queryString = `recvWindow=${recvWindow}&timestamp=${timestamp}`;
         const signature = createBinanceSignature(queryString, apiSecret);
         
         const response = await fetch(`${BINANCE_CONFIG.baseUrl}${BINANCE_CONFIG.endpoints.balance}?${queryString}&signature=${signature}`, {
@@ -3356,7 +3357,14 @@ router.post('/binance/balance', tradingRateLimit, optionalAuth, [
             error: error.message
         });
         
-        throw new APIError(`Binance balance request failed: ${error.message}`, 500, 'BINANCE_BALANCE_ERROR');
+        // Return error details to frontend for debugging (like MEXC does)
+        res.json({
+            success: false,
+            data: {
+                exchange: 'binance',
+                error: error.message || 'Failed to fetch Binance balance'
+            }
+        });
     }
 }));
 
