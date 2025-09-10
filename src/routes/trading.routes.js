@@ -6362,8 +6362,10 @@ const XT_CONFIG = {
 
 // XT.com Authentication Helper
 function createXTSignature(timestamp, method, endpoint, params, apiSecret) {
-    const paramString = params ? Object.keys(params).sort().map(key => `${key}=${params[key]}`).join('&') : '';
-    const signString = `${method}#${endpoint}#${paramString}#${timestamp}`;
+    // XT.com signature format: timestamp + method + endpoint + queryString + body
+    const queryString = params ? Object.keys(params).sort().map(key => `${key}=${params[key]}`).join('&') : '';
+    const body = method === 'POST' && params ? JSON.stringify(params) : '';
+    const signString = timestamp + method + endpoint + queryString + body;
     return crypto.createHmac('sha256', apiSecret).update(signString).digest('hex');
 }
 
@@ -6388,9 +6390,11 @@ router.post('/xt/balance', tradingRateLimit, optionalAuth, [
         const response = await fetch(`${XT_CONFIG.baseUrl}${endpoint}`, {
             method: 'GET',
             headers: {
+                'xt-validate-algorithms': 'HmacSHA256',
                 'xt-validate-appkey': apiKey,
                 'xt-validate-timestamp': timestamp,
                 'xt-validate-signature': signature,
+                'xt-validate-recvwindow': '5000',
                 'Content-Type': 'application/json'
             }
         });
@@ -6413,8 +6417,8 @@ router.post('/xt/balance', tradingRateLimit, optionalAuth, [
             responseData: JSON.stringify(data)
         });
         
-        if (data.rc !== 0 && data.code !== 200) {
-            throw new APIError(`XT.com error: ${data.msg || data.message || JSON.stringify(data)}`, 400, 'XT_ERROR');
+        if (data.rc && data.rc !== '0' && data.rc !== 'OK' && data.code !== 200) {
+            throw new APIError(`XT.com error: ${data.rc} - ${data.msg || data.message || JSON.stringify(data)}`, 400, 'XT_ERROR');
         }
 
         const balances = {};
@@ -6561,16 +6565,18 @@ router.post('/xt/test', tradingRateLimit, optionalAuth, [
         const response = await fetch(`${XT_CONFIG.baseUrl}${endpoint}`, {
             method: 'GET',
             headers: {
+                'xt-validate-algorithms': 'HmacSHA256',
                 'xt-validate-appkey': apiKey,
                 'xt-validate-timestamp': timestamp,
                 'xt-validate-signature': signature,
+                'xt-validate-recvwindow': '5000',
                 'Content-Type': 'application/json'
             }
         });
 
         const data = await response.json();
         
-        if (data.rc !== 0 && data.code !== 200) {
+        if (data.rc && data.rc !== '0' && data.rc !== 'OK' && data.code !== 200) {
             systemLogger.trading('XT.com API test failed', {
                 userId: req.user?.id,
                 error: data.msg || data.message
