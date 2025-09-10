@@ -22064,7 +22064,13 @@ ARB4ME Security Team`
                     return response;
                 } else if (exchange === 'mexc') {
                     const response = await makeAuthenticatedRequest(exchange, '/api/v3/account');
-                    // Backend returns formatted balances from the Node.js server
+                    // Backend returns {success: true, data: {exchange: 'mexc', balances: {...}}}
+                    // Extract just the balances
+                    if (response && response.success === true && response.data && response.data.balances) {
+                        return response.data.balances;
+                    } else if (response && response.balances) {
+                        return response.balances;
+                    }
                     return response;
                 } else if (exchange === 'kucoin') {
                     const response = await makeAuthenticatedRequest(exchange, '/api/v1/accounts');
