@@ -23391,6 +23391,18 @@ ARB4ME Security Team`
                         }
                     }
                     
+                    // Handle Binance response format
+                    if (exchangeName === 'binance' && balances && balances.success === true && balances.data && balances.data.balances) {
+                        // Extract the actual balances from the Binance response structure
+                        actualBalances = balances.data.balances;
+                        console.log('Binance extracted balances:', actualBalances);
+                    } else if (exchangeName === 'binance' && balances && balances.success === false) {
+                        console.error('Binance Balance Error Details:', balances.data);
+                        if (balances.data && balances.data.error) {
+                            console.error('Binance Error Message:', balances.data.error);
+                        }
+                    }
+                    
                     // Look for main balance currency based on exchange
                     let mainBalance = 0;
                     let currency = 'USDT';
