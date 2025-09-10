@@ -3291,8 +3291,9 @@ router.post('/binance/balance', tradingRateLimit, optionalAuth, [
         });
         
         const timestamp = Date.now();
-        // Binance doesn't require recvWindow for basic balance queries
-        const queryString = `timestamp=${timestamp}`;
+        const recvWindow = 60000; // 60 second window for better reliability
+        // Include recvWindow for better compatibility with trading-enabled API keys
+        const queryString = `recvWindow=${recvWindow}&timestamp=${timestamp}`;
         const signature = createBinanceSignature(queryString, apiSecret);
         
         const response = await fetch(`${BINANCE_CONFIG.baseUrl}${BINANCE_CONFIG.endpoints.balance}?${queryString}&signature=${signature}`, {
@@ -3459,7 +3460,8 @@ router.post('/binance/test', tradingRateLimit, optionalAuth, [
         
         // Test connection by getting server time and account info
         const timestamp = Date.now();
-        const queryString = `timestamp=${timestamp}`;
+        const recvWindow = 60000; // 60 second window for better reliability
+        const queryString = `recvWindow=${recvWindow}&timestamp=${timestamp}`;
         const signature = createBinanceSignature(queryString, apiSecret);
         
         const response = await fetch(`${BINANCE_CONFIG.baseUrl}${BINANCE_CONFIG.endpoints.balance}?${queryString}&signature=${signature}`, {
