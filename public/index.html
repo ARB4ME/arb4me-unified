@@ -23403,6 +23403,18 @@ ARB4ME Security Team`
                         }
                     }
                     
+                    // Handle KuCoin response format
+                    if (exchangeName === 'kucoin' && balances && balances.success === true && balances.data && balances.data.balances) {
+                        // Extract the actual balances from the KuCoin response structure
+                        actualBalances = balances.data.balances;
+                        console.log('KuCoin extracted balances:', actualBalances);
+                    } else if (exchangeName === 'kucoin' && balances && balances.success === false) {
+                        console.error('KuCoin Balance Error Details:', balances.data);
+                        if (balances.data && balances.data.error) {
+                            console.error('KuCoin Error Message:', balances.data.error);
+                        }
+                    }
+                    
                     // Look for main balance currency based on exchange
                     let mainBalance = 0;
                     let currency = 'USDT';
