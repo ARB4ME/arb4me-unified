@@ -6361,17 +6361,26 @@ const XT_CONFIG = {
 };
 
 // XT.com Authentication Helper
-function createXTSignature(timestamp, method, endpoint, params, apiSecret) {
-    // XT.com signature format: concatenate all validation parameters alphabetically
-    // Format: validate-algorithms + validate-appkey + validate-recvwindow + validate-timestamp
-    // Since we pass these in headers, we need to create the string from the actual values
-    const recvWindow = '5000';
-    const algorithm = 'HmacSHA256';
+function createXTSignature(timestamp, method, endpoint, params, apiKey, apiSecret) {
+    // XT.com signature format based on their GitHub docs:
+    // Sort parameters alphabetically and concatenate with &
+    // Format: accesskey=xxx&nonce=xxx&other_params...
     
-    // Create sign string by concatenating all parameters
-    // The exact format from XT docs is unclear, but typically it's:
-    // method + endpoint + timestamp + recvWindow
-    const signString = `${method}${endpoint}${recvWindow}${timestamp}`;
+    const recvWindow = '5000';
+    
+    // Create parameter object with all required fields
+    const signParams = {
+        'validate-algorithms': 'HmacSHA256',
+        'validate-appkey': apiKey,
+        'validate-recvwindow': recvWindow,
+        'validate-timestamp': timestamp
+    };
+    
+    // Sort parameters alphabetically and create string
+    const sortedKeys = Object.keys(signParams).sort();
+    const signString = sortedKeys
+        .map(key => `${key}=${signParams[key]}`)
+        .join('&');
     
     return crypto.createHmac('sha256', apiSecret).update(signString).digest('hex');
 }
@@ -6392,16 +6401,24 @@ router.post('/xt/balance', tradingRateLimit, optionalAuth, [
         const timestamp = Date.now().toString();
         const method = 'GET';
         const endpoint = XT_CONFIG.endpoints.balance;
-        const signature = createXTSignature(timestamp, method, endpoint, null, apiSecret);
+        const signature = createXTSignature(timestamp, method, endpoint, null, apiKey, apiSecret);
         
         // Debug logging
+        const signParams = {
+            'validate-algorithms': 'HmacSHA256',
+            'validate-appkey': apiKey,
+            'validate-recvwindow': '5000',
+            'validate-timestamp': timestamp
+        };
+        const sortedKeys = Object.keys(signParams).sort();
+        const debugSignString = sortedKeys.map(key => `${key}=${signParams[key]}`).join('&');
+        
         systemLogger.trading('XT.com signature debug', {
             userId: req.user?.id,
             timestamp,
             method,
             endpoint,
-            recvWindow: '5000',
-            signString: `${method}${endpoint}5000${timestamp}`,
+            signString: debugSignString,
             signature,
             apiKey: apiKey.substring(0, 8) + '...'
         });
@@ -6579,7 +6596,7 @@ router.post('/xt/test', tradingRateLimit, optionalAuth, [
         const timestamp = Date.now().toString();
         const method = 'GET';
         const endpoint = XT_CONFIG.endpoints.test;
-        const signature = createXTSignature(timestamp, method, endpoint, null, apiSecret);
+        const signature = createXTSignature(timestamp, method, endpoint, null, apiKey, apiSecret);
 
         const response = await fetch(`${XT_CONFIG.baseUrl}${endpoint}`, {
             method: 'GET',
@@ -6679,7 +6696,7 @@ router.post('/xt/buy-order', tradingRateLimit, optionalAuth, [
             ...(price && { price: price.toString() })
         };
         
-        const signature = createXTSignature(timestamp, method, endpoint, orderData, apiSecret);
+        const signature = createXTSignature(timestamp, method, endpoint, orderData, apiKey, apiSecret);
         
         const response = await fetch(`${XT_CONFIG.baseUrl}${endpoint}`, {
             method: 'POST',
@@ -6782,7 +6799,7 @@ router.post('/xt/sell-order', tradingRateLimit, optionalAuth, [
             ...(price && { price: price.toString() })
         };
         
-        const signature = createXTSignature(timestamp, method, endpoint, orderData, apiSecret);
+        const signature = createXTSignature(timestamp, method, endpoint, orderData, apiKey, apiSecret);
         
         const response = await fetch(`${XT_CONFIG.baseUrl}${endpoint}`, {
             method: 'POST',
