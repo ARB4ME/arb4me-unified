@@ -6932,8 +6932,34 @@ router.post('/ascendex/balance', tradingRateLimit, optionalAuth, [
 
         const data = await response.json();
         
+        // Log successful response to see AscendEX structure
+        systemLogger.trading('AscendEX balance response', {
+            userId: req.user?.id,
+            code: data.code,
+            message: data.message,
+            hasData: !!data.data,
+            fullResponse: JSON.stringify(data)
+        });
+        
         if (data.code !== 0) {
-            throw new APIError(`AscendEX error: ${data.message}`, 400, 'ASCENDEX_ERROR');
+            // Return debug info to frontend for AscendEX errors too
+            res.json({
+                success: false,
+                error: {
+                    code: 'ASCENDEX_API_ERROR',
+                    message: `AscendEX error: ${data.message || 'Unknown error'}`,
+                    debug: {
+                        responseCode: data.code,
+                        responseMessage: data.message,
+                        fullResponse: data,
+                        timestamp: timestamp,
+                        path: path,
+                        cleanPath: cleanPath,
+                        prehashString: prehashString
+                    }
+                }
+            });
+            return;
         }
 
         const balances = {};
