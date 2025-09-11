@@ -6362,15 +6362,14 @@ const XT_CONFIG = {
 
 // XT.com Authentication Helper
 function createXTSignature(timestamp, method, endpoint, params, apiKey, apiSecret) {
-    // XT.com signature format: Create signature from the actual request parameters
-    // The signature seems to be based on the concatenation of header values
+    // XT.com signature format: Try query string format like other exchanges
+    // Many exchanges use a query string format for signature
     
     const recvWindow = '5000';
-    const algorithm = 'HmacSHA256';
     
-    // Based on XT.com documentation and common patterns, try different signature formats
-    // Format 1: Just concatenate the values in order
-    const signString = `${algorithm}${apiKey}${recvWindow}${timestamp}`;
+    // Try a simpler format: just timestamp and recvWindow as query params
+    // This is similar to Binance/MEXC pattern
+    const signString = `recvWindow=${recvWindow}&timestamp=${timestamp}`;
     
     return crypto.createHmac('sha256', apiSecret).update(signString).digest('hex');
 }
@@ -6394,7 +6393,7 @@ router.post('/xt/balance', tradingRateLimit, optionalAuth, [
         const signature = createXTSignature(timestamp, method, endpoint, null, apiKey, apiSecret);
         
         // Debug logging
-        const debugSignString = `HmacSHA256${apiKey}5000${timestamp}`;
+        const debugSignString = `recvWindow=5000&timestamp=${timestamp}`;
         
         systemLogger.trading('XT.com signature debug', {
             userId: req.user?.id,
