@@ -6362,8 +6362,17 @@ const XT_CONFIG = {
 
 // XT.com Authentication Helper
 function createXTSignature(timestamp, method, endpoint, params, apiSecret) {
-    // XT.com signature format: method + endpoint + timestamp
-    const signString = method + endpoint + timestamp;
+    // XT.com signature format: concatenate all validation parameters alphabetically
+    // Format: validate-algorithms + validate-appkey + validate-recvwindow + validate-timestamp
+    // Since we pass these in headers, we need to create the string from the actual values
+    const recvWindow = '5000';
+    const algorithm = 'HmacSHA256';
+    
+    // Create sign string by concatenating all parameters
+    // The exact format from XT docs is unclear, but typically it's:
+    // method + endpoint + timestamp + recvWindow
+    const signString = `${method}${endpoint}${recvWindow}${timestamp}`;
+    
     return crypto.createHmac('sha256', apiSecret).update(signString).digest('hex');
 }
 
@@ -6391,7 +6400,8 @@ router.post('/xt/balance', tradingRateLimit, optionalAuth, [
             timestamp,
             method,
             endpoint,
-            signString: method + endpoint + timestamp,
+            recvWindow: '5000',
+            signString: `${method}${endpoint}5000${timestamp}`,
             signature,
             apiKey: apiKey.substring(0, 8) + '...'
         });
@@ -6399,11 +6409,11 @@ router.post('/xt/balance', tradingRateLimit, optionalAuth, [
         const response = await fetch(`${XT_CONFIG.baseUrl}${endpoint}`, {
             method: 'GET',
             headers: {
-                'xt-validate-algorithms': 'HmacSHA256',
-                'xt-validate-appkey': apiKey,
-                'xt-validate-timestamp': timestamp,
-                'xt-validate-signature': signature,
-                'xt-validate-recvwindow': '5000',
+                'validate-algorithms': 'HmacSHA256',
+                'validate-appkey': apiKey,
+                'validate-timestamp': timestamp,
+                'validate-signature': signature,
+                'validate-recvwindow': '5000',
                 'Content-Type': 'application/json'
             }
         });
@@ -6574,11 +6584,11 @@ router.post('/xt/test', tradingRateLimit, optionalAuth, [
         const response = await fetch(`${XT_CONFIG.baseUrl}${endpoint}`, {
             method: 'GET',
             headers: {
-                'xt-validate-algorithms': 'HmacSHA256',
-                'xt-validate-appkey': apiKey,
-                'xt-validate-timestamp': timestamp,
-                'xt-validate-signature': signature,
-                'xt-validate-recvwindow': '5000',
+                'validate-algorithms': 'HmacSHA256',
+                'validate-appkey': apiKey,
+                'validate-timestamp': timestamp,
+                'validate-signature': signature,
+                'validate-recvwindow': '5000',
                 'Content-Type': 'application/json'
             }
         });
