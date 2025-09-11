@@ -9595,9 +9595,21 @@ router.post('/gemini/balance', tradingRateLimit, optionalAuth, [
             systemLogger.trading('Gemini API error', {
                 userId: req.user?.id,
                 status: response.status,
-                error: errorText
+                statusText: response.statusText,
+                headers: Object.fromEntries(response.headers),
+                error: errorText,
+                requestDetails: {
+                    url: `${GEMINI_CONFIG.baseUrl}${GEMINI_CONFIG.endpoints.balance}`,
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'text/plain',
+                        'X-GEMINI-APIKEY': apiKey.substring(0, 8) + '...',
+                        'X-GEMINI-PAYLOAD': payloadBase64.substring(0, 50) + '...',
+                        'X-GEMINI-SIGNATURE': signature.substring(0, 16) + '...'
+                    }
+                }
             });
-            throw new APIError(`Gemini API error: ${response.status}`, 502, 'GEMINI_API_ERROR');
+            throw new APIError(`Gemini API error: ${response.status} - ${errorText}`, 502, 'GEMINI_API_ERROR');
         }
 
         const data = await response.json();
