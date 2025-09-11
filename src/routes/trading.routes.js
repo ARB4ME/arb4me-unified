@@ -6352,11 +6352,11 @@ router.post('/kucoin/test', tradingRateLimit, optionalAuth, [
 
 // XT.com API Configuration
 const XT_CONFIG = {
-    baseUrl: 'https://api.xt.com',  // Try v1 API base URL
+    baseUrl: 'https://sapi.xt.com',  // Back to v4 base URL
     endpoints: {
-        balance: '/trade/api/v1/getBalance',  // v1 API endpoint
+        balance: '/v4/balances',  // v4 endpoint with v1 auth
         ticker: '/v4/public/ticker',
-        test: '/trade/api/v1/getBalance'
+        test: '/v4/balances'
     }
 };
 
