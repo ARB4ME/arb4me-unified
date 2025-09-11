@@ -6906,9 +6906,9 @@ router.post('/ascendex/balance', tradingRateLimit, optionalAuth, [
                 requestDetails: {
                     url: `${ASCENDEX_CONFIG.baseUrl}${path}`,
                     headers: {
-                        'x-auth-key': apiKey.substring(0, 8) + '...',
-                        'x-auth-timestamp': timestamp,
-                        'x-auth-signature': signature.substring(0, 16) + '...'
+                        'x-bitmax-apikey': apiKey.substring(0, 8) + '...',
+                        'x-bitmax-timestamp': timestamp,
+                        'x-bitmax-signature': signature.substring(0, 16) + '...'
                     }
                 }
             });
@@ -6923,7 +6923,6 @@ router.post('/ascendex/balance', tradingRateLimit, optionalAuth, [
                     debug: {
                         timestamp: timestamp,
                         path: path,
-                        cleanPath: cleanPath,
                         prehashString: prehashString,
                         signature: signature.substring(0, 16) + '...',
                         errorData: errorData
@@ -6957,7 +6956,6 @@ router.post('/ascendex/balance', tradingRateLimit, optionalAuth, [
                         fullResponse: data,
                         timestamp: timestamp,
                         path: path,
-                        cleanPath: cleanPath,
                         prehashString: prehashString
                     }
                 }
