@@ -6365,11 +6365,12 @@ function createXTSignature(timestamp, method, endpoint, params, apiKey, apiSecre
     // XT.com v4 API signature format from documentation:
     // "validate-algorithms=HmacSHA256&validate-appkey=[appkey]&validate-recvwindow=60000&validate-timestamp=[timestamp]#[HTTP_METHOD]#[PATH]#[BODY]"
     
-    const recvWindow = '5000';
+    const recvWindow = '60000';  // Use 60000 as shown in working example
     const algorithm = 'HmacSHA256';
     const body = params ? JSON.stringify(params) : '';
     
-    // Create the signature string as specified in v4 API docs
+    // Create the signature string exactly as shown in working example
+    // Order: algorithms, appkey, recvwindow, timestamp
     const signString = `validate-algorithms=${algorithm}&validate-appkey=${apiKey}&validate-recvwindow=${recvWindow}&validate-timestamp=${timestamp}#${method}#${endpoint}#${body}`;
     
     return crypto.createHmac('sha256', apiSecret).update(signString).digest('hex');
@@ -6394,7 +6395,7 @@ router.post('/xt/balance', tradingRateLimit, optionalAuth, [
         const signature = createXTSignature(timestamp, method, endpoint, null, apiKey, apiSecret);
         
         // Debug logging
-        const debugSignString = `validate-algorithms=HmacSHA256&validate-appkey=${apiKey}&validate-recvwindow=5000&validate-timestamp=${timestamp}#${method}#${endpoint}#`;
+        const debugSignString = `validate-algorithms=HmacSHA256&validate-appkey=${apiKey}&validate-recvwindow=60000&validate-timestamp=${timestamp}#${method}#${endpoint}#`;
         
         systemLogger.trading('XT.com signature debug', {
             userId: req.user?.id,
@@ -6413,7 +6414,7 @@ router.post('/xt/balance', tradingRateLimit, optionalAuth, [
                 'validate-appkey': apiKey,
                 'validate-timestamp': timestamp,
                 'validate-signature': signature,
-                'validate-recvwindow': '5000',
+                'validate-recvwindow': '60000',
                 'Content-Type': 'application/json'
             }
         });
@@ -6588,7 +6589,7 @@ router.post('/xt/test', tradingRateLimit, optionalAuth, [
                 'validate-appkey': apiKey,
                 'validate-timestamp': timestamp,
                 'validate-signature': signature,
-                'validate-recvwindow': '5000',
+                'validate-recvwindow': '60000',
                 'Content-Type': 'application/json'
             }
         });
