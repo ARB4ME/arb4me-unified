@@ -23415,6 +23415,18 @@ ARB4ME Security Team`
                         }
                     }
                     
+                    // Handle XT.com response format
+                    if (exchangeName === 'xt' && balances && balances.success === true && balances.data && balances.data.balances) {
+                        // Extract the actual balances from the XT.com response structure
+                        actualBalances = balances.data.balances;
+                        console.log('XT.com extracted balances:', actualBalances);
+                    } else if (exchangeName === 'xt' && balances && balances.success === false) {
+                        console.error('XT.com Balance Error Details:', balances.data);
+                        if (balances.data && balances.data.error) {
+                            console.error('XT.com Error Message:', balances.data.error);
+                        }
+                    }
+                    
                     // Look for main balance currency based on exchange
                     let mainBalance = 0;
                     let currency = 'USDT';
