@@ -8151,18 +8151,48 @@ router.post('/bingx/balance', tradingRateLimit, optionalAuth, [
 
         if (!response.ok) {
             const errorText = await response.text();
+            let errorData;
+            try {
+                errorData = JSON.parse(errorText);
+            } catch {
+                errorData = errorText;
+            }
+            
             systemLogger.trading('BingX balance API error', {
                 userId: req.user?.id,
                 status: response.status,
-                error: errorText
+                error: errorData,
+                requestDetails: {
+                    url: `${BINGX_CONFIG.baseUrl}${BINGX_CONFIG.endpoints.balance}`,
+                    queryString: queryString,
+                    signature: signature.substring(0, 16) + '...',
+                    apiKey: apiKey.substring(0, 8) + '...'
+                }
             });
-            throw new APIError(`BingX API error: ${response.status}`, 502, 'BINGX_API_ERROR');
+            
+            // Pass the actual error message to the frontend
+            const errorMessage = errorData?.msg || errorData?.message || `BingX API error: ${response.status}`;
+            throw new APIError(errorMessage, 502, 'BINGX_API_ERROR');
         }
 
         const data = await response.json();
         
+        // Log successful response for debugging
+        systemLogger.trading('BingX balance response', {
+            userId: req.user?.id,
+            code: data.code,
+            msg: data.msg,
+            hasData: !!data.data
+        });
+        
         if (data.code !== 0) {
-            throw new APIError(`BingX error: ${data.msg}`, 400, 'BINGX_ERROR');
+            systemLogger.trading('BingX API returned error code', {
+                userId: req.user?.id,
+                code: data.code,
+                message: data.msg,
+                fullResponse: JSON.stringify(data)
+            });
+            throw new APIError(`BingX error: ${data.msg || 'Unknown error'}`, 400, 'BINGX_ERROR');
         }
 
         const balances = {};
