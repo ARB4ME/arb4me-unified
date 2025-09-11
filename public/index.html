@@ -21430,6 +21430,21 @@ ARB4ME Security Team`
                     withdrawal: { USDT: 1.0, BTC: 0.0005, ETH: 0.01 },
                     deposit: { USDT: 0.00, crypto: 0.00 }
                 }
+            },
+            ascendex: {
+                baseUrl: 'https://ascendex.com',
+                endpoints: {
+                    ticker: '/api/pro/v1/ticker',
+                    orderbook: '/api/pro/v1/depth',
+                    balance: '/api/pro/data/v1/cash/balance/snapshot',
+                    order: '/api/pro/v1/order',
+                    pairs: '/api/pro/v1/products'
+                },
+                fees: {
+                    trading: { maker: 0.001, taker: 0.001 }, // 0.1%
+                    withdrawal: { USDT: 2.0, BTC: 0.0005, ETH: 0.01 },
+                    deposit: { USDT: 0.00, crypto: 0.00 }
+                }
             }
         };
 
