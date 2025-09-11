@@ -6880,9 +6880,9 @@ router.post('/ascendex/balance', tradingRateLimit, optionalAuth, [
         const response = await fetch(`${ASCENDEX_CONFIG.baseUrl}${path}`, {
             method: 'GET',
             headers: {
-                'x-auth-key': apiKey,
-                'x-auth-timestamp': timestamp,
-                'x-auth-signature': signature,
+                'x-bitmax-apikey': apiKey,
+                'x-bitmax-timestamp': timestamp,
+                'x-bitmax-signature': signature,
                 'Content-Type': 'application/json'
             }
         });
@@ -7105,9 +7105,9 @@ router.post('/ascendex/test', tradingRateLimit, optionalAuth, [
         const response = await fetch(`${ASCENDEX_CONFIG.baseUrl}${path}`, {
             method: 'GET',
             headers: {
-                'x-auth-key': apiKey,
-                'x-auth-timestamp': timestamp,
-                'x-auth-signature': signature,
+                'x-bitmax-apikey': apiKey,
+                'x-bitmax-timestamp': timestamp,
+                'x-bitmax-signature': signature,
                 'Content-Type': 'application/json'
             }
         });
