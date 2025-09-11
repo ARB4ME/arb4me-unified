@@ -6839,10 +6839,11 @@ const ASCENDEX_CONFIG = {
 
 // AscendEX Authentication Helper  
 function createAscendEXSignature(timestamp, path, apiSecret) {
-    // AscendEX format from docs: timestamp+path (example: timestamp+data/v1/cash/balance/snapshot)
-    // Strip leading '/api/pro/' from path to get just 'data/v1/cash/balance/snapshot'
-    const cleanPath = path.replace('/api/pro/', '');
-    const prehashString = timestamp + '+' + cleanPath;
+    // AscendEX format: timestamp + method + requestPath + body
+    // For GET requests with no body: timestamp + 'GET' + full_path + ''
+    const method = 'GET';
+    const body = '';
+    const prehashString = timestamp + method + path + body;
     return crypto.createHmac('sha256', apiSecret).update(prehashString).digest('base64');
 }
 
@@ -6861,8 +6862,9 @@ router.post('/ascendex/balance', tradingRateLimit, optionalAuth, [
     try {
         const timestamp = Date.now().toString();
         const path = ASCENDEX_CONFIG.endpoints.balance;
-        const cleanPath = path.replace('/api/pro/', '');
-        const prehashString = timestamp + '+' + cleanPath;
+        const method = 'GET';
+        const body = '';
+        const prehashString = timestamp + method + path + body;
         const signature = createAscendEXSignature(timestamp, path, apiSecret);
 
         // Add comprehensive debugging
@@ -6870,7 +6872,8 @@ router.post('/ascendex/balance', tradingRateLimit, optionalAuth, [
             userId: req.user?.id,
             timestamp: timestamp,
             path: path,
-            cleanPath: cleanPath,
+            method: method,
+            body: body,
             prehashString: prehashString,
             signature: signature.substring(0, 16) + '...',
             apiKeyPrefix: apiKey.substring(0, 8) + '...',
