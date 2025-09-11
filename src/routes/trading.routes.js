@@ -6360,13 +6360,9 @@ const XT_CONFIG = {
     }
 };
 
-// XT.com Authentication Helper
-function createXTSignature(timestamp, method, endpoint, params, apiKey, apiSecret) {
-    // Try the old v1 API format (simpler approach)
-    // Based on github.com/xtpub/api-doc documentation
-    // Format: accesskey=xxx&id=xxx&market=xxx&nonce=xxx
-    
-    const queryString = `accesskey=${apiKey}&nonce=${timestamp}`;
+// XT.com Authentication Helper - Copy MEXC pattern exactly
+function createXTSignature(queryString, apiSecret) {
+    // Use exact same format as working MEXC implementation
     return crypto.createHmac('sha256', apiSecret).update(queryString).digest('hex');
 }
 
@@ -6383,45 +6379,17 @@ router.post('/xt/balance', tradingRateLimit, optionalAuth, [
     const { apiKey, apiSecret } = req.body;
     
     try {
-        const timestamp = Date.now(); // Use milliseconds like MEXC (working exchange)
-        const method = 'GET';
-        const endpoint = XT_CONFIG.endpoints.balance;
-        const signature = createXTSignature(timestamp, method, endpoint, null, apiKey, apiSecret);
-        
-        // Debug logging - v1 API format
-        const debugSignString = `accesskey=${apiKey}&nonce=${timestamp}`;
-        
-        systemLogger.trading('XT.com signature debug', {
-            userId: req.user?.id,
-            timestamp,
-            method,
-            endpoint,
-            signString: debugSignString,
-            signature,
-            apiKey: apiKey.substring(0, 8) + '...'
-        });
+        // Copy MEXC implementation exactly
+        const timestamp = Date.now();
+        const recvWindow = 5000;
+        const queryString = `recvWindow=${recvWindow}&timestamp=${timestamp}`;
+        const signature = createXTSignature(queryString, apiSecret);
 
-        // Add extra debugging - log exact request details
-        systemLogger.trading('XT.com request details', {
-            userId: req.user?.id,
-            url: `${XT_CONFIG.baseUrl}${endpoint}`,
+        const response = await fetch(`${XT_CONFIG.baseUrl}${XT_CONFIG.endpoints.balance}?${queryString}&signature=${signature}`, {
             method: 'GET',
             headers: {
-                'validate-algorithms': 'HmacSHA256',
-                'validate-appkey': apiKey.substring(0, 8) + '...',
-                'validate-timestamp': timestamp,
-                'validate-signature': signature.substring(0, 16) + '...',
-                'validate-recvwindow': '60000'
-            }
-        });
-
-        // v1 API format - signature should NOT include itself in the URL calculation
-        const queryParams = `accesskey=${apiKey}&nonce=${timestamp}&signature=${signature}`;
-        
-        const response = await fetch(`${XT_CONFIG.baseUrl}${endpoint}?${queryParams}`, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
+                'XT-APIKEY': apiKey, // Try XT's version of X-MEXC-APIKEY
+                'Content-Type': 'application/json'
             }
         });
 
