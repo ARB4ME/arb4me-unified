@@ -7322,7 +7322,7 @@ router.post('/htx/balance', tradingRateLimit, optionalAuth, [
     
     try {
         // First get account ID
-        const timestamp = new Date().toISOString().slice(0, 19); // Get YYYY-MM-DDTHH:mm:ss format
+        const timestamp = new Date().toISOString().replace('T', ' ').slice(0, 19); // HTX expects YYYY-MM-DD HH:mm:ss format
         const params = {
             AccessKeyId: apiKey,
             SignatureMethod: 'HmacSHA256',
@@ -7526,7 +7526,7 @@ router.post('/htx/test', tradingRateLimit, optionalAuth, [
     const { apiKey, apiSecret } = req.body;
     
     try {
-        const timestamp = new Date().toISOString().slice(0, 19); // Get YYYY-MM-DDTHH:mm:ss format
+        const timestamp = new Date().toISOString().replace('T', ' ').slice(0, 19); // HTX expects YYYY-MM-DD HH:mm:ss format
         const params = {
             AccessKeyId: apiKey,
             SignatureMethod: 'HmacSHA256',
@@ -7615,7 +7615,7 @@ router.post('/htx/buy-order', tradingRateLimit, optionalAuth, [
         });
         
         // First get account ID
-        const timestamp = new Date().toISOString().slice(0, 19); // Get YYYY-MM-DDTHH:mm:ss format
+        const timestamp = new Date().toISOString().replace('T', ' ').slice(0, 19); // HTX expects YYYY-MM-DD HH:mm:ss format
         const accountParams = {
             AccessKeyId: apiKey,
             SignatureMethod: 'HmacSHA256',
@@ -7759,7 +7759,7 @@ router.post('/htx/sell-order', tradingRateLimit, optionalAuth, [
         });
         
         // First get account ID
-        const timestamp = new Date().toISOString().slice(0, 19); // Get YYYY-MM-DDTHH:mm:ss format
+        const timestamp = new Date().toISOString().replace('T', ' ').slice(0, 19); // HTX expects YYYY-MM-DD HH:mm:ss format
         const accountParams = {
             AccessKeyId: apiKey,
             SignatureMethod: 'HmacSHA256',
