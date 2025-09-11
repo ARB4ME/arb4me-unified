@@ -6363,18 +6363,12 @@ const XT_CONFIG = {
 
 // XT.com Authentication Helper
 function createXTSignature(timestamp, method, endpoint, params, apiKey, apiSecret) {
-    // XT.com v4 API signature format from documentation:
-    // "validate-algorithms=HmacSHA256&validate-appkey=[appkey]&validate-recvwindow=60000&validate-timestamp=[timestamp]#[HTTP_METHOD]#[PATH]#[BODY]"
+    // Try the old v1 API format (simpler approach)
+    // Based on github.com/xtpub/api-doc documentation
+    // Format: accesskey=xxx&id=xxx&market=xxx&nonce=xxx
     
-    const recvWindow = '60000';  // Use 60000 as shown in working example
-    const algorithm = 'HmacSHA256';
-    const body = params ? JSON.stringify(params) : '';
-    
-    // Create the signature string exactly as shown in working example
-    // Order: algorithms, appkey, recvwindow, timestamp
-    const signString = `validate-algorithms=${algorithm}&validate-appkey=${apiKey}&validate-recvwindow=${recvWindow}&validate-timestamp=${timestamp}#${method}#${endpoint}#${body}`;
-    
-    return crypto.createHmac('sha256', apiSecret).update(signString).digest('hex');
+    const queryString = `accesskey=${apiKey}&nonce=${timestamp}`;
+    return crypto.createHmac('sha256', apiSecret).update(queryString).digest('hex');
 }
 
 // POST /api/v1/trading/xt/balance - Get XT.com account balance
@@ -6395,8 +6389,8 @@ router.post('/xt/balance', tradingRateLimit, optionalAuth, [
         const endpoint = XT_CONFIG.endpoints.balance;
         const signature = createXTSignature(timestamp, method, endpoint, null, apiKey, apiSecret);
         
-        // Debug logging
-        const debugSignString = `validate-algorithms=HmacSHA256&validate-appkey=${apiKey}&validate-recvwindow=60000&validate-timestamp=${timestamp}#${method}#${endpoint}#`;
+        // Debug logging - v1 API format
+        const debugSignString = `accesskey=${apiKey}&nonce=${timestamp}`;
         
         systemLogger.trading('XT.com signature debug', {
             userId: req.user?.id,
@@ -6422,15 +6416,13 @@ router.post('/xt/balance', tradingRateLimit, optionalAuth, [
             }
         });
 
-        const response = await fetch(`${XT_CONFIG.baseUrl}${endpoint}`, {
+        // Try v1 API format with query parameters
+        const queryParams = `accesskey=${apiKey}&nonce=${timestamp}&signature=${signature}`;
+        
+        const response = await fetch(`${XT_CONFIG.baseUrl}${endpoint}?${queryParams}`, {
             method: 'GET',
             headers: {
-                'validate-algorithms': 'HmacSHA256',
-                'validate-appkey': apiKey,
-                'validate-timestamp': timestamp,
-                'validate-signature': signature,
-                'validate-recvwindow': '60000',
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/x-www-form-urlencoded'
             }
         });
 
