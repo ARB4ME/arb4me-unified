@@ -6362,10 +6362,8 @@ const XT_CONFIG = {
 
 // XT.com Authentication Helper
 function createXTSignature(timestamp, method, endpoint, params, apiSecret) {
-    // XT.com signature format: timestamp + method + endpoint + queryString + body
-    const queryString = params ? Object.keys(params).sort().map(key => `${key}=${params[key]}`).join('&') : '';
-    const body = method === 'POST' && params ? JSON.stringify(params) : '';
-    const signString = timestamp + method + endpoint + queryString + body;
+    // XT.com signature format: method + endpoint + timestamp
+    const signString = method + endpoint + timestamp;
     return crypto.createHmac('sha256', apiSecret).update(signString).digest('hex');
 }
 
@@ -6386,6 +6384,17 @@ router.post('/xt/balance', tradingRateLimit, optionalAuth, [
         const method = 'GET';
         const endpoint = XT_CONFIG.endpoints.balance;
         const signature = createXTSignature(timestamp, method, endpoint, null, apiSecret);
+        
+        // Debug logging
+        systemLogger.trading('XT.com signature debug', {
+            userId: req.user?.id,
+            timestamp,
+            method,
+            endpoint,
+            signString: method + endpoint + timestamp,
+            signature,
+            apiKey: apiKey.substring(0, 8) + '...'
+        });
 
         const response = await fetch(`${XT_CONFIG.baseUrl}${endpoint}`, {
             method: 'GET',
