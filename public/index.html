@@ -21498,9 +21498,9 @@ ARB4ME Security Team`
             }
 
             // Use backend server for all exchanges to avoid CORS issues
-            if (exchange === 'luno' || exchange === 'valr' || exchange === 'altcointrader' || exchange === 'xago' || exchange === 'chainex' || exchange === 'kraken' || exchange === 'binance' || exchange === 'bybit' || exchange === 'gateio' || exchange === 'bitmart' || exchange === 'bitrue' || exchange === 'cryptocom' || exchange === 'coincatch' || exchange === 'bitget' || exchange === 'okx' || exchange === 'mexc' || exchange === 'kucoin' || exchange === 'xt' || exchange === 'ascendex') {
+            if (exchange === 'luno' || exchange === 'valr' || exchange === 'altcointrader' || exchange === 'xago' || exchange === 'chainex' || exchange === 'kraken' || exchange === 'binance' || exchange === 'bybit' || exchange === 'gateio' || exchange === 'bitmart' || exchange === 'bitrue' || exchange === 'cryptocom' || exchange === 'coincatch' || exchange === 'bitget' || exchange === 'okx' || exchange === 'mexc' || exchange === 'kucoin' || exchange === 'xt' || exchange === 'ascendex' || exchange === 'bingx') {
                 // Use Railway for all exchanges (production deployment)
-                const backendUrl = (exchange === 'valr' || exchange === 'luno' || exchange === 'chainex' || exchange === 'okx' || exchange === 'kraken' || exchange === 'binance' || exchange === 'bybit' || exchange === 'mexc' || exchange === 'kucoin' || exchange === 'xt' || exchange === 'ascendex') 
+                const backendUrl = (exchange === 'valr' || exchange === 'luno' || exchange === 'chainex' || exchange === 'okx' || exchange === 'kraken' || exchange === 'binance' || exchange === 'bybit' || exchange === 'mexc' || exchange === 'kucoin' || exchange === 'xt' || exchange === 'ascendex' || exchange === 'bingx') 
                     ? 'https://arb4me-unified-production.up.railway.app' 
                     : 'http://localhost:3000';
                 
@@ -23436,6 +23436,18 @@ ARB4ME Security Team`
                         console.error('AscenDEX Balance Error Details:', balances.data);
                         if (balances.data && balances.data.error) {
                             console.error('AscenDEX Error Message:', balances.data.error);
+                        }
+                    }
+                    
+                    // Handle BingX response format
+                    if (exchangeName === 'bingx' && balances && balances.success === true && balances.data && balances.data.balances) {
+                        // Extract the actual balances from the BingX response structure
+                        actualBalances = balances.data.balances;
+                        console.log('BingX extracted balances:', actualBalances);
+                    } else if (exchangeName === 'bingx' && balances && balances.success === false) {
+                        console.error('BingX Balance Error Details:', balances.data);
+                        if (balances.data && balances.data.error) {
+                            console.error('BingX Error Message:', balances.data.error);
                         }
                     }
                     
