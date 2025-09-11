@@ -6831,7 +6831,7 @@ router.post('/xt/sell-order', tradingRateLimit, optionalAuth, [
 const ASCENDEX_CONFIG = {
     baseUrl: 'https://ascendex.com',
     endpoints: {
-        balance: '/api/pro/v1/cash/balance',
+        balance: '/api/pro/v2/cash/balance',  // Fix version to match frontend
         ticker: '/api/pro/v1/ticker',
         test: '/api/pro/v1/info'
     }
