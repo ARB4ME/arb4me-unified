@@ -9541,7 +9541,7 @@ router.post('/bitrue/test', tradingRateLimit, optionalAuth, [
 const GEMINI_CONFIG = {
     baseUrl: 'https://api.gemini.com',
     endpoints: {
-        balance: '/v1/account',
+        balance: '/v1/balances',
         ticker: '/v1/pubticker',
         test: '/v1/heartbeat'
     }
@@ -9573,6 +9573,13 @@ router.post('/gemini/balance', tradingRateLimit, optionalAuth, [
         const payloadBase64 = Buffer.from(JSON.stringify(payload)).toString('base64');
         const signature = createGeminiSignature(payloadBase64, apiSecret);
 
+        systemLogger.trading('Gemini request debug', {
+            userId: req.user?.id,
+            url: `${GEMINI_CONFIG.baseUrl}${GEMINI_CONFIG.endpoints.balance}`,
+            payload: JSON.stringify(payload),
+            payloadBase64: payloadBase64
+        });
+
         const response = await fetch(`${GEMINI_CONFIG.baseUrl}${GEMINI_CONFIG.endpoints.balance}`, {
             method: 'POST',
             headers: {
@@ -9584,6 +9591,12 @@ router.post('/gemini/balance', tradingRateLimit, optionalAuth, [
         });
 
         if (!response.ok) {
+            const errorText = await response.text();
+            systemLogger.trading('Gemini API error', {
+                userId: req.user?.id,
+                status: response.status,
+                error: errorText
+            });
             throw new APIError(`Gemini API error: ${response.status}`, 502, 'GEMINI_API_ERROR');
         }
 
