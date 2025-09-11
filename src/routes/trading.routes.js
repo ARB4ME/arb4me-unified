@@ -6837,9 +6837,12 @@ const ASCENDEX_CONFIG = {
     }
 };
 
-// AscendEX Authentication Helper
+// AscendEX Authentication Helper  
 function createAscendEXSignature(timestamp, path, apiSecret) {
-    const prehashString = timestamp + '+' + path;
+    // AscendEX format from docs: timestamp+path (example: timestamp+data/v1/cash/balance/snapshot)
+    // Strip leading '/api/pro/' from path to get just 'data/v1/cash/balance/snapshot'
+    const cleanPath = path.replace('/api/pro/', '');
+    const prehashString = timestamp + '+' + cleanPath;
     return crypto.createHmac('sha256', apiSecret).update(prehashString).digest('base64');
 }
 
