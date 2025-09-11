@@ -23436,6 +23436,13 @@ ARB4ME Security Team`
                         console.error('AscenDEX Balance Error Details:', balances.data);
                         if (balances.data && balances.data.error) {
                             console.error('AscenDEX Error Message:', balances.data.error);
+                            if (balances.data.error.debug) {
+                                console.log('🔍 ASCENDEX DEBUG INFO:', balances.data.error.debug);
+                                console.log('📝 Prehash String:', balances.data.error.debug.prehashString);
+                                console.log('⏰ Timestamp:', balances.data.error.debug.timestamp);
+                                console.log('🛤️ Path:', balances.data.error.debug.path);
+                                console.log('🧹 Clean Path:', balances.data.error.debug.cleanPath);
+                            }
                         }
                     }
                     

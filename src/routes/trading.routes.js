@@ -6861,7 +6861,21 @@ router.post('/ascendex/balance', tradingRateLimit, optionalAuth, [
     try {
         const timestamp = Date.now().toString();
         const path = ASCENDEX_CONFIG.endpoints.balance;
+        const cleanPath = path.replace('/api/pro/', '');
+        const prehashString = timestamp + '+' + cleanPath;
         const signature = createAscendEXSignature(timestamp, path, apiSecret);
+
+        // Add comprehensive debugging
+        systemLogger.trading('AscendEX signature debug', {
+            userId: req.user?.id,
+            timestamp: timestamp,
+            path: path,
+            cleanPath: cleanPath,
+            prehashString: prehashString,
+            signature: signature.substring(0, 16) + '...',
+            apiKeyPrefix: apiKey.substring(0, 8) + '...',
+            fullUrl: `${ASCENDEX_CONFIG.baseUrl}${path}`
+        });
 
         const response = await fetch(`${ASCENDEX_CONFIG.baseUrl}${path}`, {
             method: 'GET',
@@ -6875,12 +6889,45 @@ router.post('/ascendex/balance', tradingRateLimit, optionalAuth, [
 
         if (!response.ok) {
             const errorText = await response.text();
+            let errorData;
+            try {
+                errorData = JSON.parse(errorText);
+            } catch {
+                errorData = errorText;
+            }
+            
             systemLogger.trading('AscendEX balance API error', {
                 userId: req.user?.id,
                 status: response.status,
-                error: errorText
+                error: errorData,
+                requestDetails: {
+                    url: `${ASCENDEX_CONFIG.baseUrl}${path}`,
+                    headers: {
+                        'x-auth-key': apiKey.substring(0, 8) + '...',
+                        'x-auth-timestamp': timestamp,
+                        'x-auth-signature': signature.substring(0, 16) + '...'
+                    }
+                }
             });
-            throw new APIError(`AscendEX API error: ${response.status}`, 502, 'ASCENDEX_API_ERROR');
+            
+            // Return debug info to frontend like HTX
+            const errorMessage = errorData?.message || errorData?.msg || `AscendEX API error: ${response.status}`;
+            res.json({
+                success: false,
+                error: {
+                    code: 'ASCENDEX_AUTH_ERROR',
+                    message: `AscendEX error: ${errorMessage}`,
+                    debug: {
+                        timestamp: timestamp,
+                        path: path,
+                        cleanPath: cleanPath,
+                        prehashString: prehashString,
+                        signature: signature.substring(0, 16) + '...',
+                        errorData: errorData
+                    }
+                }
+            });
+            return;
         }
 
         const data = await response.json();
