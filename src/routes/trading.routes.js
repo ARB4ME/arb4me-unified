@@ -9541,7 +9541,7 @@ router.post('/bitrue/test', tradingRateLimit, optionalAuth, [
 const GEMINI_CONFIG = {
     baseUrl: 'https://api.gemini.com',
     endpoints: {
-        balance: '/v1/balances',
+        balance: '/v1/account',
         ticker: '/v1/pubticker',
         test: '/v1/heartbeat'
     }
