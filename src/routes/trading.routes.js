@@ -7322,7 +7322,7 @@ router.post('/htx/balance', tradingRateLimit, optionalAuth, [
     
     try {
         // First get account ID
-        const timestamp = new Date().toISOString().slice(0, 19); // HTX expects YYYY-MM-DDThh:mm:ss format (no Z, no milliseconds)
+        const timestamp = new Date().toISOString().replace(/\.\d{3}Z$/, ''); // HTX expects YYYY-MM-DDThh:mm:ss format in UTC
         const params = {
             AccessKeyId: apiKey,
             SignatureMethod: 'HmacSHA256',
@@ -7330,10 +7330,24 @@ router.post('/htx/balance', tradingRateLimit, optionalAuth, [
             Timestamp: timestamp
         };
         
+        // Add detailed logging for debugging
+        systemLogger.trading('HTX signature debug', {
+            userId: req.user?.id,
+            timestamp: timestamp,
+            params: JSON.stringify(params),
+            signatureString: `GET\napi.huobi.pro\n${HTX_CONFIG.endpoints.accounts}\n${Object.keys(params).sort().map(key => `${key}=${encodeURIComponent(params[key])}`).join('&')}`
+        });
+        
         let signature = createHTXSignature('GET', 'api.huobi.pro', HTX_CONFIG.endpoints.accounts, params, apiSecret);
         params.Signature = signature;
         
         const accountsUrl = `${HTX_CONFIG.baseUrl}${HTX_CONFIG.endpoints.accounts}?${Object.keys(params).map(key => `${key}=${encodeURIComponent(params[key])}`).join('&')}`;
+        
+        systemLogger.trading('HTX request URL debug', {
+            userId: req.user?.id,
+            url: accountsUrl
+        });
+        
         const accountsResponse = await fetch(accountsUrl);
         
         if (!accountsResponse.ok) {
@@ -7363,7 +7377,7 @@ router.post('/htx/balance', tradingRateLimit, optionalAuth, [
             AccessKeyId: apiKey,
             SignatureMethod: 'HmacSHA256',
             SignatureVersion: '2',
-            Timestamp: new Date().toISOString().replace(/\.\d{3}/, '')
+            Timestamp: new Date().toISOString().replace(/\.\d{3}Z$/, '')
         };
         
         const balancePath = HTX_CONFIG.endpoints.balance.replace('{account-id}', accountId);
