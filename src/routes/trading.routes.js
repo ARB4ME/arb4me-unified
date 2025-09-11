@@ -7331,14 +7331,25 @@ router.post('/htx/balance', tradingRateLimit, optionalAuth, [
         };
         
         // Add detailed logging for debugging
+        const sortedParamsString = Object.keys(params).sort().map(key => `${key}=${encodeURIComponent(params[key])}`).join('&');
+        const signatureString = `GET\napi.huobi.pro\n${HTX_CONFIG.endpoints.accounts}\n${sortedParamsString}`;
+        
         systemLogger.trading('HTX signature debug', {
             userId: req.user?.id,
             timestamp: timestamp,
             params: JSON.stringify(params),
-            signatureString: `GET\napi.huobi.pro\n${HTX_CONFIG.endpoints.accounts}\n${Object.keys(params).sort().map(key => `${key}=${encodeURIComponent(params[key])}`).join('&')}`
+            sortedParams: sortedParamsString,
+            signatureString: signatureString,
+            apiKeyPrefix: apiKey.substring(0, 8) + '...'
         });
         
+        // Try both standard host and host with port (common issue from Stack Overflow)
         let signature = createHTXSignature('GET', 'api.huobi.pro', HTX_CONFIG.endpoints.accounts, params, apiSecret);
+        
+        systemLogger.trading('HTX trying standard host signature', {
+            userId: req.user?.id,
+            signature: signature.substring(0, 16) + '...'
+        });
         params.Signature = signature;
         
         const accountsUrl = `${HTX_CONFIG.baseUrl}${HTX_CONFIG.endpoints.accounts}?${Object.keys(params).map(key => `${key}=${encodeURIComponent(params[key])}`).join('&')}`;
@@ -7351,7 +7362,14 @@ router.post('/htx/balance', tradingRateLimit, optionalAuth, [
         const accountsResponse = await fetch(accountsUrl);
         
         if (!accountsResponse.ok) {
-            throw new APIError(`HTX API error: ${accountsResponse.status}`, 502, 'HTX_API_ERROR');
+            const errorText = await accountsResponse.text();
+            systemLogger.trading('HTX accounts HTTP error', {
+                userId: req.user?.id,
+                status: accountsResponse.status,
+                error: errorText,
+                url: accountsUrl
+            });
+            throw new APIError(`HTX API error: ${accountsResponse.status} - ${errorText}`, 502, 'HTX_API_ERROR');
         }
         
         const accountsData = await accountsResponse.json();
@@ -7359,10 +7377,21 @@ router.post('/htx/balance', tradingRateLimit, optionalAuth, [
         // Add debugging to see what HTX returns
         systemLogger.trading('HTX accounts response', {
             userId: req.user?.id,
+            status: accountsData.status,
+            errCode: accountsData['err-code'],
+            errMsg: accountsData['err-msg'],
+            hasData: !!accountsData.data,
             response: JSON.stringify(accountsData)
         });
         
         if (accountsData.status !== 'ok') {
+            systemLogger.trading('HTX authentication failed', {
+                userId: req.user?.id,
+                errCode: accountsData['err-code'],
+                errMsg: accountsData['err-msg'],
+                timestamp: timestamp,
+                signatureUsed: signature.substring(0, 16) + '...'
+            });
             throw new APIError(`HTX error: ${accountsData['err-code']} - ${accountsData['err-msg']}`, 400, 'HTX_ERROR');
         }
         
