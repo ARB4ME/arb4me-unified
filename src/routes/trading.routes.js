@@ -7392,7 +7392,24 @@ router.post('/htx/balance', tradingRateLimit, optionalAuth, [
                 timestamp: timestamp,
                 signatureUsed: signature.substring(0, 16) + '...'
             });
-            throw new APIError(`HTX error: ${accountsData['err-code']} - ${accountsData['err-msg']}`, 400, 'HTX_ERROR');
+            
+            // Return debug info to frontend for troubleshooting
+            res.json({
+                success: false,
+                error: {
+                    code: 'HTX_AUTH_ERROR',
+                    message: `HTX error: ${accountsData['err-code']} - ${accountsData['err-msg']}`,
+                    debug: {
+                        timestamp: timestamp,
+                        sortedParams: sortedParamsString,
+                        signatureString: signatureString,
+                        errCode: accountsData['err-code'],
+                        errMsg: accountsData['err-msg'],
+                        apiKeyPrefix: apiKey.substring(0, 8) + '...'
+                    }
+                }
+            });
+            return;
         }
         
         if (!accountsData.data || accountsData.data.length === 0) {
