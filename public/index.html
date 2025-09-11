@@ -21498,9 +21498,9 @@ ARB4ME Security Team`
             }
 
             // Use backend server for all exchanges to avoid CORS issues
-            if (exchange === 'luno' || exchange === 'valr' || exchange === 'altcointrader' || exchange === 'xago' || exchange === 'chainex' || exchange === 'kraken' || exchange === 'binance' || exchange === 'bybit' || exchange === 'gateio' || exchange === 'bitmart' || exchange === 'bitrue' || exchange === 'cryptocom' || exchange === 'coincatch' || exchange === 'bitget' || exchange === 'okx' || exchange === 'mexc' || exchange === 'kucoin' || exchange === 'xt' || exchange === 'ascendex' || exchange === 'bingx' || exchange === 'gemini') {
+            if (exchange === 'luno' || exchange === 'valr' || exchange === 'altcointrader' || exchange === 'xago' || exchange === 'chainex' || exchange === 'kraken' || exchange === 'binance' || exchange === 'bybit' || exchange === 'gateio' || exchange === 'bitmart' || exchange === 'bitrue' || exchange === 'cryptocom' || exchange === 'coincatch' || exchange === 'bitget' || exchange === 'okx' || exchange === 'mexc' || exchange === 'kucoin' || exchange === 'xt' || exchange === 'ascendex' || exchange === 'bingx' || exchange === 'gemini' || exchange === 'htx') {
                 // Use Railway for all exchanges (production deployment)
-                const backendUrl = (exchange === 'valr' || exchange === 'luno' || exchange === 'chainex' || exchange === 'okx' || exchange === 'kraken' || exchange === 'binance' || exchange === 'bybit' || exchange === 'mexc' || exchange === 'kucoin' || exchange === 'xt' || exchange === 'ascendex' || exchange === 'bingx' || exchange === 'gemini') 
+                const backendUrl = (exchange === 'valr' || exchange === 'luno' || exchange === 'chainex' || exchange === 'okx' || exchange === 'kraken' || exchange === 'binance' || exchange === 'bybit' || exchange === 'mexc' || exchange === 'kucoin' || exchange === 'xt' || exchange === 'ascendex' || exchange === 'bingx' || exchange === 'gemini' || exchange === 'htx') 
                     ? 'https://arb4me-unified-production.up.railway.app' 
                     : 'http://localhost:3000';
                 
@@ -23460,6 +23460,18 @@ ARB4ME Security Team`
                         console.error('Gemini Balance Error Details:', balances.data);
                         if (balances.data && balances.data.error) {
                             console.error('Gemini Error Message:', balances.data.error);
+                        }
+                    }
+                    
+                    // Handle HTX response format
+                    if (exchangeName === 'htx' && balances && balances.success === true && balances.data && balances.data.balances) {
+                        // Extract the actual balances from the HTX response structure
+                        actualBalances = balances.data.balances;
+                        console.log('HTX extracted balances:', actualBalances);
+                    } else if (exchangeName === 'htx' && balances && balances.success === false) {
+                        console.error('HTX Balance Error Details:', balances.data);
+                        if (balances.data && balances.data.error && balances.data.error.debug) {
+                            console.log('🔍 HTX DEBUG INFO:', balances.data.error.debug);
                         }
                     }
                     
