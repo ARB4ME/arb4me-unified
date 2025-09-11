@@ -6383,7 +6383,7 @@ router.post('/xt/balance', tradingRateLimit, optionalAuth, [
     const { apiKey, apiSecret } = req.body;
     
     try {
-        const timestamp = Date.now().toString();
+        const timestamp = Date.now(); // Use milliseconds like MEXC (working exchange)
         const method = 'GET';
         const endpoint = XT_CONFIG.endpoints.balance;
         const signature = createXTSignature(timestamp, method, endpoint, null, apiKey, apiSecret);
@@ -6415,7 +6415,7 @@ router.post('/xt/balance', tradingRateLimit, optionalAuth, [
             }
         });
 
-        // Try v1 API format with query parameters
+        // v1 API format - signature should NOT include itself in the URL calculation
         const queryParams = `accesskey=${apiKey}&nonce=${timestamp}&signature=${signature}`;
         
         const response = await fetch(`${XT_CONFIG.baseUrl}${endpoint}?${queryParams}`, {
