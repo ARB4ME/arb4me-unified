@@ -6354,7 +6354,8 @@ router.post('/kucoin/test', tradingRateLimit, optionalAuth, [
 const XT_CONFIG = {
     baseUrl: 'https://sapi.xt.com',
     endpoints: {
-        balance: '/v4/balances',
+        balance: '/v4/balances',  // Try different endpoint if this doesn't work
+        // Could also be '/v4/account' or '/v4/user/account' 
         ticker: '/v4/public/ticker',
         test: '/v4/balances'
     }
@@ -6405,6 +6406,20 @@ router.post('/xt/balance', tradingRateLimit, optionalAuth, [
             signString: debugSignString,
             signature,
             apiKey: apiKey.substring(0, 8) + '...'
+        });
+
+        // Add extra debugging - log exact request details
+        systemLogger.trading('XT.com request details', {
+            userId: req.user?.id,
+            url: `${XT_CONFIG.baseUrl}${endpoint}`,
+            method: 'GET',
+            headers: {
+                'validate-algorithms': 'HmacSHA256',
+                'validate-appkey': apiKey.substring(0, 8) + '...',
+                'validate-timestamp': timestamp,
+                'validate-signature': signature.substring(0, 16) + '...',
+                'validate-recvwindow': '60000'
+            }
         });
 
         const response = await fetch(`${XT_CONFIG.baseUrl}${endpoint}`, {
