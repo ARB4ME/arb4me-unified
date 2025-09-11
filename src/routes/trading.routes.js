@@ -7342,8 +7342,18 @@ router.post('/htx/balance', tradingRateLimit, optionalAuth, [
         
         const accountsData = await accountsResponse.json();
         
-        if (accountsData.status !== 'ok' || !accountsData.data || accountsData.data.length === 0) {
-            throw new APIError('HTX error: No accounts found', 400, 'HTX_ERROR');
+        // Add debugging to see what HTX returns
+        systemLogger.trading('HTX accounts response', {
+            userId: req.user?.id,
+            response: JSON.stringify(accountsData)
+        });
+        
+        if (accountsData.status !== 'ok') {
+            throw new APIError(`HTX error: ${accountsData['err-code']} - ${accountsData['err-msg']}`, 400, 'HTX_ERROR');
+        }
+        
+        if (!accountsData.data || accountsData.data.length === 0) {
+            throw new APIError('HTX error: No accounts found - API key may need account permissions', 400, 'HTX_ERROR');
         }
         
         const accountId = accountsData.data[0].id;
