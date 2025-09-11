@@ -6362,25 +6362,15 @@ const XT_CONFIG = {
 
 // XT.com Authentication Helper
 function createXTSignature(timestamp, method, endpoint, params, apiKey, apiSecret) {
-    // XT.com signature format based on their GitHub docs:
-    // Sort parameters alphabetically and concatenate with &
-    // Format: accesskey=xxx&nonce=xxx&other_params...
+    // XT.com signature format: Create signature from the actual request parameters
+    // The signature seems to be based on the concatenation of header values
     
     const recvWindow = '5000';
+    const algorithm = 'HmacSHA256';
     
-    // Create parameter object with all required fields
-    const signParams = {
-        'validate-algorithms': 'HmacSHA256',
-        'validate-appkey': apiKey,
-        'validate-recvwindow': recvWindow,
-        'validate-timestamp': timestamp
-    };
-    
-    // Sort parameters alphabetically and create string
-    const sortedKeys = Object.keys(signParams).sort();
-    const signString = sortedKeys
-        .map(key => `${key}=${signParams[key]}`)
-        .join('&');
+    // Based on XT.com documentation and common patterns, try different signature formats
+    // Format 1: Just concatenate the values in order
+    const signString = `${algorithm}${apiKey}${recvWindow}${timestamp}`;
     
     return crypto.createHmac('sha256', apiSecret).update(signString).digest('hex');
 }
@@ -6404,14 +6394,7 @@ router.post('/xt/balance', tradingRateLimit, optionalAuth, [
         const signature = createXTSignature(timestamp, method, endpoint, null, apiKey, apiSecret);
         
         // Debug logging
-        const signParams = {
-            'validate-algorithms': 'HmacSHA256',
-            'validate-appkey': apiKey,
-            'validate-recvwindow': '5000',
-            'validate-timestamp': timestamp
-        };
-        const sortedKeys = Object.keys(signParams).sort();
-        const debugSignString = sortedKeys.map(key => `${key}=${signParams[key]}`).join('&');
+        const debugSignString = `HmacSHA256${apiKey}5000${timestamp}`;
         
         systemLogger.trading('XT.com signature debug', {
             userId: req.user?.id,
