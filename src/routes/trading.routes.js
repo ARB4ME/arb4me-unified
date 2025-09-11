@@ -9568,7 +9568,8 @@ router.post('/gemini/balance', tradingRateLimit, optionalAuth, [
         const nonce = Date.now();
         const payload = {
             request: GEMINI_CONFIG.endpoints.balance,
-            nonce: nonce
+            nonce: nonce,
+            account: 'primary'  // Gemini expects account specification
         };
         const payloadBase64 = Buffer.from(JSON.stringify(payload)).toString('base64');
         const signature = createGeminiSignature(payloadBase64, apiSecret);
