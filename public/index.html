@@ -23061,7 +23061,8 @@ ARB4ME Security Team`
             try {
                 console.log(`📊 Step ${step}/${totalSteps}: ${side} ${amount} on ${pair} at ~${expectedPrice}`);
                 
-                // For now, simulate trade execution with paper trading
+                // ⚠️  CURRENTLY IN SIMULATION MODE - NOT REAL TRADES ⚠️
+                // This explains why balances remain unchanged
                 // In production, this would call the actual exchange API
                 
                 addActivity(`🔄 Step ${step}/${totalSteps}: ${side} ${pair} - $${amount.toFixed(2)}`, 'info');
@@ -23069,15 +23070,32 @@ ARB4ME Security Team`
                 // Simulate trade execution delay
                 await delay(500 + Math.random() * 1000); // 0.5-1.5 second delay
                 
-                // Calculate received amount (simplified)
+                // Calculate received amount (CORRECTED for triangular arbitrage)
                 let receivedAmount;
+                
+                console.log(`🔢 Calculation Debug: ${side} ${amount} ${pair} at price ${expectedPrice}`);
+                
                 if (side === 'BUY') {
-                    // Buying: divide by price to get asset amount
+                    // Buying: Spend base currency to get quote currency
+                    // For XBTZAR (BTC/ZAR), spending ZAR to get BTC: ZAR ÷ price = BTC
                     receivedAmount = amount / expectedPrice;
-                } else {
-                    // Selling: multiply by price to get base amount  
-                    receivedAmount = amount * expectedPrice;
+                } else { // SELL
+                    // Selling: we're selling the base currency of the pair
+                    if (pair.includes('XBT') && !pair.endsWith('XBT')) {
+                        // Pairs like ALGOXBT: selling ALGO (base) to get XBT (quote)
+                        // ALGO × price = XBT received
+                        receivedAmount = amount * expectedPrice;
+                    } else if (pair.endsWith('ZAR') || pair.endsWith('USDT')) {
+                        // Pairs like ALGOZAR: selling ALGO (base) to get ZAR (quote) 
+                        // ALGO × price = ZAR received
+                        receivedAmount = amount * expectedPrice;
+                    } else {
+                        // Standard sell: multiply by price
+                        receivedAmount = amount * expectedPrice;
+                    }
                 }
+                
+                console.log(`🔢 Calculated: ${receivedAmount} (${side} ${amount} at ${expectedPrice})`);
                 
                 // Apply simulated trading fees (0.2% for Luno)
                 const feeRate = 0.002; // 0.2%
