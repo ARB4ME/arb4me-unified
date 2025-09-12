@@ -23152,7 +23152,7 @@ ARB4ME Security Team`
                 return '$0.00';
             }
             
-            const currencyOrder = ['USDT', 'ZAR', 'XRP', 'BTC', 'ETH', 'LINK', 'DOGE', 'LTC'];
+            const currencyOrder = ['USDT', 'ZAR', 'XBT', 'BTC', 'ETH', 'SOL', 'XRP', 'LINK', 'DOGE', 'LTC'];
             const displayParts = [];
             
             // Check each currency in order
@@ -23172,11 +23172,17 @@ ARB4ME Security Team`
                         case 'XRP':
                             formattedBalance = `${balance.toFixed(0)} XRP`;
                             break;
+                        case 'XBT':
+                            formattedBalance = `${balance.toFixed(5)} BTC`;  // Show as BTC in UI
+                            break;
                         case 'BTC':
                             formattedBalance = `${balance.toFixed(4)} BTC`;
                             break;
                         case 'ETH':
                             formattedBalance = `${balance.toFixed(3)} ETH`;
+                            break;
+                        case 'SOL':
+                            formattedBalance = `${balance.toFixed(2)} SOL`;
                             break;
                         case 'LINK':
                             formattedBalance = `${balance.toFixed(1)} LINK`;
@@ -23616,12 +23622,12 @@ ARB4ME Security Team`
         let scanIndex = 0;  // Track current position in selected assets list
         const PAIRS_PER_SCAN = 2;  // Number of pairs to scan each cycle
         
-        // Staggered scanning configuration for 12 exchanges × 130 pairs
+        // Staggered scanning configuration for 13 exchanges × 130 pairs
         const STAGGERED_SCANNING = {
             enabled: false,  // Start disabled, enable after testing
             
             // System configuration
-            totalExchanges: 12,
+            totalExchanges: 13,
             totalPairs: 130,
             
             // Timing configuration  

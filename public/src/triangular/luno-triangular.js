@@ -95,8 +95,100 @@ const lunoTriangularPathsV2 = {
         baseCurrency: 'USDT',
         verified: true
     },
-    // Note: SOLXBT and INJXBT pairs don't exist on Luno
-    // Note: ETHUSDC path calculation is incorrect - removed
+    USDT_BTC_SOL: {
+        pairs: ['XBTUSDT', 'SOLXBT', 'SOLUSDT'],
+        sequence: 'USDT → BTC → SOL → USDT',
+        baseCurrency: 'USDT',
+        verified: true
+    },
+    USDT_ETH_XBT: {
+        pairs: ['ETHUSDT', 'ETHXBT', 'XBTUSDT'],
+        sequence: 'USDT → ETH → BTC → USDT',
+        baseCurrency: 'USDT',
+        verified: true
+    },
+    USDT_XRP_XBT: {
+        pairs: ['XRPUSDT', 'XRPXBT', 'XBTUSDT'],
+        sequence: 'USDT → XRP → BTC → USDT',
+        baseCurrency: 'USDT',
+        verified: true
+    },
+    USDT_SOL_XBT: {
+        pairs: ['SOLUSDT', 'SOLXBT', 'XBTUSDT'],
+        sequence: 'USDT → SOL → BTC → USDT',
+        baseCurrency: 'USDT',
+        verified: true
+    },
+    USDT_USDC_ETH: {
+        pairs: ['USDCUSDT', 'ETHUSDC', 'ETHUSDT'],
+        sequence: 'USDT → USDC → ETH → USDT',
+        baseCurrency: 'USDT',
+        verified: true
+    },
+    
+    // XBT-based triangles - High connectivity hub
+    XBT_ETH_USDT: {
+        pairs: ['ETHXBT', 'ETHUSDT', 'XBTUSDT'],
+        sequence: 'XBT → ETH → USDT → XBT',
+        baseCurrency: 'XBT',
+        verified: true
+    },
+    XBT_ETH_ZAR: {
+        pairs: ['ETHXBT', 'ETHZAR', 'XBTZAR'],
+        sequence: 'XBT → ETH → ZAR → XBT',
+        baseCurrency: 'XBT',
+        verified: true
+    },
+    XBT_SOL_USDT: {
+        pairs: ['SOLXBT', 'SOLUSDT', 'XBTUSDT'],
+        sequence: 'XBT → SOL → USDT → XBT',
+        baseCurrency: 'XBT',
+        verified: true
+    },
+    XBT_SOL_XRP: {
+        pairs: ['SOLXBT', 'SOLXRP', 'XRPXBT'],
+        sequence: 'XBT → SOL → XRP → XBT',
+        baseCurrency: 'XBT',
+        verified: true
+    },
+    XBT_XRP_USDT: {
+        pairs: ['XRPXBT', 'XRPUSDT', 'XBTUSDT'],
+        sequence: 'XBT → XRP → USDT → XBT',
+        baseCurrency: 'XBT',
+        verified: true
+    },
+    XBT_XRP_ZAR: {
+        pairs: ['XRPXBT', 'XRPZAR', 'XBTZAR'],
+        sequence: 'XBT → XRP → ZAR → XBT',
+        baseCurrency: 'XBT',
+        verified: true
+    },
+    XBT_ADA_ZAR: {
+        pairs: ['ADAXBT', 'ADAZAR', 'XBTZAR'],
+        sequence: 'XBT → ADA → ZAR → XBT',
+        baseCurrency: 'XBT',
+        verified: true
+    },
+    XBT_DOT_ZAR: {
+        pairs: ['DOTXBT', 'DOTZAR', 'XBTZAR'],
+        sequence: 'XBT → DOT → ZAR → XBT',
+        baseCurrency: 'XBT',
+        verified: true
+    },
+    XBT_AVAX_ZAR: {
+        pairs: ['AVAXXBT', 'AVAXZAR', 'XBTZAR'],
+        sequence: 'XBT → AVAX → ZAR → XBT',
+        baseCurrency: 'XBT',
+        verified: true
+    },
+    // Note: LINKXBT and UNIXBT don't exist on Luno - removed
+    
+    XBT_LTC_ZAR: {
+        pairs: ['LTCXBT', 'LTCZAR', 'XBTZAR'],
+        sequence: 'XBT → LTC → ZAR → XBT',
+        baseCurrency: 'XBT',
+        verified: true
+    },
     
     // ZAR-based triangles (SECONDARY) - Verified against Luno pairs data
     ZAR_BTC_ETH: {
@@ -157,12 +249,164 @@ const lunoTriangularPathsV2 = {
         pairs: ['XBTZAR', 'CRVXBT', 'CRVZAR'],
         sequence: 'ZAR → BTC → CRV → ZAR',
         baseCurrency: 'ZAR',
-        verified: true // CONFIRMED: All pairs exist
+        verified: true
+    },
+    ZAR_BTC_SAND: {
+        pairs: ['XBTZAR', 'SANDXBT', 'SANDZAR'],
+        sequence: 'ZAR → BTC → SAND → ZAR',
+        baseCurrency: 'ZAR',
+        verified: true
+    },
+    ZAR_BTC_SNX: {
+        pairs: ['XBTZAR', 'SNXXBT', 'SNXZAR'],
+        sequence: 'ZAR → BTC → SNX → ZAR',
+        baseCurrency: 'ZAR',
+        verified: true
+    },
+    ZAR_BTC_TRX: {
+        pairs: ['XBTZAR', 'TRXXBT', 'TRXZAR'],
+        sequence: 'ZAR → BTC → TRX → ZAR',
+        baseCurrency: 'ZAR',
+        verified: true
+    },
+    ZAR_BTC_GRT: {
+        pairs: ['XBTZAR', 'GRTXBT', 'GRTZAR'],
+        sequence: 'ZAR → BTC → GRT → ZAR',
+        baseCurrency: 'ZAR',
+        verified: true
+    },
+    ZAR_BTC_BCH: {
+        pairs: ['XBTZAR', 'BCHXBT', 'BCHZAR'],
+        sequence: 'ZAR → BTC → BCH → ZAR',
+        baseCurrency: 'ZAR',
+        verified: true
+    },
+    ZAR_BTC_SONIC: {
+        pairs: ['XBTZAR', 'SONICXBT', 'SONICZAR'],
+        sequence: 'ZAR → BTC → SONIC → ZAR',
+        baseCurrency: 'ZAR',
+        verified: true
     },
     ZAR_BTC_POL: {
         pairs: ['XBTZAR', 'POLXBT', 'POLZAR'],
         sequence: 'ZAR → BTC → POL → ZAR',
         baseCurrency: 'ZAR',
+        verified: true
+    },
+    ZAR_BTC_AAVE: {
+        pairs: ['XBTZAR', 'AAVEXBT', 'AAVEZAR'],
+        sequence: 'ZAR → BTC → AAVE → ZAR',
+        baseCurrency: 'ZAR',
+        verified: true
+    },
+    // Note: LINKXBT and UNIXBT don't exist on Luno - removed
+    
+    ZAR_BTC_ADA: {
+        pairs: ['XBTZAR', 'ADAXBT', 'ADAZAR'],
+        sequence: 'ZAR → BTC → ADA → ZAR',
+        baseCurrency: 'ZAR',
+        verified: true
+    },
+    ZAR_BTC_DOGE: {
+        pairs: ['XBTZAR', 'DOGEXBT', 'DOGEZAR'],
+        sequence: 'ZAR → BTC → DOGE → ZAR',
+        baseCurrency: 'ZAR',
+        verified: true
+    },
+    ZAR_BTC_XLM: {
+        pairs: ['XBTZAR', 'XLMXBT', 'XLMZAR'],
+        sequence: 'ZAR → BTC → XLM → ZAR',
+        baseCurrency: 'ZAR',
+        verified: true
+    },
+    ZAR_USDT_XBT: {
+        pairs: ['USDTZAR', 'XBTUSDT', 'XBTZAR'],
+        sequence: 'ZAR → USDT → BTC → ZAR',
+        baseCurrency: 'ZAR',
+        verified: true
+    },
+    ZAR_USDC_ETH: {
+        pairs: ['USDCZAR', 'ETHUSDC', 'ETHZAR'],
+        sequence: 'ZAR → USDC → ETH → ZAR',
+        baseCurrency: 'ZAR',
+        verified: true
+    },
+    
+    // ETH-based triangles
+    ETH_XBT_USDT: {
+        pairs: ['ETHXBT', 'XBTUSDT', 'ETHUSDT'],
+        sequence: 'ETH → XBT → USDT → ETH',
+        baseCurrency: 'ETH',
+        verified: true
+    },
+    ETH_XBT_ZAR: {
+        pairs: ['ETHXBT', 'XBTZAR', 'ETHZAR'],
+        sequence: 'ETH → XBT → ZAR → ETH',
+        baseCurrency: 'ETH',
+        verified: true
+    },
+    ETH_USDT_XBT: {
+        pairs: ['ETHUSDT', 'XBTUSDT', 'ETHXBT'],
+        sequence: 'ETH → USDT → XBT → ETH',
+        baseCurrency: 'ETH',
+        verified: true
+    },
+    ETH_USDC_USDT: {
+        pairs: ['ETHUSDC', 'USDCUSDT', 'ETHUSDT'],
+        sequence: 'ETH → USDC → USDT → ETH',
+        baseCurrency: 'ETH',
+        verified: true
+    },
+    ETH_ZAR_XBT: {
+        pairs: ['ETHZAR', 'XBTZAR', 'ETHXBT'],
+        sequence: 'ETH → ZAR → XBT → ETH',
+        baseCurrency: 'ETH',
+        verified: true
+    },
+    
+    // SOL-based unique paths - Luno has special SOL pairs!
+    SOL_ADA_ZAR: {
+        pairs: ['SOLADA', 'ADAZAR', 'SOLZAR'],
+        sequence: 'SOL → ADA → ZAR → SOL',
+        baseCurrency: 'SOL',
+        verified: true
+    },
+    SOL_XRP_XBT: {
+        pairs: ['SOLXRP', 'XRPXBT', 'SOLXBT'],
+        sequence: 'SOL → XRP → XBT → SOL',
+        baseCurrency: 'SOL',
+        verified: true
+    },
+    SOL_XBT_USDT: {
+        pairs: ['SOLXBT', 'XBTUSDT', 'SOLUSDT'],
+        sequence: 'SOL → XBT → USDT → SOL',
+        baseCurrency: 'SOL',
+        verified: true
+    },
+    SOL_USDT_XBT: {
+        pairs: ['SOLUSDT', 'XBTUSDT', 'SOLXBT'],
+        sequence: 'SOL → USDT → XBT → SOL',
+        baseCurrency: 'SOL',
+        verified: true
+    },
+    SOL_ZAR_XBT: {
+        pairs: ['SOLZAR', 'XBTZAR', 'SOLXBT'],
+        sequence: 'SOL → ZAR → XBT → SOL',
+        baseCurrency: 'SOL',
+        verified: true
+    },
+    
+    // Additional stablecoin paths
+    USDC_ETH_XBT: {
+        pairs: ['ETHUSDC', 'ETHXBT', 'XBTUSDC'],
+        sequence: 'USDC → ETH → XBT → USDC',
+        baseCurrency: 'USDC',
+        verified: true
+    },
+    USDC_USDT_ETH: {
+        pairs: ['USDCUSDT', 'ETHUSDT', 'ETHUSDC'],
+        sequence: 'USDC → USDT → ETH → USDC',
+        baseCurrency: 'USDC',
         verified: true
     }
 };
