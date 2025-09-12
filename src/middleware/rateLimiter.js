@@ -123,7 +123,7 @@ const tradingRateLimit = rateLimit({
 // Ticker data rate limiter (very permissive for price fetching)
 const tickerRateLimit = rateLimit({
     windowMs: 1 * 60 * 1000, // 1 minute
-    max: 100, // 100 requests per minute for ticker/price data
+    max: 200, // 200 requests per minute for ticker/price data (increased for staggered scanning)
     message: 'Too many price data requests, please wait before trying again.',
     handler: rateLimitHandler,
     skip: rateLimitSkip,
