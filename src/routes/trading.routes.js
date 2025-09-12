@@ -9090,8 +9090,9 @@ const BITMART_CONFIG = {
 };
 
 // BitMart Authentication Helper
-function createBitMartSignature(timestamp, method, requestPath, body, apiSecret) {
-    const message = timestamp + '#' + 'bitmart.com' + '#' + method + '#' + requestPath + '#' + (body || '');
+function createBitMartSignature(timestamp, memo, queryString, apiSecret) {
+    // BitMart signature format: timestamp + '#' + memo + '#' + queryString
+    const message = timestamp + '#' + (memo || '') + '#' + (queryString || '');
     return crypto.createHmac('sha256', apiSecret).update(message).digest('hex');
 }
 
@@ -9110,9 +9111,8 @@ router.post('/bitmart/balance', tradingRateLimit, optionalAuth, [
     
     try {
         const timestamp = Date.now().toString();
-        const method = 'GET';
-        const requestPath = BITMART_CONFIG.endpoints.balance;
-        const signature = createBitMartSignature(timestamp, method, requestPath, '', apiSecret);
+        // For GET requests, queryString is empty
+        const signature = createBitMartSignature(timestamp, memo || '', '', apiSecret);
 
         const headers = {
             'X-BM-KEY': apiKey,
@@ -9249,9 +9249,8 @@ router.post('/bitmart/test', tradingRateLimit, optionalAuth, [
     
     try {
         const timestamp = Date.now().toString();
-        const method = 'GET';
-        const requestPath = BITMART_CONFIG.endpoints.test;
-        const signature = createBitMartSignature(timestamp, method, requestPath, '', apiSecret);
+        // For GET requests, queryString is empty
+        const signature = createBitMartSignature(timestamp, memo || '', '', apiSecret);
 
         const headers = {
             'X-BM-KEY': apiKey,
@@ -9270,15 +9269,25 @@ router.post('/bitmart/test', tradingRateLimit, optionalAuth, [
             headers: headers
         });
 
-        const data = await response.json();
+        if (!response.ok) {
+            const errorText = await response.text();
+            systemLogger.trading('BitMart API error', {
+                status: response.status,
+                error: errorText,
+                headers: headers
+            });
+            throw new APIError(`BitMart API error: ${response.status}`, 502, 'BITMART_API_ERROR');
+        }
+
+        const data = await response.json().catch(() => ({}));
         
-        if (data.code !== 1000) {
+        if (!data || data.code !== 1000) {
             res.json({
                 success: false,
                 data: {
                     exchange: 'bitmart',
                     connected: false,
-                    error: data.message
+                    error: data.message || 'Failed to connect to BitMart'
                 }
             });
             return;
@@ -9341,7 +9350,8 @@ router.post('/bitmart/buy-order', tradingRateLimit, optionalAuth, [
         };
         
         const body = JSON.stringify(orderData);
-        const signature = createBitMartSignature(timestamp, 'POST', '/spot/v2/submit_order', body, apiSecret);
+        // For POST requests with body, the queryString is the body itself
+        const signature = createBitMartSignature(timestamp, memo || '', body, apiSecret);
         
         const response = await fetch(`${BITMART_CONFIG.baseUrl}/spot/v2/submit_order`, {
             method: 'POST',
@@ -9438,7 +9448,8 @@ router.post('/bitmart/sell-order', tradingRateLimit, optionalAuth, [
         };
         
         const body = JSON.stringify(orderData);
-        const signature = createBitMartSignature(timestamp, 'POST', '/spot/v2/submit_order', body, apiSecret);
+        // For POST requests with body, the queryString is the body itself
+        const signature = createBitMartSignature(timestamp, memo || '', body, apiSecret);
         
         const response = await fetch(`${BITMART_CONFIG.baseUrl}/spot/v2/submit_order`, {
             method: 'POST',
