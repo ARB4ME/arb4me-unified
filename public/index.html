@@ -24531,7 +24531,9 @@ ARB4ME Security Team`
                             // Add execution data to result
                             const opportunityWithExecution = {
                                 ...result,
-                                prices: pathConfig.pairs,
+                                pairs: pathConfig.pairs,  // Array of pair names like ['XBTZAR', 'ALGOXBT', 'ALGOZAR']
+                                prices: pathConfig.pairs, // For backward compatibility
+                                priceValues: result.prices, // Actual price values object
                                 exchange: 'LUNO'
                             };
                             
