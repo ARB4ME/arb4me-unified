@@ -23604,6 +23604,71 @@ ARB4ME Security Team`
         let scanIndex = 0;  // Track current position in selected assets list
         const PAIRS_PER_SCAN = 2;  // Number of pairs to scan each cycle
         
+        // Staggered scanning configuration for 12 exchanges × 130 pairs
+        const STAGGERED_SCANNING = {
+            enabled: false,  // Start disabled, enable after testing
+            
+            // System configuration
+            totalExchanges: 12,
+            totalPairs: 130,
+            
+            // Timing configuration  
+            cycleTime: 20 * 60,      // 20 minutes for full cycle
+            batchInterval: 8,        // 8 seconds between different pairs
+            
+            // Batch configuration
+            batchSize: 22,           // pairs per batch (130 ÷ 6 = ~22)
+            totalBatches: 6,         // Math.ceil(130/22) = 6 batches
+            
+            // Runtime tracking
+            currentBatch: 0,
+            currentPairInBatch: 0,
+            batchStartTime: 0,
+            cycleStartTime: 0,
+            
+            // Pattern C: Check all exchanges for each pair simultaneously
+            patternC: true
+        };
+        
+        // Batch management functions
+        function getCurrentBatchPairs() {
+            if (!STAGGERED_SCANNING.enabled) return null;
+            
+            const allPairs = state.settings.selectedAssets || [];
+            const startIndex = STAGGERED_SCANNING.currentBatch * STAGGERED_SCANNING.batchSize;
+            const endIndex = Math.min(startIndex + STAGGERED_SCANNING.batchSize, allPairs.length);
+            
+            return allPairs.slice(startIndex, endIndex);
+        }
+        
+        function advanceToBatch() {
+            STAGGERED_SCANNING.currentBatch++;
+            STAGGERED_SCANNING.currentPairInBatch = 0;
+            
+            // Reset to start if we've completed all batches
+            if (STAGGERED_SCANNING.currentBatch >= STAGGERED_SCANNING.totalBatches) {
+                STAGGERED_SCANNING.currentBatch = 0;
+                STAGGERED_SCANNING.cycleStartTime = Date.now();
+                console.log('🔄 Completed full staggered scan cycle, starting new cycle');
+            }
+            
+            STAGGERED_SCANNING.batchStartTime = Date.now();
+        }
+        
+        // Display current scanning progress
+        function updateStaggeredScanStatus() {
+            if (!STAGGERED_SCANNING.enabled) return;
+            
+            const currentBatchPairs = getCurrentBatchPairs();
+            if (!currentBatchPairs) return;
+            
+            const progress = ((STAGGERED_SCANNING.currentBatch / STAGGERED_SCANNING.totalBatches) * 100).toFixed(1);
+            const timeInCycle = Math.floor((Date.now() - STAGGERED_SCANNING.cycleStartTime) / 1000);
+            const cycleTimeLeft = Math.max(0, STAGGERED_SCANNING.cycleTime - timeInCycle);
+            
+            console.log(`📊 Staggered Scan Status: Batch ${STAGGERED_SCANNING.currentBatch + 1}/${STAGGERED_SCANNING.totalBatches} (${progress}%) - ${currentBatchPairs.length} pairs - Cycle: ${Math.floor(cycleTimeLeft/60)}m${cycleTimeLeft%60}s left`);
+        }
+        
         // FIXED: Real arbitrage scanning with Luno integration
         function startArbitrageScanning() {
             addActivity('🔍 Starting real arbitrage scanner with rate limiting (2 pairs/10 seconds)...', 'info');
