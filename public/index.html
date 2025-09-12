@@ -22892,6 +22892,13 @@ ARB4ME Security Team`
                 addActivity(`🔺 EXECUTING: ${opportunity.pathName} - ${opportunity.netProfitPercent.toFixed(3)}% profit with ${tradeAmount.toFixed(2)} ${baseCurrency}`, 'success');
                 
                 // Get fresh prices to validate opportunity is still profitable
+                console.log('🔍 Opportunity structure:', opportunity);
+                console.log('🔍 Opportunity.prices:', opportunity.prices);
+                
+                if (!opportunity.prices || !Array.isArray(opportunity.prices)) {
+                    throw new Error(`Invalid opportunity.prices: ${JSON.stringify(opportunity.prices)}`);
+                }
+                
                 const freshPrices = await Promise.all(
                     opportunity.prices.map(async (pair, index) => {
                         const price = await getRealPrice(pair, opportunity.exchange.toLowerCase());
@@ -23017,13 +23024,13 @@ ARB4ME Security Team`
                 const actualProfitPercent = (actualProfit / tradeAmount) * 100;
                 
                 console.log(`🎯 Triangular arbitrage complete!`);
-                console.log(`💰 Started with: ${tradeAmount} USDT`);
-                console.log(`💰 Ended with: ${finalAmount} USDT`);
-                console.log(`📈 Actual profit: ${actualProfit.toFixed(4)} USDT (${actualProfitPercent.toFixed(3)}%)`);
+                console.log(`💰 Started with: ${tradeAmount} ${baseCurrency}`);
+                console.log(`💰 Ended with: ${finalAmount} ${baseCurrency}`);
+                console.log(`📈 Actual profit: ${actualProfit.toFixed(4)} ${baseCurrency} (${actualProfitPercent.toFixed(3)}%)`);
                 
                 // Update activity and balances
                 addActivity(
-                    `✅ Triangle Complete: ${opportunity.pathName} - Profit: ${actualProfit.toFixed(4)} USDT (${actualProfitPercent.toFixed(2)}%)`,
+                    `✅ Triangle Complete: ${opportunity.pathName} - Profit: ${actualProfit.toFixed(4)} ${baseCurrency} (${actualProfitPercent.toFixed(2)}%)`,
                     actualProfit > 0 ? 'success' : 'warning'
                 );
                 
