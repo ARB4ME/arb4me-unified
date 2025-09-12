@@ -9099,7 +9099,7 @@ function createBitMartSignature(timestamp, method, requestPath, body, apiSecret)
 router.post('/bitmart/balance', tradingRateLimit, optionalAuth, [
     body('apiKey').notEmpty().withMessage('API key is required'),
     body('apiSecret').notEmpty().withMessage('API secret is required'),
-    body('memo').notEmpty().withMessage('Memo is required')
+    body('memo').optional() // Made memo optional
 ], asyncHandler(async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -9114,15 +9114,21 @@ router.post('/bitmart/balance', tradingRateLimit, optionalAuth, [
         const requestPath = BITMART_CONFIG.endpoints.balance;
         const signature = createBitMartSignature(timestamp, method, requestPath, '', apiSecret);
 
+        const headers = {
+            'X-BM-KEY': apiKey,
+            'X-BM-SIGN': signature,
+            'X-BM-TIMESTAMP': timestamp,
+            'Content-Type': 'application/json'
+        };
+        
+        // Only add memo header if provided
+        if (memo) {
+            headers['X-BM-PASSPHRASE'] = memo;
+        }
+
         const response = await fetch(`${BITMART_CONFIG.baseUrl}${requestPath}`, {
             method: 'GET',
-            headers: {
-                'X-BM-KEY': apiKey,
-                'X-BM-SIGN': signature,
-                'X-BM-TIMESTAMP': timestamp,
-                'X-BM-PASSPHRASE': memo,
-                'Content-Type': 'application/json'
-            }
+            headers: headers
         });
 
         if (!response.ok) {
@@ -9232,7 +9238,7 @@ router.post('/bitmart/ticker', tickerRateLimit, optionalAuth, [
 router.post('/bitmart/test', tradingRateLimit, optionalAuth, [
     body('apiKey').notEmpty().withMessage('API key is required'),
     body('apiSecret').notEmpty().withMessage('API secret is required'),
-    body('memo').notEmpty().withMessage('Memo is required')
+    body('memo').optional() // Made memo optional
 ], asyncHandler(async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -9247,15 +9253,21 @@ router.post('/bitmart/test', tradingRateLimit, optionalAuth, [
         const requestPath = BITMART_CONFIG.endpoints.test;
         const signature = createBitMartSignature(timestamp, method, requestPath, '', apiSecret);
 
+        const headers = {
+            'X-BM-KEY': apiKey,
+            'X-BM-SIGN': signature,
+            'X-BM-TIMESTAMP': timestamp,
+            'Content-Type': 'application/json'
+        };
+        
+        // Only add memo header if provided
+        if (memo) {
+            headers['X-BM-PASSPHRASE'] = memo;
+        }
+
         const response = await fetch(`${BITMART_CONFIG.baseUrl}${requestPath}`, {
             method: 'GET',
-            headers: {
-                'X-BM-KEY': apiKey,
-                'X-BM-SIGN': signature,
-                'X-BM-TIMESTAMP': timestamp,
-                'X-BM-PASSPHRASE': memo,
-                'Content-Type': 'application/json'
-            }
+            headers: headers
         });
 
         const data = await response.json();
