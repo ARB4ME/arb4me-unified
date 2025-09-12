@@ -23669,9 +23669,29 @@ ARB4ME Security Team`
             console.log(`📊 Staggered Scan Status: Batch ${STAGGERED_SCANNING.currentBatch + 1}/${STAGGERED_SCANNING.totalBatches} (${progress}%) - ${currentBatchPairs.length} pairs - Cycle: ${Math.floor(cycleTimeLeft/60)}m${cycleTimeLeft%60}s left`);
         }
         
+        // Test functions for enabling/disabling staggered scanning
+        window.enableStaggeredScanning = function() {
+            STAGGERED_SCANNING.enabled = true;
+            console.log('✅ Staggered scanning ENABLED - will take effect on next scan restart');
+            addActivity('✅ Staggered scanning enabled for 12 exchanges × 130 pairs', 'success');
+        };
+        
+        window.disableStaggeredScanning = function() {
+            STAGGERED_SCANNING.enabled = false;
+            console.log('❌ Staggered scanning DISABLED - reverting to legacy 2-pair method');
+            addActivity('❌ Staggered scanning disabled - using legacy method', 'warning');
+        };
+        
         // FIXED: Real arbitrage scanning with Luno integration
         function startArbitrageScanning() {
-            addActivity('🔍 Starting real arbitrage scanner with rate limiting (2 pairs/10 seconds)...', 'info');
+            if (STAGGERED_SCANNING.enabled) {
+                STAGGERED_SCANNING.cycleStartTime = Date.now();
+                STAGGERED_SCANNING.currentBatch = 0;
+                STAGGERED_SCANNING.currentPairInBatch = 0;
+                addActivity(`🔍 Starting STAGGERED arbitrage scanner (${STAGGERED_SCANNING.totalPairs} pairs, ${STAGGERED_SCANNING.batchInterval}s intervals)...`, 'info');
+            } else {
+                addActivity('🔍 Starting real arbitrage scanner with rate limiting (2 pairs/10 seconds)...', 'info');
+            }
             
             // Reset scan index when starting
             scanIndex = 0;
@@ -23756,7 +23776,7 @@ ARB4ME Security Team`
                     console.error('Arbitrage scanning error:', error);
                     addActivity(`❌ Scanning error: ${error.message}`, 'error');
                 }
-            }, 10000); // Scan every 10 seconds for real opportunities
+            }, STAGGERED_SCANNING.enabled ? STAGGERED_SCANNING.batchInterval * 1000 : 10000); // Scan every 8 seconds (staggered) or 10 seconds (legacy)
         }
 
         // Helper function to add delay between requests
@@ -24939,21 +24959,47 @@ ARB4ME Security Team`
             // Get all selected assets
             const allSelectedAssets = state.settings.selectedAssets || ['XRPUSDT', 'BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'LINKUSDT', 'DOGEUSDT', 'ADAUSDT', 'DOTUSDT', 'AVAXUSDT', 'MATICUSDT', 'LTCUSDT', 'ATOMUSDT', 'BNBUSDT', 'UNIUSDT', 'BCHUSDT', 'SHIBUSDT', 'HBARUSDT', 'ETHBTC', 'ADABTC', 'DOTETH', 'LINKBTC', 'XRPBTC', 'XLMBTC', 'ALGOBTC', 'HBARBTC', 'SOLBTC', 'MATICBTC', 'AVAXBTC', 'BNBBTC', 'LTCBTC', 'SOLETH', 'MATICETH', 'LINKETH', 'UNIETH', 'BTCUSDC', 'ETHUSDC'];
             
-            // Get the next batch of pairs to scan (2 at a time)
-            const assetsToScan = [];
-            for (let i = 0; i < PAIRS_PER_SCAN && scanIndex < allSelectedAssets.length; i++) {
-                assetsToScan.push(allSelectedAssets[scanIndex]);
-                scanIndex++;
-            }
+            let assetsToScan = [];
             
-            // Reset index if we've reached the end
-            if (scanIndex >= allSelectedAssets.length) {
-                scanIndex = 0;
-                console.log('📊 Completed full scan cycle, restarting from beginning');
+            // STAGGERED SCANNING: Use batch system if enabled
+            if (STAGGERED_SCANNING.enabled) {
+                const currentBatchPairs = getCurrentBatchPairs();
+                if (currentBatchPairs && currentBatchPairs.length > 0) {
+                    // Pattern C: Process one pair at a time from current batch
+                    if (STAGGERED_SCANNING.currentPairInBatch < currentBatchPairs.length) {
+                        assetsToScan = [currentBatchPairs[STAGGERED_SCANNING.currentPairInBatch]];
+                        STAGGERED_SCANNING.currentPairInBatch++;
+                        
+                        // Log staggered scanning progress
+                        console.log(`🔍 Staggered Scan - Batch ${STAGGERED_SCANNING.currentBatch + 1}/${STAGGERED_SCANNING.totalBatches}, Pair ${STAGGERED_SCANNING.currentPairInBatch}/${currentBatchPairs.length}: ${assetsToScan[0]}`);
+                        updateStaggeredScanStatus();
+                    } else {
+                        // Batch complete, advance to next batch
+                        advanceToBatch();
+                        const nextBatchPairs = getCurrentBatchPairs();
+                        if (nextBatchPairs && nextBatchPairs.length > 0) {
+                            assetsToScan = [nextBatchPairs[0]];
+                            STAGGERED_SCANNING.currentPairInBatch = 1;
+                            console.log(`🔄 Advanced to Batch ${STAGGERED_SCANNING.currentBatch + 1}, starting with: ${assetsToScan[0]}`);
+                        }
+                    }
+                }
+            } else {
+                // LEGACY SCANNING: Use original 2-pair method
+                for (let i = 0; i < PAIRS_PER_SCAN && scanIndex < allSelectedAssets.length; i++) {
+                    assetsToScan.push(allSelectedAssets[scanIndex]);
+                    scanIndex++;
+                }
+                
+                // Reset index if we've reached the end
+                if (scanIndex >= allSelectedAssets.length) {
+                    scanIndex = 0;
+                    console.log('📊 Completed full scan cycle, restarting from beginning');
+                }
+                
+                // Log what we're scanning this cycle
+                console.log(`🔍 Legacy Scan: Pairs ${scanIndex - assetsToScan.length + 1}-${scanIndex} of ${allSelectedAssets.length}: ${assetsToScan.join(', ')}`);
             }
-            
-            // Log what we're scanning this cycle
-            console.log(`🔍 Scanning pairs ${scanIndex - assetsToScan.length + 1}-${scanIndex} of ${allSelectedAssets.length}: ${assetsToScan.join(', ')}`);
             
             // Log current balances for debugging (only first scan)
             if (scanIndex <= PAIRS_PER_SCAN) {
