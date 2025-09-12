@@ -22574,11 +22574,20 @@ ARB4ME Security Team`
                 toggle.classList.add('active');
                 label.textContent = 'Auto-Trading: ON';
                 label.style.color = '#00ff88';
-                status.textContent = `Scanning ${state.settings.selectedAssets.length} selected assets`;
+                
+                // Enable staggered scanning when auto-trading starts
+                STAGGERED_SCANNING.enabled = true;
+                STAGGERED_SCANNING.cycleStartTime = Date.now();
+                STAGGERED_SCANNING.currentBatch = 0;
+                STAGGERED_SCANNING.currentPairInBatch = 0;
+                
+                // Update status message for staggered scanning
+                const connectedExchanges = Object.keys(state.exchanges).filter(ex => state.exchanges[ex].connected).length;
+                status.textContent = `STAGGERED SCANNING: ${connectedExchanges} exchanges × ${state.settings.selectedAssets.length} pairs (20min cycles)`;
                 status.style.color = '#00ff88';
                 
                 startArbitrageScanning();
-                addActivity(`🚀 Auto-trading enabled for ${state.settings.selectedAssets.join(', ')}`, 'success');
+                addActivity(`🚀 STAGGERED auto-trading enabled: ${connectedExchanges} exchanges × ${state.settings.selectedAssets.length} pairs`, 'success');
             } else {
                 toggle.classList.remove('active');
                 label.textContent = 'Auto-Trading: OFF';
@@ -22586,8 +22595,11 @@ ARB4ME Security Team`
                 status.textContent = 'Select assets in Settings, then toggle to enable';
                 status.style.color = '#b8c6db';
                 
+                // Disable staggered scanning when auto-trading stops
+                STAGGERED_SCANNING.enabled = false;
+                
                 stopArbitrageScanning();
-                addActivity('⏸️ Auto-trading disabled', 'warning');
+                addActivity('⏸️ Auto-trading disabled - staggered scanning stopped', 'warning');
             }
             
             // Update user setup progress for multi-user system
@@ -23669,18 +23681,9 @@ ARB4ME Security Team`
             console.log(`📊 Staggered Scan Status: Batch ${STAGGERED_SCANNING.currentBatch + 1}/${STAGGERED_SCANNING.totalBatches} (${progress}%) - ${currentBatchPairs.length} pairs - Cycle: ${Math.floor(cycleTimeLeft/60)}m${cycleTimeLeft%60}s left`);
         }
         
-        // Test functions for enabling/disabling staggered scanning
-        window.enableStaggeredScanning = function() {
-            STAGGERED_SCANNING.enabled = true;
-            console.log('✅ Staggered scanning ENABLED - will take effect on next scan restart');
-            addActivity('✅ Staggered scanning enabled for 12 exchanges × 130 pairs', 'success');
-        };
-        
-        window.disableStaggeredScanning = function() {
-            STAGGERED_SCANNING.enabled = false;
-            console.log('❌ Staggered scanning DISABLED - reverting to legacy 2-pair method');
-            addActivity('❌ Staggered scanning disabled - using legacy method', 'warning');
-        };
+        // Note: Staggered scanning is now controlled by the Auto-Trading toggle
+        // When Auto-Trading is ON: Uses staggered scanning (130 pairs, 20-minute cycles)
+        // When Auto-Trading is OFF: System is stopped
         
         // FIXED: Real arbitrage scanning with Luno integration
         function startArbitrageScanning() {
