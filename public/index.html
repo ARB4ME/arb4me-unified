@@ -25289,36 +25289,87 @@ ARB4ME Security Team`
                 }
             }
             
-            // PHASE 1B: Add triangular arbitrage scanning ONLY if triangular toggle is ON
+            // PHASE 1B: Sequential triangular arbitrage scanning ONLY if triangular toggle is ON
             if (state.triangularArbitrage) {
-                console.log('🔺 Starting triangular arbitrage scanning (toggle is ON)...');
-                for (const exchange of connectedExchanges) {
-                    // Only scan triangular on exchanges that support it
-                    if (exchange !== 'luno' && exchange !== 'chainex' && exchange !== 'valr') {
-                        console.log(`⏭️ Skipping triangular scan for ${exchange} (not supported)`);
-                        continue;
-                    }
-                    
-                    try {
-                        console.log(`🔍 Scanning triangular opportunities on ${exchange}...`);
-                        const triangularOpportunities = await scanTriangularArbitrage(exchange);
-                        
-                        if (triangularOpportunities && triangularOpportunities.length > 0) {
-                            console.log(`✅ Found ${triangularOpportunities.length} triangular opportunities on ${exchange}`);
-                            // Add triangular opportunities to the main opportunities array
-                            opportunities.push(...triangularOpportunities);
-                        } else {
-                            console.log(`⭕ No triangular opportunities found on ${exchange}`);
-                        }
-                    } catch (error) {
-                        console.error(`❌ Error scanning triangular opportunities on ${exchange}:`, error);
-                    }
+                const triangularOpportunities = await scanTriangularSequentially(connectedExchanges);
+                if (triangularOpportunities && triangularOpportunities.length > 0) {
+                    opportunities.push(...triangularOpportunities);
                 }
             } else {
                 console.log('⏭️ Triangular arbitrage scanning skipped (toggle is OFF)');
             }
             
             return opportunities;
+        }
+
+        // Sequential Triangular Arbitrage Scheduler
+        let triangularScheduler = {
+            supportedExchanges: [
+                'luno',     // Active - fully implemented
+                'valr',     // Planned - template ready
+                'chainex',  // Planned - template ready
+                'kraken', 'bybit', 'okx', 'mexc', 'kucoin', 
+                'htx', 'bitrue', 'gemini', 'bitmart', 'bitget'
+            ],
+            currentExchangeIndex: 0,
+            timeSlotDuration: 30000, // 30 seconds per exchange
+            lastScanTime: 0,
+            cycleStartTime: 0,
+            totalCycleDuration: 0
+        };
+
+        // Sequential triangular arbitrage scanning function
+        async function scanTriangularSequentially(connectedExchanges) {
+            const now = Date.now();
+            
+            // Only include exchanges that are both connected AND have triangular implementation
+            const implementedExchanges = ['luno']; // Only Luno is fully implemented for now
+            const supportedConnectedExchanges = connectedExchanges.filter(ex => 
+                triangularScheduler.supportedExchanges.includes(ex) && implementedExchanges.includes(ex)
+            );
+            
+            if (supportedConnectedExchanges.length === 0) {
+                console.log('⏭️ No exchanges with implemented triangular support connected');
+                return [];
+            }
+            
+            // Calculate total cycle duration
+            triangularScheduler.totalCycleDuration = supportedConnectedExchanges.length * triangularScheduler.timeSlotDuration;
+            
+            // Initialize cycle start time if first run
+            if (triangularScheduler.cycleStartTime === 0) {
+                triangularScheduler.cycleStartTime = now;
+                console.log(`🔄 Starting triangular cycle with ${supportedConnectedExchanges.length} exchanges (${triangularScheduler.totalCycleDuration/1000}s total cycle)`);
+            }
+            
+            // Calculate which exchange should be running now
+            const timeInCycle = now - triangularScheduler.cycleStartTime;
+            const currentSlotIndex = Math.floor(timeInCycle / triangularScheduler.timeSlotDuration) % supportedConnectedExchanges.length;
+            const currentExchange = supportedConnectedExchanges[currentSlotIndex];
+            
+            // Calculate time remaining in current slot
+            const timeInCurrentSlot = timeInCycle % triangularScheduler.timeSlotDuration;
+            const timeRemaining = triangularScheduler.timeSlotDuration - timeInCurrentSlot;
+            
+            console.log(`⏰ Triangular Schedule: ${currentExchange.toUpperCase()} active (${Math.floor(timeRemaining/1000)}s remaining)`);
+            console.log(`📊 Cycle Progress: ${currentSlotIndex + 1}/${supportedConnectedExchanges.length} exchanges`);
+            
+            // Only scan the currently scheduled exchange
+            try {
+                console.log(`🔍 Scanning triangular opportunities on ${currentExchange}...`);
+                const triangularOpportunities = await scanTriangularArbitrage(currentExchange);
+                
+                if (triangularOpportunities && triangularOpportunities.length > 0) {
+                    console.log(`✅ Found ${triangularOpportunities.length} triangular opportunities on ${currentExchange}`);
+                    return triangularOpportunities;
+                } else {
+                    console.log(`⭕ No triangular opportunities found on ${currentExchange}`);
+                    return [];
+                }
+            } catch (error) {
+                console.error(`❌ Error scanning triangular opportunities on ${currentExchange}:`, error);
+                return [];
+            }
         }
 
         // Enhanced: Concurrent trade execution tracking
