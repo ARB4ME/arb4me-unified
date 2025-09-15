@@ -23059,13 +23059,21 @@ ARB4ME Security Team`
         // Execute a single Luno triangular trade via backend API
         async function executeLunoTriangularTrade(pair, side, amount, expectedPrice) {
             try {
-                const response = await fetch('/api/v1/trading/luno/triangular', {
+                // Get Luno API credentials from state (same as working cross-exchange system)
+                const lunoData = state.exchanges?.luno;
+                if (!lunoData?.api?.key || !lunoData?.api?.secret) {
+                    throw new Error('Luno API credentials not found in state');
+                }
+
+                const response = await fetch('https://arb4me-unified-production.up.railway.app/api/v1/trading/luno/triangular', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+                        'Authorization': `Bearer ${localStorage.getItem('arb4me_jwt_token')}`
                     },
                     body: JSON.stringify({
+                        apiKey: lunoData.api.key,
+                        apiSecret: lunoData.api.secret,
                         pair: pair,
                         side: side.toLowerCase(), // 'buy' or 'sell'
                         amount: amount,
@@ -23103,9 +23111,18 @@ ARB4ME Security Team`
                 
             } catch (error) {
                 console.error('Luno triangular trade failed:', error);
+                let errorMessage = error.message;
+                
+                // Handle fetch response errors better
+                if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+                    errorMessage = 'Network error - could not reach backend';
+                } else if (typeof error === 'object' && error !== null) {
+                    errorMessage = JSON.stringify(error);
+                }
+                
                 return {
                     success: false,
-                    error: error.message
+                    error: errorMessage
                 };
             }
         }

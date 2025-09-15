@@ -1217,7 +1217,9 @@ router.post('/luno/sell-order', tradingRateLimit, optionalAuth, [
 }));
 
 // LUNO Triangular Arbitrage Endpoint - Execute single triangular trade step
-router.post('/luno/triangular', tradingRateLimit, authenticateUser, [
+router.post('/luno/triangular', tradingRateLimit, optionalAuth, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
     body('pair').notEmpty().withMessage('Trading pair is required'),
     body('side').isIn(['buy', 'sell']).withMessage('Side must be buy or sell'),
     body('amount').isFloat({ min: 0.0001 }).withMessage('Amount must be a positive number'),
@@ -1228,26 +1230,7 @@ router.post('/luno/triangular', tradingRateLimit, authenticateUser, [
         throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
     }
     
-    const { pair, side, amount, expectedPrice, type = 'market' } = req.body;
-    
-    // Get user's Luno API credentials from the database
-    const userResult = await query(`
-        SELECT luno_api_key, luno_api_secret 
-        FROM users 
-        WHERE id = $1
-    `, [req.user.id]);
-    
-    if (userResult.rows.length === 0) {
-        throw new APIError('User not found', 404, 'USER_NOT_FOUND');
-    }
-    
-    const user = userResult.rows[0];
-    if (!user.luno_api_key || !user.luno_api_secret) {
-        throw new APIError('Luno API credentials not configured', 400, 'LUNO_CREDENTIALS_MISSING');
-    }
-    
-    const apiKey = user.luno_api_key;
-    const apiSecret = user.luno_api_secret;
+    const { apiKey, apiSecret, pair, side, amount, expectedPrice, type = 'market' } = req.body;
     
     try {
         systemLogger.trading('LUNO triangular trade initiated', {
