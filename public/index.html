@@ -24546,13 +24546,17 @@ ARB4ME Security Team`
                         if (state.triangularArbitrage) {
                             console.log(`🚀 Auto-trading enabled - executing triangular opportunity: ${pathName}`);
                             
-                            // Add execution data to result
+                            // Add execution data to result - FIXED structure
                             const opportunityWithExecution = {
-                                ...result,
-                                pairs: pathConfig.pairs,  // Array of pair names like ['XBTZAR', 'ALGOXBT', 'ALGOZAR']
-                                prices: pathConfig.pairs, // For backward compatibility
-                                priceValues: result.prices, // Actual price values object
-                                exchange: 'LUNO'
+                                pathName: result.pathName,
+                                baseCurrency: result.baseCurrency,
+                                netProfitPercent: result.netProfitPercent,
+                                profitable: result.profitable,
+                                pairs: pathConfig.pairs,  // Array: ['XBTZAR', 'DOTXBT', 'DOTZAR']
+                                prices: pathConfig.pairs, // Array for execution function
+                                priceValues: result.prices, // Object: {XBTZAR: 2014976, ...}
+                                exchange: 'LUNO',
+                                startAmount: result.startAmount
                             };
                             
                             // Execute the opportunity (async, don't wait)
