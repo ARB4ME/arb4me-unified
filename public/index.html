@@ -23082,8 +23082,6 @@ ARB4ME Security Team`
                     })
                 });
                 
-                const data = await response.json();
-                
                 if (!response.ok) {
                     // If endpoint doesn't exist (404), fall back to simulation for safety
                     if (response.status === 404) {
@@ -23098,8 +23096,14 @@ ARB4ME Security Team`
                             simulated: true
                         };
                     }
-                    throw new Error(data.error || `HTTP ${response.status}`);
+                    // Log detailed error information for debugging
+                    const errorText = await response.text();
+                    console.error(`🚨 Backend error ${response.status}:`, errorText);
+                    console.error('📋 Request details:', { pair, side, amount, expectedPrice });
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
                 }
+                
+                const data = await response.json();
                 
                 return {
                     success: true,
