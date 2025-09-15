@@ -24483,7 +24483,8 @@ ARB4ME Security Team`
                 return {
                     pathName: pathConfig.sequence,
                     pairs: pathConfig.pairs,
-                    prices: { [pair1]: price1, [pair2]: price2, [pair3]: price3 },
+                    prices: pathConfig.pairs, // Array of pairs for execution: ['XBTZAR', 'DOTXBT', 'DOTZAR']
+                    priceValues: { [pair1]: price1, [pair2]: price2, [pair3]: price3 }, // Object with price values
                     baseCurrency: pathConfig.baseCurrency, // Add base currency to opportunity
                     startAmount: amount,
                     finalAmount: finalAmount,
@@ -24546,17 +24547,10 @@ ARB4ME Security Team`
                         if (state.triangularArbitrage) {
                             console.log(`🚀 Auto-trading enabled - executing triangular opportunity: ${pathName}`);
                             
-                            // Add execution data to result - FIXED structure
+                            // Use result directly - it now has the correct structure with prices as array
                             const opportunityWithExecution = {
-                                pathName: result.pathName,
-                                baseCurrency: result.baseCurrency,
-                                netProfitPercent: result.netProfitPercent,
-                                profitable: result.profitable,
-                                pairs: pathConfig.pairs,  // Array: ['XBTZAR', 'DOTXBT', 'DOTZAR']
-                                prices: pathConfig.pairs, // Array for execution function
-                                priceValues: result.prices, // Object: {XBTZAR: 2014976, ...}
-                                exchange: 'LUNO',
-                                startAmount: result.startAmount
+                                ...result, // Contains all the correct data including prices as array
+                                exchange: 'LUNO' // Ensure exchange is set
                             };
                             
                             // Execute the opportunity (async, don't wait)
