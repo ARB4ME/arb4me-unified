@@ -23056,64 +23056,79 @@ ARB4ME Security Team`
             }
         }
         
+        // Execute a single Luno triangular trade via backend API
+        async function executeLunoTriangularTrade(pair, side, amount, expectedPrice) {
+            try {
+                const response = await fetch('/api/v1/trading/luno/triangular', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+                    },
+                    body: JSON.stringify({
+                        pair: pair,
+                        side: side.toLowerCase(), // 'buy' or 'sell'
+                        amount: amount,
+                        expectedPrice: expectedPrice,
+                        type: 'market' // Use market orders for triangular arbitrage
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || `HTTP ${response.status}`);
+                }
+                
+                return {
+                    success: true,
+                    orderId: data.orderId,
+                    executedAmount: data.executedAmount || (amount * 0.998), // Account for 0.2% fee if not provided
+                    executedPrice: data.executedPrice || expectedPrice,
+                    fee: data.fee || (amount * 0.002) // 0.2% Luno fee
+                };
+                
+            } catch (error) {
+                console.error('Luno triangular trade failed:', error);
+                return {
+                    success: false,
+                    error: error.message
+                };
+            }
+        }
+        
         // Execute a single trade step in triangular arbitrage
         async function executeTrade({ exchange, pair, side, amount, expectedPrice, step, totalSteps }) {
             try {
                 console.log(`📊 Step ${step}/${totalSteps}: ${side} ${amount} on ${pair} at ~${expectedPrice}`);
                 
-                // ⚠️  CURRENTLY IN SIMULATION MODE - NOT REAL TRADES ⚠️
-                // This explains why balances remain unchanged
-                // In production, this would call the actual exchange API
+                // 🚀 REAL TRADING MODE - Execute actual Luno triangular trades
+                addActivity(`🔄 Step ${step}/${totalSteps}: ${side} ${pair} - ${amount.toFixed(6)}`, 'info');
                 
-                addActivity(`🔄 Step ${step}/${totalSteps}: ${side} ${pair} - $${amount.toFixed(2)}`, 'info');
-                
-                // Simulate trade execution delay
-                await delay(500 + Math.random() * 1000); // 0.5-1.5 second delay
-                
-                // Calculate received amount (CORRECTED for triangular arbitrage)
-                let receivedAmount;
-                
-                console.log(`🔢 Calculation Debug: ${side} ${amount} ${pair} at price ${expectedPrice}`);
-                
-                if (side === 'BUY') {
-                    // Buying: Spend base currency to get quote currency
-                    // For XBTZAR (BTC/ZAR), spending ZAR to get BTC: ZAR ÷ price = BTC
-                    receivedAmount = amount / expectedPrice;
-                } else { // SELL
-                    // Selling: we're selling the base currency of the pair
-                    if (pair.endsWith('XBT')) {
-                        // Pairs like DOTXBT, ETHXBT: these are "BTC per crypto"
-                        // When converting BTC to the other crypto, we divide: BTC ÷ price = crypto
-                        receivedAmount = amount / expectedPrice;
-                        console.log(`🔧 XBT pair conversion: ${amount} BTC ÷ ${expectedPrice} = ${receivedAmount} ${pair.replace('XBT', '')}`);
-                    } else if (pair.endsWith('ZAR') || pair.endsWith('USDT')) {
-                        // Pairs like ALGOZAR: selling ALGO (base) to get ZAR (quote) 
-                        // ALGO × price = ZAR received
-                        receivedAmount = amount * expectedPrice;
-                    } else {
-                        // Standard sell: multiply by price
-                        receivedAmount = amount * expectedPrice;
-                    }
+                // Execute real trade via backend API
+                const tradeResult = await executeLunoTriangularTrade(pair, side, amount, expectedPrice);
+                if (!tradeResult.success) {
+                    throw new Error(`Luno trade failed: ${tradeResult.error}`);
                 }
                 
-                console.log(`🔢 Calculated: ${receivedAmount} (${side} ${amount} at ${expectedPrice})`);
+                // Use real executed amount from API response
+                const executedAmount = tradeResult.executedAmount;
+                const executedPrice = tradeResult.executedPrice;
+                const tradeFee = tradeResult.fee || 0;
                 
-                // Apply simulated trading fees (0.2% for Luno)
-                const feeRate = 0.002; // 0.2%
-                const fee = receivedAmount * feeRate;
-                receivedAmount = receivedAmount - fee;
-                
-                console.log(`✅ Step ${step} completed: Received ${receivedAmount.toFixed(6)} (fee: ${fee.toFixed(6)})`);
+                // Use real executed amounts from Luno API response
+                console.log(`✅ Step ${step} completed: Received ${executedAmount.toFixed(6)} at ${executedPrice} (fee: ${tradeFee.toFixed(6)})`);
                 
                 return {
                     success: true,
                     pair: pair,
                     side: side,
                     amountTraded: amount,
-                    receivedAmount: receivedAmount,
-                    executedPrice: expectedPrice,
-                    fee: fee,
-                    timestamp: new Date().toISOString()
+                    receivedAmount: executedAmount,
+                    executedPrice: executedPrice,
+                    fee: tradeFee,
+                    timestamp: new Date().toISOString(),
+                    orderId: tradeResult.orderId
                 };
                 
             } catch (error) {
