@@ -1251,31 +1251,23 @@ router.post('/luno/triangular', tradingRateLimit, optionalAuth, [
         
         const auth = createLunoAuth(apiKey, apiSecret);
         
-        // Calculate proper volume based on pair and trade direction
+        // Calculate volume for market orders (original design)
         let volume;
+        
         if (side.toUpperCase() === 'BUY') {
-            // For BUY orders on ZAR pairs, volume is in ZAR (quote currency)
-            if (lunoPair.endsWith('ZAR')) {
-                volume = amount.toString(); // 50 ZAR
-            } else {
-                // For other pairs, convert to base currency volume
-                volume = (amount / expectedPrice).toString();
-            }
+            // For BUY market orders, volume is always in ZAR (quote currency)
+            volume = amount.toString();
         } else {
-            // For SELL orders, volume is always in base currency
-            if (lunoPair.endsWith('ZAR')) {
-                // For pairs like XBTZAR, selling BTC (base currency)
-                volume = (amount / expectedPrice).toString();
-            } else {
-                // For pairs like DOTXBT, selling DOT (base currency)  
-                volume = amount.toString();
-            }
+            // For SELL market orders, volume is in base currency (crypto)
+            // Convert ZAR amount to crypto amount using expected price
+            volume = (amount / expectedPrice).toString();
         }
         
         const orderData = {
             pair: lunoPair,
             type: side.toUpperCase(), // BUY or SELL
             volume: volume
+            // No price parameter for market orders
         };
         
         const response = await fetch(`${LUNO_CONFIG.baseUrl}${LUNO_CONFIG.endpoints.order}`, {
