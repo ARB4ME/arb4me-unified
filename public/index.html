@@ -23081,10 +23081,11 @@ ARB4ME Security Team`
                     receivedAmount = amount / expectedPrice;
                 } else { // SELL
                     // Selling: we're selling the base currency of the pair
-                    if (pair.includes('XBT') && !pair.endsWith('XBT')) {
-                        // Pairs like ALGOXBT: selling ALGO (base) to get XBT (quote)
-                        // ALGO × price = XBT received
-                        receivedAmount = amount * expectedPrice;
+                    if (pair.endsWith('XBT')) {
+                        // Pairs like DOTXBT, ETHXBT: these are "BTC per crypto"
+                        // When converting BTC to the other crypto, we divide: BTC ÷ price = crypto
+                        receivedAmount = amount / expectedPrice;
+                        console.log(`🔧 XBT pair conversion: ${amount} BTC ÷ ${expectedPrice} = ${receivedAmount} ${pair.replace('XBT', '')}`);
                     } else if (pair.endsWith('ZAR') || pair.endsWith('USDT')) {
                         // Pairs like ALGOZAR: selling ALGO (base) to get ZAR (quote) 
                         // ALGO × price = ZAR received
