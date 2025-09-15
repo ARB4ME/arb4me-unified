@@ -1216,6 +1216,115 @@ router.post('/luno/sell-order', tradingRateLimit, optionalAuth, [
     }
 }));
 
+// LUNO Triangular Arbitrage Endpoint - Execute single triangular trade step
+router.post('/luno/triangular', tradingRateLimit, authenticateUser, [
+    body('pair').notEmpty().withMessage('Trading pair is required'),
+    body('side').isIn(['buy', 'sell']).withMessage('Side must be buy or sell'),
+    body('amount').isFloat({ min: 0.0001 }).withMessage('Amount must be a positive number'),
+    body('expectedPrice').isFloat({ min: 0 }).withMessage('Expected price must be a positive number')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { pair, side, amount, expectedPrice, type = 'market' } = req.body;
+    
+    // Get user's Luno API credentials from the database
+    const userResult = await query(`
+        SELECT luno_api_key, luno_api_secret 
+        FROM users 
+        WHERE id = $1
+    `, [req.user.id]);
+    
+    if (userResult.rows.length === 0) {
+        throw new APIError('User not found', 404, 'USER_NOT_FOUND');
+    }
+    
+    const user = userResult.rows[0];
+    if (!user.luno_api_key || !user.luno_api_secret) {
+        throw new APIError('Luno API credentials not configured', 400, 'LUNO_CREDENTIALS_MISSING');
+    }
+    
+    const apiKey = user.luno_api_key;
+    const apiSecret = user.luno_api_secret;
+    
+    try {
+        systemLogger.trading('LUNO triangular trade initiated', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'luno',
+            endpoint: 'triangular',
+            pair,
+            side,
+            amount,
+            type
+        });
+        
+        // Handle Luno's different pair naming for Bitcoin
+        let lunoPair = pair;
+        if (pair === 'BTCZAR') {
+            lunoPair = 'XBTZAR'; // Luno uses XBTZAR for Bitcoin
+        }
+        
+        const auth = createLunoAuth(apiKey, apiSecret);
+        
+        const orderData = {
+            pair: lunoPair,
+            type: side.toUpperCase(), // BUY or SELL
+            volume: amount.toString()
+        };
+        
+        const response = await fetch(`${LUNO_CONFIG.baseUrl}${LUNO_CONFIG.endpoints.order}`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Basic ${auth}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(orderData)
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorData}`);
+        }
+        
+        const orderResult = await response.json();
+        
+        systemLogger.trading('LUNO triangular trade successful', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'luno',
+            orderId: orderResult.order_id,
+            pair: lunoPair,
+            side,
+            executedAmount: orderResult.volume,
+            executedPrice: orderResult.price
+        });
+        
+        res.json({
+            success: true,
+            data: {
+                orderId: orderResult.order_id,
+                pair: lunoPair,
+                side: side.toUpperCase(),
+                executedAmount: parseFloat(orderResult.volume),
+                executedPrice: parseFloat(orderResult.price),
+                fee: parseFloat(orderResult.fee || '0'),
+                timestamp: new Date().toISOString()
+            }
+        });
+        
+    } catch (error) {
+        systemLogger.error('LUNO triangular trade failed', {
+            userId: req.user?.id || 'anonymous',
+            error: error.message,
+            pair,
+            side,
+            amount
+        });
+        throw new APIError(`LUNO triangular trade failed: ${error.message}`, 500, 'LUNO_TRIANGULAR_ERROR');
+    }
+}));
+
 // ============================================================================
 // VALR EXCHANGE API PROXY ENDPOINTS
 // ============================================================================
