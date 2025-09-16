@@ -27065,6 +27065,286 @@ ARB4ME Security Team`
                 initializeBillingData();
             }, 100);
         };
+
+        // ============================================
+        // LUNO TRIANGULAR STEP-BY-STEP TESTING FUNCTIONS
+        // ============================================
+        // Console testing functions to isolate triangular arbitrage issues
+        // Usage: Call these functions from browser console for debugging
+        
+        // Test individual triangular step with enhanced logging
+        window.testTriangularStep = async function(stepNumber, pair, side, amount, expectedPrice, simulate = false) {
+            console.log(`\n🧪 === TESTING TRIANGULAR STEP ${stepNumber} ===`);
+            console.log(`📋 Parameters:`);
+            console.log(`   Pair: ${pair}`);
+            console.log(`   Side: ${side}`);
+            console.log(`   Amount: ${amount}`);
+            console.log(`   Expected Price: ${expectedPrice}`);
+            console.log(`   Mode: ${simulate ? 'SIMULATION' : 'REAL TRADING'}`);
+            
+            try {
+                // Get Luno API credentials
+                const lunoData = state.exchanges?.luno;
+                if (!lunoData?.api?.key || !lunoData?.api?.secret) {
+                    throw new Error('❌ Luno API credentials not found in state');
+                }
+                console.log(`✅ API credentials found`);
+                
+                if (simulate) {
+                    // Enhanced simulation mode
+                    console.log(`🎭 SIMULATION MODE - No real trades executed`);
+                    await delay(1000 + Math.random() * 1000); // Simulate API delay
+                    
+                    const simulatedFee = amount * 0.002; // 0.2% Luno fee
+                    const simulatedResult = {
+                        success: true,
+                        orderId: `sim_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                        pair: pair,
+                        side: side.toUpperCase(),
+                        executedAmount: amount - simulatedFee,
+                        executedPrice: expectedPrice,
+                        fee: simulatedFee,
+                        timestamp: new Date().toISOString(),
+                        simulated: true
+                    };
+                    
+                    console.log(`✅ Simulation successful:`);
+                    console.log(`   Order ID: ${simulatedResult.orderId}`);
+                    console.log(`   Executed Amount: ${simulatedResult.executedAmount.toFixed(6)}`);
+                    console.log(`   Fee: ${simulatedResult.fee.toFixed(6)}`);
+                    
+                    return simulatedResult;
+                } else {
+                    // Real trading mode with enhanced logging
+                    console.log(`🚀 REAL TRADING MODE - Making actual API call`);
+                    
+                    const requestData = {
+                        apiKey: lunoData.api.key,
+                        apiSecret: lunoData.api.secret,
+                        pair: pair,
+                        side: side.toLowerCase(),
+                        amount: amount,
+                        expectedPrice: expectedPrice,
+                        type: 'market'
+                    };
+                    
+                    console.log(`📤 Sending request to backend:`);
+                    console.log(`   Endpoint: /api/v1/trading/luno/triangular`);
+                    console.log(`   Request data:`, requestData);
+                    
+                    const response = await fetch('https://arb4me-unified-production.up.railway.app/api/v1/trading/luno/triangular', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('arb4me_jwt_token')}`
+                        },
+                        body: JSON.stringify(requestData)
+                    });
+                    
+                    console.log(`📥 Backend response status: ${response.status}`);
+                    
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        console.error(`❌ Backend error ${response.status}:`, errorText);
+                        
+                        // Try to parse error as JSON for better details
+                        try {
+                            const errorJson = JSON.parse(errorText);
+                            console.error(`   Error details:`, errorJson);
+                        } catch (parseError) {
+                            console.error(`   Raw error text: "${errorText}"`);
+                        }
+                        
+                        throw new Error(`HTTP ${response.status}: ${errorText}`);
+                    }
+                    
+                    const result = await response.json();
+                    console.log(`✅ Real trade successful:`);
+                    console.log(`   Full response:`, result);
+                    
+                    return {
+                        success: true,
+                        orderId: result.data?.orderId || result.orderId,
+                        pair: pair,
+                        side: side.toUpperCase(),
+                        executedAmount: result.data?.executedAmount || result.executedAmount,
+                        executedPrice: result.data?.executedPrice || result.executedPrice,
+                        fee: result.data?.fee || result.fee || 0,
+                        timestamp: new Date().toISOString(),
+                        raw: result
+                    };
+                }
+                
+            } catch (error) {
+                console.error(`❌ Step ${stepNumber} failed:`, error.message);
+                console.error(`   Full error:`, error);
+                return {
+                    success: false,
+                    error: error.message,
+                    step: stepNumber,
+                    pair: pair,
+                    side: side
+                };
+            }
+        };
+
+        // Test complete triangular path step-by-step
+        window.testTriangularPath = async function(pathName, amount = 10, simulate = false) {
+            console.log(`\n🔺 === TESTING COMPLETE TRIANGULAR PATH ===`);
+            console.log(`📋 Path: ${pathName}`);
+            console.log(`💰 Amount: ${amount}`);
+            console.log(`🎭 Mode: ${simulate ? 'SIMULATION' : 'REAL TRADING'}`);
+            
+            // Get path configuration
+            const pathConfig = lunoTriangularPaths[pathName];
+            if (!pathConfig) {
+                console.error(`❌ Path ${pathName} not found in lunoTriangularPaths`);
+                console.log(`Available paths:`, Object.keys(lunoTriangularPaths));
+                return;
+            }
+            
+            console.log(`✅ Path found: ${pathConfig.sequence}`);
+            console.log(`📊 Pairs: ${pathConfig.pairs.join(' → ')}`);
+            
+            const results = [];
+            let currentAmount = amount;
+            let totalFees = 0;
+            
+            try {
+                // Get current prices for calculations
+                console.log(`\n📈 Getting current prices...`);
+                const prices = {};
+                for (let i = 0; i < pathConfig.pairs.length; i++) {
+                    const pair = pathConfig.pairs[i];
+                    const price = await getLunoPriceWithCache(pair);
+                    prices[pair] = price;
+                    console.log(`   ${pair}: ${price}`);
+                    await delay(300); // Rate limiting
+                }
+                
+                // Step 1: Base currency to BTC
+                console.log(`\n🔄 === STEP 1: ${pathConfig.baseCurrency} → BTC ===`);
+                const step1Price = prices[pathConfig.pairs[0]];
+                const step1Side = 'buy';
+                const step1Result = await window.testTriangularStep(1, pathConfig.pairs[0], step1Side, currentAmount, step1Price, simulate);
+                results.push(step1Result);
+                
+                if (step1Result.success) {
+                    currentAmount = step1Result.executedAmount;
+                    totalFees += step1Result.fee || 0;
+                    console.log(`✅ Step 1 complete: ${currentAmount.toFixed(6)} BTC received`);
+                } else {
+                    console.error(`❌ Step 1 failed, stopping here`);
+                    return { success: false, results, failedAt: 1 };
+                }
+                
+                await delay(2000); // Pause between steps
+                
+                // Step 2: BTC to intermediate currency
+                const intermediateCurrency = pathConfig.sequence.split(' → ')[2];
+                console.log(`\n🔄 === STEP 2: BTC → ${intermediateCurrency} ===`);
+                const step2Price = prices[pathConfig.pairs[1]];
+                const step2Side = 'buy';
+                const step2Amount = currentAmount * step2Price; // Convert BTC amount to quote currency
+                const step2Result = await window.testTriangularStep(2, pathConfig.pairs[1], step2Side, step2Amount, step2Price, simulate);
+                results.push(step2Result);
+                
+                if (step2Result.success) {
+                    currentAmount = step2Result.executedAmount;
+                    totalFees += step2Result.fee || 0;
+                    console.log(`✅ Step 2 complete: ${currentAmount.toFixed(6)} ${intermediateCurrency} received`);
+                } else {
+                    console.error(`❌ Step 2 failed, stopping here`);
+                    return { success: false, results, failedAt: 2 };
+                }
+                
+                await delay(2000); // Pause between steps
+                
+                // Step 3: Intermediate currency back to base currency
+                console.log(`\n🔄 === STEP 3: ${intermediateCurrency} → ${pathConfig.baseCurrency} ===`);
+                const step3Price = prices[pathConfig.pairs[2]];
+                const step3Side = 'sell';
+                const step3Amount = currentAmount;
+                const step3Result = await window.testTriangularStep(3, pathConfig.pairs[2], step3Side, step3Amount, step3Price, simulate);
+                results.push(step3Result);
+                
+                if (step3Result.success) {
+                    const finalAmount = step3Result.executedAmount;
+                    totalFees += step3Result.fee || 0;
+                    const profit = finalAmount - amount;
+                    const profitPercent = (profit / amount) * 100;
+                    
+                    console.log(`\n🎉 === TRIANGULAR PATH COMPLETE ===`);
+                    console.log(`💰 Started with: ${amount.toFixed(6)} ${pathConfig.baseCurrency}`);
+                    console.log(`💰 Ended with: ${finalAmount.toFixed(6)} ${pathConfig.baseCurrency}`);
+                    console.log(`📈 Profit/Loss: ${profit.toFixed(6)} ${pathConfig.baseCurrency} (${profitPercent.toFixed(3)}%)`);
+                    console.log(`💸 Total Fees: ${totalFees.toFixed(6)} ${pathConfig.baseCurrency}`);
+                    
+                    return {
+                        success: true,
+                        pathName,
+                        startAmount: amount,
+                        endAmount: finalAmount,
+                        profit,
+                        profitPercent,
+                        totalFees,
+                        results,
+                        simulation: simulate
+                    };
+                } else {
+                    console.error(`❌ Step 3 failed`);
+                    return { success: false, results, failedAt: 3 };
+                }
+                
+            } catch (error) {
+                console.error(`❌ Triangular path test failed:`, error.message);
+                return { success: false, error: error.message, results };
+            }
+        };
+
+        // Quick test functions for common scenarios
+        window.testLunoStep1 = () => window.testTriangularStep(1, 'XBTZAR', 'buy', 50, 2000000, true);
+        window.testLunoStep1Real = () => window.testTriangularStep(1, 'XBTZAR', 'buy', 10, 2000000, false);
+        
+        window.testZarPath = () => window.testTriangularPath('ZAR_BTC_ETH', 50, true);
+        window.testZarPathReal = () => window.testTriangularPath('ZAR_BTC_ETH', 10, false);
+        
+        window.testUsdtPath = () => window.testTriangularPath('USDT_BTC_ETH', 5, true);
+        window.testUsdtPathReal = () => window.testTriangularPath('USDT_BTC_ETH', 2, false);
+
+        // Enhanced balance checking for debugging
+        window.checkLunoBalances = async function() {
+            console.log(`\n💰 === CHECKING LUNO BALANCES ===`);
+            
+            const lunoBalances = state.balances?.luno || {};
+            console.log(`📊 Current balances in state:`, lunoBalances);
+            
+            // Check which currencies have sufficient funds for testing
+            const fundedCurrencies = Object.keys(lunoBalances).filter(currency => (lunoBalances[currency] || 0) >= 10);
+            console.log(`✅ Funded currencies (≥10):`, fundedCurrencies);
+            
+            // Show recommended test amounts
+            fundedCurrencies.forEach(currency => {
+                const balance = lunoBalances[currency];
+                const testAmount = Math.min(balance * 0.01, currency === 'ZAR' ? 50 : currency === 'USDT' ? 5 : 0.001);
+                console.log(`   ${currency}: ${balance.toFixed(6)} (suggested test: ${testAmount.toFixed(6)})`);
+            });
+            
+            return { balances: lunoBalances, fundedCurrencies };
+        };
+
+        // Console helper message
+        console.log(`\n🧪 === LUNO TRIANGULAR TESTING FUNCTIONS LOADED ===`);
+        console.log(`Usage examples:`);
+        console.log(`  testLunoStep1()           - Test step 1 (ZAR→BTC) in simulation`);
+        console.log(`  testLunoStep1Real()       - Test step 1 with real money (small amount)`);
+        console.log(`  testZarPath()             - Test complete ZAR triangular path (simulation)`);
+        console.log(`  testZarPathReal()         - Test complete ZAR path with real money`);
+        console.log(`  testUsdtPath()            - Test complete USDT triangular path (simulation)`);
+        console.log(`  checkLunoBalances()       - Check current balances and get suggestions`);
+        console.log(`Custom usage:`);
+        console.log(`  testTriangularStep(1, 'XBTZAR', 'buy', 10, 2000000, false)`);
+        console.log(`  testTriangularPath('ZAR_BTC_ETH', 10, false)`);
     </script>
 
     <!-- Crypto Asset Selection Confirmation Modal -->
