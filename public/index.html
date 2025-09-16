@@ -27358,7 +27358,7 @@ ARB4ME Security Team`
         // VALR TRIANGULAR TESTING (BYPASS MODULE LOADING ISSUE)
         // ============================================
         
-        // Quick VALR triangular test function
+        // VALR triangular test with comprehensive retry logic (based on user's pattern)
         window.testValrTriangularStep = async function(pair, side, amount, expectedPrice, simulate = false) {
             console.log(`\n🔺 === TESTING VALR TRIANGULAR STEP ===`);
             console.log(`📋 Parameters: ${pair}, ${side}, ${amount}, ${expectedPrice}`);
@@ -27368,45 +27368,64 @@ ARB4ME Security Team`
                 console.log(`🎭 SIMULATION: Would execute ${side} ${amount} ${pair} at ~${expectedPrice}`);
                 return { success: true, simulated: true };
             }
-            
-            try {
-                const valrData = state.exchanges?.valr;
-                if (!valrData?.api?.key || !valrData?.api?.secret) {
-                    throw new Error('VALR API credentials not found');
+
+            const maxRetries = 3;
+            let retries = 0;
+
+            while (retries < maxRetries) {
+                try {
+                    const valrData = state.exchanges?.valr;
+                    if (!valrData?.api?.key || !valrData?.api?.secret) {
+                        throw new Error('VALR API credentials not found');
+                    }
+                    
+                    console.log(`🔄 VALR API attempt ${retries + 1}/${maxRetries}`);
+                    
+                    const response = await fetch('https://arb4me-unified-production.up.railway.app/api/v1/trading/valr/triangular', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('arb4me_jwt_token')}`
+                        },
+                        body: JSON.stringify({
+                            apiKey: valrData.api.key,
+                            apiSecret: valrData.api.secret,
+                            pair: pair,
+                            side: side.toLowerCase(),
+                            amount: amount,
+                            expectedPrice: expectedPrice,
+                            type: 'market'
+                        })
+                    });
+
+                    console.log(`📥 VALR Response status: ${response.status}`);
+
+                    if (!response.ok) {
+                        // Handle non-500 errors if necessary
+                        const error = new Error(`HTTP ${response.status}: ${await response.text()}`);
+                        throw error;
+                    }
+
+                    const data = await response.json();
+                    
+                    if (retries > 0) {
+                        console.log(`✅ VALR triangular step succeeded after ${retries + 1} attempts!`);
+                    } else {
+                        console.log(`✅ VALR triangular step successful:`, data);
+                    }
+                    
+                    return { success: true, data: data }; // Assuming success returns data
+
+                } catch (error) {
+                    if (error.message.includes('HTTP 500') && retries < maxRetries - 1) {
+                        console.warn(`⚠️ VALR triangular step failed with 500, retrying (${retries + 1}/${maxRetries})...`);
+                        await new Promise(resolve => setTimeout(resolve, 1000 * (retries + 1))); // Wait before retrying
+                        retries++;
+                    } else {
+                        console.error(`❌ VALR triangular step failed after ${retries + 1} attempts:`, error.message);
+                        return { success: false, error: error.message };
+                    }
                 }
-                
-                const response = await fetch('https://arb4me-unified-production.up.railway.app/api/v1/trading/valr/triangular', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('arb4me_jwt_token')}`
-                    },
-                    body: JSON.stringify({
-                        apiKey: valrData.api.key,
-                        apiSecret: valrData.api.secret,
-                        pair: pair,
-                        side: side.toLowerCase(),
-                        amount: amount,
-                        expectedPrice: expectedPrice,
-                        type: 'market'
-                    })
-                });
-                
-                console.log(`📥 VALR Response status: ${response.status}`);
-                
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error(`❌ VALR error ${response.status}:`, errorText);
-                    throw new Error(`HTTP ${response.status}: ${errorText}`);
-                }
-                
-                const result = await response.json();
-                console.log(`✅ VALR triangular step successful:`, result);
-                return result;
-                
-            } catch (error) {
-                console.error(`❌ VALR triangular step failed:`, error.message);
-                return { success: false, error: error.message };
             }
         };
         

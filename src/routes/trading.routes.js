@@ -1427,7 +1427,66 @@ function createValrSignature(apiSecret, timestamp, verb, path, body = '') {
 }
 
 // VALR HTTP Request Helper
-function makeValrRequest(endpoint, method, apiKey, apiSecret, body = null) {
+async function makeValrRequest(endpoint, method, apiKey, apiSecret, body = null) {
+    const maxRetries = 3;
+    const retryDelays = [1000, 2000, 3000]; // Exponential backoff: 1s, 2s, 3s
+    
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+            systemLogger.trading(`VALR API request attempt ${attempt + 1}/${maxRetries + 1}`, {
+                endpoint,
+                method,
+                attempt: attempt + 1
+            });
+            
+            const result = await makeValrRequestSingle(endpoint, method, apiKey, apiSecret, body);
+            
+            // Success on first try or after retries
+            if (attempt > 0) {
+                systemLogger.trading(`VALR API request succeeded after ${attempt + 1} attempts`, {
+                    endpoint,
+                    method,
+                    totalAttempts: attempt + 1
+                });
+            }
+            
+            return result;
+            
+        } catch (error) {
+            const isLastAttempt = attempt === maxRetries;
+            const isRetriableError = error.message.includes('Empty response') || 
+                                   error.message.includes('timeout') ||
+                                   error.message.includes('ECONNRESET') ||
+                                   error.message.includes('ENOTFOUND');
+            
+            systemLogger.trading(`VALR API request failed - attempt ${attempt + 1}`, {
+                endpoint,
+                method,
+                error: error.message,
+                isRetriable: isRetriableError,
+                isLastAttempt,
+                willRetry: !isLastAttempt && isRetriableError
+            });
+            
+            if (isLastAttempt || !isRetriableError) {
+                throw error;
+            }
+            
+            // Wait before retry with exponential backoff
+            const delayMs = retryDelays[attempt] || 3000;
+            systemLogger.trading(`VALR API retrying in ${delayMs}ms`, {
+                endpoint,
+                method,
+                attempt: attempt + 1,
+                delayMs
+            });
+            
+            await new Promise(resolve => setTimeout(resolve, delayMs));
+        }
+    }
+}
+
+function makeValrRequestSingle(endpoint, method, apiKey, apiSecret, body = null) {
     return new Promise((resolve, reject) => {
         const timestamp = Date.now();
         const path = endpoint;
@@ -1501,6 +1560,12 @@ function makeValrRequest(endpoint, method, apiKey, apiSecret, body = null) {
         
         req.on('error', (error) => {
             reject(error);
+        });
+        
+        // Set timeout to detect hanging requests
+        req.setTimeout(10000, () => {
+            req.destroy();
+            reject(new Error('VALR API request timeout (10s)'));
         });
         
         if (bodyString) {
