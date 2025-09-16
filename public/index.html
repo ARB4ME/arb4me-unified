@@ -22937,6 +22937,13 @@ ARB4ME Security Team`
                 
                 console.log(`✅ Opportunity still valid. Proceeding with execution...`);
                 
+                // Check if triangular arbitrage is still enabled before executing
+                if (!state.triangularArbitrage) {
+                    console.log('⛔ Triangular arbitrage toggled OFF - cancelling execution');
+                    addActivity(`⛔ Trade cancelled: Triangular arbitrage disabled`, 'warning');
+                    return;
+                }
+                
                 // Execute the three trades in sequence
                 const exchange = opportunity.exchange.toLowerCase();
                 let currentAmount = tradeAmount;
@@ -22948,6 +22955,10 @@ ARB4ME Security Team`
                 
                 // Step 1
                 console.log(`Step 1: ${pathSteps[0]} → ${pathSteps[1]}`);
+                if (!state.triangularArbitrage) {
+                    console.log('⛔ Triangular arbitrage toggled OFF during Step 1 - aborting');
+                    return;
+                }
                 const step1Result = await executeTrade({
                     exchange: exchange,
                     pair: opportunity.prices[0], // XBTUSDT
@@ -22973,6 +22984,11 @@ ARB4ME Security Team`
                 
                 // Step 2: BTC → ETH (Trade BTC for ETH)
                 console.log(`Step 2: ${currentAsset} → ETH`);
+                if (!state.triangularArbitrage) {
+                    console.log('⛔ Triangular arbitrage toggled OFF during Step 2 - aborting');
+                    // TODO: Implement rollback for Step 1
+                    return;
+                }
                 const step2Result = await executeTrade({
                     exchange: exchange,
                     pair: opportunity.prices[1], // ETHXBT
@@ -22999,6 +23015,11 @@ ARB4ME Security Team`
                 
                 // Step 3: ETH → USDT (Sell ETH for USDT)
                 console.log(`Step 3: ${currentAsset} → USDT`);
+                if (!state.triangularArbitrage) {
+                    console.log('⛔ Triangular arbitrage toggled OFF during Step 3 - aborting');
+                    // TODO: Implement rollback for Steps 1 and 2
+                    return;
+                }
                 const step3Result = await executeTrade({
                     exchange: exchange,
                     pair: opportunity.prices[2], // ETHUSDT
