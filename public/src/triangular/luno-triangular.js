@@ -597,6 +597,7 @@ async function scanLunoTriangularOpportunitiesV2(showActivity = false) {
     
     if (allFundedCurrencies.includes('ZAR') && fundedCurrencies.includes('USDT') && !fundedCurrencies.includes('ZAR')) {
         console.log('⏭️ Skipping ZAR paths - USDT trading prioritized');
+        console.log('🎯 FORCE REFRESH: ZAR paths excluded from scan');
     }
     
     // Scan paths for all funded currencies

@@ -2069,14 +2069,17 @@ router.post('/valr/triangular', tradingRateLimit, optionalAuth, [
     const { apiKey, apiSecret, pair, side, amount, expectedPrice, type = 'market' } = req.body;
     
     try {
-        systemLogger.trading('VALR triangular trade initiated', {
+        // DEPLOYMENT VERSION 3 - FORCE UPDATE
+        systemLogger.trading('VALR triangular trade initiated - VERSION 3 DEPLOYED', {
             userId: req.user?.id || 'anonymous',
             exchange: 'valr',
             endpoint: 'triangular',
             pair,
             side,
             amount,
-            type
+            expectedPrice,
+            type,
+            deploymentVersion: 'V3-FORCE-UPDATE'
         });
         
         // Use exact same simple format as working cross-exchange buy-order
