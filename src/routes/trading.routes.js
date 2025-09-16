@@ -706,7 +706,7 @@ const LUNO_CONFIG = {
         balance: '/api/1/balance',
         ticker: '/api/1/ticker',
         tickers: '/api/1/tickers',
-        order: '/api/1/marketorder'
+        order: '/api/1/postorder'
     }
 };
 
@@ -1251,23 +1251,27 @@ router.post('/luno/triangular', tradingRateLimit, optionalAuth, [
         
         const auth = createLunoAuth(apiKey, apiSecret);
         
-        // Calculate volume for market orders according to Luno API documentation
+        // Use aggressive limit orders that execute immediately (market-like behavior)
         let orderData;
         
         if (side.toUpperCase() === 'BUY') {
-            // For BUY market orders, use counter_volume (amount in ZAR/quote currency)
+            // For BUY: use price 5% higher than market to ensure immediate execution
+            const aggressivePrice = (expectedPrice * 1.05).toString();
             orderData = {
                 pair: lunoPair,
-                type: 'BUY',
-                counter_volume: amount.toString() // Amount in ZAR
+                type: 'BID', // BID for limit buy orders
+                volume: (amount / expectedPrice).toString(), // Amount in base currency (crypto)
+                price: aggressivePrice
             };
         } else {
-            // For SELL market orders, use base_volume (amount in crypto/base currency)
+            // For SELL: use price 5% lower than market to ensure immediate execution  
+            const aggressivePrice = (expectedPrice * 0.95).toString();
             const baseVolume = (amount / expectedPrice).toString();
             orderData = {
                 pair: lunoPair,
-                type: 'SELL',
-                base_volume: baseVolume // Amount in crypto (e.g., BTC, ETH, etc.)
+                type: 'ASK', // ASK for limit sell orders
+                volume: baseVolume, // Amount in base currency (crypto)
+                price: aggressivePrice
             };
         }
         
