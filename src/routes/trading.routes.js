@@ -2113,15 +2113,24 @@ router.post('/valr/triangular', tradingRateLimit, optionalAuth, [
         // Use correct VALR market order payload format (from working backup file)
         // For market orders, amount should be base currency quantity
         let orderAmount;
+        
+        // Debug logging to see what we're receiving
+        console.log('DEBUG VALR CALCULATION INPUT:', { amount, expectedPrice, side, pair });
+        
         if (side.toLowerCase() === 'buy') {
             // BUY: amount = quote currency amount / price = base currency quantity
-            orderAmount = parseFloat(amount / expectedPrice).toString();
+            const calculatedAmount = amount / expectedPrice;
+            orderAmount = calculatedAmount.toString();
+            console.log(`DEBUG VALR BUY: ${amount} / ${expectedPrice} = ${calculatedAmount} -> ${orderAmount}`);
             systemLogger.trading(`VALR BUY calculation: ${amount} / ${expectedPrice} = ${orderAmount}`);
         } else {
             // SELL: amount = base currency quantity directly
             orderAmount = parseFloat(amount).toString();
+            console.log(`DEBUG VALR SELL: amount = ${orderAmount}`);
             systemLogger.trading(`VALR SELL calculation: amount = ${orderAmount}`);
         }
+        
+        console.log('DEBUG VALR ORDER AMOUNT:', orderAmount);
         
         // Log the calculation details
         systemLogger.trading('VALR triangular amount calculation', {
