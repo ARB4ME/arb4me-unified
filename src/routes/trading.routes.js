@@ -11272,4 +11272,71 @@ router.post('/coincatch/sell-order', tradingRateLimit, optionalAuth, [
     }
 }));
 
+// VALR Direct API Testing Endpoint
+router.post('/valr/test-direct', tradingRateLimit, optionalAuth, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('endpoint').notEmpty().withMessage('Endpoint is required'),
+    body('payload').isObject().withMessage('Payload must be an object')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey, apiSecret, endpoint, payload } = req.body;
+    
+    try {
+        systemLogger.trading('VALR direct API test initiated', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'valr',
+            endpoint: endpoint,
+            payload: payload
+        });
+        
+        // Test the specific endpoint with the given payload
+        const result = await makeValrRequest(
+            endpoint,
+            'POST',
+            apiKey,
+            apiSecret,
+            payload
+        );
+        
+        systemLogger.trading('VALR direct API test successful', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'valr',
+            endpoint: endpoint,
+            result: result
+        });
+        
+        res.json({
+            success: true,
+            data: {
+                endpoint: endpoint,
+                payload: payload,
+                result: result
+            }
+        });
+        
+    } catch (error) {
+        systemLogger.error('VALR direct API test failed', {
+            userId: req.user?.id || 'anonymous',
+            error: error.message,
+            endpoint: endpoint,
+            payload: payload
+        });
+        
+        res.status(500).json({
+            success: false,
+            error: {
+                code: 'VALR_DIRECT_TEST_ERROR',
+                message: `VALR direct test failed: ${error.message}`,
+                endpoint: endpoint,
+                payload: payload
+            }
+        });
+    }
+}));
+
 module.exports = router;

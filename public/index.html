@@ -27429,11 +27429,99 @@ ARB4ME Security Team`
             }
         };
         
+        // Direct VALR API Testing Function
+        window.testValrAPIDirectly = async () => {
+            console.log('\n🔍 === TESTING VALR API ENDPOINTS DIRECTLY ===');
+            
+            const apiKey = localStorage.getItem('valr_api_key');
+            const apiSecret = localStorage.getItem('valr_api_secret');
+            
+            if (!apiKey || !apiSecret) {
+                console.error('❌ VALR API credentials not found in localStorage');
+                return;
+            }
+            
+            const endpoints = [
+                '/v1/simple/quotedorder',
+                '/v1/orders',
+                '/v1/simple/order',
+                '/v1/orders/simple'
+            ];
+            
+            const payloads = [
+                {
+                    name: 'Simple QuotedOrder Format',
+                    data: {
+                        currencyPair: 'BTCZAR',
+                        payInCurrency: 'ZAR',
+                        payAmount: '10.00',
+                        side: 'BUY'
+                    }
+                },
+                {
+                    name: 'Legacy Format',
+                    data: {
+                        pair: 'BTCZAR',
+                        payInCurrency: 'ZAR',
+                        payAmount: '10.00'
+                    }
+                },
+                {
+                    name: 'Standard Orders Format',
+                    data: {
+                        side: 'BUY',
+                        pair: 'BTCZAR',
+                        type: 'MARKET',
+                        amount: '10.00'
+                    }
+                }
+            ];
+            
+            for (const endpoint of endpoints) {
+                for (const payload of payloads) {
+                    console.log(`\n🧪 Testing: ${endpoint} with ${payload.name}`);
+                    
+                    try {
+                        const response = await fetch('/api/v1/trading/valr/test-direct', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                apiKey,
+                                apiSecret,
+                                endpoint,
+                                payload: payload.data
+                            })
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (response.ok) {
+                            console.log(`✅ ${endpoint} + ${payload.name}: SUCCESS`, result);
+                            console.log(`🎯 WORKING COMBINATION FOUND!`);
+                            return { endpoint, payload: payload.data, result };
+                        } else {
+                            console.log(`❌ ${endpoint} + ${payload.name}: FAILED`, result);
+                        }
+                    } catch (error) {
+                        console.log(`🚫 ${endpoint} + ${payload.name}: ERROR`, error.message);
+                    }
+                    
+                    // Small delay between tests
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                }
+            }
+            
+            console.log('\n🔍 All endpoint/payload combinations tested');
+        };
+
         // Quick VALR test functions
         window.testValrStep1 = () => testValrTriangularStep('BTCZAR', 'buy', 10, 2000000, true);
         window.testValrStep1Real = () => testValrTriangularStep('BTCZAR', 'buy', 10, 2000000, false);
         
         console.log(`\n🔺 === VALR TRIANGULAR TESTING FUNCTIONS ADDED ===`);
+        console.log(`  testValrAPIDirectly()     - Test all VALR API endpoints/formats`);
         console.log(`  testValrStep1()           - Test VALR step 1 (simulation)`);
         console.log(`  testValrStep1Real()       - Test VALR step 1 (real trading)`);
         console.log(`  testValrTriangularStep(pair, side, amount, price, simulate)`);
