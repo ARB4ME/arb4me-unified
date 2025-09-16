@@ -2144,13 +2144,20 @@ router.post('/valr/triangular', tradingRateLimit, optionalAuth, [
                 `direct amount = ${orderAmount}`
         });
         
-        const orderPayload = {
-            side: side.toUpperCase(), // BUY or SELL
-            pair: pair,               // trading pair
-            amount: orderAmount,      // base currency quantity as string
-            type: 'MARKET',          // order type
-            price: expectedPrice     // price for backend calculation
+        // VALR market orders might need quoteAmount for BUY orders
+        const orderPayload = side.toLowerCase() === 'buy' ? {
+            side: 'BUY',
+            pair: pair,
+            type: 'MARKET',
+            quoteAmount: amount.toString()  // For BUY: spend this much ZAR
+        } : {
+            side: 'SELL',
+            pair: pair,
+            type: 'MARKET',
+            baseAmount: orderAmount  // For SELL: sell this much BTC
         };
+        
+        console.log('DEBUG VALR FINAL PAYLOAD:', JSON.stringify(orderPayload));
         
         // Both buy and sell use the same market order endpoint
         const endpoint = VALR_CONFIG.endpoints.simpleBuyOrder;
