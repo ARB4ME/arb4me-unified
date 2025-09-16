@@ -27452,24 +27452,13 @@ ARB4ME Security Team`
         };
 
         // Direct VALR API Testing Function
-        window.testValrAPIDirectly = async () => {
+        window.testValrAPIDirectly = async (apiKey = null, apiSecret = null) => {
             console.log('\n🔍 === TESTING VALR API ENDPOINTS DIRECTLY ===');
             
-            // Try different possible credential key names
-            let apiKey = localStorage.getItem('valr_api_key') || 
-                        localStorage.getItem('valr_apikey') || 
-                        localStorage.getItem('valrApiKey') ||
-                        localStorage.getItem('VALR_API_KEY');
-                        
-            let apiSecret = localStorage.getItem('valr_api_secret') || 
-                           localStorage.getItem('valr_apisecret') || 
-                           localStorage.getItem('valrApiSecret') ||
-                           localStorage.getItem('VALR_API_SECRET');
-            
+            // If credentials not provided, prompt for them (same as other trading functions)
             if (!apiKey || !apiSecret) {
-                console.error('❌ VALR API credentials not found in localStorage');
-                console.log('Run checkValrCredentials() to see available keys');
-                window.checkValrCredentials();
+                console.log('💡 Usage: testValrAPIDirectly("your_api_key", "your_api_secret")');
+                console.log('💡 This uses the same backend authentication as the working VALR balance endpoint');
                 return;
             }
             
@@ -27555,12 +27544,11 @@ ARB4ME Security Team`
         window.testValrStep1Real = () => testValrTriangularStep('BTCZAR', 'buy', 10, 2000000, false);
         
         console.log(`\n🔺 === VALR TRIANGULAR TESTING FUNCTIONS ADDED ===`);
-        console.log(`  checkValrCredentials()    - Check what VALR credentials are stored`);
-        console.log(`  testValrAPIDirectly()     - Test all VALR API endpoints/formats`);
+        console.log(`  testValrAPIDirectly(apiKey, apiSecret) - Test all VALR API endpoints/formats`);
         console.log(`  testValrStep1()           - Test VALR step 1 (simulation)`);
         console.log(`  testValrStep1Real()       - Test VALR step 1 (real trading)`);
         console.log(`  testValrTriangularStep(pair, side, amount, price, simulate)`);
-        console.log(`Note: Using direct API calls to bypass module loading issue`);
+        console.log(`Note: Functions use proper backend authentication like working VALR endpoints`);
     </script>
 
     <!-- Crypto Asset Selection Confirmation Modal -->
