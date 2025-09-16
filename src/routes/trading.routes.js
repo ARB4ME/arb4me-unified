@@ -2159,6 +2159,16 @@ router.post('/valr/triangular', tradingRateLimit, optionalAuth, [
         };
         
         console.log('DEBUG VALR FINAL PAYLOAD:', JSON.stringify(orderPayload));
+        console.log('DEBUG VALR CALCULATION DETAILS:', {
+            pair: pair,
+            side: side,
+            inputAmount: amount,
+            expectedPrice: expectedPrice,
+            payInCurrency: payInCurrency,
+            payAmount: payAmount,
+            orderAmount: orderAmount,
+            finalPayload: orderPayload
+        });
         
         // Both buy and sell use the same market order endpoint
         const endpoint = VALR_CONFIG.endpoints.simpleBuyOrder;
