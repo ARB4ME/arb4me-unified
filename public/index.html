@@ -40,7 +40,15 @@
     <script src="luno-triangular.js"></script>
     <script>console.log('🔺 luno-triangular.js loaded');</script>
     <script src="src/triangular/valr-triangular.js"></script>
-    <script>console.log('🔺 VALR triangular module loaded');</script>
+    <script>
+        console.log('🔺 VALR triangular script tag executed');
+        console.log('🔺 VALRTriangular available:', typeof VALRTriangular !== 'undefined');
+        if (typeof VALRTriangular !== 'undefined') {
+            console.log('✅ VALR triangular module loaded successfully');
+        } else {
+            console.error('❌ VALR triangular module failed to load');
+        }
+    </script>
     <script src="chainex-triangular.js"></script>
     <script>console.log('🔺 chainex-triangular.js loaded');</script>
     <script src="triangular-manager.js"></script>
@@ -27345,6 +27353,72 @@ ARB4ME Security Team`
         console.log(`Custom usage:`);
         console.log(`  testTriangularStep(1, 'XBTZAR', 'buy', 10, 2000000, false)`);
         console.log(`  testTriangularPath('ZAR_BTC_ETH', 10, false)`);
+
+        // ============================================
+        // VALR TRIANGULAR TESTING (BYPASS MODULE LOADING ISSUE)
+        // ============================================
+        
+        // Quick VALR triangular test function
+        window.testValrTriangularStep = async function(pair, side, amount, expectedPrice, simulate = false) {
+            console.log(`\n🔺 === TESTING VALR TRIANGULAR STEP ===`);
+            console.log(`📋 Parameters: ${pair}, ${side}, ${amount}, ${expectedPrice}`);
+            console.log(`🎭 Mode: ${simulate ? 'SIMULATION' : 'REAL TRADING'}`);
+            
+            if (simulate) {
+                console.log(`🎭 SIMULATION: Would execute ${side} ${amount} ${pair} at ~${expectedPrice}`);
+                return { success: true, simulated: true };
+            }
+            
+            try {
+                const valrData = state.exchanges?.valr;
+                if (!valrData?.api?.key || !valrData?.api?.secret) {
+                    throw new Error('VALR API credentials not found');
+                }
+                
+                const response = await fetch('https://arb4me-unified-production.up.railway.app/api/v1/trading/valr/triangular', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('arb4me_jwt_token')}`
+                    },
+                    body: JSON.stringify({
+                        apiKey: valrData.api.key,
+                        apiSecret: valrData.api.secret,
+                        pair: pair,
+                        side: side.toLowerCase(),
+                        amount: amount,
+                        expectedPrice: expectedPrice,
+                        type: 'market'
+                    })
+                });
+                
+                console.log(`📥 VALR Response status: ${response.status}`);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error(`❌ VALR error ${response.status}:`, errorText);
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+                
+                const result = await response.json();
+                console.log(`✅ VALR triangular step successful:`, result);
+                return result;
+                
+            } catch (error) {
+                console.error(`❌ VALR triangular step failed:`, error.message);
+                return { success: false, error: error.message };
+            }
+        };
+        
+        // Quick VALR test functions
+        window.testValrStep1 = () => testValrTriangularStep('BTCZAR', 'buy', 10, 2000000, true);
+        window.testValrStep1Real = () => testValrTriangularStep('BTCZAR', 'buy', 10, 2000000, false);
+        
+        console.log(`\n🔺 === VALR TRIANGULAR TESTING FUNCTIONS ADDED ===`);
+        console.log(`  testValrStep1()           - Test VALR step 1 (simulation)`);
+        console.log(`  testValrStep1Real()       - Test VALR step 1 (real trading)`);
+        console.log(`  testValrTriangularStep(pair, side, amount, price, simulate)`);
+        console.log(`Note: Using direct API calls to bypass module loading issue`);
     </script>
 
     <!-- Crypto Asset Selection Confirmation Modal -->
