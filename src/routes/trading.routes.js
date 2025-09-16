@@ -2143,9 +2143,11 @@ router.post('/valr/triangular', tradingRateLimit, optionalAuth, [
         // Both buy and sell use the same market order endpoint
         const endpoint = VALR_CONFIG.endpoints.simpleBuyOrder;
         
-        systemLogger.trading('VALR triangular order request', {
+        systemLogger.trading('VALR triangular order request - UPDATED CODE v2', {
             endpoint: `${VALR_CONFIG.baseUrl}${endpoint}`,
             orderPayload: orderPayload,
+            calculatedAmount: orderAmount,
+            originalAmount: amount,
             side: side.toUpperCase()
         });
         
