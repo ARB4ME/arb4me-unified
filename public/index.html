@@ -27607,6 +27607,26 @@ ARB4ME Security Team`
         // Test LINK sell with real market price from order book
         window.testValrLINKSell = () => testValrTriangularStep('LINKUSDT', 'sell', 0.1, 23.30, false);
         
+        // Test complete triangular: USDT → BTC → LINK → USDT
+        window.testValrTriangularUBL = async () => {
+            console.log('\n🔺 === COMPLETE USDT→BTC→LINK→USDT TRIANGULAR TEST ===');
+            
+            console.log('Step 1: USDT → BTC (BTCUSDT buy)');
+            const step1 = await testValrTriangularStep('BTCUSDT', 'buy', 10, 95000, false);
+            if (!step1.success) return step1;
+            
+            console.log('Step 2: BTC → LINK (LINKBTC buy)');  
+            const step2 = await testValrTriangularStep('LINKBTC', 'buy', 0.0001, 0.000245, false);
+            if (!step2.success) return step2;
+            
+            console.log('Step 3: LINK → USDT (LINKUSDT sell)');
+            const step3 = await testValrTriangularStep('LINKUSDT', 'sell', 0.4, 23.30, false);
+            if (!step3.success) return step3;
+            
+            console.log('✅ COMPLETE TRIANGULAR ARBITRAGE SUCCESSFUL!');
+            return { success: true, message: 'Full triangular loop completed!' };
+        };
+        
         // Complete triangular arbitrage test (all 3 steps)
         window.testValrTriangularComplete = async () => {
             console.log('\n🔺 === COMPLETE VALR TRIANGULAR ARBITRAGE TEST ===');
