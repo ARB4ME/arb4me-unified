@@ -1258,7 +1258,7 @@ router.post('/luno/triangular', tradingRateLimit, optionalAuth, [
             // For BUY: use price 5% higher than market to ensure immediate execution
             const aggressivePrice = (expectedPrice * 1.05).toString();
             orderData = {
-                pair: lunoPair,
+                market_id: lunoPair, // Try market_id instead of pair based on error message
                 type: 'BID', // BID for limit buy orders
                 volume: (amount / expectedPrice).toString(), // Amount in base currency (crypto)
                 price: aggressivePrice
@@ -1268,7 +1268,7 @@ router.post('/luno/triangular', tradingRateLimit, optionalAuth, [
             const aggressivePrice = (expectedPrice * 0.95).toString();
             const baseVolume = (amount / expectedPrice).toString();
             orderData = {
-                pair: lunoPair,
+                market_id: lunoPair, // Try market_id instead of pair based on error message
                 type: 'ASK', // ASK for limit sell orders
                 volume: baseVolume, // Amount in base currency (crypto)
                 price: aggressivePrice
