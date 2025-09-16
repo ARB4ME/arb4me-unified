@@ -27580,12 +27580,36 @@ ARB4ME Security Team`
         // Quick VALR test functions
         window.testValrStep1 = () => testValrTriangularStep('BTCZAR', 'buy', 10, 2000000, true);
         window.testValrStep1Real = () => testValrTriangularStep('BTCZAR', 'buy', 10, 2000000, false);
+        window.testValrStep2Real = () => testValrTriangularStep('ETHBTC', 'buy', 0.0005, 0.065, false);
+        window.testValrStep3Real = () => testValrTriangularStep('ETHZAR', 'sell', 0.008, 62500, false);
+        
+        // Complete triangular arbitrage test (all 3 steps)
+        window.testValrTriangularComplete = async () => {
+            console.log('\n🔺 === COMPLETE VALR TRIANGULAR ARBITRAGE TEST ===');
+            console.log('Step 1: Buy BTC with ZAR (BTCZAR)');
+            const step1 = await testValrTriangularStep('BTCZAR', 'buy', 10, 2000000, false);
+            if (!step1.success) return step1;
+            
+            console.log('\nStep 2: Buy ETH with BTC (ETHBTC)');
+            const step2 = await testValrTriangularStep('ETHBTC', 'buy', 0.0005, 0.065, false);
+            if (!step2.success) return step2;
+            
+            console.log('\nStep 3: Sell ETH for ZAR (ETHZAR)');
+            const step3 = await testValrTriangularStep('ETHZAR', 'sell', 0.008, 62500, false);
+            if (!step3.success) return step3;
+            
+            console.log('\n✅ COMPLETE TRIANGULAR ARBITRAGE SUCCESSFUL!');
+            return { success: true, message: 'All 3 steps completed successfully' };
+        };
         
         console.log(`\n🔺 === VALR TRIANGULAR TESTING FUNCTIONS ADDED ===`);
         console.log(`  testValrBasicAuth(apiKey, apiSecret)   - Test basic VALR authentication`);
         console.log(`  testValrAPIDirectly(apiKey, apiSecret) - Test all VALR API endpoints/formats`);
         console.log(`  testValrStep1()           - Test VALR step 1 (simulation)`);
         console.log(`  testValrStep1Real()       - Test VALR step 1 (real trading)`);
+        console.log(`  testValrStep2Real()       - Test VALR step 2 (real trading)`);
+        console.log(`  testValrStep3Real()       - Test VALR step 3 (real trading)`);
+        console.log(`  testValrTriangularComplete() - Test complete triangular loop`);
         console.log(`  testValrTriangularStep(pair, side, amount, price, simulate)`);
         console.log(`Note: Functions use proper backend authentication like working VALR endpoints`);
     </script>
