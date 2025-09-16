@@ -2144,17 +2144,17 @@ router.post('/valr/triangular', tradingRateLimit, optionalAuth, [
                 `direct amount = ${orderAmount}`
         });
         
-        // VALR market orders might need quoteAmount for BUY orders
+        // VALR market orders need quoteAmount for BUY orders - use correct quote currency
         const orderPayload = side.toLowerCase() === 'buy' ? {
             side: 'BUY',
             pair: pair,
             type: 'MARKET',
-            quoteAmount: amount.toString()  // For BUY: spend this much ZAR
+            quoteAmount: payAmount  // Use calculated payAmount in correct quote currency
         } : {
             side: 'SELL',
             pair: pair,
             type: 'MARKET',
-            baseAmount: orderAmount  // For SELL: sell this much BTC
+            baseAmount: orderAmount  // For SELL: sell this much base currency
         };
         
         console.log('DEBUG VALR FINAL PAYLOAD:', JSON.stringify(orderPayload));
