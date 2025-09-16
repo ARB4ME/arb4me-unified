@@ -27597,7 +27597,8 @@ ARB4ME Security Team`
         // Generic USDT Triangular Tests
         window.testValrUSDT1 = () => testValrTriangularStep('BTCUSDT', 'buy', 10, 95000, false);
         window.testValrUSDT2 = () => testValrTriangularStep('ETHUSDT', 'buy', 10, 3500, false);
-        window.testValrUSDT3 = () => testValrTriangularStep('ETHUSDT', 'sell', 0.003, 3500, false);
+        window.testValrUSDT3 = () => testValrTriangularStep('ETHUSDT', 'sell', 0.01, 3500, false);
+        window.testValrUSDTSell2 = () => testValrTriangularStep('BTCUSDT', 'sell', 0.0001, 95000, false);
         
         // Complete triangular arbitrage test (all 3 steps)
         window.testValrTriangularComplete = async () => {
