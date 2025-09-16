@@ -2108,10 +2108,20 @@ router.post('/valr/triangular', tradingRateLimit, optionalAuth, [
         }
         
         // Use correct VALR market order payload format (from working backup file)
+        // For market orders, amount should be base currency quantity
+        let orderAmount;
+        if (side.toLowerCase() === 'buy') {
+            // BUY: amount = quote currency amount / price = base currency quantity
+            orderAmount = parseFloat(amount / expectedPrice).toString();
+        } else {
+            // SELL: amount = base currency quantity directly
+            orderAmount = parseFloat(amount).toString();
+        }
+        
         const orderPayload = {
             side: side.toUpperCase(), // BUY or SELL
             pair: pair,               // trading pair
-            amount: parseFloat(payAmount).toString(), // amount as string
+            amount: orderAmount,      // base currency quantity as string
             type: 'MARKET',          // order type
             price: expectedPrice     // price for backend calculation
         };
