@@ -706,7 +706,7 @@ const LUNO_CONFIG = {
         balance: '/api/1/balance',
         ticker: '/api/1/ticker',
         tickers: '/api/1/tickers',
-        order: '/api/1/postorder'
+        order: '/api/1/marketorder'
     }
 };
 
@@ -1251,27 +1251,23 @@ router.post('/luno/triangular', tradingRateLimit, optionalAuth, [
         
         const auth = createLunoAuth(apiKey, apiSecret);
         
-        // Use aggressive limit orders that execute immediately (market-like behavior)
+        // Back to market orders with correct parameters from our earlier fix
         let orderData;
         
         if (side.toUpperCase() === 'BUY') {
-            // For BUY: use price 5% higher than market to ensure immediate execution
-            const aggressivePrice = (expectedPrice * 1.05).toString();
+            // For BUY market orders, use counter_volume (amount in ZAR/quote currency)
             orderData = {
-                market_id: lunoPair, // Try market_id instead of pair based on error message
-                type: 'BID', // BID for limit buy orders
-                volume: (amount / expectedPrice).toString(), // Amount in base currency (crypto)
-                price: aggressivePrice
+                pair: lunoPair,
+                type: 'BUY',
+                counter_volume: amount.toString() // Amount in ZAR
             };
         } else {
-            // For SELL: use price 5% lower than market to ensure immediate execution  
-            const aggressivePrice = (expectedPrice * 0.95).toString();
+            // For SELL market orders, use base_volume (amount in crypto/base currency)
             const baseVolume = (amount / expectedPrice).toString();
             orderData = {
-                market_id: lunoPair, // Try market_id instead of pair based on error message
-                type: 'ASK', // ASK for limit sell orders
-                volume: baseVolume, // Amount in base currency (crypto)
-                price: aggressivePrice
+                pair: lunoPair,
+                type: 'SELL',
+                base_volume: baseVolume // Amount in crypto (e.g., BTC, ETH, etc.)
             };
         }
         
