@@ -1345,8 +1345,8 @@ const VALR_CONFIG = {
     endpoints: {
         balance: '/v1/account/balances',
         ticker: '/v1/public/marketsummary', 
-        simpleBuyOrder: '/v1/simple/quotedorder',  // Updated to correct VALR endpoint
-        simpleSellOrder: '/v1/simple/quotedorder', // Updated to correct VALR endpoint
+        simpleBuyOrder: '/v1/orders',  // Try standard orders endpoint
+        simpleSellOrder: '/v1/orders', // Try standard orders endpoint
         pairs: '/v1/public/pairs',
         orderStatus: '/v1/orders/:orderId',
         orderBook: '/v1/public/:pair/orderbook'
@@ -2042,12 +2042,13 @@ router.post('/valr/triangular', tradingRateLimit, optionalAuth, [
             payAmount = parseFloat(amount / expectedPrice).toString();
         }
         
-        // Use exact same payload structure as working cross-exchange
+        // Try standard market order format instead of simple order
         const orderPayload = {
-            pair,
-            payInCurrency,
-            payAmount: payAmount,
-            customerOrderId: `tri-${Date.now()}` // Add customerOrderId like working endpoint
+            side: side.toUpperCase(), // BUY or SELL
+            pair: pair,
+            type: 'MARKET',
+            amount: payAmount,
+            customerOrderId: `tri-${Date.now()}`
         };
         
         systemLogger.trading('VALR triangular order request', {
