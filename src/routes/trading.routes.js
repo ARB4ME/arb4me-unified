@@ -2099,7 +2099,8 @@ router.post('/valr/triangular', tradingRateLimit, optionalAuth, [
             } else if (pair.includes('BTC')) {
                 // For BTC pairs like ETHBTC, we pay in BTC
                 payInCurrency = 'BTC';
-                payAmount = parseFloat(amount / expectedPrice).toString();
+                // Use the amount directly as BTC amount to spend (not calculated)
+                payAmount = parseFloat(amount).toString();
             } else {
                 throw new Error(`Unsupported pair format for BUY: ${pair}`);
             }
