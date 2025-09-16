@@ -1345,8 +1345,8 @@ const VALR_CONFIG = {
     endpoints: {
         balance: '/v1/account/balances',
         ticker: '/v1/public/marketsummary', 
-        simpleBuyOrder: '/v1/simple/quotedorder',  // Use actual simple buy/sell endpoint
-        simpleSellOrder: '/v1/simple/quotedorder', // Same endpoint for both buy and sell
+        simpleBuyOrder: '/v1/orders/market',  // Use working market order endpoint
+        simpleSellOrder: '/v1/orders/market', // Same endpoint for both buy and sell
         pairs: '/v1/public/pairs',
         orderStatus: '/v1/orders/:orderId',
         orderBook: '/v1/public/:pair/orderbook'
