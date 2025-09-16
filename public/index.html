@@ -27429,17 +27429,51 @@ ARB4ME Security Team`
             }
         };
         
+        // Helper function to check what credentials are available
+        window.checkValrCredentials = () => {
+            console.log('\n🔍 === CHECKING VALR CREDENTIALS ===');
+            const keys = Object.keys(localStorage).filter(key => key.toLowerCase().includes('valr'));
+            console.log('Available VALR keys:', keys);
+            keys.forEach(key => {
+                const value = localStorage.getItem(key);
+                console.log(`${key}: ${value ? value.substring(0, 20) + '...' : 'null'}`);
+            });
+            
+            // Check for common variations
+            const possibleKeys = [
+                'valr_api_key', 'valr_apikey', 'valrApiKey', 'VALR_API_KEY',
+                'valr_api_secret', 'valr_apisecret', 'valrApiSecret', 'VALR_API_SECRET'
+            ];
+            console.log('\nChecking common key names:');
+            possibleKeys.forEach(key => {
+                const value = localStorage.getItem(key);
+                if (value) console.log(`✅ Found: ${key}`);
+            });
+        };
+
         // Direct VALR API Testing Function
         window.testValrAPIDirectly = async () => {
             console.log('\n🔍 === TESTING VALR API ENDPOINTS DIRECTLY ===');
             
-            const apiKey = localStorage.getItem('valr_api_key');
-            const apiSecret = localStorage.getItem('valr_api_secret');
+            // Try different possible credential key names
+            let apiKey = localStorage.getItem('valr_api_key') || 
+                        localStorage.getItem('valr_apikey') || 
+                        localStorage.getItem('valrApiKey') ||
+                        localStorage.getItem('VALR_API_KEY');
+                        
+            let apiSecret = localStorage.getItem('valr_api_secret') || 
+                           localStorage.getItem('valr_apisecret') || 
+                           localStorage.getItem('valrApiSecret') ||
+                           localStorage.getItem('VALR_API_SECRET');
             
             if (!apiKey || !apiSecret) {
                 console.error('❌ VALR API credentials not found in localStorage');
+                console.log('Run checkValrCredentials() to see available keys');
+                window.checkValrCredentials();
                 return;
             }
+            
+            console.log(`🔑 Using API Key: ${apiKey.substring(0, 8)}...`);
             
             const endpoints = [
                 '/v1/simple/quotedorder',
@@ -27521,6 +27555,7 @@ ARB4ME Security Team`
         window.testValrStep1Real = () => testValrTriangularStep('BTCZAR', 'buy', 10, 2000000, false);
         
         console.log(`\n🔺 === VALR TRIANGULAR TESTING FUNCTIONS ADDED ===`);
+        console.log(`  checkValrCredentials()    - Check what VALR credentials are stored`);
         console.log(`  testValrAPIDirectly()     - Test all VALR API endpoints/formats`);
         console.log(`  testValrStep1()           - Test VALR step 1 (simulation)`);
         console.log(`  testValrStep1Real()       - Test VALR step 1 (real trading)`);
