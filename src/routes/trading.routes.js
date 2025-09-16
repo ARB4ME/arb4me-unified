@@ -1345,8 +1345,8 @@ const VALR_CONFIG = {
     endpoints: {
         balance: '/v1/account/balances',
         ticker: '/v1/public/marketsummary', 
-        simpleBuyOrder: '/v1/orders',  // Try standard orders endpoint
-        simpleSellOrder: '/v1/orders', // Try standard orders endpoint
+        simpleBuyOrder: '/v1/simple/quotedorder',  // Use actual simple buy/sell endpoint
+        simpleSellOrder: '/v1/simple/quotedorder', // Same endpoint for both buy and sell
         pairs: '/v1/public/pairs',
         orderStatus: '/v1/orders/:orderId',
         orderBook: '/v1/public/:pair/orderbook'
@@ -2107,27 +2107,17 @@ router.post('/valr/triangular', tradingRateLimit, optionalAuth, [
             payAmount = parseFloat(amount / expectedPrice).toString();
         }
         
-        // Use correct payload format based on side (BUY vs SELL)
-        let orderPayload, endpoint;
+        // Use VALR simple quotedorder payload format
+        const orderPayload = {
+            currencyPair: pair,
+            payInCurrency: payInCurrency,
+            payAmount: parseFloat(payAmount).toString(),
+            side: side.toUpperCase(), // BUY or SELL
+            customerOrderId: `tri-${Date.now()}`
+        };
         
-        if (side.toLowerCase() === 'buy') {
-            // BUY orders need payInCurrency
-            orderPayload = {
-                pair,
-                payInCurrency,
-                payAmount: parseFloat(payAmount).toString(),
-                customerOrderId: `tri-${Date.now()}`
-            };
-            endpoint = VALR_CONFIG.endpoints.simpleBuyOrder;
-        } else {
-            // SELL orders don't use payInCurrency
-            orderPayload = {
-                pair,
-                payAmount: parseFloat(payAmount).toString(),
-                customerOrderId: `tri-${Date.now()}`
-            };
-            endpoint = VALR_CONFIG.endpoints.simpleSellOrder;
-        }
+        // Both buy and sell use the same endpoint
+        const endpoint = VALR_CONFIG.endpoints.simpleBuyOrder;
         
         systemLogger.trading('VALR triangular order request', {
             endpoint: `${VALR_CONFIG.baseUrl}${endpoint}`,
