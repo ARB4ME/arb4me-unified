@@ -2172,8 +2172,16 @@ router.post('/valr/triangular', tradingRateLimit, optionalAuth, [
             finalPayload: orderPayload
         });
         
-        // Both buy and sell use the same market order endpoint
-        const endpoint = VALR_CONFIG.endpoints.simpleBuyOrder;
+        // Validate payload values before sending to VALR
+        if (orderPayload.quantity <= 0) {
+            throw new Error(`Invalid quantity: ${orderPayload.quantity} - must be > 0`);
+        }
+        if (orderPayload.price <= 0) {
+            throw new Error(`Invalid price: ${orderPayload.price} - must be > 0`);
+        }
+        
+        // Use proper VALR order endpoint for LIMIT orders
+        const endpoint = '/v1/orders/limit';
         
         systemLogger.trading('VALR triangular order request - UPDATED CODE v2', {
             endpoint: `${VALR_CONFIG.baseUrl}${endpoint}`,
