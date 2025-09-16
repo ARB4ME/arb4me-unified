@@ -2107,24 +2107,37 @@ router.post('/valr/triangular', tradingRateLimit, optionalAuth, [
             payAmount = parseFloat(amount / expectedPrice).toString();
         }
         
-        // Try standard market order format instead of simple order
-        const orderPayload = {
-            side: side.toUpperCase(), // BUY or SELL
-            pair: pair,
-            type: 'MARKET',
-            amount: payAmount,
-            customerOrderId: `tri-${Date.now()}`
-        };
+        // Use correct payload format based on side (BUY vs SELL)
+        let orderPayload, endpoint;
+        
+        if (side.toLowerCase() === 'buy') {
+            // BUY orders need payInCurrency
+            orderPayload = {
+                pair,
+                payInCurrency,
+                payAmount: parseFloat(payAmount).toString(),
+                customerOrderId: `tri-${Date.now()}`
+            };
+            endpoint = VALR_CONFIG.endpoints.simpleBuyOrder;
+        } else {
+            // SELL orders don't use payInCurrency
+            orderPayload = {
+                pair,
+                payAmount: parseFloat(payAmount).toString(),
+                customerOrderId: `tri-${Date.now()}`
+            };
+            endpoint = VALR_CONFIG.endpoints.simpleSellOrder;
+        }
         
         systemLogger.trading('VALR triangular order request', {
-            endpoint: `${VALR_CONFIG.baseUrl}${VALR_CONFIG.endpoints.simpleBuyOrder}`,
+            endpoint: `${VALR_CONFIG.baseUrl}${endpoint}`,
             orderPayload: orderPayload,
             side: side.toUpperCase()
         });
         
-        // Call VALR simple order API (handles both buy and sell)
+        // Call appropriate VALR endpoint based on order side
         const orderResult = await makeValrRequest(
-            VALR_CONFIG.endpoints.simpleBuyOrder,
+            endpoint,
             'POST',
             apiKey,
             apiSecret,
