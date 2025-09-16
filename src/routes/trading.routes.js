@@ -2113,10 +2113,24 @@ router.post('/valr/triangular', tradingRateLimit, optionalAuth, [
         if (side.toLowerCase() === 'buy') {
             // BUY: amount = quote currency amount / price = base currency quantity
             orderAmount = parseFloat(amount / expectedPrice).toString();
+            systemLogger.trading(`VALR BUY calculation: ${amount} / ${expectedPrice} = ${orderAmount}`);
         } else {
             // SELL: amount = base currency quantity directly
             orderAmount = parseFloat(amount).toString();
+            systemLogger.trading(`VALR SELL calculation: amount = ${orderAmount}`);
         }
+        
+        // Log the calculation details
+        systemLogger.trading('VALR triangular amount calculation', {
+            side: side,
+            pair: pair,
+            inputAmount: amount,
+            expectedPrice: expectedPrice,
+            calculatedAmount: orderAmount,
+            calculation: side.toLowerCase() === 'buy' ? 
+                `${amount} / ${expectedPrice} = ${orderAmount}` : 
+                `direct amount = ${orderAmount}`
+        });
         
         const orderPayload = {
             side: side.toUpperCase(), // BUY or SELL
