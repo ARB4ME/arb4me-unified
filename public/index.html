@@ -27381,6 +27381,15 @@ ARB4ME Security Team`
                     
                     console.log(`🔄 VALR API attempt ${retries + 1}/${maxRetries}`);
                     
+                    const requestPayload = {
+                        pair: pair,
+                        side: side,
+                        amount: amount,
+                        expectedPrice: expectedPrice,
+                        simulate: simulate
+                    };
+                    console.log('🔍 CLIENT REQUEST PAYLOAD:', JSON.stringify(requestPayload, null, 2));
+                    
                     const response = await fetch('https://arb4me-unified-production.up.railway.app/api/v1/trading/valr/triangular', {
                         method: 'POST',
                         headers: {
