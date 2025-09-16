@@ -2014,25 +2014,24 @@ router.post('/valr/triangular', tradingRateLimit, optionalAuth, [
             type
         });
         
-        // Determine VALR order parameters based on trade side
-        let orderPayload;
+        // Use exact same simple format as working cross-exchange buy-order
         let payInCurrency, payAmount;
         
         if (side.toLowerCase() === 'buy') {
-            // For BUY: determine what currency we're paying with
+            // For BUY: determine what currency we're paying with (same as working cross-exchange)
             if (pair.includes('ZAR')) {
                 payInCurrency = 'ZAR';
-                payAmount = amount.toString();
+                payAmount = parseFloat(amount).toString(); // ← Same format as working endpoint
             } else if (pair.includes('USDT')) {
                 payInCurrency = 'USDT';
-                payAmount = amount.toString();
+                payAmount = parseFloat(amount).toString();
             } else if (pair.includes('USDC')) {
                 payInCurrency = 'USDC';
-                payAmount = amount.toString();
+                payAmount = parseFloat(amount).toString();
             } else if (pair.includes('BTC')) {
                 // For BTC pairs like ETHBTC, we pay in BTC
                 payInCurrency = 'BTC';
-                payAmount = (amount / expectedPrice).toString(); // Convert to BTC amount
+                payAmount = parseFloat(amount / expectedPrice).toString();
             } else {
                 throw new Error(`Unsupported pair format for BUY: ${pair}`);
             }
@@ -2040,13 +2039,15 @@ router.post('/valr/triangular', tradingRateLimit, optionalAuth, [
             // For SELL: we're selling the base currency
             const baseCurrency = pair.replace(/ZAR|USDT|USDC|BTC$/, ''); // Remove quote currency
             payInCurrency = baseCurrency;
-            payAmount = (amount / expectedPrice).toString(); // Amount of base currency to sell
+            payAmount = parseFloat(amount / expectedPrice).toString();
         }
         
-        orderPayload = {
-            pair: pair,
-            payInCurrency: payInCurrency,
-            payAmount: payAmount
+        // Use exact same payload structure as working cross-exchange
+        const orderPayload = {
+            pair,
+            payInCurrency,
+            payAmount: payAmount,
+            customerOrderId: `tri-${Date.now()}` // Add customerOrderId like working endpoint
         };
         
         systemLogger.trading('VALR triangular order request', {
