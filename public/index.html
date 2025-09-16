@@ -22868,7 +22868,7 @@ ARB4ME Security Team`
                 // Calculate trade amount based on the correct base currency balance
                 const balance = state.balances?.[exchangeKey]?.[baseCurrency] || 0;
                 const tradeAmount = Math.min(
-                    state.settings.maxTradeAmount || 50,
+                    state.settings.maxTradeAmount || 100,  // Increased minimum from 50 to 100 ZAR
                     balance * (state.settings.tradeSize || 15) / 100
                 );
                 
