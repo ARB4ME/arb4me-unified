@@ -27510,6 +27510,16 @@ ARB4ME Security Team`
             
             const payloads = [
                 {
+                    name: 'Working Market Order Format',  // From backup file!
+                    data: {
+                        side: 'BUY',
+                        pair: 'BTCZAR',
+                        amount: '10.00',
+                        type: 'MARKET',
+                        price: 2000000
+                    }
+                },
+                {
                     name: 'Simple QuotedOrder Format',
                     data: {
                         currencyPair: 'BTCZAR',
@@ -27524,15 +27534,6 @@ ARB4ME Security Team`
                         pair: 'BTCZAR',
                         payInCurrency: 'ZAR',
                         payAmount: '10.00'
-                    }
-                },
-                {
-                    name: 'Standard Orders Format',
-                    data: {
-                        side: 'BUY',
-                        pair: 'BTCZAR',
-                        type: 'MARKET',
-                        amount: '10.00'
                     }
                 }
             ];

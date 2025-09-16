@@ -2107,16 +2107,16 @@ router.post('/valr/triangular', tradingRateLimit, optionalAuth, [
             payAmount = parseFloat(amount / expectedPrice).toString();
         }
         
-        // Use VALR simple quotedorder payload format
+        // Use correct VALR market order payload format (from working backup file)
         const orderPayload = {
-            currencyPair: pair,
-            payInCurrency: payInCurrency,
-            payAmount: parseFloat(payAmount).toString(),
             side: side.toUpperCase(), // BUY or SELL
-            customerOrderId: `tri-${Date.now()}`
+            pair: pair,               // trading pair
+            amount: parseFloat(payAmount).toString(), // amount as string
+            type: 'MARKET',          // order type
+            price: expectedPrice     // price for backend calculation
         };
         
-        // Both buy and sell use the same endpoint
+        // Both buy and sell use the same market order endpoint
         const endpoint = VALR_CONFIG.endpoints.simpleBuyOrder;
         
         systemLogger.trading('VALR triangular order request', {
