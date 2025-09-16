@@ -27451,7 +27451,34 @@ ARB4ME Security Team`
             });
         };
 
-        // Direct VALR API Testing Function
+        // Test basic VALR authentication first
+        window.testValrBasicAuth = async (apiKey, apiSecret) => {
+            console.log('\n🔍 === TESTING BASIC VALR AUTHENTICATION ===');
+            console.log(`🔑 Using API Key: ${apiKey.substring(0, 8)}...`);
+            
+            try {
+                console.log('🧪 Testing VALR balance endpoint (known working)...');
+                const response = await fetch('/api/v1/trading/valr/balance', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ apiKey, apiSecret })
+                });
+                
+                const result = await response.json();
+                if (response.ok) {
+                    console.log('✅ VALR authentication works! Balance:', result);
+                    return true;
+                } else {
+                    console.log('❌ VALR authentication failed:', result);
+                    return false;
+                }
+            } catch (error) {
+                console.log('🚫 VALR balance test error:', error.message);
+                return false;
+            }
+        };
+
+        // Direct VALR API Testing Function  
         window.testValrAPIDirectly = async (apiKey = null, apiSecret = null) => {
             console.log('\n🔍 === TESTING VALR API ENDPOINTS DIRECTLY ===');
             
@@ -27462,6 +27489,15 @@ ARB4ME Security Team`
                 return;
             }
             
+            // First test basic authentication
+            console.log('🔍 Step 1: Verify VALR authentication works...');
+            const authWorks = await testValrBasicAuth(apiKey, apiSecret);
+            if (!authWorks) {
+                console.log('❌ Cannot proceed - VALR authentication failed');
+                return;
+            }
+            
+            console.log('\n🔍 Step 2: Testing trading endpoints...');
             console.log(`🔑 Using API Key: ${apiKey.substring(0, 8)}...`);
             
             const endpoints = [
@@ -27544,6 +27580,7 @@ ARB4ME Security Team`
         window.testValrStep1Real = () => testValrTriangularStep('BTCZAR', 'buy', 10, 2000000, false);
         
         console.log(`\n🔺 === VALR TRIANGULAR TESTING FUNCTIONS ADDED ===`);
+        console.log(`  testValrBasicAuth(apiKey, apiSecret)   - Test basic VALR authentication`);
         console.log(`  testValrAPIDirectly(apiKey, apiSecret) - Test all VALR API endpoints/formats`);
         console.log(`  testValrStep1()           - Test VALR step 1 (simulation)`);
         console.log(`  testValrStep1Real()       - Test VALR step 1 (real trading)`);
