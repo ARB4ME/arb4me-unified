@@ -27600,6 +27600,10 @@ ARB4ME Security Team`
         window.testValrUSDT3 = () => testValrTriangularStep('ETHUSDT', 'sell', 0.01, 3500, false);
         window.testValrUSDTSell2 = () => testValrTriangularStep('BTCUSDT', 'sell', 0.0001, 95000, false);
         
+        // Test conversion approach - buy USDT with ETH instead of sell ETH
+        window.testValrConvert1 = () => testValrTriangularStep('USDTETH', 'buy', 3500, 0.000286, false);
+        window.testValrConvert2 = () => testValrTriangularStep('USDTBTC', 'buy', 95000, 0.0000105, false);
+        
         // Complete triangular arbitrage test (all 3 steps)
         window.testValrTriangularComplete = async () => {
             console.log('\n🔺 === COMPLETE VALR TRIANGULAR ARBITRAGE TEST ===');
