@@ -1271,6 +1271,13 @@ router.post('/luno/triangular', tradingRateLimit, optionalAuth, [
             };
         }
         
+        // Log the exact request being sent for debugging
+        systemLogger.trading('LUNO triangular order request', {
+            endpoint: `${LUNO_CONFIG.baseUrl}${LUNO_CONFIG.endpoints.order}`,
+            orderData: orderData,
+            side: side.toUpperCase()
+        });
+        
         const response = await fetch(`${LUNO_CONFIG.baseUrl}${LUNO_CONFIG.endpoints.order}`, {
             method: 'POST',
             headers: {
@@ -1282,6 +1289,12 @@ router.post('/luno/triangular', tradingRateLimit, optionalAuth, [
         
         if (!response.ok) {
             const errorData = await response.text();
+            systemLogger.error('LUNO triangular order failed - API response', {
+                status: response.status,
+                error: errorData,
+                sentData: orderData,
+                endpoint: `${LUNO_CONFIG.baseUrl}${LUNO_CONFIG.endpoints.order}`
+            });
             throw new Error(`HTTP ${response.status}: ${errorData}`);
         }
         
