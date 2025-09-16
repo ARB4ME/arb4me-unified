@@ -1251,24 +1251,25 @@ router.post('/luno/triangular', tradingRateLimit, optionalAuth, [
         
         const auth = createLunoAuth(apiKey, apiSecret);
         
-        // Calculate volume for market orders (original design)
-        let volume;
+        // Calculate volume for market orders according to Luno API documentation
+        let orderData;
         
         if (side.toUpperCase() === 'BUY') {
-            // For BUY market orders, volume is always in ZAR (quote currency)
-            volume = amount.toString();
+            // For BUY market orders, use counter_volume (amount in ZAR/quote currency)
+            orderData = {
+                pair: lunoPair,
+                type: 'BUY',
+                counter_volume: amount.toString() // Amount in ZAR
+            };
         } else {
-            // For SELL market orders, volume is in base currency (crypto)
-            // Convert ZAR amount to crypto amount using expected price
-            volume = (amount / expectedPrice).toString();
+            // For SELL market orders, use base_volume (amount in crypto/base currency)
+            const baseVolume = (amount / expectedPrice).toString();
+            orderData = {
+                pair: lunoPair,
+                type: 'SELL',
+                base_volume: baseVolume // Amount in crypto (e.g., BTC, ETH, etc.)
+            };
         }
-        
-        const orderData = {
-            pair: lunoPair,
-            type: side.toUpperCase(), // BUY or SELL
-            volume: volume
-            // No price parameter for market orders
-        };
         
         const response = await fetch(`${LUNO_CONFIG.baseUrl}${LUNO_CONFIG.endpoints.order}`, {
             method: 'POST',
