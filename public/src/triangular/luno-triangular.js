@@ -581,13 +581,23 @@ async function scanLunoTriangularOpportunitiesV2(showActivity = false) {
     PlatformReporting.addActivity('🔺 Starting Luno triangular scan...', 'info');
     const opportunities = [];
     
-    // Auto-detect funded currencies from balances
+    // Auto-detect funded currencies from balances - PRIORITIZE USDT OVER ZAR
     // Note: In standalone mode, this will need to be passed as parameter or configured
     const lunoBalances = (typeof window !== 'undefined' && window.state?.balances?.luno) || {};
-    const fundedCurrencies = Object.keys(lunoBalances).filter(currency => (lunoBalances[currency] || 0) >= 10);
+    const allFundedCurrencies = Object.keys(lunoBalances).filter(currency => (lunoBalances[currency] || 0) >= 10);
     
-    console.log('💰 Funded currencies on Luno:', fundedCurrencies);
+    // PRIORITY: Use USDT if available, ignore ZAR even if funded
+    const fundedCurrencies = allFundedCurrencies.includes('USDT') ? 
+        allFundedCurrencies.filter(currency => currency !== 'ZAR') :  // If USDT available, exclude ZAR
+        allFundedCurrencies; // Otherwise use all funded currencies
+    
+    console.log('💰 All funded currencies:', allFundedCurrencies);
+    console.log('✅ Using currencies (USDT prioritized):', fundedCurrencies);
     console.log('🔍 Available balances:', lunoBalances);
+    
+    if (allFundedCurrencies.includes('ZAR') && fundedCurrencies.includes('USDT') && !fundedCurrencies.includes('ZAR')) {
+        console.log('⏭️ Skipping ZAR paths - USDT trading prioritized');
+    }
     
     // Scan paths for all funded currencies
     const fundedPaths = Object.entries(lunoTriangularPathsV2)
