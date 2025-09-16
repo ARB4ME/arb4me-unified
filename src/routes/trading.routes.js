@@ -1987,6 +1987,122 @@ router.post('/valr/order-status', tradingRateLimit, [
     }
 }));
 
+// VALR Triangular Arbitrage Endpoint - Execute single triangular trade step
+router.post('/valr/triangular', tradingRateLimit, optionalAuth, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('pair').notEmpty().withMessage('Trading pair is required'),
+    body('side').isIn(['buy', 'sell']).withMessage('Side must be buy or sell'),
+    body('amount').isFloat({ min: 0.01 }).withMessage('Amount must be a positive number'),
+    body('expectedPrice').isFloat({ min: 0 }).withMessage('Expected price must be a positive number')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+    
+    const { apiKey, apiSecret, pair, side, amount, expectedPrice, type = 'market' } = req.body;
+    
+    try {
+        systemLogger.trading('VALR triangular trade initiated', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'valr',
+            endpoint: 'triangular',
+            pair,
+            side,
+            amount,
+            type
+        });
+        
+        // Determine VALR order parameters based on trade side
+        let orderPayload;
+        let payInCurrency, payAmount;
+        
+        if (side.toLowerCase() === 'buy') {
+            // For BUY: determine what currency we're paying with
+            if (pair.includes('ZAR')) {
+                payInCurrency = 'ZAR';
+                payAmount = amount.toString();
+            } else if (pair.includes('USDT')) {
+                payInCurrency = 'USDT';
+                payAmount = amount.toString();
+            } else if (pair.includes('USDC')) {
+                payInCurrency = 'USDC';
+                payAmount = amount.toString();
+            } else if (pair.includes('BTC')) {
+                // For BTC pairs like ETHBTC, we pay in BTC
+                payInCurrency = 'BTC';
+                payAmount = (amount / expectedPrice).toString(); // Convert to BTC amount
+            } else {
+                throw new Error(`Unsupported pair format for BUY: ${pair}`);
+            }
+        } else {
+            // For SELL: we're selling the base currency
+            const baseCurrency = pair.replace(/ZAR|USDT|USDC|BTC$/, ''); // Remove quote currency
+            payInCurrency = baseCurrency;
+            payAmount = (amount / expectedPrice).toString(); // Amount of base currency to sell
+        }
+        
+        orderPayload = {
+            pair: pair,
+            payInCurrency: payInCurrency,
+            payAmount: payAmount
+        };
+        
+        systemLogger.trading('VALR triangular order request', {
+            endpoint: `${VALR_CONFIG.baseUrl}${VALR_CONFIG.endpoints.simpleBuyOrder}`,
+            orderPayload: orderPayload,
+            side: side.toUpperCase()
+        });
+        
+        // Call VALR simple order API (handles both buy and sell)
+        const orderResult = await makeValrRequest(
+            VALR_CONFIG.endpoints.simpleBuyOrder,
+            'POST',
+            apiKey,
+            apiSecret,
+            orderPayload
+        );
+        
+        systemLogger.trading('VALR triangular trade successful', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'valr',
+            orderId: orderResult.id,
+            pair: pair,
+            side,
+            payInCurrency,
+            payAmount,
+            status: orderResult.status
+        });
+        
+        res.json({
+            success: true,
+            data: {
+                orderId: orderResult.id,
+                pair: pair,
+                side: side.toUpperCase(),
+                payInCurrency: payInCurrency,
+                payAmount: parseFloat(payAmount),
+                executedAmount: parseFloat(orderResult.baseAmount || orderResult.counterAmount || payAmount),
+                executedPrice: parseFloat(orderResult.price || expectedPrice),
+                fee: parseFloat(orderResult.feeAmount || '0'),
+                timestamp: new Date().toISOString(),
+                status: orderResult.status
+            }
+        });
+        
+    } catch (error) {
+        systemLogger.error('VALR triangular trade failed', {
+            userId: req.user?.id || 'anonymous',
+            error: error.message,
+            pair,
+            side,
+            amount
+        });
+        throw new APIError(`VALR triangular trade failed: ${error.message}`, 500, 'VALR_TRIANGULAR_ERROR');
+    }
+}));
+
 // ============================================================================
 // ALTCOINTRADER EXCHANGE API PROXY ENDPOINTS
 // ============================================================================
