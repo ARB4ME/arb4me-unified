@@ -27604,6 +27604,9 @@ ARB4ME Security Team`
         window.testValrConvert1 = () => testValrTriangularStep('USDTETH', 'buy', 3500, 0.000286, false);
         window.testValrConvert2 = () => testValrTriangularStep('USDTBTC', 'buy', 95000, 0.0000105, false);
         
+        // Test LINK sell with real market price from order book
+        window.testValrLINKSell = () => testValrTriangularStep('LINKUSDT', 'sell', 0.1, 23.30, false);
+        
         // Complete triangular arbitrage test (all 3 steps)
         window.testValrTriangularComplete = async () => {
             console.log('\n🔺 === COMPLETE VALR TRIANGULAR ARBITRAGE TEST ===');
