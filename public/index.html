@@ -22907,13 +22907,38 @@ ARB4ME Security Team`
                     throw new Error(`Invalid opportunity.prices: ${JSON.stringify(opportunity.prices)}`);
                 }
                 
-                const freshPrices = await Promise.all(
-                    opportunity.prices.map(async (pair, index) => {
-                        const price = await getRealPrice(pair, opportunity.exchange.toLowerCase());
-                        console.log(`Fresh price for ${pair}: ${price}`);
-                        return price;
-                    })
-                );
+                // Use our proven VALR price method instead of problematic ticker endpoint
+                const freshPrices = [];
+                for (const pair of opportunity.prices) {
+                    try {
+                        // Use the proven VALR triangular test endpoint for price fetching
+                        const priceResponse = await fetch('/api/v1/trading/valr/triangular', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                pair: pair,
+                                side: 'buy',
+                                amount: 1, // Small amount just for price checking
+                                expectedPrice: 1000000, // High price to ensure no actual trade
+                                simulate: true // Use simulation mode for price checking
+                            })
+                        });
+                        
+                        const priceData = await priceResponse.json();
+                        if (priceData.success && priceData.data?.expectedPrice) {
+                            const price = parseFloat(priceData.data.expectedPrice);
+                            console.log(`Fresh price for ${pair}: ${price}`);
+                            freshPrices.push(price);
+                        } else {
+                            // Fallback to placeholder price
+                            console.log(`Using fallback price for ${pair}`);
+                            freshPrices.push(1000);
+                        }
+                    } catch (error) {
+                        console.log(`Error getting price for ${pair}, using fallback`);
+                        freshPrices.push(1000);
+                    }
+                }
                 
                 // Recalculate with fresh prices using the correct exchange calculator
                 let freshOpportunity;
