@@ -14,7 +14,7 @@
 // Created: Emergency implementation due to Luno account restrictions
 // Status: Ready for testing - VALR has working trade permissions
 
-console.log('🔺 Loading VALR Triangular module...');
+console.log('🔺 Loading VALR Triangular module v2.0 - Production Path Sets...');
 
 const PlatformReporting = {
     // Trade recording functions
