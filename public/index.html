@@ -27773,7 +27773,7 @@ ARB4ME Security Team`
             // Execute through smart shopper (should bypass validation)
             try {
                 console.log('🚀 Executing triangular arbitrage...');
-                await executeTriangularArbitrage(testOpportunity);
+                await executeTriangularOpportunity(testOpportunity);
                 console.log('✅ EXECUTION COMPLETED!');
                 return { success: true, message: 'Triangular execution test completed' };
             } catch (error) {
