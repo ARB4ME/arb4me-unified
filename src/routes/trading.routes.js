@@ -2061,8 +2061,17 @@ router.post('/valr/triangular', tradingRateLimit, optionalAuth, [
     body('amount').isFloat({ min: 0.01 }).withMessage('Amount must be a positive number'),
     body('expectedPrice').isFloat({ min: 0 }).withMessage('Expected price must be a positive number')
 ], asyncHandler(async (req, res) => {
+    // DEBUG: Log exactly what we're receiving for VALR triangular
+    console.log('🔍 VALR Triangular Request Debug:', {
+        body: req.body,
+        bodyKeys: Object.keys(req.body || {}),
+        bodyTypes: Object.keys(req.body || {}).map(key => `${key}: ${typeof req.body[key]}`),
+        timestamp: new Date().toISOString()
+    });
+    
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+        console.log('❌ VALR Triangular Validation Errors:', errors.array());
         throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
     }
     
