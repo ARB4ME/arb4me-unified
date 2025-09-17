@@ -428,7 +428,7 @@ const VALRPathSets = {
 };
 
 // Legacy paths object for backward compatibility
-const valrTriangularPaths = {};
+const valrProductionPaths = {};
 
 // VALR price cache
 const valrPriceCache = {
