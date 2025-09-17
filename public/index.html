@@ -23309,6 +23309,7 @@ ARB4ME Security Team`
                     const valrConnection = arb4meConnections.valr;
                     const userValrCreds = arb4meUser.exchanges?.valr;
                     const dataValrCreds = arb4meData.exchanges?.valr || arb4meData.valr;
+                    const apiKeyCreds = arb4meData.apiKeys?.valr; // Check apiKeys property!
                     
                     let valrApiKey = '';
                     let valrApiSecret = '';
@@ -23332,6 +23333,12 @@ ARB4ME Security Team`
                         valrApiSecret = dataValrCreds.apiSecret || dataValrCreds.secret;
                         credentialSource = 'arb4me_data';
                     }
+                    // Check Location 4: arb4me_data.apiKeys.valr
+                    else if (apiKeyCreds && (apiKeyCreds.apiKey || apiKeyCreds.key)) {
+                        valrApiKey = apiKeyCreds.apiKey || apiKeyCreds.key;
+                        valrApiSecret = apiKeyCreds.apiSecret || apiKeyCreds.secret;
+                        credentialSource = 'arb4me_data.apiKeys';
+                    }
                     
                     if (valrApiKey && valrApiSecret) {
                         console.log(`✅ Found VALR credentials in ${credentialSource}`);
@@ -23340,6 +23347,8 @@ ARB4ME Security Team`
                         console.log('arb4me_connections valr:', valrConnection);
                         console.log('arb4me_user exchanges:', arb4meUser.exchanges);
                         console.log('arb4me_data content keys:', Object.keys(arb4meData));
+                        console.log('arb4me_data.apiKeys:', arb4meData.apiKeys);
+                        console.log('arb4me_data.apiKeys.valr:', apiKeyCreds);
                         console.log('All localStorage keys:', Object.keys(localStorage));
                         throw new Error('VALR API credentials not available for triangular execution');
                     }
