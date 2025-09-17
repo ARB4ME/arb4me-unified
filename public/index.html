@@ -22181,7 +22181,7 @@ ARB4ME Security Team`
                 profitThreshold: 1.0, // Fixed at 1% - not user configurable
                 tradeSize: 20,
                 selectedAssets: ['XRPUSDT', 'BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'LINKUSDT', 'DOGEUSDT', 'ADAUSDT', 'DOTUSDT', 'AVAXUSDT', 'MATICUSDT', 'LTCUSDT', 'ATOMUSDT', 'BNBUSDT', 'UNIUSDT', 'BCHUSDT', 'SHIBUSDT', 'HBARUSDT', 'ETHBTC', 'ADABTC', 'DOTETH', 'LINKBTC', 'XRPBTC', 'XLMBTC', 'ALGOBTC', 'HBARBTC', 'SOLBTC', 'MATICBTC', 'AVAXBTC', 'BNBBTC', 'LTCBTC', 'SOLETH', 'MATICETH', 'LINKETH', 'UNIETH', 'BTCUSDC', 'ETHUSDC'],
-                maxTradeAmount: 100,
+                maxTradeAmount: 500,  // Increased to 500 ZAR to meet VALR minimums
                 safetyEnabled: true
             },
             balances: {
@@ -22876,8 +22876,8 @@ ARB4ME Security Team`
                 // Calculate trade amount based on the correct base currency balance
                 const balance = state.balances?.[exchangeKey]?.[baseCurrency] || 0;
                 const tradeAmount = Math.min(
-                    state.settings.maxTradeAmount || 100,  // Increased minimum from 50 to 100 ZAR
-                    balance * (state.settings.tradeSize || 15) / 100
+                    state.settings.maxTradeAmount || 500,  // Increased to 500 ZAR to meet VALR minimums
+                    balance * (state.settings.tradeSize || 20) / 100
                 );
                 
                 // Validate sufficient balance
