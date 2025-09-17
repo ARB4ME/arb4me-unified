@@ -23354,7 +23354,8 @@ ARB4ME Security Team`
                     }
                     
                     // Use VALR triangular API with discovered credentials  
-                    console.log('📤 Sending VALR triangular request:', { pair, side, amount, expectedPrice });
+                    const normalizedSide = side.toLowerCase(); // Convert BUY/SELL to buy/sell
+                    console.log('📤 Sending VALR triangular request:', { pair, side: normalizedSide, amount, expectedPrice });
                     
                     tradeResult = await fetch('/api/v1/trading/valr/triangular', {
                         method: 'POST',
@@ -23363,7 +23364,7 @@ ARB4ME Security Team`
                             apiKey: valrApiKey,
                             apiSecret: valrApiSecret,
                             pair: pair,
-                            side: side,
+                            side: normalizedSide,              // Use lowercase buy/sell
                             amount: parseFloat(amount),        // Ensure it's a number
                             expectedPrice: parseFloat(expectedPrice)  // Ensure it's a number
                             // Removed 'simulate' - not expected by backend
