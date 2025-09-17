@@ -1652,13 +1652,13 @@ router.post('/valr/ticker', tickerRateLimit, optionalAuth, asyncHandler(async (r
         );
         
         // Find the specific pair from all market summaries
-        // VALR uses format like "BTCZAR", "ETHZAR", "USDTZAR" etc.
+        // VALR uses format like "BTCZAR", "ETHZAR", "USDTZAR", "BTCUSDT", "LINKUSDT" etc.
         let valrPair;
-        if (pair === 'USDTZAR') {
-            // Don't change USDTZAR - it's already correct for VALR
-            valrPair = 'USDTZAR';
+        if (pair === 'USDTZAR' || pair === 'LINKUSDT' || pair === 'BTCUSDT' || pair === 'ETHUSDT' || pair === 'XRPUSDT') {
+            // Don't change these pairs - VALR supports them directly
+            valrPair = pair;
         } else if (pair.endsWith('USDT')) {
-            // Convert crypto/USDT pairs to crypto/ZAR (e.g., BTCUSDT -> BTCZAR)
+            // For other USDT pairs not directly supported, convert to ZAR
             valrPair = pair.replace('USDT', 'ZAR');
         } else {
             // Keep other pairs as is (BTCZAR, ETHZAR, etc.)
