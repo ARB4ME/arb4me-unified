@@ -23275,85 +23275,18 @@ ARB4ME Security Team`
                 // Route to correct exchange API
                 let tradeResult;
                 if (exchange === 'valr') {
-                    // For testing: Use stored VALR credentials (same pattern as balance endpoint)
-                    // Since you connected successfully, credentials must be accessible
-                    console.log('🔍 Attempting to retrieve VALR credentials for triangular execution...');
+                    // Use same credential pattern as working balance calls
+                    console.log('🔍 Getting VALR credentials from state (same as balance calls)...');
                     
-                    // Try multiple storage locations for VALR credentials
-                    console.log('🔍 Checking all possible credential storage locations...');
-                    
-                    let arb4meConnections = {};
-                    let arb4meUser = {};
-                    let arb4meData = {};
-                    
-                    // Safe JSON parsing with error handling
-                    try {
-                        arb4meConnections = JSON.parse(localStorage.getItem('arb4me_connections') || '{}');
-                    } catch (e) {
-                        console.log('⚠️ Error parsing arb4me_connections:', e.message);
+                    const valrData = state.exchanges?.valr;
+                    if (!valrData?.api?.key || !valrData?.api?.secret) {
+                        throw new Error('VALR API credentials not found in state.exchanges.valr.api');
                     }
                     
-                    try {
-                        arb4meUser = JSON.parse(localStorage.getItem('arb4me_user') || '{}');
-                    } catch (e) {
-                        console.log('⚠️ Error parsing arb4me_user:', e.message);
-                        console.log('Raw arb4me_user content:', localStorage.getItem('arb4me_user')?.substring(0, 100));
-                    }
+                    console.log('✅ Found VALR credentials in state.exchanges.valr.api');
+                    console.log(`🔑 Using API Key: ${valrData.api.key.substring(0, 8)}...`);
                     
-                    try {
-                        arb4meData = JSON.parse(localStorage.getItem('arb4me_data') || '{}');
-                    } catch (e) {
-                        console.log('⚠️ Error parsing arb4me_data:', e.message);
-                    }
-                    
-                    const valrConnection = arb4meConnections.valr;
-                    const userValrCreds = arb4meUser.exchanges?.valr;
-                    const dataValrCreds = arb4meData.exchanges?.valr || arb4meData.valr;
-                    const apiKeyCreds = arb4meData.apiKeys?.valr; // Check apiKeys property!
-                    
-                    let valrApiKey = '';
-                    let valrApiSecret = '';
-                    let credentialSource = '';
-                    
-                    // Check Location 1: arb4me_connections  
-                    if (valrConnection && (valrConnection.apiKey || valrConnection.key)) {
-                        valrApiKey = valrConnection.apiKey || valrConnection.key;
-                        valrApiSecret = valrConnection.apiSecret || valrConnection.secret;
-                        credentialSource = 'arb4me_connections';
-                    }
-                    // Check Location 2: arb4me_user
-                    else if (userValrCreds && (userValrCreds.apiKey || userValrCreds.key)) {
-                        valrApiKey = userValrCreds.apiKey || userValrCreds.key;
-                        valrApiSecret = userValrCreds.apiSecret || userValrCreds.secret;
-                        credentialSource = 'arb4me_user';
-                    }
-                    // Check Location 3: arb4me_data
-                    else if (dataValrCreds && (dataValrCreds.apiKey || dataValrCreds.key)) {
-                        valrApiKey = dataValrCreds.apiKey || dataValrCreds.key;
-                        valrApiSecret = dataValrCreds.apiSecret || dataValrCreds.secret;
-                        credentialSource = 'arb4me_data';
-                    }
-                    // Check Location 4: arb4me_data.apiKeys.valr
-                    else if (apiKeyCreds && (apiKeyCreds.apiKey || apiKeyCreds.key)) {
-                        valrApiKey = apiKeyCreds.apiKey || apiKeyCreds.key;
-                        valrApiSecret = apiKeyCreds.apiSecret || apiKeyCreds.secret;
-                        credentialSource = 'arb4me_data.apiKeys';
-                    }
-                    
-                    if (valrApiKey && valrApiSecret) {
-                        console.log(`✅ Found VALR credentials in ${credentialSource}`);
-                    } else {
-                        console.log('❌ VALR credentials not found in any storage location');
-                        console.log('arb4me_connections valr:', valrConnection);
-                        console.log('arb4me_user exchanges:', arb4meUser.exchanges);
-                        console.log('arb4me_data content keys:', Object.keys(arb4meData));
-                        console.log('arb4me_data.apiKeys:', arb4meData.apiKeys);
-                        console.log('arb4me_data.apiKeys.valr:', apiKeyCreds);
-                        console.log('All localStorage keys:', Object.keys(localStorage));
-                        throw new Error('VALR API credentials not available for triangular execution');
-                    }
-                    
-                    // Use VALR triangular API with discovered credentials  
+                    // Use VALR triangular API with state credentials (same pattern as balance endpoint)
                     const normalizedSide = side.toLowerCase(); // Convert BUY/SELL to buy/sell
                     console.log('📤 Sending VALR triangular request:', { pair, side: normalizedSide, amount, expectedPrice });
                     
@@ -23361,8 +23294,8 @@ ARB4ME Security Team`
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            apiKey: valrApiKey,
-                            apiSecret: valrApiSecret,
+                            apiKey: valrData.api.key,
+                            apiSecret: valrData.api.secret,
                             pair: pair,
                             side: normalizedSide,              // Use lowercase buy/sell
                             amount: parseFloat(amount),        // Ensure it's a number
