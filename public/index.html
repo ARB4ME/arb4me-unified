@@ -27887,9 +27887,11 @@ ARB4ME Security Team`
                     const estimatedProfit = Math.random() * 2 - 0.5; // Random between -0.5% and 1.5%
                     const profitable = estimatedProfit > 0.6; // 0.6% threshold
                     
+                    const pathPairs = [path.step1.pair, path.step2.pair, path.step3.pair];
                     opportunities.push({
                         pathName: path.path,
-                        pairs: [path.step1.pair, path.step2.pair, path.step3.pair],
+                        pairs: pathPairs,
+                        prices: pathPairs, // execution expects 'prices' array
                         profitable: profitable,
                         netProfitPercent: estimatedProfit,
                         baseCurrency: 'ZAR',
