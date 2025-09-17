@@ -23221,11 +23221,22 @@ ARB4ME Security Team`
                 // Route to correct exchange API
                 let tradeResult;
                 if (exchange === 'valr') {
-                    // Use VALR triangular API (proven working)
+                    // Get VALR credentials from localStorage (same as other working endpoints)
+                    const valrCredentials = JSON.parse(localStorage.getItem('exchangeCredentials') || '{}').valr || {};
+                    const valrApiKey = valrCredentials.key || '';
+                    const valrApiSecret = valrCredentials.secret || '';
+                    
+                    if (!valrApiKey || !valrApiSecret) {
+                        throw new Error('VALR API credentials not found');
+                    }
+                    
+                    // Use VALR triangular API (proven working) - include required credentials
                     tradeResult = await fetch('/api/v1/trading/valr/triangular', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
+                            apiKey: valrApiKey,
+                            apiSecret: valrApiSecret,
                             pair: pair,
                             side: side,
                             amount: amount,
