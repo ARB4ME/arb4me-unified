@@ -22922,12 +22922,22 @@ ARB4ME Security Team`
                         
                         if (priceResponse.ok) {
                             const priceData = await priceResponse.json();
-                            const currentPrice = parseFloat(priceData.lastPrice || priceData.price || 0);
+                            console.log(`🔍 Raw price response for ${pair}:`, JSON.stringify(priceData, null, 2));
+                            
+                            // Backend returns: { success: true, data: { ticker: { lastPrice: 123 } } }
+                            const currentPrice = parseFloat(
+                                priceData?.data?.ticker?.lastPrice || 
+                                priceData?.data?.ticker?.price || 
+                                priceData?.lastPrice || 
+                                priceData?.price || 
+                                0
+                            );
+                            
                             if (currentPrice > 0) {
-                                console.log(`Fresh price for ${pair}: ${currentPrice}`);
+                                console.log(`✅ Fresh price for ${pair}: ${currentPrice}`);
                                 freshPrices.push(currentPrice);
                             } else {
-                                console.log(`Using realistic fallback price for ${pair} (invalid response)`);
+                                console.log(`❌ Using realistic fallback price for ${pair} (price = ${currentPrice})`);
                                 // Use realistic fallback prices based on pair type
                                 const fallbackPrice = getFallbackPrice(pair);
                                 freshPrices.push(fallbackPrice);
