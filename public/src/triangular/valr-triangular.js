@@ -428,7 +428,7 @@ const VALRPathSets = {
 };
 
 // Legacy paths object for backward compatibility
-const valrProductionPaths = {};
+const valrTriangularPaths = {}; // Keep original name for now
 
 // VALR price cache
 const valrPriceCache = {
@@ -1090,7 +1090,7 @@ function initializeVALRTriangular() {
     };
     
     console.log('🔧 VALR Platform Integration Status:', integrationStatus);
-    PlatformReporting.addActivity('🔺 VALR Triangular Module initialized', 'info');
+    // PlatformReporting.addActivity('🔺 VALR Triangular Module initialized', 'info'); // Commented - undefined
     return true;
 }
 
