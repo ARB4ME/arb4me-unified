@@ -23282,16 +23282,32 @@ ARB4ME Security Team`
                     // Try multiple storage locations for VALR credentials
                     console.log('🔍 Checking all possible credential storage locations...');
                     
-                    // Location 1: arb4me_connections
-                    const arb4meConnections = JSON.parse(localStorage.getItem('arb4me_connections') || '{}');
+                    let arb4meConnections = {};
+                    let arb4meUser = {};
+                    let arb4meData = {};
+                    
+                    // Safe JSON parsing with error handling
+                    try {
+                        arb4meConnections = JSON.parse(localStorage.getItem('arb4me_connections') || '{}');
+                    } catch (e) {
+                        console.log('⚠️ Error parsing arb4me_connections:', e.message);
+                    }
+                    
+                    try {
+                        arb4meUser = JSON.parse(localStorage.getItem('arb4me_user') || '{}');
+                    } catch (e) {
+                        console.log('⚠️ Error parsing arb4me_user:', e.message);
+                        console.log('Raw arb4me_user content:', localStorage.getItem('arb4me_user')?.substring(0, 100));
+                    }
+                    
+                    try {
+                        arb4meData = JSON.parse(localStorage.getItem('arb4me_data') || '{}');
+                    } catch (e) {
+                        console.log('⚠️ Error parsing arb4me_data:', e.message);
+                    }
+                    
                     const valrConnection = arb4meConnections.valr;
-                    
-                    // Location 2: arb4me_user (user profile with credentials)
-                    const arb4meUser = JSON.parse(localStorage.getItem('arb4me_user') || '{}');
                     const userValrCreds = arb4meUser.exchanges?.valr;
-                    
-                    // Location 3: arb4me_data (general data storage)
-                    const arb4meData = JSON.parse(localStorage.getItem('arb4me_data') || '{}');
                     const dataValrCreds = arb4meData.exchanges?.valr || arb4meData.valr;
                     
                     let valrApiKey = '';
