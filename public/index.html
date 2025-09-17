@@ -22797,7 +22797,7 @@ ARB4ME Security Team`
                             if (exchange === 'valr') {
                                 // VALR triangular arbitrage scanning
                                 console.log('🔺 Running VALR triangular scan...');
-                                const opportunities = await scanValrTriangularOpportunities(false);
+                                const opportunities = await VALRTriangular.scanOpportunities();
                                 scanResults.totalOpportunities.push(...opportunities);
                                 
                                 // Track best opportunity
@@ -23165,13 +23165,30 @@ ARB4ME Security Team`
             try {
                 console.log(`📊 Step ${step}/${totalSteps}: ${side} ${amount} on ${pair} at ~${expectedPrice}`);
                 
-                // 🚀 REAL TRADING MODE - Execute actual Luno triangular trades
+                // 🚀 REAL TRADING MODE - Route to correct exchange
                 addActivity(`🔄 Step ${step}/${totalSteps}: ${side} ${pair} - ${amount.toFixed(6)}`, 'info');
                 
-                // Execute real trade via backend API
-                const tradeResult = await executeLunoTriangularTrade(pair, side, amount, expectedPrice);
+                // Route to correct exchange API
+                let tradeResult;
+                if (exchange === 'valr') {
+                    // Use VALR triangular API (proven working)
+                    tradeResult = await fetch('/api/v1/trading/valr/triangular', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            pair: pair,
+                            side: side,
+                            amount: amount,
+                            expectedPrice: expectedPrice,
+                            simulate: false
+                        })
+                    }).then(res => res.json());
+                } else {
+                    // Fallback to Luno for non-VALR exchanges
+                    tradeResult = await executeLunoTriangularTrade(pair, side, amount, expectedPrice);
+                }
                 if (!tradeResult.success) {
-                    throw new Error(`Luno trade failed: ${tradeResult.error}`);
+                    throw new Error(`${exchange.toUpperCase()} trade failed: ${tradeResult.error?.message || tradeResult.error || 'Unknown error'}`);
                 }
                 
                 // Use real executed amount from API response
@@ -24049,7 +24066,7 @@ ARB4ME Security Team`
                 } else if (exchange === 'chainex') {
                     return await scanChainexTriangularOpportunities(false);
                 } else if (exchange === 'valr') {
-                    return await scanValrTriangularOpportunities(false);
+                    return await VALRTriangular.scanOpportunities();
                 } else {
                     console.log(`⚠️ Triangular arbitrage not yet implemented for ${exchange}`);
                     return [];
