@@ -16,58 +16,8 @@
 
 console.log('🔺 Loading VALR Triangular module v2.0 - Production Path Sets...');
 
-const PlatformReporting = {
-    // Trade recording functions
-    recordTrade: function(tradeData) {
-        if (typeof window !== 'undefined' && window.recordVALRTriangularTrade) {
-            return window.recordVALRTriangularTrade(tradeData);
-        }
-        console.log('📊 VALR Trade (offline):', tradeData);
-    },
-    
-    // Activity feed functions
-    addActivity: function(message, type = 'info') {
-        if (typeof window !== 'undefined' && window.addActivity) {
-            return window.addActivity(message, type);
-        }
-        console.log(`[${type.toUpperCase()}] ${message}`);
-    },
-    
-    addLiveActivity: function(message, type, icon, color) {
-        if (typeof window !== 'undefined' && window.addLiveActivity) {
-            return window.addLiveActivity(message, type, icon, color);
-        }
-        console.log(`${icon} ${message}`);
-    },
-    
-    // UI update functions
-    updateTradeHistory: function() {
-        if (typeof window !== 'undefined' && window.updateTradeHistoryDisplay) {
-            return window.updateTradeHistoryDisplay();
-        }
-    },
-    
-    updateHub: function() {
-        if (typeof window !== 'undefined' && window.updateIntelligenceHub) {
-            return window.updateIntelligenceHub();
-        }
-    },
-    
-    // Shared utility functions
-    delay: function(ms) {
-        if (typeof window !== 'undefined' && window.delay) {
-            return window.delay(ms);
-        }
-        return new Promise(resolve => setTimeout(resolve, ms));
-    },
-    
-    getRealPrice: function(pair, exchange) {
-        if (typeof window !== 'undefined' && window.getRealPrice) {
-            return window.getRealPrice(pair, exchange);
-        }
-        throw new Error('getRealPrice function not available');
-    }
-};
+// PlatformReporting is shared with other modules (loaded from luno-triangular.js)
+// Using the global PlatformReporting object to avoid duplicate declarations
 
 // ============================================
 // VALR TRIANGULAR CONFIGURATION
