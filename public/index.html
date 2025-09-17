@@ -23221,16 +23221,38 @@ ARB4ME Security Team`
                 // Route to correct exchange API
                 let tradeResult;
                 if (exchange === 'valr') {
-                    // Get VALR credentials from localStorage (same as other working endpoints)
-                    const valrCredentials = JSON.parse(localStorage.getItem('exchangeCredentials') || '{}').valr || {};
-                    const valrApiKey = valrCredentials.key || '';
-                    const valrApiSecret = valrCredentials.secret || '';
+                    // For testing: Use stored VALR credentials (same pattern as balance endpoint)
+                    // Since you connected successfully, credentials must be accessible
+                    console.log('🔍 Attempting to retrieve VALR credentials for triangular execution...');
                     
-                    if (!valrApiKey || !valrApiSecret) {
-                        throw new Error('VALR API credentials not found');
+                    // First try: Check exchangeConnections (where successful connections are stored)
+                    const exchangeConnections = JSON.parse(localStorage.getItem('exchangeConnections') || '{}');
+                    const valrConnection = exchangeConnections.valr;
+                    
+                    let valrApiKey = '';
+                    let valrApiSecret = '';
+                    
+                    if (valrConnection && valrConnection.key && valrConnection.secret) {
+                        valrApiKey = valrConnection.key;
+                        valrApiSecret = valrConnection.secret;
+                        console.log('✅ Found VALR credentials in exchangeConnections');
+                    } else {
+                        // Second try: Check exchangeCredentials
+                        const exchangeCredentials = JSON.parse(localStorage.getItem('exchangeCredentials') || '{}');
+                        const valrCredentials = exchangeCredentials.valr;
+                        
+                        if (valrCredentials && valrCredentials.key && valrCredentials.secret) {
+                            valrApiKey = valrCredentials.key;
+                            valrApiSecret = valrCredentials.secret;
+                            console.log('✅ Found VALR credentials in exchangeCredentials');
+                        } else {
+                            console.log('❌ VALR credentials not found in localStorage');
+                            console.log('Available storage keys:', Object.keys(localStorage));
+                            throw new Error('VALR API credentials not available for triangular execution');
+                        }
                     }
                     
-                    // Use VALR triangular API (proven working) - include required credentials
+                    // Use VALR triangular API with discovered credentials
                     tradeResult = await fetch('/api/v1/trading/valr/triangular', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
