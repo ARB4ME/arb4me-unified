@@ -22927,16 +22927,20 @@ ARB4ME Security Team`
                                 console.log(`Fresh price for ${pair}: ${currentPrice}`);
                                 freshPrices.push(currentPrice);
                             } else {
-                                console.log(`Using fallback price for ${pair} (invalid response)`);
-                                freshPrices.push(1000); // Conservative fallback
+                                console.log(`Using realistic fallback price for ${pair} (invalid response)`);
+                                // Use realistic fallback prices based on pair type
+                                const fallbackPrice = getFallbackPrice(pair);
+                                freshPrices.push(fallbackPrice);
                             }
                         } else {
-                            console.log(`Using fallback price for ${pair} (API error)`);
-                            freshPrices.push(1000); // Conservative fallback
+                            console.log(`Using realistic fallback price for ${pair} (API error)`);
+                            const fallbackPrice = getFallbackPrice(pair);
+                            freshPrices.push(fallbackPrice);
                         }
                     } catch (error) {
-                        console.log(`Using fallback price for ${pair} (fetch error):`, error.message);
-                        freshPrices.push(1000); // Conservative fallback
+                        console.log(`Using realistic fallback price for ${pair} (fetch error):`, error.message);
+                        const fallbackPrice = getFallbackPrice(pair);
+                        freshPrices.push(fallbackPrice);
                     }
                 }
                 
@@ -23293,6 +23297,8 @@ ARB4ME Security Team`
                     } else {
                         console.log('❌ VALR credentials not found in arb4me_connections');
                         console.log('arb4me_connections content:', arb4meConnections);
+                        console.log('valrConnection details:', valrConnection);
+                        console.log('Available valr properties:', Object.keys(valrConnection || {}));
                         throw new Error('VALR API credentials not available for triangular execution');
                     }
                     
@@ -27933,6 +27939,39 @@ ARB4ME Security Team`
                 state.triangularArbitrage = originalTriangularState;
             }
         };
+        
+        // Get realistic fallback price for a trading pair
+        function getFallbackPrice(pair) {
+            // Realistic VALR market prices (approximate)
+            const fallbackPrices = {
+                'LINKZAR': 280,        // LINK ~280 ZAR
+                'LINKUSDT': 23,        // LINK ~23 USDT  
+                'USDTZAR': 18.5,       // USDT ~18.5 ZAR
+                'ETHZAR': 50000,       // ETH ~50,000 ZAR
+                'ETHUSDT': 2500,       // ETH ~2,500 USDT
+                'ADAZAR': 8.5,         // ADA ~8.5 ZAR
+                'ADAUSDT': 0.45,       // ADA ~0.45 USDT
+                'DOTZAR': 95,          // DOT ~95 ZAR
+                'DOTUSDT': 5.2,        // DOT ~5.2 USDT
+                'MATICZAR': 9,         // MATIC ~9 ZAR
+                'MATICUSDT': 0.5       // MATIC ~0.5 USDT
+            };
+            
+            const price = fallbackPrices[pair];
+            if (price) {
+                console.log(`Using realistic fallback price for ${pair}: ${price}`);
+                return price;
+            }
+            
+            // If pair not found, make educated guess based on currency
+            if (pair.includes('ZAR')) {
+                return 100; // Conservative ZAR pair price
+            } else if (pair.includes('USDT')) {
+                return 1; // Conservative USDT pair price
+            } else {
+                return 50; // Conservative generic price
+            }
+        }
         
         // VALR Triangular Path Generator - excludes BTC pairs
         window.generateValrTriangularPaths = () => {
