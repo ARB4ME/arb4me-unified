@@ -27607,6 +27607,26 @@ ARB4ME Security Team`
         // Test LINK sell with real market price from order book
         window.testValrLINKSell = () => testValrTriangularStep('LINKUSDT', 'sell', 0.1, 23.30, false);
         
+        // Test ZAR → LINK → USDT → ZAR using proven working operations
+        window.testValrLinkTriangle = async () => {
+            console.log('\n🔺 === ZAR→LINK→USDT→ZAR TRIANGULAR TEST ===');
+            
+            console.log('Step 1: ZAR → LINK (LINKZAR buy)');
+            const step1 = await testValrTriangularStep('LINKZAR', 'buy', 100, 420, false);
+            if (!step1.success) return step1;
+            
+            console.log('Step 2: LINK → USDT (LINKUSDT sell)');  
+            const step2 = await testValrTriangularStep('LINKUSDT', 'sell', 0.2, 23.30, false);
+            if (!step2.success) return step2;
+            
+            console.log('Step 3: USDT → ZAR (USDTZAR sell)');
+            const step3 = await testValrTriangularStep('USDTZAR', 'sell', 4.5, 18.5, false);
+            if (!step3.success) return step3;
+            
+            console.log('✅ COMPLETE TRIANGULAR ARBITRAGE SUCCESSFUL!');
+            return { success: true, message: 'Full LINK triangular loop completed!' };
+        };
+        
         // Test simple ZAR → BTC → USDT → ZAR triangular
         window.testValrSimpleTriangle = async () => {
             console.log('\n🔺 === SIMPLE ZAR→BTC→USDT→ZAR TRIANGULAR TEST ===');
