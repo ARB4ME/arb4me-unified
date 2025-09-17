@@ -27612,11 +27612,11 @@ ARB4ME Security Team`
             console.log('\n🔺 === SIMPLE ZAR→BTC→USDT→ZAR TRIANGULAR TEST ===');
             
             console.log('Step 1: ZAR → BTC (BTCZAR buy)');
-            const step1 = await testValrTriangularStep('BTCZAR', 'buy', 50, 2000000, false);
+            const step1 = await testValrTriangularStep('BTCZAR', 'buy', 200, 2000000, false);
             if (!step1.success) return step1;
             
             console.log('Step 2: BTC → USDT (BTCUSDT sell)');  
-            const step2 = await testValrTriangularStep('BTCUSDT', 'sell', 0.000025, 95000, false);
+            const step2 = await testValrTriangularStep('BTCUSDT', 'sell', 0.0001, 95000, false);
             if (!step2.success) return step2;
             
             console.log('Step 3: USDT → ZAR (USDTZAR sell)');
