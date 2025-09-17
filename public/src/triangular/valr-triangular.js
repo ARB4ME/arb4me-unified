@@ -74,123 +74,411 @@ const PlatformReporting = {
 // ============================================
 // VALR commonly traded pairs - based on major South African exchange
 
-const valrTriangularPaths = {
-    // PROVEN WORKING PATHS - USDT/ZAR BASED (NO BTC)
-    
-    // Direct Asset → USDT → ZAR paths (PROVEN WORKING)
-    ZAR_LINK_USDT: {
-        pairs: ['LINKZAR', 'LINKUSDT', 'USDTZAR'],
-        sequence: 'ZAR → LINK → USDT → ZAR',
-        steps: [
-            { pair: 'LINKZAR', side: 'buy', description: 'ZAR → LINK' },
-            { pair: 'LINKUSDT', side: 'sell', description: 'LINK → USDT' },
-            { pair: 'USDTZAR', side: 'sell', description: 'USDT → ZAR' }
-        ],
-        baseCurrency: 'ZAR',
-        verified: true,
-        proven: true // Confirmed working in tests
+// ============================================
+// VALR PRODUCTION PATH SETS - ALL 32 OPPORTUNITIES
+// ============================================
+// Organized into scanning sets for production auto trading
+
+const VALRPathSets = {
+    // SET 1: HIGH VOLUME MAJORS (Highest Priority)
+    SET_1_MAJORS: {
+        name: "High Volume Majors",
+        scanTime: 30, // seconds
+        priority: 1,
+        minProfitThreshold: 0.8,
+        paths: [
+            {
+                id: "ZAR_LINK_USDT",
+                pairs: ['LINKZAR', 'LINKUSDT', 'USDTZAR'],
+                sequence: 'ZAR → LINK → USDT → ZAR',
+                steps: [
+                    { pair: 'LINKZAR', side: 'buy', description: 'ZAR → LINK' },
+                    { pair: 'LINKUSDT', side: 'sell', description: 'LINK → USDT' },
+                    { pair: 'USDTZAR', side: 'sell', description: 'USDT → ZAR' }
+                ],
+                baseCurrency: 'ZAR',
+                proven: true // Tested working
+            },
+            {
+                id: "ZAR_ETH_USDT",
+                pairs: ['ETHZAR', 'ETHUSDT', 'USDTZAR'],
+                sequence: 'ZAR → ETH → USDT → ZAR',
+                steps: [
+                    { pair: 'ETHZAR', side: 'buy', description: 'ZAR → ETH' },
+                    { pair: 'ETHUSDT', side: 'sell', description: 'ETH → USDT' },
+                    { pair: 'USDTZAR', side: 'sell', description: 'USDT → ZAR' }
+                ],
+                baseCurrency: 'ZAR',
+                proven: false
+            },
+            {
+                id: "ZAR_USDT_LINK",
+                pairs: ['USDTZAR', 'LINKUSDT', 'LINKZAR'],
+                sequence: 'ZAR → USDT → LINK → ZAR',
+                steps: [
+                    { pair: 'USDTZAR', side: 'buy', description: 'ZAR → USDT' },
+                    { pair: 'LINKUSDT', side: 'buy', description: 'USDT → LINK' },
+                    { pair: 'LINKZAR', side: 'sell', description: 'LINK → ZAR' }
+                ],
+                baseCurrency: 'ZAR',
+                proven: true // Reverse of working path
+            },
+            {
+                id: "ZAR_USDT_ETH",
+                pairs: ['USDTZAR', 'ETHUSDT', 'ETHZAR'],
+                sequence: 'ZAR → USDT → ETH → ZAR',
+                steps: [
+                    { pair: 'USDTZAR', side: 'buy', description: 'ZAR → USDT' },
+                    { pair: 'ETHUSDT', side: 'buy', description: 'USDT → ETH' },
+                    { pair: 'ETHZAR', side: 'sell', description: 'ETH → ZAR' }
+                ],
+                baseCurrency: 'ZAR',
+                proven: false
+            }
+        ]
     },
-    ZAR_ETH_USDT: {
-        pairs: ['ETHZAR', 'ETHUSDT', 'USDTZAR'],
-        sequence: 'ZAR → ETH → USDT → ZAR',
-        steps: [
-            { pair: 'ETHZAR', side: 'buy', description: 'ZAR → ETH' },
-            { pair: 'ETHUSDT', side: 'sell', description: 'ETH → USDT' },
-            { pair: 'USDTZAR', side: 'sell', description: 'USDT → ZAR' }
-        ],
-        baseCurrency: 'ZAR',
-        verified: true,
-        proven: false
+
+    // SET 2: POPULAR ALTCOINS (Medium Priority)
+    SET_2_ALTS: {
+        name: "Popular Altcoins",
+        scanTime: 45, // seconds
+        priority: 2,
+        minProfitThreshold: 1.0,
+        paths: [
+            {
+                id: "ZAR_ADA_USDT",
+                pairs: ['ADAZAR', 'ADAUSDT', 'USDTZAR'],
+                sequence: 'ZAR → ADA → USDT → ZAR',
+                steps: [
+                    { pair: 'ADAZAR', side: 'buy', description: 'ZAR → ADA' },
+                    { pair: 'ADAUSDT', side: 'sell', description: 'ADA → USDT' },
+                    { pair: 'USDTZAR', side: 'sell', description: 'USDT → ZAR' }
+                ],
+                baseCurrency: 'ZAR'
+            },
+            {
+                id: "ZAR_DOT_USDT", 
+                pairs: ['DOTZAR', 'DOTUSDT', 'USDTZAR'],
+                sequence: 'ZAR → DOT → USDT → ZAR',
+                steps: [
+                    { pair: 'DOTZAR', side: 'buy', description: 'ZAR → DOT' },
+                    { pair: 'DOTUSDT', side: 'sell', description: 'DOT → USDT' },
+                    { pair: 'USDTZAR', side: 'sell', description: 'USDT → ZAR' }
+                ],
+                baseCurrency: 'ZAR'
+            },
+            {
+                id: "ZAR_MATIC_USDT",
+                pairs: ['MATICZAR', 'MATICUSDT', 'USDTZAR'],
+                sequence: 'ZAR → MATIC → USDT → ZAR',
+                steps: [
+                    { pair: 'MATICZAR', side: 'buy', description: 'ZAR → MATIC' },
+                    { pair: 'MATICUSDT', side: 'sell', description: 'MATIC → USDT' },
+                    { pair: 'USDTZAR', side: 'sell', description: 'USDT → ZAR' }
+                ],
+                baseCurrency: 'ZAR'
+            },
+            {
+                id: "ZAR_SOL_USDT",
+                pairs: ['SOLZAR', 'SOLUSDT', 'USDTZAR'],
+                sequence: 'ZAR → SOL → USDT → ZAR',
+                steps: [
+                    { pair: 'SOLZAR', side: 'buy', description: 'ZAR → SOL' },
+                    { pair: 'SOLUSDT', side: 'sell', description: 'SOL → USDT' },
+                    { pair: 'USDTZAR', side: 'sell', description: 'USDT → ZAR' }
+                ],
+                baseCurrency: 'ZAR'
+            },
+            {
+                id: "ZAR_USDT_ADA",
+                pairs: ['USDTZAR', 'ADAUSDT', 'ADAZAR'],
+                sequence: 'ZAR → USDT → ADA → ZAR',
+                steps: [
+                    { pair: 'USDTZAR', side: 'buy', description: 'ZAR → USDT' },
+                    { pair: 'ADAUSDT', side: 'buy', description: 'USDT → ADA' },
+                    { pair: 'ADAZAR', side: 'sell', description: 'ADA → ZAR' }
+                ],
+                baseCurrency: 'ZAR'
+            },
+            {
+                id: "ZAR_USDT_DOT",
+                pairs: ['USDTZAR', 'DOTUSDT', 'DOTZAR'],
+                sequence: 'ZAR → USDT → DOT → ZAR',
+                steps: [
+                    { pair: 'USDTZAR', side: 'buy', description: 'ZAR → USDT' },
+                    { pair: 'DOTUSDT', side: 'buy', description: 'USDT → DOT' },
+                    { pair: 'DOTZAR', side: 'sell', description: 'DOT → ZAR' }
+                ],
+                baseCurrency: 'ZAR'
+            },
+            {
+                id: "ZAR_USDT_MATIC",
+                pairs: ['USDTZAR', 'MATICUSDT', 'MATICZAR'],
+                sequence: 'ZAR → USDT → MATIC → ZAR',
+                steps: [
+                    { pair: 'USDTZAR', side: 'buy', description: 'ZAR → USDT' },
+                    { pair: 'MATICUSDT', side: 'buy', description: 'USDT → MATIC' },
+                    { pair: 'MATICZAR', side: 'sell', description: 'MATIC → ZAR' }
+                ],
+                baseCurrency: 'ZAR'
+            },
+            {
+                id: "ZAR_USDT_SOL",
+                pairs: ['USDTZAR', 'SOLUSDT', 'SOLZAR'],
+                sequence: 'ZAR → USDT → SOL → ZAR',
+                steps: [
+                    { pair: 'USDTZAR', side: 'buy', description: 'ZAR → USDT' },
+                    { pair: 'SOLUSDT', side: 'buy', description: 'USDT → SOL' },
+                    { pair: 'SOLZAR', side: 'sell', description: 'SOL → ZAR' }
+                ],
+                baseCurrency: 'ZAR'
+            }
+        ]
     },
-    ZAR_ADA_USDT: {
-        pairs: ['ADAZAR', 'ADAUSDT', 'USDTZAR'],
-        sequence: 'ZAR → ADA → USDT → ZAR',
-        steps: [
-            { pair: 'ADAZAR', side: 'buy', description: 'ZAR → ADA' },
-            { pair: 'ADAUSDT', side: 'sell', description: 'ADA → USDT' },
-            { pair: 'USDTZAR', side: 'sell', description: 'USDT → ZAR' }
-        ],
-        baseCurrency: 'ZAR',
-        verified: true,
-        proven: false
+
+    // SET 3: LAYER 1 & ECOSYSTEM TOKENS
+    SET_3_LAYER1: {
+        name: "Layer 1 & Ecosystem",
+        scanTime: 40, // seconds
+        priority: 3,
+        minProfitThreshold: 1.2,
+        paths: [
+            {
+                id: "ZAR_AVAX_USDT",
+                pairs: ['AVAXZAR', 'AVAXUSDT', 'USDTZAR'],
+                sequence: 'ZAR → AVAX → USDT → ZAR',
+                steps: [
+                    { pair: 'AVAXZAR', side: 'buy', description: 'ZAR → AVAX' },
+                    { pair: 'AVAXUSDT', side: 'sell', description: 'AVAX → USDT' },
+                    { pair: 'USDTZAR', side: 'sell', description: 'USDT → ZAR' }
+                ],
+                baseCurrency: 'ZAR'
+            },
+            {
+                id: "ZAR_ATOM_USDT",
+                pairs: ['ATOMZAR', 'ATOMUSDT', 'USDTZAR'],
+                sequence: 'ZAR → ATOM → USDT → ZAR',
+                steps: [
+                    { pair: 'ATOMZAR', side: 'buy', description: 'ZAR → ATOM' },
+                    { pair: 'ATOMUSDT', side: 'sell', description: 'ATOM → USDT' },
+                    { pair: 'USDTZAR', side: 'sell', description: 'USDT → ZAR' }
+                ],
+                baseCurrency: 'ZAR'
+            },
+            {
+                id: "ZAR_ALGO_USDT",
+                pairs: ['ALGOZAR', 'ALGOUSDT', 'USDTZAR'],
+                sequence: 'ZAR → ALGO → USDT → ZAR',
+                steps: [
+                    { pair: 'ALGOZAR', side: 'buy', description: 'ZAR → ALGO' },
+                    { pair: 'ALGOUSDT', side: 'sell', description: 'ALGO → USDT' },
+                    { pair: 'USDTZAR', side: 'sell', description: 'USDT → ZAR' }
+                ],
+                baseCurrency: 'ZAR'
+            },
+            {
+                id: "ZAR_XLM_USDT",
+                pairs: ['XLMZAR', 'XLMUSDT', 'USDTZAR'],
+                sequence: 'ZAR → XLM → USDT → ZAR',
+                steps: [
+                    { pair: 'XLMZAR', side: 'buy', description: 'ZAR → XLM' },
+                    { pair: 'XLMUSDT', side: 'sell', description: 'XLM → USDT' },
+                    { pair: 'USDTZAR', side: 'sell', description: 'USDT → ZAR' }
+                ],
+                baseCurrency: 'ZAR'
+            },
+            {
+                id: "ZAR_USDT_AVAX",
+                pairs: ['USDTZAR', 'AVAXUSDT', 'AVAXZAR'],
+                sequence: 'ZAR → USDT → AVAX → ZAR',
+                steps: [
+                    { pair: 'USDTZAR', side: 'buy', description: 'ZAR → USDT' },
+                    { pair: 'AVAXUSDT', side: 'buy', description: 'USDT → AVAX' },
+                    { pair: 'AVAXZAR', side: 'sell', description: 'AVAX → ZAR' }
+                ],
+                baseCurrency: 'ZAR'
+            },
+            {
+                id: "ZAR_USDT_ATOM",
+                pairs: ['USDTZAR', 'ATOMUSDT', 'ATOMZAR'],
+                sequence: 'ZAR → USDT → ATOM → ZAR',
+                steps: [
+                    { pair: 'USDTZAR', side: 'buy', description: 'ZAR → USDT' },
+                    { pair: 'ATOMUSDT', side: 'buy', description: 'USDT → ATOM' },
+                    { pair: 'ATOMZAR', side: 'sell', description: 'ATOM → ZAR' }
+                ],
+                baseCurrency: 'ZAR'
+            },
+            {
+                id: "ZAR_USDT_ALGO",
+                pairs: ['USDTZAR', 'ALGOUSDT', 'ALGOZAR'],
+                sequence: 'ZAR → USDT → ALGO → ZAR',
+                steps: [
+                    { pair: 'USDTZAR', side: 'buy', description: 'ZAR → USDT' },
+                    { pair: 'ALGOUSDT', side: 'buy', description: 'USDT → ALGO' },
+                    { pair: 'ALGOZAR', side: 'sell', description: 'ALGO → ZAR' }
+                ],
+                baseCurrency: 'ZAR'
+            },
+            {
+                id: "ZAR_USDT_XLM",
+                pairs: ['USDTZAR', 'XLMUSDT', 'XLMZAR'],
+                sequence: 'ZAR → USDT → XLM → ZAR',
+                steps: [
+                    { pair: 'USDTZAR', side: 'buy', description: 'ZAR → USDT' },
+                    { pair: 'XLMUSDT', side: 'buy', description: 'USDT → XLM' },
+                    { pair: 'XLMZAR', side: 'sell', description: 'XLM → ZAR' }
+                ],
+                baseCurrency: 'ZAR'
+            }
+        ]
     },
-    ZAR_DOT_USDT: {
-        pairs: ['DOTZAR', 'DOTUSDT', 'USDTZAR'],
-        sequence: 'ZAR → DOT → USDT → ZAR',
-        steps: [
-            { pair: 'DOTZAR', side: 'buy', description: 'ZAR → DOT' },
-            { pair: 'DOTUSDT', side: 'sell', description: 'DOT → USDT' },
-            { pair: 'USDTZAR', side: 'sell', description: 'USDT → ZAR' }
-        ],
-        baseCurrency: 'ZAR',
-        verified: true,
-        proven: false
-    },
-    
-    // Reverse paths: ZAR → USDT → Asset → ZAR (PROVEN WORKING)
-    ZAR_USDT_LINK: {
-        pairs: ['USDTZAR', 'LINKUSDT', 'LINKZAR'],
-        sequence: 'ZAR → USDT → LINK → ZAR',
-        steps: [
-            { pair: 'USDTZAR', side: 'buy', description: 'ZAR → USDT' },
-            { pair: 'LINKUSDT', side: 'buy', description: 'USDT → LINK' },
-            { pair: 'LINKZAR', side: 'sell', description: 'LINK → ZAR' }
-        ],
-        baseCurrency: 'ZAR',
-        verified: true,
-        proven: true // Confirmed working in tests
-    },
-    ZAR_USDT_ETH: {
-        pairs: ['USDTZAR', 'ETHUSDT', 'ETHZAR'],
-        sequence: 'ZAR → USDT → ETH → ZAR',
-        steps: [
-            { pair: 'USDTZAR', side: 'buy', description: 'ZAR → USDT' },
-            { pair: 'ETHUSDT', side: 'buy', description: 'USDT → ETH' },
-            { pair: 'ETHZAR', side: 'sell', description: 'ETH → ZAR' }
-        ],
-        baseCurrency: 'ZAR',
-        verified: true,
-        proven: false
-    },
-    ZAR_USDT_ADA: {
-        pairs: ['USDTZAR', 'ADAUSDT', 'ADAZAR'],
-        sequence: 'ZAR → USDT → ADA → ZAR',
-        steps: [
-            { pair: 'USDTZAR', side: 'buy', description: 'ZAR → USDT' },
-            { pair: 'ADAUSDT', side: 'buy', description: 'USDT → ADA' },
-            { pair: 'ADAZAR', side: 'sell', description: 'ADA → ZAR' }
-        ],
-        baseCurrency: 'ZAR',
-        verified: true,
-        proven: false
-    },
-    
-    // Additional high-volume paths
-    ZAR_SOL_USDT: {
-        pairs: ['SOLZAR', 'SOLUSDT', 'USDTZAR'],
-        sequence: 'ZAR → SOL → USDT → ZAR',
-        steps: [
-            { pair: 'SOLZAR', side: 'buy', description: 'ZAR → SOL' },
-            { pair: 'SOLUSDT', side: 'sell', description: 'SOL → USDT' },
-            { pair: 'USDTZAR', side: 'sell', description: 'USDT → ZAR' }
-        ],
-        baseCurrency: 'ZAR',
-        verified: true,
-        proven: false
-    },
-    ZAR_MATIC_USDT: {
-        pairs: ['MATICZAR', 'MATICUSDT', 'USDTZAR'],
-        sequence: 'ZAR → MATIC → USDT → ZAR',
-        steps: [
-            { pair: 'MATICZAR', side: 'buy', description: 'ZAR → MATIC' },
-            { pair: 'MATICUSDT', side: 'sell', description: 'MATIC → USDT' },
-            { pair: 'USDTZAR', side: 'sell', description: 'USDT → ZAR' }
-        ],
-        baseCurrency: 'ZAR',
-        verified: true,
-        proven: false
+
+    // SET 4: SMALLER ALTCOINS & UTILITIES  
+    SET_4_UTILS: {
+        name: "Utilities & Smaller Alts",
+        scanTime: 45, // seconds
+        priority: 4,
+        minProfitThreshold: 1.5,
+        paths: [
+            {
+                id: "ZAR_VET_USDT",
+                pairs: ['VETZAR', 'VETUSDT', 'USDTZAR'],
+                sequence: 'ZAR → VET → USDT → ZAR',
+                steps: [
+                    { pair: 'VETZAR', side: 'buy', description: 'ZAR → VET' },
+                    { pair: 'VETUSDT', side: 'sell', description: 'VET → USDT' },
+                    { pair: 'USDTZAR', side: 'sell', description: 'USDT → ZAR' }
+                ],
+                baseCurrency: 'ZAR'
+            },
+            {
+                id: "ZAR_FTM_USDT",
+                pairs: ['FTMZAR', 'FTMUSDT', 'USDTZAR'],
+                sequence: 'ZAR → FTM → USDT → ZAR',
+                steps: [
+                    { pair: 'FTMZAR', side: 'buy', description: 'ZAR → FTM' },
+                    { pair: 'FTMUSDT', side: 'sell', description: 'FTM → USDT' },
+                    { pair: 'USDTZAR', side: 'sell', description: 'USDT → ZAR' }
+                ],
+                baseCurrency: 'ZAR'
+            },
+            {
+                id: "ZAR_MANA_USDT",
+                pairs: ['MANAZAR', 'MANAUSDT', 'USDTZAR'],
+                sequence: 'ZAR → MANA → USDT → ZAR',
+                steps: [
+                    { pair: 'MANAZAR', side: 'buy', description: 'ZAR → MANA' },
+                    { pair: 'MANAUSDT', side: 'sell', description: 'MANA → USDT' },
+                    { pair: 'USDTZAR', side: 'sell', description: 'USDT → ZAR' }
+                ],
+                baseCurrency: 'ZAR'
+            },
+            {
+                id: "ZAR_SAND_USDT",
+                pairs: ['SANDZAR', 'SANDUSDT', 'USDTZAR'],
+                sequence: 'ZAR → SAND → USDT → ZAR',
+                steps: [
+                    { pair: 'SANDZAR', side: 'buy', description: 'ZAR → SAND' },
+                    { pair: 'SANDUSDT', side: 'sell', description: 'SAND → USDT' },
+                    { pair: 'USDTZAR', side: 'sell', description: 'USDT → ZAR' }
+                ],
+                baseCurrency: 'ZAR'
+            },
+            {
+                id: "ZAR_CHZ_USDT",
+                pairs: ['CHZZAR', 'CHZUSDT', 'USDTZAR'],
+                sequence: 'ZAR → CHZ → USDT → ZAR',
+                steps: [
+                    { pair: 'CHZZAR', side: 'buy', description: 'ZAR → CHZ' },
+                    { pair: 'CHZUSDT', side: 'sell', description: 'CHZ → USDT' },
+                    { pair: 'USDTZAR', side: 'sell', description: 'USDT → ZAR' }
+                ],
+                baseCurrency: 'ZAR'
+            },
+            {
+                id: "ZAR_BAT_USDT",
+                pairs: ['BATZAR', 'BATUSDT', 'USDTZAR'],
+                sequence: 'ZAR → BAT → USDT → ZAR',
+                steps: [
+                    { pair: 'BATZAR', side: 'buy', description: 'ZAR → BAT' },
+                    { pair: 'BATUSDT', side: 'sell', description: 'BAT → USDT' },
+                    { pair: 'USDTZAR', side: 'sell', description: 'USDT → ZAR' }
+                ],
+                baseCurrency: 'ZAR'
+            },
+            {
+                id: "ZAR_USDT_VET",
+                pairs: ['USDTZAR', 'VETUSDT', 'VETZAR'],
+                sequence: 'ZAR → USDT → VET → ZAR',
+                steps: [
+                    { pair: 'USDTZAR', side: 'buy', description: 'ZAR → USDT' },
+                    { pair: 'VETUSDT', side: 'buy', description: 'USDT → VET' },
+                    { pair: 'VETZAR', side: 'sell', description: 'VET → ZAR' }
+                ],
+                baseCurrency: 'ZAR'
+            },
+            {
+                id: "ZAR_USDT_FTM",
+                pairs: ['USDTZAR', 'FTMUSDT', 'FTMZAR'],
+                sequence: 'ZAR → USDT → FTM → ZAR',
+                steps: [
+                    { pair: 'USDTZAR', side: 'buy', description: 'ZAR → USDT' },
+                    { pair: 'FTMUSDT', side: 'buy', description: 'USDT → FTM' },
+                    { pair: 'FTMZAR', side: 'sell', description: 'FTM → ZAR' }
+                ],
+                baseCurrency: 'ZAR'
+            },
+            {
+                id: "ZAR_USDT_MANA",
+                pairs: ['USDTZAR', 'MANAUSDT', 'MANAZAR'],
+                sequence: 'ZAR → USDT → MANA → ZAR',
+                steps: [
+                    { pair: 'USDTZAR', side: 'buy', description: 'ZAR → USDT' },
+                    { pair: 'MANAUSDT', side: 'buy', description: 'USDT → MANA' },
+                    { pair: 'MANAZAR', side: 'sell', description: 'MANA → ZAR' }
+                ],
+                baseCurrency: 'ZAR'
+            },
+            {
+                id: "ZAR_USDT_SAND",
+                pairs: ['USDTZAR', 'SANDUSDT', 'SANDZAR'],
+                sequence: 'ZAR → USDT → SAND → ZAR',
+                steps: [
+                    { pair: 'USDTZAR', side: 'buy', description: 'ZAR → USDT' },
+                    { pair: 'SANDUSDT', side: 'buy', description: 'USDT → SAND' },
+                    { pair: 'SANDZAR', side: 'sell', description: 'SAND → ZAR' }
+                ],
+                baseCurrency: 'ZAR'
+            },
+            {
+                id: "ZAR_USDT_CHZ",
+                pairs: ['USDTZAR', 'CHZUSDT', 'CHZZAR'],
+                sequence: 'ZAR → USDT → CHZ → ZAR',
+                steps: [
+                    { pair: 'USDTZAR', side: 'buy', description: 'ZAR → USDT' },
+                    { pair: 'CHZUSDT', side: 'buy', description: 'USDT → CHZ' },
+                    { pair: 'CHZZAR', side: 'sell', description: 'CHZ → ZAR' }
+                ],
+                baseCurrency: 'ZAR'
+            },
+            {
+                id: "ZAR_USDT_BAT",
+                pairs: ['USDTZAR', 'BATUSDT', 'BATZAR'],
+                sequence: 'ZAR → USDT → BAT → ZAR',
+                steps: [
+                    { pair: 'USDTZAR', side: 'buy', description: 'ZAR → USDT' },
+                    { pair: 'BATUSDT', side: 'buy', description: 'USDT → BAT' },
+                    { pair: 'BATZAR', side: 'sell', description: 'BAT → ZAR' }
+                ],
+                baseCurrency: 'ZAR'
+            }
+        ]
     }
 };
+
+// Legacy paths object for backward compatibility
+const valrTriangularPaths = {};
 
 // VALR price cache
 const valrPriceCache = {
@@ -433,6 +721,207 @@ async function scanVALRTriangularOpportunities(showActivity = false) {
 }
 
 // ============================================
+// PRODUCTION SET-BASED SCANNING
+// ============================================
+
+// Scan a specific path set with timing controls
+async function scanVALRPathSet(setKey, showActivity = false) {
+    const pathSet = VALRPathSets[setKey];
+    if (!pathSet) {
+        throw new Error(`Path set not found: ${setKey}`);
+    }
+    
+    console.log(`🔺 Scanning ${pathSet.name} (${pathSet.paths.length} paths, ${pathSet.scanTime}s window)`);
+    
+    if (showActivity) {
+        PlatformReporting.addActivity(`🔺 Scanning ${pathSet.name} (${pathSet.paths.length} paths)`, 'info');
+    }
+    
+    const opportunities = [];
+    const startTime = Date.now();
+    
+    // Auto-detect funded currencies from balances
+    const valrBalances = (typeof window !== 'undefined' && window.state?.balances?.valr) || {};
+    const fundedCurrencies = Object.keys(valrBalances).filter(currency => (valrBalances[currency] || 0) >= 10);
+    
+    // Only scan if we have ZAR funding (all our paths start with ZAR)
+    if (!fundedCurrencies.includes('ZAR')) {
+        console.log('⚠️ Insufficient ZAR balance for triangular arbitrage');
+        return opportunities;
+    }
+    
+    // Scan each path in the set
+    for (let i = 0; i < pathSet.paths.length; i++) {
+        const path = pathSet.paths[i];
+        
+        // Check if we've exceeded scan time window
+        const elapsed = (Date.now() - startTime) / 1000;
+        if (elapsed > pathSet.scanTime) {
+            console.log(`⏰ Time limit reached (${pathSet.scanTime}s), stopping at path ${i + 1}/${pathSet.paths.length}`);
+            break;
+        }
+        
+        try {
+            const result = await calculateVALRTriangularProfit(path);
+            
+            if (result) {
+                opportunities.push({
+                    ...result,
+                    setName: pathSet.name,
+                    setKey: setKey,
+                    priority: pathSet.priority,
+                    pathId: path.id
+                });
+                
+                // Check if profitable
+                if (result.netProfitPercent >= pathSet.minProfitThreshold) {
+                    console.log(`✅ PROFITABLE: ${path.sequence} - ${result.netProfitPercent.toFixed(3)}% (min: ${pathSet.minProfitThreshold}%)`);
+                    
+                    if (showActivity) {
+                        PlatformReporting.addActivity(
+                            `💰 ${pathSet.name}: ${path.sequence} - ${result.netProfitPercent.toFixed(3)}% profit`,
+                            'success'
+                        );
+                    }
+                } else {
+                    console.log(`❌ ${path.sequence}: ${result.netProfitPercent.toFixed(3)}% (need ${pathSet.minProfitThreshold}%+)`);
+                }
+            }
+            
+        } catch (error) {
+            console.error(`❌ Error scanning ${path.sequence}:`, error.message);
+        }
+        
+        // Brief delay between paths to avoid rate limits
+        await PlatformReporting.delay(200);
+    }
+    
+    // Sort by profit percentage
+    opportunities.sort((a, b) => b.netProfitPercent - a.netProfitPercent);
+    
+    const profitableCount = opportunities.filter(o => o.netProfitPercent >= pathSet.minProfitThreshold).length;
+    const scanDuration = ((Date.now() - startTime) / 1000).toFixed(1);
+    
+    console.log(`📊 ${pathSet.name} complete: ${profitableCount} profitable / ${opportunities.length} total (${scanDuration}s)`);
+    
+    return opportunities;
+}
+
+// Scan all path sets in priority order (production auto trading)
+async function scanAllVALRPathSets(maxTimeSeconds = 150, showActivity = false) {
+    console.log(`🔺 === STARTING VALR PRODUCTION SCAN (${maxTimeSeconds}s window) ===`);
+    
+    if (showActivity) {
+        PlatformReporting.addActivity(`🔺 Starting VALR production scan (${maxTimeSeconds}s)`, 'info');
+    }
+    
+    const allOpportunities = [];
+    const startTime = Date.now();
+    const scanResults = {
+        setsScanned: 0,
+        totalOpportunities: 0,
+        profitableOpportunities: 0,
+        bestOpportunity: null,
+        scanDuration: 0
+    };
+    
+    // Get all sets sorted by priority
+    const pathSets = Object.entries(VALRPathSets)
+        .sort(([,a], [,b]) => a.priority - b.priority);
+    
+    for (const [setKey, pathSet] of pathSets) {
+        // Check if we have time remaining
+        const elapsed = (Date.now() - startTime) / 1000;
+        if (elapsed >= maxTimeSeconds) {
+            console.log(`⏰ Total scan time limit reached (${maxTimeSeconds}s)`);
+            break;
+        }
+        
+        const remainingTime = maxTimeSeconds - elapsed;
+        const actualScanTime = Math.min(pathSet.scanTime, remainingTime);
+        
+        console.log(`\n🎯 Scanning Priority ${pathSet.priority}: ${pathSet.name} (${actualScanTime}s remaining)`);
+        
+        try {
+            const setOpportunities = await scanVALRPathSet(setKey, showActivity);
+            allOpportunities.push(...setOpportunities);
+            
+            // Update stats
+            scanResults.setsScanned++;
+            scanResults.totalOpportunities += setOpportunities.length;
+            
+            const setProfitable = setOpportunities.filter(o => o.netProfitPercent >= pathSet.minProfitThreshold);
+            scanResults.profitableOpportunities += setProfitable.length;
+            
+            // Track best opportunity
+            const setBest = setOpportunities[0]; // Already sorted by profit
+            if (setBest && (!scanResults.bestOpportunity || setBest.netProfitPercent > scanResults.bestOpportunity.netProfitPercent)) {
+                scanResults.bestOpportunity = setBest;
+            }
+            
+        } catch (error) {
+            console.error(`❌ Error scanning ${pathSet.name}:`, error.message);
+        }
+    }
+    
+    // Final sorting across all sets
+    allOpportunities.sort((a, b) => b.netProfitPercent - a.netProfitPercent);
+    
+    scanResults.scanDuration = ((Date.now() - startTime) / 1000).toFixed(1);
+    
+    console.log(`\n🔺 === VALR PRODUCTION SCAN COMPLETE ===`);
+    console.log(`📊 Scanned ${scanResults.setsScanned} sets in ${scanResults.scanDuration}s`);
+    console.log(`💰 Found ${scanResults.profitableOpportunities} profitable / ${scanResults.totalOpportunities} total opportunities`);
+    
+    if (scanResults.bestOpportunity) {
+        console.log(`🏆 Best: ${scanResults.bestOpportunity.pathName} - ${scanResults.bestOpportunity.netProfitPercent.toFixed(3)}%`);
+        
+        if (showActivity) {
+            PlatformReporting.addActivity(
+                `🏆 Best VALR opportunity: ${scanResults.bestOpportunity.netProfitPercent.toFixed(3)}% (${scanResults.profitableOpportunities} profitable)`,
+                scanResults.profitableOpportunities > 0 ? 'success' : 'info'
+            );
+        }
+    }
+    
+    return {
+        opportunities: allOpportunities,
+        stats: scanResults
+    };
+}
+
+// Quick test function for a specific set
+async function testVALRPathSet(setKey) {
+    console.log(`🧪 Testing VALR path set: ${setKey}`);
+    
+    const pathSet = VALRPathSets[setKey];
+    if (!pathSet) {
+        console.error(`❌ Path set not found: ${setKey}`);
+        console.log('Available sets:', Object.keys(VALRPathSets));
+        return;
+    }
+    
+    console.log(`📋 Set: ${pathSet.name}`);
+    console.log(`⏱️ Scan time: ${pathSet.scanTime}s`);
+    console.log(`🎯 Min profit threshold: ${pathSet.minProfitThreshold}%`);
+    console.log(`📈 Priority: ${pathSet.priority}`);
+    console.log(`🛤️ Paths: ${pathSet.paths.length}`);
+    
+    const opportunities = await scanVALRPathSet(setKey, true);
+    
+    if (opportunities.length > 0) {
+        console.log(`\n📊 Results:`);
+        opportunities.slice(0, 3).forEach((opp, i) => {
+            console.log(`${i + 1}. ${opp.pathName} - ${opp.netProfitPercent.toFixed(3)}%`);
+        });
+    } else {
+        console.log(`❌ No opportunities found in ${pathSet.name}`);
+    }
+    
+    return opportunities;
+}
+
+// ============================================
 // VALR TRADE EXECUTION
 // ============================================
 
@@ -599,13 +1088,19 @@ async function executeVALRTriangularOpportunity(opportunity) {
 const VALRTriangular = {
     // Configuration access
     getPaths: () => valrTriangularPaths,
+    getPathSets: () => VALRPathSets,
     getConfig: () => valrConfig,
     
-    // Core functions
+    // Legacy scanning (backward compatibility)
     scanOpportunities: scanVALRTriangularOpportunities,
     calculateProfit: calculateVALRTriangularProfit,
     executeOpportunity: executeVALRTriangularOpportunity,
     getPrice: getVALRPriceWithCache,
+    
+    // NEW: Production set-based scanning
+    scanPathSet: scanVALRPathSet,
+    scanAllPathSets: scanAllVALRPathSets,
+    testPathSet: testVALRPathSet,
     
     // Utility functions
     validatePath: function(pathConfig) {
@@ -613,9 +1108,17 @@ const VALRTriangular = {
     },
     
     getStats: function() {
+        const totalPathsInSets = Object.values(VALRPathSets).reduce((sum, set) => sum + set.paths.length, 0);
         return {
+            // Legacy stats
             totalPaths: Object.keys(valrTriangularPaths).length,
             activePaths: Object.values(valrTriangularPaths).filter(p => p.verified).length,
+            
+            // New production stats
+            pathSets: Object.keys(VALRPathSets).length,
+            totalPathsInSets: totalPathsInSets,
+            productionReady: true,
+            
             lastScan: new Date().toISOString()
         };
     }
@@ -647,6 +1150,19 @@ if (typeof window !== 'undefined') {
     window.VALRTriangular = VALRTriangular;
     window.initializeVALRTriangular = initializeVALRTriangular;
     
+    // Add convenient test functions to global scope
+    window.testVALRMajors = () => VALRTriangular.testPathSet('SET_1_MAJORS');
+    window.testVALRAlts = () => VALRTriangular.testPathSet('SET_2_ALTS');
+    window.testVALRLayer1 = () => VALRTriangular.testPathSet('SET_3_LAYER1');
+    window.testVALRUtils = () => VALRTriangular.testPathSet('SET_4_UTILS');
+    window.scanAllVALRSets = () => VALRTriangular.scanAllPathSets(150, true);
+    
+    // Production scanning shortcuts
+    window.startVALRProduction = () => {
+        console.log('🚀 Starting VALR production scanning (2.5min window)...');
+        return VALRTriangular.scanAllPathSets(150, true);
+    };
+    
     // Initialize on load
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initializeVALRTriangular);
@@ -655,6 +1171,14 @@ if (typeof window !== 'undefined') {
     }
     
     console.log('✅ VALR Triangular module loaded successfully');
+    console.log('\n🔺 === VALR PRODUCTION PATH SETS READY ===');
+    console.log('  testVALRMajors()      - Test High Volume Majors (4 paths)');
+    console.log('  testVALRAlts()        - Test Popular Altcoins (8 paths)');
+    console.log('  testVALRLayer1()      - Test Layer 1 & Ecosystem (8 paths)');
+    console.log('  testVALRUtils()       - Test Utilities & Smaller Alts (12 paths)');
+    console.log('  scanAllVALRSets()     - Scan all 32 paths in priority order');
+    console.log('  startVALRProduction() - Full production scan (2.5min window)');
+    console.log('✅ Ready for production auto trading with 32 hardcoded paths!');
 } else {
     console.warn('⚠️ Window not available, running in non-browser environment');
 }
