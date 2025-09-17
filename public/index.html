@@ -23353,7 +23353,9 @@ ARB4ME Security Team`
                         throw new Error('VALR API credentials not available for triangular execution');
                     }
                     
-                    // Use VALR triangular API with discovered credentials
+                    // Use VALR triangular API with discovered credentials  
+                    console.log('📤 Sending VALR triangular request:', { pair, side, amount, expectedPrice });
+                    
                     tradeResult = await fetch('/api/v1/trading/valr/triangular', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -23362,9 +23364,9 @@ ARB4ME Security Team`
                             apiSecret: valrApiSecret,
                             pair: pair,
                             side: side,
-                            amount: amount,
-                            expectedPrice: expectedPrice,
-                            simulate: false
+                            amount: parseFloat(amount),        // Ensure it's a number
+                            expectedPrice: parseFloat(expectedPrice)  // Ensure it's a number
+                            // Removed 'simulate' - not expected by backend
                         })
                     }).then(res => res.json());
                 } else {
