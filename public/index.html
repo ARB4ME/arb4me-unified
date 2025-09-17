@@ -27757,28 +27757,41 @@ ARB4ME Security Team`
         window.testValrTriangularExecution = async () => {
             console.log('\n🔺 === TESTING VALR TRIANGULAR EXECUTION (BYPASSED VALIDATION) ===');
             
-            // Create a test opportunity
-            const testOpportunity = {
-                pathName: 'ZAR → LINK → USDT → ZAR',
-                pairs: ['LINKZAR', 'LINKUSDT', 'USDTZAR'],
-                prices: ['LINKZAR', 'LINKUSDT', 'USDTZAR'],
-                profitable: true,
-                netProfitPercent: 1.2,
-                baseCurrency: 'ZAR',
-                exchange: 'VALR'
-            };
+            // Save current triangular arbitrage state
+            const originalTriangularState = state.triangularArbitrage;
+            console.log(`💾 Saved original triangular state: ${originalTriangularState}`);
             
-            console.log('🎯 Test opportunity created:', testOpportunity);
-            
-            // Execute through smart shopper (should bypass validation)
             try {
+                // Temporarily enable triangular arbitrage for this test only
+                console.log('🔄 Temporarily enabling triangular arbitrage for test...');
+                state.triangularArbitrage = true;
+                
+                // Create a test opportunity
+                const testOpportunity = {
+                    pathName: 'ZAR → LINK → USDT → ZAR',
+                    pairs: ['LINKZAR', 'LINKUSDT', 'USDTZAR'],
+                    prices: ['LINKZAR', 'LINKUSDT', 'USDTZAR'],
+                    profitable: true,
+                    netProfitPercent: 1.2,
+                    baseCurrency: 'ZAR',
+                    exchange: 'VALR'
+                };
+                
+                console.log('🎯 Test opportunity created:', testOpportunity);
+                
+                // Execute through smart shopper (should bypass validation)
                 console.log('🚀 Executing triangular arbitrage...');
                 await executeTriangularOpportunity(testOpportunity);
                 console.log('✅ EXECUTION COMPLETED!');
                 return { success: true, message: 'Triangular execution test completed' };
+                
             } catch (error) {
                 console.log('❌ EXECUTION FAILED:', error.message);
                 return { success: false, error: error.message };
+            } finally {
+                // Always restore original state
+                console.log(`🔄 Restoring original triangular state: ${originalTriangularState}`);
+                state.triangularArbitrage = originalTriangularState;
             }
         };
         
