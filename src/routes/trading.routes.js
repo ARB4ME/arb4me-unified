@@ -12456,30 +12456,35 @@ router.post('/valr/triangular/scan', authenticatedRateLimit, authenticateUser, a
             throw new APIError('VALR API credentials required', 400, 'VALR_CREDENTIALS_REQUIRED');
         }
 
-        // Define triangular paths to scan
-        const triangularPaths = [
-            {
-                id: 'ZAR_LINK_USDT',
-                pairs: ['LINKZAR', 'LINKUSDT', 'USDTZAR'],
-                sequence: 'ZAR → LINK → USDT → ZAR',
-                steps: [
-                    { pair: 'LINKZAR', side: 'buy' },
-                    { pair: 'LINKUSDT', side: 'sell' },
-                    { pair: 'USDTZAR', side: 'sell' }
-                ]
-            },
-            {
-                id: 'ZAR_ETH_USDT',
-                pairs: ['ETHZAR', 'ETHUSDT', 'USDTZAR'],
-                sequence: 'ZAR → ETH → USDT → ZAR',
-                steps: [
-                    { pair: 'ETHZAR', side: 'buy' },
-                    { pair: 'ETHUSDT', side: 'sell' },
-                    { pair: 'USDTZAR', side: 'sell' }
-                ]
-            }
-            // Add more paths as needed
-        ];
+        // Define all triangular path sets
+        const allPathSets = {
+            SET_1_MAJORS: [
+                { id: 'ZAR_LINK_USDT', pairs: ['LINKZAR', 'LINKUSDT', 'USDTZAR'], sequence: 'ZAR → LINK → USDT → ZAR', steps: [{ pair: 'LINKZAR', side: 'buy' }, { pair: 'LINKUSDT', side: 'sell' }, { pair: 'USDTZAR', side: 'sell' }] },
+                { id: 'ZAR_ETH_USDT', pairs: ['ETHZAR', 'ETHUSDT', 'USDTZAR'], sequence: 'ZAR → ETH → USDT → ZAR', steps: [{ pair: 'ETHZAR', side: 'buy' }, { pair: 'ETHUSDT', side: 'sell' }, { pair: 'USDTZAR', side: 'sell' }] },
+                { id: 'ZAR_USDT_LINK', pairs: ['USDTZAR', 'LINKUSDT', 'LINKZAR'], sequence: 'ZAR → USDT → LINK → ZAR', steps: [{ pair: 'USDTZAR', side: 'buy' }, { pair: 'LINKUSDT', side: 'buy' }, { pair: 'LINKZAR', side: 'sell' }] },
+                { id: 'ZAR_USDT_ETH', pairs: ['USDTZAR', 'ETHUSDT', 'ETHZAR'], sequence: 'ZAR → USDT → ETH → ZAR', steps: [{ pair: 'USDTZAR', side: 'buy' }, { pair: 'ETHUSDT', side: 'buy' }, { pair: 'ETHZAR', side: 'sell' }] }
+            ],
+            SET_2_ALTS: [
+                { id: 'ZAR_ADA_USDT', pairs: ['ADAZAR', 'ADAUSDT', 'USDTZAR'], sequence: 'ZAR → ADA → USDT → ZAR', steps: [{ pair: 'ADAZAR', side: 'buy' }, { pair: 'ADAUSDT', side: 'sell' }, { pair: 'USDTZAR', side: 'sell' }] },
+                { id: 'ZAR_DOT_USDT', pairs: ['DOTZAR', 'DOTUSDT', 'USDTZAR'], sequence: 'ZAR → DOT → USDT → ZAR', steps: [{ pair: 'DOTZAR', side: 'buy' }, { pair: 'DOTUSDT', side: 'sell' }, { pair: 'USDTZAR', side: 'sell' }] },
+                { id: 'ZAR_MATIC_USDT', pairs: ['MATICZAR', 'MATICUSDT', 'USDTZAR'], sequence: 'ZAR → MATIC → USDT → ZAR', steps: [{ pair: 'MATICZAR', side: 'buy' }, { pair: 'MATICUSDT', side: 'sell' }, { pair: 'USDTZAR', side: 'sell' }] },
+                { id: 'ZAR_SOL_USDT', pairs: ['SOLZAR', 'SOLUSDT', 'USDTZAR'], sequence: 'ZAR → SOL → USDT → ZAR', steps: [{ pair: 'SOLZAR', side: 'buy' }, { pair: 'SOLUSDT', side: 'sell' }, { pair: 'USDTZAR', side: 'sell' }] },
+                { id: 'ZAR_AVAX_USDT', pairs: ['AVAXZAR', 'AVAXUSDT', 'USDTZAR'], sequence: 'ZAR → AVAX → USDT → ZAR', steps: [{ pair: 'AVAXZAR', side: 'buy' }, { pair: 'AVAXUSDT', side: 'sell' }, { pair: 'USDTZAR', side: 'sell' }] },
+                { id: 'ZAR_ATOM_USDT', pairs: ['ATOMZAR', 'ATOMUSDT', 'USDTZAR'], sequence: 'ZAR → ATOM → USDT → ZAR', steps: [{ pair: 'ATOMZAR', side: 'buy' }, { pair: 'ATOMUSDT', side: 'sell' }, { pair: 'USDTZAR', side: 'sell' }] }
+            ],
+            SET_3_LAYER1: [
+                { id: 'ZAR_ALGO_USDT', pairs: ['ALGOZAR', 'ALGOUSDT', 'USDTZAR'], sequence: 'ZAR → ALGO → USDT → ZAR', steps: [{ pair: 'ALGOZAR', side: 'buy' }, { pair: 'ALGOUSDT', side: 'sell' }, { pair: 'USDTZAR', side: 'sell' }] },
+                { id: 'ZAR_XRP_USDT', pairs: ['XRPZAR', 'XRPUSDT', 'USDTZAR'], sequence: 'ZAR → XRP → USDT → ZAR', steps: [{ pair: 'XRPZAR', side: 'buy' }, { pair: 'XRPUSDT', side: 'sell' }, { pair: 'USDTZAR', side: 'sell' }] },
+                { id: 'ZAR_LTC_USDT', pairs: ['LTCZAR', 'LTCUSDT', 'USDTZAR'], sequence: 'ZAR → LTC → USDT → ZAR', steps: [{ pair: 'LTCZAR', side: 'buy' }, { pair: 'LTCUSDT', side: 'sell' }, { pair: 'USDTZAR', side: 'sell' }] },
+                { id: 'ZAR_BCH_USDT', pairs: ['BCHZAR', 'BCHUSDT', 'USDTZAR'], sequence: 'ZAR → BCH → USDT → ZAR', steps: [{ pair: 'BCHZAR', side: 'buy' }, { pair: 'BCHUSDT', side: 'sell' }, { pair: 'USDTZAR', side: 'sell' }] }
+            ]
+        };
+
+        // Select paths based on scanSet parameter
+        const { scanSet = 'SET_1_MAJORS' } = req.body;
+        const triangularPaths = allPathSets[scanSet] || allPathSets.SET_1_MAJORS;
+        
+        console.log(`🔺 Scanning ${scanSet} with ${triangularPaths.length} paths`);
 
         // Fetch current market prices for all pairs
         const orderBooks = {};
@@ -12637,6 +12642,8 @@ router.post('/valr/triangular/scan', authenticatedRateLimit, authenticateUser, a
             success: true,
             data: {
                 opportunities,
+                pathsScanned: triangularPaths.length,
+                scanSet: scanSet,
                 scanTime: new Date().toISOString(),
                 analysis: {
                     totalOpportunities: opportunities.length,
