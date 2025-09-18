@@ -12443,7 +12443,7 @@ async function rollbackCompletedLegs(completedLegs, apiKey, apiSecret) {
 // Scan for triangular arbitrage opportunities with live prices
 router.post('/valr/triangular/scan', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
     try {
-        const { paths = 'all' } = req.body; // Can specify which path sets to scan
+        const { paths = 'all', apiKey, apiSecret } = req.body; // Can specify which path sets to scan
         
         systemLogger.trading('VALR triangular scan initiated', {
             userId: req.user.id,
@@ -12451,18 +12451,10 @@ router.post('/valr/triangular/scan', authenticatedRateLimit, authenticateUser, a
             timestamp: new Date().toISOString()
         });
 
-        // Get user's VALR API credentials
-        const keysResult = await query(`
-            SELECT exchange_api_key, exchange_api_secret 
-            FROM user_api_keys 
-            WHERE user_id = $1 AND exchange = 'VALR'
-        `, [req.user.id]);
-
-        if (keysResult.rows.length === 0) {
-            throw new APIError('VALR API keys not found', 404, 'VALR_KEYS_NOT_FOUND');
+        // Validate VALR API credentials
+        if (!apiKey || !apiSecret) {
+            throw new APIError('VALR API credentials required', 400, 'VALR_CREDENTIALS_REQUIRED');
         }
-
-        const { exchange_api_key, exchange_api_secret } = keysResult.rows[0];
 
         // Define triangular paths to scan
         const triangularPaths = [
@@ -12498,8 +12490,8 @@ router.post('/valr/triangular/scan', authenticatedRateLimit, authenticateUser, a
                 `/v1/marketdata/${pair}/orderbook`,
                 'GET',
                 null,
-                exchange_api_key,
-                exchange_api_secret
+                apiKey,
+                apiSecret
             );
             orderBooks[pair] = orderBook;
         }
