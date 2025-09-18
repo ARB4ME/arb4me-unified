@@ -26528,10 +26528,160 @@ ARB4ME Security Team`
             // TRIANGULAR ARBITRAGE INTERFACE FUNCTIONS
             // ============================================
             
-            // VALR Triangular Trading Toggle
+            // ============================================
+            // AUTOMATIC TRIANGULAR TRADING ENGINE
+            // ============================================
+            
+            let triangularTradingInterval = null;
+            let currentScanSet = 0; // 0=SET_1_MAJORS, 1=SET_2_ALTS, 2=SET_3_LAYER1
+            let isScanning = false;
+            
+            // Path sets configuration for automatic trading
+            const pathSetsConfig = [
+                { name: 'SET_1_MAJORS', scanTime: 30, priority: 1, minProfitThreshold: 0.8 },
+                { name: 'SET_2_ALTS', scanTime: 45, priority: 2, minProfitThreshold: 1.0 },
+                { name: 'SET_3_LAYER1', scanTime: 40, priority: 3, minProfitThreshold: 1.2 }
+            ];
+            
+            // Automatic triangular trading loop
+            async function startTriangularTradingLoop() {
+                if (triangularTradingInterval) {
+                    console.log('🔺 Trading loop already running');
+                    return;
+                }
+                
+                console.log('🚀 Starting automatic triangular trading loop...');
+                
+                // Start with SET_1_MAJORS (highest priority)
+                currentScanSet = 0;
+                
+                triangularTradingInterval = setInterval(async () => {
+                    if (isScanning) {
+                        console.log('⏳ Previous scan still running, skipping...');
+                        return;
+                    }
+                    
+                    const currentSet = pathSetsConfig[currentScanSet];
+                    console.log(`🔍 Auto-scanning ${currentSet.name} (${currentSet.priority}) - Threshold: ${currentSet.minProfitThreshold}%`);
+                    
+                    isScanning = true;
+                    
+                    try {
+                        // Scan for opportunities in current set
+                        const response = await fetch('/api/v1/trading/valr/triangular/scan', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                            },
+                            body: JSON.stringify({
+                                pathSet: currentSet.name,
+                                amount: 1000, // Default R1000 for auto trading
+                                minProfitThreshold: currentSet.minProfitThreshold
+                            })
+                        });
+                        
+                        if (response.ok) {
+                            const data = await response.json();
+                            const profitableOpportunities = data.opportunities.filter(op => 
+                                op.profitable && op.netProfitPercent >= currentSet.minProfitThreshold
+                            );
+                            
+                            if (profitableOpportunities.length > 0) {
+                                // Take the first profitable opportunity above threshold
+                                const opportunity = profitableOpportunities[0];
+                                console.log(`💰 Found profitable opportunity: ${opportunity.path.id} - ${opportunity.netProfitPercent.toFixed(2)}%`);
+                                
+                                // Execute the trade
+                                const executeResponse = await fetch('/api/v1/trading/valr/triangular/execute', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                                    },
+                                    body: JSON.stringify({
+                                        opportunity: opportunity,
+                                        maxSlippage: 0.5, // 0.5% max slippage
+                                        dryRun: false // Set to true for testing
+                                    })
+                                });
+                                
+                                if (executeResponse.ok) {
+                                    const executeResult = await executeResponse.json();
+                                    if (executeResult.success) {
+                                        console.log(`✅ Trade executed successfully: ${executeResult.summary.totalProfitZAR} ZAR profit`);
+                                        showActivityMessage(
+                                            `🎉 Auto-trade successful: ${opportunity.path.id} (+${executeResult.summary.totalProfitZAR} ZAR)`,
+                                            'success'
+                                        );
+                                        
+                                        // Update stats with real trade result
+                                        updateTriangularStats({
+                                            success: true,
+                                            opportunity: opportunity,
+                                            summary: executeResult.summary
+                                        });
+                                    } else {
+                                        console.log(`❌ Trade execution failed: ${executeResult.error}`);
+                                        showActivityMessage(`⚠️ Auto-trade failed: ${executeResult.error}`, 'error');
+                                        
+                                        // Update stats with failed trade
+                                        updateTriangularStats({
+                                            success: false,
+                                            opportunity: opportunity,
+                                            error: executeResult.error
+                                        });
+                                    }
+                                } else {
+                                    console.log('❌ Failed to execute trade');
+                                    showActivityMessage('⚠️ Auto-trade execution error', 'error');
+                                    
+                                    // Update stats with failed trade
+                                    updateTriangularStats({
+                                        success: false,
+                                        opportunity: opportunity,
+                                        error: 'HTTP request failed'
+                                    });
+                                }
+                            } else {
+                                console.log(`📊 ${currentSet.name}: No profitable opportunities above ${currentSet.minProfitThreshold}%`);
+                            }
+                        } else {
+                            console.log(`❌ Failed to scan ${currentSet.name}`);
+                        }
+                    } catch (error) {
+                        console.error(`❌ Error in auto-trading loop:`, error);
+                        showActivityMessage('⚠️ Auto-trading error', 'error');
+                    }
+                    
+                    isScanning = false;
+                    
+                    // Move to next path set for next scan
+                    currentScanSet = (currentScanSet + 1) % pathSetsConfig.length;
+                    
+                }, Math.min(...pathSetsConfig.map(s => s.scanTime)) * 1000); // Use shortest scan time
+                
+                console.log('✅ Automatic triangular trading loop started');
+                showActivityMessage('🚀 Auto-trading engine activated', 'success');
+            }
+            
+            // Stop automatic trading loop
+            function stopTriangularTradingLoop() {
+                if (triangularTradingInterval) {
+                    clearInterval(triangularTradingInterval);
+                    triangularTradingInterval = null;
+                    isScanning = false;
+                    console.log('⏸️ Automatic triangular trading loop stopped');
+                    showActivityMessage('⏸️ Auto-trading engine stopped', 'warning');
+                } else {
+                    console.log('🔺 No trading loop to stop');
+                }
+            }
+            
+            // VALR Triangular Trading Toggle (Enhanced)
             const valrTriangularToggle = document.getElementById('valrTriangularEnabled');
             if (valrTriangularToggle) {
-                valrTriangularToggle.addEventListener('click', function() {
+                valrTriangularToggle.addEventListener('click', async function() {
                     this.classList.toggle('active');
                     const isEnabled = this.classList.contains('active');
                     console.log(`🔺 VALR Triangular Trading: ${isEnabled ? 'ENABLED' : 'DISABLED'}`);
@@ -26539,19 +26689,255 @@ ARB4ME Security Team`
                     // Store state in localStorage
                     localStorage.setItem('valrTriangularEnabled', isEnabled);
                     
-                    // Show status message
-                    showActivityMessage(
-                        isEnabled ? '✅ VALR Triangular Arbitrage ENABLED' : '⏸️ VALR Triangular Arbitrage DISABLED',
-                        isEnabled ? 'success' : 'warning'
-                    );
+                    if (isEnabled) {
+                        // Start automatic trading
+                        await startTriangularTradingLoop();
+                        showActivityMessage('✅ VALR Triangular Auto-Trading ENABLED', 'success');
+                    } else {
+                        // Stop automatic trading
+                        stopTriangularTradingLoop();
+                        showActivityMessage('⏸️ VALR Triangular Auto-Trading DISABLED', 'warning');
+                    }
                 });
                 
-                // Load saved state
+                // Load saved state and restore trading loop if enabled
                 const savedState = localStorage.getItem('valrTriangularEnabled') === 'true';
                 if (savedState) {
                     valrTriangularToggle.classList.add('active');
+                    // Auto-start trading loop if it was enabled
+                    setTimeout(() => {
+                        if (savedState) {
+                            startTriangularTradingLoop();
+                        }
+                    }, 2000); // Wait 2 seconds for page to fully load
                 }
             }
+            
+            // ============================================
+            // REAL-TIME TRIANGULAR STATS ENGINE
+            // ============================================
+            
+            let triangularStatsData = {
+                totalTrades: 0,
+                successfulTrades: 0,
+                failedTrades: 0,
+                totalProfitZAR: 0,
+                averageProfitPercent: 0,
+                bestTradeProfit: 0,
+                lastTradeTime: null,
+                activePaths: [],
+                tradeHistory: [],
+                dailyStats: {
+                    trades: 0,
+                    profit: 0,
+                    startTime: new Date().toDateString()
+                }
+            };
+            
+            // Update triangular stats after successful trades
+            function updateTriangularStats(tradeResult = null) {
+                try {
+                    if (tradeResult) {
+                        // Update stats with real trade data
+                        triangularStatsData.totalTrades++;
+                        
+                        if (tradeResult.success) {
+                            triangularStatsData.successfulTrades++;
+                            triangularStatsData.totalProfitZAR += tradeResult.summary.totalProfitZAR || 0;
+                            triangularStatsData.bestTradeProfit = Math.max(
+                                triangularStatsData.bestTradeProfit,
+                                tradeResult.summary.totalProfitZAR || 0
+                            );
+                            
+                            // Update average profit percentage
+                            if (triangularStatsData.successfulTrades > 0) {
+                                triangularStatsData.averageProfitPercent = 
+                                    (triangularStatsData.totalProfitZAR / triangularStatsData.successfulTrades / 1000) * 100;
+                            }
+                            
+                            // Add to trade history (keep last 50 trades)
+                            triangularStatsData.tradeHistory.unshift({
+                                timestamp: new Date().toISOString(),
+                                pathId: tradeResult.opportunity?.path?.id || 'UNKNOWN',
+                                profitZAR: tradeResult.summary.totalProfitZAR || 0,
+                                profitPercent: tradeResult.opportunity?.netProfitPercent || 0,
+                                success: true
+                            });
+                            
+                            if (triangularStatsData.tradeHistory.length > 50) {
+                                triangularStatsData.tradeHistory = triangularStatsData.tradeHistory.slice(0, 50);
+                            }
+                        } else {
+                            triangularStatsData.failedTrades++;
+                            
+                            // Add failed trade to history
+                            triangularStatsData.tradeHistory.unshift({
+                                timestamp: new Date().toISOString(),
+                                pathId: tradeResult.opportunity?.path?.id || 'UNKNOWN',
+                                profitZAR: 0,
+                                profitPercent: 0,
+                                success: false,
+                                error: tradeResult.error
+                            });
+                        }
+                        
+                        triangularStatsData.lastTradeTime = new Date().toISOString();
+                        
+                        // Update daily stats
+                        const today = new Date().toDateString();
+                        if (triangularStatsData.dailyStats.startTime !== today) {
+                            // Reset daily stats for new day
+                            triangularStatsData.dailyStats = {
+                                trades: 1,
+                                profit: tradeResult.success ? (tradeResult.summary.totalProfitZAR || 0) : 0,
+                                startTime: today
+                            };
+                        } else {
+                            triangularStatsData.dailyStats.trades++;
+                            if (tradeResult.success) {
+                                triangularStatsData.dailyStats.profit += tradeResult.summary.totalProfitZAR || 0;
+                            }
+                        }
+                    }
+                    
+                    // Update DOM elements
+                    updateTriangularStatsDisplay();
+                    
+                    // Broadcast stats update via WebSocket if available
+                    broadcastStatsUpdate();
+                    
+                    console.log('📊 Triangular stats updated:', triangularStatsData);
+                } catch (error) {
+                    console.warn('⚠️ Failed to update triangular stats:', error);
+                }
+            }
+            
+            // Update stats display in DOM
+            function updateTriangularStatsDisplay() {
+                try {
+                    // Update total trades counter
+                    const totalTradesElement = document.querySelector('#triangularTotalTrades');
+                    if (totalTradesElement) {
+                        totalTradesElement.textContent = triangularStatsData.totalTrades;
+                    }
+                    
+                    // Update successful trades
+                    const successfulTradesElement = document.querySelector('#triangularSuccessfulTrades');
+                    if (successfulTradesElement) {
+                        successfulTradesElement.textContent = triangularStatsData.successfulTrades;
+                    }
+                    
+                    // Update total profit
+                    const totalProfitElement = document.querySelector('#triangularTotalProfit');
+                    if (totalProfitElement) {
+                        totalProfitElement.textContent = `R${triangularStatsData.totalProfitZAR.toFixed(2)}`;
+                    }
+                    
+                    // Update success rate
+                    const successRateElement = document.querySelector('#triangularSuccessRate');
+                    if (successRateElement) {
+                        const rate = triangularStatsData.totalTrades > 0 ? 
+                            (triangularStatsData.successfulTrades / triangularStatsData.totalTrades * 100) : 0;
+                        successRateElement.textContent = `${rate.toFixed(1)}%`;
+                    }
+                    
+                    // Update last activity timestamp
+                    const lastActivityElement = document.querySelector('#triangularLastActivity');
+                    if (lastActivityElement && triangularStatsData.lastTradeTime) {
+                        lastActivityElement.textContent = new Date(triangularStatsData.lastTradeTime).toLocaleTimeString();
+                    }
+                    
+                    // Update best trade
+                    const bestTradeElement = document.querySelector('#triangularBestTrade');
+                    if (bestTradeElement) {
+                        bestTradeElement.textContent = `R${triangularStatsData.bestTradeProfit.toFixed(2)}`;
+                    }
+                    
+                    // Update average profit percentage
+                    const avgProfitElement = document.querySelector('#triangularAvgProfit');
+                    if (avgProfitElement) {
+                        avgProfitElement.textContent = `${triangularStatsData.averageProfitPercent.toFixed(3)}%`;
+                    }
+                    
+                    // Update daily stats
+                    const dailyTradesElement = document.querySelector('#triangularDailyTrades');
+                    if (dailyTradesElement) {
+                        dailyTradesElement.textContent = triangularStatsData.dailyStats.trades;
+                    }
+                    
+                    const dailyProfitElement = document.querySelector('#triangularDailyProfit');
+                    if (dailyProfitElement) {
+                        dailyProfitElement.textContent = `R${triangularStatsData.dailyStats.profit.toFixed(2)}`;
+                    }
+                    
+                } catch (error) {
+                    console.warn('⚠️ Failed to update stats display:', error);
+                }
+            }
+            
+            // Broadcast stats update via WebSocket
+            function broadcastStatsUpdate() {
+                try {
+                    // If WebSocket is connected, send stats update
+                    if (window.triangularWebSocket && window.triangularWebSocket.readyState === WebSocket.OPEN) {
+                        const statsUpdate = {
+                            type: 'stats_update',
+                            data: triangularStatsData,
+                            timestamp: new Date().toISOString()
+                        };
+                        window.triangularWebSocket.send(JSON.stringify(statsUpdate));
+                    }
+                    
+                    // Also trigger custom event for other components
+                    const event = new CustomEvent('triangularStatsUpdate', {
+                        detail: triangularStatsData
+                    });
+                    document.dispatchEvent(event);
+                    
+                } catch (error) {
+                    console.warn('⚠️ Failed to broadcast stats update:', error);
+                }
+            }
+            
+            // Get current stats data
+            function getTriangularStatsData() {
+                return { ...triangularStatsData };
+            }
+            
+            // Reset stats (for testing or new periods)
+            function resetTriangularStats() {
+                triangularStatsData = {
+                    totalTrades: 0,
+                    successfulTrades: 0,
+                    failedTrades: 0,
+                    totalProfitZAR: 0,
+                    averageProfitPercent: 0,
+                    bestTradeProfit: 0,
+                    lastTradeTime: null,
+                    activePaths: [],
+                    tradeHistory: [],
+                    dailyStats: {
+                        trades: 0,
+                        profit: 0,
+                        startTime: new Date().toDateString()
+                    }
+                };
+                updateTriangularStatsDisplay();
+                console.log('🔄 Triangular stats reset');
+            }
+            
+            // Expose functions globally for testing
+            window.startTriangularTrading = startTriangularTradingLoop;
+            window.stopTriangularTrading = stopTriangularTradingLoop;
+            window.updateTriangularStats = updateTriangularStats;
+            window.getTriangularStats = getTriangularStatsData;
+            window.resetTriangularStats = resetTriangularStats;
+            window.getTriangularTradingStatus = () => ({
+                running: triangularTradingInterval !== null,
+                scanning: isScanning,
+                currentSet: pathSetsConfig[currentScanSet]?.name || 'NONE',
+                stats: triangularStatsData
+            });
             
             // ============================================
             // TRIANGULAR ARBITRAGE BUTTON FUNCTIONS  

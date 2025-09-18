@@ -11415,6 +11415,187 @@ router.post('/valr/test-direct', tradingRateLimit, optionalAuth, [
 }));
 
 // ============================================
+// TRIANGULAR TRADE DATABASE LOGGING
+// ============================================
+
+// Log triangular trade to database
+async function logTriangularTrade(userId, tradeData) {
+    try {
+        const {
+            opportunity,
+            executionResult,
+            dryRun = false,
+            userAgent = null,
+            ipAddress = null
+        } = tradeData;
+
+        // Generate unique trade ID
+        const tradeId = 'TRI_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6).toUpperCase();
+
+        // Prepare trade record
+        const tradeRecord = {
+            user_id: userId,
+            trade_id: tradeId,
+            exchange: 'VALR',
+            path_id: opportunity.path.id,
+            path_sequence: opportunity.path.sequence,
+            opportunity_data: JSON.stringify(opportunity),
+            initial_amount: opportunity.amount || 1000,
+            currency_start: opportunity.path.baseCurrency || 'ZAR',
+            execution_status: executionResult.success ? 'completed' : 'failed',
+            execution_type: 'atomic',
+            dry_run: dryRun,
+            expected_profit_zar: opportunity.expectedProfitZAR || null,
+            expected_profit_percent: opportunity.netProfitPercent || null,
+            actual_profit_zar: executionResult.success ? (executionResult.summary?.totalProfitZAR || 0) : 0,
+            actual_profit_percent: executionResult.success ? (executionResult.summary?.totalProfitPercent || 0) : 0,
+            total_fees_paid: executionResult.success ? (executionResult.summary?.totalFeesZAR || 0) : 0,
+            risk_assessment: opportunity.recommendation || 'EXECUTE',
+            max_slippage_allowed: tradeData.maxSlippage || 0.5,
+            scan_started_at: tradeData.scanStartedAt || new Date(),
+            execution_started_at: tradeData.executionStartedAt || new Date(),
+            execution_completed_at: executionResult.success ? new Date() : null,
+            total_execution_time_ms: tradeData.executionTimeMs || null,
+            error_message: executionResult.success ? null : executionResult.error,
+            user_agent: userAgent,
+            ip_address: ipAddress
+        };
+
+        // Add individual leg details if available
+        if (executionResult.success && executionResult.trades) {
+            const trades = executionResult.trades;
+            
+            if (trades[0]) {
+                tradeRecord.leg1_order_id = trades[0].orderId;
+                tradeRecord.leg1_pair = trades[0].pair;
+                tradeRecord.leg1_side = trades[0].side;
+                tradeRecord.leg1_amount = trades[0].baseAmount || trades[0].quoteAmount;
+                tradeRecord.leg1_price = trades[0].price;
+                tradeRecord.leg1_fee = trades[0].feeAmount;
+                tradeRecord.leg1_status = 'completed';
+                tradeRecord.leg1_executed_at = new Date(trades[0].executedAt || Date.now());
+            }
+            
+            if (trades[1]) {
+                tradeRecord.leg2_order_id = trades[1].orderId;
+                tradeRecord.leg2_pair = trades[1].pair;
+                tradeRecord.leg2_side = trades[1].side;
+                tradeRecord.leg2_amount = trades[1].baseAmount || trades[1].quoteAmount;
+                tradeRecord.leg2_price = trades[1].price;
+                tradeRecord.leg2_fee = trades[1].feeAmount;
+                tradeRecord.leg2_status = 'completed';
+                tradeRecord.leg2_executed_at = new Date(trades[1].executedAt || Date.now());
+            }
+            
+            if (trades[2]) {
+                tradeRecord.leg3_order_id = trades[2].orderId;
+                tradeRecord.leg3_pair = trades[2].pair;
+                tradeRecord.leg3_side = trades[2].side;
+                tradeRecord.leg3_amount = trades[2].baseAmount || trades[2].quoteAmount;
+                tradeRecord.leg3_price = trades[2].price;
+                tradeRecord.leg3_fee = trades[2].feeAmount;
+                tradeRecord.leg3_status = 'completed';
+                tradeRecord.leg3_executed_at = new Date(trades[2].executedAt || Date.now());
+            }
+        }
+
+        // Insert trade record into database
+        const insertQuery = `
+            INSERT INTO triangular_trades (
+                user_id, trade_id, exchange, path_id, path_sequence, opportunity_data,
+                initial_amount, currency_start, execution_status, execution_type, dry_run,
+                expected_profit_zar, expected_profit_percent, actual_profit_zar, actual_profit_percent,
+                total_fees_paid, risk_assessment, max_slippage_allowed,
+                scan_started_at, execution_started_at, execution_completed_at, total_execution_time_ms,
+                error_message, user_agent, ip_address,
+                leg1_order_id, leg1_pair, leg1_side, leg1_amount, leg1_price, leg1_fee, leg1_status, leg1_executed_at,
+                leg2_order_id, leg2_pair, leg2_side, leg2_amount, leg2_price, leg2_fee, leg2_status, leg2_executed_at,
+                leg3_order_id, leg3_pair, leg3_side, leg3_amount, leg3_price, leg3_fee, leg3_status, leg3_executed_at
+            ) VALUES (
+                $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, 
+                $19, $20, $21, $22, $23, $24, $25,
+                $26, $27, $28, $29, $30, $31, $32, $33,
+                $34, $35, $36, $37, $38, $39, $40, $41,
+                $42, $43, $44, $45, $46, $47, $48, $49
+            ) RETURNING id, trade_id
+        `;
+
+        const values = [
+            tradeRecord.user_id, tradeRecord.trade_id, tradeRecord.exchange, tradeRecord.path_id, 
+            tradeRecord.path_sequence, tradeRecord.opportunity_data, tradeRecord.initial_amount, 
+            tradeRecord.currency_start, tradeRecord.execution_status, tradeRecord.execution_type, 
+            tradeRecord.dry_run, tradeRecord.expected_profit_zar, tradeRecord.expected_profit_percent,
+            tradeRecord.actual_profit_zar, tradeRecord.actual_profit_percent, tradeRecord.total_fees_paid,
+            tradeRecord.risk_assessment, tradeRecord.max_slippage_allowed, tradeRecord.scan_started_at,
+            tradeRecord.execution_started_at, tradeRecord.execution_completed_at, tradeRecord.total_execution_time_ms,
+            tradeRecord.error_message, tradeRecord.user_agent, tradeRecord.ip_address,
+            tradeRecord.leg1_order_id, tradeRecord.leg1_pair, tradeRecord.leg1_side, tradeRecord.leg1_amount,
+            tradeRecord.leg1_price, tradeRecord.leg1_fee, tradeRecord.leg1_status, tradeRecord.leg1_executed_at,
+            tradeRecord.leg2_order_id, tradeRecord.leg2_pair, tradeRecord.leg2_side, tradeRecord.leg2_amount,
+            tradeRecord.leg2_price, tradeRecord.leg2_fee, tradeRecord.leg2_status, tradeRecord.leg2_executed_at,
+            tradeRecord.leg3_order_id, tradeRecord.leg3_pair, tradeRecord.leg3_side, tradeRecord.leg3_amount,
+            tradeRecord.leg3_price, tradeRecord.leg3_fee, tradeRecord.leg3_status, tradeRecord.leg3_executed_at
+        ];
+
+        const result = await query(insertQuery, values);
+        
+        systemLogger.trading('Triangular trade logged to database', {
+            userId: userId,
+            tradeId: tradeRecord.trade_id,
+            dbId: result.rows[0].id,
+            status: tradeRecord.execution_status,
+            profitZAR: tradeRecord.actual_profit_zar
+        });
+
+        return {
+            success: true,
+            tradeId: tradeRecord.trade_id,
+            dbId: result.rows[0].id
+        };
+
+    } catch (error) {
+        systemLogger.error('Failed to log triangular trade to database', {
+            userId: userId,
+            error: error.message,
+            stack: error.stack
+        });
+        
+        // Don't throw - logging failure shouldn't break trade execution
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+// Get recent triangular trades for user
+async function getRecentTriangularTrades(userId, limit = 50) {
+    try {
+        const tradesQuery = `
+            SELECT 
+                id, trade_id, exchange, path_id, path_sequence,
+                execution_status, actual_profit_zar, actual_profit_percent,
+                total_execution_time_ms, created_at, execution_completed_at,
+                error_message, dry_run
+            FROM triangular_trades 
+            WHERE user_id = $1 
+            ORDER BY created_at DESC 
+            LIMIT $2
+        `;
+
+        const result = await query(tradesQuery, [userId, limit]);
+        return result.rows;
+
+    } catch (error) {
+        systemLogger.error('Failed to fetch recent triangular trades', {
+            userId: userId,
+            error: error.message
+        });
+        return [];
+    }
+}
+
+// ============================================
 // VALR TRIANGULAR ARBITRAGE ENDPOINTS
 // ============================================
 // Specific endpoints for triangular arbitrage functionality
@@ -12581,6 +12762,27 @@ router.post('/valr/triangular/execute', authenticatedRateLimit, authenticateUser
                 simulate
             });
 
+            // Log trade to database
+            const logResult = await logTriangularTrade(req.user.id, {
+                opportunity: currentOpportunity,
+                executionResult: executionResult,
+                dryRun: simulate,
+                maxSlippage: maxSlippage,
+                scanStartedAt: req.body.scanStartedAt ? new Date(req.body.scanStartedAt) : new Date(),
+                executionStartedAt: new Date(),
+                executionTimeMs: executionResult.performance?.totalTime,
+                userAgent: req.headers['user-agent'],
+                ipAddress: req.ip
+            });
+
+            if (logResult.success) {
+                systemLogger.info('Trade logged to database', {
+                    userId: req.user.id,
+                    tradeId: logResult.tradeId,
+                    dbId: logResult.dbId
+                });
+            }
+
             res.json({
                 success: true,
                 data: {
@@ -12617,6 +12819,27 @@ router.post('/valr/triangular/execute', authenticatedRateLimit, authenticateUser
                 rollbacks: executionResult.rollbacks,
                 simulate
             });
+
+            // Log failed trade to database
+            const logResult = await logTriangularTrade(req.user.id, {
+                opportunity: currentOpportunity,
+                executionResult: executionResult,
+                dryRun: simulate,
+                maxSlippage: maxSlippage,
+                scanStartedAt: req.body.scanStartedAt ? new Date(req.body.scanStartedAt) : new Date(),
+                executionStartedAt: new Date(),
+                executionTimeMs: executionResult.performance?.totalTime,
+                userAgent: req.headers['user-agent'],
+                ipAddress: req.ip
+            });
+
+            if (logResult.success) {
+                systemLogger.info('Failed trade logged to database', {
+                    userId: req.user.id,
+                    tradeId: logResult.tradeId,
+                    dbId: logResult.dbId
+                });
+            }
 
             res.json({
                 success: false,
