@@ -11793,6 +11793,410 @@ function getRiskLevel(riskFactors) {
     return 'HIGH';
 }
 
+// ============================================
+// 3-LEG ATOMIC TRADE EXECUTION ENGINE
+// ============================================
+// Execute triangular arbitrage with atomic rollback on failure
+
+/**
+ * Execute a 3-leg triangular arbitrage trade atomically
+ * @param {Object} opportunity - Triangular opportunity with execution details
+ * @param {string} apiKey - VALR API key
+ * @param {string} apiSecret - VALR API secret
+ * @param {Object} options - Execution options
+ * @returns {Object} Execution result with trade details
+ */
+async function executeTriangularTradeAtomic(opportunity, apiKey, apiSecret, options = {}) {
+    const {
+        maxSlippage = 0.5,      // Maximum allowed slippage %
+        timeoutMs = 30000,      // 30 second timeout per trade
+        dryRun = false          // Dry run mode for testing
+    } = options;
+    
+    const executionId = Math.random().toString(36).substring(7);
+    const startTime = Date.now();
+    
+    console.log(`🚀 Starting atomic triangular execution: ${executionId}`);
+    console.log(`📊 Path: ${opportunity.pathId} | Amount: R${opportunity.startAmount}`);
+    
+    const result = {
+        executionId,
+        pathId: opportunity.pathId,
+        sequence: opportunity.sequence,
+        startAmount: opportunity.startAmount,
+        startTime: new Date(startTime).toISOString(),
+        success: false,
+        legs: [],
+        rollbacks: [],
+        error: null,
+        performance: {
+            totalTime: 0,
+            legTimes: []
+        }
+    };
+    
+    try {
+        // Pre-execution validation
+        if (!opportunity.steps || opportunity.steps.length !== 3) {
+            throw new Error('Invalid triangular path: must have exactly 3 steps');
+        }
+        
+        if (!opportunity.profitable || opportunity.recommendation === 'AVOID') {
+            throw new Error(`Opportunity not suitable for execution: ${opportunity.recommendation}`);
+        }
+        
+        // Validate balances before execution
+        const balanceCheck = await validateBalancesForExecution(opportunity, apiKey, apiSecret);
+        if (!balanceCheck.sufficient) {
+            throw new Error(`Insufficient balance: ${balanceCheck.message}`);
+        }
+        
+        console.log(`✅ Pre-execution validation passed`);
+        
+        let currentAmount = opportunity.startAmount;
+        let currentCurrency = 'ZAR'; // Assuming ZAR-based arbitrage
+        
+        // Execute each leg sequentially with rollback capability
+        for (let i = 0; i < opportunity.steps.length; i++) {
+            const step = opportunity.steps[i];
+            const legStartTime = Date.now();
+            
+            console.log(`🔄 Executing leg ${i + 1}/3: ${step.pair} (${step.side})`);
+            
+            try {
+                // Execute the trade leg
+                const legResult = await executeTradeLeg(
+                    step, 
+                    currentAmount, 
+                    currentCurrency,
+                    apiKey, 
+                    apiSecret,
+                    { 
+                        maxSlippage, 
+                        timeoutMs, 
+                        dryRun,
+                        executionId 
+                    }
+                );
+                
+                const legTime = Date.now() - legStartTime;
+                result.performance.legTimes.push(legTime);
+                
+                // Update current state
+                currentAmount = legResult.outputAmount;
+                currentCurrency = legResult.outputCurrency;
+                
+                // Store leg details
+                result.legs.push({
+                    legNumber: i + 1,
+                    step: step,
+                    inputAmount: legResult.inputAmount,
+                    outputAmount: legResult.outputAmount,
+                    price: legResult.price,
+                    fee: legResult.fee,
+                    orderId: legResult.orderId,
+                    slippage: legResult.slippage,
+                    executionTime: legTime,
+                    success: true
+                });
+                
+                console.log(`✅ Leg ${i + 1} completed: ${currentAmount.toFixed(4)} ${currentCurrency}`);
+                
+            } catch (legError) {
+                console.error(`❌ Leg ${i + 1} failed:`, legError.message);
+                
+                // Record failed leg
+                result.legs.push({
+                    legNumber: i + 1,
+                    step: step,
+                    error: legError.message,
+                    executionTime: Date.now() - legStartTime,
+                    success: false
+                });
+                
+                // Initiate rollback for all completed legs
+                if (i > 0 && !dryRun) {
+                    console.log(`🔄 Initiating rollback for ${i} completed legs...`);
+                    await rollbackCompletedLegs(result.legs.slice(0, i), apiKey, apiSecret);
+                }
+                
+                throw new Error(`Leg ${i + 1} execution failed: ${legError.message}`);
+            }
+        }
+        
+        // Calculate final results
+        const finalAmount = currentAmount;
+        const grossProfit = finalAmount - opportunity.startAmount;
+        const netProfit = grossProfit; // Fees already deducted in legs
+        const netProfitPercent = (netProfit / opportunity.startAmount) * 100;
+        const totalTime = Date.now() - startTime;
+        
+        result.success = true;
+        result.endAmount = finalAmount;
+        result.grossProfit = grossProfit;
+        result.netProfit = netProfit;
+        result.netProfitPercent = netProfitPercent;
+        result.performance.totalTime = totalTime;
+        result.endTime = new Date().toISOString();
+        
+        console.log(`🎉 Triangular execution completed successfully!`);
+        console.log(`💰 Net profit: R${netProfit.toFixed(2)} (${netProfitPercent.toFixed(2)}%)`);
+        console.log(`⏱️ Total execution time: ${totalTime}ms`);
+        
+        return result;
+        
+    } catch (error) {
+        const totalTime = Date.now() - startTime;
+        result.error = error.message;
+        result.performance.totalTime = totalTime;
+        result.endTime = new Date().toISOString();
+        
+        console.error(`❌ Triangular execution failed: ${error.message}`);
+        
+        return result;
+    }
+}
+
+/**
+ * Execute a single trade leg
+ */
+async function executeTradeLeg(step, inputAmount, inputCurrency, apiKey, apiSecret, options) {
+    const { maxSlippage, timeoutMs, dryRun, executionId } = options;
+    
+    if (dryRun) {
+        // Simulate trade execution for testing
+        const simulatedPrice = step.price * (1 + (Math.random() - 0.5) * 0.001); // ±0.05% price variance
+        const simulatedFee = inputAmount * 0.001; // 0.1% fee
+        const simulatedSlippage = Math.random() * 0.1; // Up to 0.1% slippage
+        
+        let outputAmount, outputCurrency;
+        
+        if (step.side === 'buy') {
+            outputAmount = (inputAmount - simulatedFee) / simulatedPrice;
+            outputCurrency = step.pair.replace('ZAR', '').replace('USDT', ''); // Extract base currency
+        } else {
+            outputAmount = inputAmount * simulatedPrice - simulatedFee;
+            outputCurrency = step.pair.includes('ZAR') ? 'ZAR' : 'USDT';
+        }
+        
+        return {
+            inputAmount,
+            outputAmount,
+            outputCurrency,
+            price: simulatedPrice,
+            fee: simulatedFee,
+            slippage: simulatedSlippage,
+            orderId: `SIM_${executionId}_${step.pair}_${Date.now()}`,
+            simulation: true
+        };
+    }
+    
+    // Real trade execution
+    try {
+        // Get fresh order book to check for slippage
+        const orderBook = await makeVALRRequest(
+            `/v1/marketdata/${step.pair}/orderbook`,
+            'GET',
+            null,
+            apiKey,
+            apiSecret
+        );
+        
+        // Check for excessive slippage
+        const currentPrice = step.side === 'buy' 
+            ? parseFloat(orderBook.Asks[0]?.price || 0)
+            : parseFloat(orderBook.Bids[0]?.price || 0);
+            
+        const priceChange = Math.abs((currentPrice - step.price) / step.price * 100);
+        
+        if (priceChange > maxSlippage) {
+            throw new Error(`Excessive slippage: ${priceChange.toFixed(2)}% > ${maxSlippage}%`);
+        }
+        
+        // Prepare order parameters
+        let orderParams;
+        
+        if (step.side === 'buy') {
+            // Market buy order
+            orderParams = {
+                side: 'BUY',
+                quantity: (inputAmount / currentPrice).toFixed(8), // Quantity in base currency
+                pair: step.pair,
+                type: 'MARKET'
+            };
+        } else {
+            // Market sell order  
+            orderParams = {
+                side: 'SELL',
+                quantity: inputAmount.toFixed(8), // Quantity in base currency
+                pair: step.pair,
+                type: 'MARKET'
+            };
+        }
+        
+        console.log(`📝 Placing ${step.side} order:`, orderParams);
+        
+        // Place the order
+        const orderResponse = await makeVALRRequest(
+            '/v1/orders/market',
+            'POST',
+            orderParams,
+            apiKey,
+            apiSecret
+        );
+        
+        // Wait for order to be filled (with timeout)
+        const orderResult = await waitForOrderCompletion(
+            orderResponse.id, 
+            apiKey, 
+            apiSecret, 
+            timeoutMs
+        );
+        
+        return {
+            inputAmount,
+            outputAmount: parseFloat(orderResult.executedQuantity),
+            outputCurrency: orderResult.outputCurrency,
+            price: parseFloat(orderResult.averagePrice),
+            fee: parseFloat(orderResult.feeAmount),
+            slippage: priceChange,
+            orderId: orderResult.id
+        };
+        
+    } catch (error) {
+        throw new Error(`Trade leg execution failed: ${error.message}`);
+    }
+}
+
+/**
+ * Validate account balances before execution
+ */
+async function validateBalancesForExecution(opportunity, apiKey, apiSecret) {
+    try {
+        const balances = await makeVALRRequest('/v1/account/balances', 'GET', null, apiKey, apiSecret);
+        
+        // Check ZAR balance for starting amount
+        const zarBalance = balances.find(b => b.currency === 'ZAR');
+        const availableZAR = parseFloat(zarBalance?.available || 0);
+        
+        if (availableZAR < opportunity.startAmount) {
+            return {
+                sufficient: false,
+                message: `Insufficient ZAR balance: need R${opportunity.startAmount}, have R${availableZAR.toFixed(2)}`
+            };
+        }
+        
+        // Add buffer for fees (5% extra)
+        const requiredAmount = opportunity.startAmount * 1.05;
+        if (availableZAR < requiredAmount) {
+            return {
+                sufficient: false,
+                message: `Insufficient ZAR balance with fee buffer: need R${requiredAmount.toFixed(2)}, have R${availableZAR.toFixed(2)}`
+            };
+        }
+        
+        return {
+            sufficient: true,
+            availableZAR: availableZAR,
+            message: 'Balance validation passed'
+        };
+        
+    } catch (error) {
+        return {
+            sufficient: false,
+            message: `Balance check failed: ${error.message}`
+        };
+    }
+}
+
+/**
+ * Wait for order completion with timeout
+ */
+async function waitForOrderCompletion(orderId, apiKey, apiSecret, timeoutMs) {
+    const startTime = Date.now();
+    const pollInterval = 1000; // Poll every 1 second
+    
+    while (Date.now() - startTime < timeoutMs) {
+        try {
+            const orderStatus = await makeVALRRequest(
+                `/v1/orders/${orderId}`,
+                'GET',
+                null,
+                apiKey,
+                apiSecret
+            );
+            
+            if (orderStatus.orderStatusType === 'Filled') {
+                return orderStatus;
+            }
+            
+            if (orderStatus.orderStatusType === 'Failed' || orderStatus.orderStatusType === 'Cancelled') {
+                throw new Error(`Order ${orderId} ${orderStatus.orderStatusType.toLowerCase()}`);
+            }
+            
+            // Wait before next poll
+            await new Promise(resolve => setTimeout(resolve, pollInterval));
+            
+        } catch (error) {
+            throw new Error(`Order status check failed: ${error.message}`);
+        }
+    }
+    
+    throw new Error(`Order ${orderId} timeout after ${timeoutMs}ms`);
+}
+
+/**
+ * Rollback completed legs by placing reverse orders
+ */
+async function rollbackCompletedLegs(completedLegs, apiKey, apiSecret) {
+    console.log(`🔄 Starting rollback for ${completedLegs.length} completed legs...`);
+    
+    const rollbackResults = [];
+    
+    // Rollback in reverse order
+    for (let i = completedLegs.length - 1; i >= 0; i--) {
+        const leg = completedLegs[i];
+        
+        try {
+            console.log(`🔄 Rolling back leg ${leg.legNumber}: ${leg.step.pair}`);
+            
+            // Create reverse order
+            const reverseOrderParams = {
+                side: leg.step.side === 'buy' ? 'SELL' : 'BUY',
+                quantity: leg.outputAmount.toFixed(8),
+                pair: leg.step.pair,
+                type: 'MARKET'
+            };
+            
+            const rollbackOrder = await makeVALRRequest(
+                '/v1/orders/market',
+                'POST',
+                reverseOrderParams,
+                apiKey,
+                apiSecret
+            );
+            
+            rollbackResults.push({
+                legNumber: leg.legNumber,
+                rollbackOrderId: rollbackOrder.id,
+                success: true
+            });
+            
+            console.log(`✅ Rollback order placed for leg ${leg.legNumber}: ${rollbackOrder.id}`);
+            
+        } catch (rollbackError) {
+            console.error(`❌ Rollback failed for leg ${leg.legNumber}:`, rollbackError.message);
+            rollbackResults.push({
+                legNumber: leg.legNumber,
+                error: rollbackError.message,
+                success: false
+            });
+        }
+    }
+    
+    return rollbackResults;
+}
+
 // POST /api/v1/trading/valr/triangular/scan
 // Scan for triangular arbitrage opportunities with live prices
 router.post('/valr/triangular/scan', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
@@ -12098,23 +12502,140 @@ router.post('/valr/triangular/execute', authenticatedRateLimit, authenticateUser
 
         const { exchange_api_key, exchange_api_secret } = keysResult.rows[0];
 
-        // For now, return simulation results
-        // TODO: Implement actual 3-leg execution with rollback on failure
-        if (simulate) {
+        // Find the triangular path configuration
+        const triangularPaths = [
+            {
+                id: 'ZAR_LINK_USDT',
+                pairs: ['LINKZAR', 'LINKUSDT', 'USDTZAR'],
+                sequence: 'ZAR → LINK → USDT → ZAR',
+                steps: [
+                    { pair: 'LINKZAR', side: 'buy' },
+                    { pair: 'LINKUSDT', side: 'sell' },
+                    { pair: 'USDTZAR', side: 'sell' }
+                ]
+            },
+            {
+                id: 'ZAR_ETH_USDT',
+                pairs: ['ETHZAR', 'ETHUSDT', 'USDTZAR'],
+                sequence: 'ZAR → ETH → USDT → ZAR',
+                steps: [
+                    { pair: 'ETHZAR', side: 'buy' },
+                    { pair: 'ETHUSDT', side: 'sell' },
+                    { pair: 'USDTZAR', side: 'sell' }
+                ]
+            }
+            // Add more paths as needed
+        ];
+
+        const selectedPath = triangularPaths.find(p => p.id === pathId);
+        if (!selectedPath) {
+            throw new APIError(`Invalid path ID: ${pathId}`, 400, 'INVALID_PATH_ID');
+        }
+
+        // Get current market prices for the path to create opportunity object
+        const orderBooks = {};
+        for (const pair of selectedPath.pairs) {
+            const orderBook = await makeVALRRequest(
+                `/v1/marketdata/${pair}/orderbook`,
+                'GET',
+                null,
+                exchange_api_key,
+                exchange_api_secret
+            );
+            orderBooks[pair] = orderBook;
+        }
+
+        // Calculate current opportunity
+        const currentOpportunity = calculateTriangularProfitAdvanced(selectedPath, orderBooks, amount);
+        
+        if (!currentOpportunity.success) {
+            throw new APIError(`Opportunity calculation failed: ${currentOpportunity.error}`, 400, 'CALCULATION_FAILED');
+        }
+
+        console.log(`🎯 Executing triangular arbitrage: ${pathId} with R${amount}`);
+        console.log(`📊 Expected profit: ${currentOpportunity.netProfitPercent.toFixed(2)}% (${currentOpportunity.recommendation})`);
+
+        // Execute the triangular trade atomically
+        const executionResult = await executeTriangularTradeAtomic(
+            currentOpportunity,
+            exchange_api_key,
+            exchange_api_secret,
+            {
+                maxSlippage: 0.5,      // 0.5% max slippage
+                timeoutMs: 30000,      // 30 second timeout per leg
+                dryRun: simulate       // Use simulate parameter for dry run
+            }
+        );
+
+        // Prepare response based on execution result
+        if (executionResult.success) {
+            systemLogger.trading('VALR triangular execution completed', {
+                userId: req.user.id,
+                executionId: executionResult.executionId,
+                pathId: executionResult.pathId,
+                startAmount: executionResult.startAmount,
+                endAmount: executionResult.endAmount,
+                netProfit: executionResult.netProfit,
+                netProfitPercent: executionResult.netProfitPercent,
+                totalTime: executionResult.performance.totalTime,
+                simulate
+            });
+
             res.json({
                 success: true,
                 data: {
-                    simulation: true,
-                    pathId,
-                    amount,
-                    estimatedProfit: (amount * 0.015).toFixed(2), // 1.5% simulated profit
-                    message: 'Simulation completed. Set simulate=false to execute real trade.',
+                    execution: {
+                        executionId: executionResult.executionId,
+                        pathId: executionResult.pathId,
+                        sequence: executionResult.sequence,
+                        simulate: simulate,
+                        startAmount: executionResult.startAmount,
+                        endAmount: executionResult.endAmount,
+                        grossProfit: executionResult.grossProfit,
+                        netProfit: executionResult.netProfit,
+                        netProfitPercent: executionResult.netProfitPercent,
+                        performance: executionResult.performance,
+                        legs: executionResult.legs,
+                        startTime: executionResult.startTime,
+                        endTime: executionResult.endTime
+                    },
+                    message: simulate 
+                        ? `Simulation completed successfully. Estimated profit: R${executionResult.netProfit.toFixed(2)} (${executionResult.netProfitPercent.toFixed(2)}%)`
+                        : `Triangular execution completed successfully! Net profit: R${executionResult.netProfit.toFixed(2)} (${executionResult.netProfitPercent.toFixed(2)}%)`,
                     timestamp: new Date().toISOString()
                 }
             });
+
         } else {
-            // Real execution would go here
-            throw new APIError('Live triangular execution not yet implemented', 501, 'NOT_IMPLEMENTED');
+            // Execution failed
+            systemLogger.error('VALR triangular execution failed', {
+                userId: req.user.id,
+                executionId: executionResult.executionId,
+                pathId: executionResult.pathId,
+                error: executionResult.error,
+                legs: executionResult.legs,
+                rollbacks: executionResult.rollbacks,
+                simulate
+            });
+
+            res.json({
+                success: false,
+                data: {
+                    execution: {
+                        executionId: executionResult.executionId,
+                        pathId: executionResult.pathId,
+                        simulate: simulate,
+                        error: executionResult.error,
+                        legs: executionResult.legs,
+                        rollbacks: executionResult.rollbacks,
+                        performance: executionResult.performance,
+                        startTime: executionResult.startTime,
+                        endTime: executionResult.endTime
+                    },
+                    message: `Execution failed: ${executionResult.error}`,
+                    timestamp: new Date().toISOString()
+                }
+            });
         }
     } catch (error) {
         systemLogger.error('VALR triangular execution failed', {
