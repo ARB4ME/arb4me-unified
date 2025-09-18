@@ -28357,6 +28357,254 @@ ARB4ME Security Team`
                         baseCurrency: 'ZAR'
                     }
                 ]
+            },
+
+            // SET 4: DEFI & SMART CONTRACT PLATFORMS
+            SET_4_DEFI: {
+                name: "DeFi & Smart Contracts",
+                scanTime: 50,
+                priority: 4,
+                minProfitThreshold: 1.5,
+                paths: [
+                    {
+                        id: "ZAR_UNI_USDT",
+                        pairs: ['UNIZAR', 'UNIUSDT', 'USDTZAR'],
+                        sequence: 'ZAR → UNI → USDT → ZAR',
+                        steps: [
+                            { pair: 'UNIZAR', side: 'buy', description: 'ZAR → UNI' },
+                            { pair: 'UNIUSDT', side: 'sell', description: 'UNI → USDT' },
+                            { pair: 'USDTZAR', side: 'sell', description: 'USDT → ZAR' }
+                        ],
+                        baseCurrency: 'ZAR'
+                    },
+                    {
+                        id: "ZAR_AAVE_USDT",
+                        pairs: ['AAVEZAR', 'AAVEUSDT', 'USDTZAR'],
+                        sequence: 'ZAR → AAVE → USDT → ZAR',
+                        steps: [
+                            { pair: 'AAVEZAR', side: 'buy', description: 'ZAR → AAVE' },
+                            { pair: 'AAVEUSDT', side: 'sell', description: 'AAVE → USDT' },
+                            { pair: 'USDTZAR', side: 'sell', description: 'USDT → ZAR' }
+                        ],
+                        baseCurrency: 'ZAR'
+                    },
+                    {
+                        id: "ZAR_COMP_USDT",
+                        pairs: ['COMPZAR', 'COMPUSDT', 'USDTZAR'],
+                        sequence: 'ZAR → COMP → USDT → ZAR',
+                        steps: [
+                            { pair: 'COMPZAR', side: 'buy', description: 'ZAR → COMP' },
+                            { pair: 'COMPUSDT', side: 'sell', description: 'COMP → USDT' },
+                            { pair: 'USDTZAR', side: 'sell', description: 'USDT → ZAR' }
+                        ],
+                        baseCurrency: 'ZAR'
+                    },
+                    {
+                        id: "ZAR_USDT_UNI",
+                        pairs: ['USDTZAR', 'UNIUSDT', 'UNIZAR'],
+                        sequence: 'ZAR → USDT → UNI → ZAR',
+                        steps: [
+                            { pair: 'USDTZAR', side: 'buy', description: 'ZAR → USDT' },
+                            { pair: 'UNIUSDT', side: 'buy', description: 'USDT → UNI' },
+                            { pair: 'UNIZAR', side: 'sell', description: 'UNI → ZAR' }
+                        ],
+                        baseCurrency: 'ZAR'
+                    }
+                ]
+            },
+
+            // SET 5: MEME & COMMUNITY TOKENS
+            SET_5_MEME: {
+                name: "Meme & Community",
+                scanTime: 60,
+                priority: 5,
+                minProfitThreshold: 2.0,
+                paths: [
+                    {
+                        id: "ZAR_DOGE_USDT",
+                        pairs: ['DOGEZAR', 'DOGEUSDT', 'USDTZAR'],
+                        sequence: 'ZAR → DOGE → USDT → ZAR',
+                        steps: [
+                            { pair: 'DOGEZAR', side: 'buy', description: 'ZAR → DOGE' },
+                            { pair: 'DOGEUSDT', side: 'sell', description: 'DOGE → USDT' },
+                            { pair: 'USDTZAR', side: 'sell', description: 'USDT → ZAR' }
+                        ],
+                        baseCurrency: 'ZAR'
+                    },
+                    {
+                        id: "ZAR_SHIB_USDT",
+                        pairs: ['SHIBZAR', 'SHIBUSDT', 'USDTZAR'],
+                        sequence: 'ZAR → SHIB → USDT → ZAR',
+                        steps: [
+                            { pair: 'SHIBZAR', side: 'buy', description: 'ZAR → SHIB' },
+                            { pair: 'SHIBUSDT', side: 'sell', description: 'SHIB → USDT' },
+                            { pair: 'USDTZAR', side: 'sell', description: 'USDT → ZAR' }
+                        ],
+                        baseCurrency: 'ZAR'
+                    },
+                    {
+                        id: "ZAR_USDT_DOGE",
+                        pairs: ['USDTZAR', 'DOGEUSDT', 'DOGEZAR'],
+                        sequence: 'ZAR → USDT → DOGE → ZAR',
+                        steps: [
+                            { pair: 'USDTZAR', side: 'buy', description: 'ZAR → USDT' },
+                            { pair: 'DOGEUSDT', side: 'buy', description: 'USDT → DOGE' },
+                            { pair: 'DOGEZAR', side: 'sell', description: 'DOGE → ZAR' }
+                        ],
+                        baseCurrency: 'ZAR'
+                    }
+                ]
+            },
+
+            // SET 6: ENTERPRISE & INSTITUTIONAL
+            SET_6_ENTERPRISE: {
+                name: "Enterprise & Institutional",
+                scanTime: 45,
+                priority: 6,
+                minProfitThreshold: 1.8,
+                paths: [
+                    {
+                        id: "ZAR_XRP_USDT",
+                        pairs: ['XRPZAR', 'XRPUSDT', 'USDTZAR'],
+                        sequence: 'ZAR → XRP → USDT → ZAR',
+                        steps: [
+                            { pair: 'XRPZAR', side: 'buy', description: 'ZAR → XRP' },
+                            { pair: 'XRPUSDT', side: 'sell', description: 'XRP → USDT' },
+                            { pair: 'USDTZAR', side: 'sell', description: 'USDT → ZAR' }
+                        ],
+                        baseCurrency: 'ZAR'
+                    },
+                    {
+                        id: "ZAR_XLM_USDT",
+                        pairs: ['XLMZAR', 'XLMUSDT', 'USDTZAR'],
+                        sequence: 'ZAR → XLM → USDT → ZAR',
+                        steps: [
+                            { pair: 'XLMZAR', side: 'buy', description: 'ZAR → XLM' },
+                            { pair: 'XLMUSDT', side: 'sell', description: 'XLM → USDT' },
+                            { pair: 'USDTZAR', side: 'sell', description: 'USDT → ZAR' }
+                        ],
+                        baseCurrency: 'ZAR'
+                    },
+                    {
+                        id: "ZAR_USDT_XRP",
+                        pairs: ['USDTZAR', 'XRPUSDT', 'XRPZAR'],
+                        sequence: 'ZAR → USDT → XRP → ZAR',
+                        steps: [
+                            { pair: 'USDTZAR', side: 'buy', description: 'ZAR → USDT' },
+                            { pair: 'XRPUSDT', side: 'buy', description: 'USDT → XRP' },
+                            { pair: 'XRPZAR', side: 'sell', description: 'XRP → ZAR' }
+                        ],
+                        baseCurrency: 'ZAR'
+                    },
+                    {
+                        id: "ZAR_USDT_XLM",
+                        pairs: ['USDTZAR', 'XLMUSDT', 'XLMZAR'],
+                        sequence: 'ZAR → USDT → XLM → ZAR',
+                        steps: [
+                            { pair: 'USDTZAR', side: 'buy', description: 'ZAR → USDT' },
+                            { pair: 'XLMUSDT', side: 'buy', description: 'USDT → XLM' },
+                            { pair: 'XLMZAR', side: 'sell', description: 'XLM → ZAR' }
+                        ],
+                        baseCurrency: 'ZAR'
+                    }
+                ]
+            },
+
+            // SET 7: GAMING & METAVERSE
+            SET_7_GAMING: {
+                name: "Gaming & Metaverse",
+                scanTime: 55,
+                priority: 7,
+                minProfitThreshold: 2.5,
+                paths: [
+                    {
+                        id: "ZAR_SAND_USDT",
+                        pairs: ['SANDZAR', 'SANDUSDT', 'USDTZAR'],
+                        sequence: 'ZAR → SAND → USDT → ZAR',
+                        steps: [
+                            { pair: 'SANDZAR', side: 'buy', description: 'ZAR → SAND' },
+                            { pair: 'SANDUSDT', side: 'sell', description: 'SAND → USDT' },
+                            { pair: 'USDTZAR', side: 'sell', description: 'USDT → ZAR' }
+                        ],
+                        baseCurrency: 'ZAR'
+                    },
+                    {
+                        id: "ZAR_MANA_USDT",
+                        pairs: ['MANAZAR', 'MANAUSDT', 'USDTZAR'],
+                        sequence: 'ZAR → MANA → USDT → ZAR',
+                        steps: [
+                            { pair: 'MANAZAR', side: 'buy', description: 'ZAR → MANA' },
+                            { pair: 'MANAUSDT', side: 'sell', description: 'MANA → USDT' },
+                            { pair: 'USDTZAR', side: 'sell', description: 'USDT → ZAR' }
+                        ],
+                        baseCurrency: 'ZAR'
+                    },
+                    {
+                        id: "ZAR_USDT_SAND",
+                        pairs: ['USDTZAR', 'SANDUSDT', 'SANDZAR'],
+                        sequence: 'ZAR → USDT → SAND → ZAR',
+                        steps: [
+                            { pair: 'USDTZAR', side: 'buy', description: 'ZAR → USDT' },
+                            { pair: 'SANDUSDT', side: 'buy', description: 'USDT → SAND' },
+                            { pair: 'SANDZAR', side: 'sell', description: 'SAND → ZAR' }
+                        ],
+                        baseCurrency: 'ZAR'
+                    }
+                ]
+            },
+
+            // SET 8: STABLECOINS & YIELD
+            SET_8_STABLE: {
+                name: "Stablecoins & Yield",
+                scanTime: 30,
+                priority: 8,
+                minProfitThreshold: 0.5,
+                paths: [
+                    {
+                        id: "ZAR_USDC_USDT",
+                        pairs: ['USDCZAR', 'USDCUSDT', 'USDTZAR'],
+                        sequence: 'ZAR → USDC → USDT → ZAR',
+                        steps: [
+                            { pair: 'USDCZAR', side: 'buy', description: 'ZAR → USDC' },
+                            { pair: 'USDCUSDT', side: 'sell', description: 'USDC → USDT' },
+                            { pair: 'USDTZAR', side: 'sell', description: 'USDT → ZAR' }
+                        ],
+                        baseCurrency: 'ZAR'
+                    },
+                    {
+                        id: "ZAR_USDT_USDC",
+                        pairs: ['USDTZAR', 'USDCUSDT', 'USDCZAR'],
+                        sequence: 'ZAR → USDT → USDC → ZAR',
+                        steps: [
+                            { pair: 'USDTZAR', side: 'buy', description: 'ZAR → USDT' },
+                            { pair: 'USDCUSDT', side: 'buy', description: 'USDT → USDC' },
+                            { pair: 'USDCZAR', side: 'sell', description: 'USDC → ZAR' }
+                        ],
+                        baseCurrency: 'ZAR'
+                    },
+                    {
+                        id: "ZAR_DAI_USDT",
+                        pairs: ['DAIZAR', 'DAIUSDT', 'USDTZAR'],
+                        sequence: 'ZAR → DAI → USDT → ZAR',
+                        steps: [
+                            { pair: 'DAIZAR', side: 'buy', description: 'ZAR → DAI' },
+                            { pair: 'DAIUSDT', side: 'sell', description: 'DAI → USDT' },
+                            { pair: 'USDTZAR', side: 'sell', description: 'USDT → ZAR' }
+                        ],
+                        baseCurrency: 'ZAR'
+                    },
+                    {
+                        id: "ZAR_USDT_DAI",
+                        pairs: ['USDTZAR', 'DAIUSDT', 'DAIZAR'],
+                        sequence: 'ZAR → USDT → DAI → ZAR',
+                        steps: [
+                            { pair: 'USDTZAR', side: 'buy', description: 'ZAR → USDT' },
+                            { pair: 'DAIUSDT', side: 'buy', description: 'USDT → DAI' },
+                            { pair: 'DAIZAR', side: 'sell', description: 'DAI → ZAR' }
+                        ],
+                        baseCurrency: 'ZAR'
+                    }
+                ]
             }
         };
 
@@ -28406,15 +28654,25 @@ ARB4ME Security Team`
         window.testVALRMajors = () => VALRTriangular.testPathSet('SET_1_MAJORS');
         window.testVALRAlts = () => VALRTriangular.testPathSet('SET_2_ALTS');
         window.testVALRLayer1 = () => VALRTriangular.testPathSet('SET_3_LAYER1');
+        window.testVALRDeFi = () => VALRTriangular.testPathSet('SET_4_DEFI');
+        window.testVALRMeme = () => VALRTriangular.testPathSet('SET_5_MEME');
+        window.testVALREnterprise = () => VALRTriangular.testPathSet('SET_6_ENTERPRISE');
+        window.testVALRGaming = () => VALRTriangular.testPathSet('SET_7_GAMING');
+        window.testVALRStable = () => VALRTriangular.testPathSet('SET_8_STABLE');
         window.scanAllVALRSets = () => VALRTriangular.scanAllPathSets();
 
         console.log('\n🎉 === VALR PRODUCTION PATHS LOADED ===');
-        console.log('📊 10 triangular paths now available!');
+        console.log('📊 32 triangular paths now available!');
         console.log('🔥 New functions:');
-        console.log('   • testVALRMajors() - Test high volume major pairs');
-        console.log('   • testVALRAlts() - Test popular altcoin paths');
-        console.log('   • testVALRLayer1() - Test layer 1 tokens');
-        console.log('   • scanAllVALRSets() - View all paths');
+        console.log('   • testVALRMajors() - Test 4 high volume major pairs');
+        console.log('   • testVALRAlts() - Test 4 popular altcoin paths');
+        console.log('   • testVALRLayer1() - Test 2 layer 1 tokens');
+        console.log('   • testVALRDeFi() - Test 4 DeFi & smart contract paths');
+        console.log('   • testVALRMeme() - Test 3 meme & community tokens');
+        console.log('   • testVALREnterprise() - Test 4 enterprise & institutional');
+        console.log('   • testVALRGaming() - Test 3 gaming & metaverse tokens');
+        console.log('   • testVALRStable() - Test 4 stablecoin arbitrage paths');
+        console.log('   • scanAllVALRSets() - View all 32 organized paths');
         console.log('✅ Ready for production triangular arbitrage!');
     </script>
 
