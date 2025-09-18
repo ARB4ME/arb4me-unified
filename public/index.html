@@ -175,6 +175,12 @@
         
         .tab-content.active { display: block; }
         
+        /* Specific rule for triangular tab to ensure visibility */
+        #triangularTab.active { 
+            display: block !important; 
+            visibility: visible !important;
+        }
+        
         .toggle-container {
             display: flex;
             align-items: center;
@@ -26267,6 +26273,35 @@ ARB4ME Security Team`
                 if (triangularButton && triangularContent) {
                     console.log('✅ Both elements exist, switching to triangular tab');
                     switchTab('triangular');
+                    
+                    // Force visibility with inline styles as backup
+                    setTimeout(() => {
+                        triangularContent.style.display = 'block';
+                        triangularContent.style.visibility = 'visible';
+                        triangularContent.style.opacity = '1';
+                        triangularContent.style.position = 'relative';
+                        triangularContent.style.zIndex = '1';
+                        
+                        const computedStyle = window.getComputedStyle(triangularContent);
+                        console.log('🔺 FINAL CHECK:');
+                        console.log('🔺 Classes:', triangularContent.className);
+                        console.log('🔺 Display:', computedStyle.display);
+                        console.log('🔺 Visibility:', computedStyle.visibility);
+                        console.log('🔺 Opacity:', computedStyle.opacity);
+                        console.log('🔺 Position:', computedStyle.position);
+                        console.log('🔺 Z-index:', computedStyle.zIndex);
+                        
+                        const rect = triangularContent.getBoundingClientRect();
+                        console.log('🔺 Dimensions:', rect.width, 'x', rect.height);
+                        console.log('🔺 Position:', rect.top, rect.left);
+                        
+                        if (rect.width > 0 && rect.height > 0) {
+                            console.log('✅ Triangular tab should now be visible!');
+                        } else {
+                            console.log('❌ Still having dimension issues');
+                        }
+                    }, 200);
+                    
                     return true;
                 } else {
                     console.error('❌ Missing triangular elements');
