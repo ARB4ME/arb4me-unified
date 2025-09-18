@@ -13,6 +13,67 @@ const https = require('https');
 
 const router = express.Router();
 
+// VALR API Helper Function
+async function makeVALRRequest(endpoint, method = 'GET', data = null, apiKey, apiSecret) {
+    const timestamp = new Date().getTime().toString();
+    const path = endpoint;
+    const verb = method.toUpperCase();
+    
+    // Create signature
+    let bodyString = '';
+    if (data && method !== 'GET') {
+        bodyString = JSON.stringify(data);
+    }
+    
+    const signaturePayload = timestamp + verb + path + bodyString;
+    const signature = crypto.createHmac('sha512', apiSecret).update(signaturePayload).digest('hex');
+    
+    const options = {
+        hostname: 'api.valr.com',
+        path: path,
+        method: verb,
+        headers: {
+            'X-VALR-API-KEY': apiKey,
+            'X-VALR-SIGNATURE': signature,
+            'X-VALR-TIMESTAMP': timestamp,
+            'Content-Type': 'application/json'
+        }
+    };
+    
+    return new Promise((resolve, reject) => {
+        const req = https.request(options, (res) => {
+            let responseData = '';
+            
+            res.on('data', (chunk) => {
+                responseData += chunk;
+            });
+            
+            res.on('end', () => {
+                try {
+                    const parsedData = JSON.parse(responseData);
+                    if (res.statusCode >= 200 && res.statusCode < 300) {
+                        resolve(parsedData);
+                    } else {
+                        reject(new Error(`VALR API Error: ${res.statusCode} - ${parsedData.message || responseData}`));
+                    }
+                } catch (parseError) {
+                    reject(new Error(`Failed to parse VALR response: ${responseData}`));
+                }
+            });
+        });
+        
+        req.on('error', (error) => {
+            reject(new Error(`VALR API Request Error: ${error.message}`));
+        });
+        
+        if (bodyString) {
+            req.write(bodyString);
+        }
+        
+        req.end();
+    });
+}
+
 // Note: We'll apply authentication selectively per route, not globally
 // This allows balance endpoints to work without JWT when API keys are provided
 
