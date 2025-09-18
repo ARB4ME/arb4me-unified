@@ -26565,6 +26565,7 @@ ARB4ME Security Team`
                     console.log(`🔍 Auto-scanning ${currentSet.name} (${currentSet.priority}) - Threshold: ${currentSet.minProfitThreshold}%`);
                     
                     isScanning = true;
+                    const scanStartTime = Date.now();
                     
                     try {
                         // Scan for opportunities in current set
@@ -26593,6 +26594,7 @@ ARB4ME Security Team`
                                 console.log(`💰 Found profitable opportunity: ${opportunity.path.id} - ${opportunity.netProfitPercent.toFixed(2)}%`);
                                 
                                 // Execute the trade
+                                const executionStartTime = Date.now();
                                 const executeResponse = await fetch('/api/v1/trading/valr/triangular/execute', {
                                     method: 'POST',
                                     headers: {
@@ -26616,32 +26618,50 @@ ARB4ME Security Team`
                                         );
                                         
                                         // Update stats with real trade result
-                                        updateTriangularStats({
+                                        const tradeResult = {
                                             success: true,
                                             opportunity: opportunity,
-                                            summary: executeResult.summary
-                                        });
+                                            summary: executeResult.summary,
+                                            executionTimeMs: Date.now() - executionStartTime
+                                        };
+                                        
+                                        updateTriangularStats(tradeResult);
+                                        
+                                        // Add to recent trades feed immediately
+                                        addNewTradeToFeed(tradeResult);
                                     } else {
                                         console.log(`❌ Trade execution failed: ${executeResult.error}`);
                                         showActivityMessage(`⚠️ Auto-trade failed: ${executeResult.error}`, 'error');
                                         
                                         // Update stats with failed trade
-                                        updateTriangularStats({
+                                        const tradeResult = {
                                             success: false,
                                             opportunity: opportunity,
-                                            error: executeResult.error
-                                        });
+                                            error: executeResult.error,
+                                            executionTimeMs: Date.now() - executionStartTime
+                                        };
+                                        
+                                        updateTriangularStats(tradeResult);
+                                        
+                                        // Add failed trade to recent trades feed
+                                        addNewTradeToFeed(tradeResult);
                                     }
                                 } else {
                                     console.log('❌ Failed to execute trade');
                                     showActivityMessage('⚠️ Auto-trade execution error', 'error');
                                     
                                     // Update stats with failed trade
-                                    updateTriangularStats({
+                                    const tradeResult = {
                                         success: false,
                                         opportunity: opportunity,
-                                        error: 'HTTP request failed'
-                                    });
+                                        error: 'HTTP request failed',
+                                        executionTimeMs: Date.now() - executionStartTime
+                                    };
+                                    
+                                    updateTriangularStats(tradeResult);
+                                    
+                                    // Add failed trade to recent trades feed
+                                    addNewTradeToFeed(tradeResult);
                                 }
                             } else {
                                 console.log(`📊 ${currentSet.name}: No profitable opportunities above ${currentSet.minProfitThreshold}%`);
@@ -26926,12 +26946,143 @@ ARB4ME Security Team`
                 console.log('🔄 Triangular stats reset');
             }
             
+            // ============================================
+            // RECENT TRADES FEED ENGINE
+            // ============================================
+            
+            // Fetch and display recent triangular trades
+            async function updateRecentTradesFeed() {
+                try {
+                    const response = await fetch('/api/v1/trading/valr/triangular/recent-trades?limit=10', {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        }
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        const trades = data.data.trades;
+                        
+                        displayRecentTrades(trades);
+                        console.log(`📊 Recent trades updated: ${trades.length} trades`);
+                    } else {
+                        console.warn('⚠️ Failed to fetch recent trades');
+                    }
+                } catch (error) {
+                    console.error('❌ Error fetching recent trades:', error);
+                }
+            }
+
+            // Display recent trades in the feed
+            function displayRecentTrades(trades) {
+                const container = document.getElementById('valrRecentTrades');
+                if (!container) return;
+
+                if (trades.length === 0) {
+                    container.innerHTML = `
+                        <div style="text-align: center; color: #888; padding: 20px;">
+                            No triangular trades yet. Enable live trading to start.
+                        </div>
+                    `;
+                    return;
+                }
+
+                const tradesHtml = trades.map(trade => {
+                    const isSuccessful = trade.execution_status === 'completed';
+                    const profitColor = isSuccessful ? (trade.actual_profit_zar > 0 ? '#4CAF50' : '#f44336') : '#888';
+                    const statusIcon = isSuccessful ? '✅' : '❌';
+                    const statusColor = isSuccessful ? '#4CAF50' : '#f44336';
+                    
+                    const tradeTime = new Date(trade.created_at).toLocaleTimeString();
+                    const profit = isSuccessful ? trade.actual_profit_zar : 0;
+                    const profitPercent = isSuccessful ? trade.actual_profit_percent : 0;
+                    
+                    return `
+                        <div style="
+                            border-bottom: 1px solid rgba(255,255,255,0.1); 
+                            padding: 8px 0; 
+                            display: flex; 
+                            justify-content: space-between; 
+                            align-items: center;
+                            font-size: 12px;
+                        ">
+                            <div style="flex: 1;">
+                                <div style="color: #00ffff; font-weight: bold;">${trade.path_id}</div>
+                                <div style="color: #888; font-size: 10px;">${tradeTime}</div>
+                            </div>
+                            <div style="text-align: center; flex: 1;">
+                                <div style="color: ${statusColor};">${statusIcon} ${trade.execution_status.toUpperCase()}</div>
+                                ${trade.total_execution_time_ms ? `<div style="color: #888; font-size: 10px;">${trade.total_execution_time_ms}ms</div>` : ''}
+                            </div>
+                            <div style="text-align: right; flex: 1;">
+                                <div style="color: ${profitColor}; font-weight: bold;">
+                                    ${isSuccessful ? 'R' + profit.toFixed(2) : 'R0.00'}
+                                </div>
+                                <div style="color: #888; font-size: 10px;">
+                                    ${isSuccessful ? profitPercent.toFixed(2) + '%' : '0.00%'}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                container.innerHTML = tradesHtml;
+            }
+
+            // Add trades when new ones are completed
+            function addNewTradeToFeed(tradeResult) {
+                // Add to local stats first
+                if (triangularStatsData.tradeHistory) {
+                    const newTrade = {
+                        id: Date.now(),
+                        trade_id: 'TRI_' + Date.now(),
+                        path_id: tradeResult.opportunity?.path?.id || 'UNKNOWN',
+                        execution_status: tradeResult.success ? 'completed' : 'failed',
+                        actual_profit_zar: tradeResult.success ? (tradeResult.summary?.totalProfitZAR || 0) : 0,
+                        actual_profit_percent: tradeResult.success ? (tradeResult.opportunity?.netProfitPercent || 0) : 0,
+                        total_execution_time_ms: tradeResult.executionTimeMs || null,
+                        created_at: new Date().toISOString()
+                    };
+
+                    // Add to beginning of trade history
+                    triangularStatsData.tradeHistory.unshift(newTrade);
+                    
+                    // Keep only last 10 for display
+                    if (triangularStatsData.tradeHistory.length > 10) {
+                        triangularStatsData.tradeHistory = triangularStatsData.tradeHistory.slice(0, 10);
+                    }
+
+                    // Update display immediately
+                    displayRecentTrades(triangularStatsData.tradeHistory);
+                }
+
+                // Also refresh from server to get accurate data
+                setTimeout(updateRecentTradesFeed, 1000);
+            }
+
+            // Auto-refresh recent trades every 30 seconds
+            setInterval(updateRecentTradesFeed, 30000);
+
+            // Load recent trades on page load
+            setTimeout(updateRecentTradesFeed, 2000);
+
+            // Listen for trade completion events
+            document.addEventListener('triangularStatsUpdate', (event) => {
+                const statsData = event.detail;
+                if (statsData.tradeHistory && statsData.tradeHistory.length > 0) {
+                    displayRecentTrades(statsData.tradeHistory.slice(0, 10));
+                }
+            });
+
             // Expose functions globally for testing
             window.startTriangularTrading = startTriangularTradingLoop;
             window.stopTriangularTrading = stopTriangularTradingLoop;
             window.updateTriangularStats = updateTriangularStats;
             window.getTriangularStats = getTriangularStatsData;
             window.resetTriangularStats = resetTriangularStats;
+            window.updateRecentTradesFeed = updateRecentTradesFeed;
+            window.addNewTradeToFeed = addNewTradeToFeed;
             window.getTriangularTradingStatus = () => ({
                 running: triangularTradingInterval !== null,
                 scanning: isScanning,

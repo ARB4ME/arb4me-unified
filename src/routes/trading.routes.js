@@ -13190,4 +13190,34 @@ setInterval(() => {
     });
 }, 60000);
 
+// GET /api/v1/trading/valr/triangular/recent-trades
+// Get recent triangular trades for feed
+router.get('/valr/triangular/recent-trades', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    try {
+        const limit = parseInt(req.query.limit) || 20;
+        const trades = await getRecentTriangularTrades(req.user.id, limit);
+        
+        systemLogger.info('Recent triangular trades fetched', {
+            userId: req.user.id,
+            tradesCount: trades.length
+        });
+
+        res.json({
+            success: true,
+            data: {
+                trades: trades,
+                count: trades.length,
+                timestamp: new Date().toISOString()
+            }
+        });
+
+    } catch (error) {
+        systemLogger.error('Failed to fetch recent triangular trades', {
+            userId: req.user.id,
+            error: error.message
+        });
+        throw error;
+    }
+}));
+
 module.exports = router;// VERSION 6 DEPLOYMENT MARKER - Tue, Sep 16, 2025  2:05:16 PM
