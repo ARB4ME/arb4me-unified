@@ -2483,6 +2483,9 @@
                 <button class="tab" data-tab="arbinfo">📚 ARB INFO</button>
                 <button class="tab" data-tab="apiinfo">🔑 API INFO</button>
             </div>
+            <div class="tab-row">
+                <button class="tab" data-tab="triangular">🔺 TRIANGULAR ARB</button>
+            </div>
         </div>
 
 
@@ -28772,6 +28775,165 @@ ARB4ME Security Team`
                     </div>
                 </div>
                 
+            </div>
+        </div>
+    </div>
+
+    <!-- Triangular Arbitrage Management Tab -->
+    <div id="triangularTab" class="tab-content">
+        <div style="max-width: 1200px; margin: 0 auto; padding: 20px;">
+            <h2 style="color: #00d4ff; text-align: center; margin-bottom: 30px;">🔺 Triangular Arbitrage Management</h2>
+            
+            <!-- Overview Section -->
+            <div style="background: rgba(0,212,255,0.1); padding: 20px; border-radius: 15px; margin-bottom: 25px; border-left: 4px solid #00d4ff;">
+                <h3 style="color: #00d4ff; margin-bottom: 15px;">📊 System Overview</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                    <div style="text-align: center;">
+                        <div style="font-size: 1.5rem; color: #00ff88;" id="triangularActiveExchanges">1</div>
+                        <div style="color: #b8c6db; font-size: 0.9rem;">Active Exchanges</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 1.5rem; color: #ffb347;" id="triangularTotalPaths">32</div>
+                        <div style="color: #b8c6db; font-size: 0.9rem;">Total Paths</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 1.5rem; color: #ff6b6b;" id="triangularProfitableToday">0</div>
+                        <div style="color: #b8c6db; font-size: 0.9rem;">Profitable Today</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 1.5rem; color: #00d4ff;" id="triangularProfitToday">R 0.00</div>
+                        <div style="color: #b8c6db; font-size: 0.9rem;">Today's Profit</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VALR Exchange Card -->
+            <div style="background: rgba(0,255,136,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 2px solid #00ff88;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 style="color: #00ff88; margin: 0;">💚 VALR Triangular Arbitrage</h3>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <span style="color: #b8c6db; font-size: 0.9rem;">Live Trading:</span>
+                        <label class="switch" style="position: relative; display: inline-block; width: 50px; height: 24px;">
+                            <input type="checkbox" id="valrTriangularEnabled" style="opacity: 0; width: 0; height: 0;">
+                            <span class="slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 24px;"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- VALR Settings Grid -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 20px;">
+                    <!-- Risk Management -->
+                    <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px;">
+                        <h4 style="color: #ffb347; margin-bottom: 15px;">⚖️ Risk Management</h4>
+                        <div class="form-group" style="margin-bottom: 10px;">
+                            <label style="color: #b8c6db; font-size: 0.9rem;">Max Single Trade (ZAR)</label>
+                            <input type="number" id="valrMaxTrade" value="500" min="100" max="10000" style="width: 100%; padding: 8px; background: rgba(0,0,0,0.5); border: 1px solid #333; border-radius: 5px; color: white;">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 10px;">
+                            <label style="color: #b8c6db; font-size: 0.9rem;">Portfolio % per Trade</label>
+                            <input type="number" id="valrPortfolioPercent" value="10" min="1" max="50" style="width: 100%; padding: 8px; background: rgba(0,0,0,0.5); border: 1px solid #333; border-radius: 5px; color: white;">
+                        </div>
+                        <div class="form-group">
+                            <label style="color: #b8c6db; font-size: 0.9rem;">Min Profit Threshold (%)</label>
+                            <input type="number" id="valrProfitThreshold" value="0.8" min="0.1" max="5" step="0.1" style="width: 100%; padding: 8px; background: rgba(0,0,0,0.5); border: 1px solid #333; border-radius: 5px; color: white;">
+                        </div>
+                    </div>
+
+                    <!-- Path Categories -->
+                    <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px;">
+                        <h4 style="color: #ffb347; margin-bottom: 15px;">📊 Path Categories</h4>
+                        <div style="display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center;">
+                            <span style="color: #b8c6db; font-size: 0.9rem;">High Volume Majors (4)</span>
+                            <input type="checkbox" id="valrMajorsEnabled" checked>
+                            
+                            <span style="color: #b8c6db; font-size: 0.9rem;">Popular Altcoins (4)</span>
+                            <input type="checkbox" id="valrAltsEnabled" checked>
+                            
+                            <span style="color: #b8c6db; font-size: 0.9rem;">Layer 1 & Ecosystem (2)</span>
+                            <input type="checkbox" id="valrLayer1Enabled" checked>
+                            
+                            <span style="color: #b8c6db; font-size: 0.9rem;">DeFi & Smart Contracts (4)</span>
+                            <input type="checkbox" id="valrDefiEnabled">
+                            
+                            <span style="color: #b8c6db; font-size: 0.9rem;">Meme & Community (3)</span>
+                            <input type="checkbox" id="valrMemeEnabled">
+                            
+                            <span style="color: #b8c6db; font-size: 0.9rem;">Enterprise & Institutional (4)</span>
+                            <input type="checkbox" id="valrEnterpriseEnabled">
+                            
+                            <span style="color: #b8c6db; font-size: 0.9rem;">Gaming & Metaverse (3)</span>
+                            <input type="checkbox" id="valrGamingEnabled">
+                            
+                            <span style="color: #b8c6db; font-size: 0.9rem;">Stablecoins & Yield (4)</span>
+                            <input type="checkbox" id="valrStableEnabled">
+                        </div>
+                    </div>
+
+                    <!-- Performance Stats -->
+                    <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px;">
+                        <h4 style="color: #ffb347; margin-bottom: 15px;">📈 Performance Stats</h4>
+                        <div style="display: grid; grid-template-columns: 1fr auto; gap: 10px; font-size: 0.9rem;">
+                            <span style="color: #b8c6db;">Total Trades:</span>
+                            <span style="color: #00ff88;" id="valrTotalTrades">0</span>
+                            
+                            <span style="color: #b8c6db;">Successful Trades:</span>
+                            <span style="color: #00ff88;" id="valrSuccessfulTrades">0</span>
+                            
+                            <span style="color: #b8c6db;">Success Rate:</span>
+                            <span style="color: #00ff88;" id="valrSuccessRate">0%</span>
+                            
+                            <span style="color: #b8c6db;">Total Profit:</span>
+                            <span style="color: #00ff88;" id="valrTotalProfit">R 0.00</span>
+                            
+                            <span style="color: #b8c6db;">Best Path:</span>
+                            <span style="color: #00ff88;" id="valrBestPath">-</span>
+                            
+                            <span style="color: #b8c6db;">Last Scan:</span>
+                            <span style="color: #b8c6db;" id="valrLastScan">Never</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- VALR Control Buttons -->
+                <div style="display: flex; gap: 15px; justify-content: center; margin-bottom: 20px;">
+                    <button onclick="testValrTriangularConnection()" style="padding: 10px 20px; background: rgba(0,255,136,0.2); color: #00ff88; border: 1px solid #00ff88; border-radius: 8px; cursor: pointer;">
+                        🔍 Test Connection
+                    </button>
+                    <button onclick="scanValrTriangularPaths()" style="padding: 10px 20px; background: rgba(0,212,255,0.2); color: #00d4ff; border: 1px solid #00d4ff; border-radius: 8px; cursor: pointer;">
+                        ⚡ Manual Scan
+                    </button>
+                    <button onclick="viewValrPathDetails()" style="padding: 10px 20px; background: rgba(255,179,71,0.2); color: #ffb347; border: 1px solid #ffb347; border-radius: 8px; cursor: pointer;">
+                        📊 View Paths
+                    </button>
+                    <button onclick="clearValrTriangularHistory()" style="padding: 10px 20px; background: rgba(255,107,107,0.2); color: #ff6b6b; border: 1px solid #ff6b6b; border-radius: 8px; cursor: pointer;">
+                        🗑️ Clear History
+                    </button>
+                </div>
+
+                <!-- Recent VALR Trades -->
+                <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px;">
+                    <h4 style="color: #ffb347; margin-bottom: 15px;">🕒 Recent Triangular Trades</h4>
+                    <div id="valrRecentTrades" style="max-height: 200px; overflow-y: auto;">
+                        <div style="text-align: center; color: #888; padding: 20px;">
+                            No triangular trades yet. Enable live trading to start.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Future Exchanges Placeholder -->
+            <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 15px; border: 2px dashed #666;">
+                <div style="text-align: center; color: #888;">
+                    <h3 style="color: #666; margin-bottom: 15px;">🔮 Future Exchanges</h3>
+                    <p style="margin-bottom: 15px;">Additional exchanges will be added here as they're implemented:</p>
+                    <div style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;">
+                        <span style="color: #666; padding: 8px 16px; border: 1px solid #555; border-radius: 20px;">Luno</span>
+                        <span style="color: #666; padding: 8px 16px; border: 1px solid #555; border-radius: 20px;">Binance</span>
+                        <span style="color: #666; padding: 8px 16px; border: 1px solid #555; border-radius: 20px;">Kraken</span>
+                        <span style="color: #666; padding: 8px 16px; border: 1px solid #555; border-radius: 20px;">OKX</span>
+                        <span style="color: #666; padding: 8px 16px; border: 1px solid #555; border-radius: 20px;">+ 8 more</span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
