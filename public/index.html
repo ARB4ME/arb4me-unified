@@ -26558,89 +26558,288 @@ ARB4ME Security Team`
             // ============================================
             
             // Test VALR Triangular Connection
-            window.testValrTriangularConnection = function() {
+            window.testValrTriangularConnection = async function() {
                 console.log('🔍 Testing VALR Triangular Connection...');
                 showActivityMessage('🔍 Testing VALR triangular connection...', 'info');
                 
                 try {
-                    if (typeof window.VALRTriangular !== 'undefined') {
-                        console.log('✅ VALR Triangular module found');
-                        showActivityMessage('✅ VALR triangular module connected successfully', 'success');
+                    // Call the real VALR triangular test connection endpoint
+                    const response = await fetch('/api/v1/trading/valr/triangular/test-connection', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        }
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        const data = result.data;
+                        console.log('✅ VALR Triangular connection test successful:', data);
                         
-                        // Update UI stats
+                        // Update UI with real connection status
+                        const statusMessage = `✅ VALR connected successfully! ${data.totalPairs} pairs available, triangular pairs: ${data.triangularPairsAvailable ? 'READY' : 'LIMITED'}`;
+                        showActivityMessage(statusMessage, 'success');
+                        
+                        // Update UI stats with real data
                         document.getElementById('valrLastScan').textContent = new Date().toLocaleTimeString();
+                        
+                        // Update connection status indicators
+                        const connectionElement = document.querySelector('.valr-connection-status');
+                        if (connectionElement) {
+                            connectionElement.textContent = 'Connected';
+                            connectionElement.style.color = '#00ff88';
+                        }
+                        
+                        console.log('🔺 Required pairs found:', data.requiredPairsFound);
+                        console.log('🔺 Connection details:', {
+                            balanceAccess: data.balanceAccess,
+                            triangularReady: data.triangularPairsAvailable,
+                            timestamp: data.timestamp
+                        });
                         
                         return true;
                     } else {
-                        throw new Error('VALR Triangular module not loaded');
+                        throw new Error(result.error?.message || 'Connection test failed');
                     }
                 } catch (error) {
                     console.error('❌ VALR Triangular connection failed:', error);
-                    showActivityMessage('❌ VALR triangular connection failed: ' + error.message, 'error');
+                    let errorMessage = '❌ VALR triangular connection failed: ';
+                    
+                    if (error.message.includes('401') || error.message.includes('Unauthorized')) {
+                        errorMessage += 'Invalid API keys or expired session';
+                    } else if (error.message.includes('VALR_KEYS_NOT_FOUND')) {
+                        errorMessage += 'VALR API keys not configured. Please add your keys in Settings.';
+                    } else if (error.message.includes('Failed to fetch')) {
+                        errorMessage += 'Network error. Please check your connection.';
+                    } else {
+                        errorMessage += error.message;
+                    }
+                    
+                    showActivityMessage(errorMessage, 'error');
+                    
+                    // Update connection status indicators
+                    const connectionElement = document.querySelector('.valr-connection-status');
+                    if (connectionElement) {
+                        connectionElement.textContent = 'Failed';
+                        connectionElement.style.color = '#ff6b6b';
+                    }
+                    
                     return false;
                 }
             };
             
             // Manual VALR Triangular Scan
-            window.scanValrTriangularPaths = function() {
+            window.scanValrTriangularPaths = async function() {
                 console.log('⚡ Starting VALR triangular path scan...');
-                showActivityMessage('⚡ Scanning VALR triangular paths...', 'info');
+                showActivityMessage('⚡ Scanning VALR triangular paths with live prices...', 'info');
                 
                 try {
-                    if (typeof window.scanAllVALRSets === 'function') {
-                        const result = window.scanAllVALRSets();
-                        showActivityMessage(`✅ Scan complete: ${result} paths analyzed`, 'success');
+                    // Call the real VALR triangular scan endpoint
+                    const response = await fetch('/api/v1/trading/valr/triangular/scan', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        },
+                        body: JSON.stringify({
+                            paths: 'all' // Scan all available paths
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        const data = result.data;
+                        console.log('✅ VALR Triangular scan successful:', data);
                         
-                        // Update UI stats
+                        // Display results with real profit data
+                        const profitableCount = data.profitableCount;
+                        const totalOpportunities = data.opportunities.length;
+                        const bestOpportunity = data.bestOpportunity;
+                        
+                        let statusMessage = `✅ Scan complete: ${totalOpportunities} paths analyzed, ${profitableCount} profitable`;
+                        if (bestOpportunity && bestOpportunity.profitable) {
+                            statusMessage += ` (Best: ${bestOpportunity.pathId} +${bestOpportunity.profitPercent}%)`;
+                        }
+                        showActivityMessage(statusMessage, profitableCount > 0 ? 'success' : 'info');
+                        
+                        // Update UI stats with real data
                         document.getElementById('valrLastScan').textContent = new Date().toLocaleTimeString();
-                        document.getElementById('triangularTotalPaths').textContent = result.toString();
+                        document.getElementById('triangularTotalPaths').textContent = totalOpportunities.toString();
                         
-                        return result;
+                        // Update profitable opportunities count
+                        const profitableElement = document.getElementById('triangularProfitableToday');
+                        if (profitableElement) {
+                            profitableElement.textContent = profitableCount.toString();
+                            profitableElement.style.color = profitableCount > 0 ? '#00ff88' : '#ff6b6b';
+                        }
+                        
+                        // Log detailed opportunity information
+                        console.log('🔺 All opportunities found:');
+                        data.opportunities.forEach((opp, i) => {
+                            const profitIcon = opp.profitable ? '✅' : '❌';
+                            console.log(`  ${profitIcon} ${i+1}. ${opp.pathId}: ${opp.profitPercent}% (${opp.sequence})`);
+                            if (opp.profitable) {
+                                console.log(`    💰 Profit: R${opp.profit} (R${opp.startAmount} → R${opp.endAmount})`);
+                            }
+                        });
+                        
+                        // Store results for other functions to access
+                        window.lastTriangularScanResults = data;
+                        
+                        return data;
                     } else {
-                        throw new Error('VALR path scanning function not available');
+                        throw new Error(result.error?.message || 'Scan request failed');
                     }
                 } catch (error) {
                     console.error('❌ VALR triangular scan failed:', error);
-                    showActivityMessage('❌ Triangular scan failed: ' + error.message, 'error');
+                    let errorMessage = '❌ Triangular scan failed: ';
+                    
+                    if (error.message.includes('401') || error.message.includes('Unauthorized')) {
+                        errorMessage += 'Invalid API keys or expired session';
+                    } else if (error.message.includes('VALR_KEYS_NOT_FOUND')) {
+                        errorMessage += 'VALR API keys not configured. Please add your keys in Settings.';
+                    } else if (error.message.includes('Failed to fetch')) {
+                        errorMessage += 'Network error. Please check your connection.';
+                    } else {
+                        errorMessage += error.message;
+                    }
+                    
+                    showActivityMessage(errorMessage, 'error');
                     return false;
                 }
             };
             
             // View VALR Path Details
-            window.viewValrPathDetails = function() {
+            window.viewValrPathDetails = async function() {
                 console.log('📊 Viewing VALR path details...');
-                showActivityMessage('📊 Displaying VALR path information...', 'info');
+                showActivityMessage('📊 Loading path configuration from server...', 'info');
                 
                 try {
-                    // Test different path sets
-                    console.log('\\n🔺 === VALR PATH OVERVIEW ===');
+                    const token = localStorage.getItem('token');
+                    if (!token) {
+                        throw new Error('Authentication token required');
+                    }
+
+                    const response = await fetch('/api/v1/trading/valr/triangular/paths', {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
+                    }
+
+                    const data = await response.json();
                     
-                    if (typeof window.testVALRMajors === 'function') {
-                        window.testVALRMajors();
+                    // Store path data globally for other functions
+                    window.lastTriangularPathsData = data;
+                    
+                    // Display detailed path information
+                    console.log('\\n🔺 === VALR TRIANGULAR PATHS CONFIGURATION ===');
+                    console.log(`📊 Total path sets: ${data.pathSets.length}`);
+                    console.log(`🎯 Total paths: ${data.totalPaths}`);
+                    console.log(`⚡ Active exchanges: ${data.activeExchanges}`);
+                    
+                    // Display each path set with details
+                    data.pathSets.forEach((pathSet, setIndex) => {
+                        console.log(`\\n📦 SET ${setIndex + 1}: ${pathSet.name}`);
+                        console.log(`   ⏱️ Scan time: ${pathSet.scanTime}s`);
+                        console.log(`   🎯 Priority: ${pathSet.priority}`);
+                        console.log(`   💰 Min profit: ${pathSet.minProfitThreshold}%`);
+                        console.log(`   📊 Paths: ${pathSet.paths.length}`);
+                        
+                        pathSet.paths.forEach((path, pathIndex) => {
+                            console.log(`\\n   📍 Path ${pathIndex + 1}: ${path.id}`);
+                            console.log(`      🔄 Route: ${path.sequence}`);
+                            console.log(`      💱 Pairs: ${path.pairs.join(' → ')}`);
+                            console.log(`      💰 Base: ${path.baseCurrency}`);
+                            if (path.proven) {
+                                console.log(`      ✅ PROVEN WORKING`);
+                            }
+                            if (path.steps) {
+                                path.steps.forEach((step, stepIndex) => {
+                                    console.log(`         ${stepIndex + 1}. ${step.description} (${step.side} ${step.pair})`);
+                                });
+                            }
+                        });
+                    });
+                    
+                    // Update UI stats if available
+                    if (document.getElementById('valrTotalPaths')) {
+                        document.getElementById('valrTotalPaths').textContent = data.totalPaths;
                     }
-                    if (typeof window.testVALRAlts === 'function') {
-                        window.testVALRAlts();
-                    }
-                    if (typeof window.testVALRLayer1 === 'function') {
-                        window.testVALRLayer1();
+                    if (document.getElementById('valrActiveExchanges')) {
+                        document.getElementById('valrActiveExchanges').textContent = data.activeExchanges;
                     }
                     
-                    showActivityMessage('✅ Path details displayed in console', 'success');
-                    return true;
+                    showActivityMessage(`✅ Loaded ${data.totalPaths} triangular paths from ${data.pathSets.length} sets`, 'success');
+                    console.log(`\\n✅ Path configuration loaded successfully from server`);
+                    console.log(`💡 Data stored in window.lastTriangularPathsData for inspection`);
+                    
+                    return data;
+                    
                 } catch (error) {
-                    console.error('❌ Failed to view path details:', error);
-                    showActivityMessage('❌ Failed to view path details: ' + error.message, 'error');
-                    return false;
+                    console.error('❌ Failed to load path details:', error);
+                    
+                    // Fallback to local path data if server is unavailable
+                    console.log('🔄 Falling back to local path configuration...');
+                    try {
+                        if (typeof window.testVALRMajors === 'function') {
+                            console.log('\\n📦 Loading local VALR path sets...');
+                            window.testVALRMajors();
+                            if (typeof window.testVALRAlts === 'function') window.testVALRAlts();
+                            if (typeof window.testVALRLayer1 === 'function') window.testVALRLayer1();
+                            showActivityMessage('⚠️ Using local path data (server unavailable)', 'warning');
+                            return { fallback: true, source: 'local' };
+                        } else {
+                            throw new Error('No path data available (local or server)');
+                        }
+                    } catch (fallbackError) {
+                        showActivityMessage('❌ Failed to load paths: ' + error.message, 'error');
+                        return false;
+                    }
                 }
             };
             
             // Clear VALR Triangular History
-            window.clearValrTriangularHistory = function() {
+            window.clearValrTriangularHistory = async function() {
                 console.log('🗑️ Clearing VALR triangular history...');
-                showActivityMessage('🗑️ Clearing triangular trade history...', 'info');
+                showActivityMessage('🗑️ Clearing triangular trade history from server...', 'info');
                 
                 try {
-                    // Clear performance stats
+                    const token = localStorage.getItem('token');
+                    if (!token) {
+                        throw new Error('Authentication token required');
+                    }
+
+                    // Call server endpoint to clear history
+                    const response = await fetch('/api/v1/trading/valr/triangular/history', {
+                        method: 'DELETE',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
+                    }
+
+                    const data = await response.json();
+                    
+                    console.log('🗑️ Server history cleared:', data);
+                    console.log(`📊 Deleted ${data.deletedRecords} trade records`);
+                    console.log(`💰 Cleared R${data.totalProfitCleared} in profit records`);
+                    
+                    // Clear frontend UI stats
                     document.getElementById('valrTotalTrades').textContent = '0';
                     document.getElementById('valrSuccessfulTrades').textContent = '0';
                     document.getElementById('valrSuccessRate').textContent = '0%';
@@ -26648,19 +26847,376 @@ ARB4ME Security Team`
                     document.getElementById('valrBestPath').textContent = '-';
                     document.getElementById('valrLastScan').textContent = 'Never';
                     
-                    // Clear stored data
+                    // Clear local storage
                     localStorage.removeItem('valrTriangularStats');
                     localStorage.removeItem('valrTriangularHistory');
+                    localStorage.removeItem('lastTriangularScanResults');
+                    localStorage.removeItem('lastTriangularPathsData');
                     
-                    showActivityMessage('✅ Triangular history cleared successfully', 'success');
-                    console.log('✅ VALR triangular history cleared');
-                    return true;
+                    // Clear global variables
+                    if (window.lastTriangularScanResults) {
+                        delete window.lastTriangularScanResults;
+                    }
+                    if (window.lastTriangularPathsData) {
+                        delete window.lastTriangularPathsData;
+                    }
+                    
+                    showActivityMessage(`✅ History cleared: ${data.deletedRecords} records deleted`, 'success');
+                    console.log('✅ VALR triangular history cleared from server and frontend');
+                    console.log(`📈 Previous stats: ${data.deletedRecords} trades, R${data.totalProfitCleared} profit`);
+                    
+                    return data;
+                    
                 } catch (error) {
-                    console.error('❌ Failed to clear history:', error);
-                    showActivityMessage('❌ Failed to clear history: ' + error.message, 'error');
-                    return false;
+                    console.error('❌ Failed to clear server history:', error);
+                    
+                    // Fallback to local clearing only
+                    console.log('🔄 Falling back to local history clearing...');
+                    try {
+                        // Clear frontend UI stats
+                        document.getElementById('valrTotalTrades').textContent = '0';
+                        document.getElementById('valrSuccessfulTrades').textContent = '0';
+                        document.getElementById('valrSuccessRate').textContent = '0%';
+                        document.getElementById('valrTotalProfit').textContent = 'R 0.00';
+                        document.getElementById('valrBestPath').textContent = '-';
+                        document.getElementById('valrLastScan').textContent = 'Never';
+                        
+                        // Clear local storage
+                        localStorage.removeItem('valrTriangularStats');
+                        localStorage.removeItem('valrTriangularHistory');
+                        localStorage.removeItem('lastTriangularScanResults');
+                        localStorage.removeItem('lastTriangularPathsData');
+                        
+                        showActivityMessage('⚠️ Local history cleared (server unavailable)', 'warning');
+                        console.log('✅ Local triangular history cleared');
+                        return { fallback: true, source: 'local' };
+                        
+                    } catch (fallbackError) {
+                        showActivityMessage('❌ Failed to clear history: ' + error.message, 'error');
+                        return false;
+                    }
                 }
             };
+            
+            // ============================================
+            // WEBSOCKET PRICE SUBSCRIBER FOR TRIANGULAR PAIRS
+            // ============================================
+            // Real-time price streaming for triangular arbitrage opportunities
+
+            class TriangularPriceSubscriber {
+                constructor() {
+                    this.ws = null;
+                    this.connectionId = null;
+                    this.subscribedPairs = new Set();
+                    this.reconnectAttempts = 0;
+                    this.maxReconnectAttempts = 5;
+                    this.reconnectDelay = 3000;
+                    this.lastPrices = {};
+                    this.isConnected = false;
+                    this.heartbeatInterval = null;
+                    
+                    // Default triangular pairs to monitor
+                    this.triangularPairs = [
+                        'LINKZAR', 'LINKUSDT', 'USDTZAR',  // High volume majors
+                        'ETHZAR', 'ETHUSDT',               // ETH paths
+                        'ADAZAR', 'ADAUSDT',               // ADA paths
+                        'DOTZAR', 'DOTUSDT',               // DOT paths
+                        'MATICZAR', 'MATICUSDT',           // MATIC paths
+                        'SOLZAR', 'SOLUSDT'                // SOL paths
+                    ];
+                }
+
+                connect() {
+                    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                        console.log('📡 WebSocket already connected');
+                        return;
+                    }
+
+                    console.log('📡 Connecting to triangular price WebSocket...');
+                    
+                    // Determine WebSocket URL based on current page protocol
+                    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                    const host = window.location.host;
+                    const wsUrl = `${protocol}//${host}/ws/triangular-prices`;
+                    
+                    try {
+                        this.ws = new WebSocket(wsUrl);
+                        
+                        this.ws.onopen = () => {
+                            console.log('✅ Connected to triangular price WebSocket');
+                            this.isConnected = true;
+                            this.reconnectAttempts = 0;
+                            
+                            // Start heartbeat
+                            this.startHeartbeat();
+                            
+                            // Auto-subscribe to triangular pairs
+                            setTimeout(() => {
+                                this.subscribe(this.triangularPairs);
+                            }, 500);
+                        };
+
+                        this.ws.onmessage = (event) => {
+                            try {
+                                const data = JSON.parse(event.data);
+                                this.handleMessage(data);
+                            } catch (error) {
+                                console.error('❌ Failed to parse WebSocket message:', error);
+                            }
+                        };
+
+                        this.ws.onclose = (event) => {
+                            console.log(`📡 WebSocket connection closed: ${event.code} - ${event.reason}`);
+                            this.isConnected = false;
+                            this.stopHeartbeat();
+                            this.attemptReconnect();
+                        };
+
+                        this.ws.onerror = (error) => {
+                            console.error('❌ WebSocket error:', error);
+                            this.isConnected = false;
+                        };
+
+                    } catch (error) {
+                        console.error('❌ Failed to create WebSocket connection:', error);
+                        this.attemptReconnect();
+                    }
+                }
+
+                handleMessage(data) {
+                    switch (data.type) {
+                        case 'connected':
+                            console.log(`✅ WebSocket connected: ${data.message}`);
+                            this.connectionId = data.connectionId;
+                            console.log(`📊 Available pairs: ${data.availablePairs.join(', ')}`);
+                            break;
+
+                        case 'subscribed':
+                            console.log(`📊 Subscribed to ${data.pairs.length} pairs:`, data.pairs);
+                            data.pairs.forEach(pair => this.subscribedPairs.add(pair));
+                            break;
+
+                        case 'priceUpdate':
+                            this.processPriceUpdate(data.data);
+                            break;
+
+                        case 'pong':
+                            // Heartbeat response received
+                            break;
+
+                        case 'error':
+                            console.error(`❌ WebSocket error: ${data.message}`);
+                            break;
+
+                        default:
+                            console.log('📡 Unknown message type:', data.type, data);
+                    }
+                }
+
+                processPriceUpdate(priceData) {
+                    console.log(`📊 Price update received for ${Object.keys(priceData).length} pairs`);
+                    
+                    Object.entries(priceData).forEach(([pair, data]) => {
+                        if (data.error) {
+                            console.error(`❌ Price error for ${pair}: ${data.error}`);
+                            return;
+                        }
+                        
+                        // Store latest prices
+                        this.lastPrices[pair] = data;
+                        
+                        // Update UI if elements exist
+                        this.updatePriceDisplay(pair, data);
+                        
+                        // Log significant price changes
+                        if (parseFloat(data.spread) > 2.0) {
+                            console.log(`🚨 High spread detected: ${pair} - ${data.spread}%`);
+                        }
+                    });
+                    
+                    // Trigger real-time profit calculations if we have all triangular pairs
+                    this.calculateTriangularProfits();
+                }
+
+                updatePriceDisplay(pair, data) {
+                    // Update individual pair displays if they exist in the UI
+                    const pairElement = document.getElementById(`price-${pair}`);
+                    if (pairElement) {
+                        pairElement.innerHTML = `
+                            <strong>${pair}</strong><br>
+                            Bid: R${data.bestBid.toFixed(2)}<br>
+                            Ask: R${data.bestAsk.toFixed(2)}<br>
+                            Spread: ${data.spread}%
+                        `;
+                    }
+                    
+                    // Update last update time
+                    const lastUpdateElement = document.getElementById('valrLastScan');
+                    if (lastUpdateElement) {
+                        lastUpdateElement.textContent = new Date().toLocaleTimeString();
+                    }
+                }
+
+                calculateTriangularProfits() {
+                    // Check if we have prices for a complete triangular path
+                    const linkPath = ['LINKZAR', 'LINKUSDT', 'USDTZAR'];
+                    const ethPath = ['ETHZAR', 'ETHUSDT', 'USDTZAR'];
+                    
+                    if (this.hasAllPrices(linkPath)) {
+                        const linkProfit = this.calculatePathProfit(linkPath, 1000); // R1000 test
+                        if (linkProfit.profitable) {
+                            console.log(`💰 LINK triangular opportunity: ${linkProfit.netProfitPercent}% profit`);
+                        }
+                    }
+                    
+                    if (this.hasAllPrices(ethPath)) {
+                        const ethProfit = this.calculatePathProfit(ethPath, 1000); // R1000 test
+                        if (ethProfit.profitable) {
+                            console.log(`💰 ETH triangular opportunity: ${ethProfit.netProfitPercent}% profit`);
+                        }
+                    }
+                }
+
+                hasAllPrices(pairs) {
+                    return pairs.every(pair => this.lastPrices[pair] && !this.lastPrices[pair].error);
+                }
+
+                calculatePathProfit(pairs, amount) {
+                    // Simple triangular profit calculation
+                    // This is a basic implementation - would be enhanced in real trading
+                    const [pair1, pair2, pair3] = pairs;
+                    const prices1 = this.lastPrices[pair1];
+                    const prices2 = this.lastPrices[pair2];
+                    const prices3 = this.lastPrices[pair3];
+                    
+                    if (!prices1 || !prices2 || !prices3) {
+                        return { profitable: false, error: 'Missing price data' };
+                    }
+                    
+                    // ZAR → LINK → USDT → ZAR path example
+                    const step1 = amount / prices1.bestAsk; // ZAR to LINK
+                    const step2 = step1 * prices2.bestBid;  // LINK to USDT
+                    const step3 = step2 * prices3.bestBid;  // USDT to ZAR
+                    
+                    const grossProfit = step3 - amount;
+                    const feeRate = 0.001; // 0.1% per trade
+                    const totalFees = amount * feeRate * 3; // 3 trades
+                    const netProfit = grossProfit - totalFees;
+                    const netProfitPercent = (netProfit / amount) * 100;
+                    
+                    return {
+                        grossProfit: grossProfit,
+                        netProfit: netProfit,
+                        netProfitPercent: netProfitPercent,
+                        profitable: netProfitPercent > 0.5, // Minimum 0.5% profit threshold
+                        fees: totalFees,
+                        path: pairs.join(' → ')
+                    };
+                }
+
+                subscribe(pairs) {
+                    if (!this.isConnected) {
+                        console.log('⚠️ Cannot subscribe - WebSocket not connected');
+                        return;
+                    }
+                    
+                    const pairsArray = Array.isArray(pairs) ? pairs : [pairs];
+                    console.log(`📊 Subscribing to ${pairsArray.length} pairs:`, pairsArray);
+                    
+                    this.ws.send(JSON.stringify({
+                        type: 'subscribe',
+                        pairs: pairsArray
+                    }));
+                }
+
+                unsubscribe(pairs) {
+                    if (!this.isConnected) return;
+                    
+                    const pairsArray = Array.isArray(pairs) ? pairs : [pairs];
+                    console.log(`📊 Unsubscribing from ${pairsArray.length} pairs:`, pairsArray);
+                    
+                    this.ws.send(JSON.stringify({
+                        type: 'unsubscribe',
+                        pairs: pairsArray
+                    }));
+                    
+                    pairsArray.forEach(pair => this.subscribedPairs.delete(pair));
+                }
+
+                startHeartbeat() {
+                    this.heartbeatInterval = setInterval(() => {
+                        if (this.isConnected && this.ws.readyState === WebSocket.OPEN) {
+                            this.ws.send(JSON.stringify({ type: 'ping' }));
+                        }
+                    }, 30000); // Ping every 30 seconds
+                }
+
+                stopHeartbeat() {
+                    if (this.heartbeatInterval) {
+                        clearInterval(this.heartbeatInterval);
+                        this.heartbeatInterval = null;
+                    }
+                }
+
+                attemptReconnect() {
+                    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+                        console.error('❌ Max reconnection attempts reached');
+                        return;
+                    }
+                    
+                    this.reconnectAttempts++;
+                    const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1); // Exponential backoff
+                    
+                    console.log(`🔄 Attempting reconnect ${this.reconnectAttempts}/${this.maxReconnectAttempts} in ${delay}ms...`);
+                    
+                    setTimeout(() => {
+                        this.connect();
+                    }, delay);
+                }
+
+                disconnect() {
+                    if (this.ws) {
+                        console.log('📡 Disconnecting WebSocket...');
+                        this.stopHeartbeat();
+                        this.ws.close();
+                        this.ws = null;
+                        this.isConnected = false;
+                        this.subscribedPairs.clear();
+                    }
+                }
+
+                getConnectionStatus() {
+                    return {
+                        connected: this.isConnected,
+                        connectionId: this.connectionId,
+                        subscribedPairs: Array.from(this.subscribedPairs),
+                        lastPrices: this.lastPrices,
+                        reconnectAttempts: this.reconnectAttempts
+                    };
+                }
+            }
+
+            // Initialize global price subscriber instance
+            window.triangularPriceSubscriber = new TriangularPriceSubscriber();
+            
+            // Auto-connect when page loads (only if logged in)
+            window.addEventListener('load', () => {
+                // Check if user is logged in before starting WebSocket
+                const token = localStorage.getItem('token');
+                if (token) {
+                    console.log('🚀 Starting triangular price WebSocket subscriber...');
+                    setTimeout(() => {
+                        window.triangularPriceSubscriber.connect();
+                    }, 2000); // 2 second delay to ensure page is ready
+                }
+            });
+            
+            // Utility functions for manual WebSocket control
+            window.connectTriangularPrices = () => window.triangularPriceSubscriber.connect();
+            window.disconnectTriangularPrices = () => window.triangularPriceSubscriber.disconnect();
+            window.getTriangularPriceStatus = () => window.triangularPriceSubscriber.getConnectionStatus();
+            window.subscribeToTriangularPair = (pair) => window.triangularPriceSubscriber.subscribe(pair);
+            window.unsubscribeFromTriangularPair = (pair) => window.triangularPriceSubscriber.unsubscribe(pair);
             
             // Check if user is already logged in
             const encryptedUser = localStorage.getItem('arb4me_user');

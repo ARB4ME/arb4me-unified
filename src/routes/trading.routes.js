@@ -11773,4 +11773,283 @@ router.delete('/valr/triangular/history', authenticatedRateLimit, authenticateUs
     }
 }));
 
+// ============================================
+// WEBSOCKET PRICE SUBSCRIBER FOR TRIANGULAR PAIRS
+// ============================================
+// Real-time price streaming for triangular arbitrage opportunities
+
+const WebSocket = require('ws');
+
+// Track active WebSocket connections for triangular price updates
+const triangularPriceSubscriptions = new Map();
+
+// WebSocket endpoint for triangular price updates
+router.ws = function(server) {
+    const wss = new WebSocket.Server({ 
+        server,
+        path: '/ws/triangular-prices'
+    });
+
+    console.log('🔺 WebSocket server initialized for triangular prices on /ws/triangular-prices');
+
+    wss.on('connection', function connection(ws, req) {
+        const connectionId = Math.random().toString(36).substring(7);
+        console.log(`📡 New triangular price WebSocket connection: ${connectionId}`);
+        
+        // Store connection
+        triangularPriceSubscriptions.set(connectionId, {
+            ws: ws,
+            subscriptions: new Set(),
+            lastPing: Date.now()
+        });
+
+        // Handle incoming messages
+        ws.on('message', function incoming(message) {
+            try {
+                const data = JSON.parse(message);
+                
+                switch (data.type) {
+                    case 'subscribe':
+                        handleTriangularSubscription(connectionId, data.pairs);
+                        break;
+                    case 'unsubscribe':
+                        handleTriangularUnsubscription(connectionId, data.pairs);
+                        break;
+                    case 'ping':
+                        ws.send(JSON.stringify({ type: 'pong', timestamp: Date.now() }));
+                        triangularPriceSubscriptions.get(connectionId).lastPing = Date.now();
+                        break;
+                    default:
+                        ws.send(JSON.stringify({ 
+                            type: 'error', 
+                            message: 'Unknown message type',
+                            received: data.type 
+                        }));
+                }
+            } catch (error) {
+                console.error('❌ WebSocket message parsing error:', error);
+                ws.send(JSON.stringify({ 
+                    type: 'error', 
+                    message: 'Invalid JSON message' 
+                }));
+            }
+        });
+
+        // Handle connection close
+        ws.on('close', function close() {
+            console.log(`📡 Triangular WebSocket connection closed: ${connectionId}`);
+            triangularPriceSubscriptions.delete(connectionId);
+        });
+
+        // Send welcome message
+        ws.send(JSON.stringify({
+            type: 'connected',
+            connectionId: connectionId,
+            message: 'Connected to triangular price feed',
+            availablePairs: ['LINKZAR', 'LINKUSDT', 'USDTZAR', 'ETHZAR', 'ETHUSDT', 'ADAZAR', 'ADAUSDT']
+        }));
+    });
+
+    return wss;
+};
+
+// Handle triangular pair subscription
+function handleTriangularSubscription(connectionId, pairs) {
+    const connection = triangularPriceSubscriptions.get(connectionId);
+    if (!connection) return;
+
+    if (Array.isArray(pairs)) {
+        pairs.forEach(pair => {
+            connection.subscriptions.add(pair);
+            console.log(`📊 ${connectionId} subscribed to ${pair}`);
+        });
+    } else {
+        connection.subscriptions.add(pairs);
+        console.log(`📊 ${connectionId} subscribed to ${pairs}`);
+    }
+
+    connection.ws.send(JSON.stringify({
+        type: 'subscribed',
+        pairs: Array.from(connection.subscriptions),
+        message: `Subscribed to ${Array.isArray(pairs) ? pairs.length : 1} pairs`
+    }));
+
+    // Start sending price updates for subscribed pairs
+    startPriceUpdatesForConnection(connectionId);
+}
+
+// Handle triangular pair unsubscription
+function handleTriangularUnsubscription(connectionId, pairs) {
+    const connection = triangularPriceSubscriptions.get(connectionId);
+    if (!connection) return;
+
+    if (Array.isArray(pairs)) {
+        pairs.forEach(pair => {
+            connection.subscriptions.delete(pair);
+            console.log(`📊 ${connectionId} unsubscribed from ${pair}`);
+        });
+    } else {
+        connection.subscriptions.delete(pairs);
+        console.log(`📊 ${connectionId} unsubscribed from ${pairs}`);
+    }
+
+    connection.ws.send(JSON.stringify({
+        type: 'unsubscribed',
+        pairs: Array.isArray(pairs) ? pairs : [pairs],
+        remaining: Array.from(connection.subscriptions)
+    }));
+}
+
+// Start sending price updates for a connection
+async function startPriceUpdatesForConnection(connectionId) {
+    const connection = triangularPriceSubscriptions.get(connectionId);
+    if (!connection || connection.subscriptions.size === 0) return;
+
+    try {
+        const subscribedPairs = Array.from(connection.subscriptions);
+        const priceUpdates = {};
+
+        // Fetch latest prices for all subscribed pairs
+        for (const pair of subscribedPairs) {
+            try {
+                const orderBook = await makeVALRRequest(
+                    `/v1/marketdata/${pair}/orderbook`,
+                    'GET',
+                    null,
+                    process.env.VALR_API_KEY,
+                    process.env.VALR_API_SECRET
+                );
+
+                if (orderBook && orderBook.Asks && orderBook.Bids && 
+                    orderBook.Asks.length > 0 && orderBook.Bids.length > 0) {
+                    
+                    const bestAsk = parseFloat(orderBook.Asks[0].price);
+                    const bestBid = parseFloat(orderBook.Bids[0].price);
+                    const spread = ((bestAsk - bestBid) / bestBid * 100);
+                    
+                    priceUpdates[pair] = {
+                        pair: pair,
+                        bestBid: bestBid,
+                        bestAsk: bestAsk,
+                        spread: spread.toFixed(4),
+                        bidSize: parseFloat(orderBook.Bids[0].quantity),
+                        askSize: parseFloat(orderBook.Asks[0].quantity),
+                        timestamp: Date.now()
+                    };
+                }
+            } catch (pairError) {
+                console.error(`❌ Failed to fetch ${pair} prices:`, pairError.message);
+                priceUpdates[pair] = {
+                    pair: pair,
+                    error: pairError.message,
+                    timestamp: Date.now()
+                };
+            }
+        }
+
+        // Send price updates to client
+        if (Object.keys(priceUpdates).length > 0) {
+            connection.ws.send(JSON.stringify({
+                type: 'priceUpdate',
+                data: priceUpdates,
+                timestamp: Date.now()
+            }));
+        }
+
+    } catch (error) {
+        console.error(`❌ Error sending price updates to ${connectionId}:`, error);
+        connection.ws.send(JSON.stringify({
+            type: 'error',
+            message: 'Failed to fetch price updates',
+            error: error.message
+        }));
+    }
+}
+
+// Broadcast price updates to all connected clients
+async function broadcastTriangularPriceUpdates() {
+    if (triangularPriceSubscriptions.size === 0) return;
+
+    const allSubscribedPairs = new Set();
+    triangularPriceSubscriptions.forEach(connection => {
+        connection.subscriptions.forEach(pair => allSubscribedPairs.add(pair));
+    });
+
+    if (allSubscribedPairs.size === 0) return;
+
+    console.log(`📡 Broadcasting prices for ${allSubscribedPairs.size} pairs to ${triangularPriceSubscriptions.size} clients`);
+
+    // Fetch prices for all subscribed pairs
+    const priceData = {};
+    for (const pair of allSubscribedPairs) {
+        try {
+            const orderBook = await makeVALRRequest(
+                `/v1/marketdata/${pair}/orderbook`,
+                'GET',
+                null,
+                process.env.VALR_API_KEY,
+                process.env.VALR_API_SECRET
+            );
+
+            if (orderBook && orderBook.Asks && orderBook.Bids && 
+                orderBook.Asks.length > 0 && orderBook.Bids.length > 0) {
+                
+                const bestAsk = parseFloat(orderBook.Asks[0].price);
+                const bestBid = parseFloat(orderBook.Bids[0].price);
+                const spread = ((bestAsk - bestBid) / bestBid * 100);
+                
+                priceData[pair] = {
+                    pair: pair,
+                    bestBid: bestBid,
+                    bestAsk: bestAsk,
+                    spread: spread.toFixed(4),
+                    bidSize: parseFloat(orderBook.Bids[0].quantity),
+                    askSize: parseFloat(orderBook.Asks[0].quantity),
+                    timestamp: Date.now()
+                };
+            }
+        } catch (error) {
+            console.error(`❌ Failed to fetch ${pair} for broadcast:`, error.message);
+        }
+    }
+
+    // Send updates to each connected client
+    triangularPriceSubscriptions.forEach((connection, connectionId) => {
+        if (connection.ws.readyState === WebSocket.OPEN) {
+            const clientPriceData = {};
+            connection.subscriptions.forEach(pair => {
+                if (priceData[pair]) {
+                    clientPriceData[pair] = priceData[pair];
+                }
+            });
+
+            if (Object.keys(clientPriceData).length > 0) {
+                connection.ws.send(JSON.stringify({
+                    type: 'priceUpdate',
+                    data: clientPriceData,
+                    timestamp: Date.now()
+                }));
+            }
+        } else {
+            console.log(`📡 Removing dead connection: ${connectionId}`);
+            triangularPriceSubscriptions.delete(connectionId);
+        }
+    });
+}
+
+// Start periodic price broadcasting (every 10 seconds)
+setInterval(broadcastTriangularPriceUpdates, 10000);
+
+// Cleanup stale connections (every 60 seconds)
+setInterval(() => {
+    const now = Date.now();
+    triangularPriceSubscriptions.forEach((connection, connectionId) => {
+        if (now - connection.lastPing > 120000) { // 2 minutes timeout
+            console.log(`📡 Cleaning up stale connection: ${connectionId}`);
+            connection.ws.terminate();
+            triangularPriceSubscriptions.delete(connectionId);
+        }
+    });
+}, 60000);
+
 module.exports = router;// VERSION 6 DEPLOYMENT MARKER - Tue, Sep 16, 2025  2:05:16 PM
