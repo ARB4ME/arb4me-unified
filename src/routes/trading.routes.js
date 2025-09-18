@@ -11489,6 +11489,310 @@ router.post('/valr/triangular/test-connection', authenticatedRateLimit, authenti
     }
 }));
 
+// ============================================
+// ENHANCED TRIANGULAR PROFIT CALCULATION ENGINE
+// ============================================
+// Sophisticated profit calculation with VALR fees, slippage, and order book depth analysis
+
+/**
+ * Calculate triangular arbitrage profit with comprehensive analysis
+ * @param {Object} path - Triangular path configuration 
+ * @param {Object} orderBooks - Order book data for all pairs
+ * @param {number} amount - Starting amount in ZAR
+ * @param {Object} options - Calculation options
+ * @returns {Object} Detailed profit analysis
+ */
+function calculateTriangularProfitAdvanced(path, orderBooks, amount = 1000, options = {}) {
+    const {
+        slippageBuffer = 0.1, // 0.1% slippage buffer
+        minOrderSize = 50,    // Minimum R50 order size
+        maxOrderSize = 10000, // Maximum R10,000 order size
+        depthAnalysis = true   // Whether to analyze order book depth
+    } = options;
+
+    try {
+        // VALR fee structure
+        const MAKER_FEE = 0.001;  // 0.1% maker fee
+        const TAKER_FEE = 0.001;  // 0.1% taker fee (we'll use taker for immediate execution)
+        
+        // Validate input amount
+        if (amount < minOrderSize || amount > maxOrderSize) {
+            return {
+                success: false,
+                error: `Amount must be between R${minOrderSize} and R${maxOrderSize}`,
+                pathId: path.id
+            };
+        }
+
+        const result = {
+            pathId: path.id,
+            sequence: path.sequence,
+            startAmount: amount,
+            steps: [],
+            fees: {
+                total: 0,
+                breakdown: []
+            },
+            slippage: {
+                estimated: 0,
+                breakdown: []
+            },
+            orderBookDepth: [],
+            success: true
+        };
+
+        let currentAmount = amount;
+        let totalFees = 0;
+        let totalSlippage = 0;
+
+        // Execute each step of the triangular path
+        for (let i = 0; i < path.steps.length; i++) {
+            const step = path.steps[i];
+            const orderBook = orderBooks[step.pair];
+            
+            if (!orderBook || !orderBook.Asks || !orderBook.Bids) {
+                return {
+                    success: false,
+                    error: `Missing order book data for ${step.pair}`,
+                    pathId: path.id
+                };
+            }
+
+            const stepResult = {
+                step: i + 1,
+                pair: step.pair,
+                side: step.side,
+                inputAmount: currentAmount
+            };
+
+            if (step.side === 'buy') {
+                // Buying: use ask prices (we pay the ask)
+                const asks = orderBook.Asks;
+                if (!asks || asks.length === 0) {
+                    return {
+                        success: false,
+                        error: `No ask orders available for ${step.pair}`,
+                        pathId: path.id
+                    };
+                }
+
+                const bestAsk = parseFloat(asks[0].price);
+                const askSize = parseFloat(asks[0].quantity);
+                
+                // Calculate how much we can buy with current amount
+                const grossQuantity = currentAmount / bestAsk;
+                
+                // Apply trading fee
+                const fee = currentAmount * TAKER_FEE;
+                const netAmountAfterFee = currentAmount - fee;
+                const netQuantity = netAmountAfterFee / bestAsk;
+                
+                // Estimate slippage based on order book depth
+                let slippagePercent = 0;
+                if (depthAnalysis && askSize < netQuantity) {
+                    // Need to eat into deeper order book levels
+                    slippagePercent = slippageBuffer;
+                    const slippageAmount = netQuantity * (slippagePercent / 100);
+                    stepResult.slippageWarning = `Insufficient liquidity: need ${netQuantity.toFixed(4)}, available ${askSize.toFixed(4)}`;
+                    totalSlippage += slippageAmount;
+                }
+                
+                const finalQuantity = netQuantity * (1 - slippagePercent / 100);
+                
+                stepResult.price = bestAsk;
+                stepResult.grossQuantity = grossQuantity;
+                stepResult.fee = fee;
+                stepResult.netQuantity = finalQuantity;
+                stepResult.slippage = slippagePercent;
+                stepResult.availableLiquidity = askSize;
+                stepResult.outputAmount = finalQuantity;
+                
+                currentAmount = finalQuantity;
+                totalFees += fee;
+                
+                // Order book depth analysis
+                if (depthAnalysis) {
+                    const depthInfo = analyzeOrderBookDepth(asks, netAmountAfterFee, 'ask');
+                    result.orderBookDepth.push({
+                        pair: step.pair,
+                        side: 'ask',
+                        ...depthInfo
+                    });
+                }
+
+            } else {
+                // Selling: use bid prices (we receive the bid)
+                const bids = orderBook.Bids;
+                if (!bids || bids.length === 0) {
+                    return {
+                        success: false,
+                        error: `No bid orders available for ${step.pair}`,
+                        pathId: path.id
+                    };
+                }
+
+                const bestBid = parseFloat(bids[0].price);
+                const bidSize = parseFloat(bids[0].quantity);
+                
+                // Calculate ZAR amount we'll receive
+                const grossAmount = currentAmount * bestBid;
+                
+                // Apply trading fee
+                const fee = grossAmount * TAKER_FEE;
+                const netAmount = grossAmount - fee;
+                
+                // Estimate slippage based on order book depth
+                let slippagePercent = 0;
+                if (depthAnalysis && bidSize < currentAmount) {
+                    // Need to sell into deeper order book levels
+                    slippagePercent = slippageBuffer;
+                    const slippageAmount = netAmount * (slippagePercent / 100);
+                    stepResult.slippageWarning = `Insufficient liquidity: selling ${currentAmount.toFixed(4)}, available ${bidSize.toFixed(4)}`;
+                    totalSlippage += slippageAmount;
+                }
+                
+                const finalAmount = netAmount * (1 - slippagePercent / 100);
+                
+                stepResult.price = bestBid;
+                stepResult.grossAmount = grossAmount;
+                stepResult.fee = fee;
+                stepResult.netAmount = finalAmount;
+                stepResult.slippage = slippagePercent;
+                stepResult.availableLiquidity = bidSize;
+                stepResult.outputAmount = finalAmount;
+                
+                currentAmount = finalAmount;
+                totalFees += fee;
+                
+                // Order book depth analysis
+                if (depthAnalysis) {
+                    const depthInfo = analyzeOrderBookDepth(bids, currentAmount, 'bid');
+                    result.orderBookDepth.push({
+                        pair: step.pair,
+                        side: 'bid',
+                        ...depthInfo
+                    });
+                }
+            }
+
+            result.steps.push(stepResult);
+            result.fees.breakdown.push({
+                step: i + 1,
+                pair: step.pair,
+                fee: stepResult.fee,
+                feePercent: TAKER_FEE * 100
+            });
+        }
+
+        // Final profit calculation
+        const grossProfit = currentAmount - amount;
+        const netProfit = grossProfit; // Fees already deducted in steps
+        const profitPercent = (netProfit / amount) * 100;
+        
+        // Risk assessment
+        const riskFactors = [];
+        if (totalSlippage > 0) riskFactors.push('slippage_risk');
+        if (totalFees > amount * 0.005) riskFactors.push('high_fees');
+        if (result.orderBookDepth.some(d => d.liquidityRisk)) riskFactors.push('liquidity_risk');
+        
+        // Minimum profit threshold (must exceed total costs by meaningful margin)
+        const minProfitThreshold = amount * 0.005; // 0.5% minimum
+        const profitable = netProfit > minProfitThreshold;
+        
+        // Update result with final calculations
+        result.endAmount = currentAmount;
+        result.grossProfit = grossProfit;
+        result.netProfit = netProfit;
+        result.netProfitPercent = profitPercent;
+        result.profitable = profitable;
+        result.fees.total = totalFees;
+        result.fees.percentage = (totalFees / amount) * 100;
+        result.slippage.estimated = totalSlippage;
+        result.slippage.percentage = (totalSlippage / amount) * 100;
+        result.riskFactors = riskFactors;
+        result.riskLevel = getRiskLevel(riskFactors);
+        result.minProfitThreshold = minProfitThreshold;
+        result.timestamp = new Date().toISOString();
+        
+        // Execution recommendation
+        if (profitable && riskFactors.length === 0) {
+            result.recommendation = 'EXECUTE';
+        } else if (profitable && riskFactors.length <= 1) {
+            result.recommendation = 'CAUTIOUS';
+        } else {
+            result.recommendation = 'AVOID';
+        }
+
+        return result;
+
+    } catch (error) {
+        return {
+            success: false,
+            error: error.message,
+            pathId: path.id
+        };
+    }
+}
+
+/**
+ * Analyze order book depth for liquidity assessment
+ */
+function analyzeOrderBookDepth(orders, requiredAmount, side) {
+    let cumulativeAmount = 0;
+    let cumulativeQuantity = 0;
+    let levelsNeeded = 0;
+    let averagePrice = 0;
+    let priceImpact = 0;
+    
+    if (!orders || orders.length === 0) {
+        return {
+            liquidityRisk: true,
+            levelsNeeded: 0,
+            priceImpact: 100,
+            message: 'No orders available'
+        };
+    }
+    
+    const firstPrice = parseFloat(orders[0].price);
+    
+    for (let i = 0; i < orders.length && cumulativeAmount < requiredAmount; i++) {
+        const order = orders[i];
+        const price = parseFloat(order.price);
+        const quantity = parseFloat(order.quantity);
+        const orderAmount = side === 'ask' ? quantity * price : quantity;
+        
+        cumulativeAmount += orderAmount;
+        cumulativeQuantity += quantity;
+        levelsNeeded++;
+        
+        // Calculate weighted average price
+        averagePrice = cumulativeAmount / cumulativeQuantity;
+        
+        // Calculate price impact
+        priceImpact = Math.abs((price - firstPrice) / firstPrice) * 100;
+    }
+    
+    const liquidityRisk = levelsNeeded > 3 || priceImpact > 1.0; // Risk if need >3 levels or >1% impact
+    
+    return {
+        liquidityRisk,
+        levelsNeeded,
+        priceImpact: priceImpact.toFixed(4),
+        averagePrice: averagePrice.toFixed(8),
+        cumulativeAmount: cumulativeAmount.toFixed(2),
+        message: liquidityRisk ? 'Liquidity constraints detected' : 'Sufficient liquidity'
+    };
+}
+
+/**
+ * Determine risk level based on risk factors
+ */
+function getRiskLevel(riskFactors) {
+    if (riskFactors.length === 0) return 'LOW';
+    if (riskFactors.length <= 1) return 'MEDIUM';
+    return 'HIGH';
+}
+
 // POST /api/v1/trading/valr/triangular/scan
 // Scan for triangular arbitrage opportunities with live prices
 router.post('/valr/triangular/scan', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
@@ -11554,61 +11858,141 @@ router.post('/valr/triangular/scan', authenticatedRateLimit, authenticateUser, a
             orderBooks[pair] = orderBook;
         }
 
-        // Calculate profit for each path
+        // Calculate profit for each path using advanced calculation engine
         const opportunities = [];
+        const { amount = 1000 } = req.body; // Allow custom amount, default R1000
+        
+        console.log(`🔺 Calculating profits for ${triangularPaths.length} paths with R${amount} starting amount`);
+        
         for (const path of triangularPaths) {
-            const startAmount = 1000; // Start with R1000 ZAR
-            let currentAmount = startAmount;
-            let profitable = true;
-            const prices = [];
-
-            // Calculate through each step
-            for (const step of path.steps) {
-                const book = orderBooks[step.pair];
-                if (!book || !book.Bids || !book.Asks) {
-                    profitable = false;
-                    break;
-                }
-
-                let price;
-                if (step.side === 'buy') {
-                    // We're buying, so we look at asks (lowest ask price)
-                    price = parseFloat(book.Asks[0]?.price || 0);
-                    currentAmount = currentAmount / price;
-                } else {
-                    // We're selling, so we look at bids (highest bid price)
-                    price = parseFloat(book.Bids[0]?.price || 0);
-                    currentAmount = currentAmount * price;
-                }
-                prices.push({ pair: step.pair, side: step.side, price });
-
-                // Factor in VALR fees (0.1% per trade)
-                currentAmount = currentAmount * 0.999;
-            }
-
-            const profit = currentAmount - startAmount;
-            const profitPercent = ((profit / startAmount) * 100).toFixed(3);
-
-            opportunities.push({
-                pathId: path.id,
-                sequence: path.sequence,
-                prices,
-                startAmount,
-                endAmount: currentAmount.toFixed(2),
-                profit: profit.toFixed(2),
-                profitPercent: parseFloat(profitPercent),
-                profitable: profit > 0,
-                timestamp: new Date().toISOString()
+            console.log(`📊 Analyzing path: ${path.id} - ${path.sequence}`);
+            
+            // Use advanced profit calculation with comprehensive analysis
+            const result = calculateTriangularProfitAdvanced(path, orderBooks, amount, {
+                slippageBuffer: 0.1,
+                minOrderSize: 50,
+                maxOrderSize: 10000,
+                depthAnalysis: true
             });
+            
+            if (result.success) {
+                // Transform advanced result to match expected format while preserving all data
+                const opportunity = {
+                    pathId: result.pathId,
+                    sequence: result.sequence,
+                    startAmount: result.startAmount,
+                    endAmount: parseFloat(result.endAmount.toFixed(2)),
+                    grossProfit: parseFloat(result.grossProfit.toFixed(2)),
+                    netProfit: parseFloat(result.netProfit.toFixed(2)),
+                    netProfitPercent: parseFloat(result.netProfitPercent.toFixed(3)),
+                    profitable: result.profitable,
+                    recommendation: result.recommendation,
+                    riskLevel: result.riskLevel,
+                    riskFactors: result.riskFactors,
+                    
+                    // Fee breakdown
+                    fees: {
+                        total: parseFloat(result.fees.total.toFixed(2)),
+                        percentage: parseFloat(result.fees.percentage.toFixed(3)),
+                        breakdown: result.fees.breakdown
+                    },
+                    
+                    // Slippage analysis
+                    slippage: {
+                        estimated: parseFloat(result.slippage.estimated.toFixed(2)),
+                        percentage: parseFloat(result.slippage.percentage.toFixed(3))
+                    },
+                    
+                    // Order book depth analysis
+                    orderBookDepth: result.orderBookDepth,
+                    
+                    // Step-by-step execution details
+                    steps: result.steps,
+                    
+                    // Backward compatibility fields
+                    profit: parseFloat(result.netProfit.toFixed(2)), // For legacy compatibility
+                    profitPercent: parseFloat(result.netProfitPercent.toFixed(3)), // For legacy compatibility
+                    prices: result.steps.map(step => ({
+                        pair: step.pair,
+                        side: step.side,
+                        price: step.price
+                    })),
+                    
+                    minProfitThreshold: result.minProfitThreshold,
+                    timestamp: result.timestamp
+                };
+                
+                opportunities.push(opportunity);
+                
+                // Log significant opportunities
+                if (result.profitable) {
+                    console.log(`💰 PROFITABLE: ${path.id} - ${result.netProfitPercent.toFixed(2)}% (${result.recommendation}) [${result.riskLevel} risk]`);
+                    if (result.riskFactors.length > 0) {
+                        console.log(`⚠️ Risk factors: ${result.riskFactors.join(', ')}`);
+                    }
+                } else {
+                    console.log(`📉 NOT PROFITABLE: ${path.id} - ${result.netProfitPercent.toFixed(2)}%`);
+                }
+                
+            } else {
+                // Handle calculation errors
+                console.error(`❌ Calculation failed for ${path.id}: ${result.error}`);
+                
+                opportunities.push({
+                    pathId: result.pathId,
+                    sequence: path.sequence,
+                    error: result.error,
+                    profitable: false,
+                    netProfitPercent: 0,
+                    recommendation: 'ERROR',
+                    riskLevel: 'HIGH',
+                    timestamp: new Date().toISOString()
+                });
+            }
         }
+        
+        console.log(`🔺 Analysis complete: ${opportunities.filter(o => o.profitable).length} profitable opportunities found`);
+        
+        // Enhanced sorting: prioritize by profit percentage, then by risk level
+        opportunities.sort((a, b) => {
+            // First sort by profitability
+            if (a.profitable !== b.profitable) {
+                return b.profitable - a.profitable; // Profitable first
+            }
+            
+            // Then by profit percentage
+            if (a.netProfitPercent !== b.netProfitPercent) {
+                return b.netProfitPercent - a.netProfitPercent; // Higher profit first
+            }
+            
+            // Finally by risk level (LOW < MEDIUM < HIGH)
+            const riskOrder = { 'LOW': 1, 'MEDIUM': 2, 'HIGH': 3, 'ERROR': 4 };
+            return (riskOrder[a.riskLevel] || 4) - (riskOrder[b.riskLevel] || 4);
+        });
 
-        // Sort by profit percentage
-        opportunities.sort((a, b) => b.profitPercent - a.profitPercent);
+        // Calculate enhanced statistics
+        const profitableOpportunities = opportunities.filter(o => o.profitable);
+        const executeRecommendations = opportunities.filter(o => o.recommendation === 'EXECUTE');
+        const cautionsRecommendations = opportunities.filter(o => o.recommendation === 'CAUTIOUS');
+        
+        // Risk distribution
+        const riskDistribution = {
+            LOW: opportunities.filter(o => o.riskLevel === 'LOW').length,
+            MEDIUM: opportunities.filter(o => o.riskLevel === 'MEDIUM').length,
+            HIGH: opportunities.filter(o => o.riskLevel === 'HIGH').length
+        };
+        
+        const avgProfit = profitableOpportunities.length > 0 
+            ? profitableOpportunities.reduce((sum, o) => sum + o.netProfitPercent, 0) / profitableOpportunities.length
+            : 0;
 
         systemLogger.trading('VALR triangular scan completed', {
             userId: req.user.id,
             opportunitiesFound: opportunities.length,
-            profitableCount: opportunities.filter(o => o.profitable).length
+            profitableCount: profitableOpportunities.length,
+            executeRecommendations: executeRecommendations.length,
+            avgProfitPercent: avgProfit.toFixed(3),
+            startAmount: amount
         });
 
         res.json({
@@ -11616,8 +12000,18 @@ router.post('/valr/triangular/scan', authenticatedRateLimit, authenticateUser, a
             data: {
                 opportunities,
                 scanTime: new Date().toISOString(),
-                profitableCount: opportunities.filter(o => o.profitable).length,
-                bestOpportunity: opportunities[0] || null
+                analysis: {
+                    totalOpportunities: opportunities.length,
+                    profitableCount: profitableOpportunities.length,
+                    executeRecommendations: executeRecommendations.length,
+                    cautiousRecommendations: cautionsRecommendations.length,
+                    avgProfitPercent: parseFloat(avgProfit.toFixed(3)),
+                    riskDistribution,
+                    startAmount: amount
+                },
+                bestOpportunity: opportunities[0] || null,
+                topProfitable: profitableOpportunities.slice(0, 3), // Top 3 profitable
+                readyToExecute: executeRecommendations.slice(0, 2) // Top 2 ready to execute
             }
         });
     } catch (error) {
