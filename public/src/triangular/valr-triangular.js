@@ -427,8 +427,8 @@ const VALRPathSets = {
     }
 };
 
-// Legacy paths object for backward compatibility
-const valrTriangularPaths = {}; // Keep original name for now
+// valrTriangularPaths is already declared in the main HTML file
+// We'll just reference it, not redeclare it
 
 // VALR price cache
 const valrPriceCache = {
