@@ -26568,6 +26568,14 @@ ARB4ME Security Team`
                     const scanStartTime = Date.now();
                     
                     try {
+                        // Get VALR credentials from state (same as working balance calls)
+                        const valrData = state.exchanges?.valr;
+                        if (!valrData?.api?.key || !valrData?.api?.secret) {
+                            console.error('❌ VALR API credentials not found - stopping auto trading');
+                            stopTriangularTradingLoop();
+                            return;
+                        }
+                        
                         // Scan for opportunities in current set
                         const response = await fetch('/api/v1/trading/valr/triangular/scan', {
                             method: 'POST',
@@ -26578,7 +26586,9 @@ ARB4ME Security Team`
                             body: JSON.stringify({
                                 pathSet: currentSet.name,
                                 amount: 1000, // Default R1000 for auto trading
-                                minProfitThreshold: currentSet.minProfitThreshold
+                                minProfitThreshold: currentSet.minProfitThreshold,
+                                apiKey: valrData.api.key,
+                                apiSecret: valrData.api.secret
                             })
                         });
                         
@@ -27173,6 +27183,14 @@ ARB4ME Security Team`
                 showActivityMessage('⚡ Scanning VALR triangular paths with live prices...', 'info');
                 
                 try {
+                    // Get VALR credentials from state (same as working balance calls)
+                    const valrData = state.exchanges?.valr;
+                    if (!valrData?.api?.key || !valrData?.api?.secret) {
+                        throw new Error('VALR API credentials not found. Please connect VALR first.');
+                    }
+                    
+                    console.log(`🔑 Using VALR API Key: ${valrData.api.key.substring(0, 8)}...`);
+                    
                     // Call the real VALR triangular scan endpoint
                     const response = await fetch('/api/v1/trading/valr/triangular/scan', {
                         method: 'POST',
@@ -27181,7 +27199,9 @@ ARB4ME Security Team`
                             'Authorization': `Bearer ${localStorage.getItem('arb4me_jwt_token')}`
                         },
                         body: JSON.stringify({
-                            paths: 'all' // Scan all available paths
+                            paths: 'all', // Scan all available paths
+                            apiKey: valrData.api.key,
+                            apiSecret: valrData.api.secret
                         })
                     });
 
