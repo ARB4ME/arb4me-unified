@@ -23144,9 +23144,21 @@ ARB4ME Security Team`
                 
                 // Calculate trade amount based on the correct base currency balance
                 const balance = state.balances?.[exchangeKey]?.[baseCurrency] || 0;
-                const tradeAmount = Math.min(
-                    state.settings.maxTradeAmount || 500,  // Increased to 500 ZAR to meet VALR minimums
-                    balance * (state.settings.tradeSize || 20) / 100
+
+                // Set minimum amounts based on exchange requirements (VALR needs 0.01 minimums)
+                let minTradeAmount = 100; // Default minimum in ZAR
+                if (baseCurrency === 'USDT') {
+                    minTradeAmount = 5; // Minimum 5 USDT to ensure all steps meet 0.01+ minimums
+                } else if (baseCurrency === 'ZAR') {
+                    minTradeAmount = 100; // Minimum 100 ZAR to ensure all steps meet 0.01+ minimums
+                }
+
+                const tradeAmount = Math.max(
+                    minTradeAmount,  // Ensure we always meet minimum requirements
+                    Math.min(
+                        state.settings.maxTradeAmount || 500,
+                        balance * (state.settings.tradeSize || 20) / 100
+                    )
                 );
                 
                 // Validate sufficient balance
@@ -23368,8 +23380,41 @@ ARB4ME Security Team`
                 
                 executionResults.push(step1Result);
                 currentAmount = step1Result.receivedAmount;
-                currentAsset = 'BTC';
-                console.log(`Step 1 complete: Received ${currentAmount} BTC`);
+
+                // Determine the actual intermediate asset from the path
+                let intermediateAsset = 'UNKNOWN';
+                if (opportunity.pathName.includes('ZAR → USDT →')) {
+                    intermediateAsset = 'USDT';
+                } else if (opportunity.pathName.includes('USDT → ZAR →')) {
+                    intermediateAsset = 'ZAR';
+                } else if (opportunity.pathName.includes('→ ETH →')) {
+                    intermediateAsset = 'ETH';
+                } else if (opportunity.pathName.includes('→ XRP →')) {
+                    intermediateAsset = 'XRP';
+                } else if (opportunity.pathName.includes('→ SOL →')) {
+                    intermediateAsset = 'SOL';
+                } else if (opportunity.pathName.includes('→ BNB →')) {
+                    intermediateAsset = 'BNB';
+                } else if (opportunity.pathName.includes('→ SHIB →')) {
+                    intermediateAsset = 'SHIB';
+                } else if (opportunity.pathName.includes('→ AVAX →')) {
+                    intermediateAsset = 'AVAX';
+                } else if (opportunity.pathName.includes('→ DOGE →')) {
+                    intermediateAsset = 'DOGE';
+                } else if (opportunity.pathName.includes('→ TRX →')) {
+                    intermediateAsset = 'TRX';
+                } else if (opportunity.pathName.includes('→ LTC →')) {
+                    intermediateAsset = 'LTC';
+                } else if (opportunity.pathName.includes('→ RLUSD →')) {
+                    intermediateAsset = 'RLUSD';
+                } else if (opportunity.pathName.includes('→ LINK →')) {
+                    intermediateAsset = 'LINK';
+                } else if (opportunity.pathName.includes('→ XLM →')) {
+                    intermediateAsset = 'XLM';
+                }
+
+                currentAsset = intermediateAsset;
+                console.log(`Step 1 complete: Received ${currentAmount} ${currentAsset}`);
                 
                 // Rate limiting delay
                 await delay(1000);
@@ -23409,6 +23454,14 @@ ARB4ME Security Team`
                 console.log(`Step 3: ${currentAsset} → USDT`);
                 if (!state.triangularArbitrage) {
                     console.log('⛔ Triangular arbitrage toggled OFF during Step 3 - aborting');
+                    // TODO: Implement rollback for Steps 1 and 2
+                    return;
+                }
+
+                // Validate minimum amount for step 3
+                if (currentAmount < 0.01) {
+                    console.log(`⛔ Step 3 amount too small: ${currentAmount} ${currentAsset} (minimum 0.01 required)`);
+                    addActivity(`❌ Step 3 cancelled: ${currentAmount} ${currentAsset} below minimum trading amount`, 'error');
                     // TODO: Implement rollback for Steps 1 and 2
                     return;
                 }
@@ -29950,47 +30003,137 @@ ARB4ME Security Team`
         window.calculateValrTriangularProfit = async (pathConfig, tradeAmount) => {
             try {
                 const { pairs, sequence, baseCurrency, prices } = pathConfig;
-                
+
                 console.log(`📊 Calculating VALR triangular profit for: ${sequence}`);
                 console.log(`💰 Trade amount: ${tradeAmount} ${baseCurrency}`);
-                
+
                 if (!prices || prices.length !== 3) {
                     console.log('❌ Invalid prices for calculation');
                     return { profitable: false, netProfitPercent: 0 };
                 }
-                
-                // Simulate the 3-step triangular calculation
+
+                // Determine trade operations based on path sequence
                 let currentAmount = tradeAmount;
-                let currentCurrency = baseCurrency;
-                
-                // Step 1: ZAR → LINK (or similar)
-                const step1Price = prices[0];
-                const step1Amount = currentAmount / step1Price;
-                const step1Fee = step1Amount * 0.001; // 0.1% VALR fee
-                currentAmount = step1Amount - step1Fee;
-                console.log(`Step 1: ${currentAmount.toFixed(6)} received after fees`);
-                
-                // Step 2: LINK → USDT (or similar)
-                const step2Price = prices[1];
-                const step2Amount = currentAmount * step2Price;
-                const step2Fee = step2Amount * 0.001; // 0.1% VALR fee
-                currentAmount = step2Amount - step2Fee;
-                console.log(`Step 2: ${currentAmount.toFixed(6)} received after fees`);
-                
-                // Step 3: USDT → ZAR (or similar)
-                const step3Price = prices[2];
-                const step3Amount = currentAmount * step3Price;
-                const step3Fee = step3Amount * 0.001; // 0.1% VALR fee
-                const finalAmount = step3Amount - step3Fee;
-                console.log(`Step 3: ${finalAmount.toFixed(6)} final amount`);
-                
+
+                // Parse the path to understand the steps and apply correct buy/sell logic
+                let finalAmount;
+
+                if (sequence.includes('ZAR → USDT →') && sequence.includes('→ ZAR')) {
+                    // Type: ZAR → USDT → Asset → ZAR
+                    // Step 1: ZAR → USDT (BUY USDTZAR)
+                    const usdtZarPrice = prices[0]; // USDTZAR price
+                    let step1Amount = currentAmount / usdtZarPrice;
+                    let step1Fee = step1Amount * 0.001;
+                    currentAmount = step1Amount - step1Fee;
+                    console.log(`Step 1: ${currentAmount.toFixed(6)} USDT received after fees`);
+
+                    // Step 2: USDT → Asset (BUY AssetUSDT)
+                    const assetUsdtPrice = prices[1]; // e.g., ETHUSDT price
+                    let step2Amount = currentAmount / assetUsdtPrice;
+                    let step2Fee = step2Amount * 0.001;
+                    currentAmount = step2Amount - step2Fee;
+                    console.log(`Step 2: ${currentAmount.toFixed(6)} asset received after fees`);
+
+                    // Step 3: Asset → ZAR (SELL AssetZAR)
+                    const assetZarPrice = prices[2]; // e.g., ETHZAR price
+                    let step3Amount = currentAmount * assetZarPrice;
+                    let step3Fee = step3Amount * 0.001;
+                    finalAmount = step3Amount - step3Fee;
+                    console.log(`Step 3: ${finalAmount.toFixed(6)} ZAR received after fees`);
+
+                } else if (sequence.includes('ZAR →') && sequence.includes('→ USDT → ZAR')) {
+                    // Type: ZAR → Asset → USDT → ZAR
+                    // Step 1: ZAR → Asset (BUY AssetZAR)
+                    const assetZarPrice = prices[0]; // e.g., ETHZAR price
+                    let step1Amount = currentAmount / assetZarPrice;
+                    let step1Fee = step1Amount * 0.001;
+                    currentAmount = step1Amount - step1Fee;
+                    console.log(`Step 1: ${currentAmount.toFixed(6)} asset received after fees`);
+
+                    // Step 2: Asset → USDT (SELL AssetUSDT)
+                    const assetUsdtPrice = prices[1]; // e.g., ETHUSDT price
+                    let step2Amount = currentAmount * assetUsdtPrice;
+                    let step2Fee = step2Amount * 0.001;
+                    currentAmount = step2Amount - step2Fee;
+                    console.log(`Step 2: ${currentAmount.toFixed(6)} USDT received after fees`);
+
+                    // Step 3: USDT → ZAR (SELL USDTZAR)
+                    const usdtZarPrice = prices[2]; // USDTZAR price
+                    let step3Amount = currentAmount * usdtZarPrice;
+                    let step3Fee = step3Amount * 0.001;
+                    finalAmount = step3Amount - step3Fee;
+                    console.log(`Step 3: ${finalAmount.toFixed(6)} ZAR received after fees`);
+
+                } else if (sequence.includes('USDT →') && sequence.includes('→ USDT')) {
+                    // Type: USDT → Asset → ZAR → USDT or USDT → ZAR → Asset → USDT
+                    if (sequence.includes('USDT → ZAR →')) {
+                        // USDT → ZAR → Asset → USDT
+                        // Step 1: USDT → ZAR (SELL USDTZAR)
+                        const usdtZarPrice = prices[0]; // USDTZAR price
+                        let step1Amount = currentAmount * usdtZarPrice;
+                        let step1Fee = step1Amount * 0.001;
+                        currentAmount = step1Amount - step1Fee;
+                        console.log(`Step 1: ${currentAmount.toFixed(6)} ZAR received after fees`);
+
+                        // Step 2: ZAR → Asset (BUY AssetZAR)
+                        const assetZarPrice = prices[1]; // e.g., ETHZAR price
+                        let step2Amount = currentAmount / assetZarPrice;
+                        let step2Fee = step2Amount * 0.001;
+                        currentAmount = step2Amount - step2Fee;
+                        console.log(`Step 2: ${currentAmount.toFixed(6)} asset received after fees`);
+
+                        // Step 3: Asset → USDT (SELL AssetUSDT)
+                        const assetUsdtPrice = prices[2]; // e.g., ETHUSDT price
+                        let step3Amount = currentAmount * assetUsdtPrice;
+                        let step3Fee = step3Amount * 0.001;
+                        finalAmount = step3Amount - step3Fee;
+                        console.log(`Step 3: ${finalAmount.toFixed(6)} USDT received after fees`);
+                    } else {
+                        // USDT → Asset → ZAR → USDT
+                        // Step 1: USDT → Asset (BUY AssetUSDT)
+                        const assetUsdtPrice = prices[0]; // e.g., ETHUSDT price
+                        let step1Amount = currentAmount / assetUsdtPrice;
+                        let step1Fee = step1Amount * 0.001;
+                        currentAmount = step1Amount - step1Fee;
+                        console.log(`Step 1: ${currentAmount.toFixed(6)} asset received after fees`);
+
+                        // Step 2: Asset → ZAR (SELL AssetZAR)
+                        const assetZarPrice = prices[1]; // e.g., ETHZAR price
+                        let step2Amount = currentAmount * assetZarPrice;
+                        let step2Fee = step2Amount * 0.001;
+                        currentAmount = step2Amount - step2Fee;
+                        console.log(`Step 2: ${currentAmount.toFixed(6)} ZAR received after fees`);
+
+                        // Step 3: ZAR → USDT (BUY USDTZAR)
+                        const usdtZarPrice = prices[2]; // USDTZAR price
+                        let step3Amount = currentAmount / usdtZarPrice;
+                        let step3Fee = step3Amount * 0.001;
+                        finalAmount = step3Amount - step3Fee;
+                        console.log(`Step 3: ${finalAmount.toFixed(6)} USDT received after fees`);
+                    }
+                } else {
+                    // Fallback: generic calculation (original flawed method)
+                    console.log('⚠️ Using fallback calculation method');
+                    let step1Amount = currentAmount / prices[0];
+                    let step1Fee = step1Amount * 0.001;
+                    currentAmount = step1Amount - step1Fee;
+
+                    let step2Amount = currentAmount * prices[1];
+                    let step2Fee = step2Amount * 0.001;
+                    currentAmount = step2Amount - step2Fee;
+
+                    let step3Amount = currentAmount * prices[2];
+                    let step3Fee = step3Amount * 0.001;
+                    finalAmount = step3Amount - step3Fee;
+                }
+
                 // Calculate profit
                 const profit = finalAmount - tradeAmount;
                 const profitPercent = (profit / tradeAmount) * 100;
-                const profitable = profitPercent > 0.6; // 0.6% minimum threshold
-                
+                const profitable = profitPercent > 0.6;
+
                 console.log(`📈 Calculated profit: ${profit.toFixed(6)} ${baseCurrency} (${profitPercent.toFixed(3)}%)`);
-                
+
                 return {
                     profitable: profitable,
                     netProfitPercent: profitPercent,
