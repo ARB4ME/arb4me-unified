@@ -26892,6 +26892,62 @@ ARB4ME Security Team`
 
             console.log('📊 Path set checkboxes initialized with persistence');
 
+            // Risk Management Settings Persistence
+            const riskManagementSettings = [
+                { id: 'valrMaxTrade', key: 'valrMaxTrade', defaultValue: '500' },
+                { id: 'valrPortfolioPercent', key: 'valrPortfolioPercent', defaultValue: '10' },
+                { id: 'valrProfitThreshold', key: 'valrProfitThreshold', defaultValue: '0.8' }
+            ];
+
+            riskManagementSettings.forEach(setting => {
+                const input = document.getElementById(setting.id);
+                if (input) {
+                    // Load saved value from localStorage
+                    const savedValue = localStorage.getItem(setting.key);
+                    if (savedValue !== null) {
+                        input.value = savedValue;
+                    } else {
+                        // Set default value and save it
+                        input.value = setting.defaultValue;
+                        localStorage.setItem(setting.key, setting.defaultValue);
+                    }
+
+                    // Add change listener to save value
+                    input.addEventListener('change', function() {
+                        localStorage.setItem(setting.key, this.value);
+                        console.log(`💰 ${setting.id} updated to: ${this.value}`);
+
+                        // Store in state for trading logic
+                        if (!state.settings) state.settings = {};
+                        if (setting.id === 'valrMaxTrade') {
+                            state.settings.maxTradeAmount = parseFloat(this.value);
+                        } else if (setting.id === 'valrPortfolioPercent') {
+                            state.settings.tradeSize = parseFloat(this.value);
+                        } else if (setting.id === 'valrProfitThreshold') {
+                            state.settings.profitThreshold = parseFloat(this.value);
+                        }
+
+                        // Show feedback
+                        showActivityMessage(
+                            `💰 ${setting.id.replace('valr', '').replace(/([A-Z])/g, ' $1')} updated to ${this.value}`,
+                            'success'
+                        );
+                    });
+
+                    // Initialize state
+                    if (!state.settings) state.settings = {};
+                    if (setting.id === 'valrMaxTrade') {
+                        state.settings.maxTradeAmount = parseFloat(input.value);
+                    } else if (setting.id === 'valrPortfolioPercent') {
+                        state.settings.tradeSize = parseFloat(input.value);
+                    } else if (setting.id === 'valrProfitThreshold') {
+                        state.settings.profitThreshold = parseFloat(input.value);
+                    }
+                }
+            });
+
+            console.log('💰 Risk management settings initialized with persistence');
+
             // ============================================
             // REAL-TIME TRIANGULAR STATS ENGINE
             // ============================================
