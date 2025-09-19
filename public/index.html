@@ -7780,10 +7780,11 @@
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                     <h3 style="color: #00ff88; margin: 0;">💚 VALR Triangular Arbitrage</h3>
                     <div style="display: flex; gap: 10px; align-items: center;">
-                        <span style="color: #b8c6db; font-size: 0.9rem;">Live Trading:</span>
+                        <span style="color: #b8c6db; font-size: 0.9rem;">VALR Live Trading:</span>
                         <div class="toggle-switch" id="valrTriangularEnabled">
                             <div class="toggle-knob"></div>
                         </div>
+                        <span id="valrTriangularStatus" style="color: #ff6b6b; font-size: 0.9rem; margin-left: 10px;">OFF</span>
                     </div>
                 </div>
 
@@ -7808,31 +7809,46 @@
 
                     <!-- Path Categories -->
                     <div class="stat-card">
-                        <h4 style="color: #ffb347; margin-bottom: 15px;">📊 Path Categories</h4>
-                        <div style="display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center;">
-                            <span style="color: #b8c6db; font-size: 0.9rem;">High Volume Majors (4)</span>
-                            <input type="checkbox" id="valrMajorsEnabled" checked>
-                            
-                            <span style="color: #b8c6db; font-size: 0.9rem;">Popular Altcoins (4)</span>
-                            <input type="checkbox" id="valrAltsEnabled" checked>
-                            
-                            <span style="color: #b8c6db; font-size: 0.9rem;">Layer 1 & Ecosystem (2)</span>
-                            <input type="checkbox" id="valrLayer1Enabled" checked>
-                            
-                            <span style="color: #b8c6db; font-size: 0.9rem;">DeFi & Smart Contracts (4)</span>
-                            <input type="checkbox" id="valrDefiEnabled">
-                            
-                            <span style="color: #b8c6db; font-size: 0.9rem;">Meme & Community (3)</span>
-                            <input type="checkbox" id="valrMemeEnabled">
-                            
-                            <span style="color: #b8c6db; font-size: 0.9rem;">Enterprise & Institutional (4)</span>
-                            <input type="checkbox" id="valrEnterpriseEnabled">
-                            
-                            <span style="color: #b8c6db; font-size: 0.9rem;">Gaming & Metaverse (3)</span>
-                            <input type="checkbox" id="valrGamingEnabled">
-                            
-                            <span style="color: #b8c6db; font-size: 0.9rem;">Stablecoins & Yield (4)</span>
-                            <input type="checkbox" id="valrStableEnabled">
+                        <h4 style="color: #ffb347; margin-bottom: 15px;">📊 Path Sets (4 paths each)</h4>
+                        <div style="display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; max-height: 200px; overflow-y: auto;">
+                            <span style="color: #b8c6db; font-size: 0.85rem;">SET 1: ETH Focus</span>
+                            <input type="checkbox" id="valrSet1Enabled" checked>
+
+                            <span style="color: #b8c6db; font-size: 0.85rem;">SET 2: XRP Focus</span>
+                            <input type="checkbox" id="valrSet2Enabled" checked>
+
+                            <span style="color: #b8c6db; font-size: 0.85rem;">SET 3: SOL Focus</span>
+                            <input type="checkbox" id="valrSet3Enabled" checked>
+
+                            <span style="color: #b8c6db; font-size: 0.85rem;">SET 4: BNB Focus</span>
+                            <input type="checkbox" id="valrSet4Enabled" checked>
+
+                            <span style="color: #b8c6db; font-size: 0.85rem;">SET 5: SHIB Focus</span>
+                            <input type="checkbox" id="valrSet5Enabled">
+
+                            <span style="color: #b8c6db; font-size: 0.85rem;">SET 6: AVAX Focus</span>
+                            <input type="checkbox" id="valrSet6Enabled">
+
+                            <span style="color: #b8c6db; font-size: 0.85rem;">SET 7: DOGE Focus</span>
+                            <input type="checkbox" id="valrSet7Enabled">
+
+                            <span style="color: #b8c6db; font-size: 0.85rem;">SET 8: TRX Focus</span>
+                            <input type="checkbox" id="valrSet8Enabled">
+
+                            <span style="color: #b8c6db; font-size: 0.85rem;">SET 9: LTC Focus</span>
+                            <input type="checkbox" id="valrSet9Enabled">
+
+                            <span style="color: #b8c6db; font-size: 0.85rem;">SET 10: RLUSD Focus</span>
+                            <input type="checkbox" id="valrSet10Enabled">
+
+                            <span style="color: #b8c6db; font-size: 0.85rem;">SET 11: LINK Focus</span>
+                            <input type="checkbox" id="valrSet11Enabled">
+
+                            <span style="color: #b8c6db; font-size: 0.85rem;">SET 12: XLM Focus</span>
+                            <input type="checkbox" id="valrSet12Enabled">
+                        </div>
+                        <div style="margin-top: 10px; padding: 8px; background: rgba(0,212,255,0.1); border-radius: 6px; font-size: 0.8rem; color: #b8c6db;">
+                            💡 Uncheck sets to reduce server load. Each set scans 4 triangular paths.
                         </div>
                     </div>
 
@@ -26708,38 +26724,63 @@ ARB4ME Security Team`
                 }
             }
             
-            // VALR Triangular Trading Toggle (Enhanced)
+            // VALR Triangular Trading Toggle (Per-Exchange Control)
             const valrTriangularToggle = document.getElementById('valrTriangularEnabled');
+            const valrTriangularStatus = document.getElementById('valrTriangularStatus');
+
             if (valrTriangularToggle) {
                 valrTriangularToggle.addEventListener('click', async function() {
                     this.classList.toggle('active');
                     const isEnabled = this.classList.contains('active');
                     console.log(`🔺 VALR Triangular Trading: ${isEnabled ? 'ENABLED' : 'DISABLED'}`);
-                    
-                    // Store state in localStorage
+
+                    // Update status indicator
+                    if (valrTriangularStatus) {
+                        valrTriangularStatus.textContent = isEnabled ? 'ON' : 'OFF';
+                        valrTriangularStatus.style.color = isEnabled ? '#00ff88' : '#ff6b6b';
+                    }
+
+                    // Store state globally for VALR
+                    if (!state.exchanges) state.exchanges = {};
+                    if (!state.exchanges.valr) state.exchanges.valr = {};
+                    state.exchanges.valr.triangularEnabled = isEnabled;
+
+                    // Store in localStorage
                     localStorage.setItem('valrTriangularEnabled', isEnabled);
-                    
+
                     if (isEnabled) {
-                        // Start automatic trading
-                        await startTriangularTradingLoop();
-                        showActivityMessage('✅ VALR Triangular Auto-Trading ENABLED', 'success');
+                        // Check if main triangular arbitrage is also enabled
+                        if (!state.triangularArbitrage) {
+                            showActivityMessage('⚠️ Enable main Triangular Arbitrage toggle first', 'warning');
+                            this.classList.remove('active');
+                            if (valrTriangularStatus) {
+                                valrTriangularStatus.textContent = 'OFF';
+                                valrTriangularStatus.style.color = '#ff6b6b';
+                            }
+                            state.exchanges.valr.triangularEnabled = false;
+                            return;
+                        }
+
+                        showActivityMessage('✅ VALR Triangular Trading ENABLED - Ready for 12-set scanning', 'success');
                     } else {
-                        // Stop automatic trading
-                        stopTriangularTradingLoop();
-                        showActivityMessage('⏸️ VALR Triangular Auto-Trading DISABLED', 'warning');
+                        showActivityMessage('⏸️ VALR Triangular Trading DISABLED', 'warning');
                     }
                 });
-                
-                // Load saved state and restore trading loop if enabled
+
+                // Load saved state
                 const savedState = localStorage.getItem('valrTriangularEnabled') === 'true';
                 if (savedState) {
                     valrTriangularToggle.classList.add('active');
-                    // Auto-start trading loop if it was enabled
-                    setTimeout(() => {
-                        if (savedState) {
-                            startTriangularTradingLoop();
-                        }
-                    }, 2000); // Wait 2 seconds for page to fully load
+                    if (valrTriangularStatus) {
+                        valrTriangularStatus.textContent = 'ON';
+                        valrTriangularStatus.style.color = '#00ff88';
+                    }
+                    if (!state.exchanges) state.exchanges = {};
+                    if (!state.exchanges.valr) state.exchanges.valr = {};
+                    state.exchanges.valr.triangularEnabled = true;
+
+                    // Note: Removed auto-start of trading loop - let main toggle control this
+                    console.log('🔺 VALR triangular state restored: ENABLED');
                 }
             }
             
