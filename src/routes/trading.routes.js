@@ -1714,20 +1714,26 @@ router.post('/valr/ticker', tickerRateLimit, optionalAuth, asyncHandler(async (r
         
         // Find the specific pair from all market summaries
         // VALR uses format like "BTCZAR", "ETHZAR", "USDTZAR", "BTCUSDT", "LINKUSDT" etc.
-        let valrPair;
-        if (pair === 'USDTZAR' || pair === 'LINKUSDT' || pair === 'BTCUSDT' || pair === 'ETHUSDT' || pair === 'XRPUSDT') {
-            // Don't change these pairs - VALR supports them directly
-            valrPair = pair;
-        } else if (pair.endsWith('USDT')) {
-            // For other USDT pairs not directly supported, convert to ZAR
-            valrPair = pair.replace('USDT', 'ZAR');
-        } else {
-            // Keep other pairs as is (BTCZAR, ETHZAR, etc.)
-            valrPair = pair;
+        // Direct mapping - use the pair as provided since VALR supports many pairs
+        const valrPair = pair;
+
+        // Try to find the pair directly
+        let pairData = tickerData.find(ticker => ticker.currencyPair === valrPair);
+
+        // If not found and it's a USDT pair, try the ZAR equivalent as fallback
+        if (!pairData && pair.endsWith('USDT') && pair !== 'USDTZAR') {
+            const zarPair = pair.replace('USDT', 'ZAR');
+            pairData = tickerData.find(ticker => ticker.currencyPair === zarPair);
+            console.log(`Pair ${pair} not found, trying ${zarPair} as fallback`);
         }
-        const pairData = tickerData.find(ticker => ticker.currencyPair === valrPair);
         
         if (!pairData) {
+            // Log available pairs for debugging
+            console.error(`Pair ${valrPair} not found. Available VALR pairs:`,
+                tickerData.map(t => t.currencyPair).filter(p =>
+                    p.includes(pair.replace('ZAR', '').replace('USDT', ''))
+                ).slice(0, 10)
+            );
             throw new APIError(`Trading pair ${valrPair} not found on VALR`, 404, 'PAIR_NOT_FOUND');
         }
         
