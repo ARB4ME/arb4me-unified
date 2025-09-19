@@ -26962,16 +26962,21 @@ ARB4ME Security Team`
             
             // Fetch and display recent triangular trades
             async function updateRecentTradesFeed() {
+                // TEMPORARILY DISABLED: Backend endpoint not yet implemented
+                // TODO: Re-enable when /api/v1/trading/valr/triangular/recent-trades endpoint is created
+                console.log('📊 Recent trades polling temporarily disabled (endpoint not implemented)');
+                return;
+
                 try {
                     // Only fetch trades if conditions are met
                     const isTriangularTabActive = document.getElementById('triangularTab')?.style.display !== 'none';
                     const isValrConnected = state.exchanges?.valr?.connected;
-                    
+
                     if (!isTriangularTabActive || !isValrConnected) {
                         console.log('⏸️ Skipping recent trades fetch - triangular tab not active or VALR not connected');
                         return;
                     }
-                    
+
                     const response = await fetch('/api/v1/trading/valr/triangular/recent-trades?limit=10', {
                         method: 'GET',
                         headers: {
@@ -26982,7 +26987,7 @@ ARB4ME Security Team`
                     if (response.ok) {
                         const data = await response.json();
                         const trades = data.data.trades;
-                        
+
                         displayRecentTrades(trades);
                         console.log(`📊 Recent trades updated: ${trades.length} trades`);
                     } else {
