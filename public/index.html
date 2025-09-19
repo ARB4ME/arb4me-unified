@@ -23135,10 +23135,15 @@ ARB4ME Security Team`
                             const pathCount = scanResults.totalOpportunities.length;
                             
                             if (scanResults.profitableCount > 0) {
-                                addActivity(`✅ PROFITABLE: ${scanResults.profitableCount} triangular opportunities found! Best: ${best.pathName.split(' → ')[1]} at ${best.netProfitPercent.toFixed(2)}%`, 'success');
-                            } else if (best.netProfitPercent > -0.5) { // Show more results (was -0.3, now -0.5)
-                                addActivity(`📊 Triangular: ${exchangeCount} exchange${exchangeCount > 1 ? 's' : ''}, ${pathCount} paths, best: ${best.pathName.split(' → ')[1]} at ${best.netProfitPercent.toFixed(2)}% (need 0.8%+)`, 'info');
-                            } else if (scanCount === 1 || scanCount % 3 === 0) { // Report status every 30 seconds
+                                // Use sequence field from backend, or pathName as fallback
+                                const pathDisplay = best.sequence || best.pathName || 'Unknown path';
+                                const coinName = pathDisplay.split(' → ')[1] || 'N/A';
+                                addActivity(`✅ PROFITABLE: ${scanResults.profitableCount} triangular opportunities found! Best: ${coinName} at ${best.netProfitPercent.toFixed(2)}%`, 'success');
+                            } else if (best && best.netProfitPercent > -0.5) { // Check best exists
+                                const pathDisplay = best.sequence || best.pathName || 'Unknown path';
+                                const coinName = pathDisplay.split(' → ')[1] || 'N/A';
+                                addActivity(`📊 Triangular: ${exchangeCount} exchange${exchangeCount > 1 ? 's' : ''}, ${pathCount} paths, best: ${coinName} at ${best.netProfitPercent.toFixed(2)}% (need 0.8%+)`, 'info');
+                            } else if (best && (scanCount === 1 || scanCount % 3 === 0)) { // Check best exists
                                 addActivity(`🔺 Triangular: Monitoring ${exchangeCount} exchange${exchangeCount > 1 ? 's' : ''}, ${pathCount} paths, best at ${best.netProfitPercent.toFixed(2)}%`, 'info');
                             }
                             
@@ -23191,11 +23196,12 @@ ARB4ME Security Team`
                     return;
                 }
                 
-                console.log(`🔺 Starting triangular execution: ${opportunity.pathName}`);
+                const pathDisplay = opportunity.sequence || opportunity.pathName || 'Unknown path';
+                console.log(`🔺 Starting triangular execution: ${pathDisplay}`);
                 console.log(`💰 Trade amount: ${tradeAmount.toFixed(2)} ${baseCurrency}`);
                 console.log(`📈 Expected profit: ${opportunity.netProfitPercent.toFixed(3)}%`);
-                
-                addActivity(`🔺 EXECUTING: ${opportunity.pathName} - ${opportunity.netProfitPercent.toFixed(3)}% profit with ${tradeAmount.toFixed(2)} ${baseCurrency}`, 'success');
+
+                addActivity(`🔺 EXECUTING: ${pathDisplay} - ${opportunity.netProfitPercent.toFixed(3)}% profit with ${tradeAmount.toFixed(2)} ${baseCurrency}`, 'success');
                 
                 // Get fresh prices to validate opportunity is still profitable
                 console.log('🔍 Opportunity structure:', opportunity);
