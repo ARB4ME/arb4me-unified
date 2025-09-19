@@ -27229,8 +27229,8 @@ ARB4ME Security Team`
                         console.log('✅ VALR Triangular scan successful:', data);
                         
                         // Display results with real profit data
-                        const profitableCount = data.profitableCount;
                         const totalOpportunities = data.opportunities.length;
+                        const profitableCount = data.opportunities.filter(op => op.profitable === true).length || 0;
                         const bestOpportunity = data.bestOpportunity;
                         
                         let statusMessage = `✅ Scan complete: ${totalOpportunities} paths analyzed, ${profitableCount} profitable`;
