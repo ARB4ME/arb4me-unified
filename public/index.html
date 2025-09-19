@@ -27118,15 +27118,26 @@ ARB4ME Security Team`
             window.testValrTriangularConnection = async function() {
                 console.log('🔍 Testing VALR Triangular Connection...');
                 showActivityMessage('🔍 Testing VALR triangular connection...', 'info');
-                
+
                 try {
+                    const valrData = state.exchanges?.valr;
+                    if (!valrData?.api?.key || !valrData?.api?.secret) {
+                        throw new Error('VALR API credentials not found. Please connect VALR first.');
+                    }
+
+                    console.log(`🔑 Using VALR API Key: ${valrData.api.key.substring(0, 8)}...`);
+
                     // Call the real VALR triangular test connection endpoint
                     const response = await fetch('/api/v1/trading/valr/triangular/test-connection', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                             'Authorization': `Bearer ${localStorage.getItem('arb4me_jwt_token')}`
-                        }
+                        },
+                        body: JSON.stringify({
+                            apiKey: valrData.api.key,
+                            apiSecret: valrData.api.secret
+                        })
                     });
 
                     const result = await response.json();

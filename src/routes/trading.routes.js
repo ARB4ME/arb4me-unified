@@ -11665,23 +11665,20 @@ async function getRecentTriangularTrades(userId, limit = 50) {
 // Test VALR API connection for triangular trading
 router.post('/valr/triangular/test-connection', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
     try {
+        const { apiKey, apiSecret } = req.body;
+
         systemLogger.trading('VALR triangular connection test initiated', {
             userId: req.user.id,
             timestamp: new Date().toISOString()
         });
 
-        // Get user's VALR API credentials
-        const keysResult = await query(`
-            SELECT exchange_api_key, exchange_api_secret 
-            FROM user_api_keys 
-            WHERE user_id = $1 AND exchange = 'VALR'
-        `, [req.user.id]);
-
-        if (keysResult.rows.length === 0) {
-            throw new APIError('VALR API keys not found', 404, 'VALR_KEYS_NOT_FOUND');
+        // Validate VALR API credentials
+        if (!apiKey || !apiSecret) {
+            throw new APIError('VALR API credentials required', 400, 'VALR_CREDENTIALS_REQUIRED');
         }
 
-        const { exchange_api_key, exchange_api_secret } = keysResult.rows[0];
+        const exchange_api_key = apiKey;
+        const exchange_api_secret = apiSecret;
 
         // Test API connection by fetching balance
         const balanceData = await makeVALRRequest(
