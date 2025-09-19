@@ -30376,7 +30376,81 @@ ARB4ME Security Team`
             }
         }
         
-        // VALR Triangular Path Generator - excludes BTC pairs
+        // VALR Single-Asset Triangular Path Generator - Top 20 Liquid Assets
+        window.generateValrSingleAssetPaths = () => {
+            console.log('\n🪙 === GENERATING VALR SINGLE-ASSET TRIANGULAR PATHS (TOP 20) ===');
+
+            // Top 20 most liquid crypto assets on VALR (excluding ZAR/USDT bridges)
+            const top20Assets = [
+                'BTC', 'ETH', 'BNB', 'SOL', 'ADA', 'AVAX', 'DOT', 'MATIC',
+                'ATOM', 'LINK', 'UNI', 'AAVE', 'DOGE', 'SHIB', 'XRP',
+                'TRX', 'LTC', 'XLM', 'APT', 'OP'
+            ];
+
+            // Bridge currencies for connecting assets
+            const bridges = ['ZAR', 'USDT'];
+
+            console.log(`🎯 Top 20 target assets: ${top20Assets.join(', ')}`);
+            console.log(`🌉 Bridge currencies: ${bridges.join(', ')}`);
+
+            // Generate all single-asset triangular combinations
+            const singleAssetPaths = [];
+
+            // For each bridge currency, create triangular paths between any two target assets
+            bridges.forEach(bridge => {
+                for (let i = 0; i < top20Assets.length; i++) {
+                    for (let j = i + 1; j < top20Assets.length; j++) {
+                        const asset1 = top20Assets[i];
+                        const asset2 = top20Assets[j];
+
+                        // Path Type 1: Bridge → Asset1 → Asset2 → Bridge
+                        singleAssetPaths.push({
+                            path: `${bridge} → ${asset1} → ${asset2} → ${bridge}`,
+                            sequence: `${bridge} → ${asset1} → ${asset2} → ${bridge}`,
+                            step1: { from: bridge, to: asset1, description: `${bridge} → ${asset1}` },
+                            step2: { from: asset1, to: asset2, description: `${asset1} → ${asset2}` },
+                            step3: { from: asset2, to: bridge, description: `${asset2} → ${bridge}` },
+                            bridge: bridge,
+                            assets: [asset1, asset2],
+                            pathName: `${bridge} → ${asset1} → ${asset2} → ${bridge}`,
+                            type: 'single-asset-triangular'
+                        });
+
+                        // Path Type 2: Bridge → Asset2 → Asset1 → Bridge (reverse direction)
+                        singleAssetPaths.push({
+                            path: `${bridge} → ${asset2} → ${asset1} → ${bridge}`,
+                            sequence: `${bridge} → ${asset2} → ${asset1} → ${bridge}`,
+                            step1: { from: bridge, to: asset2, description: `${bridge} → ${asset2}` },
+                            step2: { from: asset2, to: asset1, description: `${asset2} → ${asset1}` },
+                            step3: { from: asset1, to: bridge, description: `${asset1} → ${bridge}` },
+                            bridge: bridge,
+                            assets: [asset2, asset1],
+                            pathName: `${bridge} → ${asset2} → ${asset1} → ${bridge}`,
+                            type: 'single-asset-triangular'
+                        });
+                    }
+                }
+            });
+
+            console.log(`🔺 Generated ${singleAssetPaths.length} single-asset triangular paths`);
+            console.log('\n📋 Path breakdown:');
+            console.log(`🌉 ZAR-based paths: ${singleAssetPaths.filter(p => p.bridge === 'ZAR').length}`);
+            console.log(`🌉 USDT-based paths: ${singleAssetPaths.filter(p => p.bridge === 'USDT').length}`);
+
+            console.log('\n📋 Example paths:');
+            singleAssetPaths.slice(0, 10).forEach((path, i) => {
+                console.log(`${i+1}. ${path.path}`);
+            });
+
+            console.log('\n🧮 Comparison:');
+            console.log(`💡 Current pair-based paths: 48`);
+            console.log(`🪙 New single-asset paths: ${singleAssetPaths.length}`);
+            console.log(`🚀 Total expansion: ${singleAssetPaths.length + 48} paths!`);
+
+            return singleAssetPaths;
+        };
+
+        // VALR Triangular Path Generator - excludes BTC pairs (ORIGINAL SYSTEM)
         window.generateValrTriangularPaths = () => {
             console.log('\n🔺 === GENERATING VALR TRIANGULAR PATHS (48 VALID PATHS) ===');
 
