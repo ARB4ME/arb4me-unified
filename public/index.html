@@ -26573,7 +26573,7 @@ ARB4ME Security Team`
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                                'Authorization': `Bearer ${localStorage.getItem('arb4me_jwt_token')}`
                             },
                             body: JSON.stringify({
                                 pathSet: currentSet.name,
@@ -26599,7 +26599,7 @@ ARB4ME Security Team`
                                     method: 'POST',
                                     headers: {
                                         'Content-Type': 'application/json',
-                                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                                        'Authorization': `Bearer ${localStorage.getItem('arb4me_jwt_token')}`
                                     },
                                     body: JSON.stringify({
                                         opportunity: opportunity,
@@ -26956,7 +26956,7 @@ ARB4ME Security Team`
                     const response = await fetch('/api/v1/trading/valr/triangular/recent-trades?limit=10', {
                         method: 'GET',
                         headers: {
-                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                            'Authorization': `Bearer ${localStorage.getItem('arb4me_jwt_token')}`
                         }
                     });
 
@@ -27105,7 +27105,7 @@ ARB4ME Security Team`
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                            'Authorization': `Bearer ${localStorage.getItem('arb4me_jwt_token')}`
                         }
                     });
 
@@ -27178,7 +27178,7 @@ ARB4ME Security Team`
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                            'Authorization': `Bearer ${localStorage.getItem('arb4me_jwt_token')}`
                         },
                         body: JSON.stringify({
                             paths: 'all' // Scan all available paths
