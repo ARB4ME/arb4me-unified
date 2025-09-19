@@ -27187,6 +27187,13 @@ ARB4ME Security Team`
                 }
             };
             
+            // Simple fallback for showActivityMessage if it doesn't exist
+            if (typeof showActivityMessage === 'undefined') {
+                window.showActivityMessage = function(message, type) {
+                    console.log(`[${type?.toUpperCase() || 'INFO'}] ${message}`);
+                };
+            }
+            
             // Manual VALR Triangular Scan
             window.scanValrTriangularPaths = async function() {
                 console.log('⚡ Starting VALR triangular path scan...');
