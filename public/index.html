@@ -27296,8 +27296,123 @@ ARB4ME Security Team`
                     return false;
                 }
             };
-            
-            // Live VALR Triangular Scan for SET_2_ALTS
+
+            // NEW: Individual set scanning functions for 12 sets of 4 paths
+            window.scanValrSet1Live = async function() {
+                return await scanSpecificValrSet('SET_1_ETH_FOCUS', 'ETH Focus (4 paths)');
+            };
+
+            window.scanValrSet2Live = async function() {
+                return await scanSpecificValrSet('SET_2_XRP_FOCUS', 'XRP Focus (4 paths)');
+            };
+
+            window.scanValrSet3Live = async function() {
+                return await scanSpecificValrSet('SET_3_SOL_FOCUS', 'SOL Focus (4 paths)');
+            };
+
+            window.scanValrSet4Live = async function() {
+                return await scanSpecificValrSet('SET_4_BNB_FOCUS', 'BNB Focus (4 paths)');
+            };
+
+            window.scanValrSet5Live = async function() {
+                return await scanSpecificValrSet('SET_5_SHIB_FOCUS', 'SHIB Focus (4 paths)');
+            };
+
+            window.scanValrSet6Live = async function() {
+                return await scanSpecificValrSet('SET_6_AVAX_FOCUS', 'AVAX Focus (4 paths)');
+            };
+
+            window.scanValrSet7Live = async function() {
+                return await scanSpecificValrSet('SET_7_DOGE_FOCUS', 'DOGE Focus (4 paths)');
+            };
+
+            window.scanValrSet8Live = async function() {
+                return await scanSpecificValrSet('SET_8_TRX_FOCUS', 'TRX Focus (4 paths)');
+            };
+
+            window.scanValrSet9Live = async function() {
+                return await scanSpecificValrSet('SET_9_LTC_FOCUS', 'LTC Focus (4 paths)');
+            };
+
+            window.scanValrSet10Live = async function() {
+                return await scanSpecificValrSet('SET_10_RLUSD_FOCUS', 'RLUSD Focus (4 paths)');
+            };
+
+            window.scanValrSet11Live = async function() {
+                return await scanSpecificValrSet('SET_11_LINK_FOCUS', 'LINK Focus (4 paths)');
+            };
+
+            window.scanValrSet12Live = async function() {
+                return await scanSpecificValrSet('SET_12_XLM_FOCUS', 'XLM Focus (4 paths)');
+            };
+
+            // Helper function for set scanning
+            async function scanSpecificValrSet(setName, displayName) {
+                console.log(`🔺 Starting VALR ${displayName} live scan...`);
+                showActivityMessage(`⚡ Scanning ${displayName} with live VALR data...`, 'info');
+
+                try {
+                    const valrData = state.exchanges?.valr;
+                    if (!valrData?.api?.key || !valrData?.api?.secret) {
+                        throw new Error('VALR API credentials not found. Please connect VALR first.');
+                    }
+
+                    console.log(`🔑 Using VALR API Key for ${setName}: ${valrData.api.key.substring(0, 8)}...`);
+
+                    const response = await fetch('/api/v1/trading/valr/triangular/scan', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('arb4me_jwt_token')}`
+                        },
+                        body: JSON.stringify({
+                            scanSet: setName,
+                            amount: 1000,
+                            apiKey: valrData.api.key,
+                            apiSecret: valrData.api.secret
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        const data = result.data;
+                        console.log(`✅ ${setName} scan successful:`, data);
+
+                        const totalOpportunities = data.opportunities.length;
+                        const profitableCount = data.opportunities.filter(op => op.profitable === true).length || 0;
+                        const bestOpportunity = data.bestOpportunity;
+
+                        let statusMessage = `✅ ${displayName}: ${totalOpportunities} paths analyzed, ${profitableCount} profitable`;
+                        if (bestOpportunity && bestOpportunity.profitable) {
+                            statusMessage += ` (Best: ${bestOpportunity.pathId} +${bestOpportunity.profitPercent}%)`;
+                        }
+                        showActivityMessage(statusMessage, profitableCount > 0 ? 'success' : 'info');
+
+                        console.log(`🔺 ${displayName} opportunities found:`);
+                        data.opportunities.forEach((opp, i) => {
+                            const symbol = opp.profitable ? '💰' : '❌';
+                            const profit = opp.netProfitPercent.toFixed(3);
+                            console.log(`  ${symbol} ${i + 1}. ${opp.pathId}: ${profit}% profit (${opp.sequence})`);
+                            if (opp.profitable) {
+                                console.log(`    📈 R1000 → R${opp.endAmount} = R+${opp.netProfit}`);
+                            } else {
+                                console.log(`    📉 R1000 → R${opp.endAmount} = R${opp.netProfit}`);
+                            }
+                        });
+
+                        return true;
+                    } else {
+                        throw new Error(result.error?.message || `${setName} scan failed`);
+                    }
+                } catch (error) {
+                    console.error(`❌ ${setName} scan failed:`, error);
+                    showActivityMessage(`❌ ${displayName} scan failed: ${error.message}`, 'error');
+                    return false;
+                }
+            }
+
+            // LEGACY: Keep old function names for compatibility (updated to use new sets)
             window.scanValrAltsLive = async function() {
                 console.log('🔺 Starting VALR SET_2_ALTS live scan...');
                 showActivityMessage('⚡ Scanning SET_2_ALTS paths with live VALR data...', 'info');
@@ -27317,7 +27432,7 @@ ARB4ME Security Team`
                             'Authorization': `Bearer ${localStorage.getItem('arb4me_jwt_token')}`
                         },
                         body: JSON.stringify({
-                            scanSet: 'SET_2_ALTS',
+                            scanSet: 'SET_2_XRP_FOCUS',
                             amount: 1000,
                             apiKey: valrData.api.key,
                             apiSecret: valrData.api.secret
