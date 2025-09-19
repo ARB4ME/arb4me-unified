@@ -27286,6 +27286,306 @@ ARB4ME Security Team`
                 }
             };
             
+            // Live VALR Triangular Scan for SET_2_ALTS
+            window.scanValrAltsLive = async function() {
+                console.log('🔺 Starting VALR SET_2_ALTS live scan...');
+                showActivityMessage('⚡ Scanning SET_2_ALTS paths with live VALR data...', 'info');
+                
+                try {
+                    const valrData = state.exchanges?.valr;
+                    if (!valrData?.api?.key || !valrData?.api?.secret) {
+                        throw new Error('VALR API credentials not found. Please connect VALR first.');
+                    }
+                    
+                    console.log(`🔑 Using VALR API Key for ALTS: ${valrData.api.key.substring(0, 8)}...`);
+                    
+                    const response = await fetch('/api/v1/trading/valr/triangular/scan', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('arb4me_jwt_token')}`
+                        },
+                        body: JSON.stringify({
+                            scanSet: 'SET_2_ALTS',
+                            amount: 1000,
+                            apiKey: valrData.api.key,
+                            apiSecret: valrData.api.secret
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        const data = result.data;
+                        console.log('✅ SET_2_ALTS scan successful:', data);
+                        
+                        const totalOpportunities = data.opportunities.length;
+                        const profitableCount = data.opportunities.filter(op => op.profitable === true).length || 0;
+                        const bestOpportunity = data.bestOpportunity;
+                        
+                        let statusMessage = `✅ SET_2_ALTS: ${totalOpportunities} paths analyzed, ${profitableCount} profitable`;
+                        if (bestOpportunity && bestOpportunity.profitable) {
+                            statusMessage += ` (Best: ${bestOpportunity.pathId} +${bestOpportunity.profitPercent}%)`;
+                        }
+                        showActivityMessage(statusMessage, profitableCount > 0 ? 'success' : 'info');
+                        
+                        console.log('🔺 SET_2_ALTS opportunities found:');
+                        data.opportunities.forEach((opp, i) => {
+                            const profitIcon = opp.profitable ? '✅' : '❌';
+                            console.log(`  ${profitIcon} ${i+1}. ${opp.pathId}: ${opp.netProfitPercent}% profit (${opp.sequence})`);
+                            if (opp.profitable) {
+                                console.log(`    💰 R${opp.startAmount} → R${opp.endAmount} = +R${opp.netProfit}`);
+                            } else {
+                                console.log(`    📉 R${opp.startAmount} → R${opp.endAmount} = ${opp.netProfit < 0 ? '' : '+'}R${opp.netProfit}`);
+                            }
+                        });
+                        
+                        return data;
+                    } else {
+                        throw new Error(result.error?.message || 'SET_2_ALTS scan failed');
+                    }
+                } catch (error) {
+                    console.error('❌ SET_2_ALTS scan failed:', error);
+                    showActivityMessage(`❌ SET_2_ALTS scan failed: ${error.message}`, 'error');
+                    return false;
+                }
+            };
+            
+            // Live VALR Triangular Scan for SET_3_LAYER1
+            window.scanValrLayer1Live = async function() {
+                console.log('🔺 Starting VALR SET_3_LAYER1 live scan...');
+                showActivityMessage('⚡ Scanning SET_3_LAYER1 paths with live VALR data...', 'info');
+                
+                try {
+                    const valrData = state.exchanges?.valr;
+                    if (!valrData?.api?.key || !valrData?.api?.secret) {
+                        throw new Error('VALR API credentials not found. Please connect VALR first.');
+                    }
+                    
+                    console.log(`🔑 Using VALR API Key for LAYER1: ${valrData.api.key.substring(0, 8)}...`);
+                    
+                    const response = await fetch('/api/v1/trading/valr/triangular/scan', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('arb4me_jwt_token')}`
+                        },
+                        body: JSON.stringify({
+                            scanSet: 'SET_3_LAYER1',
+                            amount: 1000,
+                            apiKey: valrData.api.key,
+                            apiSecret: valrData.api.secret
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        const data = result.data;
+                        console.log('✅ SET_3_LAYER1 scan successful:', data);
+                        
+                        const totalOpportunities = data.opportunities.length;
+                        const profitableCount = data.opportunities.filter(op => op.profitable === true).length || 0;
+                        const bestOpportunity = data.bestOpportunity;
+                        
+                        let statusMessage = `✅ SET_3_LAYER1: ${totalOpportunities} paths analyzed, ${profitableCount} profitable`;
+                        if (bestOpportunity && bestOpportunity.profitable) {
+                            statusMessage += ` (Best: ${bestOpportunity.pathId} +${bestOpportunity.profitPercent}%)`;
+                        }
+                        showActivityMessage(statusMessage, profitableCount > 0 ? 'success' : 'info');
+                        
+                        console.log('🔺 SET_3_LAYER1 opportunities found:');
+                        data.opportunities.forEach((opp, i) => {
+                            const profitIcon = opp.profitable ? '✅' : '❌';
+                            console.log(`  ${profitIcon} ${i+1}. ${opp.pathId}: ${opp.netProfitPercent}% profit (${opp.sequence})`);
+                            if (opp.profitable) {
+                                console.log(`    💰 R${opp.startAmount} → R${opp.endAmount} = +R${opp.netProfit}`);
+                            } else {
+                                console.log(`    📉 R${opp.startAmount} → R${opp.endAmount} = ${opp.netProfit < 0 ? '' : '+'}R${opp.netProfit}`);
+                            }
+                        });
+                        
+                        return data;
+                    } else {
+                        throw new Error(result.error?.message || 'SET_3_LAYER1 scan failed');
+                    }
+                } catch (error) {
+                    console.error('❌ SET_3_LAYER1 scan failed:', error);
+                    showActivityMessage(`❌ SET_3_LAYER1 scan failed: ${error.message}`, 'error');
+                    return false;
+                }
+            };
+            
+            // Enhanced scan function for all sets with live data
+            window.scanAllValrSetsLive = async function() {
+                console.log('🔺 Starting comprehensive live scan of all VALR path sets...');
+                showActivityMessage('⚡ Scanning ALL path sets with live VALR data...', 'info');
+                
+                const results = {
+                    SET_1_MAJORS: null,
+                    SET_2_ALTS: null,
+                    SET_3_LAYER1: null,
+                    summary: {
+                        totalPaths: 0,
+                        totalProfitable: 0,
+                        bestOpportunity: null
+                    }
+                };
+                
+                try {
+                    // Scan SET_1_MAJORS
+                    console.log('🔺 Scanning SET_1_MAJORS...');
+                    results.SET_1_MAJORS = await window.scanValrTriangularPaths();
+                    
+                    // Scan SET_2_ALTS
+                    console.log('🔺 Scanning SET_2_ALTS...');
+                    results.SET_2_ALTS = await window.scanValrAltsLive();
+                    
+                    // Scan SET_3_LAYER1
+                    console.log('🔺 Scanning SET_3_LAYER1...');
+                    results.SET_3_LAYER1 = await window.scanValrLayer1Live();
+                    
+                    // Calculate summary
+                    const allOpportunities = [];
+                    Object.keys(results).forEach(setName => {
+                        if (results[setName] && results[setName].opportunities) {
+                            results.summary.totalPaths += results[setName].opportunities.length;
+                            results.summary.totalProfitable += results[setName].opportunities.filter(op => op.profitable).length;
+                            allOpportunities.push(...results[setName].opportunities);
+                        }
+                    });
+                    
+                    // Find best opportunity across all sets
+                    const profitableOpps = allOpportunities.filter(op => op.profitable);
+                    if (profitableOpps.length > 0) {
+                        results.summary.bestOpportunity = profitableOpps.reduce((best, current) => 
+                            current.netProfitPercent > best.netProfitPercent ? current : best
+                        );
+                    }
+                    
+                    console.log('🎯 === COMPREHENSIVE SCAN RESULTS ===');
+                    console.log(`📊 Total paths scanned: ${results.summary.totalPaths}`);
+                    console.log(`💰 Total profitable: ${results.summary.totalProfitable}`);
+                    if (results.summary.bestOpportunity) {
+                        console.log(`🏆 Best opportunity: ${results.summary.bestOpportunity.pathId} (${results.summary.bestOpportunity.netProfitPercent}%)`);
+                    }
+                    
+                    showActivityMessage(`✅ Complete scan: ${results.summary.totalPaths} paths, ${results.summary.totalProfitable} profitable`, 
+                                     results.summary.totalProfitable > 0 ? 'success' : 'info');
+                    
+                    return results;
+                    
+                } catch (error) {
+                    console.error('❌ Comprehensive scan failed:', error);
+                    showActivityMessage(`❌ Comprehensive scan failed: ${error.message}`, 'error');
+                    return results;
+                }
+            };
+            
+            // Scan all 32 paths with live VALR data
+            window.scanAll32PathsLive = async function() {
+                console.log('🎯 Starting comprehensive scan of all 32 triangular paths...');
+                showActivityMessage('⚡ Scanning ALL 32 paths with live VALR data...', 'info');
+                
+                try {
+                    const valrData = state.exchanges?.valr;
+                    if (!valrData?.api?.key || !valrData?.api?.secret) {
+                        throw new Error('VALR API credentials not found. Please connect VALR first.');
+                    }
+                    
+                    console.log(`🔑 Using VALR API Key for ALL PATHS: ${valrData.api.key.substring(0, 8)}...`);
+                    
+                    const response = await fetch('/api/v1/trading/valr/triangular/scan', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('arb4me_jwt_token')}`
+                        },
+                        body: JSON.stringify({
+                            scanSet: 'ALL',
+                            amount: 1000,
+                            apiKey: valrData.api.key,
+                            apiSecret: valrData.api.secret
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        const data = result.data;
+                        console.log('✅ 32-path scan successful:', data);
+                        
+                        const totalOpportunities = data.opportunities.length;
+                        const profitableCount = data.opportunities.filter(op => op.profitable === true).length || 0;
+                        const bestOpportunity = data.bestOpportunity;
+                        
+                        let statusMessage = `✅ ALL 32 PATHS: ${totalOpportunities} paths analyzed, ${profitableCount} profitable`;
+                        if (bestOpportunity && bestOpportunity.profitable) {
+                            statusMessage += ` (Best: ${bestOpportunity.pathId} +${bestOpportunity.profitPercent}%)`;
+                        }
+                        showActivityMessage(statusMessage, profitableCount > 0 ? 'success' : 'info');
+                        
+                        console.log('🎯 === ALL 32 PATHS SCAN RESULTS ===');
+                        console.log(`📊 Total paths scanned: ${totalOpportunities}`);
+                        console.log(`💰 Total profitable: ${profitableCount}`);
+                        console.log(`📈 Success rate: ${(profitableCount / totalOpportunities * 100).toFixed(2)}%`);
+                        
+                        // Group results by path set for better organization
+                        const pathsBySet = {
+                            'SET_1_MAJORS': [],
+                            'SET_2_ALTS': [],
+                            'SET_3_LAYER1': [],
+                            'SET_4_REVERSE_MAJORS': [],
+                            'SET_5_REVERSE_ALTS': [],
+                            'SET_6_REVERSE_LAYER1': [],
+                            'SET_7_BTC_PATHS': [],
+                            'SET_8_ADDITIONAL': []
+                        };
+                        
+                        data.opportunities.forEach((opp, i) => {
+                            const profitIcon = opp.profitable ? '✅' : '❌';
+                            console.log(`  ${profitIcon} ${i+1}. ${opp.pathId}: ${opp.netProfitPercent}% profit (${opp.sequence})`);
+                            if (opp.profitable) {
+                                console.log(`    💰 R${opp.startAmount} → R${opp.endAmount} = +R${opp.netProfit}`);
+                            } else {
+                                console.log(`    📉 R${opp.startAmount} → R${opp.endAmount} = ${opp.netProfit < 0 ? '' : '+'}R${opp.netProfit}`);
+                            }
+                            
+                            // Categorize by path set (rough grouping based on path ID)
+                            if (opp.pathId.includes('LINK') || opp.pathId.includes('ETH')) {
+                                pathsBySet.SET_1_MAJORS.push(opp);
+                            } else if (opp.pathId.includes('ADA') || opp.pathId.includes('DOT') || opp.pathId.includes('MATIC') || opp.pathId.includes('SOL') || opp.pathId.includes('AVAX') || opp.pathId.includes('ATOM')) {
+                                pathsBySet.SET_2_ALTS.push(opp);
+                            } else if (opp.pathId.includes('ALGO') || opp.pathId.includes('XRP') || opp.pathId.includes('LTC') || opp.pathId.includes('BCH')) {
+                                pathsBySet.SET_3_LAYER1.push(opp);
+                            } else if (opp.pathId.includes('BTC')) {
+                                pathsBySet.SET_7_BTC_PATHS.push(opp);
+                            } else if (opp.pathId.includes('NEAR') || opp.pathId.includes('SAND')) {
+                                pathsBySet.SET_8_ADDITIONAL.push(opp);
+                            }
+                        });
+                        
+                        // Log summary by path set
+                        console.log('\n📊 Results by path set:');
+                        Object.keys(pathsBySet).forEach(setName => {
+                            const setOpps = pathsBySet[setName];
+                            const setProfitable = setOpps.filter(o => o.profitable).length;
+                            if (setOpps.length > 0) {
+                                console.log(`  ${setName}: ${setOpps.length} paths, ${setProfitable} profitable`);
+                            }
+                        });
+                        
+                        return data;
+                    } else {
+                        throw new Error(result.error?.message || 'All 32 paths scan failed');
+                    }
+                } catch (error) {
+                    console.error('❌ 32-path scan failed:', error);
+                    showActivityMessage(`❌ 32-path scan failed: ${error.message}`, 'error');
+                    return false;
+                }
+            };
+            
             // View VALR Path Details
             window.viewValrPathDetails = async function() {
                 console.log('📊 Viewing VALR path details...');
