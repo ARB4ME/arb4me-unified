@@ -23058,44 +23058,10 @@ ARB4ME Security Team`
                                     continue;
                                 }
 
-                                // VALR triangular arbitrage scanning with NEW 12-set structure
-                                console.log('🔺 Running VALR triangular scan with 12-set structure (VALR toggle ON)...');
-
-                                // Scan enabled sets only
-                                const allOpportunities = [];
-                                for (let i = 1; i <= 12; i++) {
-                                    if (state.pathSets && state.pathSets[`set${i}`]) {
-                                        const setName = `SET_${i}_${['ETH', 'XRP', 'SOL', 'BNB', 'SHIB', 'AVAX', 'DOGE', 'TRX', 'LTC', 'RLUSD', 'LINK', 'XLM'][i-1]}_FOCUS`;
-                                        console.log(`📊 Scanning ${setName}...`);
-
-                                        try {
-                                            const response = await fetch('/api/v1/trading/valr/triangular/scan', {
-                                                method: 'POST',
-                                                headers: {
-                                                    'Content-Type': 'application/json',
-                                                    'Authorization': `Bearer ${localStorage.getItem('arb4me_jwt_token')}`
-                                                },
-                                                body: JSON.stringify({
-                                                    scanSet: setName,
-                                                    amount: 100,
-                                                    apiKey: state.exchanges?.valr?.api?.key,
-                                                    apiSecret: state.exchanges?.valr?.api?.secret
-                                                })
-                                            });
-
-                                            if (response.ok) {
-                                                const result = await response.json();
-                                                if (result.success && result.data?.opportunities) {
-                                                    allOpportunities.push(...result.data.opportunities);
-                                                }
-                                            }
-                                        } catch (error) {
-                                            console.error(`Error scanning ${setName}:`, error);
-                                        }
-                                    }
-                                }
-
-                                const opportunities = allOpportunities;
+                                // VALR triangular arbitrage scanning
+                                // For now, use the old working function until new backend is fixed
+                                console.log('🔺 Running VALR triangular scan...');
+                                const opportunities = await VALRTriangular.scanOpportunities();
                                 scanResults.totalOpportunities.push(...opportunities);
 
                                 // Track best opportunity
