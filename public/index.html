@@ -29835,17 +29835,82 @@ ARB4ME Security Team`
                 const value = localStorage.getItem(key);
                 console.log(`${key}: ${value ? value.substring(0, 20) + '...' : 'null'}`);
             });
-            
-            // Check for common variations
-            const possibleKeys = [
-                'valr_api_key', 'valr_apikey', 'valrApiKey', 'VALR_API_KEY',
-                'valr_api_secret', 'valr_apisecret', 'valrApiSecret', 'VALR_API_SECRET'
-            ];
-            console.log('\nChecking common key names:');
-            possibleKeys.forEach(key => {
-                const value = localStorage.getItem(key);
-                if (value) console.log(`✅ Found: ${key}`);
-            });
+        };
+
+        // Helper function to explore VALR individual assets for single-asset triangular arbitrage
+        window.exploreValrAssets = async () => {
+            console.log('\n🪙 === EXPLORING VALR INDIVIDUAL ASSETS ===');
+
+            try {
+                // Check if we have VALR connection
+                if (!state.exchanges?.valr?.connected) {
+                    console.log('❌ VALR not connected. Please connect VALR first.');
+                    return;
+                }
+
+                // Get current balances (shows individual assets)
+                console.log('\n📊 Current VALR Asset Balances:');
+                const balances = state.balances?.valr || {};
+                Object.entries(balances).forEach(([asset, balance]) => {
+                    if (balance > 0) {
+                        console.log(`💰 ${asset}: ${balance}`);
+                    }
+                });
+
+                // List our known valid assets for triangular opportunities
+                console.log('\n🎯 Valid Assets for Single-Asset Triangular Arbitrage:');
+                const validAssets = [
+                    'ZAR', 'USDT', 'ETH', 'XRP', 'SOL', 'BNB', 'SHIB',
+                    'AVAX', 'DOGE', 'TRX', 'LTC', 'RLUSD', 'LINK', 'XLM'
+                ];
+
+                validAssets.forEach(asset => {
+                    const balance = balances[asset] || 0;
+                    const hasBalance = balance > 0;
+                    console.log(`${hasBalance ? '✅' : '⚪'} ${asset}: ${balance || '0.00'}`);
+                });
+
+                // Calculate potential triangular combinations
+                console.log('\n🔺 Potential Single-Asset Triangular Combinations:');
+                console.log('Bridge currencies: ZAR, USDT');
+                console.log('Target assets: ETH, XRP, SOL, BNB, SHIB, AVAX, DOGE, TRX, LTC, RLUSD, LINK, XLM');
+
+                // Example combinations
+                const examples = [
+                    'ZAR → ETH → XRP → ZAR',
+                    'USDT → SOL → BNB → USDT',
+                    'ZAR → LINK → DOGE → ZAR',
+                    'USDT → AVAX → TRX → USDT'
+                ];
+
+                console.log('\n📋 Example Triangular Paths:');
+                examples.forEach((example, i) => {
+                    console.log(`${i+1}. ${example}`);
+                });
+
+                // Theoretical calculation
+                const bridges = 2; // ZAR, USDT
+                const targets = 12; // ETH, XRP, SOL, etc.
+                const totalAssets = bridges + targets;
+                const triangularCombinations = (totalAssets * (totalAssets - 1) * (totalAssets - 2)) / 6;
+
+                console.log(`\n🧮 Theoretical Maximum Combinations:`);
+                console.log(`📊 Total assets: ${totalAssets}`);
+                console.log(`🔺 Possible triangular paths: ${triangularCombinations}`);
+                console.log(`💡 Current pair-based paths: 48`);
+                console.log(`🚀 Potential expansion: ${triangularCombinations - 48} additional paths!`);
+
+                return {
+                    balances: balances,
+                    validAssets: validAssets,
+                    examples: examples,
+                    maxCombinations: triangularCombinations
+                };
+
+            } catch (error) {
+                console.error('❌ Error exploring VALR assets:', error);
+                return null;
+            }
         };
 
         // Test basic VALR authentication first
