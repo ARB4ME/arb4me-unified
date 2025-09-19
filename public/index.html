@@ -29837,9 +29837,9 @@ ARB4ME Security Team`
             });
         };
 
-        // Helper function to explore VALR individual assets for single-asset triangular arbitrage
-        window.exploreValrAssets = async () => {
-            console.log('\n🪙 === EXPLORING VALR INDIVIDUAL ASSETS ===');
+        // Helper function to discover ALL VALR individual assets available
+        window.discoverAllValrAssets = async () => {
+            console.log('\n🪙 === DISCOVERING ALL VALR INDIVIDUAL ASSETS ===');
 
             try {
                 // Check if we have VALR connection
@@ -29848,67 +29848,77 @@ ARB4ME Security Team`
                     return;
                 }
 
-                // Get current balances (shows individual assets)
-                console.log('\n📊 Current VALR Asset Balances:');
+                // Get ALL balances (including zero balances to see all available assets)
+                console.log('\n📊 ALL VALR Assets (including zero balances):');
                 const balances = state.balances?.valr || {};
-                Object.entries(balances).forEach(([asset, balance]) => {
-                    if (balance > 0) {
-                        console.log(`💰 ${asset}: ${balance}`);
-                    }
-                });
 
-                // List our known valid assets for triangular opportunities
-                console.log('\n🎯 Valid Assets for Single-Asset Triangular Arbitrage:');
-                const validAssets = [
-                    'ZAR', 'USDT', 'ETH', 'XRP', 'SOL', 'BNB', 'SHIB',
-                    'AVAX', 'DOGE', 'TRX', 'LTC', 'RLUSD', 'LINK', 'XLM'
-                ];
+                const allAssets = Object.keys(balances).sort();
+                console.log(`🎯 Total individual assets discovered: ${allAssets.length}`);
 
-                validAssets.forEach(asset => {
+                // Categorize assets
+                const bridges = ['ZAR', 'USDT'];
+                const targets = allAssets.filter(asset => !bridges.includes(asset));
+
+                console.log('\n🌉 Bridge Currencies (for triangular arbitrage):');
+                bridges.forEach(asset => {
                     const balance = balances[asset] || 0;
                     const hasBalance = balance > 0;
-                    console.log(`${hasBalance ? '✅' : '⚪'} ${asset}: ${balance || '0.00'}`);
+                    console.log(`${hasBalance ? '💰' : '⚪'} ${asset}: ${balance || '0.00'}`);
                 });
 
-                // Calculate potential triangular combinations
-                console.log('\n🔺 Potential Single-Asset Triangular Combinations:');
-                console.log('Bridge currencies: ZAR, USDT');
-                console.log('Target assets: ETH, XRP, SOL, BNB, SHIB, AVAX, DOGE, TRX, LTC, RLUSD, LINK, XLM');
-
-                // Example combinations
-                const examples = [
-                    'ZAR → ETH → XRP → ZAR',
-                    'USDT → SOL → BNB → USDT',
-                    'ZAR → LINK → DOGE → ZAR',
-                    'USDT → AVAX → TRX → USDT'
-                ];
-
-                console.log('\n📋 Example Triangular Paths:');
-                examples.forEach((example, i) => {
-                    console.log(`${i+1}. ${example}`);
+                console.log('\n🎯 Target Assets (for triangular paths):');
+                targets.forEach(asset => {
+                    const balance = balances[asset] || 0;
+                    const hasBalance = balance > 0;
+                    console.log(`${hasBalance ? '💰' : '⚪'} ${asset}: ${balance || '0.00'}`);
                 });
 
-                // Theoretical calculation
-                const bridges = 2; // ZAR, USDT
-                const targets = 12; // ETH, XRP, SOL, etc.
-                const totalAssets = bridges + targets;
+                // Calculate triangular combinations with discovered assets
+                console.log('\n🔺 Single-Asset Triangular Arbitrage Potential:');
+                console.log(`🌉 Bridge currencies: ${bridges.length} (${bridges.join(', ')})`);
+                console.log(`🎯 Target assets: ${targets.length}`);
+                console.log('📋 Target assets list:', targets.join(', '));
+
+                // Theoretical triangular paths calculation
+                const totalAssets = allAssets.length;
                 const triangularCombinations = (totalAssets * (totalAssets - 1) * (totalAssets - 2)) / 6;
 
-                console.log(`\n🧮 Theoretical Maximum Combinations:`);
-                console.log(`📊 Total assets: ${totalAssets}`);
-                console.log(`🔺 Possible triangular paths: ${triangularCombinations}`);
+                console.log(`\n🧮 Triangular Arbitrage Math:`);
+                console.log(`📊 Total individual assets: ${totalAssets}`);
+                console.log(`🔺 Theoretical triangular combinations: ${triangularCombinations}`);
                 console.log(`💡 Current pair-based paths: 48`);
-                console.log(`🚀 Potential expansion: ${triangularCombinations - 48} additional paths!`);
+                console.log(`🚀 Potential single-asset expansion: ${triangularCombinations - 48} additional paths!`);
+
+                // Show practical examples with ZAR/USDT bridges
+                console.log('\n📋 Example Single-Asset Triangular Paths:');
+                const examplePaths = [];
+
+                // Take first few target assets for examples
+                const sampleTargets = targets.slice(0, 6);
+                for (let i = 0; i < sampleTargets.length - 1; i += 2) {
+                    if (sampleTargets[i] && sampleTargets[i + 1]) {
+                        examplePaths.push(`ZAR → ${sampleTargets[i]} → ${sampleTargets[i + 1]} → ZAR`);
+                        examplePaths.push(`USDT → ${sampleTargets[i + 1]} → ${sampleTargets[i]} → USDT`);
+                    }
+                }
+
+                examplePaths.forEach((path, i) => {
+                    console.log(`${i + 1}. ${path}`);
+                });
+
+                console.log('\n💡 Key Insight: Each target asset can form triangular paths with every other asset using ZAR/USDT as bridges!');
 
                 return {
-                    balances: balances,
-                    validAssets: validAssets,
-                    examples: examples,
-                    maxCombinations: triangularCombinations
+                    allAssets: allAssets,
+                    bridges: bridges,
+                    targets: targets,
+                    totalAssets: totalAssets,
+                    triangularCombinations: triangularCombinations,
+                    balances: balances
                 };
 
             } catch (error) {
-                console.error('❌ Error exploring VALR assets:', error);
+                console.error('❌ Error discovering VALR assets:', error);
                 return null;
             }
         };
