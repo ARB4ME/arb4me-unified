@@ -26963,6 +26963,15 @@ ARB4ME Security Team`
             // Fetch and display recent triangular trades
             async function updateRecentTradesFeed() {
                 try {
+                    // Only fetch trades if conditions are met
+                    const isTriangularTabActive = document.getElementById('triangularTab')?.style.display !== 'none';
+                    const isValrConnected = state.exchanges?.valr?.connected;
+                    
+                    if (!isTriangularTabActive || !isValrConnected) {
+                        console.log('⏸️ Skipping recent trades fetch - triangular tab not active or VALR not connected');
+                        return;
+                    }
+                    
                     const response = await fetch('/api/v1/trading/valr/triangular/recent-trades?limit=10', {
                         method: 'GET',
                         headers: {
@@ -27071,10 +27080,10 @@ ARB4ME Security Team`
                 setTimeout(updateRecentTradesFeed, 1000);
             }
 
-            // Auto-refresh recent trades every 30 seconds
-            setInterval(updateRecentTradesFeed, 30000);
+            // Auto-refresh recent trades every 30 seconds (only when appropriate)
+            let recentTradesInterval = setInterval(updateRecentTradesFeed, 30000);
 
-            // Load recent trades on page load
+            // Load recent trades after a delay (only when appropriate)
             setTimeout(updateRecentTradesFeed, 2000);
 
             // Listen for trade completion events
@@ -27093,6 +27102,7 @@ ARB4ME Security Team`
             window.resetTriangularStats = resetTriangularStats;
             window.updateRecentTradesFeed = updateRecentTradesFeed;
             window.addNewTradeToFeed = addNewTradeToFeed;
+            window.recentTradesInterval = recentTradesInterval;
             window.getTriangularTradingStatus = () => ({
                 running: triangularTradingInterval !== null,
                 scanning: isScanning,
