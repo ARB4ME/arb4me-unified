@@ -26789,7 +26789,49 @@ ARB4ME Security Team`
                     console.log('🔺 VALR triangular state restored: ENABLED');
                 }
             }
-            
+
+            // Path Set Checkboxes Persistence
+            // Initialize and persist all 12 path set checkboxes
+            for (let i = 1; i <= 12; i++) {
+                const checkboxId = `valrSet${i}Enabled`;
+                const checkbox = document.getElementById(checkboxId);
+
+                if (checkbox) {
+                    // Load saved state from localStorage
+                    const savedState = localStorage.getItem(checkboxId);
+                    if (savedState !== null) {
+                        checkbox.checked = savedState === 'true';
+                    } else {
+                        // Default state: first 4 sets enabled, rest disabled
+                        checkbox.checked = i <= 4;
+                        localStorage.setItem(checkboxId, checkbox.checked.toString());
+                    }
+
+                    // Add change listener to save state
+                    checkbox.addEventListener('change', function() {
+                        localStorage.setItem(checkboxId, this.checked.toString());
+                        console.log(`📊 Path Set ${i} ${this.checked ? 'enabled' : 'disabled'}`);
+
+                        // Store in state for scanning logic
+                        if (!state.pathSets) state.pathSets = {};
+                        state.pathSets[`set${i}`] = this.checked;
+
+                        // Show feedback
+                        const setNames = ['ETH', 'XRP', 'SOL', 'BNB', 'SHIB', 'AVAX', 'DOGE', 'TRX', 'LTC', 'RLUSD', 'LINK', 'XLM'];
+                        showActivityMessage(
+                            `${this.checked ? '✅' : '⏸️'} ${setNames[i-1]} Focus paths ${this.checked ? 'enabled' : 'disabled'}`,
+                            this.checked ? 'success' : 'warning'
+                        );
+                    });
+
+                    // Initialize state
+                    if (!state.pathSets) state.pathSets = {};
+                    state.pathSets[`set${i}`] = checkbox.checked;
+                }
+            }
+
+            console.log('📊 Path set checkboxes initialized with persistence');
+
             // ============================================
             // REAL-TIME TRIANGULAR STATS ENGINE
             // ============================================
