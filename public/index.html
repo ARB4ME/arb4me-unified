@@ -30104,73 +30104,75 @@ ARB4ME Security Team`
         
         // VALR Triangular Path Generator - excludes BTC pairs
         window.generateValrTriangularPaths = () => {
-            console.log('\n🔺 === GENERATING VALR TRIANGULAR PATHS (NO BTC) ===');
-            
-            // VALR pairs that work (excluding all BTC pairs)
-            const usdtPairs = [
-                'LINKUSDT', 'ETHUSDT', 'ADAUSDT', 'DOTUSDT', 'MATICUSDT', 
-                'SOLUSDT', 'AVAXUSDT', 'ATOMUSDT', 'ALGOUSDT', 'XLMUSDT',
-                'VETUSDT', 'FTMUSDT', 'MANAUSDT', 'SANDUSDT', 'CHZUSDT',
-                'ENJUSDT', 'BATUSDT', 'ZRXUSDT', 'COMPUSDT', 'MKRUSDT',
-                'AAVEUSDT', 'SNXUSDT', 'CRVUSDT', 'UNIUSDT', 'SUSHIUSDT',
-                'YFIUSDT', 'RENUSDT', 'KNCUSDT', 'STORJUSDT', 'GNOUSDT'
+            console.log('\n🔺 === GENERATING VALR TRIANGULAR PATHS (48 VALID PATHS) ===');
+
+            // ONLY VALID VALR pairs based on your actual ZAR pairs list
+            // These are the coins that have both ZAR and USDT pairs on VALR
+            const validAssets = [
+                'ETH', 'XRP', 'SOL', 'BNB', 'SHIB', 'AVAX',
+                'DOGE', 'TRX', 'LTC', 'RLUSD', 'LINK', 'XLM'
             ];
-            
-            const zarPairs = [
-                'LINKZAR', 'ETHZAR', 'ADAZAR', 'DOTZAR', 'MATICZAR',
-                'SOLZAR', 'AVAXZAR', 'ATOMZAR', 'ALGOZAR', 'XLMZAR',
-                'VETZAR', 'FTMZAR', 'MANAZAR', 'SANDZAR', 'CHZZAR',
-                'ENJOZAR', 'BATZAR'
-            ];
-            
-            // Bridge pair
-            const bridgePair = 'USDTZAR';
-            
-            // Generate triangular paths: ZAR → Asset → USDT → ZAR
+
+            // Generate all 48 triangular paths (4 types for each of 12 assets)
             const triangularPaths = [];
-            
-            // Find assets that have both ZAR and USDT pairs
-            zarPairs.forEach(zarPair => {
-                const asset = zarPair.replace('ZAR', '');
+
+            validAssets.forEach(asset => {
+                const zarPair = asset + 'ZAR';
                 const usdtPair = asset + 'USDT';
-                
-                if (usdtPairs.includes(usdtPair)) {
-                    triangularPaths.push({
-                        path: `ZAR → ${asset} → USDT → ZAR`,
-                        step1: { pair: zarPair, side: 'buy', description: `ZAR → ${asset}` },
-                        step2: { pair: usdtPair, side: 'sell', description: `${asset} → USDT` },
-                        step3: { pair: bridgePair, side: 'sell', description: 'USDT → ZAR' },
-                        asset: asset
-                    });
-                }
+
+                // Type 1: ZAR → Asset → USDT → ZAR
+                triangularPaths.push({
+                    path: `ZAR → ${asset} → USDT → ZAR`,
+                    step1: { pair: zarPair, side: 'buy', description: `ZAR → ${asset}` },
+                    step2: { pair: usdtPair, side: 'sell', description: `${asset} → USDT` },
+                    step3: { pair: 'USDTZAR', side: 'sell', description: 'USDT → ZAR' },
+                    asset: asset,
+                    pathName: `ZAR → ${asset} → USDT → ZAR` // Add for compatibility
+                });
+
+                // Type 2: ZAR → USDT → Asset → ZAR
+                triangularPaths.push({
+                    path: `ZAR → USDT → ${asset} → ZAR`,
+                    step1: { pair: 'USDTZAR', side: 'buy', description: 'ZAR → USDT' },
+                    step2: { pair: usdtPair, side: 'buy', description: `USDT → ${asset}` },
+                    step3: { pair: zarPair, side: 'sell', description: `${asset} → ZAR` },
+                    asset: asset,
+                    pathName: `ZAR → USDT → ${asset} → ZAR`
+                });
+
+                // Type 3: USDT → Asset → ZAR → USDT
+                triangularPaths.push({
+                    path: `USDT → ${asset} → ZAR → USDT`,
+                    step1: { pair: usdtPair, side: 'buy', description: `USDT → ${asset}` },
+                    step2: { pair: zarPair, side: 'sell', description: `${asset} → ZAR` },
+                    step3: { pair: 'USDTZAR', side: 'buy', description: 'ZAR → USDT' },
+                    asset: asset,
+                    pathName: `USDT → ${asset} → ZAR → USDT`
+                });
+
+                // Type 4: USDT → ZAR → Asset → USDT
+                triangularPaths.push({
+                    path: `USDT → ZAR → ${asset} → USDT`,
+                    step1: { pair: 'USDTZAR', side: 'sell', description: 'USDT → ZAR' },
+                    step2: { pair: zarPair, side: 'buy', description: `ZAR → ${asset}` },
+                    step3: { pair: usdtPair, side: 'sell', description: `${asset} → USDT` },
+                    asset: asset,
+                    pathName: `USDT → ZAR → ${asset} → USDT`
+                });
             });
-            
-            // Generate reverse paths: ZAR → USDT → Asset → ZAR  
-            zarPairs.forEach(zarPair => {
-                const asset = zarPair.replace('ZAR', '');
-                const usdtPair = asset + 'USDT';
-                
-                if (usdtPairs.includes(usdtPair)) {
-                    triangularPaths.push({
-                        path: `ZAR → USDT → ${asset} → ZAR`,
-                        step1: { pair: bridgePair, side: 'buy', description: 'ZAR → USDT' },
-                        step2: { pair: usdtPair, side: 'buy', description: `USDT → ${asset}` },
-                        step3: { pair: zarPair, side: 'sell', description: `${asset} → ZAR` },
-                        asset: asset
-                    });
-                }
+
+            console.log(`🎯 Found ${triangularPaths.length} triangular arbitrage paths (12 assets × 4 path types)`);
+            console.log('\n📋 Available paths by asset:');
+
+            // Group by asset for better display
+            validAssets.forEach(asset => {
+                const assetPaths = triangularPaths.filter(p => p.asset === asset);
+                console.log(`\n${asset} (${assetPaths.length} paths):`);
+                assetPaths.forEach((path, i) => {
+                    console.log(`  ${i+1}. ${path.path}`);
+                });
             });
-            
-            console.log(`🎯 Found ${triangularPaths.length} triangular arbitrage paths (no BTC)`);
-            console.log('\n📋 Available paths:');
-            triangularPaths.forEach((path, i) => {
-                console.log(`${i+1}. ${path.path}`);
-                console.log(`   Step 1: ${path.step1.description} (${path.step1.pair} ${path.step1.side})`);
-                console.log(`   Step 2: ${path.step2.description} (${path.step2.pair} ${path.step2.side})`);
-                console.log(`   Step 3: ${path.step3.description} (${path.step3.pair} ${path.step3.side})`);
-                console.log('');
-            });
-            
+
             return triangularPaths;
         };
 
