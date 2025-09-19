@@ -23052,11 +23052,17 @@ ARB4ME Security Team`
                             }
                             
                             if (exchange === 'valr') {
+                                // Check if VALR-specific triangular is enabled
+                                if (!state.exchanges?.valr?.triangularEnabled) {
+                                    console.log('⏸️ VALR triangular scanning skipped (VALR toggle OFF)');
+                                    continue;
+                                }
+
                                 // VALR triangular arbitrage scanning
-                                console.log('🔺 Running VALR triangular scan...');
+                                console.log('🔺 Running VALR triangular scan (VALR toggle ON)...');
                                 const opportunities = await VALRTriangular.scanOpportunities();
                                 scanResults.totalOpportunities.push(...opportunities);
-                                
+
                                 // Track best opportunity
                                 opportunities.forEach(opp => {
                                     if (!scanResults.bestOpportunity || opp.netProfitPercent > scanResults.bestOpportunity.netProfitPercent) {
