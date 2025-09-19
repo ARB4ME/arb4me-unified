@@ -30509,7 +30509,21 @@ ARB4ME Security Team`
                 });
             });
 
-            console.log(`🎯 Found ${triangularPaths.length} triangular arbitrage paths (12 assets × 4 path types)`);
+            // Add 1 single-asset test path: ZAR → BTC → ETH → ZAR
+            console.log('\n🧪 Adding 1 single-asset test path...');
+            triangularPaths.push({
+                path: 'ZAR → BTC → ETH → ZAR',
+                step1: { pair: 'BTC', side: 'buy', description: 'ZAR → BTC' },
+                step2: { pair: 'ETH', side: 'buy', description: 'BTC → ETH' },
+                step3: { pair: 'ZAR', side: 'sell', description: 'ETH → ZAR' },
+                asset: 'BTC-ETH',
+                pathName: 'ZAR → BTC → ETH → ZAR',
+                type: 'single-asset-triangular',
+                bridge: 'ZAR',
+                assets: ['BTC', 'ETH']
+            });
+
+            console.log(`🎯 Found ${triangularPaths.length} triangular arbitrage paths (48 pair-based + 1 single-asset)`);
             console.log('\n📋 Available paths by asset:');
 
             // Group by asset for better display
@@ -30520,6 +30534,15 @@ ARB4ME Security Team`
                     console.log(`  ${i+1}. ${path.path}`);
                 });
             });
+
+            // Show the new single-asset path
+            const singleAssetPaths = triangularPaths.filter(p => p.type === 'single-asset-triangular');
+            if (singleAssetPaths.length > 0) {
+                console.log(`\n🧪 Single-Asset Test Paths (${singleAssetPaths.length}):`);
+                singleAssetPaths.forEach((path, i) => {
+                    console.log(`  ${i+1}. ${path.path} (${path.type})`);
+                });
+            }
 
             return triangularPaths;
         };
