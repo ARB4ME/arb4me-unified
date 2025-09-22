@@ -12552,10 +12552,10 @@ router.post('/valr/triangular/scan', authenticatedRateLimit, authenticateUser, a
                 { id: 'USDT_ZAR_DOGE_USDT', pairs: ['USDTZAR', 'DOGEZAR', 'DOGEUSDT'], sequence: 'USDT → ZAR → DOGE → USDT', steps: [{ pair: 'USDTZAR', side: 'sell' }, { pair: 'DOGEZAR', side: 'buy' }, { pair: 'DOGEUSDT', side: 'sell' }] }
             ],
             SET_16_USDT_EXTENDED: [
-                { id: 'ZAR_UNI_USDT_ZAR', pairs: ['UNIZAR', 'UNIUSDT', 'USDTZAR'], sequence: 'ZAR → UNI → USDT → ZAR', steps: [{ pair: 'UNIZAR', side: 'buy' }, { pair: 'UNIUSDT', side: 'sell' }, { pair: 'USDTZAR', side: 'sell' }] },
-                { id: 'ZAR_USDT_UNI_ZAR', pairs: ['USDTZAR', 'UNIUSDT', 'UNIZAR'], sequence: 'ZAR → USDT → UNI → ZAR', steps: [{ pair: 'USDTZAR', side: 'buy' }, { pair: 'UNIUSDT', side: 'buy' }, { pair: 'UNIZAR', side: 'sell' }] },
-                { id: 'USDT_UNI_ZAR_USDT', pairs: ['UNIUSDT', 'UNIZAR', 'USDTZAR'], sequence: 'USDT → UNI → ZAR → USDT', steps: [{ pair: 'UNIUSDT', side: 'buy' }, { pair: 'UNIZAR', side: 'sell' }, { pair: 'USDTZAR', side: 'buy' }] },
-                { id: 'USDT_ZAR_UNI_USDT', pairs: ['USDTZAR', 'UNIZAR', 'UNIUSDT'], sequence: 'USDT → ZAR → UNI → USDT', steps: [{ pair: 'USDTZAR', side: 'sell' }, { pair: 'UNIZAR', side: 'buy' }, { pair: 'UNIUSDT', side: 'sell' }] }
+                { id: 'ZAR_DOT_USDT_ZAR', pairs: ['DOTZAR', 'DOTUSDT', 'USDTZAR'], sequence: 'ZAR → DOT → USDT → ZAR', steps: [{ pair: 'DOTZAR', side: 'buy' }, { pair: 'DOTUSDT', side: 'sell' }, { pair: 'USDTZAR', side: 'sell' }] },
+                { id: 'ZAR_USDT_DOT_ZAR', pairs: ['USDTZAR', 'DOTUSDT', 'DOTZAR'], sequence: 'ZAR → USDT → DOT → ZAR', steps: [{ pair: 'USDTZAR', side: 'buy' }, { pair: 'DOTUSDT', side: 'buy' }, { pair: 'DOTZAR', side: 'sell' }] },
+                { id: 'USDT_DOT_ZAR_USDT', pairs: ['DOTUSDT', 'DOTZAR', 'USDTZAR'], sequence: 'USDT → DOT → ZAR → USDT', steps: [{ pair: 'DOTUSDT', side: 'buy' }, { pair: 'DOTZAR', side: 'sell' }, { pair: 'USDTZAR', side: 'buy' }] },
+                { id: 'USDT_ZAR_DOT_USDT', pairs: ['USDTZAR', 'DOTZAR', 'DOTUSDT'], sequence: 'USDT → ZAR → DOT → USDT', steps: [{ pair: 'USDTZAR', side: 'sell' }, { pair: 'DOTZAR', side: 'buy' }, { pair: 'DOTUSDT', side: 'sell' }] }
             ],
             SET_17_CROSS_BRIDGE: [
                 { id: 'ZAR_AVAX_USDT_ZAR', pairs: ['AVAXZAR', 'AVAXUSDT', 'USDTZAR'], sequence: 'ZAR → AVAX → USDT → ZAR', steps: [{ pair: 'AVAXZAR', side: 'buy' }, { pair: 'AVAXUSDT', side: 'sell' }, { pair: 'USDTZAR', side: 'sell' }] },
