@@ -30300,7 +30300,128 @@ ARB4ME Security Team`
             console.log('\n✅ COMPLETE TRIANGULAR ARBITRAGE SUCCESSFUL!');
             return { success: true, message: 'All 3 steps completed successfully' };
         };
-        
+
+        // Test the single-asset triangular path: ZAR → BTC → ETH → ZAR
+        window.testSingleAssetPath = async (tradeAmount = 100) => {
+            console.log('\n🧪 === TESTING SINGLE-ASSET TRIANGULAR PATH ===');
+            console.log(`💰 Testing ZAR → BTC → ETH → ZAR with ${tradeAmount} ZAR`);
+
+            try {
+                // First, check if we have VALR connection
+                if (!state.exchanges?.valr?.connected) {
+                    console.log('❌ VALR not connected. Please connect VALR first.');
+                    return { success: false, error: 'VALR not connected' };
+                }
+
+                // Step 1: Fetch BTC/ZAR price (for ZAR → BTC)
+                console.log('\n📊 Step 1: Fetching BTC/ZAR price...');
+                const btcZarResponse = await fetch('/api/v1/trading/valr/ticker?pair=BTCZAR');
+                const btcZarData = await btcZarResponse.json();
+
+                if (!btcZarResponse.ok) {
+                    console.log('❌ Failed to fetch BTC/ZAR price:', btcZarData);
+                    return { success: false, error: 'Failed to fetch BTC/ZAR price' };
+                }
+
+                const btcZarPrice = parseFloat(btcZarData.lastTradedPrice);
+                console.log(`💰 BTC/ZAR price: ${btcZarPrice} ZAR`);
+
+                // Step 2: Fetch ETH/BTC price (for BTC → ETH)
+                console.log('\n📊 Step 2: Fetching ETH/BTC price...');
+                const ethBtcResponse = await fetch('/api/v1/trading/valr/ticker?pair=ETHBTC');
+                const ethBtcData = await ethBtcResponse.json();
+
+                if (!ethBtcResponse.ok) {
+                    console.log('❌ Failed to fetch ETH/BTC price:', ethBtcData);
+                    return { success: false, error: 'Failed to fetch ETH/BTC price' };
+                }
+
+                const ethBtcPrice = parseFloat(ethBtcData.lastTradedPrice);
+                console.log(`💰 ETH/BTC price: ${ethBtcPrice} BTC`);
+
+                // Step 3: Fetch ETH/ZAR price (for ETH → ZAR)
+                console.log('\n📊 Step 3: Fetching ETH/ZAR price...');
+                const ethZarResponse = await fetch('/api/v1/trading/valr/ticker?pair=ETHZAR');
+                const ethZarData = await ethZarResponse.json();
+
+                if (!ethZarResponse.ok) {
+                    console.log('❌ Failed to fetch ETH/ZAR price:', ethZarData);
+                    return { success: false, error: 'Failed to fetch ETH/ZAR price' };
+                }
+
+                const ethZarPrice = parseFloat(ethZarData.lastTradedPrice);
+                console.log(`💰 ETH/ZAR price: ${ethZarPrice} ZAR`);
+
+                // Calculate the triangular arbitrage manually
+                console.log('\n🧮 === CALCULATING SINGLE-ASSET TRIANGULAR ARBITRAGE ===');
+
+                let currentAmount = tradeAmount;
+                console.log(`Starting with: ${currentAmount} ZAR`);
+
+                // Step 1: ZAR → BTC (BUY BTC with ZAR)
+                const step1Amount = currentAmount / btcZarPrice; // Divide to convert ZAR to BTC
+                const step1Fee = step1Amount * 0.001; // 0.1% fee
+                const btcReceived = step1Amount - step1Fee;
+                console.log(`Step 1 (ZAR → BTC): ${btcReceived.toFixed(8)} BTC received (after 0.1% fee)`);
+
+                // Step 2: BTC → ETH (BUY ETH with BTC)
+                const step2Amount = btcReceived / ethBtcPrice; // Divide to convert BTC to ETH
+                const step2Fee = step2Amount * 0.001; // 0.1% fee
+                const ethReceived = step2Amount - step2Fee;
+                console.log(`Step 2 (BTC → ETH): ${ethReceived.toFixed(8)} ETH received (after 0.1% fee)`);
+
+                // Step 3: ETH → ZAR (SELL ETH for ZAR)
+                const step3Amount = ethReceived * ethZarPrice; // Multiply to convert ETH to ZAR
+                const step3Fee = step3Amount * 0.001; // 0.1% fee
+                const finalZarAmount = step3Amount - step3Fee;
+                console.log(`Step 3 (ETH → ZAR): ${finalZarAmount.toFixed(6)} ZAR received (after 0.1% fee)`);
+
+                // Calculate profit
+                const profit = finalZarAmount - tradeAmount;
+                const profitPercent = (profit / tradeAmount) * 100;
+                const profitable = profitPercent > 0.8; // Using 0.8% threshold
+
+                console.log('\n📈 === SINGLE-ASSET TRIANGULAR RESULTS ===');
+                console.log(`💰 Initial amount: ${tradeAmount} ZAR`);
+                console.log(`💰 Final amount: ${finalZarAmount.toFixed(6)} ZAR`);
+                console.log(`📊 Gross profit: ${profit.toFixed(6)} ZAR`);
+                console.log(`📊 Profit percentage: ${profitPercent.toFixed(3)}%`);
+                console.log(`${profitable ? '✅' : '❌'} Profitable: ${profitable} (need >0.8%)`);
+
+                // Test with the existing triangular profit calculator
+                console.log('\n🔄 === TESTING WITH EXISTING CALCULATOR ===');
+                const pathConfig = {
+                    pairs: ['BTCZAR', 'ETHBTC', 'ETHZAR'],
+                    sequence: 'ZAR → BTC → ETH → ZAR',
+                    baseCurrency: 'ZAR',
+                    prices: [btcZarPrice, ethBtcPrice, ethZarPrice]
+                };
+
+                const calculatorResult = await window.calculateValrTriangularProfit(pathConfig, tradeAmount);
+                console.log('🧮 Calculator result:', calculatorResult);
+
+                return {
+                    success: true,
+                    manual: {
+                        profitable: profitable,
+                        profitPercent: profitPercent,
+                        profit: profit,
+                        finalAmount: finalZarAmount
+                    },
+                    calculator: calculatorResult,
+                    prices: {
+                        btcZar: btcZarPrice,
+                        ethBtc: ethBtcPrice,
+                        ethZar: ethZarPrice
+                    }
+                };
+
+            } catch (error) {
+                console.error('❌ Error testing single-asset path:', error);
+                return { success: false, error: error.message };
+            }
+        };
+
         // Test complete execution with bypassed validation
         window.testValrTriangularExecution = async () => {
             console.log('\n🔺 === TESTING VALR TRIANGULAR EXECUTION (BYPASSED VALIDATION) ===');
@@ -30450,9 +30571,9 @@ ARB4ME Security Team`
             return singleAssetPaths;
         };
 
-        // VALR Triangular Path Generator - excludes BTC pairs (ORIGINAL SYSTEM)
+        // VALR Triangular Path Generator - NEW ORGANIZED SYSTEM (ZAR + USDT Singles)
         window.generateValrTriangularPaths = () => {
-            console.log('\n🔺 === GENERATING VALR TRIANGULAR PATHS (48 VALID PATHS) ===');
+            console.log('\n🔺 === GENERATING VALR TRIANGULAR PATHS (48 + SINGLES) ===');
 
             // ONLY VALID VALR pairs based on your actual ZAR pairs list
             // These are the coins that have both ZAR and USDT pairs on VALR
@@ -30509,8 +30630,10 @@ ARB4ME Security Team`
                 });
             });
 
-            // Add 1 single-asset test path: ZAR → BTC → ETH → ZAR
-            console.log('\n🧪 Adding 1 single-asset test path...');
+            // Add single-asset triangular paths (simple approach)
+            console.log('\n🧪 Adding single-asset triangular paths...');
+
+            // ZAR Single-Asset Path 1: ZAR → BTC → ETH → ZAR (tested and working)
             triangularPaths.push({
                 path: 'ZAR → BTC → ETH → ZAR',
                 step1: { pair: 'BTC', side: 'buy', description: 'ZAR → BTC' },
@@ -30523,7 +30646,101 @@ ARB4ME Security Team`
                 assets: ['BTC', 'ETH']
             });
 
-            console.log(`🎯 Found ${triangularPaths.length} triangular arbitrage paths (48 pair-based + 1 single-asset)`);
+            // ZAR Single-Asset Path 2: ZAR → ETH → SOL → ZAR
+            triangularPaths.push({
+                path: 'ZAR → ETH → SOL → ZAR',
+                step1: { pair: 'ETH', side: 'buy', description: 'ZAR → ETH' },
+                step2: { pair: 'SOL', side: 'buy', description: 'ETH → SOL' },
+                step3: { pair: 'ZAR', side: 'sell', description: 'SOL → ZAR' },
+                asset: 'ETH-SOL',
+                pathName: 'ZAR → ETH → SOL → ZAR',
+                type: 'single-asset-triangular',
+                bridge: 'ZAR',
+                assets: ['ETH', 'SOL']
+            });
+
+            // ZAR Single-Asset Path 3: ZAR → SOL → ADA → ZAR
+            triangularPaths.push({
+                path: 'ZAR → SOL → ADA → ZAR',
+                step1: { pair: 'SOL', side: 'buy', description: 'ZAR → SOL' },
+                step2: { pair: 'ADA', side: 'buy', description: 'SOL → ADA' },
+                step3: { pair: 'ZAR', side: 'sell', description: 'ADA → ZAR' },
+                asset: 'SOL-ADA',
+                pathName: 'ZAR → SOL → ADA → ZAR',
+                type: 'single-asset-triangular',
+                bridge: 'ZAR',
+                assets: ['SOL', 'ADA']
+            });
+
+            // ZAR Single-Asset Path 4: ZAR → ADA → AVAX → ZAR
+            triangularPaths.push({
+                path: 'ZAR → ADA → AVAX → ZAR',
+                step1: { pair: 'ADA', side: 'buy', description: 'ZAR → ADA' },
+                step2: { pair: 'AVAX', side: 'buy', description: 'ADA → AVAX' },
+                step3: { pair: 'ZAR', side: 'sell', description: 'AVAX → ZAR' },
+                asset: 'ADA-AVAX',
+                pathName: 'ZAR → ADA → AVAX → ZAR',
+                type: 'single-asset-triangular',
+                bridge: 'ZAR',
+                assets: ['ADA', 'AVAX']
+            });
+
+            // ZAR Single-Asset Path 5: ZAR → AVAX → LINK → ZAR
+            triangularPaths.push({
+                path: 'ZAR → AVAX → LINK → ZAR',
+                step1: { pair: 'AVAX', side: 'buy', description: 'ZAR → AVAX' },
+                step2: { pair: 'LINK', side: 'buy', description: 'AVAX → LINK' },
+                step3: { pair: 'ZAR', side: 'sell', description: 'LINK → ZAR' },
+                asset: 'AVAX-LINK',
+                pathName: 'ZAR → AVAX → LINK → ZAR',
+                type: 'single-asset-triangular',
+                bridge: 'ZAR',
+                assets: ['AVAX', 'LINK']
+            });
+
+            // USDT Single-Asset Path 1: USDT → BTC → ETH → USDT
+            triangularPaths.push({
+                path: 'USDT → BTC → ETH → USDT',
+                step1: { pair: 'BTC', side: 'buy', description: 'USDT → BTC' },
+                step2: { pair: 'ETH', side: 'buy', description: 'BTC → ETH' },
+                step3: { pair: 'USDT', side: 'sell', description: 'ETH → USDT' },
+                asset: 'BTC-ETH',
+                pathName: 'USDT → BTC → ETH → USDT',
+                type: 'single-asset-triangular',
+                bridge: 'USDT',
+                assets: ['BTC', 'ETH']
+            });
+
+            // USDT Single-Asset Path 2: USDT → ETH → SOL → USDT
+            triangularPaths.push({
+                path: 'USDT → ETH → SOL → USDT',
+                step1: { pair: 'ETH', side: 'buy', description: 'USDT → ETH' },
+                step2: { pair: 'SOL', side: 'buy', description: 'ETH → SOL' },
+                step3: { pair: 'USDT', side: 'sell', description: 'SOL → USDT' },
+                asset: 'ETH-SOL',
+                pathName: 'USDT → ETH → SOL → USDT',
+                type: 'single-asset-triangular',
+                bridge: 'USDT',
+                assets: ['ETH', 'SOL']
+            });
+
+            // USDT Single-Asset Path 3: USDT → SOL → ADA → USDT
+            triangularPaths.push({
+                path: 'USDT → SOL → ADA → USDT',
+                step1: { pair: 'SOL', side: 'buy', description: 'USDT → SOL' },
+                step2: { pair: 'ADA', side: 'buy', description: 'SOL → ADA' },
+                step3: { pair: 'USDT', side: 'sell', description: 'ADA → USDT' },
+                asset: 'SOL-ADA',
+                pathName: 'USDT → SOL → ADA → USDT',
+                type: 'single-asset-triangular',
+                bridge: 'USDT',
+                assets: ['SOL', 'ADA']
+            });
+
+            const totalSingleAssetPaths = 8;
+
+            console.log(`🎯 Found ${triangularPaths.length} triangular arbitrage paths (48 pair-based + ${totalSingleAssetPaths} single-asset)`);
+            console.log(`   📊 Breakdown: ${48} pair-based + 5 ZAR singles + 3 USDT singles`);
             console.log('\n📋 Available paths by asset:');
 
             // Group by asset for better display
@@ -30535,12 +30752,225 @@ ARB4ME Security Team`
                 });
             });
 
-            // Show the new single-asset path
-            const singleAssetPaths = triangularPaths.filter(p => p.type === 'single-asset-triangular');
-            if (singleAssetPaths.length > 0) {
-                console.log(`\n🧪 Single-Asset Test Paths (${singleAssetPaths.length}):`);
-                singleAssetPaths.forEach((path, i) => {
-                    console.log(`  ${i+1}. ${path.path} (${path.type})`);
+            // Display single-asset paths by bridge currency
+            const zarSingleAssetPaths = triangularPaths.filter(p => p.type === 'single-asset-triangular' && p.bridge === 'ZAR');
+            const usdtSingleAssetPaths = triangularPaths.filter(p => p.type === 'single-asset-triangular' && p.bridge === 'USDT');
+
+            if (zarSingleAssetPaths.length > 0) {
+                console.log(`\n🟡 SET 13: ZAR Single-Asset Paths (${zarSingleAssetPaths.length}):`);
+                zarSingleAssetPaths.forEach((path, i) => {
+                    console.log(`  ${i+1}. ${path.path} (${path.asset}) ${path.verified ? '✅' : '🧪'}`);
+                });
+            }
+
+            if (usdtSingleAssetPaths.length > 0) {
+                console.log(`\n🟦 SET 14: USDT Single-Asset Paths (${usdtSingleAssetPaths.length}):`);
+                usdtSingleAssetPaths.forEach((path, i) => {
+                    console.log(`  ${i+1}. ${path.path} (${path.asset})`);
+                });
+            } else if (totalSingleAssetPaths > 0) {
+                console.log(`\n🟦 SET 14: USDT Single-Asset Paths (0): Ready for expansion`);
+            }
+
+            return triangularPaths;
+        };
+
+        // VALR Triangular Path Generator V2 - Bypass cache with new function name
+        window.generateValrTriangularPathsV2 = () => {
+            console.log('\n🔺 === GENERATING VALR TRIANGULAR PATHS V2 (48 + 8 SINGLES) ===');
+
+            // ONLY VALID VALR pairs based on your actual ZAR pairs list
+            // These are the coins that have both ZAR and USDT pairs on VALR
+            const validAssets = [
+                'ETH', 'XRP', 'SOL', 'BNB', 'SHIB', 'AVAX',
+                'DOGE', 'TRX', 'LTC', 'RLUSD', 'LINK', 'XLM'
+            ];
+
+            // Generate all 48 triangular paths (4 types for each of 12 assets)
+            const triangularPaths = [];
+
+            validAssets.forEach(asset => {
+                const zarPair = asset + 'ZAR';
+                const usdtPair = asset + 'USDT';
+
+                // Type 1: ZAR → Asset → USDT → ZAR
+                triangularPaths.push({
+                    path: `ZAR → ${asset} → USDT → ZAR`,
+                    step1: { pair: zarPair, side: 'buy', description: `ZAR → ${asset}` },
+                    step2: { pair: usdtPair, side: 'sell', description: `${asset} → USDT` },
+                    step3: { pair: 'USDTZAR', side: 'sell', description: 'USDT → ZAR' },
+                    asset: asset,
+                    pathName: `ZAR → ${asset} → USDT → ZAR`
+                });
+
+                // Type 2: ZAR → USDT → Asset → ZAR
+                triangularPaths.push({
+                    path: `ZAR → USDT → ${asset} → ZAR`,
+                    step1: { pair: 'USDTZAR', side: 'buy', description: 'ZAR → USDT' },
+                    step2: { pair: usdtPair, side: 'buy', description: `USDT → ${asset}` },
+                    step3: { pair: zarPair, side: 'sell', description: `${asset} → ZAR` },
+                    asset: asset,
+                    pathName: `ZAR → USDT → ${asset} → ZAR`
+                });
+
+                // Type 3: USDT → Asset → ZAR → USDT
+                triangularPaths.push({
+                    path: `USDT → ${asset} → ZAR → USDT`,
+                    step1: { pair: usdtPair, side: 'buy', description: `USDT → ${asset}` },
+                    step2: { pair: zarPair, side: 'sell', description: `${asset} → ZAR` },
+                    step3: { pair: 'USDTZAR', side: 'buy', description: 'ZAR → USDT' },
+                    asset: asset,
+                    pathName: `USDT → ${asset} → ZAR → USDT`
+                });
+
+                // Type 4: USDT → ZAR → Asset → USDT
+                triangularPaths.push({
+                    path: `USDT → ZAR → ${asset} → USDT`,
+                    step1: { pair: 'USDTZAR', side: 'sell', description: 'USDT → ZAR' },
+                    step2: { pair: zarPair, side: 'buy', description: `ZAR → ${asset}` },
+                    step3: { pair: usdtPair, side: 'sell', description: `${asset} → USDT` },
+                    asset: asset,
+                    pathName: `USDT → ZAR → ${asset} → USDT`
+                });
+            });
+
+            // Add single-asset triangular paths (simple approach)
+            console.log('\n🧪 Adding 8 single-asset triangular paths...');
+
+            // ZAR Single-Asset Path 1: ZAR → BTC → ETH → ZAR (tested and working)
+            triangularPaths.push({
+                path: 'ZAR → BTC → ETH → ZAR',
+                step1: { pair: 'BTC', side: 'buy', description: 'ZAR → BTC' },
+                step2: { pair: 'ETH', side: 'buy', description: 'BTC → ETH' },
+                step3: { pair: 'ZAR', side: 'sell', description: 'ETH → ZAR' },
+                asset: 'BTC-ETH',
+                pathName: 'ZAR → BTC → ETH → ZAR',
+                type: 'single-asset-triangular',
+                bridge: 'ZAR',
+                assets: ['BTC', 'ETH']
+            });
+
+            // ZAR Single-Asset Path 2: ZAR → ETH → SOL → ZAR
+            triangularPaths.push({
+                path: 'ZAR → ETH → SOL → ZAR',
+                step1: { pair: 'ETH', side: 'buy', description: 'ZAR → ETH' },
+                step2: { pair: 'SOL', side: 'buy', description: 'ETH → SOL' },
+                step3: { pair: 'ZAR', side: 'sell', description: 'SOL → ZAR' },
+                asset: 'ETH-SOL',
+                pathName: 'ZAR → ETH → SOL → ZAR',
+                type: 'single-asset-triangular',
+                bridge: 'ZAR',
+                assets: ['ETH', 'SOL']
+            });
+
+            // ZAR Single-Asset Path 3: ZAR → SOL → ADA → ZAR
+            triangularPaths.push({
+                path: 'ZAR → SOL → ADA → ZAR',
+                step1: { pair: 'SOL', side: 'buy', description: 'ZAR → SOL' },
+                step2: { pair: 'ADA', side: 'buy', description: 'SOL → ADA' },
+                step3: { pair: 'ZAR', side: 'sell', description: 'ADA → ZAR' },
+                asset: 'SOL-ADA',
+                pathName: 'ZAR → SOL → ADA → ZAR',
+                type: 'single-asset-triangular',
+                bridge: 'ZAR',
+                assets: ['SOL', 'ADA']
+            });
+
+            // ZAR Single-Asset Path 4: ZAR → ADA → AVAX → ZAR
+            triangularPaths.push({
+                path: 'ZAR → ADA → AVAX → ZAR',
+                step1: { pair: 'ADA', side: 'buy', description: 'ZAR → ADA' },
+                step2: { pair: 'AVAX', side: 'buy', description: 'ADA → AVAX' },
+                step3: { pair: 'ZAR', side: 'sell', description: 'AVAX → ZAR' },
+                asset: 'ADA-AVAX',
+                pathName: 'ZAR → ADA → AVAX → ZAR',
+                type: 'single-asset-triangular',
+                bridge: 'ZAR',
+                assets: ['ADA', 'AVAX']
+            });
+
+            // ZAR Single-Asset Path 5: ZAR → AVAX → LINK → ZAR
+            triangularPaths.push({
+                path: 'ZAR → AVAX → LINK → ZAR',
+                step1: { pair: 'AVAX', side: 'buy', description: 'ZAR → AVAX' },
+                step2: { pair: 'LINK', side: 'buy', description: 'AVAX → LINK' },
+                step3: { pair: 'ZAR', side: 'sell', description: 'LINK → ZAR' },
+                asset: 'AVAX-LINK',
+                pathName: 'ZAR → AVAX → LINK → ZAR',
+                type: 'single-asset-triangular',
+                bridge: 'ZAR',
+                assets: ['AVAX', 'LINK']
+            });
+
+            // USDT Single-Asset Path 1: USDT → BTC → ETH → USDT
+            triangularPaths.push({
+                path: 'USDT → BTC → ETH → USDT',
+                step1: { pair: 'BTC', side: 'buy', description: 'USDT → BTC' },
+                step2: { pair: 'ETH', side: 'buy', description: 'BTC → ETH' },
+                step3: { pair: 'USDT', side: 'sell', description: 'ETH → USDT' },
+                asset: 'BTC-ETH-USDT',
+                pathName: 'USDT → BTC → ETH → USDT',
+                type: 'single-asset-triangular',
+                bridge: 'USDT',
+                assets: ['BTC', 'ETH']
+            });
+
+            // USDT Single-Asset Path 2: USDT → ETH → SOL → USDT
+            triangularPaths.push({
+                path: 'USDT → ETH → SOL → USDT',
+                step1: { pair: 'ETH', side: 'buy', description: 'USDT → ETH' },
+                step2: { pair: 'SOL', side: 'buy', description: 'ETH → SOL' },
+                step3: { pair: 'USDT', side: 'sell', description: 'SOL → USDT' },
+                asset: 'ETH-SOL-USDT',
+                pathName: 'USDT → ETH → SOL → USDT',
+                type: 'single-asset-triangular',
+                bridge: 'USDT',
+                assets: ['ETH', 'SOL']
+            });
+
+            // USDT Single-Asset Path 3: USDT → SOL → ADA → USDT
+            triangularPaths.push({
+                path: 'USDT → SOL → ADA → USDT',
+                step1: { pair: 'SOL', side: 'buy', description: 'USDT → SOL' },
+                step2: { pair: 'ADA', side: 'buy', description: 'SOL → ADA' },
+                step3: { pair: 'USDT', side: 'sell', description: 'ADA → USDT' },
+                asset: 'SOL-ADA-USDT',
+                pathName: 'USDT → SOL → ADA → USDT',
+                type: 'single-asset-triangular',
+                bridge: 'USDT',
+                assets: ['SOL', 'ADA']
+            });
+
+            const totalSingleAssetPaths = 8;
+
+            console.log(`🎯 Found ${triangularPaths.length} triangular arbitrage paths (48 pair-based + ${totalSingleAssetPaths} single-asset)`);
+            console.log(`   📊 Breakdown: 48 pair-based + 5 ZAR singles + 3 USDT singles`);
+            console.log('\n📋 Available paths by asset:');
+
+            // Group by asset for better display
+            validAssets.forEach(asset => {
+                const assetPaths = triangularPaths.filter(p => p.asset === asset);
+                console.log(`\n${asset} (${assetPaths.length} paths):`);
+                assetPaths.forEach((path, i) => {
+                    console.log(`  ${i+1}. ${path.path}`);
+                });
+            });
+
+            // Display single-asset paths by bridge currency
+            const zarSingleAssetPaths = triangularPaths.filter(p => p.type === 'single-asset-triangular' && p.bridge === 'ZAR');
+            const usdtSingleAssetPaths = triangularPaths.filter(p => p.type === 'single-asset-triangular' && p.bridge === 'USDT');
+
+            if (zarSingleAssetPaths.length > 0) {
+                console.log(`\n🟡 ZAR Single-Asset Paths (${zarSingleAssetPaths.length}):`);
+                zarSingleAssetPaths.forEach((path, i) => {
+                    console.log(`  ${i+1}. ${path.path} (${path.asset})`);
+                });
+            }
+
+            if (usdtSingleAssetPaths.length > 0) {
+                console.log(`\n🟦 USDT Single-Asset Paths (${usdtSingleAssetPaths.length}):`);
+                usdtSingleAssetPaths.forEach((path, i) => {
+                    console.log(`  ${i+1}. ${path.path} (${path.asset})`);
                 });
             }
 
