@@ -12570,10 +12570,10 @@ router.post('/valr/triangular/scan', authenticatedRateLimit, authenticateUser, a
                 { id: 'USDT_ZAR_ADA_USDT', pairs: ['USDTZAR', 'ADAZAR', 'ADAUSDT'], sequence: 'USDT → ZAR → ADA → USDT', steps: [{ pair: 'USDTZAR', side: 'sell' }, { pair: 'ADAZAR', side: 'buy' }, { pair: 'ADAUSDT', side: 'sell' }] }
             ],
             SET_19_DEFI_TOKENS: [
-                { id: 'ZAR_CAKE_USDT_ZAR', pairs: ['CAKEZAR', 'CAKEUSDT', 'USDTZAR'], sequence: 'ZAR → CAKE → USDT → ZAR', steps: [{ pair: 'CAKEZAR', side: 'buy' }, { pair: 'CAKEUSDT', side: 'sell' }, { pair: 'USDTZAR', side: 'sell' }] },
-                { id: 'ZAR_USDT_CAKE_ZAR', pairs: ['USDTZAR', 'CAKEUSDT', 'CAKEZAR'], sequence: 'ZAR → USDT → CAKE → ZAR', steps: [{ pair: 'USDTZAR', side: 'buy' }, { pair: 'CAKEUSDT', side: 'buy' }, { pair: 'CAKEZAR', side: 'sell' }] },
-                { id: 'USDT_CAKE_ZAR_USDT', pairs: ['CAKEUSDT', 'CAKEZAR', 'USDTZAR'], sequence: 'USDT → CAKE → ZAR → USDT', steps: [{ pair: 'CAKEUSDT', side: 'buy' }, { pair: 'CAKEZAR', side: 'sell' }, { pair: 'USDTZAR', side: 'buy' }] },
-                { id: 'USDT_ZAR_CAKE_USDT', pairs: ['USDTZAR', 'CAKEZAR', 'CAKEUSDT'], sequence: 'USDT → ZAR → CAKE → USDT', steps: [{ pair: 'USDTZAR', side: 'sell' }, { pair: 'CAKEZAR', side: 'buy' }, { pair: 'CAKEUSDT', side: 'sell' }] }
+                { id: 'ZAR_SUSHI_USDT_ZAR', pairs: ['SUSHIZAR', 'SUSHIUSDT', 'USDTZAR'], sequence: 'ZAR → SUSHI → USDT → ZAR', steps: [{ pair: 'SUSHIZAR', side: 'buy' }, { pair: 'SUSHIUSDT', side: 'sell' }, { pair: 'USDTZAR', side: 'sell' }] },
+                { id: 'ZAR_USDT_SUSHI_ZAR', pairs: ['USDTZAR', 'SUSHIUSDT', 'SUSHIZAR'], sequence: 'ZAR → USDT → SUSHI → ZAR', steps: [{ pair: 'USDTZAR', side: 'buy' }, { pair: 'SUSHIUSDT', side: 'buy' }, { pair: 'SUSHIZAR', side: 'sell' }] },
+                { id: 'USDT_SUSHI_ZAR_USDT', pairs: ['SUSHIUSDT', 'SUSHIZAR', 'USDTZAR'], sequence: 'USDT → SUSHI → ZAR → USDT', steps: [{ pair: 'SUSHIUSDT', side: 'buy' }, { pair: 'SUSHIZAR', side: 'sell' }, { pair: 'USDTZAR', side: 'buy' }] },
+                { id: 'USDT_ZAR_SUSHI_USDT', pairs: ['USDTZAR', 'SUSHIZAR', 'SUSHIUSDT'], sequence: 'USDT → ZAR → SUSHI → USDT', steps: [{ pair: 'USDTZAR', side: 'sell' }, { pair: 'SUSHIZAR', side: 'buy' }, { pair: 'SUSHIUSDT', side: 'sell' }] }
             ],
             SET_20_ALT_COINS: [
                 { id: 'ZAR_MANA_USDT_ZAR', pairs: ['MANAZAR', 'MANAUSDT', 'USDTZAR'], sequence: 'ZAR → MANA → USDT → ZAR', steps: [{ pair: 'MANAZAR', side: 'buy' }, { pair: 'MANAUSDT', side: 'sell' }, { pair: 'USDTZAR', side: 'sell' }] },
