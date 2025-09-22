@@ -7809,7 +7809,7 @@
 
                     <!-- Path Categories -->
                     <div class="stat-card">
-                        <h4 style="color: #ffb347; margin-bottom: 15px;">📊 Path Sets (4 paths each)</h4>
+                        <h4 style="color: #ffb347; margin-bottom: 15px;">📊 Path Sets (Regular + Single-Asset)</h4>
                         <div style="display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; max-height: 200px; overflow-y: auto;">
                             <span style="color: #b8c6db; font-size: 0.85rem;">SET 1: ETH Focus</span>
                             <input type="checkbox" id="valrSet1Enabled" checked>
@@ -7846,9 +7846,15 @@
 
                             <span style="color: #b8c6db; font-size: 0.85rem;">SET 12: XLM Focus</span>
                             <input type="checkbox" id="valrSet12Enabled">
+
+                            <span style="color: #ffd700; font-size: 0.85rem;">SET 13: ZAR Singles</span>
+                            <input type="checkbox" id="valrSet13Enabled">
+
+                            <span style="color: #00bfff; font-size: 0.85rem;">SET 14: USDT Singles</span>
+                            <input type="checkbox" id="valrSet14Enabled">
                         </div>
                         <div style="margin-top: 10px; padding: 8px; background: rgba(0,212,255,0.1); border-radius: 6px; font-size: 0.8rem; color: #b8c6db;">
-                            💡 Uncheck sets to reduce server load. Each set scans 4 triangular paths.
+                            💡 Uncheck sets to reduce server load. Sets 1-12 scan 4 paths each. Sets 13-14 scan 5 and 3 single-asset paths respectively.
                         </div>
                     </div>
 
@@ -26851,8 +26857,8 @@ ARB4ME Security Team`
             }
 
             // Path Set Checkboxes Persistence
-            // Initialize and persist all 12 path set checkboxes
-            for (let i = 1; i <= 12; i++) {
+            // Initialize and persist all 14 path set checkboxes (12 regular + 2 single-asset)
+            for (let i = 1; i <= 14; i++) {
                 const checkboxId = `valrSet${i}Enabled`;
                 const checkbox = document.getElementById(checkboxId);
 
@@ -27554,6 +27560,14 @@ ARB4ME Security Team`
 
             window.scanValrSet12Live = async function() {
                 return await scanSpecificValrSet('SET_12_XLM_FOCUS', 'XLM Focus (4 paths)');
+            };
+
+            window.scanValrSet13Live = async function() {
+                return await scanSpecificValrSet('SET_13_ZAR_SINGLES', 'ZAR Singles (5 paths)');
+            };
+
+            window.scanValrSet14Live = async function() {
+                return await scanSpecificValrSet('SET_14_USDT_SINGLES', 'USDT Singles (3 paths)');
             };
 
             // Helper function for set scanning
