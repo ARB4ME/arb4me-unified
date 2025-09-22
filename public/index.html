@@ -30809,6 +30809,12 @@ ARB4ME Security Team`
                 zarExtendedPaths.push({ path: `ZAR → ${asset1} → ${asset2} → ZAR`, assets: [asset1, asset2] });
             }
 
+            // Handle the unpaired asset (OP) by pairing with BTC
+            if (remainingZarAssets.length % 2 === 1) {
+                const unpairedAsset = remainingZarAssets[remainingZarAssets.length - 1];
+                zarExtendedPaths.push({ path: `ZAR → ${unpairedAsset} → BTC → ZAR`, assets: [unpairedAsset, 'BTC'] });
+            }
+
             console.log(`📊 Generated ${zarExtendedPaths.length} ZAR extended paths`);
 
             zarExtendedPaths.forEach(pathConfig => {
@@ -30885,17 +30891,20 @@ ARB4ME Security Team`
                 });
             });
 
-            // Mixed Bridge Paths (SET 17: Cross-Bridge Paths)
-            const crossBridgePaths = [
-                // ZAR → BTC → USDT → ZAR (cross-bridge arbitrage)
-                { path: 'ZAR → BTC → USDT → ZAR', step1Asset: 'BTC', bridgeAsset: 'USDT' },
-                // ZAR → ETH → USDT → ZAR
-                { path: 'ZAR → ETH → USDT → ZAR', step1Asset: 'ETH', bridgeAsset: 'USDT' },
-                // ZAR → SOL → USDT → ZAR
-                { path: 'ZAR → SOL → USDT → ZAR', step1Asset: 'SOL', bridgeAsset: 'USDT' },
-                // ZAR → ADA → USDT → ZAR
-                { path: 'ZAR → ADA → USDT → ZAR', step1Asset: 'ADA', bridgeAsset: 'USDT' }
-            ];
+            // Cross-Bridge Paths (SET 17: Complete Coverage)
+            // Generate ZAR → Asset → USDT → ZAR for all top 20 assets
+            const allTop20Assets = ['BTC', 'ETH', 'BNB', 'SOL', 'ADA', 'AVAX', 'DOT', 'MATIC', 'ATOM', 'LINK', 'UNI', 'AAVE', 'DOGE', 'SHIB', 'XRP', 'TRX', 'LTC', 'XLM', 'APT', 'OP'];
+            const crossBridgePaths = [];
+
+            allTop20Assets.forEach(asset => {
+                crossBridgePaths.push({
+                    path: `ZAR → ${asset} → USDT → ZAR`,
+                    step1Asset: asset,
+                    bridgeAsset: 'USDT'
+                });
+            });
+
+            console.log(`📊 Generated ${crossBridgePaths.length} cross-bridge paths for all top 20 assets`);
 
             crossBridgePaths.forEach(pathConfig => {
                 triangularPaths.push({
@@ -30912,100 +30921,100 @@ ARB4ME Security Team`
                 });
             });
 
-            // High-Volume Pairs (SET 18: Volume Leaders)
+            // High-Volume ZAR Combinations (SET 18: ZAR Volume Leaders)
             const volumeLeaderPaths = [
-                // BTC → ETH → BNB → BTC
-                { path: 'BTC → ETH → BNB → BTC', assets: ['ETH', 'BNB'], bridge: 'BTC' },
-                // ETH → BTC → SOL → ETH
-                { path: 'ETH → BTC → SOL → ETH', assets: ['BTC', 'SOL'], bridge: 'ETH' },
-                // SOL → ETH → ADA → SOL
-                { path: 'SOL → ETH → ADA → SOL', assets: ['ETH', 'ADA'], bridge: 'SOL' },
-                // BNB → BTC → AVAX → BNB
-                { path: 'BNB → BTC → AVAX → BNB', assets: ['BTC', 'AVAX'], bridge: 'BNB' }
+                // ZAR → BTC → BNB → ZAR (high volume pair)
+                { path: 'ZAR → BTC → BNB → ZAR', assets: ['BTC', 'BNB'] },
+                // ZAR → ETH → SOL → ZAR (major smart contract platforms)
+                { path: 'ZAR → ETH → SOL → ZAR', assets: ['ETH', 'SOL'] },
+                // ZAR → BNB → AVAX → ZAR (layer 1 competitors)
+                { path: 'ZAR → BNB → AVAX → ZAR', assets: ['BNB', 'AVAX'] },
+                // ZAR → ATOM → DOT → ZAR (interoperability focus)
+                { path: 'ZAR → ATOM → DOT → ZAR', assets: ['ATOM', 'DOT'] }
             ];
 
             volumeLeaderPaths.forEach(pathConfig => {
                 // Forward direction
                 triangularPaths.push({
                     path: pathConfig.path,
-                    step1: { pair: pathConfig.assets[0], side: 'buy', description: `${pathConfig.bridge} → ${pathConfig.assets[0]}` },
+                    step1: { pair: pathConfig.assets[0], side: 'buy', description: `ZAR → ${pathConfig.assets[0]}` },
                     step2: { pair: pathConfig.assets[1], side: 'buy', description: `${pathConfig.assets[0]} → ${pathConfig.assets[1]}` },
-                    step3: { pair: pathConfig.bridge, side: 'sell', description: `${pathConfig.assets[1]} → ${pathConfig.bridge}` },
+                    step3: { pair: 'ZAR', side: 'sell', description: `${pathConfig.assets[1]} → ZAR` },
                     asset: `${pathConfig.assets[0]}-${pathConfig.assets[1]}`,
                     pathName: pathConfig.path,
-                    type: 'volume-leader-triangular',
-                    bridge: pathConfig.bridge,
+                    type: 'zar-volume-leader-triangular',
+                    bridge: 'ZAR',
                     assets: pathConfig.assets,
                     setId: 'SET_18_VOLUME_LEADERS'
                 });
 
                 // Reverse direction
-                const reversePath = `${pathConfig.bridge} → ${pathConfig.assets[1]} → ${pathConfig.assets[0]} → ${pathConfig.bridge}`;
+                const reversePath = `ZAR → ${pathConfig.assets[1]} → ${pathConfig.assets[0]} → ZAR`;
                 triangularPaths.push({
                     path: reversePath,
-                    step1: { pair: pathConfig.assets[1], side: 'buy', description: `${pathConfig.bridge} → ${pathConfig.assets[1]}` },
+                    step1: { pair: pathConfig.assets[1], side: 'buy', description: `ZAR → ${pathConfig.assets[1]}` },
                     step2: { pair: pathConfig.assets[0], side: 'buy', description: `${pathConfig.assets[1]} → ${pathConfig.assets[0]}` },
-                    step3: { pair: pathConfig.bridge, side: 'sell', description: `${pathConfig.assets[0]} → ${pathConfig.bridge}` },
+                    step3: { pair: 'ZAR', side: 'sell', description: `${pathConfig.assets[0]} → ZAR` },
                     asset: `${pathConfig.assets[1]}-${pathConfig.assets[0]}`,
                     pathName: reversePath,
-                    type: 'volume-leader-triangular',
-                    bridge: pathConfig.bridge,
+                    type: 'zar-volume-leader-triangular',
+                    bridge: 'ZAR',
                     assets: [pathConfig.assets[1], pathConfig.assets[0]],
                     setId: 'SET_18_VOLUME_LEADERS'
                 });
             });
 
-            // DeFi Focus Paths (SET 19: DeFi Tokens)
+            // USDT DeFi Combinations (SET 19: USDT DeFi Leaders)
             const defiPaths = [
-                // UNI → AAVE → LINK → UNI
-                { path: 'UNI → AAVE → LINK → UNI', assets: ['AAVE', 'LINK'], bridge: 'UNI' },
-                // LINK → UNI → AAVE → LINK
-                { path: 'LINK → UNI → AAVE → LINK', assets: ['UNI', 'AAVE'], bridge: 'LINK' },
-                // AAVE → LINK → UNI → AAVE
-                { path: 'AAVE → LINK → UNI → AAVE', assets: ['LINK', 'UNI'], bridge: 'AAVE' }
+                // USDT → UNI → AAVE → USDT (DeFi governance tokens)
+                { path: 'USDT → UNI → AAVE → USDT', assets: ['UNI', 'AAVE'] },
+                // USDT → LINK → UNI → USDT (oracle + DEX)
+                { path: 'USDT → LINK → UNI → USDT', assets: ['LINK', 'UNI'] },
+                // USDT → AAVE → LINK → USDT (lending + oracle)
+                { path: 'USDT → AAVE → LINK → USDT', assets: ['AAVE', 'LINK'] }
             ];
 
             defiPaths.forEach(pathConfig => {
                 // Forward direction
                 triangularPaths.push({
                     path: pathConfig.path,
-                    step1: { pair: pathConfig.assets[0], side: 'buy', description: `${pathConfig.bridge} → ${pathConfig.assets[0]}` },
+                    step1: { pair: pathConfig.assets[0], side: 'buy', description: `USDT → ${pathConfig.assets[0]}` },
                     step2: { pair: pathConfig.assets[1], side: 'buy', description: `${pathConfig.assets[0]} → ${pathConfig.assets[1]}` },
-                    step3: { pair: pathConfig.bridge, side: 'sell', description: `${pathConfig.assets[1]} → ${pathConfig.bridge}` },
+                    step3: { pair: 'USDT', side: 'sell', description: `${pathConfig.assets[1]} → USDT` },
                     asset: `${pathConfig.assets[0]}-${pathConfig.assets[1]}`,
                     pathName: pathConfig.path,
-                    type: 'defi-triangular',
-                    bridge: pathConfig.bridge,
+                    type: 'usdt-defi-triangular',
+                    bridge: 'USDT',
                     assets: pathConfig.assets,
                     setId: 'SET_19_DEFI_TOKENS'
                 });
 
                 // Reverse direction
-                const reversePath = `${pathConfig.bridge} → ${pathConfig.assets[1]} → ${pathConfig.assets[0]} → ${pathConfig.bridge}`;
+                const reversePath = `USDT → ${pathConfig.assets[1]} → ${pathConfig.assets[0]} → USDT`;
                 triangularPaths.push({
                     path: reversePath,
-                    step1: { pair: pathConfig.assets[1], side: 'buy', description: `${pathConfig.bridge} → ${pathConfig.assets[1]}` },
+                    step1: { pair: pathConfig.assets[1], side: 'buy', description: `USDT → ${pathConfig.assets[1]}` },
                     step2: { pair: pathConfig.assets[0], side: 'buy', description: `${pathConfig.assets[1]} → ${pathConfig.assets[0]}` },
-                    step3: { pair: pathConfig.bridge, side: 'sell', description: `${pathConfig.assets[0]} → ${pathConfig.bridge}` },
+                    step3: { pair: 'USDT', side: 'sell', description: `${pathConfig.assets[0]} → USDT` },
                     asset: `${pathConfig.assets[1]}-${pathConfig.assets[0]}`,
                     pathName: reversePath,
-                    type: 'defi-triangular',
-                    bridge: pathConfig.bridge,
+                    type: 'usdt-defi-triangular',
+                    bridge: 'USDT',
                     assets: [pathConfig.assets[1], pathConfig.assets[0]],
                     setId: 'SET_19_DEFI_TOKENS'
                 });
             });
 
-            // Alt/Meme Coin Paths (SET 20: Alternative Assets)
+            // Mixed ZAR/USDT Alternative Combinations (SET 20: Alt Strategies)
             const altCoinPaths = [
-                // DOGE → SHIB → TRX → DOGE
-                { path: 'DOGE → SHIB → TRX → DOGE', assets: ['SHIB', 'TRX'], bridge: 'DOGE' },
-                // XRP → TRX → LTC → XRP
-                { path: 'XRP → TRX → LTC → XRP', assets: ['TRX', 'LTC'], bridge: 'XRP' },
-                // LTC → XLM → APT → LTC
-                { path: 'LTC → XLM → APT → LTC', assets: ['XLM', 'APT'], bridge: 'LTC' },
-                // APT → OP → DOGE → APT
-                { path: 'APT → OP → DOGE → APT', assets: ['OP', 'DOGE'], bridge: 'APT' }
+                // ZAR → DOGE → SHIB → ZAR (meme coin arbitrage)
+                { path: 'ZAR → DOGE → SHIB → ZAR', assets: ['DOGE', 'SHIB'], bridge: 'ZAR' },
+                // USDT → XRP → TRX → USDT (payment focused)
+                { path: 'USDT → XRP → TRX → USDT', assets: ['XRP', 'TRX'], bridge: 'USDT' },
+                // ZAR → LTC → XLM → ZAR (fast transaction tokens)
+                { path: 'ZAR → LTC → XLM → ZAR', assets: ['LTC', 'XLM'], bridge: 'ZAR' },
+                // USDT → APT → OP → USDT (new generation L1s)
+                { path: 'USDT → APT → OP → USDT', assets: ['APT', 'OP'], bridge: 'USDT' }
             ];
 
             altCoinPaths.forEach(pathConfig => {
@@ -31017,7 +31026,7 @@ ARB4ME Security Team`
                     step3: { pair: pathConfig.bridge, side: 'sell', description: `${pathConfig.assets[1]} → ${pathConfig.bridge}` },
                     asset: `${pathConfig.assets[0]}-${pathConfig.assets[1]}`,
                     pathName: pathConfig.path,
-                    type: 'alt-coin-triangular',
+                    type: 'mixed-alt-triangular',
                     bridge: pathConfig.bridge,
                     assets: pathConfig.assets,
                     setId: 'SET_20_ALT_COINS'
@@ -31032,7 +31041,7 @@ ARB4ME Security Team`
                     step3: { pair: pathConfig.bridge, side: 'sell', description: `${pathConfig.assets[0]} → ${pathConfig.bridge}` },
                     asset: `${pathConfig.assets[1]}-${pathConfig.assets[0]}`,
                     pathName: reversePath,
-                    type: 'alt-coin-triangular',
+                    type: 'mixed-alt-triangular',
                     bridge: pathConfig.bridge,
                     assets: [pathConfig.assets[1], pathConfig.assets[0]],
                     setId: 'SET_20_ALT_COINS'
