@@ -30795,24 +30795,23 @@ ARB4ME Security Team`
                 assets: ['SOL', 'ADA']
             });
 
-            // ===== EXPANDED SINGLE-ASSET PATHS FOR ALL TOP 20 ASSETS =====
-            console.log('\n🚀 Adding expanded single-asset paths for all top 20 assets...');
+            // ===== COMPREHENSIVE SINGLE-ASSET PATHS FOR ALL TOP 20 ASSETS =====
+            console.log('\n🚀 Generating comprehensive single-asset paths for all top 20 assets...');
 
-            // ZAR Single-Asset Paths (SET 15: ZAR Extended)
-            const zarExtendedPaths = [
-                // ZAR → BNB → SOL → ZAR
-                { path: 'ZAR → BNB → SOL → ZAR', assets: ['BNB', 'SOL'] },
-                // ZAR → ADA → AVAX → ZAR
-                { path: 'ZAR → ADA → AVAX → ZAR', assets: ['ADA', 'AVAX'] },
-                // ZAR → DOT → MATIC → ZAR
-                { path: 'ZAR → DOT → MATIC → ZAR', assets: ['DOT', 'MATIC'] },
-                // ZAR → ATOM → LINK → ZAR
-                { path: 'ZAR → ATOM → LINK → ZAR', assets: ['ATOM', 'LINK'] },
-                // ZAR → UNI → AAVE → ZAR
-                { path: 'ZAR → UNI → AAVE → ZAR', assets: ['UNI', 'AAVE'] }
-            ];
+            // Generate ZAR single-asset paths for remaining assets (SET 15: ZAR Extended)
+            const remainingZarAssets = ['BNB', 'DOT', 'MATIC', 'ATOM', 'LINK', 'UNI', 'AAVE', 'DOGE', 'SHIB', 'XRP', 'TRX', 'LTC', 'XLM', 'APT', 'OP'];
+            const zarExtendedPaths = [];
+
+            for (let i = 0; i < remainingZarAssets.length - 1; i += 2) {
+                const asset1 = remainingZarAssets[i];
+                const asset2 = remainingZarAssets[i + 1];
+                zarExtendedPaths.push({ path: `ZAR → ${asset1} → ${asset2} → ZAR`, assets: [asset1, asset2] });
+            }
+
+            console.log(`📊 Generated ${zarExtendedPaths.length} ZAR extended paths`);
 
             zarExtendedPaths.forEach(pathConfig => {
+                // Forward direction: ZAR → Asset1 → Asset2 → ZAR
                 triangularPaths.push({
                     path: pathConfig.path,
                     step1: { pair: pathConfig.assets[0], side: 'buy', description: `ZAR → ${pathConfig.assets[0]}` },
@@ -30825,23 +30824,37 @@ ARB4ME Security Team`
                     assets: pathConfig.assets,
                     setId: 'SET_15_ZAR_EXTENDED'
                 });
+
+                // Reverse direction: ZAR → Asset2 → Asset1 → ZAR
+                const reversePath = `ZAR → ${pathConfig.assets[1]} → ${pathConfig.assets[0]} → ZAR`;
+                triangularPaths.push({
+                    path: reversePath,
+                    step1: { pair: pathConfig.assets[1], side: 'buy', description: `ZAR → ${pathConfig.assets[1]}` },
+                    step2: { pair: pathConfig.assets[0], side: 'buy', description: `${pathConfig.assets[1]} → ${pathConfig.assets[0]}` },
+                    step3: { pair: 'ZAR', side: 'sell', description: `${pathConfig.assets[0]} → ZAR` },
+                    asset: `${pathConfig.assets[1]}-${pathConfig.assets[0]}`,
+                    pathName: reversePath,
+                    type: 'zar-extended-triangular',
+                    bridge: 'ZAR',
+                    assets: [pathConfig.assets[1], pathConfig.assets[0]],
+                    setId: 'SET_15_ZAR_EXTENDED'
+                });
             });
 
-            // USDT Single-Asset Paths (SET 16: USDT Extended)
-            const usdtExtendedPaths = [
-                // USDT → DOGE → SHIB → USDT
-                { path: 'USDT → DOGE → SHIB → USDT', assets: ['DOGE', 'SHIB'] },
-                // USDT → XRP → TRX → USDT
-                { path: 'USDT → XRP → TRX → USDT', assets: ['XRP', 'TRX'] },
-                // USDT → LTC → XLM → USDT
-                { path: 'USDT → LTC → XLM → USDT', assets: ['LTC', 'XLM'] },
-                // USDT → APT → OP → USDT
-                { path: 'USDT → APT → OP → USDT', assets: ['APT', 'OP'] },
-                // USDT → BTC → BNB → USDT
-                { path: 'USDT → BTC → BNB → USDT', assets: ['BTC', 'BNB'] }
-            ];
+            // Generate USDT single-asset paths for remaining assets (SET 16: USDT Extended)
+            const remainingUsdtAssets = ['BNB', 'AVAX', 'DOT', 'MATIC', 'ATOM', 'LINK', 'UNI', 'AAVE', 'DOGE', 'SHIB', 'XRP', 'TRX', 'LTC', 'XLM', 'APT', 'OP'];
+            const usdtExtendedPaths = [];
+
+            for (let i = 0; i < remainingUsdtAssets.length - 1; i += 2) {
+                const asset1 = remainingUsdtAssets[i];
+                const asset2 = remainingUsdtAssets[i + 1];
+                usdtExtendedPaths.push({ path: `USDT → ${asset1} → ${asset2} → USDT`, assets: [asset1, asset2] });
+            }
+
+            console.log(`📊 Generated ${usdtExtendedPaths.length} USDT extended paths`);
 
             usdtExtendedPaths.forEach(pathConfig => {
+                // Forward direction: USDT → Asset1 → Asset2 → USDT
                 triangularPaths.push({
                     path: pathConfig.path,
                     step1: { pair: pathConfig.assets[0], side: 'buy', description: `USDT → ${pathConfig.assets[0]}` },
@@ -30852,6 +30865,21 @@ ARB4ME Security Team`
                     type: 'usdt-extended-triangular',
                     bridge: 'USDT',
                     assets: pathConfig.assets,
+                    setId: 'SET_16_USDT_EXTENDED'
+                });
+
+                // Reverse direction: USDT → Asset2 → Asset1 → USDT
+                const reversePath = `USDT → ${pathConfig.assets[1]} → ${pathConfig.assets[0]} → USDT`;
+                triangularPaths.push({
+                    path: reversePath,
+                    step1: { pair: pathConfig.assets[1], side: 'buy', description: `USDT → ${pathConfig.assets[1]}` },
+                    step2: { pair: pathConfig.assets[0], side: 'buy', description: `${pathConfig.assets[1]} → ${pathConfig.assets[0]}` },
+                    step3: { pair: 'USDT', side: 'sell', description: `${pathConfig.assets[0]} → USDT` },
+                    asset: `${pathConfig.assets[1]}-${pathConfig.assets[0]}`,
+                    pathName: reversePath,
+                    type: 'usdt-extended-triangular',
+                    bridge: 'USDT',
+                    assets: [pathConfig.assets[1], pathConfig.assets[0]],
                     setId: 'SET_16_USDT_EXTENDED'
                 });
             });
@@ -30896,6 +30924,7 @@ ARB4ME Security Team`
             ];
 
             volumeLeaderPaths.forEach(pathConfig => {
+                // Forward direction
                 triangularPaths.push({
                     path: pathConfig.path,
                     step1: { pair: pathConfig.assets[0], side: 'buy', description: `${pathConfig.bridge} → ${pathConfig.assets[0]}` },
@@ -30906,6 +30935,21 @@ ARB4ME Security Team`
                     type: 'volume-leader-triangular',
                     bridge: pathConfig.bridge,
                     assets: pathConfig.assets,
+                    setId: 'SET_18_VOLUME_LEADERS'
+                });
+
+                // Reverse direction
+                const reversePath = `${pathConfig.bridge} → ${pathConfig.assets[1]} → ${pathConfig.assets[0]} → ${pathConfig.bridge}`;
+                triangularPaths.push({
+                    path: reversePath,
+                    step1: { pair: pathConfig.assets[1], side: 'buy', description: `${pathConfig.bridge} → ${pathConfig.assets[1]}` },
+                    step2: { pair: pathConfig.assets[0], side: 'buy', description: `${pathConfig.assets[1]} → ${pathConfig.assets[0]}` },
+                    step3: { pair: pathConfig.bridge, side: 'sell', description: `${pathConfig.assets[0]} → ${pathConfig.bridge}` },
+                    asset: `${pathConfig.assets[1]}-${pathConfig.assets[0]}`,
+                    pathName: reversePath,
+                    type: 'volume-leader-triangular',
+                    bridge: pathConfig.bridge,
+                    assets: [pathConfig.assets[1], pathConfig.assets[0]],
                     setId: 'SET_18_VOLUME_LEADERS'
                 });
             });
@@ -30921,6 +30965,7 @@ ARB4ME Security Team`
             ];
 
             defiPaths.forEach(pathConfig => {
+                // Forward direction
                 triangularPaths.push({
                     path: pathConfig.path,
                     step1: { pair: pathConfig.assets[0], side: 'buy', description: `${pathConfig.bridge} → ${pathConfig.assets[0]}` },
@@ -30931,6 +30976,21 @@ ARB4ME Security Team`
                     type: 'defi-triangular',
                     bridge: pathConfig.bridge,
                     assets: pathConfig.assets,
+                    setId: 'SET_19_DEFI_TOKENS'
+                });
+
+                // Reverse direction
+                const reversePath = `${pathConfig.bridge} → ${pathConfig.assets[1]} → ${pathConfig.assets[0]} → ${pathConfig.bridge}`;
+                triangularPaths.push({
+                    path: reversePath,
+                    step1: { pair: pathConfig.assets[1], side: 'buy', description: `${pathConfig.bridge} → ${pathConfig.assets[1]}` },
+                    step2: { pair: pathConfig.assets[0], side: 'buy', description: `${pathConfig.assets[1]} → ${pathConfig.assets[0]}` },
+                    step3: { pair: pathConfig.bridge, side: 'sell', description: `${pathConfig.assets[0]} → ${pathConfig.bridge}` },
+                    asset: `${pathConfig.assets[1]}-${pathConfig.assets[0]}`,
+                    pathName: reversePath,
+                    type: 'defi-triangular',
+                    bridge: pathConfig.bridge,
+                    assets: [pathConfig.assets[1], pathConfig.assets[0]],
                     setId: 'SET_19_DEFI_TOKENS'
                 });
             });
@@ -30948,6 +31008,7 @@ ARB4ME Security Team`
             ];
 
             altCoinPaths.forEach(pathConfig => {
+                // Forward direction
                 triangularPaths.push({
                     path: pathConfig.path,
                     step1: { pair: pathConfig.assets[0], side: 'buy', description: `${pathConfig.bridge} → ${pathConfig.assets[0]}` },
@@ -30960,12 +31021,30 @@ ARB4ME Security Team`
                     assets: pathConfig.assets,
                     setId: 'SET_20_ALT_COINS'
                 });
+
+                // Reverse direction
+                const reversePath = `${pathConfig.bridge} → ${pathConfig.assets[1]} → ${pathConfig.assets[0]} → ${pathConfig.bridge}`;
+                triangularPaths.push({
+                    path: reversePath,
+                    step1: { pair: pathConfig.assets[1], side: 'buy', description: `${pathConfig.bridge} → ${pathConfig.assets[1]}` },
+                    step2: { pair: pathConfig.assets[0], side: 'buy', description: `${pathConfig.assets[1]} → ${pathConfig.assets[0]}` },
+                    step3: { pair: pathConfig.bridge, side: 'sell', description: `${pathConfig.assets[0]} → ${pathConfig.bridge}` },
+                    asset: `${pathConfig.assets[1]}-${pathConfig.assets[0]}`,
+                    pathName: reversePath,
+                    type: 'alt-coin-triangular',
+                    bridge: pathConfig.bridge,
+                    assets: [pathConfig.assets[1], pathConfig.assets[0]],
+                    setId: 'SET_20_ALT_COINS'
+                });
             });
 
-            const totalSingleAssetPaths = 8 + zarExtendedPaths.length + usdtExtendedPaths.length + crossBridgePaths.length + volumeLeaderPaths.length + defiPaths.length + altCoinPaths.length;
+            // Calculate actual paths including bidirectional
+            const newPathsCount = (zarExtendedPaths.length * 2) + (usdtExtendedPaths.length * 2) + crossBridgePaths.length + (volumeLeaderPaths.length * 2) + (defiPaths.length * 2) + (altCoinPaths.length * 2);
+            const totalSingleAssetPaths = 8 + newPathsCount;
 
             console.log(`🎯 Found ${triangularPaths.length} triangular arbitrage paths (48 pair-based + ${totalSingleAssetPaths} single-asset)`);
-            console.log(`   📊 Breakdown: ${48} pair-based + 8 original singles + ${totalSingleAssetPaths - 8} new expanded singles`);
+            console.log(`   📊 Breakdown: 48 pair-based + 8 original singles + ${newPathsCount} new bidirectional singles`);
+            console.log(`   🔄 Bidirectional coverage: ZAR ${zarExtendedPaths.length}×2, USDT ${usdtExtendedPaths.length}×2, Cross ${crossBridgePaths.length}, Volume ${volumeLeaderPaths.length}×2, DeFi ${defiPaths.length}×2, Alt ${altCoinPaths.length}×2`);
             console.log('\n📋 Available paths by asset:');
 
             // Group by asset for better display
