@@ -1,4 +1,4 @@
-DEPLOYMENT_TRIGGER=2025-08-22-auto-reminder-system
-COMMIT=ad08c1a
-FEATURES=auto-reminders,cron-job,database-migration
+DEPLOYMENT_TRIGGER=2025-09-22-triangular-arbitrage-fixes
+COMMIT=2acfaaf
+FEATURES=triangular-arbitrage,valr-trading,set-fixes
 STATUS=ready-for-deployment
