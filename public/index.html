@@ -27669,14 +27669,14 @@ ARB4ME Security Team`
                             }
                         });
 
-                        return true;
+                        return data.opportunities;
                     } else {
                         throw new Error(result.error?.message || `${setName} scan failed`);
                     }
                 } catch (error) {
                     console.error(`❌ ${setName} scan failed:`, error);
                     showActivityMessage(`❌ ${displayName} scan failed: ${error.message}`, 'error');
-                    return false;
+                    return [];
                 }
             }
 
