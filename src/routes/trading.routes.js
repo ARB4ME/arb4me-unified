@@ -12459,7 +12459,7 @@ router.post('/valr/triangular/scan', authenticatedRateLimit, authenticateUser, a
             throw new APIError('VALR API credentials required', 400, 'VALR_CREDENTIALS_REQUIRED');
         }
 
-        // Define all triangular path sets (48 PATHS - 12 sets of 4 paths each, excludes BTC)
+        // Define all triangular path sets (80 PATHS - 20 sets of 4 paths each, excludes BTC)
         const allPathSets = {
             SET_1_ETH_FOCUS: [
                 { id: 'ZAR_ETH_USDT_ZAR', pairs: ['ETHZAR', 'ETHUSDT', 'USDTZAR'], sequence: 'ZAR → ETH → USDT → ZAR', steps: [{ pair: 'ETHZAR', side: 'buy' }, { pair: 'ETHUSDT', side: 'sell' }, { pair: 'USDTZAR', side: 'sell' }] },
@@ -12532,17 +12532,65 @@ router.post('/valr/triangular/scan', authenticatedRateLimit, authenticateUser, a
                 { id: 'ZAR_USDT_XLM_ZAR', pairs: ['USDTZAR', 'XLMUSDT', 'XLMZAR'], sequence: 'ZAR → USDT → XLM → ZAR', steps: [{ pair: 'USDTZAR', side: 'buy' }, { pair: 'XLMUSDT', side: 'buy' }, { pair: 'XLMZAR', side: 'sell' }] },
                 { id: 'USDT_XLM_ZAR_USDT', pairs: ['XLMUSDT', 'XLMZAR', 'USDTZAR'], sequence: 'USDT → XLM → ZAR → USDT', steps: [{ pair: 'XLMUSDT', side: 'buy' }, { pair: 'XLMZAR', side: 'sell' }, { pair: 'USDTZAR', side: 'buy' }] },
                 { id: 'USDT_ZAR_XLM_USDT', pairs: ['USDTZAR', 'XLMZAR', 'XLMUSDT'], sequence: 'USDT → ZAR → XLM → USDT', steps: [{ pair: 'USDTZAR', side: 'sell' }, { pair: 'XLMZAR', side: 'buy' }, { pair: 'XLMUSDT', side: 'sell' }] }
+            ],
+            SET_13_MATIC_FOCUS: [
+                { id: 'ZAR_MATIC_USDT_ZAR', pairs: ['MATICZAR', 'MATICUSDT', 'USDTZAR'], sequence: 'ZAR → MATIC → USDT → ZAR', steps: [{ pair: 'MATICZAR', side: 'buy' }, { pair: 'MATICUSDT', side: 'sell' }, { pair: 'USDTZAR', side: 'sell' }] },
+                { id: 'ZAR_USDT_MATIC_ZAR', pairs: ['USDTZAR', 'MATICUSDT', 'MATICZAR'], sequence: 'ZAR → USDT → MATIC → ZAR', steps: [{ pair: 'USDTZAR', side: 'buy' }, { pair: 'MATICUSDT', side: 'buy' }, { pair: 'MATICZAR', side: 'sell' }] },
+                { id: 'USDT_MATIC_ZAR_USDT', pairs: ['MATICUSDT', 'MATICZAR', 'USDTZAR'], sequence: 'USDT → MATIC → ZAR → USDT', steps: [{ pair: 'MATICUSDT', side: 'buy' }, { pair: 'MATICZAR', side: 'sell' }, { pair: 'USDTZAR', side: 'buy' }] },
+                { id: 'USDT_ZAR_MATIC_USDT', pairs: ['USDTZAR', 'MATICZAR', 'MATICUSDT'], sequence: 'USDT → ZAR → MATIC → USDT', steps: [{ pair: 'USDTZAR', side: 'sell' }, { pair: 'MATICZAR', side: 'buy' }, { pair: 'MATICUSDT', side: 'sell' }] }
+            ],
+            SET_14_LTC_FOCUS: [
+                { id: 'ZAR_LTC_USDT_ZAR', pairs: ['LTCZAR', 'LTCUSDT', 'USDTZAR'], sequence: 'ZAR → LTC → USDT → ZAR', steps: [{ pair: 'LTCZAR', side: 'buy' }, { pair: 'LTCUSDT', side: 'sell' }, { pair: 'USDTZAR', side: 'sell' }] },
+                { id: 'ZAR_USDT_LTC_ZAR', pairs: ['USDTZAR', 'LTCUSDT', 'LTCZAR'], sequence: 'ZAR → USDT → LTC → ZAR', steps: [{ pair: 'USDTZAR', side: 'buy' }, { pair: 'LTCUSDT', side: 'buy' }, { pair: 'LTCZAR', side: 'sell' }] },
+                { id: 'USDT_LTC_ZAR_USDT', pairs: ['LTCUSDT', 'LTCZAR', 'USDTZAR'], sequence: 'USDT → LTC → ZAR → USDT', steps: [{ pair: 'LTCUSDT', side: 'buy' }, { pair: 'LTCZAR', side: 'sell' }, { pair: 'USDTZAR', side: 'buy' }] },
+                { id: 'USDT_ZAR_LTC_USDT', pairs: ['USDTZAR', 'LTCZAR', 'LTCUSDT'], sequence: 'USDT → ZAR → LTC → USDT', steps: [{ pair: 'USDTZAR', side: 'sell' }, { pair: 'LTCZAR', side: 'buy' }, { pair: 'LTCUSDT', side: 'sell' }] }
+            ],
+            SET_15_ZAR_EXTENDED: [
+                { id: 'ZAR_DOGE_USDT_ZAR', pairs: ['DOGEZAR', 'DOGEUSDT', 'USDTZAR'], sequence: 'ZAR → DOGE → USDT → ZAR', steps: [{ pair: 'DOGEZAR', side: 'buy' }, { pair: 'DOGEUSDT', side: 'sell' }, { pair: 'USDTZAR', side: 'sell' }] },
+                { id: 'ZAR_USDT_DOGE_ZAR', pairs: ['USDTZAR', 'DOGEUSDT', 'DOGEZAR'], sequence: 'ZAR → USDT → DOGE → ZAR', steps: [{ pair: 'USDTZAR', side: 'buy' }, { pair: 'DOGEUSDT', side: 'buy' }, { pair: 'DOGEZAR', side: 'sell' }] },
+                { id: 'USDT_DOGE_ZAR_USDT', pairs: ['DOGEUSDT', 'DOGEZAR', 'USDTZAR'], sequence: 'USDT → DOGE → ZAR → USDT', steps: [{ pair: 'DOGEUSDT', side: 'buy' }, { pair: 'DOGEZAR', side: 'sell' }, { pair: 'USDTZAR', side: 'buy' }] },
+                { id: 'USDT_ZAR_DOGE_USDT', pairs: ['USDTZAR', 'DOGEZAR', 'DOGEUSDT'], sequence: 'USDT → ZAR → DOGE → USDT', steps: [{ pair: 'USDTZAR', side: 'sell' }, { pair: 'DOGEZAR', side: 'buy' }, { pair: 'DOGEUSDT', side: 'sell' }] }
+            ],
+            SET_16_USDT_EXTENDED: [
+                { id: 'ZAR_UNI_USDT_ZAR', pairs: ['UNIZAR', 'UNIUSDT', 'USDTZAR'], sequence: 'ZAR → UNI → USDT → ZAR', steps: [{ pair: 'UNIZAR', side: 'buy' }, { pair: 'UNIUSDT', side: 'sell' }, { pair: 'USDTZAR', side: 'sell' }] },
+                { id: 'ZAR_USDT_UNI_ZAR', pairs: ['USDTZAR', 'UNIUSDT', 'UNIZAR'], sequence: 'ZAR → USDT → UNI → ZAR', steps: [{ pair: 'USDTZAR', side: 'buy' }, { pair: 'UNIUSDT', side: 'buy' }, { pair: 'UNIZAR', side: 'sell' }] },
+                { id: 'USDT_UNI_ZAR_USDT', pairs: ['UNIUSDT', 'UNIZAR', 'USDTZAR'], sequence: 'USDT → UNI → ZAR → USDT', steps: [{ pair: 'UNIUSDT', side: 'buy' }, { pair: 'UNIZAR', side: 'sell' }, { pair: 'USDTZAR', side: 'buy' }] },
+                { id: 'USDT_ZAR_UNI_USDT', pairs: ['USDTZAR', 'UNIZAR', 'UNIUSDT'], sequence: 'USDT → ZAR → UNI → USDT', steps: [{ pair: 'USDTZAR', side: 'sell' }, { pair: 'UNIZAR', side: 'buy' }, { pair: 'UNIUSDT', side: 'sell' }] }
+            ],
+            SET_17_CROSS_BRIDGE: [
+                { id: 'ZAR_AVAX_USDT_ZAR', pairs: ['AVAXZAR', 'AVAXUSDT', 'USDTZAR'], sequence: 'ZAR → AVAX → USDT → ZAR', steps: [{ pair: 'AVAXZAR', side: 'buy' }, { pair: 'AVAXUSDT', side: 'sell' }, { pair: 'USDTZAR', side: 'sell' }] },
+                { id: 'ZAR_USDT_AVAX_ZAR', pairs: ['USDTZAR', 'AVAXUSDT', 'AVAXZAR'], sequence: 'ZAR → USDT → AVAX → ZAR', steps: [{ pair: 'USDTZAR', side: 'buy' }, { pair: 'AVAXUSDT', side: 'buy' }, { pair: 'AVAXZAR', side: 'sell' }] },
+                { id: 'USDT_AVAX_ZAR_USDT', pairs: ['AVAXUSDT', 'AVAXZAR', 'USDTZAR'], sequence: 'USDT → AVAX → ZAR → USDT', steps: [{ pair: 'AVAXUSDT', side: 'buy' }, { pair: 'AVAXZAR', side: 'sell' }, { pair: 'USDTZAR', side: 'buy' }] },
+                { id: 'USDT_ZAR_AVAX_USDT', pairs: ['USDTZAR', 'AVAXZAR', 'AVAXUSDT'], sequence: 'USDT → ZAR → AVAX → USDT', steps: [{ pair: 'USDTZAR', side: 'sell' }, { pair: 'AVAXZAR', side: 'buy' }, { pair: 'AVAXUSDT', side: 'sell' }] }
+            ],
+            SET_18_VOLUME_LEADERS: [
+                { id: 'ZAR_ADA_USDT_ZAR', pairs: ['ADAZAR', 'ADAUSDT', 'USDTZAR'], sequence: 'ZAR → ADA → USDT → ZAR', steps: [{ pair: 'ADAZAR', side: 'buy' }, { pair: 'ADAUSDT', side: 'sell' }, { pair: 'USDTZAR', side: 'sell' }] },
+                { id: 'ZAR_USDT_ADA_ZAR', pairs: ['USDTZAR', 'ADAUSDT', 'ADAZAR'], sequence: 'ZAR → USDT → ADA → ZAR', steps: [{ pair: 'USDTZAR', side: 'buy' }, { pair: 'ADAUSDT', side: 'buy' }, { pair: 'ADAZAR', side: 'sell' }] },
+                { id: 'USDT_ADA_ZAR_USDT', pairs: ['ADAUSDT', 'ADAZAR', 'USDTZAR'], sequence: 'USDT → ADA → ZAR → USDT', steps: [{ pair: 'ADAUSDT', side: 'buy' }, { pair: 'ADAZAR', side: 'sell' }, { pair: 'USDTZAR', side: 'buy' }] },
+                { id: 'USDT_ZAR_ADA_USDT', pairs: ['USDTZAR', 'ADAZAR', 'ADAUSDT'], sequence: 'USDT → ZAR → ADA → USDT', steps: [{ pair: 'USDTZAR', side: 'sell' }, { pair: 'ADAZAR', side: 'buy' }, { pair: 'ADAUSDT', side: 'sell' }] }
+            ],
+            SET_19_DEFI_TOKENS: [
+                { id: 'ZAR_CAKE_USDT_ZAR', pairs: ['CAKEZAR', 'CAKEUSDT', 'USDTZAR'], sequence: 'ZAR → CAKE → USDT → ZAR', steps: [{ pair: 'CAKEZAR', side: 'buy' }, { pair: 'CAKEUSDT', side: 'sell' }, { pair: 'USDTZAR', side: 'sell' }] },
+                { id: 'ZAR_USDT_CAKE_ZAR', pairs: ['USDTZAR', 'CAKEUSDT', 'CAKEZAR'], sequence: 'ZAR → USDT → CAKE → ZAR', steps: [{ pair: 'USDTZAR', side: 'buy' }, { pair: 'CAKEUSDT', side: 'buy' }, { pair: 'CAKEZAR', side: 'sell' }] },
+                { id: 'USDT_CAKE_ZAR_USDT', pairs: ['CAKEUSDT', 'CAKEZAR', 'USDTZAR'], sequence: 'USDT → CAKE → ZAR → USDT', steps: [{ pair: 'CAKEUSDT', side: 'buy' }, { pair: 'CAKEZAR', side: 'sell' }, { pair: 'USDTZAR', side: 'buy' }] },
+                { id: 'USDT_ZAR_CAKE_USDT', pairs: ['USDTZAR', 'CAKEZAR', 'CAKEUSDT'], sequence: 'USDT → ZAR → CAKE → USDT', steps: [{ pair: 'USDTZAR', side: 'sell' }, { pair: 'CAKEZAR', side: 'buy' }, { pair: 'CAKEUSDT', side: 'sell' }] }
+            ],
+            SET_20_ALT_COINS: [
+                { id: 'ZAR_MANA_USDT_ZAR', pairs: ['MANAZAR', 'MANAUSDT', 'USDTZAR'], sequence: 'ZAR → MANA → USDT → ZAR', steps: [{ pair: 'MANAZAR', side: 'buy' }, { pair: 'MANAUSDT', side: 'sell' }, { pair: 'USDTZAR', side: 'sell' }] },
+                { id: 'ZAR_USDT_MANA_ZAR', pairs: ['USDTZAR', 'MANAUSDT', 'MANAZAR'], sequence: 'ZAR → USDT → MANA → ZAR', steps: [{ pair: 'USDTZAR', side: 'buy' }, { pair: 'MANAUSDT', side: 'buy' }, { pair: 'MANAZAR', side: 'sell' }] },
+                { id: 'USDT_MANA_ZAR_USDT', pairs: ['MANAUSDT', 'MANAZAR', 'USDTZAR'], sequence: 'USDT → MANA → ZAR → USDT', steps: [{ pair: 'MANAUSDT', side: 'buy' }, { pair: 'MANAZAR', side: 'sell' }, { pair: 'USDTZAR', side: 'buy' }] },
+                { id: 'USDT_ZAR_MANA_USDT', pairs: ['USDTZAR', 'MANAZAR', 'MANAUSDT'], sequence: 'USDT → ZAR → MANA → USDT', steps: [{ pair: 'USDTZAR', side: 'sell' }, { pair: 'MANAZAR', side: 'buy' }, { pair: 'MANAUSDT', side: 'sell' }] }
             ]
         };
 
-        // Select paths based on scanSet parameter (supports new 12-set structure)
+        // Select paths based on scanSet parameter (supports all 20 sets)
         const { scanSet = 'SET_1_ETH_FOCUS' } = req.body;
         let triangularPaths;
 
         if (scanSet === 'ALL' || scanSet === 'all') {
-            // Combine all 12 path sets for comprehensive scanning (48 total paths)
+            // Combine all 20 path sets for comprehensive scanning (80 total paths)
             triangularPaths = Object.values(allPathSets).flat();
-            console.log(`🔺 Scanning ALL 12 SETS with ${triangularPaths.length} total paths (excludes BTC)`);
+            console.log(`🔺 Scanning ALL 20 SETS with ${triangularPaths.length} total paths (excludes BTC)`);
         } else {
             triangularPaths = allPathSets[scanSet] || allPathSets.SET_1_ETH_FOCUS;
             console.log(`🔺 Scanning ${scanSet} with ${triangularPaths.length} paths (4 paths per focused set)`);
