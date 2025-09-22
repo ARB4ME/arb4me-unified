@@ -31085,47 +31085,76 @@ ARB4ME Security Team`
             return { success: true, message: `Path ${pathIndex + 1} completed!` };
         };
 
+        // Sequential set scanning state
+        if (!window.valrSetRotation) {
+            window.valrSetRotation = {
+                currentSetIndex: 0,
+                enabledSets: [],
+                lastUpdate: Date.now()
+            };
+        }
+
         // Add VALRTriangular module directly to window for production scanning
         window.VALRTriangular = {
             scanOpportunities: async function() {
                 console.log('🔺 Starting VALR triangular arbitrage scan...');
-                const opportunities = [];
-                
-                // Get all available paths
-                const paths = generateValrTriangularPaths();
-                console.log(`📊 Scanning ${paths.length} VALR triangular paths...`);
-                
-                for (let i = 0; i < Math.min(paths.length, 5); i++) {
-                    const path = paths[i];
-                    console.log(`🔍 Analyzing path ${i+1}: ${path.path}`);
-                    
-                    // Simple profit estimation (in production this would fetch real prices)
-                    const estimatedProfit = Math.random() * 2 - 0.5; // Random between -0.5% and 1.5%
-                    const profitable = estimatedProfit > 0.6; // 0.6% threshold
-                    
-                    const pathPairs = [path.step1.pair, path.step2.pair, path.step3.pair];
-                    opportunities.push({
-                        pathName: path.path,
-                        pairs: pathPairs,
-                        prices: pathPairs, // execution expects 'prices' array
-                        profitable: profitable,
-                        netProfitPercent: estimatedProfit,
-                        baseCurrency: 'ZAR',
-                        exchange: 'VALR' // Add missing exchange property
-                    });
-                    
-                    if (profitable) {
-                        console.log(`✅ PROFITABLE: ${path.path} - ${estimatedProfit.toFixed(3)}% profit`);
-                    } else {
-                        console.log(`❌ Not profitable: ${path.path} - ${estimatedProfit.toFixed(3)}%`);
+
+                // Update enabled sets from UI checkboxes
+                const enabledSets = [];
+                for (let i = 1; i <= 14; i++) {
+                    const checkbox = document.getElementById(`valrSet${i}Enabled`);
+                    if (checkbox && checkbox.checked) {
+                        enabledSets.push(i);
                     }
-                    
-                    await new Promise(resolve => setTimeout(resolve, 500)); // Rate limiting
                 }
-                
+
+                if (enabledSets.length === 0) {
+                    console.log('🔺 No sets enabled for scanning');
+                    return [];
+                }
+
+                // Update rotation state
+                window.valrSetRotation.enabledSets = enabledSets;
+
+                // Get current set to scan
+                const currentSetNumber = enabledSets[window.valrSetRotation.currentSetIndex % enabledSets.length];
+                console.log(`🔺 Sequential scan: Processing SET ${currentSetNumber} (${window.valrSetRotation.currentSetIndex + 1}/${enabledSets.length})`);
+
+                // Scan the current set
+                let opportunities = [];
+                try {
+                    switch(currentSetNumber) {
+                        case 1: opportunities = await window.scanValrSet1Live(); break;
+                        case 2: opportunities = await window.scanValrSet2Live(); break;
+                        case 3: opportunities = await window.scanValrSet3Live(); break;
+                        case 4: opportunities = await window.scanValrSet4Live(); break;
+                        case 5: opportunities = await window.scanValrSet5Live(); break;
+                        case 6: opportunities = await window.scanValrSet6Live(); break;
+                        case 7: opportunities = await window.scanValrSet7Live(); break;
+                        case 8: opportunities = await window.scanValrSet8Live(); break;
+                        case 9: opportunities = await window.scanValrSet9Live(); break;
+                        case 10: opportunities = await window.scanValrSet10Live(); break;
+                        case 11: opportunities = await window.scanValrSet11Live(); break;
+                        case 12: opportunities = await window.scanValrSet12Live(); break;
+                        case 13: opportunities = await window.scanValrSet13Live(); break;
+                        case 14: opportunities = await window.scanValrSet14Live(); break;
+                        default:
+                            console.log(`⚠️ Unknown set ${currentSetNumber}`);
+                            opportunities = [];
+                    }
+                } catch (error) {
+                    console.error(`❌ Error scanning SET ${currentSetNumber}:`, error);
+                    opportunities = [];
+                }
+
+                // Move to next set for next scan
+                window.valrSetRotation.currentSetIndex = (window.valrSetRotation.currentSetIndex + 1) % enabledSets.length;
+                window.valrSetRotation.lastUpdate = Date.now();
+
                 const profitableCount = opportunities.filter(o => o.profitable).length;
-                console.log(`🔺 VALR scan complete. Found ${profitableCount} profitable opportunities`);
-                
+                console.log(`🔺 SET ${currentSetNumber} scan complete. Found ${profitableCount} profitable opportunities`);
+                console.log(`🔄 Next scan will process SET ${enabledSets[window.valrSetRotation.currentSetIndex % enabledSets.length]}`);
+
                 return opportunities;
             },
             
