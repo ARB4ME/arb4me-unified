@@ -26875,8 +26875,8 @@ ARB4ME Security Team`
             }
 
             // Path Set Checkboxes Persistence
-            // Initialize and persist all 14 path set checkboxes (12 regular + 2 single-asset)
-            for (let i = 1; i <= 14; i++) {
+            // Initialize and persist all 20 path set checkboxes (12 regular + 8 expanded single-asset)
+            for (let i = 1; i <= 20; i++) {
                 const checkboxId = `valrSet${i}Enabled`;
                 const checkbox = document.getElementById(checkboxId);
 
@@ -26901,9 +26901,10 @@ ARB4ME Security Team`
                         state.pathSets[`set${i}`] = this.checked;
 
                         // Show feedback
-                        const setNames = ['ETH', 'XRP', 'SOL', 'BNB', 'SHIB', 'AVAX', 'DOGE', 'TRX', 'LTC', 'RLUSD', 'LINK', 'XLM'];
+                        const setNames = ['ETH', 'XRP', 'SOL', 'BNB', 'SHIB', 'AVAX', 'DOGE', 'TRX', 'LTC', 'RLUSD', 'LINK', 'XLM', 'ZAR Singles', 'USDT Singles', 'ZAR Extended', 'USDT Extended', 'Cross-Bridge', 'Volume Leaders', 'DeFi Tokens', 'Alt Coins'];
+                        const setName = setNames[i-1] || `SET ${i}`;
                         showActivityMessage(
-                            `${this.checked ? '✅' : '⏸️'} ${setNames[i-1]} Focus paths ${this.checked ? 'enabled' : 'disabled'}`,
+                            `${this.checked ? '✅' : '⏸️'} ${setName} paths ${this.checked ? 'enabled' : 'disabled'}`,
                             this.checked ? 'success' : 'warning'
                         );
                     });
