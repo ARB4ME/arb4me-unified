@@ -7852,9 +7852,27 @@
 
                             <span style="color: #00bfff; font-size: 0.85rem;">SET 14: USDT Singles</span>
                             <input type="checkbox" id="valrSet14Enabled">
+
+                            <span style="color: #32cd32; font-size: 0.85rem;">SET 15: ZAR Extended</span>
+                            <input type="checkbox" id="valrSet15Enabled">
+
+                            <span style="color: #1e90ff; font-size: 0.85rem;">SET 16: USDT Extended</span>
+                            <input type="checkbox" id="valrSet16Enabled">
+
+                            <span style="color: #ff6347; font-size: 0.85rem;">SET 17: Cross-Bridge</span>
+                            <input type="checkbox" id="valrSet17Enabled">
+
+                            <span style="color: #dda0dd; font-size: 0.85rem;">SET 18: Volume Leaders</span>
+                            <input type="checkbox" id="valrSet18Enabled">
+
+                            <span style="color: #20b2aa; font-size: 0.85rem;">SET 19: DeFi Tokens</span>
+                            <input type="checkbox" id="valrSet19Enabled">
+
+                            <span style="color: #ffa500; font-size: 0.85rem;">SET 20: Alt Coins</span>
+                            <input type="checkbox" id="valrSet20Enabled">
                         </div>
                         <div style="margin-top: 10px; padding: 8px; background: rgba(0,212,255,0.1); border-radius: 6px; font-size: 0.8rem; color: #b8c6db;">
-                            💡 Uncheck sets to reduce server load. Sets 1-12 scan 4 paths each. Sets 13-14 scan 5 and 3 single-asset paths respectively.
+                            💡 Uncheck sets to reduce server load. Sets 1-12 scan 4 paths each. Sets 13-20 scan 3-5 expanded single-asset paths each.
                         </div>
                     </div>
 
@@ -27570,6 +27588,32 @@ ARB4ME Security Team`
                 return await scanSpecificValrSet('SET_14_USDT_SINGLES', 'USDT Singles (3 paths)');
             };
 
+            // ===== NEW EXPANDED SETS =====
+
+            window.scanValrSet15Live = async function() {
+                return await scanSpecificValrSet('SET_15_ZAR_EXTENDED', 'ZAR Extended (5 paths)');
+            };
+
+            window.scanValrSet16Live = async function() {
+                return await scanSpecificValrSet('SET_16_USDT_EXTENDED', 'USDT Extended (5 paths)');
+            };
+
+            window.scanValrSet17Live = async function() {
+                return await scanSpecificValrSet('SET_17_CROSS_BRIDGE', 'Cross-Bridge (4 paths)');
+            };
+
+            window.scanValrSet18Live = async function() {
+                return await scanSpecificValrSet('SET_18_VOLUME_LEADERS', 'Volume Leaders (4 paths)');
+            };
+
+            window.scanValrSet19Live = async function() {
+                return await scanSpecificValrSet('SET_19_DEFI_TOKENS', 'DeFi Tokens (3 paths)');
+            };
+
+            window.scanValrSet20Live = async function() {
+                return await scanSpecificValrSet('SET_20_ALT_COINS', 'Alt Coins (4 paths)');
+            };
+
             // Helper function for set scanning
             async function scanSpecificValrSet(setName, displayName) {
                 console.log(`🔺 Starting VALR ${displayName} live scan...`);
@@ -30751,10 +30795,177 @@ ARB4ME Security Team`
                 assets: ['SOL', 'ADA']
             });
 
-            const totalSingleAssetPaths = 8;
+            // ===== EXPANDED SINGLE-ASSET PATHS FOR ALL TOP 20 ASSETS =====
+            console.log('\n🚀 Adding expanded single-asset paths for all top 20 assets...');
+
+            // ZAR Single-Asset Paths (SET 15: ZAR Extended)
+            const zarExtendedPaths = [
+                // ZAR → BNB → SOL → ZAR
+                { path: 'ZAR → BNB → SOL → ZAR', assets: ['BNB', 'SOL'] },
+                // ZAR → ADA → AVAX → ZAR
+                { path: 'ZAR → ADA → AVAX → ZAR', assets: ['ADA', 'AVAX'] },
+                // ZAR → DOT → MATIC → ZAR
+                { path: 'ZAR → DOT → MATIC → ZAR', assets: ['DOT', 'MATIC'] },
+                // ZAR → ATOM → LINK → ZAR
+                { path: 'ZAR → ATOM → LINK → ZAR', assets: ['ATOM', 'LINK'] },
+                // ZAR → UNI → AAVE → ZAR
+                { path: 'ZAR → UNI → AAVE → ZAR', assets: ['UNI', 'AAVE'] }
+            ];
+
+            zarExtendedPaths.forEach(pathConfig => {
+                triangularPaths.push({
+                    path: pathConfig.path,
+                    step1: { pair: pathConfig.assets[0], side: 'buy', description: `ZAR → ${pathConfig.assets[0]}` },
+                    step2: { pair: pathConfig.assets[1], side: 'buy', description: `${pathConfig.assets[0]} → ${pathConfig.assets[1]}` },
+                    step3: { pair: 'ZAR', side: 'sell', description: `${pathConfig.assets[1]} → ZAR` },
+                    asset: `${pathConfig.assets[0]}-${pathConfig.assets[1]}`,
+                    pathName: pathConfig.path,
+                    type: 'zar-extended-triangular',
+                    bridge: 'ZAR',
+                    assets: pathConfig.assets,
+                    setId: 'SET_15_ZAR_EXTENDED'
+                });
+            });
+
+            // USDT Single-Asset Paths (SET 16: USDT Extended)
+            const usdtExtendedPaths = [
+                // USDT → DOGE → SHIB → USDT
+                { path: 'USDT → DOGE → SHIB → USDT', assets: ['DOGE', 'SHIB'] },
+                // USDT → XRP → TRX → USDT
+                { path: 'USDT → XRP → TRX → USDT', assets: ['XRP', 'TRX'] },
+                // USDT → LTC → XLM → USDT
+                { path: 'USDT → LTC → XLM → USDT', assets: ['LTC', 'XLM'] },
+                // USDT → APT → OP → USDT
+                { path: 'USDT → APT → OP → USDT', assets: ['APT', 'OP'] },
+                // USDT → BTC → BNB → USDT
+                { path: 'USDT → BTC → BNB → USDT', assets: ['BTC', 'BNB'] }
+            ];
+
+            usdtExtendedPaths.forEach(pathConfig => {
+                triangularPaths.push({
+                    path: pathConfig.path,
+                    step1: { pair: pathConfig.assets[0], side: 'buy', description: `USDT → ${pathConfig.assets[0]}` },
+                    step2: { pair: pathConfig.assets[1], side: 'buy', description: `${pathConfig.assets[0]} → ${pathConfig.assets[1]}` },
+                    step3: { pair: 'USDT', side: 'sell', description: `${pathConfig.assets[1]} → USDT` },
+                    asset: `${pathConfig.assets[0]}-${pathConfig.assets[1]}`,
+                    pathName: pathConfig.path,
+                    type: 'usdt-extended-triangular',
+                    bridge: 'USDT',
+                    assets: pathConfig.assets,
+                    setId: 'SET_16_USDT_EXTENDED'
+                });
+            });
+
+            // Mixed Bridge Paths (SET 17: Cross-Bridge Paths)
+            const crossBridgePaths = [
+                // ZAR → BTC → USDT → ZAR (cross-bridge arbitrage)
+                { path: 'ZAR → BTC → USDT → ZAR', step1Asset: 'BTC', bridgeAsset: 'USDT' },
+                // ZAR → ETH → USDT → ZAR
+                { path: 'ZAR → ETH → USDT → ZAR', step1Asset: 'ETH', bridgeAsset: 'USDT' },
+                // ZAR → SOL → USDT → ZAR
+                { path: 'ZAR → SOL → USDT → ZAR', step1Asset: 'SOL', bridgeAsset: 'USDT' },
+                // ZAR → ADA → USDT → ZAR
+                { path: 'ZAR → ADA → USDT → ZAR', step1Asset: 'ADA', bridgeAsset: 'USDT' }
+            ];
+
+            crossBridgePaths.forEach(pathConfig => {
+                triangularPaths.push({
+                    path: pathConfig.path,
+                    step1: { pair: pathConfig.step1Asset, side: 'buy', description: `ZAR → ${pathConfig.step1Asset}` },
+                    step2: { pair: pathConfig.bridgeAsset, side: 'sell', description: `${pathConfig.step1Asset} → ${pathConfig.bridgeAsset}` },
+                    step3: { pair: 'ZAR', side: 'sell', description: `${pathConfig.bridgeAsset} → ZAR` },
+                    asset: `${pathConfig.step1Asset}-${pathConfig.bridgeAsset}`,
+                    pathName: pathConfig.path,
+                    type: 'cross-bridge-triangular',
+                    bridge: 'MIXED',
+                    assets: [pathConfig.step1Asset, pathConfig.bridgeAsset],
+                    setId: 'SET_17_CROSS_BRIDGE'
+                });
+            });
+
+            // High-Volume Pairs (SET 18: Volume Leaders)
+            const volumeLeaderPaths = [
+                // BTC → ETH → BNB → BTC
+                { path: 'BTC → ETH → BNB → BTC', assets: ['ETH', 'BNB'], bridge: 'BTC' },
+                // ETH → BTC → SOL → ETH
+                { path: 'ETH → BTC → SOL → ETH', assets: ['BTC', 'SOL'], bridge: 'ETH' },
+                // SOL → ETH → ADA → SOL
+                { path: 'SOL → ETH → ADA → SOL', assets: ['ETH', 'ADA'], bridge: 'SOL' },
+                // BNB → BTC → AVAX → BNB
+                { path: 'BNB → BTC → AVAX → BNB', assets: ['BTC', 'AVAX'], bridge: 'BNB' }
+            ];
+
+            volumeLeaderPaths.forEach(pathConfig => {
+                triangularPaths.push({
+                    path: pathConfig.path,
+                    step1: { pair: pathConfig.assets[0], side: 'buy', description: `${pathConfig.bridge} → ${pathConfig.assets[0]}` },
+                    step2: { pair: pathConfig.assets[1], side: 'buy', description: `${pathConfig.assets[0]} → ${pathConfig.assets[1]}` },
+                    step3: { pair: pathConfig.bridge, side: 'sell', description: `${pathConfig.assets[1]} → ${pathConfig.bridge}` },
+                    asset: `${pathConfig.assets[0]}-${pathConfig.assets[1]}`,
+                    pathName: pathConfig.path,
+                    type: 'volume-leader-triangular',
+                    bridge: pathConfig.bridge,
+                    assets: pathConfig.assets,
+                    setId: 'SET_18_VOLUME_LEADERS'
+                });
+            });
+
+            // DeFi Focus Paths (SET 19: DeFi Tokens)
+            const defiPaths = [
+                // UNI → AAVE → LINK → UNI
+                { path: 'UNI → AAVE → LINK → UNI', assets: ['AAVE', 'LINK'], bridge: 'UNI' },
+                // LINK → UNI → AAVE → LINK
+                { path: 'LINK → UNI → AAVE → LINK', assets: ['UNI', 'AAVE'], bridge: 'LINK' },
+                // AAVE → LINK → UNI → AAVE
+                { path: 'AAVE → LINK → UNI → AAVE', assets: ['LINK', 'UNI'], bridge: 'AAVE' }
+            ];
+
+            defiPaths.forEach(pathConfig => {
+                triangularPaths.push({
+                    path: pathConfig.path,
+                    step1: { pair: pathConfig.assets[0], side: 'buy', description: `${pathConfig.bridge} → ${pathConfig.assets[0]}` },
+                    step2: { pair: pathConfig.assets[1], side: 'buy', description: `${pathConfig.assets[0]} → ${pathConfig.assets[1]}` },
+                    step3: { pair: pathConfig.bridge, side: 'sell', description: `${pathConfig.assets[1]} → ${pathConfig.bridge}` },
+                    asset: `${pathConfig.assets[0]}-${pathConfig.assets[1]}`,
+                    pathName: pathConfig.path,
+                    type: 'defi-triangular',
+                    bridge: pathConfig.bridge,
+                    assets: pathConfig.assets,
+                    setId: 'SET_19_DEFI_TOKENS'
+                });
+            });
+
+            // Alt/Meme Coin Paths (SET 20: Alternative Assets)
+            const altCoinPaths = [
+                // DOGE → SHIB → TRX → DOGE
+                { path: 'DOGE → SHIB → TRX → DOGE', assets: ['SHIB', 'TRX'], bridge: 'DOGE' },
+                // XRP → TRX → LTC → XRP
+                { path: 'XRP → TRX → LTC → XRP', assets: ['TRX', 'LTC'], bridge: 'XRP' },
+                // LTC → XLM → APT → LTC
+                { path: 'LTC → XLM → APT → LTC', assets: ['XLM', 'APT'], bridge: 'LTC' },
+                // APT → OP → DOGE → APT
+                { path: 'APT → OP → DOGE → APT', assets: ['OP', 'DOGE'], bridge: 'APT' }
+            ];
+
+            altCoinPaths.forEach(pathConfig => {
+                triangularPaths.push({
+                    path: pathConfig.path,
+                    step1: { pair: pathConfig.assets[0], side: 'buy', description: `${pathConfig.bridge} → ${pathConfig.assets[0]}` },
+                    step2: { pair: pathConfig.assets[1], side: 'buy', description: `${pathConfig.assets[0]} → ${pathConfig.assets[1]}` },
+                    step3: { pair: pathConfig.bridge, side: 'sell', description: `${pathConfig.assets[1]} → ${pathConfig.bridge}` },
+                    asset: `${pathConfig.assets[0]}-${pathConfig.assets[1]}`,
+                    pathName: pathConfig.path,
+                    type: 'alt-coin-triangular',
+                    bridge: pathConfig.bridge,
+                    assets: pathConfig.assets,
+                    setId: 'SET_20_ALT_COINS'
+                });
+            });
+
+            const totalSingleAssetPaths = 8 + zarExtendedPaths.length + usdtExtendedPaths.length + crossBridgePaths.length + volumeLeaderPaths.length + defiPaths.length + altCoinPaths.length;
 
             console.log(`🎯 Found ${triangularPaths.length} triangular arbitrage paths (48 pair-based + ${totalSingleAssetPaths} single-asset)`);
-            console.log(`   📊 Breakdown: ${48} pair-based + 5 ZAR singles + 3 USDT singles`);
+            console.log(`   📊 Breakdown: ${48} pair-based + 8 original singles + ${totalSingleAssetPaths - 8} new expanded singles`);
             console.log('\n📋 Available paths by asset:');
 
             // Group by asset for better display
@@ -31101,7 +31312,7 @@ ARB4ME Security Team`
 
                 // Update enabled sets from UI checkboxes
                 const enabledSets = [];
-                for (let i = 1; i <= 14; i++) {
+                for (let i = 1; i <= 20; i++) {
                     const checkbox = document.getElementById(`valrSet${i}Enabled`);
                     if (checkbox && checkbox.checked) {
                         enabledSets.push(i);
@@ -31138,6 +31349,12 @@ ARB4ME Security Team`
                         case 12: opportunities = await window.scanValrSet12Live(); break;
                         case 13: opportunities = await window.scanValrSet13Live(); break;
                         case 14: opportunities = await window.scanValrSet14Live(); break;
+                        case 15: opportunities = await window.scanValrSet15Live(); break;
+                        case 16: opportunities = await window.scanValrSet16Live(); break;
+                        case 17: opportunities = await window.scanValrSet17Live(); break;
+                        case 18: opportunities = await window.scanValrSet18Live(); break;
+                        case 19: opportunities = await window.scanValrSet19Live(); break;
+                        case 20: opportunities = await window.scanValrSet20Live(); break;
                         default:
                             console.log(`⚠️ Unknown set ${currentSetNumber}`);
                             opportunities = [];
