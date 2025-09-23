@@ -1,4 +1,4 @@
-DEPLOYMENT_TRIGGER=2025-09-23-rollback-button-fix
-COMMIT=rollback-wrong-button-approach
-FEATURES=triangular-arbitrage,valr-trading,rollback-button
+DEPLOYMENT_TRIGGER=2025-09-23-transfer-arb-integration
+COMMIT=integrate-transfer-arb-into-main-platform
+FEATURES=triangular-arbitrage,valr-trading,transfer-arb-integrated
 STATUS=ready-for-deployment
