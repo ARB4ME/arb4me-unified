@@ -1,4 +1,4 @@
-DEPLOYMENT_TRIGGER=2025-09-23-add-all-triangular-paths
-COMMIT=new-commit
-FEATURES=triangular-arbitrage,valr-trading,all-39-sets,19-new-assets
+DEPLOYMENT_TRIGGER=2025-09-23-rollback-test-debug-commit
+COMMIT=rollback-to-cda56d2
+FEATURES=triangular-arbitrage,valr-trading,rollback-test-2
 STATUS=ready-for-deployment
