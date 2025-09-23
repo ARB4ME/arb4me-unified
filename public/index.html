@@ -22678,6 +22678,21 @@ ARB4ME Security Team`
                         console.log('🔺 Content classes before:', tabContent.className);
                     }
                 }
+
+                // Special debug for transfer arb tab
+                if (tabName === 'transferarb') {
+                    console.log('📦 TRANSFER ARB DEBUG:');
+                    console.log('📦 Button selector: [data-tab="transferarb"]');
+                    console.log('📦 Button found:', !!tabButton);
+                    console.log('📦 Content selector: transferarbTab');
+                    console.log('📦 Content found:', !!tabContent);
+                    if (tabContent) {
+                        console.log('📦 Content element:', tabContent);
+                        console.log('📦 Content classes before:', tabContent.className);
+                    } else {
+                        console.log('❌ transferarbTab element not found!');
+                    }
+                }
                 
                 if (tabButton) {
                     tabButton.classList.add('active');
