@@ -1,4 +1,4 @@
-DEPLOYMENT_TRIGGER=2025-09-22-triangular-arbitrage-fixes
-COMMIT=2acfaaf
-FEATURES=triangular-arbitrage,valr-trading,set-fixes
+DEPLOYMENT_TRIGGER=2025-09-23-add-all-triangular-paths
+COMMIT=new-commit
+FEATURES=triangular-arbitrage,valr-trading,all-39-sets,19-new-assets
 STATUS=ready-for-deployment
