@@ -2491,7 +2491,7 @@
             </div>
             <div class="tab-row">
                 <button class="tab" data-tab="triangular">🔺 TRIANGULAR ARB</button>
-                <button class="tab disabled" style="opacity: 0.5; cursor: not-allowed;" onclick="alert('Transfer ARB page under development')">📦 TRANSFER ARB</button>
+                <button class="tab" data-tab="transfer">📦 TRANSFER ARB</button>
             </div>
         </div>
 
@@ -7244,6 +7244,74 @@
                         <p style="margin-bottom: 8px;">• <strong>Exception:</strong> Only use crypto transfer for very large imbalances ($50,000+ USDT)</p>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TRANSFER ARB Tab Content -->
+    <div id="transferTab" class="tab-content">
+        <h3 style="color: #00d4ff; margin-bottom: 15px;">📦 Transfer Arbitrage Management</h3>
+
+        <div style="margin-bottom: 20px; padding: 15px; background: rgba(255,165,0,0.1); border: 2px solid #ffa500; border-radius: 10px;">
+            <div style="font-size: 1.2rem; color: #ffa500; margin-bottom: 15px; font-weight: bold; text-align: center;">
+                🚀 TRANSFER ARB SYSTEM READY
+            </div>
+            <div style="color: #b8c6db; text-align: center;">
+                Physical arbitrage across exchanges - Buy low, transfer, sell high strategy
+            </div>
+        </div>
+
+        <div style="margin-bottom: 20px; padding: 15px; background: rgba(0,212,255,0.1); border-radius: 10px;">
+            <h4 style="color: #00d4ff; margin-bottom: 10px;">📊 Target Exchanges</h4>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px;">
+                <div style="padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; text-align: center;">
+                    <div style="font-size: 1.2rem; color: #ffa500; font-weight: bold;">Bybit</div>
+                    <div style="font-size: 0.8rem; color: #b8c6db;" id="bybitStatus">Checking...</div>
+                </div>
+                <div style="padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; text-align: center;">
+                    <div style="font-size: 1.2rem; color: #ffa500; font-weight: bold;">OKX</div>
+                    <div style="font-size: 0.8rem; color: #b8c6db;" id="okxStatus">Checking...</div>
+                </div>
+                <div style="padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; text-align: center;">
+                    <div style="font-size: 1.2rem; color: #ffa500; font-weight: bold;">MEXC</div>
+                    <div style="font-size: 0.8rem; color: #b8c6db;" id="mexcStatus">Checking...</div>
+                </div>
+                <div style="padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; text-align: center;">
+                    <div style="font-size: 1.2rem; color: #ffa500; font-weight: bold;">KuCoin</div>
+                    <div style="font-size: 0.8rem; color: #b8c6db;" id="kucoinStatus">Checking...</div>
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-bottom: 20px; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 10px;">
+            <h4 style="color: #00ff88; margin-bottom: 10px;">🎯 Strategy Overview</h4>
+            <ul style="color: #b8c6db; margin-left: 20px;">
+                <li>Scan for price differences across 4 exchanges</li>
+                <li>Buy asset on lower-priced exchange</li>
+                <li>Transfer asset to higher-priced exchange</li>
+                <li>Sell asset for profit</li>
+            </ul>
+        </div>
+
+        <div style="margin-bottom: 20px; padding: 15px; background: rgba(0,255,136,0.1); border-radius: 10px;">
+            <h4 style="color: #00ff88; margin-bottom: 10px;">🔧 Controls</h4>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                <button onclick="testTransferArbConnection()" class="btn">
+                    🔍 Test Connections
+                </button>
+                <button onclick="discoverTransferArbAssets()" class="btn">
+                    📋 Discover Assets
+                </button>
+                <button onclick="scanTransferArbOpportunities()" class="btn">
+                    ⚡ Scan Opportunities
+                </button>
+            </div>
+        </div>
+
+        <div id="transferArbResults" style="margin-bottom: 20px; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 10px;">
+            <h4 style="color: #ffff00; margin-bottom: 10px;">📊 Results</h4>
+            <div id="transferArbOutput" style="color: #b8c6db; font-family: monospace; white-space: pre-wrap;">
+Ready to scan for transfer arbitrage opportunities...
             </div>
         </div>
     </div>
@@ -32108,6 +32176,144 @@ ARB4ME Security Team`
         console.log('   • testVALRStable() - Test 4 stablecoin arbitrage paths');
         console.log('   • scanAllVALRSets() - View all 32 organized paths');
         console.log('✅ Ready for production triangular arbitrage!');
+
+        // =============================================================================
+        // TRANSFER ARBITRAGE FUNCTIONS
+        // =============================================================================
+
+        // Test connection to all 4 Transfer ARB exchanges
+        async function testTransferArbConnection() {
+            const output = document.getElementById('transferArbOutput');
+            output.textContent = '🔍 Testing connections to Transfer ARB exchanges...\n\n';
+
+            try {
+                const response = await fetch('/api/v1/transfer-arb/test-connection', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${state.token || ''}`
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    const connections = result.data;
+
+                    // Update status indicators
+                    document.getElementById('bybitStatus').textContent = connections.bybit.connected ? 'Connected' : 'Disconnected';
+                    document.getElementById('okxStatus').textContent = connections.okx.connected ? 'Connected' : 'Disconnected';
+                    document.getElementById('mexcStatus').textContent = connections.mexc.connected ? 'Connected' : 'Disconnected';
+                    document.getElementById('kucoinStatus').textContent = connections.kucoin.connected ? 'Connected' : 'Disconnected';
+
+                    // Update output
+                    output.textContent += '✅ Connection test completed!\n\n';
+                    output.textContent += `Bybit: ${connections.bybit.connected ? '✅ Connected' : '❌ Failed'}\n`;
+                    output.textContent += `OKX: ${connections.okx.connected ? '✅ Connected' : '❌ Failed'}\n`;
+                    output.textContent += `MEXC: ${connections.mexc.connected ? '✅ Connected' : '❌ Failed'}\n`;
+                    output.textContent += `KuCoin: ${connections.kucoin.connected ? '✅ Connected' : '❌ Failed'}\n`;
+                } else {
+                    output.textContent += `❌ Connection test failed: ${result.message}\n`;
+                }
+            } catch (error) {
+                output.textContent += `❌ Connection test error: ${error.message}\n`;
+                console.error('Transfer ARB connection test error:', error);
+            }
+        }
+
+        // Discover available assets across all exchanges
+        async function discoverTransferArbAssets() {
+            const output = document.getElementById('transferArbOutput');
+            output.textContent = '📋 Discovering assets across Transfer ARB exchanges...\n\n';
+
+            try {
+                const response = await fetch('/api/v1/transfer-arb/assets', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${state.token || ''}`
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    const assets = result.data;
+
+                    output.textContent += '✅ Asset discovery completed!\n\n';
+                    output.textContent += `Total common assets: ${assets.commonAssets.length}\n`;
+                    output.textContent += `Total trading pairs: ${assets.totalPairs}\n\n`;
+
+                    output.textContent += 'Exchange Summary:\n';
+                    output.textContent += `Bybit: ${assets.bybit.length} assets\n`;
+                    output.textContent += `OKX: ${assets.okx.length} assets\n`;
+                    output.textContent += `MEXC: ${assets.mexc.length} assets\n`;
+                    output.textContent += `KuCoin: ${assets.kucoin.length} assets\n`;
+                } else {
+                    output.textContent += `❌ Asset discovery failed: ${result.message}\n`;
+                }
+            } catch (error) {
+                output.textContent += `❌ Asset discovery error: ${error.message}\n`;
+                console.error('Transfer ARB asset discovery error:', error);
+            }
+        }
+
+        // Scan for transfer arbitrage opportunities
+        async function scanTransferArbOpportunities() {
+            const output = document.getElementById('transferArbOutput');
+            output.textContent = '⚡ Scanning for transfer arbitrage opportunities...\n\n';
+
+            try {
+                const response = await fetch('/api/v1/transfer-arb/scan', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${state.token || ''}`
+                    },
+                    body: JSON.stringify({
+                        asset: 'BTC',
+                        minProfit: 1.0
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    const scan = result.data;
+
+                    output.textContent += '✅ Opportunity scan completed!\n\n';
+                    output.textContent += `Scanned asset: ${scan.scannedAsset}\n`;
+                    output.textContent += `Min profit threshold: ${scan.minProfitThreshold}%\n`;
+                    output.textContent += `Opportunities found: ${scan.opportunitiesFound}\n\n`;
+
+                    if (scan.opportunities.length > 0) {
+                        output.textContent += 'Opportunities:\n';
+                        scan.opportunities.forEach((opp, index) => {
+                            output.textContent += `${index + 1}. ${opp.asset}: Buy ${opp.buyExchange} → Sell ${opp.sellExchange} (${opp.profit}% profit)\n`;
+                        });
+                    } else {
+                        output.textContent += 'No profitable opportunities found at this time.\n';
+                    }
+                } else {
+                    output.textContent += `❌ Opportunity scan failed: ${result.message}\n`;
+                }
+            } catch (error) {
+                output.textContent += `❌ Opportunity scan error: ${error.message}\n`;
+                console.error('Transfer ARB opportunity scan error:', error);
+            }
+        }
+
+        // Initialize Transfer ARB status on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set initial status
+            document.getElementById('bybitStatus').textContent = 'Ready';
+            document.getElementById('okxStatus').textContent = 'Ready';
+            document.getElementById('mexcStatus').textContent = 'Ready';
+            document.getElementById('kucoinStatus').textContent = 'Ready';
+
+            console.log('📦 Transfer ARB system initialized');
+        });
+
     </script>
 
     <!-- Crypto Asset Selection Confirmation Modal -->
