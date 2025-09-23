@@ -1,4 +1,4 @@
-DEPLOYMENT_TRIGGER=2025-09-23-rollback-test-debug-commit
-COMMIT=rollback-to-cda56d2
-FEATURES=triangular-arbitrage,valr-trading,rollback-test-2
+DEPLOYMENT_TRIGGER=2025-09-23-reconnect-transfer-arb-button
+COMMIT=reconnect-transfer-arb-to-separate-file
+FEATURES=triangular-arbitrage,valr-trading,transfer-arb-reconnection
 STATUS=ready-for-deployment
