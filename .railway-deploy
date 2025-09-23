@@ -1,4 +1,4 @@
-DEPLOYMENT_TRIGGER=2025-09-23-reconnect-transfer-arb-button
-COMMIT=reconnect-transfer-arb-to-separate-file
-FEATURES=triangular-arbitrage,valr-trading,transfer-arb-reconnection
+DEPLOYMENT_TRIGGER=2025-09-23-rollback-button-fix
+COMMIT=rollback-wrong-button-approach
+FEATURES=triangular-arbitrage,valr-trading,rollback-button
 STATUS=ready-for-deployment
