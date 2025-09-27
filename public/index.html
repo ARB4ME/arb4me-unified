@@ -2547,8 +2547,8 @@
 
                 <div class="strategy-toggle" style="cursor: pointer;" id="triangularPageButton">
                     <span class="strategy-label">🔺 Triangular ARB</span>
-                    <div class="toggle-switch" style="background: linear-gradient(45deg, #00d4ff, #00ff88); opacity: 1;">
-                        <div class="toggle-knob" style="left: 33px;"></div>
+                    <div class="toggle-switch" id="triangularPageToggle">
+                        <div class="toggle-knob"></div>
                     </div>
                 </div>
 
@@ -26664,6 +26664,12 @@ ARB4ME Security Team`
                         }
                     }
 
+                    // Turn off triangular toggle when switching to other tabs
+                    const triangularToggle = document.getElementById('triangularPageToggle');
+                    if (triangularToggle && clickedTabName !== 'triangular') {
+                        triangularToggle.classList.remove('active');
+                    }
+
                     switchTab(clickedTabName);
                 });
             });
@@ -26831,28 +26837,43 @@ ARB4ME Security Team`
             // NEW STRATEGY TOGGLES (Dashboard)
             document.getElementById('crossExchangeToggle').addEventListener('click', toggleCrossExchange);
             document.getElementById('triangularPageButton').addEventListener('click', function() {
-                console.log('🔺 Triangular ARB button clicked - opening triangular page...');
+                const toggleSwitch = document.getElementById('triangularPageToggle');
+                const isCurrentlyActive = toggleSwitch.classList.contains('active');
 
-                // Direct tab switch to triangular content
-                document.querySelectorAll('.tab-content').forEach(content => {
-                    content.classList.remove('active');
-                    content.style.display = 'none';
-                });
-                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                console.log('🔺 Triangular ARB button clicked, currently active:', isCurrentlyActive);
 
-                const triangularContent = document.getElementById('triangularTab');
-                const triangularTab = document.querySelector('[data-tab="triangular"]');
+                if (isCurrentlyActive) {
+                    // Turn OFF - return to dashboard
+                    toggleSwitch.classList.remove('active');
+                    console.log('🔺 Closing triangular page, returning to dashboard...');
+                    switchTab('dashboard');
+                    addActivity('🔺 Closed Triangular Arbitrage page', 'info');
+                } else {
+                    // Turn ON - open triangular page
+                    toggleSwitch.classList.add('active');
+                    console.log('🔺 Opening triangular page...');
 
-                if (triangularContent) {
-                    triangularContent.classList.add('active');
-                    triangularContent.style.display = 'block';
-                    console.log('✅ Triangular page opened successfully');
+                    // Switch to triangular tab
+                    document.querySelectorAll('.tab-content').forEach(content => {
+                        content.classList.remove('active');
+                        content.style.display = 'none';
+                    });
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+
+                    const triangularContent = document.getElementById('triangularTab');
+                    const triangularTab = document.querySelector('[data-tab="triangular"]');
+
+                    if (triangularContent) {
+                        triangularContent.classList.add('active');
+                        triangularContent.style.display = 'block';
+                        console.log('✅ Triangular page opened successfully');
+                    }
+                    if (triangularTab) {
+                        triangularTab.classList.add('active');
+                    }
+
+                    addActivity('🔺 Opened Triangular Arbitrage Management Page', 'info');
                 }
-                if (triangularTab) {
-                    triangularTab.classList.add('active');
-                }
-
-                addActivity('🔺 Opened Triangular Arbitrage Management Page', 'info');
             });
             document.getElementById('transferToggle').addEventListener('click', toggleTransfer);
             document.getElementById('currencySwapToggle').addEventListener('click', toggleCurrencySwap);
