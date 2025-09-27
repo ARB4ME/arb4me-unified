@@ -2533,7 +2533,6 @@
             <div class="tab-row">
                 <button class="tab" data-tab="profile">👤 Profile</button>
                 <button class="tab" data-tab="admin">👨‍💼 Admin</button>
-                <button class="tab" data-tab="triangular">🔺 Triangular</button>
                 <button class="tab" data-tab="arbinfo">📚 ARB INFO</button>
                 <button class="tab" data-tab="apiinfo">🔑 API INFO</button>
             </div>
@@ -26664,12 +26663,6 @@ ARB4ME Security Team`
                         }
                     }
 
-                    // Turn off triangular toggle when switching to other tabs
-                    const triangularToggle = document.getElementById('triangularPageToggle');
-                    if (triangularToggle && clickedTabName !== 'triangular') {
-                        triangularToggle.classList.remove('active');
-                    }
-
                     switchTab(clickedTabName);
                 });
             });
@@ -26840,20 +26833,20 @@ ARB4ME Security Team`
                 const toggleSwitch = document.getElementById('triangularPageToggle');
                 const isCurrentlyActive = toggleSwitch.classList.contains('active');
 
-                console.log('🔺 Triangular ARB button clicked, currently active:', isCurrentlyActive);
+                console.log('🔺 Triangular ARB toggle clicked, currently active:', isCurrentlyActive);
 
                 if (isCurrentlyActive) {
                     // Turn OFF - return to dashboard
                     toggleSwitch.classList.remove('active');
-                    console.log('🔺 Closing triangular page, returning to dashboard...');
+                    console.log('🔺 Triangular ARB toggle turned OFF, returning to dashboard...');
                     switchTab('dashboard');
-                    addActivity('🔺 Closed Triangular Arbitrage page', 'info');
+                    addActivity('🔺 Triangular ARB toggle turned OFF', 'info');
                 } else {
                     // Turn ON - open triangular page
                     toggleSwitch.classList.add('active');
-                    console.log('🔺 Opening triangular page...');
+                    console.log('🔺 Triangular ARB toggle turned ON, opening triangular page...');
 
-                    // Switch to triangular tab
+                    // Switch to triangular content
                     document.querySelectorAll('.tab-content').forEach(content => {
                         content.classList.remove('active');
                         content.style.display = 'none';
@@ -26861,18 +26854,14 @@ ARB4ME Security Team`
                     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
 
                     const triangularContent = document.getElementById('triangularTab');
-                    const triangularTab = document.querySelector('[data-tab="triangular"]');
 
                     if (triangularContent) {
                         triangularContent.classList.add('active');
                         triangularContent.style.display = 'block';
                         console.log('✅ Triangular page opened successfully');
                     }
-                    if (triangularTab) {
-                        triangularTab.classList.add('active');
-                    }
 
-                    addActivity('🔺 Opened Triangular Arbitrage Management Page', 'info');
+                    addActivity('🔺 Triangular ARB toggle turned ON - VALR page opened', 'info');
                 }
             });
             document.getElementById('transferToggle').addEventListener('click', toggleTransfer);
