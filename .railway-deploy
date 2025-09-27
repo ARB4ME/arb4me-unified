@@ -1,4 +1,4 @@
-DEPLOYMENT_TRIGGER=2025-09-23-transfer-arb-integration
-COMMIT=integrate-transfer-arb-into-main-platform
-FEATURES=triangular-arbitrage,valr-trading,transfer-arb-integrated
+DEPLOYMENT_TRIGGER=2025-09-24-emergency-rollback-css
+COMMIT=rollback-css-changes-broke-platform
+FEATURES=triangular-arbitrage,valr-trading,emergency-rollback
 STATUS=ready-for-deployment
