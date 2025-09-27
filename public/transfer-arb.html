@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transfer Arbitrage - ARB4ME</title>
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: transparent;
+            color: white;
+            padding: 20px;
+        }
+
+        .transfer-arb-container {
+            max-width: 100%;
+        }
+
+        h2 {
+            color: #ffa500;
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 2rem;
+        }
+
+        .subtitle {
+            color: #b8c6db;
+            font-size: 1.1rem;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            border-left: 4px solid #ffa500;
+        }
+
+        .card h3 {
+            color: #ffa500;
+            margin-bottom: 15px;
+        }
+
+        .status-text {
+            color: #00ff88;
+            font-size: 1.1rem;
+        }
+
+        .code-text {
+            background: rgba(0,0,0,0.3);
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #ffa500;
+            font-family: monospace;
+        }
+
+        .exchange-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .exchange-card {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            border: 2px solid #ffa500;
+        }
+
+        .exchange-card h4 {
+            color: #ffa500;
+            margin-bottom: 10px;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #ffa500, #ff8c00);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255,165,0,0.3);
+        }
+
+        .results {
+            background: rgba(0,0,0,0.3);
+            padding: 20px;
+            border-radius: 10px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            color: #b8c6db;
+            min-height: 200px;
+        }
+
+        .controls {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="transfer-arb-container">
+        <h2>📦 Transfer Arbitrage</h2>
+        <p class="subtitle">Physical arbitrage across exchanges - Buy low, transfer, sell high</p>
+
+        <div class="card">
+            <h3>🚀 System Status</h3>
+            <p class="status-text">✅ Transfer Arbitrage system ready</p>
+            <p style="color: #b8c6db; margin-top: 10px;">Connected to isolated backend at <span class="code-text">/api/v1/transfer-arb</span></p>
+        </div>
+
+        <div class="card">
+            <h3>📊 Target Exchanges</h3>
+            <div class="exchange-grid">
+                <div class="exchange-card">
+                    <h4>Bybit</h4>
+                    <div id="bybitStatus" style="color: #b8c6db;">Ready</div>
+                </div>
+                <div class="exchange-card">
+                    <h4>OKX</h4>
+                    <div id="okxStatus" style="color: #b8c6db;">Ready</div>
+                </div>
+                <div class="exchange-card">
+                    <h4>MEXC</h4>
+                    <div id="mexcStatus" style="color: #b8c6db;">Ready</div>
+                </div>
+                <div class="exchange-card">
+                    <h4>KuCoin</h4>
+                    <div id="kucoinStatus" style="color: #b8c6db;">Ready</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>🔧 Controls</h3>
+            <div class="controls">
+                <button class="btn" onclick="testConnections()">🔍 Test Connections</button>
+                <button class="btn" onclick="discoverAssets()">📋 Discover Assets</button>
+                <button class="btn" onclick="scanOpportunities()">⚡ Scan Opportunities</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>📊 Results</h3>
+            <div id="results" class="results">Ready to scan for transfer arbitrage opportunities...</div>
+        </div>
+    </div>
+
+    <script>
+        // Get auth token from parent window if available
+        function getAuthToken() {
+            try {
+                // Try to get from parent window's localStorage
+                if (window.parent && window.parent !== window) {
+                    return window.parent.localStorage.getItem('token');
+                }
+                return localStorage.getItem('token');
+            } catch (e) {
+                console.log('Could not access parent auth token:', e);
+                return localStorage.getItem('token');
+            }
+        }
+
+        // Test connections to all 4 Transfer ARB exchanges
+        async function testConnections() {
+            const results = document.getElementById('results');
+            results.textContent = '🔍 Testing connections to Transfer ARB exchanges...\n\n';
+
+            try {
+                const token = getAuthToken();
+                const headers = {
+                    'Content-Type': 'application/json'
+                };
+
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+
+                const response = await fetch('/api/v1/transfer-arb/test-connection', {
+                    method: 'POST',
+                    headers: headers
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    const connections = data.data;
+
+                    // Update status indicators
+                    document.getElementById('bybitStatus').textContent = connections.bybit.connected ? '✅ Connected' : '❌ Failed';
+                    document.getElementById('okxStatus').textContent = connections.okx.connected ? '✅ Connected' : '❌ Failed';
+                    document.getElementById('mexcStatus').textContent = connections.mexc.connected ? '✅ Connected' : '❌ Failed';
+                    document.getElementById('kucoinStatus').textContent = connections.kucoin.connected ? '✅ Connected' : '❌ Failed';
+
+                    // Update results
+                    results.textContent += '✅ Connection test completed!\n\n';
+                    results.textContent += `Bybit: ${connections.bybit.connected ? '✅ Connected' : '❌ Failed'}\n`;
+                    results.textContent += `OKX: ${connections.okx.connected ? '✅ Connected' : '❌ Failed'}\n`;
+                    results.textContent += `MEXC: ${connections.mexc.connected ? '✅ Connected' : '❌ Failed'}\n`;
+                    results.textContent += `KuCoin: ${connections.kucoin.connected ? '✅ Connected' : '❌ Failed'}\n`;
+                } else {
+                    results.textContent += `❌ Connection test failed: ${data.message}\n`;
+                }
+            } catch (error) {
+                results.textContent += `❌ Connection test error: ${error.message}\n`;
+                console.error('Transfer ARB connection test error:', error);
+            }
+        }
+
+        // Discover available assets across all exchanges
+        async function discoverAssets() {
+            const results = document.getElementById('results');
+            results.textContent = '📋 Discovering assets across Transfer ARB exchanges...\n\n';
+
+            try {
+                const token = getAuthToken();
+                const headers = {
+                    'Content-Type': 'application/json'
+                };
+
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+
+                const response = await fetch('/api/v1/transfer-arb/assets', {
+                    method: 'GET',
+                    headers: headers
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    const assets = data.data;
+
+                    results.textContent += '✅ Asset discovery completed!\n\n';
+                    results.textContent += `Total common assets: ${assets.commonAssets.length}\n`;
+                    results.textContent += `Total trading pairs: ${assets.totalPairs}\n\n`;
+
+                    results.textContent += 'Exchange Summary:\n';
+                    results.textContent += `Bybit: ${assets.bybit.length} assets\n`;
+                    results.textContent += `OKX: ${assets.okx.length} assets\n`;
+                    results.textContent += `MEXC: ${assets.mexc.length} assets\n`;
+                    results.textContent += `KuCoin: ${assets.kucoin.length} assets\n\n`;
+
+                    if (assets.commonAssets.length > 0) {
+                        results.textContent += 'Common Assets (available on 2+ exchanges):\n';
+                        results.textContent += assets.commonAssets.slice(0, 20).join(', ');
+                        if (assets.commonAssets.length > 20) {
+                            results.textContent += ` ... and ${assets.commonAssets.length - 20} more`;
+                        }
+                    }
+                } else {
+                    results.textContent += `❌ Asset discovery failed: ${data.message}\n`;
+                }
+            } catch (error) {
+                results.textContent += `❌ Asset discovery error: ${error.message}\n`;
+                console.error('Transfer ARB asset discovery error:', error);
+            }
+        }
+
+        // Scan for transfer arbitrage opportunities
+        async function scanOpportunities() {
+            const results = document.getElementById('results');
+            results.textContent = '⚡ Scanning for transfer arbitrage opportunities...\n\n';
+
+            try {
+                const token = getAuthToken();
+                const headers = {
+                    'Content-Type': 'application/json'
+                };
+
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+
+                const response = await fetch('/api/v1/transfer-arb/scan', {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify({
+                        asset: 'BTC',
+                        minProfit: 1.0
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    const scan = data.data;
+
+                    results.textContent += '✅ Opportunity scan completed!\n\n';
+                    results.textContent += `Scanned asset: ${scan.scannedAsset}\n`;
+                    results.textContent += `Min profit threshold: ${scan.minProfitThreshold}%\n`;
+                    results.textContent += `Opportunities found: ${scan.opportunitiesFound}\n\n`;
+
+                    if (scan.opportunities && scan.opportunities.length > 0) {
+                        results.textContent += 'Opportunities:\n';
+                        scan.opportunities.forEach((opp, index) => {
+                            results.textContent += `${index + 1}. ${opp.asset}: Buy ${opp.buyExchange} → Sell ${opp.sellExchange} (${opp.profit}% profit)\n`;
+                        });
+                    } else {
+                        results.textContent += 'No profitable opportunities found at this time.\n';
+                    }
+                } else {
+                    results.textContent += `❌ Opportunity scan failed: ${data.message}\n`;
+                }
+            } catch (error) {
+                results.textContent += `❌ Opportunity scan error: ${error.message}\n`;
+                console.error('Transfer ARB opportunity scan error:', error);
+            }
+        }
+
+        console.log('📦 Transfer Arbitrage system loaded - completely isolated in iframe');
+    </script>
+</body>
+</html>

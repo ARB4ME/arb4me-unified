@@ -7698,50 +7698,11 @@
 
     <!-- TRANSFER ARB Tab Content - ISOLATED LOCATION -->
     <div id="transferarbTab" class="tab-content">
-        <h2 style="color: #ffa500; text-align: center; margin-bottom: 30px;">📦 Transfer Arbitrage</h2>
-        <p style="color: #b8c6db; font-size: 1.1rem; text-align: center; margin-bottom: 30px;">Physical arbitrage across exchanges - Buy low, transfer, sell high</p>
-
-        <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px; border-left: 4px solid #ffa500;">
-            <h3 style="color: #ffa500; margin-bottom: 15px;">🚀 System Status</h3>
-            <p style="color: #00ff88; font-size: 1.1rem;">✅ Transfer Arbitrage system ready</p>
-            <p style="color: #b8c6db; margin-top: 10px;">Connected to isolated backend at <code>/api/v1/transfer-arb</code></p>
-        </div>
-
-        <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px; border-left: 4px solid #ffa500;">
-            <h3 style="color: #ffa500; margin-bottom: 15px;">📊 Target Exchanges</h3>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px 0;">
-                <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 10px; text-align: center; border: 2px solid #ffa500;">
-                    <h4 style="color: #ffa500; margin-bottom: 10px;">Bybit</h4>
-                    <div id="bybitStatus" style="color: #b8c6db;">Ready</div>
-                </div>
-                <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 10px; text-align: center; border: 2px solid #ffa500;">
-                    <h4 style="color: #ffa500; margin-bottom: 10px;">OKX</h4>
-                    <div id="okxStatus" style="color: #b8c6db;">Ready</div>
-                </div>
-                <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 10px; text-align: center; border: 2px solid #ffa500;">
-                    <h4 style="color: #ffa500; margin-bottom: 10px;">MEXC</h4>
-                    <div id="mexcStatus" style="color: #b8c6db;">Ready</div>
-                </div>
-                <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 10px; text-align: center; border: 2px solid #ffa500;">
-                    <h4 style="color: #ffa500; margin-bottom: 10px;">KuCoin</h4>
-                    <div id="kucoinStatus" style="color: #b8c6db;">Ready</div>
-                </div>
-            </div>
-        </div>
-
-        <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px; border-left: 4px solid #ffa500;">
-            <h3 style="color: #ffa500; margin-bottom: 15px;">🔧 Controls</h3>
-            <div style="text-align: center;">
-                <button onclick="testTransferArbConnections()" style="background: linear-gradient(45deg, #ffa500, #ff8c00); color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold; margin: 10px; transition: all 0.3s ease;">🔍 Test Connections</button>
-                <button onclick="discoverTransferArbAssets()" style="background: linear-gradient(45deg, #ffa500, #ff8c00); color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold; margin: 10px; transition: all 0.3s ease;">📋 Discover Assets</button>
-                <button onclick="scanTransferArbOpportunities()" style="background: linear-gradient(45deg, #ffa500, #ff8c00); color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold; margin: 10px; transition: all 0.3s ease;">⚡ Scan Opportunities</button>
-            </div>
-        </div>
-
-        <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px; border-left: 4px solid #ffa500;">
-            <h3 style="color: #ffa500; margin-bottom: 15px;">📊 Results</h3>
-            <div id="transferArbResults" style="background: rgba(0,0,0,0.3); padding: 20px; border-radius: 10px; font-family: monospace; white-space: pre-wrap; color: #b8c6db; min-height: 200px;">Ready to scan for transfer arbitrage opportunities...</div>
-        </div>
+        <iframe
+            src="/transfer-arb.html"
+            style="width: 100%; height: 800px; border: none; border-radius: 15px;"
+            id="transferArbIframe">
+        </iframe>
     </div>
 
     <!-- Triangular Arbitrage Management Tab -->

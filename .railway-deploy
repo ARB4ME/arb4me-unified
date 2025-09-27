@@ -1,4 +1,4 @@
-DEPLOYMENT_TRIGGER=2025-09-24-emergency-rollback-css
-COMMIT=rollback-css-changes-broke-platform
-FEATURES=triangular-arbitrage,valr-trading,emergency-rollback
+DEPLOYMENT_TRIGGER=2025-09-24-transfer-arb-iframe-solution
+COMMIT=implement-iframe-isolation-for-transfer-arb
+FEATURES=triangular-arbitrage,valr-trading,transfer-arb-iframe
 STATUS=ready-for-deployment
