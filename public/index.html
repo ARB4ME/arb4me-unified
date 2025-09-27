@@ -219,7 +219,46 @@
         }
         
         .toggle-switch.active .toggle-knob { left: 33px; }
-        
+
+        /* Strategy Selection Row Styling */
+        .strategy-selection-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+            padding: 20px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .strategy-toggle {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .strategy-toggle:hover {
+            background: rgba(255,255,255,0.15);
+            transform: translateY(-2px);
+        }
+
+        .strategy-label {
+            font-size: 0.9rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #b8c6db;
+        }
+
+        .strategy-toggle .toggle-switch {
+            margin: 0;
+        }
+
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -2489,8 +2528,34 @@
                 <button class="tab" data-tab="arbinfo">📚 ARB INFO</button>
                 <button class="tab" data-tab="apiinfo">🔑 API INFO</button>
             </div>
-            <div class="tab-row">
-                <button class="tab" data-tab="triangular">🔺 TRIANGULAR ARB</button>
+            <div class="strategy-selection-row">
+                <div class="strategy-toggle">
+                    <span class="strategy-label">Cross Exchange ARB</span>
+                    <div class="toggle-switch active" id="crossExchangeToggle">
+                        <div class="toggle-knob"></div>
+                    </div>
+                </div>
+
+                <div class="strategy-toggle">
+                    <span class="strategy-label">🔺 Triangular ARB</span>
+                    <div class="toggle-switch" id="triangularToggle">
+                        <div class="toggle-knob"></div>
+                    </div>
+                </div>
+
+                <div class="strategy-toggle">
+                    <span class="strategy-label">📦 Transfer ARB</span>
+                    <div class="toggle-switch" id="transferToggle">
+                        <div class="toggle-knob"></div>
+                    </div>
+                </div>
+
+                <div class="strategy-toggle">
+                    <span class="strategy-label">💱 Currency Swap ARB</span>
+                    <div class="toggle-switch" id="currencySwapToggle">
+                        <div class="toggle-knob"></div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -23038,6 +23103,94 @@ ARB4ME Security Team`
             }
         }
 
+        // NEW STRATEGY TOGGLE FUNCTIONS
+        function toggleCrossExchange() {
+            console.log('Toggle cross-exchange strategy clicked');
+            state.strategies.crossExchange = !state.strategies.crossExchange;
+            updateStrategyUI('crossExchange');
+            saveStrategyPreferences();
+
+            if (state.strategies.crossExchange) {
+                addActivity('✅ Cross-Exchange ARB enabled - monitoring price differences between exchanges', 'success');
+            } else {
+                addActivity('⏸️ Cross-Exchange ARB disabled', 'warning');
+            }
+        }
+
+        function toggleTriangularStrategy() {
+            console.log('Toggle triangular strategy clicked');
+            state.strategies.triangular = !state.strategies.triangular;
+            updateStrategyUI('triangular');
+            saveStrategyPreferences();
+
+            if (state.strategies.triangular) {
+                addActivity('🔺 Triangular ARB enabled - monitoring single-exchange triangular paths', 'success');
+            } else {
+                addActivity('⏸️ Triangular ARB disabled', 'warning');
+            }
+        }
+
+        function toggleTransfer() {
+            console.log('Toggle transfer strategy clicked');
+            state.strategies.transfer = !state.strategies.transfer;
+            updateStrategyUI('transfer');
+            saveStrategyPreferences();
+
+            if (state.strategies.transfer) {
+                addActivity('📦 Transfer ARB enabled - physical arbitrage between exchanges', 'success');
+            } else {
+                addActivity('⏸️ Transfer ARB disabled', 'warning');
+            }
+        }
+
+        function toggleCurrencySwap() {
+            console.log('Toggle currency swap strategy clicked');
+            state.strategies.currencySwap = !state.strategies.currencySwap;
+            updateStrategyUI('currencySwap');
+            saveStrategyPreferences();
+
+            if (state.strategies.currencySwap) {
+                addActivity('💱 Currency Swap ARB enabled - fiat currency arbitrage', 'success');
+            } else {
+                addActivity('⏸️ Currency Swap ARB disabled', 'warning');
+            }
+        }
+
+        // Update strategy UI based on state
+        function updateStrategyUI(strategy) {
+            const toggle = document.getElementById(`${strategy}Toggle`);
+            if (toggle) {
+                if (state.strategies[strategy]) {
+                    toggle.classList.add('active');
+                } else {
+                    toggle.classList.remove('active');
+                }
+            }
+        }
+
+        // Save strategy preferences to localStorage
+        function saveStrategyPreferences() {
+            localStorage.setItem('arb4me_strategies', JSON.stringify(state.strategies));
+        }
+
+        // Load strategy preferences from localStorage
+        function loadStrategyPreferences() {
+            const saved = localStorage.getItem('arb4me_strategies');
+            if (saved) {
+                try {
+                    const savedStrategies = JSON.parse(saved);
+                    Object.assign(state.strategies, savedStrategies);
+
+                    // Update UI for all strategies
+                    Object.keys(state.strategies).forEach(strategy => {
+                        updateStrategyUI(strategy);
+                    });
+                } catch (e) {
+                    console.warn('Could not load strategy preferences:', e);
+                }
+            }
+        }
+
         // Check triangular arbitrage requirements
         function checkTriangularRequirements() {
             const connectedExchanges = Object.keys(state.exchanges).filter(ex => state.exchanges[ex].connected);
@@ -26574,10 +26727,16 @@ ARB4ME Security Team`
             
             // Auto-trading toggle (ENHANCED with failure checking)
             document.getElementById('autoTradingToggle').addEventListener('click', toggleAutoTrading);
-            
-            // Triangular arbitrage toggle
+
+            // Triangular arbitrage toggle (HEADER - to be removed in Phase 4)
             document.getElementById('triangularTradingToggle').addEventListener('click', toggleTriangularArbitrage);
-            
+
+            // NEW STRATEGY TOGGLES (Dashboard)
+            document.getElementById('crossExchangeToggle').addEventListener('click', toggleCrossExchange);
+            document.getElementById('triangularToggle').addEventListener('click', toggleTriangularStrategy);
+            document.getElementById('transferToggle').addEventListener('click', toggleTransfer);
+            document.getElementById('currencySwapToggle').addEventListener('click', toggleCurrencySwap);
+
             // Connect buttons
             document.getElementById('valrConnectBtn').addEventListener('click', () => connectExchange('valr'));
             document.getElementById('lunoConnectBtn').addEventListener('click', () => connectExchange('luno'));
