@@ -23614,7 +23614,6 @@ ARB4ME Security Team`
                 
                 // Step 1
                 console.log(`Step 1: ${pathSteps[0]} → ${pathSteps[1]}`);
-                const triangularEnabled = state.triangularArbitrage || state.strategies.triangular;
                 if (!triangularEnabled) {
                     console.log('⛔ Triangular arbitrage toggled OFF during Step 1 - aborting');
                     return;
@@ -23677,8 +23676,7 @@ ARB4ME Security Team`
                 
                 // Step 2: BTC → ETH (Trade BTC for ETH)
                 console.log(`Step 2: ${currentAsset} → ETH`);
-                const triangularEnabled2 = state.triangularArbitrage || state.strategies.triangular;
-                if (!triangularEnabled2) {
+                if (!triangularEnabled) {
                     console.log('⛔ Triangular arbitrage toggled OFF during Step 2 - aborting');
                     // TODO: Implement rollback for Step 1
                     return;
@@ -23709,8 +23707,7 @@ ARB4ME Security Team`
                 
                 // Step 3: ETH → USDT (Sell ETH for USDT)
                 console.log(`Step 3: ${currentAsset} → USDT`);
-                const triangularEnabled3 = state.triangularArbitrage || state.strategies.triangular;
-                if (!triangularEnabled3) {
+                if (!triangularEnabled) {
                     console.log('⛔ Triangular arbitrage toggled OFF during Step 3 - aborting');
                     // TODO: Implement rollback for Steps 1 and 2
                     return;
