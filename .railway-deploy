@@ -1,4 +1,4 @@
-DEPLOYMENT_TRIGGER=2025-09-27-phase3-scanning-integration
-COMMIT=phase3-strategy-scanning-logic
-FEATURES=triangular-arbitrage,valr-trading,multi-strategy-backend,4-strategy-dashboard-ui,strategy-scanning-integration
+DEPLOYMENT_TRIGGER=2025-09-27-phase4-header-cleanup
+COMMIT=phase4-remove-header-toggle
+FEATURES=triangular-arbitrage,valr-trading,multi-strategy-backend,4-strategy-dashboard-ui,strategy-scanning-integration,clean-header-interface
 STATUS=ready-for-deployment

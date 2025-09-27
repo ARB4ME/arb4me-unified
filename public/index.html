@@ -2515,13 +2515,6 @@
             <span id="tradingStatus" style="color: #b8c6db;">⚠️ REAL MONEY MODE - Start with small amounts!</span>
         </div>
 
-        <div class="toggle-container" style="margin-top: 15px;">
-            <span id="triangularToggleLabel" style="font-size: 1.1rem; font-weight: bold;">🔺 Triangular Arbitrage: OFF</span>
-            <div class="toggle-switch" id="triangularTradingToggle">
-                <div class="toggle-knob"></div>
-            </div>
-            <span id="triangularStatus" style="color: #b8c6db;">💎 Single-exchange arbitrage - Lower funding requirements</span>
-        </div>
 
         <div class="tabs">
             <div class="tab-row">
@@ -23067,56 +23060,6 @@ ARB4ME Security Team`
             }
         }
 
-        // Triangular Arbitrage Toggle Function
-        function toggleTriangularArbitrage() {
-            console.log('Toggle triangular arbitrage clicked');
-            
-            // Check if user is trying to turn ON triangular arbitrage
-            if (!state.triangularArbitrage) {
-                // Check subscription status
-                if (!enforceSubscriptionLimits()) {
-                    addActivity('❌ Cannot start triangular arbitrage: subscription expired', 'error');
-                    openBillingDashboard();
-                    return;
-                }
-                
-                // Check if at least one exchange is connected and funded
-                const triangularRequirements = checkTriangularRequirements();
-                if (!triangularRequirements.canTrade) {
-                    addActivity(`❌ Triangular arbitrage requirements not met: ${triangularRequirements.reason}`, 'error');
-                    return;
-                }
-                
-                addActivity('🔺 Triangular arbitrage requirements met! Starting...', 'success');
-            }
-
-            // Toggle the state
-            state.triangularArbitrage = !state.triangularArbitrage;
-            
-            const toggle = document.getElementById('triangularTradingToggle');
-            const label = document.getElementById('triangularToggleLabel');
-            const status = document.getElementById('triangularStatus');
-            
-            if (state.triangularArbitrage) {
-                toggle.classList.add('active');
-                label.textContent = '🔺 Triangular Arbitrage: ON';
-                label.style.color = '#00ff88';
-                status.textContent = `Scanning triangular paths on connected exchanges`;
-                status.style.color = '#00ff88';
-                
-                startTriangularScanning();
-                addActivity('🔺 Triangular arbitrage enabled - monitoring single-exchange opportunities', 'success');
-            } else {
-                toggle.classList.remove('active');
-                label.textContent = '🔺 Triangular Arbitrage: OFF';
-                label.style.color = 'white';
-                status.textContent = '💎 Single-exchange arbitrage - Lower funding requirements';
-                status.style.color = '#b8c6db';
-                
-                stopTriangularScanning();
-                addActivity('⏸️ Triangular arbitrage disabled', 'warning');
-            }
-        }
 
         // NEW STRATEGY TOGGLE FUNCTIONS
         function toggleCrossExchange() {
@@ -23134,13 +23077,38 @@ ARB4ME Security Team`
 
         function toggleTriangularStrategy() {
             console.log('Toggle triangular strategy clicked');
+
+            // Check if user is trying to turn ON triangular arbitrage
+            if (!state.strategies.triangular) {
+                // Check subscription status
+                if (!enforceSubscriptionLimits()) {
+                    addActivity('❌ Cannot start triangular arbitrage: subscription expired', 'error');
+                    openBillingDashboard();
+                    return;
+                }
+
+                // Check if at least one exchange is connected and funded
+                const triangularRequirements = checkTriangularRequirements();
+                if (!triangularRequirements.canTrade) {
+                    addActivity(`❌ Triangular arbitrage requirements not met: ${triangularRequirements.reason}`, 'error');
+                    return;
+                }
+
+                addActivity('🔺 Triangular arbitrage requirements met! Starting...', 'success');
+            }
+
+            // Toggle the state
             state.strategies.triangular = !state.strategies.triangular;
+            // Sync with old state for backward compatibility
+            state.triangularArbitrage = state.strategies.triangular;
             updateStrategyUI('triangular');
             saveStrategyPreferences();
 
             if (state.strategies.triangular) {
+                startTriangularScanning();
                 addActivity('🔺 Triangular ARB enabled - monitoring single-exchange triangular paths', 'success');
             } else {
+                stopTriangularScanning();
                 addActivity('⏸️ Triangular ARB disabled', 'warning');
             }
         }
@@ -26776,8 +26744,6 @@ ARB4ME Security Team`
             // Auto-trading toggle (ENHANCED with failure checking)
             document.getElementById('autoTradingToggle').addEventListener('click', toggleAutoTrading);
 
-            // Triangular arbitrage toggle (HEADER - to be removed in Phase 4)
-            document.getElementById('triangularTradingToggle').addEventListener('click', toggleTriangularArbitrage);
 
             // NEW STRATEGY TOGGLES (Dashboard)
             document.getElementById('crossExchangeToggle').addEventListener('click', toggleCrossExchange);
