@@ -22462,6 +22462,12 @@ ARB4ME Security Team`
         const state = {
             autoTrading: false,
             triangularArbitrage: false,
+            strategies: {
+                crossExchange: true,      // Default ON (current behavior)
+                triangular: false,        // Will replace triangularArbitrage
+                transfer: false,          // New strategy
+                currencySwap: false       // New strategy
+            },
             exchanges: {
                 valr: { connected: false, api: null, credentials: null },
                 luno: { connected: false, api: null, credentials: null },
@@ -25868,14 +25874,28 @@ ARB4ME Security Team`
                 }
             }
             
-            // PHASE 1B: Sequential triangular arbitrage scanning ONLY if triangular toggle is ON
-            if (state.triangularArbitrage) {
+            // PHASE 1B: Sequential triangular arbitrage scanning (NEW MULTI-STRATEGY LOGIC)
+            // Check both old and new toggle systems for compatibility during transition
+            const triangularEnabled = state.triangularArbitrage || state.strategies.triangular;
+            if (triangularEnabled) {
                 const triangularOpportunities = await scanTriangularSequentially(connectedExchanges);
                 if (triangularOpportunities && triangularOpportunities.length > 0) {
                     opportunities.push(...triangularOpportunities);
                 }
             } else {
                 console.log('⏭️ Triangular arbitrage scanning skipped (toggle is OFF)');
+            }
+
+            // PHASE 1C: Transfer arbitrage scanning (PLACEHOLDER)
+            if (state.strategies.transfer) {
+                console.log('🔄 Transfer arbitrage scanning (not yet implemented)');
+                // TODO: const transferOpportunities = await scanTransferArbitrage(connectedExchanges);
+            }
+
+            // PHASE 1D: Currency swap arbitrage scanning (PLACEHOLDER)
+            if (state.strategies.currencySwap) {
+                console.log('💱 Currency swap arbitrage scanning (not yet implemented)');
+                // TODO: const swapOpportunities = await scanCurrencySwapArbitrage(connectedExchanges);
             }
             
             return opportunities;

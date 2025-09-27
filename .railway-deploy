@@ -1,4 +1,4 @@
-DEPLOYMENT_TRIGGER=2025-09-24-clean-transfer-arb-removal
-COMMIT=manual-cleanup-remove-all-transfer-arb
-FEATURES=triangular-arbitrage,valr-trading,clean-platform
+DEPLOYMENT_TRIGGER=2025-09-24-phase1-multi-strategy-backend
+COMMIT=phase1-backend-state-architecture
+FEATURES=triangular-arbitrage,valr-trading,multi-strategy-backend
 STATUS=ready-for-deployment
