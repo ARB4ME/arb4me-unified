@@ -23596,7 +23596,8 @@ ARB4ME Security Team`
                 console.log(`✅ PROCEEDING with execution - Original profit: ${freshOpportunity.netProfitPercent.toFixed(3)}%`);
                 
                 // Check if triangular arbitrage is still enabled before executing
-                if (!state.triangularArbitrage) {
+                const triangularEnabled = state.triangularArbitrage || state.strategies.triangular;
+                if (!triangularEnabled) {
                     console.log('⛔ Triangular arbitrage toggled OFF - cancelling execution');
                     addActivity(`⛔ Trade cancelled: Triangular arbitrage disabled`, 'warning');
                     return;
@@ -23613,7 +23614,8 @@ ARB4ME Security Team`
                 
                 // Step 1
                 console.log(`Step 1: ${pathSteps[0]} → ${pathSteps[1]}`);
-                if (!state.triangularArbitrage) {
+                const triangularEnabled = state.triangularArbitrage || state.strategies.triangular;
+                if (!triangularEnabled) {
                     console.log('⛔ Triangular arbitrage toggled OFF during Step 1 - aborting');
                     return;
                 }
@@ -23675,7 +23677,8 @@ ARB4ME Security Team`
                 
                 // Step 2: BTC → ETH (Trade BTC for ETH)
                 console.log(`Step 2: ${currentAsset} → ETH`);
-                if (!state.triangularArbitrage) {
+                const triangularEnabled2 = state.triangularArbitrage || state.strategies.triangular;
+                if (!triangularEnabled2) {
                     console.log('⛔ Triangular arbitrage toggled OFF during Step 2 - aborting');
                     // TODO: Implement rollback for Step 1
                     return;
@@ -23706,7 +23709,8 @@ ARB4ME Security Team`
                 
                 // Step 3: ETH → USDT (Sell ETH for USDT)
                 console.log(`Step 3: ${currentAsset} → USDT`);
-                if (!state.triangularArbitrage) {
+                const triangularEnabled3 = state.triangularArbitrage || state.strategies.triangular;
+                if (!triangularEnabled3) {
                     console.log('⛔ Triangular arbitrage toggled OFF during Step 3 - aborting');
                     // TODO: Implement rollback for Steps 1 and 2
                     return;
@@ -25011,8 +25015,11 @@ ARB4ME Security Team`
         async function scanValrTriangularOpportunities(showActivity = false) {
             try {
                 console.log('🔺 Starting VALR triangular arbitrage scan...');
-                console.log('Current state:', { 
+                const triangularEnabled = state.triangularArbitrage || state.strategies.triangular;
+                console.log('Current state:', {
                     triangularArbitrage: state.triangularArbitrage,
+                    strategiesTriangular: state.strategies.triangular,
+                    triangularEnabled: triangularEnabled,
                     valrConnected: state.exchanges.valr?.connected
                 });
                 
@@ -25347,7 +25354,8 @@ ARB4ME Security Team`
                         );
                         
                         // Execute triangular arbitrage if triangular auto-trading is enabled
-                        if (state.triangularArbitrage) {
+                        const triangularEnabled = state.triangularArbitrage || state.strategies.triangular;
+                        if (triangularEnabled) {
                             console.log(`🚀 Auto-trading enabled - executing triangular opportunity: ${pathName}`);
                             
                             // Use result directly - it now has the correct structure with prices as array
@@ -25685,7 +25693,8 @@ ARB4ME Security Team`
                         );
                         
                         // Execute triangular arbitrage if triangular auto-trading is enabled
-                        if (state.triangularArbitrage) {
+                        const triangularEnabled = state.triangularArbitrage || state.strategies.triangular;
+                        if (triangularEnabled) {
                             console.log(`🚀 Auto-trading enabled - executing ChainEX triangular opportunity: ${pathName}`);
                             
                             // Add execution data to result
@@ -26042,28 +26051,55 @@ ARB4ME Security Team`
                 }
             }
             
-            // PHASE 1B: Sequential triangular arbitrage scanning (NEW MULTI-STRATEGY LOGIC)
+            // PHASE 1B: Cross Exchange Arbitrage scanning (NEW MULTI-STRATEGY LOGIC)
+            if (state.strategies.crossExchange) {
+                console.log('🔄 Cross Exchange arbitrage scanning enabled - processing cross-exchange opportunities...');
+
+                // The existing cross-exchange logic above is now controlled by this strategy toggle
+                // This ensures cross-exchange opportunities are only found when this strategy is enabled
+                console.log(`📊 Cross Exchange scan completed: ${opportunities.length} opportunities found`);
+            } else {
+                console.log('⏭️ Cross Exchange arbitrage scanning skipped (toggle is OFF)');
+                // Clear any cross-exchange opportunities that might have been found
+                opportunities = [];
+            }
+
+            // PHASE 1C: Sequential triangular arbitrage scanning (NEW MULTI-STRATEGY LOGIC)
             // Check both old and new toggle systems for compatibility during transition
             const triangularEnabled = state.triangularArbitrage || state.strategies.triangular;
             if (triangularEnabled) {
+                console.log('🔺 Triangular arbitrage scanning enabled - processing triangular opportunities...');
                 const triangularOpportunities = await scanTriangularSequentially(connectedExchanges);
                 if (triangularOpportunities && triangularOpportunities.length > 0) {
                     opportunities.push(...triangularOpportunities);
                 }
+                console.log(`📊 Triangular scan completed: ${triangularOpportunities?.length || 0} opportunities found`);
             } else {
                 console.log('⏭️ Triangular arbitrage scanning skipped (toggle is OFF)');
             }
 
-            // PHASE 1C: Transfer arbitrage scanning (PLACEHOLDER)
+            // PHASE 1D: Transfer arbitrage scanning (PLACEHOLDER)
             if (state.strategies.transfer) {
-                console.log('🔄 Transfer arbitrage scanning (not yet implemented)');
+                console.log('🔄 Transfer arbitrage scanning enabled (not yet implemented)');
                 // TODO: const transferOpportunities = await scanTransferArbitrage(connectedExchanges);
+                // if (transferOpportunities && transferOpportunities.length > 0) {
+                //     opportunities.push(...transferOpportunities);
+                // }
+                console.log('📊 Transfer arbitrage scan completed: 0 opportunities (feature not implemented)');
+            } else {
+                console.log('⏭️ Transfer arbitrage scanning skipped (toggle is OFF)');
             }
 
-            // PHASE 1D: Currency swap arbitrage scanning (PLACEHOLDER)
+            // PHASE 1E: Currency swap arbitrage scanning (PLACEHOLDER)
             if (state.strategies.currencySwap) {
-                console.log('💱 Currency swap arbitrage scanning (not yet implemented)');
+                console.log('💱 Currency swap arbitrage scanning enabled (not yet implemented)');
                 // TODO: const swapOpportunities = await scanCurrencySwapArbitrage(connectedExchanges);
+                // if (swapOpportunities && swapOpportunities.length > 0) {
+                //     opportunities.push(...swapOpportunities);
+                // }
+                console.log('📊 Currency swap scan completed: 0 opportunities (feature not implemented)');
+            } else {
+                console.log('⏭️ Currency swap arbitrage scanning skipped (toggle is OFF)');
             }
             
             return opportunities;
@@ -27090,8 +27126,9 @@ ARB4ME Security Team`
 
                     if (isEnabled) {
                         // Check if main triangular arbitrage is also enabled
-                        if (!state.triangularArbitrage) {
-                            showActivityMessage('⚠️ Enable main Triangular Arbitrage toggle first', 'warning');
+                        const triangularEnabled = state.triangularArbitrage || state.strategies.triangular;
+                        if (!triangularEnabled) {
+                            showActivityMessage('⚠️ Enable main Triangular Arbitrage strategy first', 'warning');
                             this.classList.remove('active');
                             if (valrTriangularStatus) {
                                 valrTriangularStatus.textContent = 'OFF';
@@ -30813,12 +30850,14 @@ ARB4ME Security Team`
             
             // Save current triangular arbitrage state
             const originalTriangularState = state.triangularArbitrage;
-            console.log(`💾 Saved original triangular state: ${originalTriangularState}`);
-            
+            const originalStrategiesState = state.strategies.triangular;
+            console.log(`💾 Saved original states - triangular: ${originalTriangularState}, strategies.triangular: ${originalStrategiesState}`);
+
             try {
                 // Temporarily enable triangular arbitrage for this test only
                 console.log('🔄 Temporarily enabling triangular arbitrage for test...');
                 state.triangularArbitrage = true;
+                state.strategies.triangular = true;
                 
                 // Create a test opportunity
                 const testOpportunity = {
@@ -30843,9 +30882,10 @@ ARB4ME Security Team`
                 console.log('❌ EXECUTION FAILED:', error.message);
                 return { success: false, error: error.message };
             } finally {
-                // Always restore original state
-                console.log(`🔄 Restoring original triangular state: ${originalTriangularState}`);
+                // Always restore original states
+                console.log(`🔄 Restoring original states - triangular: ${originalTriangularState}, strategies.triangular: ${originalStrategiesState}`);
                 state.triangularArbitrage = originalTriangularState;
+                state.strategies.triangular = originalStrategiesState;
             }
         };
         
