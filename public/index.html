@@ -2491,7 +2491,6 @@
             </div>
             <div class="tab-row">
                 <button class="tab" data-tab="triangular">🔺 TRIANGULAR ARB</button>
-                <button class="tab" data-tab="transferarb">📦 TRANSFER ARB</button>
             </div>
         </div>
 
@@ -7694,15 +7693,6 @@
                     <p style="margin-bottom: 10px;">🗑️ <strong>Delete unused</strong> API keys immediately</p>
                     <p style="margin-bottom: 10px;">💾 <strong>Backup keys</strong> in encrypted password manager only</p>
                 </div>
-    </div>
-
-    <!-- TRANSFER ARB Tab Content - ISOLATED LOCATION -->
-    <div id="transferarbTab" class="tab-content">
-        <iframe
-            src="/transfer-arb.html"
-            style="width: 100%; height: 800px; border: none; border-radius: 15px;"
-            id="transferArbIframe">
-        </iframe>
     </div>
 
     <!-- Triangular Arbitrage Management Tab -->
@@ -22671,20 +22661,6 @@ ARB4ME Security Team`
                     }
                 }
 
-                // Special debug for transfer arb tab
-                if (tabName === 'transferarb') {
-                    console.log('📦 TRANSFER ARB DEBUG:');
-                    console.log('📦 Button selector: [data-tab="transferarb"]');
-                    console.log('📦 Button found:', !!tabButton);
-                    console.log('📦 Content selector: transferarbTab');
-                    console.log('📦 Content found:', !!tabContent);
-                    if (tabContent) {
-                        console.log('📦 Content element:', tabContent);
-                        console.log('📦 Content classes before:', tabContent.className);
-                    } else {
-                        console.log('❌ transferarbTab element not found!');
-                    }
-                }
                 
                 if (tabButton) {
                     tabButton.classList.add('active');

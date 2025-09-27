@@ -1,4 +1,4 @@
-DEPLOYMENT_TRIGGER=2025-09-24-transfer-arb-iframe-solution
-COMMIT=implement-iframe-isolation-for-transfer-arb
-FEATURES=triangular-arbitrage,valr-trading,transfer-arb-iframe
+DEPLOYMENT_TRIGGER=2025-09-24-clean-transfer-arb-removal
+COMMIT=manual-cleanup-remove-all-transfer-arb
+FEATURES=triangular-arbitrage,valr-trading,clean-platform
 STATUS=ready-for-deployment
