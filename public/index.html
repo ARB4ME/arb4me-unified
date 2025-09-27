@@ -26633,16 +26633,37 @@ ARB4ME Security Team`
                 console.log(`Setting up tab ${index}: ${tabName}`);
                 tab.addEventListener('click', function(e) {
                     e.preventDefault();
+                    e.stopPropagation();
                     const clickedTabName = this.getAttribute('data-tab');
                     console.log(`🔺 Tab clicked: ${clickedTabName}`);
-                    
-                    // Special debug for triangular tab
+
+                    // Special debug and force for triangular tab
                     if (clickedTabName === 'triangular') {
-                        console.log('🔺 Triangular tab clicked - checking elements...');
+                        console.log('🔺 Triangular tab clicked - forcing switch...');
                         const triangularContent = document.getElementById('triangularTab');
                         console.log('🔺 Triangular content element:', triangularContent ? 'FOUND' : 'NOT FOUND');
+
+                        // Force triangular tab to work
+                        if (triangularContent) {
+                            // Hide all other tab content
+                            document.querySelectorAll('.tab-content').forEach(content => {
+                                content.classList.remove('active');
+                                content.style.display = 'none';
+                            });
+
+                            // Remove active from all tabs
+                            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+
+                            // Show triangular content
+                            triangularContent.classList.add('active');
+                            triangularContent.style.display = 'block';
+                            this.classList.add('active');
+
+                            console.log('🔺 FORCED triangular tab to display');
+                            return;
+                        }
                     }
-                    
+
                     switchTab(clickedTabName);
                 });
             });
