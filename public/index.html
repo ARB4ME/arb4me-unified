@@ -26583,13 +26583,17 @@ ARB4ME Security Team`
         // Event Listeners
         document.addEventListener('DOMContentLoaded', async function() {
             console.log('🚀 DOM loaded, initializing ARB4ME...');
-            
+
+            // Load saved strategy preferences first
+            loadStrategyPreferences();
+            console.log('📂 Strategy preferences loaded:', state.strategies);
+
             // Force logout button visibility immediately
             setTimeout(forceLogoutButtonVisibility, 50);
             setTimeout(forceLogoutButtonVisibility, 200);
             setTimeout(forceLogoutButtonVisibility, 500);
             setTimeout(forceLogoutButtonVisibility, 1000);
-            
+
             // Check authentication status on page load
             await checkAuthenticationStatus();
             
