@@ -2545,10 +2545,10 @@
                     </div>
                 </div>
 
-                <div class="strategy-toggle">
+                <div class="strategy-toggle" style="cursor: pointer;" id="triangularPageButton">
                     <span class="strategy-label">🔺 Triangular ARB</span>
-                    <div class="toggle-switch" id="triangularToggle">
-                        <div class="toggle-knob"></div>
+                    <div class="toggle-switch" style="background: linear-gradient(45deg, #00d4ff, #00ff88); opacity: 1;">
+                        <div class="toggle-knob" style="left: 33px;"></div>
                     </div>
                 </div>
 
@@ -26830,7 +26830,30 @@ ARB4ME Security Team`
 
             // NEW STRATEGY TOGGLES (Dashboard)
             document.getElementById('crossExchangeToggle').addEventListener('click', toggleCrossExchange);
-            document.getElementById('triangularToggle').addEventListener('click', toggleTriangularStrategy);
+            document.getElementById('triangularPageButton').addEventListener('click', function() {
+                console.log('🔺 Triangular ARB button clicked - opening triangular page...');
+
+                // Direct tab switch to triangular content
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.remove('active');
+                    content.style.display = 'none';
+                });
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+
+                const triangularContent = document.getElementById('triangularTab');
+                const triangularTab = document.querySelector('[data-tab="triangular"]');
+
+                if (triangularContent) {
+                    triangularContent.classList.add('active');
+                    triangularContent.style.display = 'block';
+                    console.log('✅ Triangular page opened successfully');
+                }
+                if (triangularTab) {
+                    triangularTab.classList.add('active');
+                }
+
+                addActivity('🔺 Opened Triangular Arbitrage Management Page', 'info');
+            });
             document.getElementById('transferToggle').addEventListener('click', toggleTransfer);
             document.getElementById('currencySwapToggle').addEventListener('click', toggleCurrencySwap);
 
