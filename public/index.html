@@ -26681,12 +26681,69 @@ ARB4ME Security Team`
             console.log('🔺 Triangular content found:', !!triangularContent);
             if (triangularTab) {
                 console.log('🔺 Triangular button text:', triangularTab.textContent);
+                console.log('🔺 Triangular button classes:', triangularTab.className);
+                console.log('🔺 Triangular button style:', triangularTab.style.cssText);
+                console.log('🔺 Triangular button computed style:', window.getComputedStyle(triangularTab));
+
+                // Test direct click handler
+                triangularTab.addEventListener('click', function(e) {
+                    console.log('🔺 DIRECT TRIANGULAR CLICK HANDLER FIRED!');
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    // Force show triangular content
+                    document.querySelectorAll('.tab-content').forEach(content => {
+                        content.classList.remove('active');
+                        content.style.display = 'none';
+                    });
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+
+                    if (triangularContent) {
+                        triangularContent.classList.add('active');
+                        triangularContent.style.display = 'block';
+                        this.classList.add('active');
+                        console.log('🔺 DIRECT HANDLER: Triangular tab forced to show');
+                    }
+                });
+
+                // Test if button is clickable
+                const rect = triangularTab.getBoundingClientRect();
+                console.log('🔺 Triangular button position:', rect);
+                console.log('🔺 Triangular button pointer-events:', window.getComputedStyle(triangularTab).pointerEvents);
             }
             if (triangularContent) {
                 console.log('🔺 Triangular content classes:', triangularContent.className);
             }
             
             // Add manual test function for debugging
+            window.testTriangularTab = function() {
+                console.log('🔺 Manual triangular tab test...');
+                const triangularTab = document.querySelector('[data-tab="triangular"]');
+                const triangularContent = document.getElementById('triangularTab');
+
+                console.log('Button found:', !!triangularTab);
+                console.log('Content found:', !!triangularContent);
+
+                if (triangularTab && triangularContent) {
+                    // Force show triangular content
+                    document.querySelectorAll('.tab-content').forEach(content => {
+                        content.classList.remove('active');
+                        content.style.display = 'none';
+                    });
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+
+                    triangularContent.classList.add('active');
+                    triangularContent.style.display = 'block';
+                    triangularTab.classList.add('active');
+
+                    console.log('🔺 Manual test: Triangular tab should now be visible');
+                    return true;
+                } else {
+                    console.log('❌ Manual test failed: Elements not found');
+                    return false;
+                }
+            };
+
             window.testDashboard = function() {
                 console.log('Manual dashboard test');
                 switchTab('dashboard');
