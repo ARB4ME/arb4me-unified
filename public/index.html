@@ -26660,21 +26660,17 @@ ARB4ME Security Team`
                             // Insert the content
                             triangularTab.innerHTML = triangularBody.innerHTML;
 
-                            // Manually handle tab switching (bypass switchTab since no triangular button exists)
-                            // Hide all other tabs
-                            document.querySelectorAll('.tab-content').forEach(content => {
-                                content.classList.remove('active');
-                                content.style.display = 'none';
-                            });
-                            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+                            // Use proper switchTab function to cleanly navigate
+                            switchTab('triangular');
 
-                            // Show triangular tab immediately
-                            triangularTab.classList.add('active');
-                            triangularTab.style.display = 'block';
-                            triangularTab.style.visibility = 'visible';
-                            triangularTab.style.opacity = '1';
-
-                            console.log('🔺 Triangular tab manually activated and made visible');
+                            // FORCE triangular tab visibility - fix for CSS issue
+                            setTimeout(() => {
+                                triangularTab.classList.add('active');
+                                triangularTab.style.display = 'block';
+                                triangularTab.style.visibility = 'visible';
+                                triangularTab.style.opacity = '1';
+                                console.log('🔺 Triangular tab forced visible');
+                            }, 100);
 
                             // Execute any scripts in the loaded content
                             const scripts = triangularTab.querySelectorAll('script');
@@ -26714,23 +26710,8 @@ ARB4ME Security Team`
                         triangularContent.classList.remove('active');
                     }
 
-                    // Navigate back to dashboard manually
-                    document.querySelectorAll('.tab-content').forEach(content => {
-                        content.classList.remove('active');
-                        content.style.display = 'none';
-                    });
-                    document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
-
-                    // Activate dashboard
-                    const dashboardTab = document.getElementById('dashboardTab');
-                    const dashboardButton = document.querySelector('[data-tab="dashboard"]');
-                    if (dashboardTab) {
-                        dashboardTab.classList.add('active');
-                        dashboardTab.style.display = 'block';
-                    }
-                    if (dashboardButton) {
-                        dashboardButton.classList.add('active');
-                    }
+                    // Navigate back to dashboard cleanly
+                    switchTab('dashboard');
 
                     // Save state to localStorage
                     localStorage.setItem('triangularPageActive', 'false');
