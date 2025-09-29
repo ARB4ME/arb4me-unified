@@ -22535,6 +22535,7 @@ ARB4ME Security Team`
         const state = {
             autoTrading: false,
             triangularArbitrage: false,
+            triangularPageActive: false,  // Clean state for triangular page toggle
             strategies: {
                 crossExchange: true,      // Default ON (current behavior)
                 triangular: false,        // Will replace triangularArbitrage
@@ -26588,6 +26589,17 @@ ARB4ME Security Team`
             loadStrategyPreferences();
             console.log('📂 Strategy preferences loaded:', state.strategies);
 
+            // Load triangular page toggle state
+            const savedTriangularState = localStorage.getItem('triangularPageActive');
+            if (savedTriangularState === 'true') {
+                state.triangularPageActive = true;
+                const toggleSwitch = document.getElementById('triangularPageToggle');
+                if (toggleSwitch) {
+                    toggleSwitch.classList.add('active');
+                    console.log('📂 Triangular page toggle restored: ON');
+                }
+            }
+
             // Force logout button visibility immediately
             setTimeout(forceLogoutButtonVisibility, 50);
             setTimeout(forceLogoutButtonVisibility, 200);
@@ -26829,49 +26841,40 @@ ARB4ME Security Team`
 
             // NEW STRATEGY TOGGLES (Dashboard)
             document.getElementById('crossExchangeToggle').addEventListener('click', toggleCrossExchange);
+            // BRAND NEW CLEAN TRIANGULAR PAGE TOGGLE
             document.getElementById('triangularPageButton').addEventListener('click', function() {
                 const toggleSwitch = document.getElementById('triangularPageToggle');
-                const isCurrentlyActive = toggleSwitch.classList.contains('active');
 
-                console.log('🔺 Triangular ARB toggle clicked, currently active:', isCurrentlyActive);
+                // Toggle the state
+                state.triangularPageActive = !state.triangularPageActive;
 
-                if (isCurrentlyActive) {
-                    // Turn OFF - hide triangular content and return to dashboard
-                    toggleSwitch.classList.remove('active');
-                    console.log('🔺 Triangular ARB toggle turned OFF, hiding triangular content...');
+                console.log('🔺 Triangular page toggle clicked, new state:', state.triangularPageActive);
 
-                    // Explicitly hide triangular content
-                    const triangularContent = document.getElementById('triangularTab');
-                    if (triangularContent) {
-                        triangularContent.classList.remove('active');
-                        triangularContent.style.display = 'none';
-                        console.log('🔺 Triangular content hidden');
-                    }
-
-                    // Switch to dashboard
-                    switchTab('dashboard');
-                    addActivity('🔺 Triangular ARB toggle turned OFF', 'info');
-                } else {
+                if (state.triangularPageActive) {
                     // Turn ON - open triangular page
                     toggleSwitch.classList.add('active');
-                    console.log('🔺 Triangular ARB toggle turned ON, opening triangular page...');
 
-                    // Switch to triangular content
-                    document.querySelectorAll('.tab-content').forEach(content => {
-                        content.classList.remove('active');
-                        content.style.display = 'none';
-                    });
-                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    // Use proper switchTab function to cleanly navigate
+                    switchTab('triangular');
 
-                    const triangularContent = document.getElementById('triangularTab');
+                    // Save state to localStorage
+                    localStorage.setItem('triangularPageActive', 'true');
 
-                    if (triangularContent) {
-                        triangularContent.classList.add('active');
-                        triangularContent.style.display = 'block';
-                        console.log('✅ Triangular page opened successfully');
-                    }
+                    addActivity('🔺 Triangular ARB page opened', 'info');
+                    console.log('✅ Triangular toggle ON - navigated to triangular page');
 
-                    addActivity('🔺 Triangular ARB toggle turned ON - VALR page opened', 'info');
+                } else {
+                    // Turn OFF - return to dashboard
+                    toggleSwitch.classList.remove('active');
+
+                    // Navigate back to dashboard cleanly
+                    switchTab('dashboard');
+
+                    // Save state to localStorage
+                    localStorage.setItem('triangularPageActive', 'false');
+
+                    addActivity('🔺 Triangular ARB page closed', 'info');
+                    console.log('✅ Triangular toggle OFF - returned to dashboard');
                 }
             });
             document.getElementById('transferToggle').addEventListener('click', toggleTransfer);
