@@ -22730,7 +22730,7 @@ ARB4ME Security Team`
                     const triangularContent = document.getElementById('triangularTab');
                     if (triangularContent) {
                         triangularContent.classList.remove('active');
-                        triangularContent.style.display = 'none';
+                        triangularContent.style.display = '';  // Remove inline style, let CSS take over
                     }
                 }
                 
@@ -26875,6 +26875,12 @@ ARB4ME Security Team`
                 } else {
                     // Turn OFF - return to dashboard
                     toggleSwitch.classList.remove('active');
+
+                    // Ensure triangular content inline styles are cleared
+                    const triangularContent = document.getElementById('triangularTab');
+                    if (triangularContent) {
+                        triangularContent.style.display = '';  // Remove inline style
+                    }
 
                     // Navigate back to dashboard cleanly
                     switchTab('dashboard');
