@@ -26607,6 +26607,17 @@ ARB4ME Security Team`
                     toggleSwitch.classList.add('active');
                     console.log('📂 Triangular page toggle restored: ON');
                 }
+            } else {
+                // FORCE HIDE triangular content on page load if toggle is OFF
+                state.triangularPageActive = false;
+                const triangularContent = document.getElementById('triangularTab');
+                if (triangularContent) {
+                    triangularContent.classList.remove('active');
+                    triangularContent.style.display = '';  // Remove any inline styles
+                    triangularContent.style.visibility = '';
+                    triangularContent.style.opacity = '';
+                    console.log('🔒 Triangular content FORCE HIDDEN on page load');
+                }
             }
 
             // Force logout button visibility immediately
