@@ -124,6 +124,13 @@
 </head>
 <body>
     <div class="triangular-container">
+        <!-- Return to Platform Button -->
+        <div style="margin-bottom: 20px; text-align: center;">
+            <button onclick="returnToPlatform()" class="btn" style="background: linear-gradient(45deg, #ff6b6b 0%, #ee5a24 100%); font-size: 1rem; padding: 15px 30px;">
+                ← Return to ARB4ME Platform
+            </button>
+        </div>
+
         <!-- Triangular Arbitrage Management Tab -->
         <div id="triangularTab" class="tab-content active">
             <h3 style="color: #00d4ff; margin-bottom: 15px;">🔺 Triangular Arbitrage Management</h3>
@@ -428,6 +435,15 @@
     </div>
 
     <script>
+        // Return to Platform Function
+        function returnToPlatform() {
+            // Set triangular toggle state to OFF
+            localStorage.setItem('triangularPageActive', 'false');
+
+            // Navigate back to main platform
+            window.location.href = '/';
+        }
+
         // Triangular Arbitrage JavaScript Functions
 
         // Toggle for VALR Triangular trading

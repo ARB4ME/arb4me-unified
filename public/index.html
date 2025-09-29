@@ -26304,7 +26304,7 @@ ARB4ME Security Team`
             loadStrategyPreferences();
             console.log('📂 Strategy preferences loaded:', state.strategies);
 
-            // Load triangular page toggle state with dynamic loading
+            // Load triangular page toggle state (simple - no dynamic loading needed)
             const savedTriangularState = localStorage.getItem('triangularPageActive');
             if (savedTriangularState === 'true') {
                 state.triangularPageActive = true;
@@ -26312,71 +26312,10 @@ ARB4ME Security Team`
                 if (toggleSwitch) {
                     toggleSwitch.classList.add('active');
                     console.log('📂 Triangular page toggle restored: ON');
-
-                    // Load triangular content dynamically on page load if toggle was ON
-                    loadTriangularContentAsync();
                 }
             } else {
-                // Clean triangular container on page load if toggle is OFF
                 state.triangularPageActive = false;
-                const triangularContent = document.getElementById('triangularTab');
-                if (triangularContent) {
-                    triangularContent.innerHTML = '';  // Clear any content
-                    triangularContent.classList.remove('active');
-                    console.log('🔒 Triangular content cleared on page load');
-                }
-            }
-
-            // Function to load triangular content asynchronously
-            async function loadTriangularContentAsync() {
-                try {
-                    const response = await fetch('/triangular-arb.html');
-                    if (!response.ok) {
-                        throw new Error(`Failed to load triangular content: ${response.status}`);
-                    }
-
-                    const triangularHtml = await response.text();
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(triangularHtml, 'text/html');
-                    const triangularBody = doc.querySelector('.triangular-container');
-
-                    if (triangularBody) {
-                        const triangularTab = document.getElementById('triangularTab');
-                        if (triangularTab) {
-                            triangularTab.innerHTML = triangularBody.innerHTML;
-
-                            // Execute any scripts in the loaded content
-                            const scripts = triangularTab.querySelectorAll('script');
-                            scripts.forEach(script => {
-                                const newScript = document.createElement('script');
-                                newScript.textContent = script.textContent;
-                                document.head.appendChild(newScript);
-                            });
-
-                            // FORCE triangular tab visibility on page load - fix for CSS issue
-                            setTimeout(() => {
-                                if (state.triangularPageActive) {
-                                    triangularTab.classList.add('active');
-                                    triangularTab.style.display = 'block';
-                                    triangularTab.style.visibility = 'visible';
-                                    triangularTab.style.opacity = '1';
-                                    console.log('🔺 Triangular tab forced visible on page load');
-                                }
-                            }, 100);
-
-                            console.log('✅ Triangular content loaded on page load');
-                        }
-                    }
-                } catch (error) {
-                    console.error('❌ Failed to load triangular content on page load:', error);
-                    // Reset toggle state on error
-                    state.triangularPageActive = false;
-                    localStorage.setItem('triangularPageActive', 'false');
-                    const toggleSwitch = document.getElementById('triangularPageToggle');
-                    if (toggleSwitch) {
-                        toggleSwitch.classList.remove('active');
-                    }
-                }
+                console.log('🔒 Triangular toggle state: OFF');
             }
 
             // Force logout button visibility immediately
@@ -26620,8 +26559,8 @@ ARB4ME Security Team`
 
             // NEW STRATEGY TOGGLES (Dashboard)
             document.getElementById('crossExchangeToggle').addEventListener('click', toggleCrossExchange);
-            // BRAND NEW CLEAN TRIANGULAR PAGE TOGGLE - DYNAMIC LOADING
-            document.getElementById('triangularPageButton').addEventListener('click', async function() {
+            // TRIANGULAR PAGE TOGGLE - DIRECT NAVIGATION
+            document.getElementById('triangularPageButton').addEventListener('click', function() {
                 const toggleSwitch = document.getElementById('triangularPageToggle');
 
                 // Toggle the state
@@ -26630,94 +26569,27 @@ ARB4ME Security Team`
                 console.log('🔺 Triangular page toggle clicked, new state:', state.triangularPageActive);
 
                 if (state.triangularPageActive) {
-                    // Turn ON - load and show triangular page
+                    // Turn ON - navigate to triangular page
                     toggleSwitch.classList.add('active');
 
-                    try {
-                        // Load triangular content dynamically
-                        const response = await fetch('/triangular-arb.html');
-                        if (!response.ok) {
-                            throw new Error(`Failed to load triangular content: ${response.status}`);
-                        }
+                    // Save state to localStorage
+                    localStorage.setItem('triangularPageActive', 'true');
 
-                        const triangularHtml = await response.text();
+                    addActivity('🔺 Triangular ARB page opened', 'info');
+                    console.log('✅ Triangular toggle ON - navigating to separate page');
 
-                        // Extract just the content from the body tag
-                        const parser = new DOMParser();
-                        const doc = parser.parseFromString(triangularHtml, 'text/html');
-                        const triangularBody = doc.querySelector('.triangular-container');
-
-                        if (triangularBody) {
-                            // Create or update triangular container
-                            let triangularTab = document.getElementById('triangularTab');
-                            if (!triangularTab) {
-                                triangularTab = document.createElement('div');
-                                triangularTab.id = 'triangularTab';
-                                triangularTab.className = 'tab-content';
-                                document.querySelector('.main-content').appendChild(triangularTab);
-                            }
-
-                            // Insert the content
-                            triangularTab.innerHTML = triangularBody.innerHTML;
-
-                            // Use proper switchTab function to cleanly navigate
-                            switchTab('triangular');
-
-                            // FORCE triangular tab visibility - fix for CSS issue
-                            setTimeout(() => {
-                                triangularTab.classList.add('active');
-                                triangularTab.style.display = 'block';
-                                triangularTab.style.visibility = 'visible';
-                                triangularTab.style.opacity = '1';
-                                console.log('🔺 Triangular tab forced visible');
-                            }, 100);
-
-                            // Execute any scripts in the loaded content
-                            const scripts = triangularTab.querySelectorAll('script');
-                            scripts.forEach(script => {
-                                const newScript = document.createElement('script');
-                                newScript.textContent = script.textContent;
-                                document.head.appendChild(newScript);
-                            });
-
-                            console.log('✅ Triangular content loaded dynamically');
-                        }
-
-                        // Save state to localStorage
-                        localStorage.setItem('triangularPageActive', 'true');
-
-                        addActivity('🔺 Triangular ARB page opened', 'info');
-                        console.log('✅ Triangular toggle ON - navigated to triangular page');
-
-                    } catch (error) {
-                        console.error('❌ Failed to load triangular content:', error);
-                        addActivity('❌ Failed to load Triangular ARB page', 'error');
-
-                        // Reset toggle state on error
-                        state.triangularPageActive = false;
-                        toggleSwitch.classList.remove('active');
-                        localStorage.setItem('triangularPageActive', 'false');
-                    }
+                    // Navigate to triangular page
+                    window.location.href = '/triangular-arb.html';
 
                 } else {
-                    // Turn OFF - return to dashboard
+                    // Turn OFF - stay on current page
                     toggleSwitch.classList.remove('active');
-
-                    // Clear triangular content completely
-                    const triangularContent = document.getElementById('triangularTab');
-                    if (triangularContent) {
-                        triangularContent.innerHTML = '';  // Clear all content
-                        triangularContent.classList.remove('active');
-                    }
-
-                    // Navigate back to dashboard cleanly
-                    switchTab('dashboard');
 
                     // Save state to localStorage
                     localStorage.setItem('triangularPageActive', 'false');
 
                     addActivity('🔺 Triangular ARB page closed', 'info');
-                    console.log('✅ Triangular toggle OFF - returned to dashboard');
+                    console.log('✅ Triangular toggle OFF');
                 }
             });
             document.getElementById('transferToggle').addEventListener('click', toggleTransfer);
