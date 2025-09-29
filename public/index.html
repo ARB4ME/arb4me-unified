@@ -26836,9 +26836,19 @@ ARB4ME Security Team`
                 console.log('🔺 Triangular ARB toggle clicked, currently active:', isCurrentlyActive);
 
                 if (isCurrentlyActive) {
-                    // Turn OFF - return to dashboard
+                    // Turn OFF - hide triangular content and return to dashboard
                     toggleSwitch.classList.remove('active');
-                    console.log('🔺 Triangular ARB toggle turned OFF, returning to dashboard...');
+                    console.log('🔺 Triangular ARB toggle turned OFF, hiding triangular content...');
+
+                    // Explicitly hide triangular content
+                    const triangularContent = document.getElementById('triangularTab');
+                    if (triangularContent) {
+                        triangularContent.classList.remove('active');
+                        triangularContent.style.display = 'none';
+                        console.log('🔺 Triangular content hidden');
+                    }
+
+                    // Switch to dashboard
                     switchTab('dashboard');
                     addActivity('🔺 Triangular ARB toggle turned OFF', 'info');
                 } else {
