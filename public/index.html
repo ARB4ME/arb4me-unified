@@ -7775,310 +7775,9 @@
                 </div>
     </div>
 
-    <!-- Triangular Arbitrage Management Tab -->
+    <!-- Triangular Arbitrage Management Tab - DYNAMIC CONTENT CONTAINER -->
     <div id="triangularTab" class="tab-content">
-            <h3 style="color: #00d4ff; margin-bottom: 15px;">🔺 Triangular Arbitrage Management</h3>
-            
-            <div style="margin-bottom: 20px; padding: 15px; background: rgba(0,255,136,0.1); border: 2px solid #00ff88; border-radius: 10px;">
-                <div style="font-size: 1.2rem; color: #00ff88; margin-bottom: 15px; font-weight: bold; text-align: center;">
-                    ✅ TRIANGULAR TAB IS NOW WORKING!
-                </div>
-                <div style="color: #b8c6db; text-align: center;">
-                    This page contains the VALR triangular arbitrage management interface with 32 production paths ready for trading.
-                </div>
-            </div>
-            
-            <div style="margin-bottom: 20px; padding: 15px; background: rgba(0,212,255,0.1); border-radius: 10px;">
-                <h4 style="color: #00d4ff; margin-bottom: 10px;">📊 System Overview</h4>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
-                    <div style="padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; text-align: center;">
-                        <div style="font-size: 1.5rem; color: #00ff88; font-weight: bold;">1</div>
-                        <div style="font-size: 0.9rem; color: #b8c6db;">Active Exchanges</div>
-                    </div>
-                    <div style="padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; text-align: center;">
-                        <div style="font-size: 1.5rem; color: #ffb347; font-weight: bold;">32</div>
-                        <div style="font-size: 0.9rem; color: #b8c6db;">Total Paths</div>
-                    </div>
-                    <div style="padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; text-align: center;">
-                        <div style="font-size: 1.5rem; color: #ff6b6b; font-weight: bold;">0</div>
-                        <div style="font-size: 0.9rem; color: #b8c6db;">Profitable Today</div>
-                    </div>
-                    <div style="padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; text-align: center;">
-                        <div style="font-size: 1.5rem; color: #00d4ff; font-weight: bold;">R 0.00</div>
-                        <div style="font-size: 0.9rem; color: #b8c6db;">Today's Profit</div>
-                    </div>
-                </div>
-            </div>
-            
-            <div style="margin-bottom: 20px; padding: 15px; background: rgba(255,107,107,0.1); border: 2px solid #ff6b6b; border-radius: 10px;">
-                <h4 style="color: #ff6b6b; margin-bottom: 10px;">💚 VALR Triangular Arbitrage</h4>
-                <div style="color: #b8c6db; margin-bottom: 15px;">
-                    VALR exchange integration with 32 production triangular arbitrage paths including:
-                </div>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 10px;">
-                    <div style="padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px;">
-                        <div style="font-weight: bold; color: #00ff88;">High Volume Majors (4 paths)</div>
-                        <div style="font-size: 0.85rem; color: #b8c6db;">ZAR → LINK → USDT → ZAR (proven)</div>
-                    </div>
-                    <div style="padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px;">
-                        <div style="font-weight: bold; color: #ffb347;">Popular Altcoins (4 paths)</div>
-                        <div style="font-size: 0.85rem; color: #b8c6db;">ADA, DOT, MATIC, SOL paths</div>
-                    </div>
-                    <div style="padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px;">
-                        <div style="font-weight: bold; color: #00d4ff;">Layer 1 & Ecosystem (2 paths)</div>
-                        <div style="font-size: 0.85rem; color: #b8c6db;">AVAX, ATOM ecosystem tokens</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-            <!-- Statistics Grid for Triangular Arbitrage -->
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-value" style="color: #00ff88;" id="triangularActiveExchanges">1</div>
-                    <div class="stat-label">Active Exchanges</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" style="color: #ffb347;" id="triangularTotalPaths">32</div>
-                    <div class="stat-label">Total Paths</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" style="color: #ff6b6b;" id="triangularProfitableToday">0</div>
-                    <div class="stat-label">Profitable Today</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" style="color: #00d4ff;" id="triangularProfitToday">R 0.00</div>
-                    <div class="stat-label">Today's Profit</div>
-                </div>
-            </div>
-        </div>
-
-            <!-- VALR Exchange Card -->
-            <div style="background: rgba(0,255,136,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 2px solid #00ff88;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h3 style="color: #00ff88; margin: 0;">💚 VALR Triangular Arbitrage</h3>
-                    <div style="display: flex; gap: 10px; align-items: center;">
-                        <span style="color: #b8c6db; font-size: 0.9rem;">VALR Live Trading:</span>
-                        <div class="toggle-switch" id="valrTriangularEnabled">
-                            <div class="toggle-knob"></div>
-                        </div>
-                        <span id="valrTriangularStatus" style="color: #ff6b6b; font-size: 0.9rem; margin-left: 10px;">OFF</span>
-                    </div>
-                </div>
-
-                <!-- VALR Settings Grid -->
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 20px;">
-                    <!-- Risk Management -->
-                    <div class="stat-card">
-                        <h4 style="color: #ffb347; margin-bottom: 15px;">⚖️ Risk Management</h4>
-                        <div class="form-group">
-                            <label>Max Single Trade (ZAR)</label>
-                            <input type="number" id="valrMaxTrade" value="500" min="100" max="10000">
-                        </div>
-                        <div class="form-group">
-                            <label>Portfolio % per Trade</label>
-                            <input type="number" id="valrPortfolioPercent" value="10" min="1" max="50">
-                        </div>
-                        <div class="form-group">
-                            <label>Min Profit Threshold (%)</label>
-                            <input type="number" id="valrProfitThreshold" value="0.8" min="0.1" max="5" step="0.1">
-                        </div>
-                    </div>
-
-                    <!-- Path Categories -->
-                    <div class="stat-card">
-                        <h4 style="color: #ffb347; margin-bottom: 15px;">📊 Path Sets (Regular + Single-Asset)</h4>
-                        <div style="display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; max-height: 200px; overflow-y: auto;">
-                            <span style="color: #b8c6db; font-size: 0.85rem;">SET 1: ETH Focus</span>
-                            <input type="checkbox" id="valrSet1Enabled" checked>
-
-                            <span style="color: #b8c6db; font-size: 0.85rem;">SET 2: XRP Focus</span>
-                            <input type="checkbox" id="valrSet2Enabled" checked>
-
-                            <span style="color: #b8c6db; font-size: 0.85rem;">SET 3: SOL Focus</span>
-                            <input type="checkbox" id="valrSet3Enabled" checked>
-
-                            <span style="color: #b8c6db; font-size: 0.85rem;">SET 4: BNB Focus</span>
-                            <input type="checkbox" id="valrSet4Enabled" checked>
-
-                            <span style="color: #b8c6db; font-size: 0.85rem;">SET 5: SHIB Focus</span>
-                            <input type="checkbox" id="valrSet5Enabled">
-
-                            <span style="color: #b8c6db; font-size: 0.85rem;">SET 6: AVAX Focus</span>
-                            <input type="checkbox" id="valrSet6Enabled">
-
-                            <span style="color: #b8c6db; font-size: 0.85rem;">SET 7: DOGE Focus</span>
-                            <input type="checkbox" id="valrSet7Enabled">
-
-                            <span style="color: #b8c6db; font-size: 0.85rem;">SET 8: TRX Focus</span>
-                            <input type="checkbox" id="valrSet8Enabled">
-
-                            <span style="color: #b8c6db; font-size: 0.85rem;">SET 9: LTC Focus</span>
-                            <input type="checkbox" id="valrSet9Enabled">
-
-                            <span style="color: #b8c6db; font-size: 0.85rem;">SET 10: RLUSD Focus</span>
-                            <input type="checkbox" id="valrSet10Enabled">
-
-                            <span style="color: #b8c6db; font-size: 0.85rem;">SET 11: LINK Focus</span>
-                            <input type="checkbox" id="valrSet11Enabled">
-
-                            <span style="color: #b8c6db; font-size: 0.85rem;">SET 12: XLM Focus</span>
-                            <input type="checkbox" id="valrSet12Enabled">
-
-                            <span style="color: #ffd700; font-size: 0.85rem;">SET 13: ZAR Singles</span>
-                            <input type="checkbox" id="valrSet13Enabled">
-
-                            <span style="color: #00bfff; font-size: 0.85rem;">SET 14: USDT Singles</span>
-                            <input type="checkbox" id="valrSet14Enabled">
-
-                            <span style="color: #32cd32; font-size: 0.85rem;">SET 15: ZAR Extended</span>
-                            <input type="checkbox" id="valrSet15Enabled">
-
-                            <span style="color: #1e90ff; font-size: 0.85rem;">SET 16: ETH Extended</span>
-                            <input type="checkbox" id="valrSet16Enabled">
-
-                            <span style="color: #ff6347; font-size: 0.85rem;">SET 17: Cross-Bridge</span>
-                            <input type="checkbox" id="valrSet17Enabled">
-
-                            <span style="color: #dda0dd; font-size: 0.85rem;">SET 18: XRP Leaders</span>
-                            <input type="checkbox" id="valrSet18Enabled">
-
-                            <span style="color: #20b2aa; font-size: 0.85rem;">SET 19: SOL Tokens</span>
-                            <input type="checkbox" id="valrSet19Enabled">
-
-                            <span style="color: #ffa500; font-size: 0.85rem;">SET 20: BNB Coins</span>
-                            <input type="checkbox" id="valrSet20Enabled">
-
-                            <span style="color: #40e0d0; font-size: 0.85rem;">SET 21: ALGO Majors</span>
-                            <input type="checkbox" id="valrSet21Enabled">
-
-                            <span style="color: #ff69b4; font-size: 0.85rem;">SET 22: SAND Metaverse</span>
-                            <input type="checkbox" id="valrSet22Enabled">
-
-                            <span style="color: #9370db; font-size: 0.85rem;">SET 23: NEAR Alts</span>
-                            <input type="checkbox" id="valrSet23Enabled">
-
-                            <span style="color: #00ff7f; font-size: 0.85rem;">SET 24: ATOM Protocols</span>
-                            <input type="checkbox" id="valrSet24Enabled">
-
-                            <span style="color: #ff1493; font-size: 0.85rem;">SET 25: FTM Ecosystem</span>
-                            <input type="checkbox" id="valrSet25Enabled">
-
-                            <span style="color: #00ced1; font-size: 0.85rem;">SET 26: AAVE Lending</span>
-                            <input type="checkbox" id="valrSet26Enabled">
-
-                            <span style="color: #ffd700; font-size: 0.85rem;">SET 27: 1INCH Aggregator</span>
-                            <input type="checkbox" id="valrSet27Enabled">
-
-                            <span style="color: #8a2be2; font-size: 0.85rem;">SET 28: CRV Finance</span>
-                            <input type="checkbox" id="valrSet28Enabled">
-
-                            <span style="color: #ff4500; font-size: 0.85rem;">SET 29: COMP Protocol</span>
-                            <input type="checkbox" id="valrSet29Enabled">
-
-                            <span style="color: #32cd32; font-size: 0.85rem;">SET 30: SNX Network</span>
-                            <input type="checkbox" id="valrSet30Enabled">
-
-                            <span style="color: #87ceeb; font-size: 0.85rem;">SET 31: MKR DAO</span>
-                            <input type="checkbox" id="valrSet31Enabled">
-
-                            <span style="color: #dda0dd; font-size: 0.85rem;">SET 32: BAL Protocol</span>
-                            <input type="checkbox" id="valrSet32Enabled">
-
-                            <span style="color: #f0e68c; font-size: 0.85rem;">SET 33: ZRX Protocol</span>
-                            <input type="checkbox" id="valrSet33Enabled">
-
-                            <span style="color: #98fb98; font-size: 0.85rem;">SET 34: STORJ Network</span>
-                            <input type="checkbox" id="valrSet34Enabled">
-
-                            <span style="color: #ffb6c1; font-size: 0.85rem;">SET 35: GRT Graph</span>
-                            <input type="checkbox" id="valrSet35Enabled">
-
-                            <span style="color: #20b2aa; font-size: 0.85rem;">SET 36: ENJ Gaming</span>
-                            <input type="checkbox" id="valrSet36Enabled">
-
-                            <span style="color: #ffa07a; font-size: 0.85rem;">SET 37: BAT Attention</span>
-                            <input type="checkbox" id="valrSet37Enabled">
-
-                            <span style="color: #778899; font-size: 0.85rem;">SET 38: ZEC Privacy</span>
-                            <input type="checkbox" id="valrSet38Enabled">
-
-                            <span style="color: #b0c4de; font-size: 0.85rem;">SET 39: DASH Digital</span>
-                            <input type="checkbox" id="valrSet39Enabled">
-                        </div>
-                        <div style="margin-top: 10px; padding: 8px; background: rgba(0,212,255,0.1); border-radius: 6px; font-size: 0.8rem; color: #b8c6db;">
-                            💡 Uncheck sets to reduce server load. Sets 1-12 scan 4 paths each. Sets 13-39 scan 3-5 triangular arbitrage paths each.
-                        </div>
-                    </div>
-
-                    <!-- Performance Stats -->
-                    <div class="stat-card">
-                        <h4 style="color: #ffb347; margin-bottom: 15px;">📈 Performance Stats</h4>
-                        <div style="display: grid; grid-template-columns: 1fr auto; gap: 10px; font-size: 0.9rem;">
-                            <span style="color: #b8c6db;">Total Trades:</span>
-                            <span style="color: #00ff88;" id="valrTotalTrades">0</span>
-                            
-                            <span style="color: #b8c6db;">Successful Trades:</span>
-                            <span style="color: #00ff88;" id="valrSuccessfulTrades">0</span>
-                            
-                            <span style="color: #b8c6db;">Success Rate:</span>
-                            <span style="color: #00ff88;" id="valrSuccessRate">0%</span>
-                            
-                            <span style="color: #b8c6db;">Total Profit:</span>
-                            <span style="color: #00ff88;" id="valrTotalProfit">R 0.00</span>
-                            
-                            <span style="color: #b8c6db;">Best Path:</span>
-                            <span style="color: #00ff88;" id="valrBestPath">-</span>
-                            
-                            <span style="color: #b8c6db;">Last Scan:</span>
-                            <span style="color: #b8c6db;" id="valrLastScan">Never</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- VALR Control Buttons -->
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
-                    <button onclick="testValrTriangularConnection()" class="btn">
-                        🔍 Test Connection
-                    </button>
-                    <button onclick="scanValrTriangularPaths()" class="btn">
-                        ⚡ Manual Scan
-                    </button>
-                    <button onclick="viewValrPathDetails()" class="btn">
-                        📊 View Paths
-                    </button>
-                    <button onclick="clearValrTriangularHistory()" class="btn">
-                        🗑️ Clear History
-                    </button>
-                </div>
-
-                <!-- Recent VALR Trades -->
-                <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px;">
-                    <h4 style="color: #ffb347; margin-bottom: 15px;">🕒 Recent Triangular Trades</h4>
-                    <div id="valrRecentTrades" style="max-height: 200px; overflow-y: auto;">
-                        <div style="text-align: center; color: #888; padding: 20px;">
-                            No triangular trades yet. Enable live trading to start.
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Future Exchanges Placeholder -->
-            <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 15px; border: 2px dashed #666;">
-                <div style="text-align: center; color: #888;">
-                    <h3 style="color: #666; margin-bottom: 15px;">🔮 Future Exchanges</h3>
-                    <p style="margin-bottom: 15px;">Additional exchanges will be added here as they're implemented:</p>
-                    <div style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;">
-                        <span style="color: #666; padding: 8px 16px; border: 1px solid #555; border-radius: 20px;">Luno</span>
-                        <span style="color: #666; padding: 8px 16px; border: 1px solid #555; border-radius: 20px;">Binance</span>
-                        <span style="color: #666; padding: 8px 16px; border: 1px solid #555; border-radius: 20px;">Kraken</span>
-                        <span style="color: #666; padding: 8px 16px; border: 1px solid #555; border-radius: 20px;">OKX</span>
-                        <span style="color: #666; padding: 8px 16px; border: 1px solid #555; border-radius: 20px;">+ 8 more</span>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <!-- This content will be dynamically loaded from triangular-arb.html when the toggle is activated -->
     </div>
 
     <!-- LEGAL DOCUMENTS MODAL - NEW -->
@@ -26605,7 +26304,7 @@ ARB4ME Security Team`
             loadStrategyPreferences();
             console.log('📂 Strategy preferences loaded:', state.strategies);
 
-            // Load triangular page toggle state
+            // Load triangular page toggle state with dynamic loading
             const savedTriangularState = localStorage.getItem('triangularPageActive');
             if (savedTriangularState === 'true') {
                 state.triangularPageActive = true;
@@ -26613,17 +26312,59 @@ ARB4ME Security Team`
                 if (toggleSwitch) {
                     toggleSwitch.classList.add('active');
                     console.log('📂 Triangular page toggle restored: ON');
+
+                    // Load triangular content dynamically on page load if toggle was ON
+                    loadTriangularContentAsync();
                 }
             } else {
-                // FORCE HIDE triangular content on page load if toggle is OFF
+                // Clean triangular container on page load if toggle is OFF
                 state.triangularPageActive = false;
                 const triangularContent = document.getElementById('triangularTab');
                 if (triangularContent) {
+                    triangularContent.innerHTML = '';  // Clear any content
                     triangularContent.classList.remove('active');
-                    triangularContent.style.display = '';  // Remove any inline styles
-                    triangularContent.style.visibility = '';
-                    triangularContent.style.opacity = '';
-                    console.log('🔒 Triangular content FORCE HIDDEN on page load');
+                    console.log('🔒 Triangular content cleared on page load');
+                }
+            }
+
+            // Function to load triangular content asynchronously
+            async function loadTriangularContentAsync() {
+                try {
+                    const response = await fetch('/triangular-arb.html');
+                    if (!response.ok) {
+                        throw new Error(`Failed to load triangular content: ${response.status}`);
+                    }
+
+                    const triangularHtml = await response.text();
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(triangularHtml, 'text/html');
+                    const triangularBody = doc.querySelector('.triangular-container');
+
+                    if (triangularBody) {
+                        const triangularTab = document.getElementById('triangularTab');
+                        if (triangularTab) {
+                            triangularTab.innerHTML = triangularBody.innerHTML;
+
+                            // Execute any scripts in the loaded content
+                            const scripts = triangularTab.querySelectorAll('script');
+                            scripts.forEach(script => {
+                                const newScript = document.createElement('script');
+                                newScript.textContent = script.textContent;
+                                document.head.appendChild(newScript);
+                            });
+
+                            console.log('✅ Triangular content loaded on page load');
+                        }
+                    }
+                } catch (error) {
+                    console.error('❌ Failed to load triangular content on page load:', error);
+                    // Reset toggle state on error
+                    state.triangularPageActive = false;
+                    localStorage.setItem('triangularPageActive', 'false');
+                    const toggleSwitch = document.getElementById('triangularPageToggle');
+                    if (toggleSwitch) {
+                        toggleSwitch.classList.remove('active');
+                    }
                 }
             }
 
@@ -26868,8 +26609,8 @@ ARB4ME Security Team`
 
             // NEW STRATEGY TOGGLES (Dashboard)
             document.getElementById('crossExchangeToggle').addEventListener('click', toggleCrossExchange);
-            // BRAND NEW CLEAN TRIANGULAR PAGE TOGGLE
-            document.getElementById('triangularPageButton').addEventListener('click', function() {
+            // BRAND NEW CLEAN TRIANGULAR PAGE TOGGLE - DYNAMIC LOADING
+            document.getElementById('triangularPageButton').addEventListener('click', async function() {
                 const toggleSwitch = document.getElementById('triangularPageToggle');
 
                 // Toggle the state
@@ -26878,26 +26619,75 @@ ARB4ME Security Team`
                 console.log('🔺 Triangular page toggle clicked, new state:', state.triangularPageActive);
 
                 if (state.triangularPageActive) {
-                    // Turn ON - open triangular page
+                    // Turn ON - load and show triangular page
                     toggleSwitch.classList.add('active');
 
-                    // Use proper switchTab function to cleanly navigate
-                    switchTab('triangular');
+                    try {
+                        // Load triangular content dynamically
+                        const response = await fetch('/triangular-arb.html');
+                        if (!response.ok) {
+                            throw new Error(`Failed to load triangular content: ${response.status}`);
+                        }
 
-                    // Save state to localStorage
-                    localStorage.setItem('triangularPageActive', 'true');
+                        const triangularHtml = await response.text();
 
-                    addActivity('🔺 Triangular ARB page opened', 'info');
-                    console.log('✅ Triangular toggle ON - navigated to triangular page');
+                        // Extract just the content from the body tag
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(triangularHtml, 'text/html');
+                        const triangularBody = doc.querySelector('.triangular-container');
+
+                        if (triangularBody) {
+                            // Create or update triangular container
+                            let triangularTab = document.getElementById('triangularTab');
+                            if (!triangularTab) {
+                                triangularTab = document.createElement('div');
+                                triangularTab.id = 'triangularTab';
+                                triangularTab.className = 'tab-content';
+                                document.querySelector('.main-content').appendChild(triangularTab);
+                            }
+
+                            // Insert the content
+                            triangularTab.innerHTML = triangularBody.innerHTML;
+
+                            // Use proper switchTab function to cleanly navigate
+                            switchTab('triangular');
+
+                            // Execute any scripts in the loaded content
+                            const scripts = triangularTab.querySelectorAll('script');
+                            scripts.forEach(script => {
+                                const newScript = document.createElement('script');
+                                newScript.textContent = script.textContent;
+                                document.head.appendChild(newScript);
+                            });
+
+                            console.log('✅ Triangular content loaded dynamically');
+                        }
+
+                        // Save state to localStorage
+                        localStorage.setItem('triangularPageActive', 'true');
+
+                        addActivity('🔺 Triangular ARB page opened', 'info');
+                        console.log('✅ Triangular toggle ON - navigated to triangular page');
+
+                    } catch (error) {
+                        console.error('❌ Failed to load triangular content:', error);
+                        addActivity('❌ Failed to load Triangular ARB page', 'error');
+
+                        // Reset toggle state on error
+                        state.triangularPageActive = false;
+                        toggleSwitch.classList.remove('active');
+                        localStorage.setItem('triangularPageActive', 'false');
+                    }
 
                 } else {
                     // Turn OFF - return to dashboard
                     toggleSwitch.classList.remove('active');
 
-                    // Ensure triangular content inline styles are cleared
+                    // Clear triangular content completely
                     const triangularContent = document.getElementById('triangularTab');
                     if (triangularContent) {
-                        triangularContent.style.display = '';  // Remove inline style
+                        triangularContent.innerHTML = '';  // Clear all content
+                        triangularContent.classList.remove('active');
                     }
 
                     // Navigate back to dashboard cleanly
