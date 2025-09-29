@@ -22843,9 +22843,16 @@ ARB4ME Security Team`
             saveStrategyPreferences();
 
             if (state.strategies.transfer) {
-                addActivity('📦 Transfer ARB enabled - physical arbitrage between exchanges', 'success');
+                addActivity('📦 Transfer ARB enabled - navigating to page', 'success');
+
+                // Save state to localStorage
+                localStorage.setItem('transferActive', 'true');
+
+                // Navigate to transfer page
+                window.location.href = '/transfer-arb.html';
             } else {
                 addActivity('⏸️ Transfer ARB disabled', 'warning');
+                localStorage.setItem('transferActive', 'false');
             }
         }
 

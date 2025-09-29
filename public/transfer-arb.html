@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transfer Arbitrage - ARB4ME</title>
+    <style>
+        body {
+            background: linear-gradient(135deg, #0c0c1e 0%, #161632 100%);
+            color: #b8c6db;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .transfer-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #b8c6db;
+            font-size: 0.9rem;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 6px;
+            color: #fff;
+            font-size: 0.9rem;
+        }
+
+        .toggle-switch {
+            width: 50px;
+            height: 25px;
+            background: #ff6b6b;
+            border-radius: 25px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .toggle-switch.active {
+            background: #00ff88;
+        }
+
+        .toggle-knob {
+            width: 21px;
+            height: 21px;
+            background: white;
+            border-radius: 50%;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            transition: all 0.3s;
+        }
+
+        .toggle-switch.active .toggle-knob {
+            left: 27px;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #b8c6db;
+        }
+
+        .warning-box {
+            background: rgba(255,107,107,0.1);
+            border: 2px solid #ff6b6b;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .info-box {
+            background: rgba(0,212,255,0.1);
+            border: 2px solid #00d4ff;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        /* Make tab content visible by default on this page */
+        #transferTab {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="transfer-container">
+        <!-- Return to Platform Button -->
+        <div style="margin-bottom: 20px; text-align: center;">
+            <button onclick="returnToPlatform()" class="btn" style="background: linear-gradient(45deg, #ff6b6b 0%, #ee5a24 100%); font-size: 1rem; padding: 15px 30px;">
+                ← Return to ARB4ME Platform
+            </button>
+        </div>
+
+        <!-- Transfer Arbitrage Management Tab -->
+        <div id="transferTab" class="tab-content active">
+            <h3 style="color: #00d4ff; margin-bottom: 15px;">📦 Transfer Arbitrage Management</h3>
+
+            <div style="margin-bottom: 20px; padding: 15px; background: rgba(255,179,71,0.1); border: 2px solid #ffb347; border-radius: 10px;">
+                <div style="font-size: 1.2rem; color: #ffb347; margin-bottom: 15px; font-weight: bold; text-align: center;">
+                    🚀 TRANSFER ARBITRAGE (PHYSICAL ARBITRAGE)
+                </div>
+                <div style="color: #b8c6db; text-align: center;">
+                    Buy crypto on one exchange, transfer to another exchange where the price is higher, and sell for profit.
+                </div>
+            </div>
+
+            <!-- Important Warning -->
+            <div class="warning-box">
+                <h4 style="color: #ff6b6b; margin-bottom: 10px;">⚠️ Important Considerations</h4>
+                <ul style="color: #b8c6db; font-size: 0.9rem; margin: 10px 0; padding-left: 20px;">
+                    <li>Transfer fees can reduce or eliminate profits</li>
+                    <li>Network congestion may cause delays (15 mins to 2 hours)</li>
+                    <li>Price may change during transfer time</li>
+                    <li>Requires larger price differences to be profitable (typically 2-5%)</li>
+                    <li>Best for stable, low-fee cryptocurrencies</li>
+                </ul>
+            </div>
+
+            <!-- System Overview -->
+            <div class="info-box">
+                <h4 style="color: #00d4ff; margin-bottom: 10px;">📊 Transfer ARB Overview</h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+                    <div style="padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; text-align: center;">
+                        <div style="font-size: 1.5rem; color: #00ff88; font-weight: bold;" id="activeRoutes">0</div>
+                        <div style="font-size: 0.9rem; color: #b8c6db;">Active Routes</div>
+                    </div>
+                    <div style="padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; text-align: center;">
+                        <div style="font-size: 1.5rem; color: #ffb347; font-weight: bold;" id="pendingTransfers">0</div>
+                        <div style="font-size: 0.9rem; color: #b8c6db;">Pending Transfers</div>
+                    </div>
+                    <div style="padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; text-align: center;">
+                        <div style="font-size: 1.5rem; color: #ff6b6b; font-weight: bold;" id="completedToday">0</div>
+                        <div style="font-size: 0.9rem; color: #b8c6db;">Completed Today</div>
+                    </div>
+                    <div style="padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; text-align: center;">
+                        <div style="font-size: 1.5rem; color: #00d4ff; font-weight: bold;" id="totalTransferProfit">$0.00</div>
+                        <div style="font-size: 0.9rem; color: #b8c6db;">Total Profit</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transfer Configuration -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 20px;">
+                <!-- Route Configuration -->
+                <div class="stat-card">
+                    <h4 style="color: #ffb347; margin-bottom: 15px;">🛤️ Transfer Routes</h4>
+                    <div class="form-group">
+                        <label>Source Exchange</label>
+                        <select id="sourceExchange">
+                            <option value="">Select Exchange</option>
+                            <option value="valr">VALR</option>
+                            <option value="luno">Luno</option>
+                            <option value="altcointrader">AltCoinTrader</option>
+                            <option value="binance">Binance</option>
+                            <option value="kraken">Kraken</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Destination Exchange</label>
+                        <select id="destExchange">
+                            <option value="">Select Exchange</option>
+                            <option value="valr">VALR</option>
+                            <option value="luno">Luno</option>
+                            <option value="altcointrader">AltCoinTrader</option>
+                            <option value="binance">Binance</option>
+                            <option value="kraken">Kraken</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Preferred Cryptocurrency</label>
+                        <select id="transferCrypto">
+                            <option value="">Select Crypto</option>
+                            <option value="XRP">XRP (Fast, Low Fees)</option>
+                            <option value="XLM">XLM (Fast, Low Fees)</option>
+                            <option value="LTC">LTC (Medium Speed)</option>
+                            <option value="TRX">TRX (Fast, Low Fees)</option>
+                            <option value="USDT">USDT-TRC20 (Stable)</option>
+                            <option value="BTC">BTC (Slow, High Fees)</option>
+                            <option value="ETH">ETH (Variable Fees)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Risk Settings -->
+                <div class="stat-card">
+                    <h4 style="color: #ffb347; margin-bottom: 15px;">⚖️ Risk Management</h4>
+                    <div class="form-group">
+                        <label>Min Price Difference (%)</label>
+                        <input type="number" id="minPriceDiff" value="3" min="1" max="10" step="0.5">
+                    </div>
+                    <div class="form-group">
+                        <label>Max Transfer Amount (USDT)</label>
+                        <input type="number" id="maxTransferAmount" value="1000" min="100" max="50000">
+                    </div>
+                    <div class="form-group">
+                        <label>Max Transfer Time (minutes)</label>
+                        <input type="number" id="maxTransferTime" value="30" min="10" max="120">
+                    </div>
+                    <div class="form-group">
+                        <label>Include Network Fees</label>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div class="toggle-switch" id="includeFeesToggle">
+                                <div class="toggle-knob"></div>
+                            </div>
+                            <span style="font-size: 0.85rem; color: #b8c6db;">Calculate fees in profit</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Best Practices -->
+                <div class="stat-card">
+                    <h4 style="color: #00ff88; margin-bottom: 15px;">💡 Best Practices</h4>
+                    <div style="color: #b8c6db; font-size: 0.85rem; line-height: 1.6;">
+                        <p style="margin-bottom: 10px;">
+                            <strong style="color: #00ff88;">Recommended Cryptos:</strong><br>
+                            XRP, XLM, TRX - Fast (3-5 mins), Low fees
+                        </p>
+                        <p style="margin-bottom: 10px;">
+                            <strong style="color: #ffb347;">Medium Risk:</strong><br>
+                            LTC, BCH - Medium speed (15-30 mins)
+                        </p>
+                        <p style="margin-bottom: 10px;">
+                            <strong style="color: #ff6b6b;">High Risk:</strong><br>
+                            BTC, ETH - Slow (30-60+ mins), High fees
+                        </p>
+                        <p style="margin-bottom: 10px;">
+                            <strong style="color: #00d4ff;">Pro Tip:</strong><br>
+                            Always test with small amounts first!
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Control Buttons -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                <button onclick="scanTransferOpportunities()" class="btn">
+                    🔍 Scan Opportunities
+                </button>
+                <button onclick="calculateTransferProfit()" class="btn">
+                    💰 Calculate Profit
+                </button>
+                <button onclick="viewTransferHistory()" class="btn">
+                    📊 Transfer History
+                </button>
+                <button onclick="testTransferRoute()" class="btn">
+                    🧪 Test Route
+                </button>
+            </div>
+
+            <!-- Active Transfers Monitor -->
+            <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+                <h4 style="color: #ffb347; margin-bottom: 15px;">🔄 Active Transfers</h4>
+                <div id="activeTransfers" style="max-height: 200px; overflow-y: auto;">
+                    <div style="text-align: center; color: #888; padding: 20px;">
+                        No active transfers. Configure routes and enable transfer arbitrage to start.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transfer Calculator -->
+            <div class="stat-card">
+                <h4 style="color: #00d4ff; margin-bottom: 15px;">🧮 Quick Transfer Calculator</h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                    <div class="form-group">
+                        <label>Buy Price (Source)</label>
+                        <input type="number" id="buyPrice" placeholder="$50000" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label>Sell Price (Destination)</label>
+                        <input type="number" id="sellPrice" placeholder="$51500" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label>Amount (USDT)</label>
+                        <input type="number" id="calcAmount" placeholder="1000" step="1">
+                    </div>
+                    <div class="form-group">
+                        <label>Network Fee</label>
+                        <input type="number" id="networkFee" placeholder="5" step="0.01">
+                    </div>
+                </div>
+                <button onclick="quickCalculate()" class="btn" style="width: 100%; margin-top: 15px;">
+                    Calculate Potential Profit
+                </button>
+                <div id="calculationResult" style="margin-top: 15px; padding: 15px; background: rgba(0,255,136,0.1); border-radius: 8px; display: none;">
+                    <!-- Results will appear here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Return to Platform Function
+        function returnToPlatform() {
+            // Set transfer toggle state to OFF
+            localStorage.setItem('transferActive', 'false');
+
+            // Navigate back to main platform
+            window.location.href = '/';
+        }
+
+        // Load saved settings
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load configuration from localStorage
+            const sourceExchange = localStorage.getItem('transferSourceExchange');
+            if (sourceExchange) document.getElementById('sourceExchange').value = sourceExchange;
+
+            const destExchange = localStorage.getItem('transferDestExchange');
+            if (destExchange) document.getElementById('destExchange').value = destExchange;
+
+            const transferCrypto = localStorage.getItem('transferCrypto');
+            if (transferCrypto) document.getElementById('transferCrypto').value = transferCrypto;
+
+            const minPriceDiff = localStorage.getItem('minPriceDiff');
+            if (minPriceDiff) document.getElementById('minPriceDiff').value = minPriceDiff;
+
+            const maxTransferAmount = localStorage.getItem('maxTransferAmount');
+            if (maxTransferAmount) document.getElementById('maxTransferAmount').value = maxTransferAmount;
+
+            // Toggle for fees
+            document.getElementById('includeFeesToggle').addEventListener('click', function() {
+                this.classList.toggle('active');
+                localStorage.setItem('includeTransferFees', this.classList.contains('active'));
+            });
+
+            // Load toggle state
+            if (localStorage.getItem('includeTransferFees') === 'true') {
+                document.getElementById('includeFeesToggle').classList.add('active');
+            }
+        });
+
+        // Save settings when changed
+        document.getElementById('sourceExchange').addEventListener('change', function() {
+            localStorage.setItem('transferSourceExchange', this.value);
+        });
+
+        document.getElementById('destExchange').addEventListener('change', function() {
+            localStorage.setItem('transferDestExchange', this.value);
+        });
+
+        document.getElementById('transferCrypto').addEventListener('change', function() {
+            localStorage.setItem('transferCrypto', this.value);
+        });
+
+        document.getElementById('minPriceDiff').addEventListener('change', function() {
+            localStorage.setItem('minPriceDiff', this.value);
+        });
+
+        document.getElementById('maxTransferAmount').addEventListener('change', function() {
+            localStorage.setItem('maxTransferAmount', this.value);
+        });
+
+        // Placeholder functions
+        function scanTransferOpportunities() {
+            alert('Scanning for transfer arbitrage opportunities across exchanges...');
+        }
+
+        function calculateTransferProfit() {
+            alert('Opening detailed profit calculator...');
+        }
+
+        function viewTransferHistory() {
+            alert('Loading transfer history...');
+        }
+
+        function testTransferRoute() {
+            const source = document.getElementById('sourceExchange').value;
+            const dest = document.getElementById('destExchange').value;
+            if (!source || !dest) {
+                alert('Please select both source and destination exchanges');
+                return;
+            }
+            alert(`Testing transfer route from ${source} to ${dest}...`);
+        }
+
+        function quickCalculate() {
+            const buyPrice = parseFloat(document.getElementById('buyPrice').value) || 0;
+            const sellPrice = parseFloat(document.getElementById('sellPrice').value) || 0;
+            const amount = parseFloat(document.getElementById('calcAmount').value) || 0;
+            const fee = parseFloat(document.getElementById('networkFee').value) || 0;
+
+            if (!buyPrice || !sellPrice || !amount) {
+                alert('Please fill in all fields');
+                return;
+            }
+
+            const quantity = amount / buyPrice;
+            const revenue = quantity * sellPrice;
+            const profit = revenue - amount - fee;
+            const profitPercent = (profit / amount) * 100;
+
+            const resultDiv = document.getElementById('calculationResult');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = `
+                <h5 style="color: #00ff88; margin-bottom: 10px;">📊 Calculation Results</h5>
+                <div style="display: grid; grid-template-columns: 1fr auto; gap: 10px; font-size: 0.9rem;">
+                    <span style="color: #b8c6db;">Amount to Transfer:</span>
+                    <span style="color: #fff;">$${amount.toFixed(2)}</span>
+
+                    <span style="color: #b8c6db;">Quantity:</span>
+                    <span style="color: #fff;">${quantity.toFixed(8)}</span>
+
+                    <span style="color: #b8c6db;">Revenue at Destination:</span>
+                    <span style="color: #fff;">$${revenue.toFixed(2)}</span>
+
+                    <span style="color: #b8c6db;">Network Fee:</span>
+                    <span style="color: #ff6b6b;">-$${fee.toFixed(2)}</span>
+
+                    <span style="color: #b8c6db; font-weight: bold;">Net Profit:</span>
+                    <span style="color: ${profit > 0 ? '#00ff88' : '#ff6b6b'}; font-weight: bold;">
+                        ${profit > 0 ? '+' : ''}$${profit.toFixed(2)} (${profitPercent.toFixed(2)}%)
+                    </span>
+                </div>
+                ${profit <= 0 ? '<p style="color: #ff6b6b; margin-top: 10px; font-size: 0.85rem;">⚠️ This transfer would result in a loss!</p>' : ''}
+                ${profitPercent > 0 && profitPercent < 1 ? '<p style="color: #ffb347; margin-top: 10px; font-size: 0.85rem;">⚠️ Low profit margin - consider risks carefully</p>' : ''}
+            `;
+        }
+    </script>
+</body>
+</html>
