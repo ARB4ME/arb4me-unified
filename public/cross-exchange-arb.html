@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cross-Exchange Arbitrage - ARB4ME</title>
+    <style>
+        body {
+            background: linear-gradient(135deg, #0c0c1e 0%, #161632 100%);
+            color: #b8c6db;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .cross-exchange-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #b8c6db;
+            font-size: 0.9rem;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 6px;
+            color: #fff;
+            font-size: 0.9rem;
+        }
+
+        .toggle-switch {
+            width: 50px;
+            height: 25px;
+            background: #ff6b6b;
+            border-radius: 25px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .toggle-switch.active {
+            background: #00ff88;
+        }
+
+        .toggle-knob {
+            width: 21px;
+            height: 21px;
+            background: white;
+            border-radius: 50%;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            transition: all 0.3s;
+        }
+
+        .toggle-switch.active .toggle-knob {
+            left: 27px;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #b8c6db;
+        }
+
+        /* Make tab content visible by default on this page */
+        #crossExchangeTab {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="cross-exchange-container">
+        <!-- Return to Platform Button -->
+        <div style="margin-bottom: 20px; text-align: center;">
+            <button onclick="returnToPlatform()" class="btn" style="background: linear-gradient(45deg, #ff6b6b 0%, #ee5a24 100%); font-size: 1rem; padding: 15px 30px;">
+                ← Return to ARB4ME Platform
+            </button>
+        </div>
+
+        <!-- Cross-Exchange Arbitrage Management Tab -->
+        <div id="crossExchangeTab" class="tab-content active">
+            <h3 style="color: #00d4ff; margin-bottom: 15px;">💱 Cross-Exchange Arbitrage Management</h3>
+
+            <div style="margin-bottom: 20px; padding: 15px; background: rgba(0,255,136,0.1); border: 2px solid #00ff88; border-radius: 10px;">
+                <div style="font-size: 1.2rem; color: #00ff88; margin-bottom: 15px; font-weight: bold; text-align: center;">
+                    ✅ CROSS-EXCHANGE ARB ACTIVE
+                </div>
+                <div style="color: #b8c6db; text-align: center;">
+                    Monitor price differences across all connected exchanges and execute profitable arbitrage trades automatically.
+                </div>
+            </div>
+
+            <!-- System Overview -->
+            <div style="margin-bottom: 20px; padding: 15px; background: rgba(0,212,255,0.1); border-radius: 10px;">
+                <h4 style="color: #00d4ff; margin-bottom: 10px;">📊 System Overview</h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+                    <div style="padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; text-align: center;">
+                        <div style="font-size: 1.5rem; color: #00ff88; font-weight: bold;" id="connectedExchanges">0</div>
+                        <div style="font-size: 0.9rem; color: #b8c6db;">Connected Exchanges</div>
+                    </div>
+                    <div style="padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; text-align: center;">
+                        <div style="font-size: 1.5rem; color: #ffb347; font-weight: bold;" id="activePairs">0</div>
+                        <div style="font-size: 0.9rem; color: #b8c6db;">Active Pairs</div>
+                    </div>
+                    <div style="padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; text-align: center;">
+                        <div style="font-size: 1.5rem; color: #ff6b6b; font-weight: bold;" id="opportunitiesToday">0</div>
+                        <div style="font-size: 0.9rem; color: #b8c6db;">Opportunities Today</div>
+                    </div>
+                    <div style="padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; text-align: center;">
+                        <div style="font-size: 1.5rem; color: #00d4ff; font-weight: bold;" id="totalProfit">$0.00</div>
+                        <div style="font-size: 0.9rem; color: #b8c6db;">Total Profit</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Placeholder for Crypto Asset Selection (will be moved here later) -->
+            <div style="margin-bottom: 20px; padding: 20px; background: rgba(255,255,255,0.05); border: 2px dashed #666; border-radius: 10px;">
+                <h4 style="color: #666; margin-bottom: 15px; text-align: center;">💎 Crypto Asset Selection</h4>
+                <p style="color: #888; text-align: center; margin-bottom: 15px;">
+                    Asset selection interface will be moved here from Settings page
+                </p>
+                <p style="color: #888; text-align: center; font-size: 0.9rem;">
+                    This will include all cryptocurrency pairs for monitoring arbitrage opportunities
+                </p>
+            </div>
+
+            <!-- Trading Configuration -->
+            <div style="margin-bottom: 20px; padding: 15px; background: rgba(255,107,107,0.1); border: 2px solid #ff6b6b; border-radius: 10px;">
+                <h4 style="color: #ff6b6b; margin-bottom: 10px;">⚙️ Trading Configuration</h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                    <!-- Risk Management -->
+                    <div class="stat-card">
+                        <h5 style="color: #ffb347; margin-bottom: 15px;">⚖️ Risk Management</h5>
+                        <div class="form-group">
+                            <label>Max Trade Size (USDT)</label>
+                            <input type="number" id="maxTradeSize" value="1000" min="100" max="100000">
+                        </div>
+                        <div class="form-group">
+                            <label>Min Profit Threshold (%)</label>
+                            <input type="number" id="minProfitThreshold" value="0.5" min="0.1" max="5" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label>Max Slippage (%)</label>
+                            <input type="number" id="maxSlippage" value="0.5" min="0.1" max="2" step="0.1">
+                        </div>
+                    </div>
+
+                    <!-- Exchange Priority -->
+                    <div class="stat-card">
+                        <h5 style="color: #ffb347; margin-bottom: 15px;">🏆 Exchange Priority</h5>
+                        <p style="font-size: 0.85rem; color: #b8c6db; margin-bottom: 10px;">
+                            Order of preference for arbitrage execution
+                        </p>
+                        <ol style="color: #b8c6db; font-size: 0.9rem; padding-left: 20px;">
+                            <li>VALR ↔ Luno</li>
+                            <li>VALR ↔ AltCoinTrader</li>
+                            <li>Luno ↔ AltCoinTrader</li>
+                            <li>International Exchanges</li>
+                        </ol>
+                    </div>
+
+                    <!-- Performance Stats -->
+                    <div class="stat-card">
+                        <h5 style="color: #ffb347; margin-bottom: 15px;">📈 Performance Stats</h5>
+                        <div style="display: grid; grid-template-columns: 1fr auto; gap: 10px; font-size: 0.9rem;">
+                            <span style="color: #b8c6db;">Total Trades:</span>
+                            <span style="color: #00ff88;" id="totalTrades">0</span>
+
+                            <span style="color: #b8c6db;">Success Rate:</span>
+                            <span style="color: #00ff88;" id="successRate">0%</span>
+
+                            <span style="color: #b8c6db;">Avg Profit/Trade:</span>
+                            <span style="color: #00ff88;" id="avgProfit">$0.00</span>
+
+                            <span style="color: #b8c6db;">Best Trade:</span>
+                            <span style="color: #00ff88;" id="bestTrade">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Control Buttons -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                <button onclick="scanForOpportunities()" class="btn">
+                    🔍 Scan Now
+                </button>
+                <button onclick="viewTradeHistory()" class="btn">
+                    📊 Trade History
+                </button>
+                <button onclick="configureExchanges()" class="btn">
+                    ⚙️ Configure Exchanges
+                </button>
+                <button onclick="exportData()" class="btn">
+                    📥 Export Data
+                </button>
+            </div>
+
+            <!-- Recent Trades -->
+            <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px;">
+                <h4 style="color: #ffb347; margin-bottom: 15px;">🕒 Recent Cross-Exchange Trades</h4>
+                <div id="recentTrades" style="max-height: 200px; overflow-y: auto;">
+                    <div style="text-align: center; color: #888; padding: 20px;">
+                        No cross-exchange trades yet. Connect exchanges and enable trading to start.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Return to Platform Function
+        function returnToPlatform() {
+            // Set cross-exchange toggle state to OFF
+            localStorage.setItem('crossExchangeActive', 'false');
+
+            // Navigate back to main platform
+            window.location.href = '/';
+        }
+
+        // Load saved settings
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load trading configuration from localStorage
+            const maxTradeSize = localStorage.getItem('maxTradeSize');
+            if (maxTradeSize) document.getElementById('maxTradeSize').value = maxTradeSize;
+
+            const minProfitThreshold = localStorage.getItem('minProfitThreshold');
+            if (minProfitThreshold) document.getElementById('minProfitThreshold').value = minProfitThreshold;
+
+            const maxSlippage = localStorage.getItem('maxSlippage');
+            if (maxSlippage) document.getElementById('maxSlippage').value = maxSlippage;
+
+            // Update stats from localStorage or API
+            updateStats();
+        });
+
+        // Save settings when changed
+        document.getElementById('maxTradeSize').addEventListener('change', function() {
+            localStorage.setItem('maxTradeSize', this.value);
+        });
+
+        document.getElementById('minProfitThreshold').addEventListener('change', function() {
+            localStorage.setItem('minProfitThreshold', this.value);
+        });
+
+        document.getElementById('maxSlippage').addEventListener('change', function() {
+            localStorage.setItem('maxSlippage', this.value);
+        });
+
+        // Placeholder functions for buttons
+        function scanForOpportunities() {
+            alert('Scanning for cross-exchange arbitrage opportunities...');
+        }
+
+        function viewTradeHistory() {
+            alert('Opening trade history...');
+        }
+
+        function configureExchanges() {
+            alert('Opening exchange configuration...');
+        }
+
+        function exportData() {
+            alert('Exporting trade data...');
+        }
+
+        function updateStats() {
+            // This would normally fetch from API
+            // For now, just showing placeholder values
+
+            // Count connected exchanges from localStorage
+            let connectedCount = 0;
+            const exchanges = ['valr', 'luno', 'altcointrader', 'xago', 'chainex'];
+            exchanges.forEach(exchange => {
+                if (localStorage.getItem(`${exchange}Connected`) === 'true') {
+                    connectedCount++;
+                }
+            });
+            document.getElementById('connectedExchanges').textContent = connectedCount;
+
+            // Count active pairs
+            let activePairs = 0;
+            const assets = ['BTCUSDT', 'ETHUSDT', 'XRPUSDT', 'SOLUSDT'];
+            assets.forEach(asset => {
+                if (localStorage.getItem(`asset_${asset}`) === 'true') {
+                    activePairs++;
+                }
+            });
+            document.getElementById('activePairs').textContent = activePairs;
+        }
+    </script>
+</body>
+</html>

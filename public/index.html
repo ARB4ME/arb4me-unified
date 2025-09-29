@@ -22785,9 +22785,16 @@ ARB4ME Security Team`
             saveStrategyPreferences();
 
             if (state.strategies.crossExchange) {
-                addActivity('✅ Cross-Exchange ARB enabled - monitoring price differences between exchanges', 'success');
+                addActivity('✅ Cross-Exchange ARB enabled - navigating to page', 'success');
+
+                // Save state to localStorage
+                localStorage.setItem('crossExchangeActive', 'true');
+
+                // Navigate to cross-exchange page
+                window.location.href = '/cross-exchange-arb.html';
             } else {
                 addActivity('⏸️ Cross-Exchange ARB disabled', 'warning');
+                localStorage.setItem('crossExchangeActive', 'false');
             }
         }
 
