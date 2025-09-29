@@ -175,10 +175,17 @@
         
         .tab-content.active { display: block; }
         
-        /* Specific rule for triangular tab to ensure visibility */
-        #triangularTab.active { 
-            display: block !important; 
+        /* Specific rule for triangular tab to ensure proper visibility control */
+        #triangularTab:not(.active) {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+        }
+
+        #triangularTab.active {
+            display: block !important;
             visibility: visible !important;
+            opacity: 1 !important;
         }
         
         .toggle-container {
