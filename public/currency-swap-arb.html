@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Currency Swap Arbitrage - ARB4ME</title>
+    <style>
+        body {
+            background: linear-gradient(135deg, #0c0c1e 0%, #161632 100%);
+            color: #b8c6db;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .currency-swap-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #b8c6db;
+            font-size: 0.9rem;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 6px;
+            color: #fff;
+            font-size: 0.9rem;
+        }
+
+        .toggle-switch {
+            width: 50px;
+            height: 25px;
+            background: #ff6b6b;
+            border-radius: 25px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .toggle-switch.active {
+            background: #00ff88;
+        }
+
+        .toggle-knob {
+            width: 21px;
+            height: 21px;
+            background: white;
+            border-radius: 50%;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            transition: all 0.3s;
+        }
+
+        .toggle-switch.active .toggle-knob {
+            left: 27px;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #b8c6db;
+        }
+
+        .warning-box {
+            background: rgba(255,107,107,0.1);
+            border: 2px solid #ff6b6b;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .info-box {
+            background: rgba(0,212,255,0.1);
+            border: 2px solid #00d4ff;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .success-box {
+            background: rgba(0,255,136,0.1);
+            border: 2px solid #00ff88;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .currency-pair {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        /* Make tab content visible by default on this page */
+        #currencySwapTab {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="currency-swap-container">
+        <!-- Return to Platform Button -->
+        <div style="margin-bottom: 20px; text-align: center;">
+            <button onclick="returnToPlatform()" class="btn" style="background: linear-gradient(45deg, #ff6b6b 0%, #ee5a24 100%); font-size: 1rem; padding: 15px 30px;">
+                ← Return to ARB4ME Platform
+            </button>
+        </div>
+
+        <!-- Currency Swap Arbitrage Management Tab -->
+        <div id="currencySwapTab" class="tab-content active">
+            <h3 style="color: #00d4ff; margin-bottom: 15px;">💱 Currency Swap Arbitrage Management</h3>
+
+            <div style="margin-bottom: 20px; padding: 15px; background: rgba(138,43,226,0.1); border: 2px solid #8a2be2; border-radius: 10px;">
+                <div style="font-size: 1.2rem; color: #8a2be2; margin-bottom: 15px; font-weight: bold; text-align: center;">
+                    🌍 FIAT CURRENCY ARBITRAGE
+                </div>
+                <div style="color: #b8c6db; text-align: center;">
+                    Profit from exchange rate differences between fiat currencies (ZAR, USD, EUR, GBP) across different crypto exchanges.
+                </div>
+            </div>
+
+            <!-- How It Works -->
+            <div class="success-box">
+                <h4 style="color: #00ff88; margin-bottom: 10px;">💡 How Currency Swap ARB Works</h4>
+                <div style="color: #b8c6db; font-size: 0.9rem; line-height: 1.6;">
+                    <p style="margin-bottom: 10px;">
+                        <strong>Example:</strong> Buy BTC with ZAR on VALR at favorable ZAR/USD rate,
+                        transfer to Binance, sell for USD at better rate. Profit from forex spread!
+                    </p>
+                    <ol style="padding-left: 20px; margin: 10px 0;">
+                        <li>Monitor exchange rates across different platforms</li>
+                        <li>Identify when ZAR is stronger on one exchange vs another</li>
+                        <li>Buy crypto with undervalued fiat currency</li>
+                        <li>Sell on exchange where your target fiat is overvalued</li>
+                        <li>Capture the forex arbitrage profit</li>
+                    </ol>
+                </div>
+            </div>
+
+            <!-- Important Considerations -->
+            <div class="warning-box">
+                <h4 style="color: #ff6b6b; margin-bottom: 10px;">⚠️ Important Considerations</h4>
+                <ul style="color: #b8c6db; font-size: 0.9rem; margin: 10px 0; padding-left: 20px;">
+                    <li>Exchange rates can vary significantly between exchanges</li>
+                    <li>Banking fees for fiat deposits/withdrawals apply</li>
+                    <li>Currency conversion fees may reduce profits</li>
+                    <li>Regulatory restrictions may apply to forex trading</li>
+                    <li>Larger capital required for meaningful profits</li>
+                    <li>Settlement times for fiat can be 1-5 business days</li>
+                </ul>
+            </div>
+
+            <!-- System Overview -->
+            <div class="info-box">
+                <h4 style="color: #00d4ff; margin-bottom: 10px;">📊 Currency Swap Overview</h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+                    <div style="padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; text-align: center;">
+                        <div style="font-size: 1.5rem; color: #00ff88; font-weight: bold;" id="activePairs">0</div>
+                        <div style="font-size: 0.9rem; color: #b8c6db;">Active Currency Pairs</div>
+                    </div>
+                    <div style="padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; text-align: center;">
+                        <div style="font-size: 1.5rem; color: #ffb347; font-weight: bold;" id="avgSpread">0%</div>
+                        <div style="font-size: 0.9rem; color: #b8c6db;">Average Spread</div>
+                    </div>
+                    <div style="padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; text-align: center;">
+                        <div style="font-size: 1.5rem; color: #ff6b6b; font-weight: bold;" id="swapsToday">0</div>
+                        <div style="font-size: 0.9rem; color: #b8c6db;">Swaps Today</div>
+                    </div>
+                    <div style="padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; text-align: center;">
+                        <div style="font-size: 1.5rem; color: #00d4ff; font-weight: bold;" id="totalForexProfit">$0.00</div>
+                        <div style="font-size: 0.9rem; color: #b8c6db;">Total Forex Profit</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Currency Configuration -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 20px;">
+                <!-- Currency Pairs -->
+                <div class="stat-card">
+                    <h4 style="color: #ffb347; margin-bottom: 15px;">💰 Currency Pairs to Monitor</h4>
+                    <div class="currency-pair">
+                        <span>🇿🇦 ZAR/USD</span>
+                        <div class="toggle-switch" id="zarUsdToggle">
+                            <div class="toggle-knob"></div>
+                        </div>
+                    </div>
+                    <div class="currency-pair">
+                        <span>🇪🇺 EUR/USD</span>
+                        <div class="toggle-switch" id="eurUsdToggle">
+                            <div class="toggle-knob"></div>
+                        </div>
+                    </div>
+                    <div class="currency-pair">
+                        <span>🇬🇧 GBP/USD</span>
+                        <div class="toggle-switch" id="gbpUsdToggle">
+                            <div class="toggle-knob"></div>
+                        </div>
+                    </div>
+                    <div class="currency-pair">
+                        <span>🇿🇦 ZAR/EUR</span>
+                        <div class="toggle-switch" id="zarEurToggle">
+                            <div class="toggle-knob"></div>
+                        </div>
+                    </div>
+                    <div class="currency-pair">
+                        <span>🇳🇬 NGN/USD</span>
+                        <div class="toggle-switch" id="ngnUsdToggle">
+                            <div class="toggle-knob"></div>
+                        </div>
+                    </div>
+                    <p style="font-size: 0.85rem; color: #b8c6db; margin-top: 10px;">
+                        Enable pairs you can access through your bank accounts
+                    </p>
+                </div>
+
+                <!-- Exchange Settings -->
+                <div class="stat-card">
+                    <h4 style="color: #ffb347; margin-bottom: 15px;">🏦 Exchange Preferences</h4>
+                    <div class="form-group">
+                        <label>Primary Fiat Currency</label>
+                        <select id="primaryCurrency">
+                            <option value="ZAR">ZAR - South African Rand</option>
+                            <option value="USD">USD - US Dollar</option>
+                            <option value="EUR">EUR - Euro</option>
+                            <option value="GBP">GBP - British Pound</option>
+                            <option value="NGN">NGN - Nigerian Naira</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Min Spread for Alert (%)</label>
+                        <input type="number" id="minSpread" value="2" min="0.5" max="10" step="0.5">
+                    </div>
+                    <div class="form-group">
+                        <label>Max Trade Size (USD equiv)</label>
+                        <input type="number" id="maxFiatTrade" value="5000" min="100" max="100000">
+                    </div>
+                    <div class="form-group">
+                        <label>Include Banking Fees</label>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div class="toggle-switch" id="includeBankingFees">
+                                <div class="toggle-knob"></div>
+                            </div>
+                            <span style="font-size: 0.85rem; color: #b8c6db;">Calculate all fees</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Best Opportunities -->
+                <div class="stat-card">
+                    <h4 style="color: #00ff88; margin-bottom: 15px;">🎯 Best Opportunities</h4>
+                    <div style="color: #b8c6db; font-size: 0.85rem; line-height: 1.8;">
+                        <p style="margin-bottom: 10px;">
+                            <strong style="color: #00ff88;">🇿🇦 South Africa:</strong><br>
+                            VALR ↔ Luno (ZAR rates differ)<br>
+                            Local ↔ International exchanges
+                        </p>
+                        <p style="margin-bottom: 10px;">
+                            <strong style="color: #ffb347;">🌍 International:</strong><br>
+                            Binance ↔ Kraken (EUR/USD)<br>
+                            Regional exchanges with local fiat
+                        </p>
+                        <p style="margin-bottom: 10px;">
+                            <strong style="color: #00d4ff;">💡 Pro Tips:</strong><br>
+                            • Watch forex market volatility<br>
+                            • Best during market opens<br>
+                            • Combine with crypto arbitrage
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Forex Rate Monitor -->
+            <div class="stat-card" style="margin-bottom: 20px;">
+                <h4 style="color: #8a2be2; margin-bottom: 15px;">📈 Live Exchange Rate Comparison</h4>
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="border-bottom: 2px solid #8a2be2;">
+                                <th style="padding: 10px; text-align: left; color: #b8c6db;">Exchange</th>
+                                <th style="padding: 10px; text-align: center; color: #b8c6db;">ZAR/USD</th>
+                                <th style="padding: 10px; text-align: center; color: #b8c6db;">EUR/USD</th>
+                                <th style="padding: 10px; text-align: center; color: #b8c6db;">GBP/USD</th>
+                                <th style="padding: 10px; text-align: center; color: #b8c6db;">Spread</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 10px; color: #00ff88;">VALR</td>
+                                <td style="padding: 10px; text-align: center;">18.50</td>
+                                <td style="padding: 10px; text-align: center;">-</td>
+                                <td style="padding: 10px; text-align: center;">-</td>
+                                <td style="padding: 10px; text-align: center; color: #ffb347;">+0.5%</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 10px; color: #00ff88;">Luno</td>
+                                <td style="padding: 10px; text-align: center;">18.35</td>
+                                <td style="padding: 10px; text-align: center;">1.08</td>
+                                <td style="padding: 10px; text-align: center;">-</td>
+                                <td style="padding: 10px; text-align: center; color: #ff6b6b;">-0.3%</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 10px; color: #00ff88;">Binance</td>
+                                <td style="padding: 10px; text-align: center;">-</td>
+                                <td style="padding: 10px; text-align: center;">1.09</td>
+                                <td style="padding: 10px; text-align: center;">1.27</td>
+                                <td style="padding: 10px; text-align: center; color: #00ff88;">+0.8%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p style="font-size: 0.85rem; color: #888; margin-top: 10px; text-align: center;">
+                    * Sample data - Connect exchanges for live rates
+                </p>
+            </div>
+
+            <!-- Control Buttons -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                <button onclick="scanForexOpportunities()" class="btn">
+                    🔍 Scan Forex Rates
+                </button>
+                <button onclick="calculateSwapProfit()" class="btn">
+                    💰 Calculate Profit
+                </button>
+                <button onclick="viewSwapHistory()" class="btn">
+                    📊 Swap History
+                </button>
+                <button onclick="setupAlerts()" class="btn">
+                    🔔 Setup Alerts
+                </button>
+            </div>
+
+            <!-- Quick Calculator -->
+            <div class="stat-card">
+                <h4 style="color: #00d4ff; margin-bottom: 15px;">🧮 Currency Swap Calculator</h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                    <div class="form-group">
+                        <label>Amount</label>
+                        <input type="number" id="swapAmount" placeholder="1000" step="1">
+                    </div>
+                    <div class="form-group">
+                        <label>From Currency</label>
+                        <select id="fromCurrency">
+                            <option value="ZAR">ZAR</option>
+                            <option value="USD">USD</option>
+                            <option value="EUR">EUR</option>
+                            <option value="GBP">GBP</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Exchange A Rate</label>
+                        <input type="number" id="rateA" placeholder="18.50" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label>Exchange B Rate</label>
+                        <input type="number" id="rateB" placeholder="18.35" step="0.01">
+                    </div>
+                </div>
+                <button onclick="calculateForexArbitrage()" class="btn" style="width: 100%; margin-top: 15px;">
+                    Calculate Currency Arbitrage
+                </button>
+                <div id="forexResult" style="margin-top: 15px; padding: 15px; background: rgba(0,255,136,0.1); border-radius: 8px; display: none;">
+                    <!-- Results will appear here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Return to Platform Function
+        function returnToPlatform() {
+            // Set currency swap toggle state to OFF
+            localStorage.setItem('currencySwapActive', 'false');
+
+            // Navigate back to main platform
+            window.location.href = '/';
+        }
+
+        // Initialize toggles
+        document.addEventListener('DOMContentLoaded', function() {
+            // Currency pair toggles
+            const currencyToggles = [
+                'zarUsdToggle', 'eurUsdToggle', 'gbpUsdToggle',
+                'zarEurToggle', 'ngnUsdToggle', 'includeBankingFees'
+            ];
+
+            currencyToggles.forEach(toggleId => {
+                const toggle = document.getElementById(toggleId);
+                if (toggle) {
+                    // Load saved state
+                    if (localStorage.getItem(toggleId) === 'true') {
+                        toggle.classList.add('active');
+                    }
+
+                    // Add click handler
+                    toggle.addEventListener('click', function() {
+                        this.classList.toggle('active');
+                        localStorage.setItem(toggleId, this.classList.contains('active'));
+                    });
+                }
+            });
+
+            // Load saved form values
+            const primaryCurrency = localStorage.getItem('primaryCurrency');
+            if (primaryCurrency) document.getElementById('primaryCurrency').value = primaryCurrency;
+
+            const minSpread = localStorage.getItem('minSpread');
+            if (minSpread) document.getElementById('minSpread').value = minSpread;
+
+            const maxFiatTrade = localStorage.getItem('maxFiatTrade');
+            if (maxFiatTrade) document.getElementById('maxFiatTrade').value = maxFiatTrade;
+        });
+
+        // Save settings when changed
+        document.getElementById('primaryCurrency').addEventListener('change', function() {
+            localStorage.setItem('primaryCurrency', this.value);
+        });
+
+        document.getElementById('minSpread').addEventListener('change', function() {
+            localStorage.setItem('minSpread', this.value);
+        });
+
+        document.getElementById('maxFiatTrade').addEventListener('change', function() {
+            localStorage.setItem('maxFiatTrade', this.value);
+        });
+
+        // Placeholder functions
+        function scanForexOpportunities() {
+            alert('Scanning forex rates across exchanges...\n\nThis will compare exchange rates for your selected currency pairs.');
+        }
+
+        function calculateSwapProfit() {
+            alert('Opening detailed currency swap profit calculator...');
+        }
+
+        function viewSwapHistory() {
+            alert('Loading currency swap history...');
+        }
+
+        function setupAlerts() {
+            const minSpread = document.getElementById('minSpread').value;
+            alert(`Setting up alerts for spreads above ${minSpread}%...`);
+        }
+
+        function calculateForexArbitrage() {
+            const amount = parseFloat(document.getElementById('swapAmount').value) || 0;
+            const rateA = parseFloat(document.getElementById('rateA').value) || 0;
+            const rateB = parseFloat(document.getElementById('rateB').value) || 0;
+            const fromCurrency = document.getElementById('fromCurrency').value;
+
+            if (!amount || !rateA || !rateB) {
+                alert('Please fill in all fields');
+                return;
+            }
+
+            // Calculate arbitrage opportunity
+            const usdAmountA = amount / rateA;
+            const usdAmountB = amount / rateB;
+            const difference = Math.abs(usdAmountA - usdAmountB);
+            const percentDiff = (difference / Math.min(usdAmountA, usdAmountB)) * 100;
+
+            // Determine which exchange is better
+            const betterExchange = rateA > rateB ? 'Exchange B' : 'Exchange A';
+            const worseExchange = rateA > rateB ? 'Exchange A' : 'Exchange B';
+            const profit = rateA > rateB ?
+                (amount / rateB - amount / rateA) :
+                (amount / rateA - amount / rateB);
+
+            const resultDiv = document.getElementById('forexResult');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = `
+                <h5 style="color: #00ff88; margin-bottom: 10px;">📊 Forex Arbitrage Analysis</h5>
+                <div style="display: grid; grid-template-columns: 1fr auto; gap: 10px; font-size: 0.9rem;">
+                    <span style="color: #b8c6db;">Amount:</span>
+                    <span style="color: #fff;">${amount.toFixed(2)} ${fromCurrency}</span>
+
+                    <span style="color: #b8c6db;">Exchange A Rate (${fromCurrency}/USD):</span>
+                    <span style="color: #fff;">${rateA.toFixed(4)}</span>
+
+                    <span style="color: #b8c6db;">Exchange B Rate (${fromCurrency}/USD):</span>
+                    <span style="color: #fff;">${rateB.toFixed(4)}</span>
+
+                    <span style="color: #b8c6db;">Rate Difference:</span>
+                    <span style="color: #ffb347;">${percentDiff.toFixed(2)}%</span>
+
+                    <span style="color: #b8c6db; font-weight: bold;">Strategy:</span>
+                    <span style="color: #00d4ff; font-weight: bold;">
+                        Buy on ${betterExchange}, Sell on ${worseExchange}
+                    </span>
+
+                    <span style="color: #b8c6db; font-weight: bold;">Potential Profit:</span>
+                    <span style="color: ${profit > 0 ? '#00ff88' : '#ff6b6b'}; font-weight: bold;">
+                        ${profit > 0 ? '+' : ''}$${Math.abs(profit).toFixed(2)} USD
+                    </span>
+                </div>
+                ${percentDiff < 1 ? '<p style="color: #ff6b6b; margin-top: 10px; font-size: 0.85rem;">⚠️ Low spread - may not cover fees!</p>' : ''}
+                ${percentDiff > 3 ? '<p style="color: #00ff88; margin-top: 10px; font-size: 0.85rem;">✅ Good opportunity - significant spread detected!</p>' : ''}
+                <p style="color: #888; margin-top: 10px; font-size: 0.8rem;">
+                    * Remember to account for banking fees, withdrawal limits, and processing times
+                </p>
+            `;
+        }
+    </script>
+</body>
+</html>
