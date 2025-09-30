@@ -291,6 +291,14 @@
         <div class="header">
             <h1>Strategy API Configuration</h1>
             <p>Configure dedicated API credentials for each trading strategy to enable parallel execution</p>
+
+            <!-- Debug buttons (remove after testing) -->
+            <div style="margin-top: 15px; padding: 10px; background: rgba(255,0,0,0.1); border-radius: 8px;">
+                <p style="color: #ff6b6b; font-size: 0.9rem; margin: 0 0 10px 0;">Debug Tools (will be removed):</p>
+                <button onclick="manualSaveTest()" style="padding: 5px 10px; margin-right: 10px; background: #ff6b6b; color: white; border: none; border-radius: 4px; cursor: pointer;">Manual Save Test</button>
+                <button onclick="manualLoadTest()" style="padding: 5px 10px; margin-right: 10px; background: #00d4ff; color: white; border: none; border-radius: 4px; cursor: pointer;">Manual Load Test</button>
+                <button onclick="showStorageContents()" style="padding: 5px 10px; background: #00ff88; color: white; border: none; border-radius: 4px; cursor: pointer;">Show Storage</button>
+            </div>
         </div>
 
         <div class="info-panel">
@@ -889,8 +897,89 @@
             });
         }
 
+        // Test localStorage functionality
+        function testLocalStorage() {
+            console.log('🧪 Testing localStorage functionality...');
+
+            // Test write
+            localStorage.setItem('test_key', 'test_value');
+            const testRead = localStorage.getItem('test_key');
+
+            console.log('✅ localStorage test:', {
+                canWrite: testRead === 'test_value',
+                domain: window.location.hostname,
+                protocol: window.location.protocol,
+                currentStorage: Object.keys(localStorage).length,
+                testValue: testRead
+            });
+
+            // Clean up test
+            localStorage.removeItem('test_key');
+
+            // Show all existing localStorage keys for debugging
+            const allKeys = Object.keys(localStorage);
+            console.log('📦 All localStorage keys:', allKeys);
+
+            // Show strategy-specific keys
+            const strategyKeys = allKeys.filter(key => key.includes('chainex_'));
+            console.log('🔑 Strategy keys found:', strategyKeys);
+        }
+
+        // Debug functions
+        function manualSaveTest() {
+            const testApiKey = 'test_api_' + Date.now();
+            const testSecretKey = 'test_secret_' + Date.now();
+
+            localStorage.setItem('chainex_cross-exchange_api', testApiKey);
+            localStorage.setItem('chainex_cross-exchange_secret', testSecretKey);
+
+            console.log('💾 Manual save test completed:', {
+                savedApi: testApiKey,
+                savedSecret: testSecretKey.substring(0, 10) + '...'
+            });
+
+            alert('Saved test data to localStorage - check console');
+        }
+
+        function manualLoadTest() {
+            const apiKey = localStorage.getItem('chainex_cross-exchange_api');
+            const secretKey = localStorage.getItem('chainex_cross-exchange_secret');
+
+            console.log('📥 Manual load test:', {
+                foundApi: !!apiKey,
+                foundSecret: !!secretKey,
+                apiValue: apiKey ? apiKey.substring(0, 10) + '...' : 'None',
+                secretValue: secretKey ? secretKey.substring(0, 10) + '...' : 'None'
+            });
+
+            if (apiKey || secretKey) {
+                const apiInput = document.getElementById('chainex-cross-exchange-api');
+                const secretInput = document.getElementById('chainex-cross-exchange-secret');
+
+                if (apiInput && apiKey) apiInput.value = apiKey;
+                if (secretInput && secretKey) secretInput.value = secretKey;
+
+                alert('Loaded data from localStorage - check form fields');
+            } else {
+                alert('No data found in localStorage');
+            }
+        }
+
+        function showStorageContents() {
+            const allData = {};
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                const value = localStorage.getItem(key);
+                allData[key] = value.length > 50 ? value.substring(0, 50) + '...' : value;
+            }
+
+            console.log('📦 Complete localStorage contents:', allData);
+            alert('Storage contents logged to console');
+        }
+
         // Initialize page
         document.addEventListener('DOMContentLoaded', function() {
+            testLocalStorage();
             loadStrategyCredentials();
             setupAutoSave();
         });
