@@ -317,15 +317,15 @@
             <div class="exchange-card">
                 <div class="exchange-header">
                     <div class="exchange-name">ChainEX - Cross-Exchange Strategy</div>
-                    <div id="chainex-cross-status" class="connection-status status-disconnected">Disconnected</div>
+                    <div id="chainex-cross-exchange-status" class="connection-status status-disconnected">Disconnected</div>
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="chainex-cross-api">API Key</label>
-                    <input type="text" id="chainex-cross-api" class="form-input" placeholder="Enter ChainEX API Key">
+                    <input type="text" id="chainex-cross-exchange-api" class="form-input" placeholder="Enter ChainEX API Key">
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="chainex-cross-secret">Secret Key</label>
-                    <input type="password" id="chainex-cross-secret" class="form-input" placeholder="Enter ChainEX Secret Key">
+                    <input type="password" id="chainex-cross-exchange-secret" class="form-input" placeholder="Enter ChainEX Secret Key">
                 </div>
                 <div class="button-group">
                     <button class="btn btn-primary" onclick="connectStrategyExchange('chainex', 'cross-exchange')">Connect</button>
@@ -386,15 +386,15 @@
             <div class="exchange-card">
                 <div class="exchange-header">
                     <div class="exchange-name">ChainEX - Currency Swap Strategy</div>
-                    <div id="chainex-swap-status" class="connection-status status-disconnected">Disconnected</div>
+                    <div id="chainex-currency-swap-status" class="connection-status status-disconnected">Disconnected</div>
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="chainex-swap-api">API Key</label>
-                    <input type="text" id="chainex-swap-api" class="form-input" placeholder="Enter ChainEX API Key">
+                    <input type="text" id="chainex-currency-swap-api" class="form-input" placeholder="Enter ChainEX API Key">
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="chainex-swap-secret">Secret Key</label>
-                    <input type="password" id="chainex-swap-secret" class="form-input" placeholder="Enter ChainEX Secret Key">
+                    <input type="password" id="chainex-currency-swap-secret" class="form-input" placeholder="Enter ChainEX Secret Key">
                 </div>
                 <div class="button-group">
                     <button class="btn btn-primary" onclick="connectStrategyExchange('chainex', 'currency-swap')">Connect</button>
@@ -437,14 +437,7 @@
                 return;
             }
 
-            // Fix status element ID mapping
-            const statusIdMap = {
-                'cross-exchange': 'cross',
-                'triangular': 'triangular',
-                'transfer': 'transfer',
-                'currency-swap': 'swap'
-            };
-            const statusElement = document.getElementById(`${exchange}-${statusIdMap[strategy]}-status`);
+            const statusElement = document.getElementById(`${exchange}-${strategy}-status`);
             if (statusElement) {
                 statusElement.textContent = 'Connecting...';
                 statusElement.className = 'connection-status status-connecting';
@@ -551,14 +544,8 @@
                 balance: null
             };
 
-            // Update status - fix the ID mapping for status elements
-            const statusIdMap = {
-                'cross-exchange': 'cross',
-                'triangular': 'triangular',
-                'transfer': 'transfer',
-                'currency-swap': 'swap'
-            };
-            const statusElement = document.getElementById(`${exchange}-${statusIdMap[strategy]}-status`);
+            // Update status
+            const statusElement = document.getElementById(`${exchange}-${strategy}-status`);
             if (statusElement) {
                 statusElement.textContent = 'Disconnected';
                 statusElement.className = 'connection-status status-disconnected';
@@ -569,29 +556,24 @@
 
         // Save credentials when typing (auto-save)
         function setupAutoSave() {
-            const strategies = [
-                { id: 'cross-exchange', shortId: 'cross' },
-                { id: 'triangular', shortId: 'triangular' },
-                { id: 'transfer', shortId: 'transfer' },
-                { id: 'currency-swap', shortId: 'swap' }
-            ];
+            const strategies = ['cross-exchange', 'triangular', 'transfer', 'currency-swap'];
 
             strategies.forEach(strategy => {
                 // API key auto-save
-                const apiInput = document.getElementById(`chainex-${strategy.id}-api`);
+                const apiInput = document.getElementById(`chainex-${strategy}-api`);
                 if (apiInput) {
                     apiInput.addEventListener('input', function() {
-                        localStorage.setItem(`chainex_${strategy.id}_api`, this.value);
-                        console.log(`Saved ${strategy.id} API key`);
+                        localStorage.setItem(`chainex_${strategy}_api`, this.value);
+                        console.log(`Saved ${strategy} API key`);
                     });
                 }
 
                 // Secret key auto-save
-                const secretInput = document.getElementById(`chainex-${strategy.id}-secret`);
+                const secretInput = document.getElementById(`chainex-${strategy}-secret`);
                 if (secretInput) {
                     secretInput.addEventListener('input', function() {
-                        localStorage.setItem(`chainex_${strategy.id}_secret`, this.value);
-                        console.log(`Saved ${strategy.id} secret key`);
+                        localStorage.setItem(`chainex_${strategy}_secret`, this.value);
+                        console.log(`Saved ${strategy} secret key`);
                     });
                 }
             });
@@ -599,25 +581,20 @@
 
         // Load saved credentials on page load
         function loadStrategyCredentials() {
-            const strategies = [
-                { id: 'cross-exchange', shortId: 'cross' },
-                { id: 'triangular', shortId: 'triangular' },
-                { id: 'transfer', shortId: 'transfer' },
-                { id: 'currency-swap', shortId: 'swap' }
-            ];
+            const strategies = ['cross-exchange', 'triangular', 'transfer', 'currency-swap'];
 
             strategies.forEach(strategy => {
-                const apiKey = localStorage.getItem(`chainex_${strategy.id}_api`);
-                const secretKey = localStorage.getItem(`chainex_${strategy.id}_secret`);
+                const apiKey = localStorage.getItem(`chainex_${strategy}_api`);
+                const secretKey = localStorage.getItem(`chainex_${strategy}_secret`);
 
                 if (apiKey) {
-                    const apiInput = document.getElementById(`chainex-${strategy.id}-api`);
+                    const apiInput = document.getElementById(`chainex-${strategy}-api`);
                     if (apiInput) {
                         apiInput.value = apiKey;
                     }
                 }
                 if (secretKey) {
-                    const secretInput = document.getElementById(`chainex-${strategy.id}-secret`);
+                    const secretInput = document.getElementById(`chainex-${strategy}-secret`);
                     if (secretInput) {
                         secretInput.value = secretKey;
                     }
@@ -625,10 +602,10 @@
 
                 // Check connection status based on stored credentials
                 if (apiKey && secretKey) {
-                    const statusElement = document.getElementById(`chainex-${strategy.shortId}-status`);
+                    const statusElement = document.getElementById(`chainex-${strategy}-status`);
                     if (statusElement) {
                         // Check if marked as connected in localStorage
-                        const isConnected = localStorage.getItem(`chainex_${strategy.id}_connected`) === 'true';
+                        const isConnected = localStorage.getItem(`chainex_${strategy}_connected`) === 'true';
                         if (isConnected) {
                             statusElement.textContent = 'Connected';
                             statusElement.className = 'connection-status status-connected';
