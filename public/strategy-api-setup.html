@@ -314,6 +314,7 @@
 
         <!-- Cross-Exchange Strategy -->
         <div id="cross-exchange-content" class="strategy-content active">
+            <form autocomplete="off" onsubmit="return false;">
             <div class="exchange-card">
                 <div class="exchange-header">
                     <div class="exchange-name">ChainEX - Cross-Exchange Strategy</div>
@@ -321,11 +322,11 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="chainex-cross-api">API Key</label>
-                    <input type="text" id="chainex-cross-exchange-api" class="form-input" placeholder="Enter ChainEX API Key">
+                    <input type="text" id="chainex-cross-exchange-api" class="form-input" placeholder="Enter ChainEX API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="chainex-cross-api-key">
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="chainex-cross-secret">Secret Key</label>
-                    <input type="password" id="chainex-cross-exchange-secret" class="form-input" placeholder="Enter ChainEX Secret Key">
+                    <input type="password" id="chainex-cross-exchange-secret" class="form-input" placeholder="Enter ChainEX Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="chainex-cross-secret-key">
                 </div>
                 <div class="button-group">
                     <button class="btn btn-primary" onclick="connectStrategyExchange('chainex', 'cross-exchange')">Connect</button>
@@ -333,10 +334,12 @@
                     <button class="btn btn-danger" onclick="disconnectStrategyExchange('chainex', 'cross-exchange')">Disconnect</button>
                 </div>
             </div>
+            </form>
         </div>
 
         <!-- Triangular Strategy -->
         <div id="triangular-content" class="strategy-content">
+            <form autocomplete="off" onsubmit="return false;">
             <div class="exchange-card">
                 <div class="exchange-header">
                     <div class="exchange-name">ChainEX - Triangular Strategy</div>
@@ -344,11 +347,11 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="chainex-triangular-api">API Key</label>
-                    <input type="text" id="chainex-triangular-api" class="form-input" placeholder="Enter ChainEX API Key">
+                    <input type="text" id="chainex-triangular-api" class="form-input" placeholder="Enter ChainEX API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="chainex-tri-api-key">
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="chainex-triangular-secret">Secret Key</label>
-                    <input type="password" id="chainex-triangular-secret" class="form-input" placeholder="Enter ChainEX Secret Key">
+                    <input type="password" id="chainex-triangular-secret" class="form-input" placeholder="Enter ChainEX Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="chainex-tri-secret-key">
                 </div>
                 <div class="button-group">
                     <button class="btn btn-primary" onclick="connectStrategyExchange('chainex', 'triangular')">Connect</button>
@@ -356,10 +359,12 @@
                     <button class="btn btn-danger" onclick="disconnectStrategyExchange('chainex', 'triangular')">Disconnect</button>
                 </div>
             </div>
+            </form>
         </div>
 
         <!-- Transfer Strategy -->
         <div id="transfer-content" class="strategy-content">
+            <form autocomplete="off" onsubmit="return false;">
             <div class="exchange-card">
                 <div class="exchange-header">
                     <div class="exchange-name">ChainEX - Transfer Strategy</div>
@@ -367,11 +372,11 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="chainex-transfer-api">API Key</label>
-                    <input type="text" id="chainex-transfer-api" class="form-input" placeholder="Enter ChainEX API Key">
+                    <input type="text" id="chainex-transfer-api" class="form-input" placeholder="Enter ChainEX API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="chainex-trans-api-key">
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="chainex-transfer-secret">Secret Key</label>
-                    <input type="password" id="chainex-transfer-secret" class="form-input" placeholder="Enter ChainEX Secret Key">
+                    <input type="password" id="chainex-transfer-secret" class="form-input" placeholder="Enter ChainEX Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="chainex-trans-secret-key">
                 </div>
                 <div class="button-group">
                     <button class="btn btn-primary" onclick="connectStrategyExchange('chainex', 'transfer')">Connect</button>
@@ -379,10 +384,12 @@
                     <button class="btn btn-danger" onclick="disconnectStrategyExchange('chainex', 'transfer')">Disconnect</button>
                 </div>
             </div>
+            </form>
         </div>
 
         <!-- Currency Swap Strategy -->
         <div id="currency-swap-content" class="strategy-content">
+            <form autocomplete="off" onsubmit="return false;">
             <div class="exchange-card">
                 <div class="exchange-header">
                     <div class="exchange-name">ChainEX - Currency Swap Strategy</div>
@@ -390,11 +397,11 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="chainex-swap-api">API Key</label>
-                    <input type="text" id="chainex-currency-swap-api" class="form-input" placeholder="Enter ChainEX API Key">
+                    <input type="text" id="chainex-currency-swap-api" class="form-input" placeholder="Enter ChainEX API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="chainex-swap-api-key">
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="chainex-swap-secret">Secret Key</label>
-                    <input type="password" id="chainex-currency-swap-secret" class="form-input" placeholder="Enter ChainEX Secret Key">
+                    <input type="password" id="chainex-currency-swap-secret" class="form-input" placeholder="Enter ChainEX Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="chainex-swap-secret-key">
                 </div>
                 <div class="button-group">
                     <button class="btn btn-primary" onclick="connectStrategyExchange('chainex', 'currency-swap')">Connect</button>
@@ -402,6 +409,7 @@
                     <button class="btn btn-danger" onclick="disconnectStrategyExchange('chainex', 'currency-swap')">Disconnect</button>
                 </div>
             </div>
+            </form>
         </div>
     </div>
 
