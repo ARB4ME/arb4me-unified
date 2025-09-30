@@ -437,9 +437,18 @@
                 return;
             }
 
-            const statusElement = document.getElementById(`${exchange}-${strategy}-status`);
-            statusElement.textContent = 'Connecting...';
-            statusElement.className = 'connection-status status-connecting';
+            // Fix status element ID mapping
+            const statusIdMap = {
+                'cross-exchange': 'cross',
+                'triangular': 'triangular',
+                'transfer': 'transfer',
+                'currency-swap': 'swap'
+            };
+            const statusElement = document.getElementById(`${exchange}-${statusIdMap[strategy]}-status`);
+            if (statusElement) {
+                statusElement.textContent = 'Connecting...';
+                statusElement.className = 'connection-status status-connecting';
+            }
 
             try {
                 const response = await fetch('/api/v1/trading/connect-exchange', {
@@ -459,8 +468,9 @@
 
                 if (result.success) {
                     // Store credentials in localStorage with strategy prefix
-                    localStorage.setItem(`${exchange}_${strategy}_api`, apiKey);
-                    localStorage.setItem(`${exchange}_${strategy}_secret`, secretKey);
+                    localStorage.setItem(`chainex_${strategy}_api`, apiKey);
+                    localStorage.setItem(`chainex_${strategy}_secret`, secretKey);
+                    localStorage.setItem(`chainex_${strategy}_connected`, 'true');
 
                     // Update state
                     window.strategyExchanges[`${exchange}-${strategy}`] = {
@@ -468,8 +478,10 @@
                         balance: result.balance || null
                     };
 
-                    statusElement.textContent = 'Connected';
-                    statusElement.className = 'connection-status status-connected';
+                    if (statusElement) {
+                        statusElement.textContent = 'Connected';
+                        statusElement.className = 'connection-status status-connected';
+                    }
 
                     alert(`${exchange.toUpperCase()} ${strategy} strategy connected successfully!`);
                 } else {
@@ -477,8 +489,10 @@
                 }
             } catch (error) {
                 console.error('Connection error:', error);
-                statusElement.textContent = 'Disconnected';
-                statusElement.className = 'connection-status status-disconnected';
+                if (statusElement) {
+                    statusElement.textContent = 'Disconnected';
+                    statusElement.className = 'connection-status status-disconnected';
+                }
                 alert(`Connection failed: ${error.message}`);
             }
         }
@@ -523,8 +537,9 @@
         // Disconnect strategy exchange
         function disconnectStrategyExchange(exchange, strategy) {
             // Clear stored credentials
-            localStorage.removeItem(`${exchange}_${strategy}_api`);
-            localStorage.removeItem(`${exchange}_${strategy}_secret`);
+            localStorage.removeItem(`chainex_${strategy}_api`);
+            localStorage.removeItem(`chainex_${strategy}_secret`);
+            localStorage.removeItem(`chainex_${strategy}_connected`);
 
             // Clear form fields
             document.getElementById(`${exchange}-${strategy}-api`).value = '';
@@ -536,45 +551,100 @@
                 balance: null
             };
 
-            // Update status
-            const statusElement = document.getElementById(`${exchange}-${strategy}-status`);
-            statusElement.textContent = 'Disconnected';
-            statusElement.className = 'connection-status status-disconnected';
+            // Update status - fix the ID mapping for status elements
+            const statusIdMap = {
+                'cross-exchange': 'cross',
+                'triangular': 'triangular',
+                'transfer': 'transfer',
+                'currency-swap': 'swap'
+            };
+            const statusElement = document.getElementById(`${exchange}-${statusIdMap[strategy]}-status`);
+            if (statusElement) {
+                statusElement.textContent = 'Disconnected';
+                statusElement.className = 'connection-status status-disconnected';
+            }
 
             alert(`${exchange.toUpperCase()} ${strategy} strategy disconnected`);
         }
 
+        // Save credentials when typing (auto-save)
+        function setupAutoSave() {
+            const strategies = [
+                { id: 'cross-exchange', shortId: 'cross' },
+                { id: 'triangular', shortId: 'triangular' },
+                { id: 'transfer', shortId: 'transfer' },
+                { id: 'currency-swap', shortId: 'swap' }
+            ];
+
+            strategies.forEach(strategy => {
+                // API key auto-save
+                const apiInput = document.getElementById(`chainex-${strategy.id}-api`);
+                if (apiInput) {
+                    apiInput.addEventListener('input', function() {
+                        localStorage.setItem(`chainex_${strategy.id}_api`, this.value);
+                        console.log(`Saved ${strategy.id} API key`);
+                    });
+                }
+
+                // Secret key auto-save
+                const secretInput = document.getElementById(`chainex-${strategy.id}-secret`);
+                if (secretInput) {
+                    secretInput.addEventListener('input', function() {
+                        localStorage.setItem(`chainex_${strategy.id}_secret`, this.value);
+                        console.log(`Saved ${strategy.id} secret key`);
+                    });
+                }
+            });
+        }
+
         // Load saved credentials on page load
         function loadStrategyCredentials() {
-            const strategies = ['cross-exchange', 'triangular', 'transfer', 'currency-swap'];
-            const exchanges = ['chainex'];
+            const strategies = [
+                { id: 'cross-exchange', shortId: 'cross' },
+                { id: 'triangular', shortId: 'triangular' },
+                { id: 'transfer', shortId: 'transfer' },
+                { id: 'currency-swap', shortId: 'swap' }
+            ];
 
-            exchanges.forEach(exchange => {
-                strategies.forEach(strategy => {
-                    const apiKey = localStorage.getItem(`${exchange}_${strategy}_api`);
-                    const secretKey = localStorage.getItem(`${exchange}_${strategy}_secret`);
+            strategies.forEach(strategy => {
+                const apiKey = localStorage.getItem(`chainex_${strategy.id}_api`);
+                const secretKey = localStorage.getItem(`chainex_${strategy.id}_secret`);
 
-                    if (apiKey) {
-                        document.getElementById(`${exchange}-${strategy}-api`).value = apiKey;
+                if (apiKey) {
+                    const apiInput = document.getElementById(`chainex-${strategy.id}-api`);
+                    if (apiInput) {
+                        apiInput.value = apiKey;
                     }
-                    if (secretKey) {
-                        document.getElementById(`${exchange}-${strategy}-secret`).value = secretKey;
+                }
+                if (secretKey) {
+                    const secretInput = document.getElementById(`chainex-${strategy.id}-secret`);
+                    if (secretInput) {
+                        secretInput.value = secretKey;
                     }
+                }
 
-                    // Check if connected (this would need backend verification)
-                    if (apiKey && secretKey) {
-                        const statusElement = document.getElementById(`${exchange}-${strategy}-status`);
-                        // For now, just show as disconnected until proper verification
-                        statusElement.textContent = 'Disconnected';
-                        statusElement.className = 'connection-status status-disconnected';
+                // Check connection status based on stored credentials
+                if (apiKey && secretKey) {
+                    const statusElement = document.getElementById(`chainex-${strategy.shortId}-status`);
+                    if (statusElement) {
+                        // Check if marked as connected in localStorage
+                        const isConnected = localStorage.getItem(`chainex_${strategy.id}_connected`) === 'true';
+                        if (isConnected) {
+                            statusElement.textContent = 'Connected';
+                            statusElement.className = 'connection-status status-connected';
+                        } else {
+                            statusElement.textContent = 'Disconnected';
+                            statusElement.className = 'connection-status status-disconnected';
+                        }
                     }
-                });
+                }
             });
         }
 
         // Initialize page
         document.addEventListener('DOMContentLoaded', function() {
             loadStrategyCredentials();
+            setupAutoSave();
         });
     </script>
 </body>
