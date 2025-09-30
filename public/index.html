@@ -21955,6 +21955,72 @@ ARB4ME Security Team`
             return requirements;
         }
 
+        // Strategy-Specific Exchange Connection Functions
+        async function connectStrategyExchange(strategy, exchange) {
+            console.log(`🔗 Connecting strategy ${strategy} ${exchange}`);
+
+            // Get credentials from strategy-specific input fields
+            const apiKey = document.getElementById(`${strategy}_${exchange}ApiKey`).value;
+            const secretKey = document.getElementById(`${strategy}_${exchange}SecretKey`).value;
+
+            if (!apiKey || !secretKey) {
+                alert(`Please enter both API key and secret for ${strategy} ${exchange.toUpperCase()}`);
+                return;
+            }
+
+            // Temporarily store the strategy credentials in the main exchange state
+            const originalApi = state.exchanges[exchange].api;
+            state.exchanges[exchange].api = {
+                key: apiKey,
+                secret: secretKey
+            };
+
+            // Update the connect button text
+            const connectBtn = document.getElementById(`${strategy}_${exchange}ConnectText`);
+            const originalText = connectBtn.innerHTML;
+            connectBtn.innerHTML = 'Connecting...';
+
+            try {
+                // Use the existing connectExchange logic but with strategy credentials
+                await connectExchange(exchange);
+
+                // Success - keep the strategy credentials
+                console.log(`✅ ${strategy} ${exchange} connected successfully`);
+                connectBtn.innerHTML = `✅ ${strategy.charAt(0).toUpperCase() + strategy.slice(1)} ${exchange.toUpperCase()} Connected`;
+
+            } catch (error) {
+                // Restore original credentials on failure
+                state.exchanges[exchange].api = originalApi;
+                connectBtn.innerHTML = originalText;
+                console.error(`❌ ${strategy} ${exchange} connection failed:`, error);
+                alert(`Failed to connect ${strategy} ${exchange.toUpperCase()}: ${error.message}`);
+            }
+        }
+
+        async function storeStrategyCredentials(strategy, exchange) {
+            const apiKey = document.getElementById(`${strategy}_${exchange}ApiKey`).value;
+            const secretKey = document.getElementById(`${strategy}_${exchange}SecretKey`).value;
+
+            if (!apiKey || !secretKey) {
+                alert(`Please enter both API key and secret for ${strategy} ${exchange.toUpperCase()}`);
+                return;
+            }
+
+            // For now, just store in localStorage for future implementation
+            const strategyKey = `strategy_${strategy}_${exchange}`;
+            localStorage.setItem(strategyKey, JSON.stringify({
+                apiKey: simpleEncrypt(apiKey),
+                secretKey: simpleEncrypt(secretKey),
+                stored: new Date().toISOString()
+            }));
+
+            // Update button to show stored
+            const connectBtn = document.getElementById(`${strategy}_${exchange}ConnectText`);
+            connectBtn.innerHTML = `✅ ${strategy.charAt(0).toUpperCase() + strategy.slice(1)} ${exchange.toUpperCase()} Credentials Stored`;
+
+            console.log(`💾 ${strategy} ${exchange} credentials stored for future implementation`);
+        }
+
         // Strategy API Tab Management
         function switchStrategyApiTab(strategy) {
             console.log('🔄 Switching strategy API tab to:', strategy);
@@ -26055,10 +26121,10 @@ ARB4ME Security Team`
             document.getElementById('coincatchConnectBtn').addEventListener('click', () => connectExchange('coincatch'));
 
             // Strategy-specific ChainEX API connect buttons
-            document.getElementById('crossExchange_chainexConnectBtn').addEventListener('click', () => connectExchange('crossExchange_chainex'));
-            document.getElementById('triangular_chainexConnectBtn').addEventListener('click', () => connectExchange('triangular_chainex'));
-            document.getElementById('transfer_chainexConnectBtn').addEventListener('click', () => connectExchange('transfer_chainex'));
-            document.getElementById('currencySwap_chainexConnectBtn').addEventListener('click', () => connectExchange('currencySwap_chainex'));
+            document.getElementById('crossExchange_chainexConnectBtn').addEventListener('click', () => connectStrategyExchange('crossExchange', 'chainex'));
+            document.getElementById('triangular_chainexConnectBtn').addEventListener('click', () => storeStrategyCredentials('triangular', 'chainex'));
+            document.getElementById('transfer_chainexConnectBtn').addEventListener('click', () => storeStrategyCredentials('transfer', 'chainex'));
+            document.getElementById('currencySwap_chainexConnectBtn').addEventListener('click', () => storeStrategyCredentials('currencySwap', 'chainex'));
 
             // API Key input field event listeners for persistent storage
             const apiKeyFields = [
