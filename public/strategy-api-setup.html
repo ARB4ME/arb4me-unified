@@ -292,13 +292,6 @@
             <h1>Strategy API Configuration</h1>
             <p>Configure dedicated API credentials for each trading strategy to enable parallel execution</p>
 
-            <!-- Debug buttons (remove after testing) -->
-            <div style="margin-top: 15px; padding: 10px; background: rgba(255,0,0,0.1); border-radius: 8px;">
-                <p style="color: #ff6b6b; font-size: 0.9rem; margin: 0 0 10px 0;">Debug Tools (will be removed):</p>
-                <button onclick="manualSaveTest()" style="padding: 5px 10px; margin-right: 10px; background: #ff6b6b; color: white; border: none; border-radius: 4px; cursor: pointer;">Manual Save Test</button>
-                <button onclick="manualLoadTest()" style="padding: 5px 10px; margin-right: 10px; background: #00d4ff; color: white; border: none; border-radius: 4px; cursor: pointer;">Manual Load Test</button>
-                <button onclick="showStorageContents()" style="padding: 5px 10px; background: #00ff88; color: white; border: none; border-radius: 4px; cursor: pointer;">Show Storage</button>
-            </div>
         </div>
 
         <div class="info-panel">
@@ -804,41 +797,121 @@
             alert(`${exchange.toUpperCase()} ${strategy} strategy disconnected`);
         }
 
-        // Save credentials when typing (auto-save)
-        function setupAutoSave() {
-            const strategies = ['cross-exchange', 'triangular', 'transfer', 'currency-swap'];
+        // Exact copy of original handleApiKeyInput function for 100% compatibility
+        function handleApiKeyInput(event) {
+            const fieldId = event.target.id;
+            const value = event.target.value.trim();
 
-            strategies.forEach(strategy => {
-                // API key auto-save
-                const apiInput = document.getElementById(`chainex-${strategy}-api`);
-                if (apiInput) {
-                    apiInput.addEventListener('input', function() {
-                        localStorage.setItem(`chainex_${strategy}_api`, this.value);
-                        console.log(`Saved ${strategy} API key:`, this.value.substring(0, 10) + '...');
-                    });
+            // Extract exchange name and field type from input ID (original logic)
+            let exchange, fieldType;
+
+            if (fieldId.includes('Api')) {
+                fieldType = 'api';
+                exchange = fieldId.replace('ApiKey', '').replace('Api', '');
+            } else if (fieldId.includes('Secret')) {
+                fieldType = 'secret';
+                exchange = fieldId.replace('SecretKey', '').replace('Secret', '');
+            } else if (fieldId.includes('Passphrase')) {
+                fieldType = 'passphrase';
+                exchange = fieldId.replace('Passphrase', '');
+            }
+
+            // For strategy-specific fields, extract strategy from field ID
+            let strategy = null;
+            if (fieldId.includes('cross-exchange')) {
+                strategy = 'cross-exchange';
+                exchange = 'chainex';
+                fieldType = fieldId.includes('-api') ? 'api' : 'secret';
+            } else if (fieldId.includes('triangular')) {
+                strategy = 'triangular';
+                exchange = 'chainex';
+                fieldType = fieldId.includes('-api') ? 'api' : 'secret';
+            } else if (fieldId.includes('transfer')) {
+                strategy = 'transfer';
+                exchange = 'chainex';
+                fieldType = fieldId.includes('-api') ? 'api' : 'secret';
+            } else if (fieldId.includes('currency-swap')) {
+                strategy = 'currency-swap';
+                exchange = 'chainex';
+                fieldType = fieldId.includes('-api') ? 'api' : 'secret';
+            }
+
+            if (exchange && fieldType) {
+                // Strategy-specific storage
+                if (strategy) {
+                    const storageKey = `${exchange}_${strategy}_${fieldType}`;
+                    localStorage.setItem(storageKey, value);
+                    console.log(`💾 Stored strategy-specific: ${storageKey} = ${value.substring(0, 10)}...`);
+
+                    // Also store in original format for dashboard compatibility (cross-exchange only)
+                    if (strategy === 'cross-exchange') {
+                        const originalKey = fieldType === 'api' ? `${exchange}ApiKey` : `${exchange}SecretKey`;
+                        localStorage.setItem(originalKey, value);
+                        console.log(`💾 Stored original format: ${originalKey} = ${value.substring(0, 10)}...`);
+                    }
+                } else {
+                    // Original format storage
+                    const storageKey = fieldType === 'api' ? `${exchange}ApiKey` :
+                                    fieldType === 'secret' ? `${exchange}SecretKey` :
+                                    `${exchange}Passphrase`;
+                    localStorage.setItem(storageKey, value);
+                    console.log(`💾 Stored original: ${storageKey} = ${value.substring(0, 10)}...`);
                 }
+            }
+        }
 
-                // Secret key auto-save
-                const secretInput = document.getElementById(`chainex-${strategy}-secret`);
-                if (secretInput) {
-                    secretInput.addEventListener('input', function() {
-                        localStorage.setItem(`chainex_${strategy}_secret`, this.value);
-                        console.log(`Saved ${strategy} secret key:`, this.value.substring(0, 5) + '...');
-                    });
+        // Setup auto-save using exact original mechanism
+        function setupAutoSave() {
+            const apiKeyFields = [
+                'chainex-cross-exchange-api', 'chainex-cross-exchange-secret',
+                'chainex-triangular-api', 'chainex-triangular-secret',
+                'chainex-transfer-api', 'chainex-transfer-secret',
+                'chainex-currency-swap-api', 'chainex-currency-swap-secret'
+            ];
+
+            apiKeyFields.forEach(fieldId => {
+                const field = document.getElementById(fieldId);
+                if (field) {
+                    // Add both 'input' and 'change' event listeners for immediate and on-blur saving
+                    field.addEventListener('input', handleApiKeyInput);
+                    field.addEventListener('change', handleApiKeyInput);
+                    console.log(`✅ Added event listeners to ${fieldId}`);
+                } else {
+                    console.warn(`⚠️ API key field not found: ${fieldId}`);
                 }
             });
         }
 
-        // Load saved credentials on page load
+        // Load saved credentials using original storage format
         function loadStrategyCredentials() {
-            console.log('Loading strategy credentials...');
-            const strategies = ['cross-exchange', 'triangular', 'transfer', 'currency-swap'];
+            console.log('🔄 Loading strategy credentials...');
 
-            strategies.forEach(strategy => {
-                const apiKey = localStorage.getItem(`chainex_${strategy}_api`);
-                const secretKey = localStorage.getItem(`chainex_${strategy}_secret`);
+            const strategies = [
+                { name: 'cross-exchange', storageKey: 'cross-exchange' },
+                { name: 'triangular', storageKey: 'triangular' },
+                { name: 'transfer', storageKey: 'transfer' },
+                { name: 'currency-swap', storageKey: 'currency-swap' }
+            ];
 
-                console.log(`Checking ${strategy}:`, {
+            strategies.forEach(strategyObj => {
+                const strategy = strategyObj.name;
+                const storageKey = strategyObj.storageKey;
+
+                // Try to load from strategy-specific storage first
+                let apiKey = localStorage.getItem(`chainex_${storageKey}_api`);
+                let secretKey = localStorage.getItem(`chainex_${storageKey}_secret`);
+
+                // For cross-exchange, also try original format as fallback
+                if (!apiKey && strategy === 'cross-exchange') {
+                    apiKey = localStorage.getItem('chainexApiKey');
+                    secretKey = localStorage.getItem('chainexSecretKey');
+                    console.log(`📄 Loaded from original format for ${strategy}:`, {
+                        hasApiKey: !!apiKey,
+                        hasSecretKey: !!secretKey
+                    });
+                }
+
+                console.log(`📊 Checking ${strategy}:`, {
                     hasApiKey: !!apiKey,
                     hasSecretKey: !!secretKey,
                     apiKeyLength: apiKey ? apiKey.length : 0,
@@ -848,7 +921,7 @@
                 const apiInput = document.getElementById(`chainex-${strategy}-api`);
                 const secretInput = document.getElementById(`chainex-${strategy}-secret`);
 
-                console.log(`Elements for ${strategy}:`, {
+                console.log(`🎯 Elements for ${strategy}:`, {
                     apiInput: !!apiInput,
                     secretInput: !!secretInput,
                     apiInputId: apiInput ? apiInput.id : 'not found',
@@ -869,14 +942,14 @@
                     console.error(`❌ Secret input not found for ${strategy}`);
                 }
 
-                // Check connection status based on stored credentials
+                // Check connection status
                 if (apiKey && secretKey) {
                     const statusElement = document.getElementById(`chainex-${strategy}-status`);
                     const balanceElement = document.getElementById(`chainex-${strategy}-balance`);
 
                     if (statusElement) {
                         // Check if marked as connected in localStorage
-                        const isConnected = localStorage.getItem(`chainex_${strategy}_connected`) === 'true';
+                        const isConnected = localStorage.getItem(`chainex_${storageKey}_connected`) === 'true';
                         if (isConnected) {
                             statusElement.textContent = 'Connected';
                             statusElement.className = 'connection-status status-connected';
@@ -925,57 +998,6 @@
             console.log('🔑 Strategy keys found:', strategyKeys);
         }
 
-        // Debug functions
-        function manualSaveTest() {
-            const testApiKey = 'test_api_' + Date.now();
-            const testSecretKey = 'test_secret_' + Date.now();
-
-            localStorage.setItem('chainex_cross-exchange_api', testApiKey);
-            localStorage.setItem('chainex_cross-exchange_secret', testSecretKey);
-
-            console.log('💾 Manual save test completed:', {
-                savedApi: testApiKey,
-                savedSecret: testSecretKey.substring(0, 10) + '...'
-            });
-
-            alert('Saved test data to localStorage - check console');
-        }
-
-        function manualLoadTest() {
-            const apiKey = localStorage.getItem('chainex_cross-exchange_api');
-            const secretKey = localStorage.getItem('chainex_cross-exchange_secret');
-
-            console.log('📥 Manual load test:', {
-                foundApi: !!apiKey,
-                foundSecret: !!secretKey,
-                apiValue: apiKey ? apiKey.substring(0, 10) + '...' : 'None',
-                secretValue: secretKey ? secretKey.substring(0, 10) + '...' : 'None'
-            });
-
-            if (apiKey || secretKey) {
-                const apiInput = document.getElementById('chainex-cross-exchange-api');
-                const secretInput = document.getElementById('chainex-cross-exchange-secret');
-
-                if (apiInput && apiKey) apiInput.value = apiKey;
-                if (secretInput && secretKey) secretInput.value = secretKey;
-
-                alert('Loaded data from localStorage - check form fields');
-            } else {
-                alert('No data found in localStorage');
-            }
-        }
-
-        function showStorageContents() {
-            const allData = {};
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                const value = localStorage.getItem(key);
-                allData[key] = value.length > 50 ? value.substring(0, 50) + '...' : value;
-            }
-
-            console.log('📦 Complete localStorage contents:', allData);
-            alert('Storage contents logged to console');
-        }
 
         // Initialize page
         document.addEventListener('DOMContentLoaded', function() {
