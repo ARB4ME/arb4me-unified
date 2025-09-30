@@ -570,11 +570,30 @@
                     localStorage.setItem(`chainex_${strategy}_secret`, secretKey);
                     localStorage.setItem(`chainex_${strategy}_connected`, 'true');
 
-                    // Update state
+                    // MIGRATION: Also store in original format for dashboard compatibility
+                    localStorage.setItem('chainexApiKey', apiKey);
+                    localStorage.setItem('chainexSecretKey', secretKey);
+
+                    // Update strategy-specific state
                     window.strategyExchanges[`${exchange}-${strategy}`] = {
                         connected: true,
                         balance: result.balance || null
                     };
+
+                    // MIGRATION: Update main dashboard state (accessing parent window)
+                    if (window.opener && window.opener.state) {
+                        window.opener.state.exchanges.chainex = {
+                            connected: true,
+                            api: {
+                                key: apiKey,
+                                secret: secretKey
+                            }
+                        };
+                        // Save the state in parent window
+                        if (window.opener.saveToStorage) {
+                            window.opener.saveToStorage();
+                        }
+                    }
 
                     if (statusElement) {
                         statusElement.textContent = 'Connected';
@@ -604,8 +623,36 @@
                                     balanceElement.innerHTML = balanceDisplay;
                                 }
 
-                                // Store balance in state
+                                // Store balance in strategy state
                                 window.strategyExchanges[`${exchange}-${strategy}`].balance = balanceData.balances;
+
+                                // MIGRATION: Update main dashboard balance and state
+                                if (window.opener) {
+                                    if (window.opener.state && window.opener.state.balances) {
+                                        window.opener.state.balances.chainex = balanceData.balances;
+                                    }
+
+                                    // Update dashboard balance display
+                                    const dashboardBalanceElement = window.opener.document.getElementById('chainexBalance');
+                                    if (dashboardBalanceElement && window.opener.formatMultiCurrencyBalance) {
+                                        const dashboardBalanceDisplay = window.opener.formatMultiCurrencyBalance(balanceData.balances, 'chainex');
+                                        dashboardBalanceElement.textContent = dashboardBalanceDisplay;
+                                    }
+
+                                    // Update dashboard status
+                                    const dashboardStatusElement = window.opener.document.getElementById('chainexStatus');
+                                    if (dashboardStatusElement) {
+                                        dashboardStatusElement.textContent = 'Connected (Live)';
+                                        dashboardStatusElement.className = 'status-connected';
+                                    }
+
+                                    // Update price status
+                                    const priceStatusElement = window.opener.document.getElementById('chainexPriceStatus');
+                                    if (priceStatusElement) {
+                                        priceStatusElement.textContent = 'LIVE';
+                                        priceStatusElement.className = 'price-status price-live';
+                                    }
+                                }
                             }
                         }
                     } catch (balanceError) {
@@ -671,17 +718,58 @@
             localStorage.removeItem(`chainex_${strategy}_secret`);
             localStorage.removeItem(`chainex_${strategy}_connected`);
 
+            // MIGRATION: Also clear original format credentials
+            localStorage.removeItem('chainexApiKey');
+            localStorage.removeItem('chainexSecretKey');
+
             // Clear form fields
             document.getElementById(`${exchange}-${strategy}-api`).value = '';
             document.getElementById(`${exchange}-${strategy}-secret`).value = '';
 
-            // Update state
+            // Update strategy state
             window.strategyExchanges[`${exchange}-${strategy}`] = {
                 connected: false,
                 balance: null
             };
 
-            // Update status
+            // MIGRATION: Update main dashboard state
+            if (window.opener) {
+                if (window.opener.state && window.opener.state.exchanges) {
+                    window.opener.state.exchanges.chainex = {
+                        connected: false,
+                        api: null
+                    };
+                    if (window.opener.state.balances) {
+                        window.opener.state.balances.chainex = {};
+                    }
+                    // Save the state in parent window
+                    if (window.opener.saveToStorage) {
+                        window.opener.saveToStorage();
+                    }
+                }
+
+                // Update dashboard status
+                const dashboardStatusElement = window.opener.document.getElementById('chainexStatus');
+                if (dashboardStatusElement) {
+                    dashboardStatusElement.textContent = 'Disconnected';
+                    dashboardStatusElement.className = 'status-disconnected';
+                }
+
+                // Update dashboard balance
+                const dashboardBalanceElement = window.opener.document.getElementById('chainexBalance');
+                if (dashboardBalanceElement) {
+                    dashboardBalanceElement.textContent = '$0.00';
+                }
+
+                // Update price status
+                const priceStatusElement = window.opener.document.getElementById('chainexPriceStatus');
+                if (priceStatusElement) {
+                    priceStatusElement.textContent = 'OFFLINE';
+                    priceStatusElement.className = 'price-status price-disconnected';
+                }
+            }
+
+            // Update local status
             const statusElement = document.getElementById(`${exchange}-${strategy}-status`);
             if (statusElement) {
                 statusElement.textContent = 'Disconnected';
