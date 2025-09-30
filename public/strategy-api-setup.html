@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Strategy API Configuration - ARB4ME</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2c3e50">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: white;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            color: rgba(255,255,255,0.9);
+            font-size: 1.1rem;
+        }
+
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.3s;
+            backdrop-filter: blur(10px);
+        }
+
+        .back-button:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .strategy-tabs {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 5px;
+            backdrop-filter: blur(10px);
+        }
+
+        .strategy-tab {
+            flex: 1;
+            padding: 15px 20px;
+            background: transparent;
+            border: none;
+            color: rgba(255,255,255,0.8);
+            cursor: pointer;
+            border-radius: 10px;
+            transition: all 0.3s;
+            font-size: 1rem;
+            font-weight: 500;
+        }
+
+        .strategy-tab.active {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .strategy-content {
+            display: none;
+        }
+
+        .strategy-content.active {
+            display: block;
+        }
+
+        .exchange-card {
+            background: rgba(255,255,255,0.95);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .exchange-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .exchange-name {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .connection-status {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .status-disconnected {
+            background: #fee;
+            color: #d32f2f;
+        }
+
+        .status-connected {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+
+        .status-connecting {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #495057;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 25px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            flex: 1;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+
+        .info-panel {
+            background: rgba(255,255,255,0.9);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .info-panel h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+
+        .info-panel p {
+            color: #6c757d;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        .benefits-list {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .benefits-list li {
+            padding: 8px 0;
+            padding-left: 25px;
+            position: relative;
+            color: #495057;
+        }
+
+        .benefits-list li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        @media (max-width: 768px) {
+            .strategy-tabs {
+                flex-direction: column;
+            }
+
+            .strategy-tab {
+                margin-bottom: 5px;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .back-button {
+                position: relative;
+                top: 0;
+                left: 0;
+                margin-bottom: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="back-button" onclick="window.location.href='/'">← Back to Dashboard</button>
+
+    <div class="container">
+        <div class="header">
+            <h1>Strategy API Configuration</h1>
+            <p>Configure dedicated API credentials for each trading strategy to enable parallel execution</p>
+        </div>
+
+        <div class="info-panel">
+            <h3>Parallel Strategy Execution</h3>
+            <p>By configuring separate API credentials for each trading strategy, you can run multiple arbitrage strategies simultaneously without hitting exchange rate limits.</p>
+            <ul class="benefits-list">
+                <li>Cross-Exchange Arbitrage: Independent API for cross-exchange opportunities</li>
+                <li>Triangular Arbitrage: Dedicated API for triangular trading loops</li>
+                <li>Transfer Arbitrage: Separate API for transfer-based opportunities</li>
+                <li>Currency Swap Arbitrage: Independent API for currency swap strategies</li>
+                <li>4x Rate Limit Capacity: 1200 req/min per strategy = 4800 req/min total</li>
+            </ul>
+        </div>
+
+        <div class="strategy-tabs">
+            <button class="strategy-tab active" onclick="switchStrategyTab('cross-exchange')">Cross-Exchange</button>
+            <button class="strategy-tab" onclick="switchStrategyTab('triangular')">Triangular</button>
+            <button class="strategy-tab" onclick="switchStrategyTab('transfer')">Transfer</button>
+            <button class="strategy-tab" onclick="switchStrategyTab('currency-swap')">Currency Swap</button>
+        </div>
+
+        <!-- Cross-Exchange Strategy -->
+        <div id="cross-exchange-content" class="strategy-content active">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">ChainEX - Cross-Exchange Strategy</div>
+                    <div id="chainex-cross-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="chainex-cross-api">API Key</label>
+                    <input type="text" id="chainex-cross-api" class="form-input" placeholder="Enter ChainEX API Key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="chainex-cross-secret">Secret Key</label>
+                    <input type="password" id="chainex-cross-secret" class="form-input" placeholder="Enter ChainEX Secret Key">
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('chainex', 'cross-exchange')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('chainex', 'cross-exchange')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('chainex', 'cross-exchange')">Disconnect</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Triangular Strategy -->
+        <div id="triangular-content" class="strategy-content">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">ChainEX - Triangular Strategy</div>
+                    <div id="chainex-triangular-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="chainex-triangular-api">API Key</label>
+                    <input type="text" id="chainex-triangular-api" class="form-input" placeholder="Enter ChainEX API Key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="chainex-triangular-secret">Secret Key</label>
+                    <input type="password" id="chainex-triangular-secret" class="form-input" placeholder="Enter ChainEX Secret Key">
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('chainex', 'triangular')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('chainex', 'triangular')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('chainex', 'triangular')">Disconnect</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Transfer Strategy -->
+        <div id="transfer-content" class="strategy-content">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">ChainEX - Transfer Strategy</div>
+                    <div id="chainex-transfer-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="chainex-transfer-api">API Key</label>
+                    <input type="text" id="chainex-transfer-api" class="form-input" placeholder="Enter ChainEX API Key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="chainex-transfer-secret">Secret Key</label>
+                    <input type="password" id="chainex-transfer-secret" class="form-input" placeholder="Enter ChainEX Secret Key">
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('chainex', 'transfer')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('chainex', 'transfer')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('chainex', 'transfer')">Disconnect</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Currency Swap Strategy -->
+        <div id="currency-swap-content" class="strategy-content">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">ChainEX - Currency Swap Strategy</div>
+                    <div id="chainex-swap-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="chainex-swap-api">API Key</label>
+                    <input type="text" id="chainex-swap-api" class="form-input" placeholder="Enter ChainEX API Key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="chainex-swap-secret">Secret Key</label>
+                    <input type="password" id="chainex-swap-secret" class="form-input" placeholder="Enter ChainEX Secret Key">
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('chainex', 'currency-swap')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('chainex', 'currency-swap')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('chainex', 'currency-swap')">Disconnect</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize strategy-specific state
+        if (!window.strategyExchanges) {
+            window.strategyExchanges = {
+                'chainex-cross-exchange': { connected: false, balance: null },
+                'chainex-triangular': { connected: false, balance: null },
+                'chainex-transfer': { connected: false, balance: null },
+                'chainex-currency-swap': { connected: false, balance: null }
+            };
+        }
+
+        // Tab switching functionality
+        function switchStrategyTab(strategy) {
+            // Remove active class from all tabs and contents
+            document.querySelectorAll('.strategy-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.strategy-content').forEach(content => content.classList.remove('active'));
+
+            // Add active class to selected tab and content
+            event.target.classList.add('active');
+            document.getElementById(strategy + '-content').classList.add('active');
+        }
+
+        // Connect strategy-specific exchange
+        async function connectStrategyExchange(exchange, strategy) {
+            const apiKey = document.getElementById(`${exchange}-${strategy}-api`).value;
+            const secretKey = document.getElementById(`${exchange}-${strategy}-secret`).value;
+
+            if (!apiKey || !secretKey) {
+                alert('Please enter both API key and Secret key');
+                return;
+            }
+
+            const statusElement = document.getElementById(`${exchange}-${strategy}-status`);
+            statusElement.textContent = 'Connecting...';
+            statusElement.className = 'connection-status status-connecting';
+
+            try {
+                const response = await fetch('/api/v1/trading/connect-exchange', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        exchange: exchange,
+                        strategy: strategy,
+                        apiKey: apiKey,
+                        secretKey: secretKey
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Store credentials in localStorage with strategy prefix
+                    localStorage.setItem(`${exchange}_${strategy}_api`, apiKey);
+                    localStorage.setItem(`${exchange}_${strategy}_secret`, secretKey);
+
+                    // Update state
+                    window.strategyExchanges[`${exchange}-${strategy}`] = {
+                        connected: true,
+                        balance: result.balance || null
+                    };
+
+                    statusElement.textContent = 'Connected';
+                    statusElement.className = 'connection-status status-connected';
+
+                    alert(`${exchange.toUpperCase()} ${strategy} strategy connected successfully!`);
+                } else {
+                    throw new Error(result.error?.message || 'Connection failed');
+                }
+            } catch (error) {
+                console.error('Connection error:', error);
+                statusElement.textContent = 'Disconnected';
+                statusElement.className = 'connection-status status-disconnected';
+                alert(`Connection failed: ${error.message}`);
+            }
+        }
+
+        // Test strategy connection
+        async function testStrategyConnection(exchange, strategy) {
+            const apiKey = document.getElementById(`${exchange}-${strategy}-api`).value;
+            const secretKey = document.getElementById(`${exchange}-${strategy}-secret`).value;
+
+            if (!apiKey || !secretKey) {
+                alert('Please enter both API key and Secret key');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/v1/trading/test-connection', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        exchange: exchange,
+                        strategy: strategy,
+                        apiKey: apiKey,
+                        secretKey: secretKey
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(`${exchange.toUpperCase()} ${strategy} connection test successful!`);
+                } else {
+                    throw new Error(result.error?.message || 'Test failed');
+                }
+            } catch (error) {
+                console.error('Test error:', error);
+                alert(`Connection test failed: ${error.message}`);
+            }
+        }
+
+        // Disconnect strategy exchange
+        function disconnectStrategyExchange(exchange, strategy) {
+            // Clear stored credentials
+            localStorage.removeItem(`${exchange}_${strategy}_api`);
+            localStorage.removeItem(`${exchange}_${strategy}_secret`);
+
+            // Clear form fields
+            document.getElementById(`${exchange}-${strategy}-api`).value = '';
+            document.getElementById(`${exchange}-${strategy}-secret`).value = '';
+
+            // Update state
+            window.strategyExchanges[`${exchange}-${strategy}`] = {
+                connected: false,
+                balance: null
+            };
+
+            // Update status
+            const statusElement = document.getElementById(`${exchange}-${strategy}-status`);
+            statusElement.textContent = 'Disconnected';
+            statusElement.className = 'connection-status status-disconnected';
+
+            alert(`${exchange.toUpperCase()} ${strategy} strategy disconnected`);
+        }
+
+        // Load saved credentials on page load
+        function loadStrategyCredentials() {
+            const strategies = ['cross-exchange', 'triangular', 'transfer', 'currency-swap'];
+            const exchanges = ['chainex'];
+
+            exchanges.forEach(exchange => {
+                strategies.forEach(strategy => {
+                    const apiKey = localStorage.getItem(`${exchange}_${strategy}_api`);
+                    const secretKey = localStorage.getItem(`${exchange}_${strategy}_secret`);
+
+                    if (apiKey) {
+                        document.getElementById(`${exchange}-${strategy}-api`).value = apiKey;
+                    }
+                    if (secretKey) {
+                        document.getElementById(`${exchange}-${strategy}-secret`).value = secretKey;
+                    }
+
+                    // Check if connected (this would need backend verification)
+                    if (apiKey && secretKey) {
+                        const statusElement = document.getElementById(`${exchange}-${strategy}-status`);
+                        // For now, just show as disconnected until proper verification
+                        statusElement.textContent = 'Disconnected';
+                        statusElement.className = 'connection-status status-disconnected';
+                    }
+                });
+            });
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            loadStrategyCredentials();
+        });
+    </script>
+</body>
+</html>
