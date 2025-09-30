@@ -21984,7 +21984,16 @@ ARB4ME Security Team`
                 // Use the existing connectExchange logic but with strategy credentials
                 await connectExchange(exchange);
 
-                // Success - keep the strategy credentials
+                // Success - ensure the connected state is maintained for strategy connection
+                state.exchanges[exchange].connected = true;
+
+                // Also update the main exchange status UI to reflect strategy connection
+                document.getElementById(`${exchange}Status`).textContent = 'Connected (Strategy)';
+                document.getElementById(`${exchange}Status`).className = 'status-connected';
+
+                // Trigger balance overview update to refresh dashboard
+                updateBalanceOverview();
+
                 console.log(`✅ ${strategy} ${exchange} connected successfully`);
                 connectBtn.innerHTML = `✅ ${strategy.charAt(0).toUpperCase() + strategy.slice(1)} ${exchange.toUpperCase()} Connected`;
 
