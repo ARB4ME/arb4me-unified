@@ -3697,6 +3697,160 @@
             </div>
         </div>
 
+        <!-- ============================================================ -->
+        <!-- STRATEGY-SPECIFIC API CONFIGURATION SECTION                -->
+        <!-- ============================================================ -->
+        <div style="margin: 30px 0; padding: 25px; background: linear-gradient(135deg, rgba(0,212,255,0.1), rgba(255,107,107,0.1)); border-radius: 15px; border: 2px solid rgba(0,212,255,0.3);">
+            <h2 style="color: #00d4ff; margin-bottom: 20px; text-align: center;">
+                🚀 Strategy-Specific API Configuration
+            </h2>
+            <p style="color: #b8c6db; text-align: center; margin-bottom: 25px; font-size: 0.95rem;">
+                Dedicated API credentials for each trading strategy - enabling parallel execution and multiplied rate limits
+            </p>
+
+            <!-- Strategy Tabs -->
+            <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; justify-content: center;">
+                <button id="crossExchangeApiTab" class="strategy-api-tab active" onclick="switchStrategyApiTab('crossExchange')" style="
+                    padding: 10px 20px;
+                    background: linear-gradient(45deg, #00d4ff, #0099cc);
+                    color: white;
+                    border: none;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-weight: bold;
+                    transition: all 0.3s;
+                ">💱 Cross-Exchange ChainEX</button>
+
+                <button id="triangularApiTab" class="strategy-api-tab" onclick="switchStrategyApiTab('triangular')" style="
+                    padding: 10px 20px;
+                    background: rgba(255,255,255,0.1);
+                    color: #b8c6db;
+                    border: 1px solid rgba(255,255,255,0.2);
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-weight: bold;
+                    transition: all 0.3s;
+                ">🔺 Triangular ChainEX</button>
+
+                <button id="transferApiTab" class="strategy-api-tab" onclick="switchStrategyApiTab('transfer')" style="
+                    padding: 10px 20px;
+                    background: rgba(255,255,255,0.1);
+                    color: #b8c6db;
+                    border: 1px solid rgba(255,255,255,0.2);
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-weight: bold;
+                    transition: all 0.3s;
+                ">🚀 Transfer ChainEX</button>
+
+                <button id="currencySwapApiTab" class="strategy-api-tab" onclick="switchStrategyApiTab('currencySwap')" style="
+                    padding: 10px 20px;
+                    background: rgba(255,255,255,0.1);
+                    color: #b8c6db;
+                    border: 1px solid rgba(255,255,255,0.2);
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-weight: bold;
+                    transition: all 0.3s;
+                ">💱 Currency Swap ChainEX</button>
+            </div>
+
+            <!-- Cross-Exchange ChainEX API Section -->
+            <div id="crossExchangeApiSection" class="strategy-api-section" style="display: block;">
+                <div style="background: rgba(0,212,255,0.1); padding: 20px; border-radius: 10px; border-left: 4px solid #00d4ff;">
+                    <h3 style="color: #00d4ff; margin-bottom: 15px;">💱 Cross-Exchange Strategy - ChainEX API</h3>
+                    <p style="color: #b8c6db; margin-bottom: 15px; font-size: 0.9rem;">
+                        Dedicated API for cross-exchange arbitrage on ChainEX. This API will be used exclusively for cross-exchange opportunities.
+                    </p>
+                    <div class="form-group">
+                        <label>Cross-Exchange ChainEX API Key</label>
+                        <input type="text" id="crossExchange_chainexApiKey" placeholder="Enter dedicated cross-exchange ChainEX API key">
+                    </div>
+                    <div class="form-group">
+                        <label>Cross-Exchange ChainEX Secret Key</label>
+                        <input type="password" id="crossExchange_chainexSecretKey" placeholder="Enter dedicated cross-exchange ChainEX secret key">
+                    </div>
+                    <button class="btn" id="crossExchange_chainexConnectBtn" style="background: linear-gradient(45deg, #00d4ff, #0099cc);">
+                        <span id="crossExchange_chainexConnectText">💱 Connect Cross-Exchange ChainEX API</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Triangular ChainEX API Section -->
+            <div id="triangularApiSection" class="strategy-api-section" style="display: none;">
+                <div style="background: rgba(255,107,107,0.1); padding: 20px; border-radius: 10px; border-left: 4px solid #ff6b6b;">
+                    <h3 style="color: #ff6b6b; margin-bottom: 15px;">🔺 Triangular Strategy - ChainEX API</h3>
+                    <p style="color: #b8c6db; margin-bottom: 15px; font-size: 0.9rem;">
+                        Dedicated API for triangular arbitrage on ChainEX. This API will be used exclusively for triangular paths.
+                    </p>
+                    <div class="form-group">
+                        <label>Triangular ChainEX API Key</label>
+                        <input type="text" id="triangular_chainexApiKey" placeholder="Enter dedicated triangular ChainEX API key">
+                    </div>
+                    <div class="form-group">
+                        <label>Triangular ChainEX Secret Key</label>
+                        <input type="password" id="triangular_chainexSecretKey" placeholder="Enter dedicated triangular ChainEX secret key">
+                    </div>
+                    <button class="btn" id="triangular_chainexConnectBtn" style="background: linear-gradient(45deg, #ff6b6b, #ff5252);">
+                        <span id="triangular_chainexConnectText">🔺 Connect Triangular ChainEX API</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Transfer ChainEX API Section -->
+            <div id="transferApiSection" class="strategy-api-section" style="display: none;">
+                <div style="background: rgba(0,255,136,0.1); padding: 20px; border-radius: 10px; border-left: 4px solid #00ff88;">
+                    <h3 style="color: #00ff88; margin-bottom: 15px;">🚀 Transfer Strategy - ChainEX API</h3>
+                    <p style="color: #b8c6db; margin-bottom: 15px; font-size: 0.9rem;">
+                        Dedicated API for transfer arbitrage on ChainEX. This API will be used exclusively for cross-platform transfers.
+                    </p>
+                    <div class="form-group">
+                        <label>Transfer ChainEX API Key</label>
+                        <input type="text" id="transfer_chainexApiKey" placeholder="Enter dedicated transfer ChainEX API key">
+                    </div>
+                    <div class="form-group">
+                        <label>Transfer ChainEX Secret Key</label>
+                        <input type="password" id="transfer_chainexSecretKey" placeholder="Enter dedicated transfer ChainEX secret key">
+                    </div>
+                    <button class="btn" id="transfer_chainexConnectBtn" style="background: linear-gradient(45deg, #00ff88, #00cc66);">
+                        <span id="transfer_chainexConnectText">🚀 Connect Transfer ChainEX API</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Currency Swap ChainEX API Section -->
+            <div id="currencySwapApiSection" class="strategy-api-section" style="display: none;">
+                <div style="background: rgba(255,193,7,0.1); padding: 20px; border-radius: 10px; border-left: 4px solid #ffc107;">
+                    <h3 style="color: #ffc107; margin-bottom: 15px;">💱 Currency Swap Strategy - ChainEX API</h3>
+                    <p style="color: #b8c6db; margin-bottom: 15px; font-size: 0.9rem;">
+                        Dedicated API for currency swap arbitrage on ChainEX. This API will be used exclusively for fiat/crypto swaps.
+                    </p>
+                    <div class="form-group">
+                        <label>Currency Swap ChainEX API Key</label>
+                        <input type="text" id="currencySwap_chainexApiKey" placeholder="Enter dedicated currency swap ChainEX API key">
+                    </div>
+                    <div class="form-group">
+                        <label>Currency Swap ChainEX Secret Key</label>
+                        <input type="password" id="currencySwap_chainexSecretKey" placeholder="Enter dedicated currency swap ChainEX secret key">
+                    </div>
+                    <button class="btn" id="currencySwap_chainexConnectBtn" style="background: linear-gradient(45deg, #ffc107, #ff9800);">
+                        <span id="currencySwap_chainexConnectText">💱 Connect Currency Swap ChainEX API</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Info Box -->
+            <div style="margin-top: 20px; padding: 15px; background: rgba(0,212,255,0.1); border-radius: 10px; border-left: 4px solid #00d4ff;">
+                <h4 style="color: #00d4ff; margin-bottom: 10px;">ℹ️ Why Strategy-Specific APIs?</h4>
+                <ul style="color: #b8c6db; font-size: 0.9rem; margin: 0; padding-left: 20px;">
+                    <li>Each strategy gets its own rate limit (1200 req/min per API)</li>
+                    <li>Strategies can run simultaneously without conflicts</li>
+                    <li>Total capacity: 4800 requests/min (4 × 1200 ChainEX rate limit)</li>
+                    <li>Professional-grade parallel arbitrage execution</li>
+                </ul>
+            </div>
+        </div>
+
         <div id="settingsTab" class="tab-content">
             <div class="tab-content active" style="display: block;">
                 <h3 style="color: #00d4ff; margin-bottom: 15px;">🔥 Trading Safety Controls</h3>
@@ -21801,6 +21955,52 @@ ARB4ME Security Team`
             return requirements;
         }
 
+        // Strategy API Tab Management
+        function switchStrategyApiTab(strategy) {
+            console.log('🔄 Switching strategy API tab to:', strategy);
+
+            // Hide all strategy sections
+            document.querySelectorAll('.strategy-api-section').forEach(section => {
+                section.style.display = 'none';
+            });
+
+            // Remove active class from all tabs
+            document.querySelectorAll('.strategy-api-tab').forEach(tab => {
+                tab.style.background = 'rgba(255,255,255,0.1)';
+                tab.style.color = '#b8c6db';
+                tab.style.border = '1px solid rgba(255,255,255,0.2)';
+                tab.classList.remove('active');
+            });
+
+            // Show selected strategy section
+            const targetSection = document.getElementById(strategy + 'ApiSection');
+            if (targetSection) {
+                targetSection.style.display = 'block';
+            }
+
+            // Activate selected tab
+            const targetTab = document.getElementById(strategy + 'ApiTab');
+            if (targetTab) {
+                targetTab.classList.add('active');
+
+                // Set active tab styling based on strategy
+                if (strategy === 'crossExchange') {
+                    targetTab.style.background = 'linear-gradient(45deg, #00d4ff, #0099cc)';
+                } else if (strategy === 'triangular') {
+                    targetTab.style.background = 'linear-gradient(45deg, #ff6b6b, #ff5252)';
+                } else if (strategy === 'transfer') {
+                    targetTab.style.background = 'linear-gradient(45deg, #00ff88, #00cc66)';
+                } else if (strategy === 'currencySwap') {
+                    targetTab.style.background = 'linear-gradient(45deg, #ffc107, #ff9800)';
+                }
+
+                targetTab.style.color = 'white';
+                targetTab.style.border = 'none';
+            }
+
+            console.log('✅ Strategy API tab switched to:', strategy);
+        }
+
         function showRequirementsPopup(requirements) {
             // Create popup HTML
             const popup = document.createElement('div');
@@ -25853,7 +26053,13 @@ ARB4ME Security Team`
             document.getElementById('geminiConnectBtn').addEventListener('click', () => connectExchange('gemini'));
             document.getElementById('cryptocomConnectBtn').addEventListener('click', () => connectExchange('cryptocom'));
             document.getElementById('coincatchConnectBtn').addEventListener('click', () => connectExchange('coincatch'));
-            
+
+            // Strategy-specific ChainEX API connect buttons
+            document.getElementById('crossExchange_chainexConnectBtn').addEventListener('click', () => connectExchange('crossExchange_chainex'));
+            document.getElementById('triangular_chainexConnectBtn').addEventListener('click', () => connectExchange('triangular_chainex'));
+            document.getElementById('transfer_chainexConnectBtn').addEventListener('click', () => connectExchange('transfer_chainex'));
+            document.getElementById('currencySwap_chainexConnectBtn').addEventListener('click', () => connectExchange('currencySwap_chainex'));
+
             // API Key input field event listeners for persistent storage
             const apiKeyFields = [
                 'valrApiKey', 'valrSecretKey',
@@ -25891,7 +26097,27 @@ ARB4ME Security Team`
                     console.warn(`⚠️ API key field not found: ${fieldId}`);
                 }
             });
-            
+
+            // Strategy-specific API fields (handled separately to avoid contaminating main array)
+            const strategyApiFields = [
+                'crossExchange_chainexApiKey', 'crossExchange_chainexSecretKey',
+                'triangular_chainexApiKey', 'triangular_chainexSecretKey',
+                'transfer_chainexApiKey', 'transfer_chainexSecretKey',
+                'currencySwap_chainexApiKey', 'currencySwap_chainexSecretKey'
+            ];
+
+            // Handle strategy-specific API fields separately
+            strategyApiFields.forEach(fieldId => {
+                const field = document.getElementById(fieldId);
+                if (field) {
+                    field.addEventListener('input', handleApiKeyInput);
+                    field.addEventListener('change', handleApiKeyInput);
+                    console.log(`✅ Added event listeners to strategy field: ${fieldId}`);
+                } else {
+                    console.log(`ℹ️ Strategy API field not found (expected for new system): ${fieldId}`);
+                }
+            });
+
             // Settings sliders and safety controls (profitThreshold removed - fixed at 1%)
             document.getElementById('tradeSize').addEventListener('input', updateTradeSize);
             document.getElementById('maxTrade').addEventListener('input', updateMaxTrade);
