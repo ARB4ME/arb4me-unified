@@ -77,6 +77,144 @@ async function makeVALRRequest(endpoint, method = 'GET', data = null, apiKey, ap
 // Note: We'll apply authentication selectively per route, not globally
 // This allows balance endpoints to work without JWT when API keys are provided
 
+// Connect Exchange with Strategy Support
+router.post('/connect-exchange', tradingRateLimit, optionalAuth, [
+    body('exchange').notEmpty().withMessage('Exchange is required'),
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('secretKey').notEmpty().withMessage('Secret key is required'),
+    body('strategy').optional().isString().withMessage('Strategy must be a string')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const { exchange, apiKey, secretKey, strategy } = req.body;
+
+    try {
+        systemLogger.trading('Exchange connection request', {
+            userId: req.user?.id || 'anonymous',
+            exchange: exchange,
+            strategy: strategy || 'main'
+        });
+
+        // For now, just test the connection by fetching balance
+        let balances = {};
+
+        if (exchange.toLowerCase() === 'chainex') {
+            const auth = createChainEXAuth(apiKey, secretKey, CHAINEX_CONFIG.endpoints.balance);
+            const response = await fetch(auth.fullUrl, {
+                method: 'GET',
+                headers: {
+                    'User-Agent': 'ARB4ME/1.0'
+                }
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`ChainEX API error: ${response.status} - ${errorText}`);
+            }
+
+            const balanceData = await response.json();
+
+            if (balanceData.status !== 'success') {
+                throw new Error(`ChainEX API error: ${balanceData.message || 'Unknown error'}`);
+            }
+
+            // Transform ChainEX response
+            if (balanceData.data && Array.isArray(balanceData.data)) {
+                balanceData.data.forEach(balance => {
+                    balances[balance.code] = parseFloat(balance.balance_available || 0) + parseFloat(balance.balance_held || 0);
+                });
+            }
+        } else {
+            throw new APIError(`Exchange ${exchange} not supported`, 400, 'UNSUPPORTED_EXCHANGE');
+        }
+
+        systemLogger.trading('Exchange connected successfully', {
+            userId: req.user?.id || 'anonymous',
+            exchange: exchange,
+            strategy: strategy || 'main',
+            balanceCount: Object.keys(balances).length
+        });
+
+        res.json({
+            success: true,
+            message: `${exchange} connected successfully`,
+            balance: balances
+        });
+
+    } catch (error) {
+        systemLogger.error('Exchange connection failed', {
+            userId: req.user?.id || 'anonymous',
+            exchange: exchange,
+            strategy: strategy || 'main',
+            error: error.message
+        });
+
+        throw new APIError(`Connection failed: ${error.message}`, 500, 'EXCHANGE_CONNECTION_ERROR');
+    }
+}));
+
+// Test Strategy Connection
+router.post('/test-connection', tradingRateLimit, optionalAuth, [
+    body('exchange').notEmpty().withMessage('Exchange is required'),
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('secretKey').notEmpty().withMessage('Secret key is required'),
+    body('strategy').optional().isString().withMessage('Strategy must be a string')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const { exchange, apiKey, secretKey, strategy } = req.body;
+
+    try {
+        systemLogger.trading('Connection test request', {
+            userId: req.user?.id || 'anonymous',
+            exchange: exchange,
+            strategy: strategy || 'main'
+        });
+
+        // Test the connection
+        if (exchange.toLowerCase() === 'chainex') {
+            const auth = createChainEXAuth(apiKey, secretKey, CHAINEX_CONFIG.endpoints.balance);
+            const response = await fetch(auth.fullUrl, {
+                method: 'GET',
+                headers: {
+                    'User-Agent': 'ARB4ME/1.0'
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data.status === 'success') {
+                    res.json({
+                        success: true,
+                        message: 'Connection test successful'
+                    });
+                    return;
+                }
+            }
+
+            throw new Error('Connection test failed - invalid credentials');
+        } else {
+            throw new APIError(`Exchange ${exchange} not supported`, 400, 'UNSUPPORTED_EXCHANGE');
+        }
+
+    } catch (error) {
+        systemLogger.error('Connection test failed', {
+            userId: req.user?.id || 'anonymous',
+            exchange: exchange,
+            strategy: strategy || 'main',
+            error: error.message
+        });
+
+        throw new APIError(`Test failed: ${error.message}`, 500, 'CONNECTION_TEST_ERROR');
+    }
+}));
+
 // GET /api/v1/trading/activity - Get user's trading activity
 router.get('/activity', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
     const activityResult = await query(`
@@ -3284,6 +3422,90 @@ function createChainEXAuth(apiKey, apiSecret, endpoint, queryParams = {}) {
         throw new Error(`ChainEX authentication failed: ${error.message}`);
     }
 }
+
+// Test ChainEX Connection Endpoint
+router.post('/chainex/test', tradingRateLimit, optionalAuth, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const { apiKey, apiSecret } = req.body;
+
+    try {
+        systemLogger.trading('ChainEX connection test initiated', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'chainex'
+        });
+
+        // Try to fetch balance as a connection test
+        const auth = createChainEXAuth(apiKey, apiSecret, CHAINEX_CONFIG.endpoints.balance);
+
+        const response = await fetch(auth.fullUrl, {
+            method: 'GET',
+            headers: {
+                'User-Agent': 'ARB4ME/1.0'
+            }
+        });
+
+        const responseText = await response.text();
+        let responseData;
+        try {
+            responseData = JSON.parse(responseText);
+        } catch (e) {
+            responseData = { raw: responseText };
+        }
+
+        if (!response.ok) {
+            systemLogger.error('ChainEX test failed - HTTP error', {
+                status: response.status,
+                statusText: response.statusText,
+                response: responseData
+            });
+
+            throw new APIError(`ChainEX API returned ${response.status}: ${JSON.stringify(responseData)}`,
+                response.status === 401 ? 401 : 500,
+                'CHAINEX_AUTH_ERROR');
+        }
+
+        // Check if response indicates success
+        if (responseData.status === 'success') {
+            systemLogger.trading('ChainEX connection test successful', {
+                userId: req.user?.id || 'anonymous',
+                exchange: 'chainex'
+            });
+
+            res.json({
+                success: true,
+                message: 'ChainEX connection successful',
+                authenticated: true
+            });
+        } else {
+            throw new APIError(`ChainEX API error: ${responseData.message || JSON.stringify(responseData)}`, 500, 'CHAINEX_API_ERROR');
+        }
+
+    } catch (error) {
+        systemLogger.error('ChainEX connection test failed', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'chainex',
+            error: error.message,
+            details: error
+        });
+
+        // Return more detailed error for debugging
+        res.status(error.statusCode || 500).json({
+            success: false,
+            error: {
+                code: error.code || 'CHAINEX_TEST_ERROR',
+                message: error.message,
+                details: error.details || {}
+            }
+        });
+    }
+}));
 
 // ChainEX Balance Endpoint
 router.post('/chainex/balance', tradingRateLimit, optionalAuth, [
