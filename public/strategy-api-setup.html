@@ -715,20 +715,22 @@
 
         // Disconnect strategy exchange
         function disconnectStrategyExchange(exchange, strategy) {
-            // Clear stored credentials
-            localStorage.removeItem(`chainex_${strategy}_api`);
-            localStorage.removeItem(`chainex_${strategy}_secret`);
+            console.log(`🔌 Disconnecting ${exchange} ${strategy}`);
+
+            // Only clear connection status, keep API credentials for easy reconnection
             localStorage.removeItem(`chainex_${strategy}_connected`);
 
-            // MIGRATION: Also clear original format credentials (only if this was the primary strategy)
+            console.log(`🗑️ Cleared connection status for ${strategy} (kept credentials)`);
+
+            // MIGRATION: Also clear original format connection (only if this was the primary strategy)
             if (strategy === 'cross-exchange') {
-                localStorage.removeItem('chainexApiKey');
-                localStorage.removeItem('chainexSecretKey');
+                // Don't clear the credentials, just mark as disconnected
+                console.log(`🔌 Kept original format credentials for dashboard compatibility`);
             }
 
-            // Clear form fields
-            document.getElementById(`${exchange}-${strategy}-api`).value = '';
-            document.getElementById(`${exchange}-${strategy}-secret`).value = '';
+            // DON'T clear form fields - keep API credentials visible for easy reconnection
+            // This matches the behavior of the original setup page
+            console.log(`💾 Keeping API credentials in form fields for easy reconnection`);
 
             // Update strategy state
             window.strategyExchanges[`${exchange}-${strategy}`] = {
@@ -736,12 +738,14 @@
                 balance: null
             };
 
-            // MIGRATION: Update main dashboard state
-            if (window.opener) {
+            // MIGRATION: Update main dashboard state (only for cross-exchange strategy)
+            if (strategy === 'cross-exchange' && window.opener) {
                 if (window.opener.state && window.opener.state.exchanges) {
+                    // Keep API credentials but mark as disconnected
+                    const currentApi = window.opener.state.exchanges.chainex?.api;
                     window.opener.state.exchanges.chainex = {
                         connected: false,
-                        api: null
+                        api: currentApi // Keep the API credentials
                     };
                     if (window.opener.state.balances) {
                         window.opener.state.balances.chainex = {};
@@ -752,24 +756,27 @@
                     }
                 }
 
-                // Update dashboard status
-                const dashboardStatusElement = window.opener.document.getElementById('chainexStatus');
-                if (dashboardStatusElement) {
-                    dashboardStatusElement.textContent = 'Disconnected';
-                    dashboardStatusElement.className = 'status-disconnected';
-                }
+                // Update dashboard UI (only for cross-exchange strategy)
+                if (strategy === 'cross-exchange') {
+                    // Update dashboard status
+                    const dashboardStatusElement = window.opener.document.getElementById('chainexStatus');
+                    if (dashboardStatusElement) {
+                        dashboardStatusElement.textContent = 'Disconnected';
+                        dashboardStatusElement.className = 'status-disconnected';
+                    }
 
-                // Update dashboard balance
-                const dashboardBalanceElement = window.opener.document.getElementById('chainexBalance');
-                if (dashboardBalanceElement) {
-                    dashboardBalanceElement.textContent = '$0.00';
-                }
+                    // Update dashboard balance
+                    const dashboardBalanceElement = window.opener.document.getElementById('chainexBalance');
+                    if (dashboardBalanceElement) {
+                        dashboardBalanceElement.textContent = '$0.00';
+                    }
 
-                // Update price status
-                const priceStatusElement = window.opener.document.getElementById('chainexPriceStatus');
-                if (priceStatusElement) {
-                    priceStatusElement.textContent = 'OFFLINE';
-                    priceStatusElement.className = 'price-status price-disconnected';
+                    // Update price status
+                    const priceStatusElement = window.opener.document.getElementById('chainexPriceStatus');
+                    if (priceStatusElement) {
+                        priceStatusElement.textContent = 'OFFLINE';
+                        priceStatusElement.className = 'price-status price-disconnected';
+                    }
                 }
             }
 
@@ -816,25 +823,42 @@
 
         // Load saved credentials on page load
         function loadStrategyCredentials() {
+            console.log('Loading strategy credentials...');
             const strategies = ['cross-exchange', 'triangular', 'transfer', 'currency-swap'];
 
             strategies.forEach(strategy => {
                 const apiKey = localStorage.getItem(`chainex_${strategy}_api`);
                 const secretKey = localStorage.getItem(`chainex_${strategy}_secret`);
 
-                if (apiKey) {
-                    const apiInput = document.getElementById(`chainex-${strategy}-api`);
-                    if (apiInput) {
-                        apiInput.value = apiKey;
-                        console.log(`Loaded ${strategy} API key:`, apiKey.substring(0, 10) + '...');
-                    }
+                console.log(`Checking ${strategy}:`, {
+                    hasApiKey: !!apiKey,
+                    hasSecretKey: !!secretKey,
+                    apiKeyLength: apiKey ? apiKey.length : 0,
+                    secretKeyLength: secretKey ? secretKey.length : 0
+                });
+
+                const apiInput = document.getElementById(`chainex-${strategy}-api`);
+                const secretInput = document.getElementById(`chainex-${strategy}-secret`);
+
+                console.log(`Elements for ${strategy}:`, {
+                    apiInput: !!apiInput,
+                    secretInput: !!secretInput,
+                    apiInputId: apiInput ? apiInput.id : 'not found',
+                    secretInputId: secretInput ? secretInput.id : 'not found'
+                });
+
+                if (apiKey && apiInput) {
+                    apiInput.value = apiKey;
+                    console.log(`✅ Loaded ${strategy} API key:`, apiKey.substring(0, 10) + '...');
+                } else if (apiKey) {
+                    console.error(`❌ API input not found for ${strategy}`);
                 }
-                if (secretKey) {
-                    const secretInput = document.getElementById(`chainex-${strategy}-secret`);
-                    if (secretInput) {
-                        secretInput.value = secretKey;
-                        console.log(`Loaded ${strategy} secret key:`, secretKey.substring(0, 5) + '...');
-                    }
+
+                if (secretKey && secretInput) {
+                    secretInput.value = secretKey;
+                    console.log(`✅ Loaded ${strategy} secret key:`, secretKey.substring(0, 5) + '...');
+                } else if (secretKey) {
+                    console.error(`❌ Secret input not found for ${strategy}`);
                 }
 
                 // Check connection status based on stored credentials
