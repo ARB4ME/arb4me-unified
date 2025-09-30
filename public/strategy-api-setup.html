@@ -328,6 +328,10 @@
                     <label class="form-label" for="chainex-cross-secret">Secret Key</label>
                     <input type="password" id="chainex-cross-exchange-secret" class="form-input" placeholder="Enter ChainEX Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="chainex-cross-secret-key">
                 </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="chainex-cross-exchange-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
                 <div class="button-group">
                     <button class="btn btn-primary" onclick="connectStrategyExchange('chainex', 'cross-exchange')">Connect</button>
                     <button class="btn btn-secondary" onclick="testStrategyConnection('chainex', 'cross-exchange')">Test Connection</button>
@@ -352,6 +356,10 @@
                 <div class="form-group">
                     <label class="form-label" for="chainex-triangular-secret">Secret Key</label>
                     <input type="password" id="chainex-triangular-secret" class="form-input" placeholder="Enter ChainEX Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="chainex-tri-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="chainex-triangular-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
                 </div>
                 <div class="button-group">
                     <button class="btn btn-primary" onclick="connectStrategyExchange('chainex', 'triangular')">Connect</button>
@@ -378,6 +386,10 @@
                     <label class="form-label" for="chainex-transfer-secret">Secret Key</label>
                     <input type="password" id="chainex-transfer-secret" class="form-input" placeholder="Enter ChainEX Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="chainex-trans-secret-key">
                 </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="chainex-transfer-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
                 <div class="button-group">
                     <button class="btn btn-primary" onclick="connectStrategyExchange('chainex', 'transfer')">Connect</button>
                     <button class="btn btn-secondary" onclick="testStrategyConnection('chainex', 'transfer')">Test Connection</button>
@@ -403,6 +415,10 @@
                     <label class="form-label" for="chainex-swap-secret">Secret Key</label>
                     <input type="password" id="chainex-currency-swap-secret" class="form-input" placeholder="Enter ChainEX Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="chainex-swap-secret-key">
                 </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="chainex-currency-swap-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
                 <div class="button-group">
                     <button class="btn btn-primary" onclick="connectStrategyExchange('chainex', 'currency-swap')">Connect</button>
                     <button class="btn btn-secondary" onclick="testStrategyConnection('chainex', 'currency-swap')">Test Connection</button>
@@ -422,6 +438,87 @@
                 'chainex-transfer': { connected: false, balance: null },
                 'chainex-currency-swap': { connected: false, balance: null }
             };
+        }
+
+        // Format balance display function (similar to original implementation)
+        function formatStrategyBalance(balances) {
+            if (!balances || typeof balances !== 'object') {
+                return '$0.00';
+            }
+
+            // Get major currencies for display
+            const majorCurrencies = ['USDT', 'BTC', 'ETH', 'BNB', 'ADA', 'DOT', 'SOL'];
+            let displayParts = [];
+            let totalUSDValue = 0;
+
+            // Show USDT first if available
+            if (balances.USDT && parseFloat(balances.USDT) > 0) {
+                const usdtAmount = parseFloat(balances.USDT);
+                displayParts.push(`$${usdtAmount.toFixed(2)} USDT`);
+                totalUSDValue += usdtAmount;
+            }
+
+            // Show other major currencies
+            majorCurrencies.slice(1).forEach(currency => {
+                if (balances[currency] && parseFloat(balances[currency]) > 0.001) {
+                    const amount = parseFloat(balances[currency]);
+                    displayParts.push(`${amount.toFixed(4)} ${currency}`);
+                }
+            });
+
+            // If no major currencies, show first available currency
+            if (displayParts.length === 0) {
+                const firstCurrency = Object.keys(balances).find(key => parseFloat(balances[key]) > 0);
+                if (firstCurrency) {
+                    const amount = parseFloat(balances[firstCurrency]);
+                    displayParts.push(`${amount.toFixed(4)} ${firstCurrency}`);
+                }
+            }
+
+            // Limit display to first 3 currencies
+            if (displayParts.length > 3) {
+                const extra = displayParts.length - 3;
+                displayParts = displayParts.slice(0, 3);
+                displayParts.push(`+${extra} more`);
+            }
+
+            return displayParts.length > 0 ? displayParts.join(' • ') : '$0.00';
+        }
+
+        // Fetch balance for a specific strategy
+        async function fetchStrategyBalance(exchange, strategy, apiKey, secretKey) {
+            try {
+                const response = await fetch('/api/v1/trading/chainex/balance', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        apiKey: apiKey,
+                        apiSecret: secretKey
+                    })
+                });
+
+                if (response.ok) {
+                    const balanceData = await response.json();
+                    if (balanceData.success && balanceData.balances) {
+                        const balanceDisplay = formatStrategyBalance(balanceData.balances);
+                        const balanceElement = document.getElementById(`${exchange}-${strategy}-balance`);
+                        if (balanceElement) {
+                            balanceElement.innerHTML = balanceDisplay;
+                        }
+
+                        // Update state
+                        if (window.strategyExchanges[`${exchange}-${strategy}`]) {
+                            window.strategyExchanges[`${exchange}-${strategy}`].balance = balanceData.balances;
+                        }
+                    }
+                } else {
+                    console.error('Failed to fetch balance:', response.status);
+                }
+            } catch (error) {
+                console.error('Error fetching strategy balance:', error);
+            }
         }
 
         // Tab switching functionality
@@ -482,6 +579,38 @@
                     if (statusElement) {
                         statusElement.textContent = 'Connected';
                         statusElement.className = 'connection-status status-connected';
+                    }
+
+                    // Fetch and display balance
+                    try {
+                        const balanceResponse = await fetch('/api/v1/trading/chainex/balance', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                apiKey: apiKey,
+                                apiSecret: secretKey
+                            })
+                        });
+
+                        if (balanceResponse.ok) {
+                            const balanceData = await balanceResponse.json();
+                            if (balanceData.success && balanceData.balances) {
+                                // Format balance display like the original implementation
+                                const balanceDisplay = formatStrategyBalance(balanceData.balances);
+                                const balanceElement = document.getElementById(`${exchange}-${strategy}-balance`);
+                                if (balanceElement) {
+                                    balanceElement.innerHTML = balanceDisplay;
+                                }
+
+                                // Store balance in state
+                                window.strategyExchanges[`${exchange}-${strategy}`].balance = balanceData.balances;
+                            }
+                        }
+                    } catch (balanceError) {
+                        console.error('Error fetching balance:', balanceError);
+                        // Still show connected but with no balance
                     }
 
                     alert(`${exchange.toUpperCase()} ${strategy} strategy connected successfully!`);
@@ -559,6 +688,12 @@
                 statusElement.className = 'connection-status status-disconnected';
             }
 
+            // Clear balance display
+            const balanceElement = document.getElementById(`${exchange}-${strategy}-balance`);
+            if (balanceElement) {
+                balanceElement.textContent = '$0.00';
+            }
+
             alert(`${exchange.toUpperCase()} ${strategy} strategy disconnected`);
         }
 
@@ -611,15 +746,25 @@
                 // Check connection status based on stored credentials
                 if (apiKey && secretKey) {
                     const statusElement = document.getElementById(`chainex-${strategy}-status`);
+                    const balanceElement = document.getElementById(`chainex-${strategy}-balance`);
+
                     if (statusElement) {
                         // Check if marked as connected in localStorage
                         const isConnected = localStorage.getItem(`chainex_${strategy}_connected`) === 'true';
                         if (isConnected) {
                             statusElement.textContent = 'Connected';
                             statusElement.className = 'connection-status status-connected';
+
+                            // Try to fetch fresh balance if connected
+                            if (balanceElement) {
+                                fetchStrategyBalance('chainex', strategy, apiKey, secretKey);
+                            }
                         } else {
                             statusElement.textContent = 'Disconnected';
                             statusElement.className = 'connection-status status-disconnected';
+                            if (balanceElement) {
+                                balanceElement.textContent = '$0.00';
+                            }
                         }
                     }
                 }
