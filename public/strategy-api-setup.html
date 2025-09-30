@@ -570,9 +570,11 @@
                     localStorage.setItem(`chainex_${strategy}_secret`, secretKey);
                     localStorage.setItem(`chainex_${strategy}_connected`, 'true');
 
-                    // MIGRATION: Also store in original format for dashboard compatibility
-                    localStorage.setItem('chainexApiKey', apiKey);
-                    localStorage.setItem('chainexSecretKey', secretKey);
+                    // MIGRATION: Also store in original format for dashboard compatibility (only for first strategy)
+                    if (strategy === 'cross-exchange') {
+                        localStorage.setItem('chainexApiKey', apiKey);
+                        localStorage.setItem('chainexSecretKey', secretKey);
+                    }
 
                     // Update strategy-specific state
                     window.strategyExchanges[`${exchange}-${strategy}`] = {
@@ -718,9 +720,11 @@
             localStorage.removeItem(`chainex_${strategy}_secret`);
             localStorage.removeItem(`chainex_${strategy}_connected`);
 
-            // MIGRATION: Also clear original format credentials
-            localStorage.removeItem('chainexApiKey');
-            localStorage.removeItem('chainexSecretKey');
+            // MIGRATION: Also clear original format credentials (only if this was the primary strategy)
+            if (strategy === 'cross-exchange') {
+                localStorage.removeItem('chainexApiKey');
+                localStorage.removeItem('chainexSecretKey');
+            }
 
             // Clear form fields
             document.getElementById(`${exchange}-${strategy}-api`).value = '';
@@ -795,7 +799,7 @@
                 if (apiInput) {
                     apiInput.addEventListener('input', function() {
                         localStorage.setItem(`chainex_${strategy}_api`, this.value);
-                        console.log(`Saved ${strategy} API key`);
+                        console.log(`Saved ${strategy} API key:`, this.value.substring(0, 10) + '...');
                     });
                 }
 
@@ -804,7 +808,7 @@
                 if (secretInput) {
                     secretInput.addEventListener('input', function() {
                         localStorage.setItem(`chainex_${strategy}_secret`, this.value);
-                        console.log(`Saved ${strategy} secret key`);
+                        console.log(`Saved ${strategy} secret key:`, this.value.substring(0, 5) + '...');
                     });
                 }
             });
@@ -822,12 +826,14 @@
                     const apiInput = document.getElementById(`chainex-${strategy}-api`);
                     if (apiInput) {
                         apiInput.value = apiKey;
+                        console.log(`Loaded ${strategy} API key:`, apiKey.substring(0, 10) + '...');
                     }
                 }
                 if (secretKey) {
                     const secretInput = document.getElementById(`chainex-${strategy}-secret`);
                     if (secretInput) {
                         secretInput.value = secretKey;
+                        console.log(`Loaded ${strategy} secret key:`, secretKey.substring(0, 5) + '...');
                     }
                 }
 
