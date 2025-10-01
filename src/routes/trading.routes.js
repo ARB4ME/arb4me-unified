@@ -205,8 +205,8 @@ router.post('/connect-exchange', tradingRateLimit, optionalAuth, [
         } else if (exchange.toLowerCase() === 'binance') {
             // Test Binance connection by fetching balance
             const timestamp = Date.now();
-            const recvWindow = 5000; // 5 second window for better API key compatibility
-            const queryString = `recvWindow=${recvWindow}&timestamp=${timestamp}`;
+            // Try without recvWindow for maximum API key compatibility
+            const queryString = `timestamp=${timestamp}`;
             const signature = createBinanceSignature(queryString, secretKey);
 
             const response = await fetch(`${BINANCE_CONFIG.baseUrl}${BINANCE_CONFIG.endpoints.balance}?${queryString}&signature=${signature}`, {
@@ -375,8 +375,8 @@ router.post('/test-connection', tradingRateLimit, optionalAuth, [
         } else if (exchange.toLowerCase() === 'binance') {
             // Test Binance connection
             const timestamp = Date.now();
-            const recvWindow = 5000; // 5 second window for better API key compatibility
-            const queryString = `recvWindow=${recvWindow}&timestamp=${timestamp}`;
+            // Try without recvWindow for maximum API key compatibility
+            const queryString = `timestamp=${timestamp}`;
             const signature = createBinanceSignature(queryString, secretKey);
 
             const response = await fetch(`${BINANCE_CONFIG.baseUrl}${BINANCE_CONFIG.endpoints.balance}?${queryString}&signature=${signature}`, {
@@ -4160,9 +4160,8 @@ router.post('/binance/balance', tradingRateLimit, optionalAuth, [
         });
         
         const timestamp = Date.now();
-        const recvWindow = 5000; // 5 second window for better API key compatibility
-        // Smaller recvWindow works with more restricted API keys
-        const queryString = `recvWindow=${recvWindow}&timestamp=${timestamp}`;
+        // Try without recvWindow for maximum API key compatibility
+        const queryString = `timestamp=${timestamp}`;
         const signature = createBinanceSignature(queryString, apiSecret);
         
         const response = await fetch(`${BINANCE_CONFIG.baseUrl}${BINANCE_CONFIG.endpoints.balance}?${queryString}&signature=${signature}`, {
