@@ -1806,9 +1806,12 @@
 
                     const testResult = await testResponse.json();
                     console.log(`🧪 ${exchange} test result:`, testResult);
+                    console.log(`🧪 ${exchange} detailed test data:`, JSON.stringify(testResult, null, 2));
 
                     if (!testResult.success) {
-                        throw new Error(testResult.error?.message || testResult.error || 'Connection test failed');
+                        const errorMsg = testResult.data?.error || testResult.error?.message || testResult.error || 'Connection test failed';
+                        console.error(`❌ ${exchange} test failed:`, errorMsg);
+                        throw new Error(errorMsg);
                     }
 
                     // If test passed, now get balances using getRealBalances (like original setup)
