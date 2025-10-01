@@ -426,6 +426,37 @@
             </div>
             </form>
 
+            <!-- KuCoin Cross Exchange -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">KuCoin - Cross Exchange Strategy</div>
+                    <div id="kucoin-cross-exchange-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="kucoin-cross-exchange-api">API Key</label>
+                    <input type="text" id="kucoin-cross-exchange-api" class="form-input" placeholder="Enter KuCoin API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="kucoin-cross-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="kucoin-cross-exchange-secret">Secret Key</label>
+                    <input type="password" id="kucoin-cross-exchange-secret" class="form-input" placeholder="Enter KuCoin Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="kucoin-cross-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="kucoin-cross-exchange-passphrase">Passphrase</label>
+                    <input type="password" id="kucoin-cross-exchange-passphrase" class="form-input" placeholder="Enter KuCoin Passphrase" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="kucoin-cross-passphrase">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="kucoin-cross-exchange-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('kucoin', 'cross-exchange')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('kucoin', 'cross-exchange')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('kucoin', 'cross-exchange')">Disconnect</button>
+                </div>
+            </div>
+            </form>
+
             <!-- VALR Cross-Exchange -->
             <form autocomplete="off" onsubmit="return false;">
             <div class="exchange-card">
@@ -755,6 +786,37 @@
                 </div>
             </div>
             </form>
+
+            <!-- KuCoin Triangular -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">KuCoin - Triangular Strategy</div>
+                    <div id="kucoin-triangular-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="kucoin-triangular-api">API Key</label>
+                    <input type="text" id="kucoin-triangular-api" class="form-input" placeholder="Enter KuCoin API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="kucoin-tri-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="kucoin-triangular-secret">Secret Key</label>
+                    <input type="password" id="kucoin-triangular-secret" class="form-input" placeholder="Enter KuCoin Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="kucoin-tri-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="kucoin-triangular-passphrase">Passphrase</label>
+                    <input type="password" id="kucoin-triangular-passphrase" class="form-input" placeholder="Enter KuCoin Passphrase" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="kucoin-tri-passphrase">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="kucoin-triangular-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('kucoin', 'triangular')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('kucoin', 'triangular')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('kucoin', 'triangular')">Disconnect</button>
+                </div>
+            </div>
+            </form>
         </div>
 
         <!-- Transfer Strategy -->
@@ -974,6 +1036,37 @@
                     <button class="btn btn-primary" onclick="connectStrategyExchange('mexc', 'transfer')">Connect</button>
                     <button class="btn btn-secondary" onclick="testStrategyConnection('mexc', 'transfer')">Test Connection</button>
                     <button class="btn btn-danger" onclick="disconnectStrategyExchange('mexc', 'transfer')">Disconnect</button>
+                </div>
+            </div>
+            </form>
+
+            <!-- KuCoin Transfer -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">KuCoin - Transfer Strategy</div>
+                    <div id="kucoin-transfer-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="kucoin-transfer-api">API Key</label>
+                    <input type="text" id="kucoin-transfer-api" class="form-input" placeholder="Enter KuCoin API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="kucoin-trans-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="kucoin-transfer-secret">Secret Key</label>
+                    <input type="password" id="kucoin-transfer-secret" class="form-input" placeholder="Enter KuCoin Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="kucoin-trans-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="kucoin-transfer-passphrase">Passphrase</label>
+                    <input type="password" id="kucoin-transfer-passphrase" class="form-input" placeholder="Enter KuCoin Passphrase" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="kucoin-trans-passphrase">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="kucoin-transfer-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('kucoin', 'transfer')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('kucoin', 'transfer')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('kucoin', 'transfer')">Disconnect</button>
                 </div>
             </div>
             </form>
@@ -1216,6 +1309,45 @@
                         <button type="button" onclick="testStrategyConnection('mexc', 'currency-swap')"
                                 class="btn-secondary">Test</button>
                         <button type="button" onclick="disconnectStrategyExchange('mexc', 'currency-swap')"
+                                class="btn-danger">Disconnect</button>
+                    </div>
+                </div>
+            </div>
+            </form>
+
+            <!-- KuCoin Currency Swap -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">KuCoin - Currency Swap Strategy</div>
+                    <div id="kucoin-currency-swap-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="exchange-body">
+                    <div class="form-group">
+                        <label for="kucoin-currency-swap-api">API Key:</label>
+                        <input type="password" id="kucoin-currency-swap-api" name="kucoin_currency_swap_api_unique"
+                               placeholder="Enter KuCoin API Key" autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label for="kucoin-currency-swap-secret">Secret Key:</label>
+                        <input type="password" id="kucoin-currency-swap-secret" name="kucoin_currency_swap_secret_unique"
+                               placeholder="Enter KuCoin Secret Key" autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label for="kucoin-currency-swap-passphrase">Passphrase:</label>
+                        <input type="password" id="kucoin-currency-swap-passphrase" name="kucoin_currency_swap_passphrase_unique"
+                               placeholder="Enter KuCoin Passphrase" autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label>Balance:</label>
+                        <div id="kucoin-currency-swap-balance" class="balance-display">Not connected</div>
+                    </div>
+                    <div class="button-group">
+                        <button type="button" onclick="connectStrategyExchange('kucoin', 'currency-swap')"
+                                class="btn-primary">Connect</button>
+                        <button type="button" onclick="testStrategyConnection('kucoin', 'currency-swap')"
+                                class="btn-secondary">Test</button>
+                        <button type="button" onclick="disconnectStrategyExchange('kucoin', 'currency-swap')"
                                 class="btn-danger">Disconnect</button>
                     </div>
                 </div>
@@ -1872,7 +2004,11 @@
                 'mexc-cross-exchange-api', 'mexc-cross-exchange-secret',
                 'mexc-triangular-api', 'mexc-triangular-secret',
                 'mexc-transfer-api', 'mexc-transfer-secret',
-                'mexc-currency-swap-api', 'mexc-currency-swap-secret'
+                'mexc-currency-swap-api', 'mexc-currency-swap-secret',
+                'kucoin-cross-exchange-api', 'kucoin-cross-exchange-secret', 'kucoin-cross-exchange-passphrase',
+                'kucoin-triangular-api', 'kucoin-triangular-secret', 'kucoin-triangular-passphrase',
+                'kucoin-transfer-api', 'kucoin-transfer-secret', 'kucoin-transfer-passphrase',
+                'kucoin-currency-swap-api', 'kucoin-currency-swap-secret', 'kucoin-currency-swap-passphrase'
             ];
 
             apiKeyFields.forEach(fieldId => {
@@ -1892,7 +2028,7 @@
         function loadStrategyCredentials() {
             console.log('🔄 Loading strategy credentials...');
 
-            const exchanges = ['chainex', 'valr', 'luno', 'kraken', 'binance', 'bybit', 'okx', 'mexc'];
+            const exchanges = ['chainex', 'valr', 'luno', 'kraken', 'binance', 'bybit', 'okx', 'mexc', 'kucoin'];
             const strategies = ['cross-exchange', 'triangular', 'transfer', 'currency-swap'];
 
             exchanges.forEach(exchange => {
@@ -1929,6 +2065,10 @@
                         } else if (exchange === 'mexc') {
                             apiKey = localStorage.getItem('mexcApiKey');
                             secretKey = localStorage.getItem('mexcSecretKey');
+                        } else if (exchange === 'kucoin') {
+                            apiKey = localStorage.getItem('kucoinApiKey');
+                            secretKey = localStorage.getItem('kucoinSecretKey');
+                            passphrase = localStorage.getItem('kucoinPassphrase');
                         }
                         if (apiKey) {
                             console.log(`📄 Loaded from original format for ${exchange} ${strategy}`);

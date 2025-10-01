@@ -320,6 +320,51 @@ router.post('/connect-exchange', tradingRateLimit, optionalAuth, [
                     }
                 });
             }
+        } else if (exchange.toLowerCase() === 'kucoin') {
+            // Test KuCoin connection by fetching balance
+            const { passphrase } = req.body; // KuCoin requires passphrase
+            if (!passphrase) {
+                throw new Error('KuCoin requires passphrase');
+            }
+
+            const timestamp = Date.now().toString();
+            const method = 'GET';
+            const endpoint = KUCOIN_CONFIG.endpoints.balance;
+            const signature = createKuCoinSignature(timestamp, method, endpoint, '', secretKey);
+            const passphraseEncrypted = crypto.createHmac('sha256', secretKey).update(passphrase).digest('base64');
+
+            const response = await fetch(`${KUCOIN_CONFIG.baseUrl}${endpoint}`, {
+                method: 'GET',
+                headers: {
+                    'KC-API-KEY': apiKey,
+                    'KC-API-SIGN': signature,
+                    'KC-API-TIMESTAMP': timestamp,
+                    'KC-API-PASSPHRASE': passphraseEncrypted,
+                    'KC-API-KEY-VERSION': '2',
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`KuCoin API error: ${response.status} - ${errorText}`);
+            }
+
+            const balanceData = await response.json();
+
+            // Transform KuCoin response
+            if (balanceData.code !== '200000') {
+                throw new Error(`KuCoin API error: ${balanceData.msg || 'Unknown error'}`);
+            }
+
+            if (balanceData.data && Array.isArray(balanceData.data)) {
+                balanceData.data.forEach(account => {
+                    const balance = parseFloat(account.balance || 0);
+                    if (balance > 0) {
+                        balances[account.currency] = balance;
+                    }
+                });
+            }
         } else {
             throw new APIError(`Exchange ${exchange} not supported`, 400, 'UNSUPPORTED_EXCHANGE');
         }
@@ -536,6 +581,43 @@ router.post('/test-connection', tradingRateLimit, optionalAuth, [
             if (response.ok) {
                 const data = await response.json();
                 if (!data.code || data.code === 0 || data.code === '0') {
+                    res.json({
+                        success: true,
+                        message: 'Connection test successful'
+                    });
+                    return;
+                }
+            }
+
+            throw new Error('Connection test failed - invalid credentials');
+        } else if (exchange.toLowerCase() === 'kucoin') {
+            // Test KuCoin connection
+            const { passphrase } = req.body; // KuCoin requires passphrase
+            if (!passphrase) {
+                throw new Error('KuCoin requires passphrase');
+            }
+
+            const timestamp = Date.now().toString();
+            const method = 'GET';
+            const endpoint = KUCOIN_CONFIG.endpoints.balance;
+            const signature = createKuCoinSignature(timestamp, method, endpoint, '', secretKey);
+            const passphraseEncrypted = crypto.createHmac('sha256', secretKey).update(passphrase).digest('base64');
+
+            const response = await fetch(`${KUCOIN_CONFIG.baseUrl}${endpoint}`, {
+                method: 'GET',
+                headers: {
+                    'KC-API-KEY': apiKey,
+                    'KC-API-SIGN': signature,
+                    'KC-API-TIMESTAMP': timestamp,
+                    'KC-API-PASSPHRASE': passphraseEncrypted,
+                    'KC-API-KEY-VERSION': '2',
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data.code === '200000') {
                     res.json({
                         success: true,
                         message: 'Connection test successful'
