@@ -1115,28 +1115,29 @@
                                 priceStatusElementId = 'binancePriceStatus';
                             }
 
-                                    const dashboardBalanceElement = window.opener.document.getElementById(balanceElementId);
-                                    if (dashboardBalanceElement && window.opener.formatMultiCurrencyBalance) {
-                                        const dashboardBalanceDisplay = window.opener.formatMultiCurrencyBalance(balances, exchange);
-                                        dashboardBalanceElement.textContent = dashboardBalanceDisplay;
-                                    }
+                            if (balanceElementId) {
+                                const dashboardBalanceElement = window.opener.document.getElementById(balanceElementId);
+                                if (dashboardBalanceElement && window.opener.formatMultiCurrencyBalance) {
+                                    const dashboardBalanceDisplay = window.opener.formatMultiCurrencyBalance(balances, exchange);
+                                    dashboardBalanceElement.textContent = dashboardBalanceDisplay;
+                                }
 
-                                    // Update dashboard status
-                                    const dashboardStatusElement = window.opener.document.getElementById(statusElementId);
-                                    if (dashboardStatusElement) {
-                                        dashboardStatusElement.textContent = 'Connected (Live)';
-                                        dashboardStatusElement.className = 'status-connected';
-                                    }
+                                // Update dashboard status
+                                const dashboardStatusElement = window.opener.document.getElementById(statusElementId);
+                                if (dashboardStatusElement) {
+                                    dashboardStatusElement.textContent = 'Connected (Live)';
+                                    dashboardStatusElement.className = 'status-connected';
+                                }
 
-                                    // Update price status
-                                    const priceStatusElement = window.opener.document.getElementById(priceStatusElementId);
-                                    if (priceStatusElement) {
-                                        priceStatusElement.textContent = 'LIVE';
-                                        priceStatusElement.className = 'price-status price-live';
-                                    }
+                                // Update price status
+                                const priceStatusElement = window.opener.document.getElementById(priceStatusElementId);
+                                if (priceStatusElement) {
+                                    priceStatusElement.textContent = 'LIVE';
+                                    priceStatusElement.className = 'price-status price-live';
                                 }
                             }
                         }
+                    }
 
                     alert(`${exchange.toUpperCase()} ${strategy} strategy connected successfully!`);
                 } else {
