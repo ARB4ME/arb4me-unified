@@ -205,14 +205,15 @@ router.post('/connect-exchange', tradingRateLimit, optionalAuth, [
         } else if (exchange.toLowerCase() === 'binance') {
             // Test Binance connection by fetching balance
             const timestamp = Date.now();
-            const queryString = `timestamp=${timestamp}`;
+            const recvWindow = 60000; // 60 second window for better reliability
+            const queryString = `recvWindow=${recvWindow}&timestamp=${timestamp}`;
             const signature = createBinanceSignature(queryString, secretKey);
 
             const response = await fetch(`${BINANCE_CONFIG.baseUrl}${BINANCE_CONFIG.endpoints.balance}?${queryString}&signature=${signature}`, {
                 method: 'GET',
                 headers: {
                     'X-MBX-APIKEY': apiKey,
-                    'User-Agent': 'ARB4ME/1.0'
+                    'Content-Type': 'application/json'
                 }
             });
 
@@ -374,14 +375,15 @@ router.post('/test-connection', tradingRateLimit, optionalAuth, [
         } else if (exchange.toLowerCase() === 'binance') {
             // Test Binance connection
             const timestamp = Date.now();
-            const queryString = `timestamp=${timestamp}`;
+            const recvWindow = 60000; // 60 second window for better reliability
+            const queryString = `recvWindow=${recvWindow}&timestamp=${timestamp}`;
             const signature = createBinanceSignature(queryString, secretKey);
 
             const response = await fetch(`${BINANCE_CONFIG.baseUrl}${BINANCE_CONFIG.endpoints.balance}?${queryString}&signature=${signature}`, {
                 method: 'GET',
                 headers: {
                     'X-MBX-APIKEY': apiKey,
-                    'User-Agent': 'ARB4ME/1.0'
+                    'Content-Type': 'application/json'
                 }
             });
 
