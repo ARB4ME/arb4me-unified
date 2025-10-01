@@ -1788,8 +1788,30 @@
                 window.state = tempState;
 
                 try {
-                    // Use the same method as original setup - getRealBalances()
-                    // This function exists in the parent window (main dashboard)
+                    // APPROACH: Use same method as original connectExchange - /test endpoint first, then getRealBalances
+                    console.log(`🔌 ${exchange} testing connection using /test endpoint like original setup`);
+
+                    const testEndpoint = `/api/v1/trading/${exchange}/test`;
+                    const testResponse = await fetch(testEndpoint, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            apiKey: apiKey,
+                            apiSecret: secretKey,
+                            ...(passphrase && { passphrase: passphrase })
+                        })
+                    });
+
+                    const testResult = await testResponse.json();
+                    console.log(`🧪 ${exchange} test result:`, testResult);
+
+                    if (!testResult.success) {
+                        throw new Error(testResult.error?.message || testResult.error || 'Connection test failed');
+                    }
+
+                    // If test passed, now get balances using getRealBalances (like original setup)
                     let balances;
                     if (window.opener && window.opener.getRealBalances) {
                         balances = await window.opener.getRealBalances(exchange);
