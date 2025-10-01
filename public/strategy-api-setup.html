@@ -457,6 +457,33 @@
             </div>
             </form>
 
+            <!-- HTX Cross Exchange -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">HTX (Huobi) - Cross Exchange Strategy</div>
+                    <div id="htx-cross-exchange-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="htx-cross-exchange-api">API Key</label>
+                    <input type="text" id="htx-cross-exchange-api" class="form-input" placeholder="Enter HTX API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="htx-cross-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="htx-cross-exchange-secret">Secret Key</label>
+                    <input type="password" id="htx-cross-exchange-secret" class="form-input" placeholder="Enter HTX Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="htx-cross-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="htx-cross-exchange-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('htx', 'cross-exchange')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('htx', 'cross-exchange')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('htx', 'cross-exchange')">Disconnect</button>
+                </div>
+            </div>
+            </form>
+
             <!-- VALR Cross-Exchange -->
             <form autocomplete="off" onsubmit="return false;">
             <div class="exchange-card">
@@ -817,6 +844,33 @@
                 </div>
             </div>
             </form>
+
+            <!-- HTX Triangular -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">HTX (Huobi) - Triangular Strategy</div>
+                    <div id="htx-triangular-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="htx-triangular-api">API Key</label>
+                    <input type="text" id="htx-triangular-api" class="form-input" placeholder="Enter HTX API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="htx-tri-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="htx-triangular-secret">Secret Key</label>
+                    <input type="password" id="htx-triangular-secret" class="form-input" placeholder="Enter HTX Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="htx-tri-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="htx-triangular-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('htx', 'triangular')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('htx', 'triangular')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('htx', 'triangular')">Disconnect</button>
+                </div>
+            </div>
+            </form>
         </div>
 
         <!-- Transfer Strategy -->
@@ -1067,6 +1121,33 @@
                     <button class="btn btn-primary" onclick="connectStrategyExchange('kucoin', 'transfer')">Connect</button>
                     <button class="btn btn-secondary" onclick="testStrategyConnection('kucoin', 'transfer')">Test Connection</button>
                     <button class="btn btn-danger" onclick="disconnectStrategyExchange('kucoin', 'transfer')">Disconnect</button>
+                </div>
+            </div>
+            </form>
+
+            <!-- HTX Transfer -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">HTX (Huobi) - Transfer Strategy</div>
+                    <div id="htx-transfer-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="htx-transfer-api">API Key</label>
+                    <input type="text" id="htx-transfer-api" class="form-input" placeholder="Enter HTX API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="htx-trans-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="htx-transfer-secret">Secret Key</label>
+                    <input type="password" id="htx-transfer-secret" class="form-input" placeholder="Enter HTX Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="htx-trans-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="htx-transfer-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('htx', 'transfer')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('htx', 'transfer')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('htx', 'transfer')">Disconnect</button>
                 </div>
             </div>
             </form>
@@ -1348,6 +1429,40 @@
                         <button type="button" onclick="testStrategyConnection('kucoin', 'currency-swap')"
                                 class="btn-secondary">Test</button>
                         <button type="button" onclick="disconnectStrategyExchange('kucoin', 'currency-swap')"
+                                class="btn-danger">Disconnect</button>
+                    </div>
+                </div>
+            </div>
+            </form>
+
+            <!-- HTX Currency Swap -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">HTX (Huobi) - Currency Swap Strategy</div>
+                    <div id="htx-currency-swap-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="exchange-body">
+                    <div class="form-group">
+                        <label for="htx-currency-swap-api">API Key:</label>
+                        <input type="password" id="htx-currency-swap-api" name="htx_currency_swap_api_unique"
+                               placeholder="Enter HTX API Key" autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label for="htx-currency-swap-secret">Secret Key:</label>
+                        <input type="password" id="htx-currency-swap-secret" name="htx_currency_swap_secret_unique"
+                               placeholder="Enter HTX Secret Key" autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label>Balance:</label>
+                        <div id="htx-currency-swap-balance" class="balance-display">Not connected</div>
+                    </div>
+                    <div class="button-group">
+                        <button type="button" onclick="connectStrategyExchange('htx', 'currency-swap')"
+                                class="btn-primary">Connect</button>
+                        <button type="button" onclick="testStrategyConnection('htx', 'currency-swap')"
+                                class="btn-secondary">Test</button>
+                        <button type="button" onclick="disconnectStrategyExchange('htx', 'currency-swap')"
                                 class="btn-danger">Disconnect</button>
                     </div>
                 </div>
@@ -2008,7 +2123,11 @@
                 'kucoin-cross-exchange-api', 'kucoin-cross-exchange-secret', 'kucoin-cross-exchange-passphrase',
                 'kucoin-triangular-api', 'kucoin-triangular-secret', 'kucoin-triangular-passphrase',
                 'kucoin-transfer-api', 'kucoin-transfer-secret', 'kucoin-transfer-passphrase',
-                'kucoin-currency-swap-api', 'kucoin-currency-swap-secret', 'kucoin-currency-swap-passphrase'
+                'kucoin-currency-swap-api', 'kucoin-currency-swap-secret', 'kucoin-currency-swap-passphrase',
+                'htx-cross-exchange-api', 'htx-cross-exchange-secret',
+                'htx-triangular-api', 'htx-triangular-secret',
+                'htx-transfer-api', 'htx-transfer-secret',
+                'htx-currency-swap-api', 'htx-currency-swap-secret'
             ];
 
             apiKeyFields.forEach(fieldId => {
@@ -2028,7 +2147,7 @@
         function loadStrategyCredentials() {
             console.log('🔄 Loading strategy credentials...');
 
-            const exchanges = ['chainex', 'valr', 'luno', 'kraken', 'binance', 'bybit', 'okx', 'mexc', 'kucoin'];
+            const exchanges = ['chainex', 'valr', 'luno', 'kraken', 'binance', 'bybit', 'okx', 'mexc', 'kucoin', 'htx'];
             const strategies = ['cross-exchange', 'triangular', 'transfer', 'currency-swap'];
 
             exchanges.forEach(exchange => {
@@ -2069,6 +2188,9 @@
                             apiKey = localStorage.getItem('kucoinApiKey');
                             secretKey = localStorage.getItem('kucoinSecretKey');
                             passphrase = localStorage.getItem('kucoinPassphrase');
+                        } else if (exchange === 'htx') {
+                            apiKey = localStorage.getItem('htxApiKey');
+                            secretKey = localStorage.getItem('htxSecretKey');
                         }
                         if (apiKey) {
                             console.log(`📄 Loaded from original format for ${exchange} ${strategy}`);

@@ -365,6 +365,80 @@ router.post('/connect-exchange', tradingRateLimit, optionalAuth, [
                     }
                 });
             }
+        } else if (exchange.toLowerCase() === 'htx') {
+            // Test HTX connection by fetching balance
+            const timestamp = new Date().toISOString().replace(/\.\d{3}Z$/, ''); // HTX expects YYYY-MM-DDThh:mm:ss format in UTC
+            const params = {
+                AccessKeyId: apiKey,
+                SignatureMethod: 'HmacSHA256',
+                SignatureVersion: '2',
+                Timestamp: timestamp
+            };
+
+            // Sort parameters alphabetically for signature
+            const sortedParams = Object.keys(params).sort().reduce((acc, key) => {
+                acc[key] = params[key];
+                return acc;
+            }, {});
+            const sortedParamsString = Object.keys(sortedParams).map(key => `${key}=${encodeURIComponent(sortedParams[key])}`).join('&');
+
+            // Create signature string
+            const signatureString = `GET\napi.huobi.pro\n${HTX_CONFIG.endpoints.accounts}\n${sortedParamsString}`;
+            const signature = createHTXSignature('GET', 'api.huobi.pro', HTX_CONFIG.endpoints.accounts, params, secretKey);
+            params.Signature = signature;
+
+            const accountsUrl = `${HTX_CONFIG.baseUrl}${HTX_CONFIG.endpoints.accounts}?${Object.keys(params).map(key => `${key}=${encodeURIComponent(params[key])}`).join('&')}`;
+            const accountsResponse = await fetch(accountsUrl);
+
+            if (!accountsResponse.ok) {
+                const errorText = await accountsResponse.text();
+                throw new Error(`HTX API error: ${accountsResponse.status} - ${errorText}`);
+            }
+
+            const accountsData = await accountsResponse.json();
+
+            if (accountsData.status !== 'ok') {
+                throw new Error(`HTX API error: ${accountsData['err-msg'] || 'Authentication failed'}`);
+            }
+
+            // Get first spot account ID
+            const spotAccount = accountsData.data.find(acc => acc.type === 'spot');
+            if (spotAccount) {
+                // Fetch actual balances
+                const balanceParams = {
+                    AccessKeyId: apiKey,
+                    SignatureMethod: 'HmacSHA256',
+                    SignatureVersion: '2',
+                    Timestamp: timestamp,
+                    'account-id': spotAccount.id
+                };
+
+                const balanceSortedParams = Object.keys(balanceParams).sort().reduce((acc, key) => {
+                    acc[key] = balanceParams[key];
+                    return acc;
+                }, {});
+                const balanceSortedParamsString = Object.keys(balanceSortedParams).map(key => `${key}=${encodeURIComponent(balanceSortedParams[key])}`).join('&');
+
+                const balanceEndpoint = HTX_CONFIG.endpoints.balance.replace('{account-id}', spotAccount.id);
+                const balanceSignatureString = `GET\napi.huobi.pro\n${balanceEndpoint}\n${balanceSortedParamsString}`;
+                const balanceSignature = createHTXSignature('GET', 'api.huobi.pro', balanceEndpoint, balanceParams, secretKey);
+                balanceParams.Signature = balanceSignature;
+
+                const balanceUrl = `${HTX_CONFIG.baseUrl}${balanceEndpoint}?${Object.keys(balanceParams).map(key => `${key}=${encodeURIComponent(balanceParams[key])}`).join('&')}`;
+                const balanceResponse = await fetch(balanceUrl);
+
+                if (balanceResponse.ok) {
+                    const balanceData = await balanceResponse.json();
+                    if (balanceData.status === 'ok' && balanceData.data && balanceData.data.list) {
+                        balanceData.data.list.forEach(balance => {
+                            const total = parseFloat(balance.balance || 0);
+                            if (total > 0) {
+                                balances[balance.currency.toUpperCase()] = total;
+                            }
+                        });
+                    }
+                }
+            }
         } else {
             throw new APIError(`Exchange ${exchange} not supported`, 400, 'UNSUPPORTED_EXCHANGE');
         }
@@ -618,6 +692,43 @@ router.post('/test-connection', tradingRateLimit, optionalAuth, [
             if (response.ok) {
                 const data = await response.json();
                 if (data.code === '200000') {
+                    res.json({
+                        success: true,
+                        message: 'Connection test successful'
+                    });
+                    return;
+                }
+            }
+
+            throw new Error('Connection test failed - invalid credentials');
+        } else if (exchange.toLowerCase() === 'htx') {
+            // Test HTX connection
+            const timestamp = new Date().toISOString().replace(/\.\d{3}Z$/, ''); // HTX expects YYYY-MM-DDThh:mm:ss format in UTC
+            const params = {
+                AccessKeyId: apiKey,
+                SignatureMethod: 'HmacSHA256',
+                SignatureVersion: '2',
+                Timestamp: timestamp
+            };
+
+            // Sort parameters alphabetically for signature
+            const sortedParams = Object.keys(params).sort().reduce((acc, key) => {
+                acc[key] = params[key];
+                return acc;
+            }, {});
+            const sortedParamsString = Object.keys(sortedParams).map(key => `${key}=${encodeURIComponent(sortedParams[key])}`).join('&');
+
+            // Create signature string
+            const signatureString = `GET\napi.huobi.pro\n${HTX_CONFIG.endpoints.accounts}\n${sortedParamsString}`;
+            const signature = createHTXSignature('GET', 'api.huobi.pro', HTX_CONFIG.endpoints.accounts, params, secretKey);
+            params.Signature = signature;
+
+            const accountsUrl = `${HTX_CONFIG.baseUrl}${HTX_CONFIG.endpoints.accounts}?${Object.keys(params).map(key => `${key}=${encodeURIComponent(params[key])}`).join('&')}`;
+            const accountsResponse = await fetch(accountsUrl);
+
+            if (accountsResponse.ok) {
+                const accountsData = await accountsResponse.json();
+                if (accountsData.status === 'ok') {
                     res.json({
                         success: true,
                         message: 'Connection test successful'
