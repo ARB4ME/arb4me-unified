@@ -1864,7 +1864,15 @@
                 'bybit-cross-exchange-api', 'bybit-cross-exchange-secret',
                 'bybit-triangular-api', 'bybit-triangular-secret',
                 'bybit-transfer-api', 'bybit-transfer-secret',
-                'bybit-currency-swap-api', 'bybit-currency-swap-secret'
+                'bybit-currency-swap-api', 'bybit-currency-swap-secret',
+                'okx-cross-exchange-api', 'okx-cross-exchange-secret', 'okx-cross-exchange-passphrase',
+                'okx-triangular-api', 'okx-triangular-secret', 'okx-triangular-passphrase',
+                'okx-transfer-api', 'okx-transfer-secret', 'okx-transfer-passphrase',
+                'okx-currency-swap-api', 'okx-currency-swap-secret', 'okx-currency-swap-passphrase',
+                'mexc-cross-exchange-api', 'mexc-cross-exchange-secret',
+                'mexc-triangular-api', 'mexc-triangular-secret',
+                'mexc-transfer-api', 'mexc-transfer-secret',
+                'mexc-currency-swap-api', 'mexc-currency-swap-secret'
             ];
 
             apiKeyFields.forEach(fieldId => {
@@ -1884,7 +1892,7 @@
         function loadStrategyCredentials() {
             console.log('🔄 Loading strategy credentials...');
 
-            const exchanges = ['chainex', 'valr', 'luno', 'kraken', 'binance', 'bybit'];
+            const exchanges = ['chainex', 'valr', 'luno', 'kraken', 'binance', 'bybit', 'okx', 'mexc'];
             const strategies = ['cross-exchange', 'triangular', 'transfer', 'currency-swap'];
 
             exchanges.forEach(exchange => {
@@ -1892,6 +1900,7 @@
                     // Try to load from strategy-specific storage first
                     let apiKey = localStorage.getItem(`${exchange}_${strategy}_api`);
                     let secretKey = localStorage.getItem(`${exchange}_${strategy}_secret`);
+                    let passphrase = localStorage.getItem(`${exchange}_${strategy}_passphrase`);
 
                     // For cross-exchange, also try original format as fallback
                     if (!apiKey && strategy === 'cross-exchange') {
@@ -1913,18 +1922,26 @@
                         } else if (exchange === 'bybit') {
                             apiKey = localStorage.getItem('bybitApiKey');
                             secretKey = localStorage.getItem('bybitSecretKey');
+                        } else if (exchange === 'okx') {
+                            apiKey = localStorage.getItem('okxApiKey');
+                            secretKey = localStorage.getItem('okxSecretKey');
+                            passphrase = localStorage.getItem('okxPassphrase');
+                        } else if (exchange === 'mexc') {
+                            apiKey = localStorage.getItem('mexcApiKey');
+                            secretKey = localStorage.getItem('mexcSecretKey');
                         }
                         if (apiKey) {
                             console.log(`📄 Loaded from original format for ${exchange} ${strategy}`);
                         }
                     }
 
-                    if (apiKey || secretKey) {
+                    if (apiKey || secretKey || passphrase) {
                         console.log(`📊 Found credentials for ${exchange} ${strategy}`);
                     }
 
                     const apiInput = document.getElementById(`${exchange}-${strategy}-api`);
                     const secretInput = document.getElementById(`${exchange}-${strategy}-secret`);
+                    const passphraseInput = document.getElementById(`${exchange}-${strategy}-passphrase`);
 
                     if (apiKey && apiInput) {
                         apiInput.value = apiKey;
@@ -1934,6 +1951,11 @@
                     if (secretKey && secretInput) {
                         secretInput.value = secretKey;
                         console.log(`✅ Loaded ${exchange} ${strategy} secret key`);
+                    }
+
+                    if (passphrase && passphraseInput) {
+                        passphraseInput.value = passphrase;
+                        console.log(`✅ Loaded ${exchange} ${strategy} passphrase`);
                     }
 
                     // Check connection status
