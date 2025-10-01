@@ -1034,6 +1034,17 @@
                         balances = await window.opener.getRealBalances(exchange);
                         console.log(`${exchange} balances from getRealBalances:`, balances);
                         console.log(`${exchange} balances structure:`, JSON.stringify(balances, null, 2));
+
+                        // Check if the response indicates an error
+                        if (balances && balances.success === false) {
+                            throw new Error(balances.data?.error || 'API request failed');
+                        }
+
+                        // Extract actual balances from the response structure
+                        if (balances && balances.success === true && balances.data && balances.data.balances) {
+                            balances = balances.data.balances;
+                            console.log(`${exchange} extracted balances:`, balances);
+                        }
                     } else {
                         // Fallback to direct balance endpoint call if parent function unavailable
                         const balanceEndpoint = exchange === 'chainex'
