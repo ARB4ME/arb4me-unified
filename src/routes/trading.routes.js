@@ -284,6 +284,42 @@ router.post('/connect-exchange', tradingRateLimit, optionalAuth, [
                     }
                 });
             }
+        } else if (exchange.toLowerCase() === 'mexc') {
+            // Test MEXC connection by fetching balance
+            const timestamp = Date.now().toString();
+            const queryString = `timestamp=${timestamp}`;
+            const signature = createMEXCSignature(queryString, secretKey);
+
+            const response = await fetch(`${MEXC_CONFIG.baseUrl}${MEXC_CONFIG.endpoints.balance}?${queryString}&signature=${signature}`, {
+                method: 'GET',
+                headers: {
+                    'X-MEXC-APIKEY': apiKey,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`MEXC API error: ${response.status} - ${errorText}`);
+            }
+
+            const balanceData = await response.json();
+
+            // Transform MEXC response
+            if (balanceData.code && balanceData.code !== 0 && balanceData.code !== '0') {
+                throw new Error(`MEXC API error: ${balanceData.msg || 'Unknown error'}`);
+            }
+
+            if (balanceData.balances && Array.isArray(balanceData.balances)) {
+                balanceData.balances.forEach(balance => {
+                    const free = parseFloat(balance.free || 0);
+                    const locked = parseFloat(balance.locked || 0);
+                    const total = free + locked;
+                    if (total > 0) {
+                        balances[balance.asset] = total;
+                    }
+                });
+            }
         } else {
             throw new APIError(`Exchange ${exchange} not supported`, 400, 'UNSUPPORTED_EXCHANGE');
         }
@@ -474,6 +510,32 @@ router.post('/test-connection', tradingRateLimit, optionalAuth, [
             if (response.ok) {
                 const data = await response.json();
                 if (data.code === '0') {
+                    res.json({
+                        success: true,
+                        message: 'Connection test successful'
+                    });
+                    return;
+                }
+            }
+
+            throw new Error('Connection test failed - invalid credentials');
+        } else if (exchange.toLowerCase() === 'mexc') {
+            // Test MEXC connection
+            const timestamp = Date.now().toString();
+            const queryString = `timestamp=${timestamp}`;
+            const signature = createMEXCSignature(queryString, secretKey);
+
+            const response = await fetch(`${MEXC_CONFIG.baseUrl}${MEXC_CONFIG.endpoints.balance}?${queryString}&signature=${signature}`, {
+                method: 'GET',
+                headers: {
+                    'X-MEXC-APIKEY': apiKey,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                if (!data.code || data.code === 0 || data.code === '0') {
                     res.json({
                         success: true,
                         message: 'Connection test successful'

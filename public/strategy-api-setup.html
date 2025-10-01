@@ -399,6 +399,33 @@
             </div>
             </form>
 
+            <!-- MEXC Cross Exchange -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">MEXC - Cross Exchange Strategy</div>
+                    <div id="mexc-cross-exchange-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="mexc-cross-exchange-api">API Key</label>
+                    <input type="text" id="mexc-cross-exchange-api" class="form-input" placeholder="Enter MEXC API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="mexc-cross-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="mexc-cross-exchange-secret">Secret Key</label>
+                    <input type="password" id="mexc-cross-exchange-secret" class="form-input" placeholder="Enter MEXC Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="mexc-cross-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="mexc-cross-exchange-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('mexc', 'cross-exchange')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('mexc', 'cross-exchange')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('mexc', 'cross-exchange')">Disconnect</button>
+                </div>
+            </div>
+            </form>
+
             <!-- VALR Cross-Exchange -->
             <form autocomplete="off" onsubmit="return false;">
             <div class="exchange-card">
@@ -701,6 +728,33 @@
                 </div>
             </div>
             </form>
+
+            <!-- MEXC Triangular -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">MEXC - Triangular Strategy</div>
+                    <div id="mexc-triangular-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="mexc-triangular-api">API Key</label>
+                    <input type="text" id="mexc-triangular-api" class="form-input" placeholder="Enter MEXC API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="mexc-tri-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="mexc-triangular-secret">Secret Key</label>
+                    <input type="password" id="mexc-triangular-secret" class="form-input" placeholder="Enter MEXC Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="mexc-tri-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="mexc-triangular-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('mexc', 'triangular')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('mexc', 'triangular')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('mexc', 'triangular')">Disconnect</button>
+                </div>
+            </div>
+            </form>
         </div>
 
         <!-- Transfer Strategy -->
@@ -893,6 +947,33 @@
                     <button class="btn btn-primary" onclick="connectStrategyExchange('okx', 'transfer')">Connect</button>
                     <button class="btn btn-secondary" onclick="testStrategyConnection('okx', 'transfer')">Test Connection</button>
                     <button class="btn btn-danger" onclick="disconnectStrategyExchange('okx', 'transfer')">Disconnect</button>
+                </div>
+            </div>
+            </form>
+
+            <!-- MEXC Transfer -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">MEXC - Transfer Strategy</div>
+                    <div id="mexc-transfer-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="mexc-transfer-api">API Key</label>
+                    <input type="text" id="mexc-transfer-api" class="form-input" placeholder="Enter MEXC API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="mexc-trans-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="mexc-transfer-secret">Secret Key</label>
+                    <input type="password" id="mexc-transfer-secret" class="form-input" placeholder="Enter MEXC Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="mexc-trans-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="mexc-transfer-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('mexc', 'transfer')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('mexc', 'transfer')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('mexc', 'transfer')">Disconnect</button>
                 </div>
             </div>
             </form>
@@ -1101,6 +1182,40 @@
                         <button type="button" onclick="testStrategyConnection('okx', 'currency-swap')"
                                 class="btn-secondary">Test</button>
                         <button type="button" onclick="disconnectStrategyExchange('okx', 'currency-swap')"
+                                class="btn-danger">Disconnect</button>
+                    </div>
+                </div>
+            </div>
+            </form>
+
+            <!-- MEXC Currency Swap -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">MEXC - Currency Swap Strategy</div>
+                    <div id="mexc-currency-swap-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="exchange-body">
+                    <div class="form-group">
+                        <label for="mexc-currency-swap-api">API Key:</label>
+                        <input type="password" id="mexc-currency-swap-api" name="mexc_currency_swap_api_unique"
+                               placeholder="Enter MEXC API Key" autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label for="mexc-currency-swap-secret">Secret Key:</label>
+                        <input type="password" id="mexc-currency-swap-secret" name="mexc_currency_swap_secret_unique"
+                               placeholder="Enter MEXC Secret Key" autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label>Balance:</label>
+                        <div id="mexc-currency-swap-balance" class="balance-display">Not connected</div>
+                    </div>
+                    <div class="button-group">
+                        <button type="button" onclick="connectStrategyExchange('mexc', 'currency-swap')"
+                                class="btn-primary">Connect</button>
+                        <button type="button" onclick="testStrategyConnection('mexc', 'currency-swap')"
+                                class="btn-secondary">Test</button>
+                        <button type="button" onclick="disconnectStrategyExchange('mexc', 'currency-swap')"
                                 class="btn-danger">Disconnect</button>
                     </div>
                 </div>
