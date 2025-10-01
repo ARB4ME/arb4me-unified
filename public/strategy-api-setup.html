@@ -1428,7 +1428,11 @@
                 'kraken-cross-exchange-api', 'kraken-cross-exchange-secret',
                 'kraken-triangular-api', 'kraken-triangular-secret',
                 'kraken-transfer-api', 'kraken-transfer-secret',
-                'kraken-currency-swap-api', 'kraken-currency-swap-secret'
+                'kraken-currency-swap-api', 'kraken-currency-swap-secret',
+                'binance-cross-exchange-api', 'binance-cross-exchange-secret',
+                'binance-triangular-api', 'binance-triangular-secret',
+                'binance-transfer-api', 'binance-transfer-secret',
+                'binance-currency-swap-api', 'binance-currency-swap-secret'
             ];
 
             apiKeyFields.forEach(fieldId => {
@@ -1448,7 +1452,7 @@
         function loadStrategyCredentials() {
             console.log('🔄 Loading strategy credentials...');
 
-            const exchanges = ['chainex', 'valr', 'luno', 'kraken'];
+            const exchanges = ['chainex', 'valr', 'luno', 'kraken', 'binance'];
             const strategies = ['cross-exchange', 'triangular', 'transfer', 'currency-swap'];
 
             exchanges.forEach(exchange => {
@@ -1471,6 +1475,9 @@
                         } else if (exchange === 'kraken') {
                             apiKey = localStorage.getItem('krakenApiKey');
                             secretKey = localStorage.getItem('krakenSecretKey');
+                        } else if (exchange === 'binance') {
+                            apiKey = localStorage.getItem('binanceApiKey');
+                            secretKey = localStorage.getItem('binanceSecretKey');
                         }
                         if (apiKey) {
                             console.log(`📄 Loaded from original format for ${exchange} ${strategy}`);
