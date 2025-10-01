@@ -1739,6 +1739,19 @@
             const apiKey = document.getElementById(`${exchange}-${strategy}-api`).value;
             const secretKey = document.getElementById(`${exchange}-${strategy}-secret`).value;
 
+            // Get passphrase for exchanges that require it (OKX, KuCoin, Bitget)
+            let passphrase = null;
+            if (exchange === 'okx' || exchange === 'kucoin' || exchange === 'bitget') {
+                const passphraseElement = document.getElementById(`${exchange}-${strategy}-passphrase`);
+                if (passphraseElement) {
+                    passphrase = passphraseElement.value;
+                }
+                if (!passphrase) {
+                    alert(`Please enter the passphrase for ${exchange.toUpperCase()}`);
+                    return;
+                }
+            }
+
             if (!apiKey || !secretKey) {
                 alert('Please enter both API key and Secret key');
                 return;
@@ -1758,7 +1771,8 @@
                         [exchange]: {
                             api: {
                                 key: apiKey,
-                                secret: secretKey
+                                secret: secretKey,
+                                ...(passphrase && { passphrase: passphrase })
                             }
                         }
                     }
@@ -1801,7 +1815,8 @@
                             },
                             body: JSON.stringify({
                                 apiKey: apiKey,
-                                apiSecret: secretKey
+                                apiSecret: secretKey,
+                                ...(passphrase && { passphrase: passphrase })
                             })
                         });
 
@@ -1820,6 +1835,9 @@
                     // Store credentials in localStorage with strategy prefix
                     localStorage.setItem(`${exchange}_${strategy}_api`, apiKey);
                     localStorage.setItem(`${exchange}_${strategy}_secret`, secretKey);
+                    if (passphrase) {
+                        localStorage.setItem(`${exchange}_${strategy}_passphrase`, passphrase);
+                    }
                     localStorage.setItem(`${exchange}_${strategy}_connected`, 'true');
 
                     // MIGRATION: Also store in original format for dashboard compatibility (only for first strategy)
@@ -1842,6 +1860,24 @@
                         } else if (exchange === 'bybit') {
                             localStorage.setItem('bybitApiKey', apiKey);
                             localStorage.setItem('bybitSecretKey', secretKey);
+                        } else if (exchange === 'okx') {
+                            localStorage.setItem('okxApiKey', apiKey);
+                            localStorage.setItem('okxSecretKey', secretKey);
+                            if (passphrase) localStorage.setItem('okxPassphrase', passphrase);
+                        } else if (exchange === 'mexc') {
+                            localStorage.setItem('mexcApiKey', apiKey);
+                            localStorage.setItem('mexcSecretKey', secretKey);
+                        } else if (exchange === 'kucoin') {
+                            localStorage.setItem('kucoinApiKey', apiKey);
+                            localStorage.setItem('kucoinSecretKey', secretKey);
+                            if (passphrase) localStorage.setItem('kucoinPassphrase', passphrase);
+                        } else if (exchange === 'htx') {
+                            localStorage.setItem('htxApiKey', apiKey);
+                            localStorage.setItem('htxSecretKey', secretKey);
+                        } else if (exchange === 'bitget') {
+                            localStorage.setItem('bitgetApiKey', apiKey);
+                            localStorage.setItem('bitgetSecretKey', secretKey);
+                            if (passphrase) localStorage.setItem('bitgetPassphrase', passphrase);
                         }
                     }
 
@@ -1857,7 +1893,8 @@
                             connected: true,
                             api: {
                                 key: apiKey,
-                                secret: secretKey
+                                secret: secretKey,
+                                ...(passphrase && { passphrase: passphrase })
                             }
                         };
                         // Save the state in parent window
