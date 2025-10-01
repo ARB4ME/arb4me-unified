@@ -1026,6 +1026,7 @@
                     let balances;
                     if (window.opener && window.opener.getRealBalances) {
                         balances = await window.opener.getRealBalances(exchange);
+                        console.log(`${exchange} balances from getRealBalances:`, balances);
                     } else {
                         // Fallback to direct balance endpoint call if parent function unavailable
                         const balanceEndpoint = exchange === 'chainex'
@@ -1108,11 +1109,15 @@
 
                     // Display balance (already fetched in connection test)
                     if (balances) {
+                        console.log(`${exchange} formatting balances:`, balances);
                         // Format balance display like the original implementation
                         const balanceDisplay = formatStrategyBalance(balances);
+                        console.log(`${exchange} formatted balance display:`, balanceDisplay);
                         const balanceElement = document.getElementById(`${exchange}-${strategy}-balance`);
                         if (balanceElement) {
                             balanceElement.innerHTML = balanceDisplay;
+                        } else {
+                            console.error(`Balance element not found: ${exchange}-${strategy}-balance`);
                         }
 
                         // MIGRATION: Update main dashboard balance and state
