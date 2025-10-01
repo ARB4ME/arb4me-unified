@@ -1755,12 +1755,18 @@
                 }
             }
 
-            // Bitget passphrase is optional (for future use but not required for connection)
+            // Bitget passphrase is required by backend even though API docs suggest it's optional
             if (exchange === 'bitget') {
                 const passphraseElement = document.getElementById(`${exchange}-${strategy}-passphrase`);
-                if (passphraseElement && passphraseElement.value) {
+                if (passphraseElement) {
                     passphrase = passphraseElement.value;
-                    console.log(`🔑 ${exchange} optional passphrase provided, length:`, passphrase.length);
+                    console.log(`🔑 ${exchange} passphrase field found, value length:`, passphrase ? passphrase.length : 'empty');
+                } else {
+                    console.error(`❌ ${exchange} passphrase field NOT found: ${exchange}-${strategy}-passphrase`);
+                }
+                if (!passphrase) {
+                    alert(`Please enter the passphrase for ${exchange.toUpperCase()} (required by backend)`);
+                    return;
                 }
             }
 
