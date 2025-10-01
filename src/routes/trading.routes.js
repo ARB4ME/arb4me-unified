@@ -127,6 +127,18 @@ router.post('/connect-exchange', tradingRateLimit, optionalAuth, [
                     balances[balance.code] = parseFloat(balance.balance_available || 0) + parseFloat(balance.balance_held || 0);
                 });
             }
+        } else if (exchange.toLowerCase() === 'valr') {
+            // Test VALR connection by fetching balance using existing VALR function
+            const result = await makeValrRequest('/v1/account/balances', 'GET', apiKey, secretKey);
+
+            // Transform VALR response
+            if (result && Array.isArray(result)) {
+                result.forEach(balance => {
+                    if (balance.currency && balance.available) {
+                        balances[balance.currency] = parseFloat(balance.available) + parseFloat(balance.reserved || 0);
+                    }
+                });
+            }
         } else {
             throw new APIError(`Exchange ${exchange} not supported`, 400, 'UNSUPPORTED_EXCHANGE');
         }
@@ -199,6 +211,19 @@ router.post('/test-connection', tradingRateLimit, optionalAuth, [
             }
 
             throw new Error('Connection test failed - invalid credentials');
+        } else if (exchange.toLowerCase() === 'valr') {
+            // Test VALR connection using existing VALR function
+            const result = await makeValrRequest('/v1/account/balances', 'GET', apiKey, secretKey);
+
+            if (result && Array.isArray(result)) {
+                res.json({
+                    success: true,
+                    message: 'Connection test successful'
+                });
+                return;
+            }
+
+            throw new Error('Connection test failed - invalid credentials or API error');
         } else {
             throw new APIError(`Exchange ${exchange} not supported`, 400, 'UNSUPPORTED_EXCHANGE');
         }
