@@ -421,6 +421,33 @@
                 </div>
             </div>
             </form>
+
+            <!-- Binance Cross Exchange -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">Binance - Cross Exchange Strategy</div>
+                    <div id="binance-cross-exchange-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="binance-cross-exchange-api">API Key</label>
+                    <input type="text" id="binance-cross-exchange-api" class="form-input" placeholder="Enter Binance API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="binance-cross-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="binance-cross-exchange-secret">Secret Key</label>
+                    <input type="password" id="binance-cross-exchange-secret" class="form-input" placeholder="Enter Binance Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="binance-cross-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="binance-cross-exchange-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('binance', 'cross-exchange')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('binance', 'cross-exchange')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('binance', 'cross-exchange')">Disconnect</button>
+                </div>
+            </div>
+            </form>
         </div>
 
         <!-- Triangular Strategy -->
@@ -528,6 +555,33 @@
                     <button class="btn btn-primary" onclick="connectStrategyExchange('kraken', 'triangular')">Connect</button>
                     <button class="btn btn-secondary" onclick="testStrategyConnection('kraken', 'triangular')">Test Connection</button>
                     <button class="btn btn-danger" onclick="disconnectStrategyExchange('kraken', 'triangular')">Disconnect</button>
+                </div>
+            </div>
+            </form>
+
+            <!-- Binance Triangular -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">Binance - Triangular Strategy</div>
+                    <div id="binance-triangular-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="binance-triangular-api">API Key</label>
+                    <input type="text" id="binance-triangular-api" class="form-input" placeholder="Enter Binance API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="binance-tri-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="binance-triangular-secret">Secret Key</label>
+                    <input type="password" id="binance-triangular-secret" class="form-input" placeholder="Enter Binance Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="binance-tri-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="binance-triangular-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('binance', 'triangular')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('binance', 'triangular')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('binance', 'triangular')">Disconnect</button>
                 </div>
             </div>
             </form>
@@ -641,6 +695,33 @@
                 </div>
             </div>
             </form>
+
+            <!-- Binance Transfer -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">Binance - Transfer Strategy</div>
+                    <div id="binance-transfer-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="binance-transfer-api">API Key</label>
+                    <input type="text" id="binance-transfer-api" class="form-input" placeholder="Enter Binance API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="binance-trans-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="binance-transfer-secret">Secret Key</label>
+                    <input type="password" id="binance-transfer-secret" class="form-input" placeholder="Enter Binance Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="binance-trans-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="binance-transfer-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('binance', 'transfer')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('binance', 'transfer')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('binance', 'transfer')">Disconnect</button>
+                </div>
+            </div>
+            </form>
         </div>
 
         <!-- Currency Swap Strategy -->
@@ -751,6 +832,33 @@
                 </div>
             </div>
             </form>
+
+            <!-- Binance Currency Swap -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">Binance - Currency Swap Strategy</div>
+                    <div id="binance-currency-swap-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="binance-currency-swap-api">API Key</label>
+                    <input type="text" id="binance-currency-swap-api" class="form-input" placeholder="Enter Binance API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="binance-swap-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="binance-currency-swap-secret">Secret Key</label>
+                    <input type="password" id="binance-currency-swap-secret" class="form-input" placeholder="Enter Binance Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="binance-swap-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="binance-currency-swap-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('binance', 'currency-swap')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('binance', 'currency-swap')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('binance', 'currency-swap')">Disconnect</button>
+                </div>
+            </div>
+            </form>
         </div>
     </div>
 
@@ -773,7 +881,11 @@
                 'kraken-cross-exchange': { connected: false, balance: null },
                 'kraken-triangular': { connected: false, balance: null },
                 'kraken-transfer': { connected: false, balance: null },
-                'kraken-currency-swap': { connected: false, balance: null }
+                'kraken-currency-swap': { connected: false, balance: null },
+                'binance-cross-exchange': { connected: false, balance: null },
+                'binance-triangular': { connected: false, balance: null },
+                'binance-transfer': { connected: false, balance: null },
+                'binance-currency-swap': { connected: false, balance: null }
             };
         }
 
@@ -926,6 +1038,9 @@
                         } else if (exchange === 'kraken') {
                             localStorage.setItem('krakenApiKey', apiKey);
                             localStorage.setItem('krakenSecretKey', secretKey);
+                        } else if (exchange === 'binance') {
+                            localStorage.setItem('binanceApiKey', apiKey);
+                            localStorage.setItem('binanceSecretKey', secretKey);
                         }
                     }
 
@@ -1011,6 +1126,10 @@
                                         balanceElementId = 'krakenBalance';
                                         statusElementId = 'krakenStatus';
                                         priceStatusElementId = 'krakenPriceStatus';
+                                    } else if (exchange === 'binance') {
+                                        balanceElementId = 'binanceBalance';
+                                        statusElementId = 'binanceStatus';
+                                        priceStatusElementId = 'binancePriceStatus';
                                     }
 
                                     const dashboardBalanceElement = window.opener.document.getElementById(balanceElementId);
@@ -1223,6 +1342,8 @@
                     exchange = 'luno';
                 } else if (fieldId.includes('kraken')) {
                     exchange = 'kraken';
+                } else if (fieldId.includes('binance')) {
+                    exchange = 'binance';
                 }
             } else if (fieldId.includes('triangular')) {
                 strategy = 'triangular';
@@ -1235,6 +1356,8 @@
                     exchange = 'luno';
                 } else if (fieldId.includes('kraken')) {
                     exchange = 'kraken';
+                } else if (fieldId.includes('binance')) {
+                    exchange = 'binance';
                 }
             } else if (fieldId.includes('transfer')) {
                 strategy = 'transfer';
@@ -1247,6 +1370,8 @@
                     exchange = 'luno';
                 } else if (fieldId.includes('kraken')) {
                     exchange = 'kraken';
+                } else if (fieldId.includes('binance')) {
+                    exchange = 'binance';
                 }
             } else if (fieldId.includes('currency-swap')) {
                 strategy = 'currency-swap';
@@ -1259,6 +1384,8 @@
                     exchange = 'luno';
                 } else if (fieldId.includes('kraken')) {
                     exchange = 'kraken';
+                } else if (fieldId.includes('binance')) {
+                    exchange = 'binance';
                 }
             }
 

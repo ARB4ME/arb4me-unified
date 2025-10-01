@@ -202,6 +202,38 @@ router.post('/connect-exchange', tradingRateLimit, optionalAuth, [
                     }
                 });
             }
+        } else if (exchange.toLowerCase() === 'binance') {
+            // Test Binance connection by fetching balance
+            const timestamp = Date.now();
+            const queryString = `timestamp=${timestamp}`;
+            const signature = createBinanceSignature(queryString, secretKey);
+
+            const response = await fetch(`${BINANCE_CONFIG.baseUrl}${BINANCE_CONFIG.endpoints.balance}?${queryString}&signature=${signature}`, {
+                method: 'GET',
+                headers: {
+                    'X-MBX-APIKEY': apiKey,
+                    'User-Agent': 'ARB4ME/1.0'
+                }
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Binance API error: ${response.status} - ${errorText}`);
+            }
+
+            const balanceData = await response.json();
+
+            // Transform Binance response
+            if (balanceData.balances && Array.isArray(balanceData.balances)) {
+                balanceData.balances.forEach(balance => {
+                    const free = parseFloat(balance.free);
+                    const locked = parseFloat(balance.locked);
+                    const total = free + locked;
+                    if (total > 0) {
+                        balances[balance.asset] = total;
+                    }
+                });
+            }
         } else {
             throw new APIError(`Exchange ${exchange} not supported`, 400, 'UNSUPPORTED_EXCHANGE');
         }
@@ -330,6 +362,32 @@ router.post('/test-connection', tradingRateLimit, optionalAuth, [
             if (response.ok) {
                 const data = await response.json();
                 if (data.result && !data.error?.length) {
+                    res.json({
+                        success: true,
+                        message: 'Connection test successful'
+                    });
+                    return;
+                }
+            }
+
+            throw new Error('Connection test failed - invalid credentials');
+        } else if (exchange.toLowerCase() === 'binance') {
+            // Test Binance connection
+            const timestamp = Date.now();
+            const queryString = `timestamp=${timestamp}`;
+            const signature = createBinanceSignature(queryString, secretKey);
+
+            const response = await fetch(`${BINANCE_CONFIG.baseUrl}${BINANCE_CONFIG.endpoints.balance}?${queryString}&signature=${signature}`, {
+                method: 'GET',
+                headers: {
+                    'X-MBX-APIKEY': apiKey,
+                    'User-Agent': 'ARB4ME/1.0'
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data.balances && Array.isArray(data.balances)) {
                     res.json({
                         success: true,
                         message: 'Connection test successful'
