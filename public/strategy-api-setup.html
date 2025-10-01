@@ -1003,16 +1003,19 @@
             }
 
             try {
-                const response = await fetch('/api/v1/trading/connect-exchange', {
+                // Test connection by fetching balance directly (like original setup)
+                const balanceEndpoint = exchange === 'chainex'
+                    ? '/api/v1/trading/chainex/balance'
+                    : `/api/v1/trading/${exchange}/balance`;
+
+                const response = await fetch(balanceEndpoint, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        exchange: exchange,
-                        strategy: strategy,
                         apiKey: apiKey,
-                        secretKey: secretKey
+                        apiSecret: secretKey
                     })
                 });
 
@@ -1044,10 +1047,13 @@
                         }
                     }
 
+                    // Get balances from the response (balance endpoint returns data directly)
+                    const balances = result.data?.balances || result.balances || result.data || result;
+
                     // Update strategy-specific state
                     window.strategyExchanges[`${exchange}-${strategy}`] = {
                         connected: true,
-                        balance: result.balance || null
+                        balance: balances
                     };
 
                     // MIGRATION: Update main dashboard state (accessing parent window)
@@ -1070,67 +1076,44 @@
                         statusElement.className = 'connection-status status-connected';
                     }
 
-                    // Fetch and display balance
-                    try {
-                        const balanceEndpoint = exchange === 'chainex'
-                            ? '/api/v1/trading/chainex/balance'
-                            : `/api/v1/trading/${exchange}/balance`;
+                    // Display balance (already fetched in connection test)
+                    if (balances) {
+                        // Format balance display like the original implementation
+                        const balanceDisplay = formatStrategyBalance(balances);
+                        const balanceElement = document.getElementById(`${exchange}-${strategy}-balance`);
+                        if (balanceElement) {
+                            balanceElement.innerHTML = balanceDisplay;
+                        }
 
-                        const balanceResponse = await fetch(balanceEndpoint, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                                apiKey: apiKey,
-                                apiSecret: secretKey
-                            })
-                        });
+                        // MIGRATION: Update main dashboard balance and state
+                        if (window.opener && strategy === 'cross-exchange') {
+                            if (window.opener.state && window.opener.state.balances) {
+                                window.opener.state.balances[exchange] = balances;
+                            }
 
-                        if (balanceResponse.ok) {
-                            const balanceData = await balanceResponse.json();
-                            // Handle different response formats - Kraken uses data.balances, others use balances directly
-                            const balances = balanceData.data?.balances || balanceData.balances;
-                            if (balanceData.success && balances) {
-                                // Format balance display like the original implementation
-                                const balanceDisplay = formatStrategyBalance(balances);
-                                const balanceElement = document.getElementById(`${exchange}-${strategy}-balance`);
-                                if (balanceElement) {
-                                    balanceElement.innerHTML = balanceDisplay;
-                                }
-
-                                // Store balance in strategy state
-                                window.strategyExchanges[`${exchange}-${strategy}`].balance = balances;
-
-                                // MIGRATION: Update main dashboard balance and state
-                                if (window.opener && strategy === 'cross-exchange') {
-                                    if (window.opener.state && window.opener.state.balances) {
-                                        window.opener.state.balances[exchange] = balances;
-                                    }
-
-                                    // Update dashboard balance display
-                                    let balanceElementId, statusElementId, priceStatusElementId;
-                                    if (exchange === 'chainex') {
-                                        balanceElementId = 'chainexBalance';
-                                        statusElementId = 'chainexStatus';
-                                        priceStatusElementId = 'chainexPriceStatus';
-                                    } else if (exchange === 'valr') {
-                                        balanceElementId = 'valrBalance';
-                                        statusElementId = 'valrStatus';
-                                        priceStatusElementId = 'valrPriceStatus';
-                                    } else if (exchange === 'luno') {
-                                        balanceElementId = 'lunoBalance';
-                                        statusElementId = 'lunoStatus';
-                                        priceStatusElementId = 'lunoPriceStatus';
-                                    } else if (exchange === 'kraken') {
-                                        balanceElementId = 'krakenBalance';
-                                        statusElementId = 'krakenStatus';
-                                        priceStatusElementId = 'krakenPriceStatus';
-                                    } else if (exchange === 'binance') {
-                                        balanceElementId = 'binanceBalance';
-                                        statusElementId = 'binanceStatus';
-                                        priceStatusElementId = 'binancePriceStatus';
-                                    }
+                            // Update dashboard balance display
+                            let balanceElementId, statusElementId, priceStatusElementId;
+                            if (exchange === 'chainex') {
+                                balanceElementId = 'chainexBalance';
+                                statusElementId = 'chainexStatus';
+                                priceStatusElementId = 'chainexPriceStatus';
+                            } else if (exchange === 'valr') {
+                                balanceElementId = 'valrBalance';
+                                statusElementId = 'valrStatus';
+                                priceStatusElementId = 'valrPriceStatus';
+                            } else if (exchange === 'luno') {
+                                balanceElementId = 'lunoBalance';
+                                statusElementId = 'lunoStatus';
+                                priceStatusElementId = 'lunoPriceStatus';
+                            } else if (exchange === 'kraken') {
+                                balanceElementId = 'krakenBalance';
+                                statusElementId = 'krakenStatus';
+                                priceStatusElementId = 'krakenPriceStatus';
+                            } else if (exchange === 'binance') {
+                                balanceElementId = 'binanceBalance';
+                                statusElementId = 'binanceStatus';
+                                priceStatusElementId = 'binancePriceStatus';
+                            }
 
                                     const dashboardBalanceElement = window.opener.document.getElementById(balanceElementId);
                                     if (dashboardBalanceElement && window.opener.formatMultiCurrencyBalance) {
