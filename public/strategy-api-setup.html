@@ -340,6 +340,33 @@
                 </div>
             </div>
             </form>
+
+            <!-- VALR Cross-Exchange -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">VALR - Cross-Exchange Strategy</div>
+                    <div id="valr-cross-exchange-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="valr-cross-exchange-api">API Key</label>
+                    <input type="text" id="valr-cross-exchange-api" class="form-input" placeholder="Enter VALR API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="valr-cross-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="valr-cross-exchange-secret">Secret Key</label>
+                    <input type="password" id="valr-cross-exchange-secret" class="form-input" placeholder="Enter VALR Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="valr-cross-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="valr-cross-exchange-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('valr', 'cross-exchange')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('valr', 'cross-exchange')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('valr', 'cross-exchange')">Disconnect</button>
+                </div>
+            </div>
+            </form>
         </div>
 
         <!-- Triangular Strategy -->
@@ -366,6 +393,33 @@
                     <button class="btn btn-primary" onclick="connectStrategyExchange('chainex', 'triangular')">Connect</button>
                     <button class="btn btn-secondary" onclick="testStrategyConnection('chainex', 'triangular')">Test Connection</button>
                     <button class="btn btn-danger" onclick="disconnectStrategyExchange('chainex', 'triangular')">Disconnect</button>
+                </div>
+            </div>
+            </form>
+
+            <!-- VALR Triangular -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">VALR - Triangular Strategy</div>
+                    <div id="valr-triangular-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="valr-triangular-api">API Key</label>
+                    <input type="text" id="valr-triangular-api" class="form-input" placeholder="Enter VALR API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="valr-tri-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="valr-triangular-secret">Secret Key</label>
+                    <input type="password" id="valr-triangular-secret" class="form-input" placeholder="Enter VALR Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="valr-tri-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="valr-triangular-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('valr', 'triangular')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('valr', 'triangular')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('valr', 'triangular')">Disconnect</button>
                 </div>
             </div>
             </form>
@@ -398,6 +452,33 @@
                 </div>
             </div>
             </form>
+
+            <!-- VALR Transfer -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">VALR - Transfer Strategy</div>
+                    <div id="valr-transfer-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="valr-transfer-api">API Key</label>
+                    <input type="text" id="valr-transfer-api" class="form-input" placeholder="Enter VALR API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="valr-trans-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="valr-transfer-secret">Secret Key</label>
+                    <input type="password" id="valr-transfer-secret" class="form-input" placeholder="Enter VALR Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="valr-trans-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="valr-transfer-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('valr', 'transfer')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('valr', 'transfer')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('valr', 'transfer')">Disconnect</button>
+                </div>
+            </div>
+            </form>
         </div>
 
         <!-- Currency Swap Strategy -->
@@ -427,6 +508,33 @@
                 </div>
             </div>
             </form>
+
+            <!-- VALR Currency Swap -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">VALR - Currency Swap Strategy</div>
+                    <div id="valr-currency-swap-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="valr-currency-swap-api">API Key</label>
+                    <input type="text" id="valr-currency-swap-api" class="form-input" placeholder="Enter VALR API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="valr-swap-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="valr-currency-swap-secret">Secret Key</label>
+                    <input type="password" id="valr-currency-swap-secret" class="form-input" placeholder="Enter VALR Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="valr-swap-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="valr-currency-swap-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('valr', 'currency-swap')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('valr', 'currency-swap')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('valr', 'currency-swap')">Disconnect</button>
+                </div>
+            </div>
+            </form>
         </div>
     </div>
 
@@ -437,7 +545,11 @@
                 'chainex-cross-exchange': { connected: false, balance: null },
                 'chainex-triangular': { connected: false, balance: null },
                 'chainex-transfer': { connected: false, balance: null },
-                'chainex-currency-swap': { connected: false, balance: null }
+                'chainex-currency-swap': { connected: false, balance: null },
+                'valr-cross-exchange': { connected: false, balance: null },
+                'valr-triangular': { connected: false, balance: null },
+                'valr-transfer': { connected: false, balance: null },
+                'valr-currency-swap': { connected: false, balance: null }
             };
         }
 
@@ -489,7 +601,12 @@
         // Fetch balance for a specific strategy
         async function fetchStrategyBalance(exchange, strategy, apiKey, secretKey) {
             try {
-                const response = await fetch('/api/v1/trading/chainex/balance', {
+                // Use the appropriate endpoint for each exchange
+                const endpoint = exchange === 'chainex'
+                    ? '/api/v1/trading/chainex/balance'
+                    : `/api/v1/trading/${exchange}/balance`;
+
+                const response = await fetch(endpoint, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -567,14 +684,19 @@
 
                 if (result.success) {
                     // Store credentials in localStorage with strategy prefix
-                    localStorage.setItem(`chainex_${strategy}_api`, apiKey);
-                    localStorage.setItem(`chainex_${strategy}_secret`, secretKey);
-                    localStorage.setItem(`chainex_${strategy}_connected`, 'true');
+                    localStorage.setItem(`${exchange}_${strategy}_api`, apiKey);
+                    localStorage.setItem(`${exchange}_${strategy}_secret`, secretKey);
+                    localStorage.setItem(`${exchange}_${strategy}_connected`, 'true');
 
                     // MIGRATION: Also store in original format for dashboard compatibility (only for first strategy)
                     if (strategy === 'cross-exchange') {
-                        localStorage.setItem('chainexApiKey', apiKey);
-                        localStorage.setItem('chainexSecretKey', secretKey);
+                        if (exchange === 'chainex') {
+                            localStorage.setItem('chainexApiKey', apiKey);
+                            localStorage.setItem('chainexSecretKey', secretKey);
+                        } else if (exchange === 'valr') {
+                            localStorage.setItem('valrApiKey', apiKey);
+                            localStorage.setItem('valrSecretKey', secretKey);
+                        }
                     }
 
                     // Update strategy-specific state
@@ -584,8 +706,8 @@
                     };
 
                     // MIGRATION: Update main dashboard state (accessing parent window)
-                    if (window.opener && window.opener.state) {
-                        window.opener.state.exchanges.chainex = {
+                    if (window.opener && window.opener.state && strategy === 'cross-exchange') {
+                        window.opener.state.exchanges[exchange] = {
                             connected: true,
                             api: {
                                 key: apiKey,
@@ -605,7 +727,11 @@
 
                     // Fetch and display balance
                     try {
-                        const balanceResponse = await fetch('/api/v1/trading/chainex/balance', {
+                        const balanceEndpoint = exchange === 'chainex'
+                            ? '/api/v1/trading/chainex/balance'
+                            : `/api/v1/trading/${exchange}/balance`;
+
+                        const balanceResponse = await fetch(balanceEndpoint, {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
@@ -630,27 +756,30 @@
                                 window.strategyExchanges[`${exchange}-${strategy}`].balance = balanceData.balances;
 
                                 // MIGRATION: Update main dashboard balance and state
-                                if (window.opener) {
+                                if (window.opener && strategy === 'cross-exchange') {
                                     if (window.opener.state && window.opener.state.balances) {
-                                        window.opener.state.balances.chainex = balanceData.balances;
+                                        window.opener.state.balances[exchange] = balanceData.balances;
                                     }
 
                                     // Update dashboard balance display
-                                    const dashboardBalanceElement = window.opener.document.getElementById('chainexBalance');
+                                    const balanceElementId = exchange === 'chainex' ? 'chainexBalance' : 'valrBalance';
+                                    const dashboardBalanceElement = window.opener.document.getElementById(balanceElementId);
                                     if (dashboardBalanceElement && window.opener.formatMultiCurrencyBalance) {
-                                        const dashboardBalanceDisplay = window.opener.formatMultiCurrencyBalance(balanceData.balances, 'chainex');
+                                        const dashboardBalanceDisplay = window.opener.formatMultiCurrencyBalance(balanceData.balances, exchange);
                                         dashboardBalanceElement.textContent = dashboardBalanceDisplay;
                                     }
 
                                     // Update dashboard status
-                                    const dashboardStatusElement = window.opener.document.getElementById('chainexStatus');
+                                    const statusElementId = exchange === 'chainex' ? 'chainexStatus' : 'valrStatus';
+                                    const dashboardStatusElement = window.opener.document.getElementById(statusElementId);
                                     if (dashboardStatusElement) {
                                         dashboardStatusElement.textContent = 'Connected (Live)';
                                         dashboardStatusElement.className = 'status-connected';
                                     }
 
                                     // Update price status
-                                    const priceStatusElement = window.opener.document.getElementById('chainexPriceStatus');
+                                    const priceStatusElementId = exchange === 'chainex' ? 'chainexPriceStatus' : 'valrPriceStatus';
+                                    const priceStatusElement = window.opener.document.getElementById(priceStatusElementId);
                                     if (priceStatusElement) {
                                         priceStatusElement.textContent = 'LIVE';
                                         priceStatusElement.className = 'price-status price-live';
@@ -719,9 +848,9 @@
             console.log(`🔌 Disconnecting ${exchange} ${strategy}`);
 
             // Only clear connection status, keep API credentials for easy reconnection
-            localStorage.removeItem(`chainex_${strategy}_connected`);
+            localStorage.removeItem(`${exchange}_${strategy}_connected`);
 
-            console.log(`🗑️ Cleared connection status for ${strategy} (kept credentials)`);
+            console.log(`🗑️ Cleared connection status for ${exchange} ${strategy} (kept credentials)`);
 
             // MIGRATION: Also clear original format connection (only if this was the primary strategy)
             if (strategy === 'cross-exchange') {
@@ -743,13 +872,13 @@
             if (strategy === 'cross-exchange' && window.opener) {
                 if (window.opener.state && window.opener.state.exchanges) {
                     // Keep API credentials but mark as disconnected
-                    const currentApi = window.opener.state.exchanges.chainex?.api;
-                    window.opener.state.exchanges.chainex = {
+                    const currentApi = window.opener.state.exchanges[exchange]?.api;
+                    window.opener.state.exchanges[exchange] = {
                         connected: false,
                         api: currentApi // Keep the API credentials
                     };
                     if (window.opener.state.balances) {
-                        window.opener.state.balances.chainex = {};
+                        window.opener.state.balances[exchange] = {};
                     }
                     // Save the state in parent window
                     if (window.opener.saveToStorage) {
@@ -757,27 +886,27 @@
                     }
                 }
 
-                // Update dashboard UI (only for cross-exchange strategy)
-                if (strategy === 'cross-exchange') {
-                    // Update dashboard status
-                    const dashboardStatusElement = window.opener.document.getElementById('chainexStatus');
-                    if (dashboardStatusElement) {
-                        dashboardStatusElement.textContent = 'Disconnected';
-                        dashboardStatusElement.className = 'status-disconnected';
-                    }
+                // Update dashboard UI
+                const statusElementId = exchange === 'chainex' ? 'chainexStatus' : 'valrStatus';
+                const dashboardStatusElement = window.opener.document.getElementById(statusElementId);
+                if (dashboardStatusElement) {
+                    dashboardStatusElement.textContent = 'Disconnected';
+                    dashboardStatusElement.className = 'status-disconnected';
+                }
 
-                    // Update dashboard balance
-                    const dashboardBalanceElement = window.opener.document.getElementById('chainexBalance');
-                    if (dashboardBalanceElement) {
-                        dashboardBalanceElement.textContent = '$0.00';
-                    }
+                // Update dashboard balance
+                const balanceElementId = exchange === 'chainex' ? 'chainexBalance' : 'valrBalance';
+                const dashboardBalanceElement = window.opener.document.getElementById(balanceElementId);
+                if (dashboardBalanceElement) {
+                    dashboardBalanceElement.textContent = '$0.00';
+                }
 
-                    // Update price status
-                    const priceStatusElement = window.opener.document.getElementById('chainexPriceStatus');
-                    if (priceStatusElement) {
-                        priceStatusElement.textContent = 'OFFLINE';
-                        priceStatusElement.className = 'price-status price-disconnected';
-                    }
+                // Update price status
+                const priceStatusElementId = exchange === 'chainex' ? 'chainexPriceStatus' : 'valrPriceStatus';
+                const priceStatusElement = window.opener.document.getElementById(priceStatusElementId);
+                if (priceStatusElement) {
+                    priceStatusElement.textContent = 'OFFLINE';
+                    priceStatusElement.className = 'price-status price-disconnected';
                 }
             }
 
@@ -820,20 +949,37 @@
             let strategy = null;
             if (fieldId.includes('cross-exchange')) {
                 strategy = 'cross-exchange';
-                exchange = 'chainex';
                 fieldType = fieldId.includes('-api') ? 'api' : 'secret';
+                // Determine exchange from field ID
+                if (fieldId.includes('chainex')) {
+                    exchange = 'chainex';
+                } else if (fieldId.includes('valr')) {
+                    exchange = 'valr';
+                }
             } else if (fieldId.includes('triangular')) {
                 strategy = 'triangular';
-                exchange = 'chainex';
                 fieldType = fieldId.includes('-api') ? 'api' : 'secret';
+                if (fieldId.includes('chainex')) {
+                    exchange = 'chainex';
+                } else if (fieldId.includes('valr')) {
+                    exchange = 'valr';
+                }
             } else if (fieldId.includes('transfer')) {
                 strategy = 'transfer';
-                exchange = 'chainex';
                 fieldType = fieldId.includes('-api') ? 'api' : 'secret';
+                if (fieldId.includes('chainex')) {
+                    exchange = 'chainex';
+                } else if (fieldId.includes('valr')) {
+                    exchange = 'valr';
+                }
             } else if (fieldId.includes('currency-swap')) {
                 strategy = 'currency-swap';
-                exchange = 'chainex';
                 fieldType = fieldId.includes('-api') ? 'api' : 'secret';
+                if (fieldId.includes('chainex')) {
+                    exchange = 'chainex';
+                } else if (fieldId.includes('valr')) {
+                    exchange = 'valr';
+                }
             }
 
             if (exchange && fieldType) {
@@ -845,9 +991,15 @@
 
                     // Also store in original format for dashboard compatibility (cross-exchange only)
                     if (strategy === 'cross-exchange') {
-                        const originalKey = fieldType === 'api' ? `${exchange}ApiKey` : `${exchange}SecretKey`;
-                        localStorage.setItem(originalKey, value);
-                        console.log(`💾 Stored original format: ${originalKey} = ${value.substring(0, 10)}...`);
+                        if (exchange === 'chainex') {
+                            const originalKey = fieldType === 'api' ? 'chainexApiKey' : 'chainexSecretKey';
+                            localStorage.setItem(originalKey, value);
+                            console.log(`💾 Stored original format: ${originalKey} = ${value.substring(0, 10)}...`);
+                        } else if (exchange === 'valr') {
+                            const originalKey = fieldType === 'api' ? 'valrApiKey' : 'valrSecretKey';
+                            localStorage.setItem(originalKey, value);
+                            console.log(`💾 Stored original format: ${originalKey} = ${value.substring(0, 10)}...`);
+                        }
                     }
                 } else {
                     // Original format storage
@@ -866,7 +1018,11 @@
                 'chainex-cross-exchange-api', 'chainex-cross-exchange-secret',
                 'chainex-triangular-api', 'chainex-triangular-secret',
                 'chainex-transfer-api', 'chainex-transfer-secret',
-                'chainex-currency-swap-api', 'chainex-currency-swap-secret'
+                'chainex-currency-swap-api', 'chainex-currency-swap-secret',
+                'valr-cross-exchange-api', 'valr-cross-exchange-secret',
+                'valr-triangular-api', 'valr-triangular-secret',
+                'valr-transfer-api', 'valr-transfer-secret',
+                'valr-currency-swap-api', 'valr-currency-swap-secret'
             ];
 
             apiKeyFields.forEach(fieldId => {
@@ -886,87 +1042,72 @@
         function loadStrategyCredentials() {
             console.log('🔄 Loading strategy credentials...');
 
-            const strategies = [
-                { name: 'cross-exchange', storageKey: 'cross-exchange' },
-                { name: 'triangular', storageKey: 'triangular' },
-                { name: 'transfer', storageKey: 'transfer' },
-                { name: 'currency-swap', storageKey: 'currency-swap' }
-            ];
+            const exchanges = ['chainex', 'valr'];
+            const strategies = ['cross-exchange', 'triangular', 'transfer', 'currency-swap'];
 
-            strategies.forEach(strategyObj => {
-                const strategy = strategyObj.name;
-                const storageKey = strategyObj.storageKey;
+            exchanges.forEach(exchange => {
+                strategies.forEach(strategy => {
+                    // Try to load from strategy-specific storage first
+                    let apiKey = localStorage.getItem(`${exchange}_${strategy}_api`);
+                    let secretKey = localStorage.getItem(`${exchange}_${strategy}_secret`);
 
-                // Try to load from strategy-specific storage first
-                let apiKey = localStorage.getItem(`chainex_${storageKey}_api`);
-                let secretKey = localStorage.getItem(`chainex_${storageKey}_secret`);
+                    // For cross-exchange, also try original format as fallback
+                    if (!apiKey && strategy === 'cross-exchange') {
+                        if (exchange === 'chainex') {
+                            apiKey = localStorage.getItem('chainexApiKey');
+                            secretKey = localStorage.getItem('chainexSecretKey');
+                        } else if (exchange === 'valr') {
+                            apiKey = localStorage.getItem('valrApiKey');
+                            secretKey = localStorage.getItem('valrSecretKey');
+                        }
+                        if (apiKey) {
+                            console.log(`📄 Loaded from original format for ${exchange} ${strategy}`);
+                        }
+                    }
 
-                // For cross-exchange, also try original format as fallback
-                if (!apiKey && strategy === 'cross-exchange') {
-                    apiKey = localStorage.getItem('chainexApiKey');
-                    secretKey = localStorage.getItem('chainexSecretKey');
-                    console.log(`📄 Loaded from original format for ${strategy}:`, {
-                        hasApiKey: !!apiKey,
-                        hasSecretKey: !!secretKey
-                    });
-                }
+                    if (apiKey || secretKey) {
+                        console.log(`📊 Found credentials for ${exchange} ${strategy}`);
+                    }
 
-                console.log(`📊 Checking ${strategy}:`, {
-                    hasApiKey: !!apiKey,
-                    hasSecretKey: !!secretKey,
-                    apiKeyLength: apiKey ? apiKey.length : 0,
-                    secretKeyLength: secretKey ? secretKey.length : 0
-                });
+                    const apiInput = document.getElementById(`${exchange}-${strategy}-api`);
+                    const secretInput = document.getElementById(`${exchange}-${strategy}-secret`);
 
-                const apiInput = document.getElementById(`chainex-${strategy}-api`);
-                const secretInput = document.getElementById(`chainex-${strategy}-secret`);
+                    if (apiKey && apiInput) {
+                        apiInput.value = apiKey;
+                        console.log(`✅ Loaded ${exchange} ${strategy} API key`);
+                    }
 
-                console.log(`🎯 Elements for ${strategy}:`, {
-                    apiInput: !!apiInput,
-                    secretInput: !!secretInput,
-                    apiInputId: apiInput ? apiInput.id : 'not found',
-                    secretInputId: secretInput ? secretInput.id : 'not found'
-                });
+                    if (secretKey && secretInput) {
+                        secretInput.value = secretKey;
+                        console.log(`✅ Loaded ${exchange} ${strategy} secret key`);
+                    }
 
-                if (apiKey && apiInput) {
-                    apiInput.value = apiKey;
-                    console.log(`✅ Loaded ${strategy} API key:`, apiKey.substring(0, 10) + '...');
-                } else if (apiKey) {
-                    console.error(`❌ API input not found for ${strategy}`);
-                }
+                    // Check connection status
+                    if (apiKey && secretKey) {
+                        const statusElement = document.getElementById(`${exchange}-${strategy}-status`);
+                        const balanceElement = document.getElementById(`${exchange}-${strategy}-balance`);
 
-                if (secretKey && secretInput) {
-                    secretInput.value = secretKey;
-                    console.log(`✅ Loaded ${strategy} secret key:`, secretKey.substring(0, 5) + '...');
-                } else if (secretKey) {
-                    console.error(`❌ Secret input not found for ${strategy}`);
-                }
+                        if (statusElement) {
+                            // Check if marked as connected in localStorage
+                            const isConnected = localStorage.getItem(`${exchange}_${strategy}_connected`) === 'true';
+                            if (isConnected) {
+                                statusElement.textContent = 'Connected';
+                                statusElement.className = 'connection-status status-connected';
 
-                // Check connection status
-                if (apiKey && secretKey) {
-                    const statusElement = document.getElementById(`chainex-${strategy}-status`);
-                    const balanceElement = document.getElementById(`chainex-${strategy}-balance`);
-
-                    if (statusElement) {
-                        // Check if marked as connected in localStorage
-                        const isConnected = localStorage.getItem(`chainex_${storageKey}_connected`) === 'true';
-                        if (isConnected) {
-                            statusElement.textContent = 'Connected';
-                            statusElement.className = 'connection-status status-connected';
-
-                            // Try to fetch fresh balance if connected
-                            if (balanceElement) {
-                                fetchStrategyBalance('chainex', strategy, apiKey, secretKey);
-                            }
-                        } else {
-                            statusElement.textContent = 'Disconnected';
-                            statusElement.className = 'connection-status status-disconnected';
-                            if (balanceElement) {
-                                balanceElement.textContent = '$0.00';
+                                // Try to fetch fresh balance if connected
+                                if (balanceElement) {
+                                    fetchStrategyBalance(exchange, strategy, apiKey, secretKey);
+                                }
+                            } else {
+                                statusElement.textContent = 'Disconnected';
+                                statusElement.className = 'connection-status status-disconnected';
+                                if (balanceElement) {
+                                    balanceElement.textContent = '$0.00';
+                                }
                             }
                         }
                     }
-                }
+                });
             });
         }
 
