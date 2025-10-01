@@ -165,6 +165,43 @@ router.post('/connect-exchange', tradingRateLimit, optionalAuth, [
                     }
                 });
             }
+        } else if (exchange.toLowerCase() === 'kraken') {
+            // Test Kraken connection by fetching balance
+            const nonce = Date.now().toString();
+            const postdata = `nonce=${nonce}`;
+            const path = KRAKEN_CONFIG.endpoints.balance;
+            const signature = createKrakenSignature(path, postdata, secretKey, nonce);
+
+            const response = await fetch(`${KRAKEN_CONFIG.baseUrl}${path}`, {
+                method: 'POST',
+                headers: {
+                    'API-Key': apiKey,
+                    'API-Sign': signature,
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: postdata
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Kraken API error: ${response.status} - ${errorText}`);
+            }
+
+            const balanceData = await response.json();
+
+            // Transform Kraken response
+            if (balanceData.error && balanceData.error.length > 0) {
+                throw new Error(`Kraken API error: ${balanceData.error.join(', ')}`);
+            }
+
+            if (balanceData.result) {
+                Object.keys(balanceData.result).forEach(asset => {
+                    const balance = parseFloat(balanceData.result[asset]);
+                    if (balance > 0) {
+                        balances[asset] = balance;
+                    }
+                });
+            }
         } else {
             throw new APIError(`Exchange ${exchange} not supported`, 400, 'UNSUPPORTED_EXCHANGE');
         }
@@ -264,6 +301,35 @@ router.post('/test-connection', tradingRateLimit, optionalAuth, [
             if (response.ok) {
                 const data = await response.json();
                 if (data.balance && Array.isArray(data.balance)) {
+                    res.json({
+                        success: true,
+                        message: 'Connection test successful'
+                    });
+                    return;
+                }
+            }
+
+            throw new Error('Connection test failed - invalid credentials');
+        } else if (exchange.toLowerCase() === 'kraken') {
+            // Test Kraken connection
+            const nonce = Date.now().toString();
+            const postdata = `nonce=${nonce}`;
+            const path = KRAKEN_CONFIG.endpoints.balance;
+            const signature = createKrakenSignature(path, postdata, secretKey, nonce);
+
+            const response = await fetch(`${KRAKEN_CONFIG.baseUrl}${path}`, {
+                method: 'POST',
+                headers: {
+                    'API-Key': apiKey,
+                    'API-Sign': signature,
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: postdata
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data.result && !data.error?.length) {
                     res.json({
                         success: true,
                         message: 'Connection test successful'

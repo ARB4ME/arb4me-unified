@@ -394,6 +394,33 @@
                 </div>
             </div>
             </form>
+
+            <!-- Kraken Cross-Exchange -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">Kraken - Cross-Exchange Strategy</div>
+                    <div id="kraken-cross-exchange-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="kraken-cross-exchange-api">API Key</label>
+                    <input type="text" id="kraken-cross-exchange-api" class="form-input" placeholder="Enter Kraken API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="kraken-cross-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="kraken-cross-exchange-secret">Secret Key</label>
+                    <input type="password" id="kraken-cross-exchange-secret" class="form-input" placeholder="Enter Kraken Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="kraken-cross-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="kraken-cross-exchange-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('kraken', 'cross-exchange')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('kraken', 'cross-exchange')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('kraken', 'cross-exchange')">Disconnect</button>
+                </div>
+            </div>
+            </form>
         </div>
 
         <!-- Triangular Strategy -->
@@ -474,6 +501,33 @@
                     <button class="btn btn-primary" onclick="connectStrategyExchange('luno', 'triangular')">Connect</button>
                     <button class="btn btn-secondary" onclick="testStrategyConnection('luno', 'triangular')">Test Connection</button>
                     <button class="btn btn-danger" onclick="disconnectStrategyExchange('luno', 'triangular')">Disconnect</button>
+                </div>
+            </div>
+            </form>
+
+            <!-- Kraken Triangular -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">Kraken - Triangular Strategy</div>
+                    <div id="kraken-triangular-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="kraken-triangular-api">API Key</label>
+                    <input type="text" id="kraken-triangular-api" class="form-input" placeholder="Enter Kraken API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="kraken-tri-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="kraken-triangular-secret">Secret Key</label>
+                    <input type="password" id="kraken-triangular-secret" class="form-input" placeholder="Enter Kraken Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="kraken-tri-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="kraken-triangular-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('kraken', 'triangular')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('kraken', 'triangular')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('kraken', 'triangular')">Disconnect</button>
                 </div>
             </div>
             </form>
@@ -560,6 +614,33 @@
                 </div>
             </div>
             </form>
+
+            <!-- Kraken Transfer -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">Kraken - Transfer Strategy</div>
+                    <div id="kraken-transfer-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="kraken-transfer-api">API Key</label>
+                    <input type="text" id="kraken-transfer-api" class="form-input" placeholder="Enter Kraken API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="kraken-trans-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="kraken-transfer-secret">Secret Key</label>
+                    <input type="password" id="kraken-transfer-secret" class="form-input" placeholder="Enter Kraken Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="kraken-trans-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="kraken-transfer-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('kraken', 'transfer')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('kraken', 'transfer')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('kraken', 'transfer')">Disconnect</button>
+                </div>
+            </div>
+            </form>
         </div>
 
         <!-- Currency Swap Strategy -->
@@ -643,6 +724,33 @@
                 </div>
             </div>
             </form>
+
+            <!-- Kraken Currency Swap -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">Kraken - Currency Swap Strategy</div>
+                    <div id="kraken-currency-swap-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="kraken-currency-swap-api">API Key</label>
+                    <input type="text" id="kraken-currency-swap-api" class="form-input" placeholder="Enter Kraken API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="kraken-swap-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="kraken-currency-swap-secret">Secret Key</label>
+                    <input type="password" id="kraken-currency-swap-secret" class="form-input" placeholder="Enter Kraken Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="kraken-swap-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="kraken-currency-swap-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('kraken', 'currency-swap')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('kraken', 'currency-swap')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('kraken', 'currency-swap')">Disconnect</button>
+                </div>
+            </div>
+            </form>
         </div>
     </div>
 
@@ -661,7 +769,11 @@
                 'luno-cross-exchange': { connected: false, balance: null },
                 'luno-triangular': { connected: false, balance: null },
                 'luno-transfer': { connected: false, balance: null },
-                'luno-currency-swap': { connected: false, balance: null }
+                'luno-currency-swap': { connected: false, balance: null },
+                'kraken-cross-exchange': { connected: false, balance: null },
+                'kraken-triangular': { connected: false, balance: null },
+                'kraken-transfer': { connected: false, balance: null },
+                'kraken-currency-swap': { connected: false, balance: null }
             };
         }
 
@@ -811,6 +923,9 @@
                         } else if (exchange === 'luno') {
                             localStorage.setItem('lunoApiKey', apiKey);
                             localStorage.setItem('lunoSecretKey', secretKey);
+                        } else if (exchange === 'kraken') {
+                            localStorage.setItem('krakenApiKey', apiKey);
+                            localStorage.setItem('krakenSecretKey', secretKey);
                         }
                     }
 
@@ -890,6 +1005,10 @@
                                         balanceElementId = 'lunoBalance';
                                         statusElementId = 'lunoStatus';
                                         priceStatusElementId = 'lunoPriceStatus';
+                                    } else if (exchange === 'kraken') {
+                                        balanceElementId = 'krakenBalance';
+                                        statusElementId = 'krakenStatus';
+                                        priceStatusElementId = 'krakenPriceStatus';
                                     }
 
                                     const dashboardBalanceElement = window.opener.document.getElementById(balanceElementId);
@@ -1027,6 +1146,10 @@
                     balanceElementId = 'lunoBalance';
                     statusElementId = 'lunoStatus';
                     priceStatusElementId = 'lunoPriceStatus';
+                } else if (exchange === 'kraken') {
+                    balanceElementId = 'krakenBalance';
+                    statusElementId = 'krakenStatus';
+                    priceStatusElementId = 'krakenPriceStatus';
                 }
 
                 const dashboardStatusElement = window.opener.document.getElementById(statusElementId);
@@ -1096,6 +1219,8 @@
                     exchange = 'valr';
                 } else if (fieldId.includes('luno')) {
                     exchange = 'luno';
+                } else if (fieldId.includes('kraken')) {
+                    exchange = 'kraken';
                 }
             } else if (fieldId.includes('triangular')) {
                 strategy = 'triangular';
@@ -1106,6 +1231,8 @@
                     exchange = 'valr';
                 } else if (fieldId.includes('luno')) {
                     exchange = 'luno';
+                } else if (fieldId.includes('kraken')) {
+                    exchange = 'kraken';
                 }
             } else if (fieldId.includes('transfer')) {
                 strategy = 'transfer';
@@ -1116,6 +1243,8 @@
                     exchange = 'valr';
                 } else if (fieldId.includes('luno')) {
                     exchange = 'luno';
+                } else if (fieldId.includes('kraken')) {
+                    exchange = 'kraken';
                 }
             } else if (fieldId.includes('currency-swap')) {
                 strategy = 'currency-swap';
@@ -1126,6 +1255,8 @@
                     exchange = 'valr';
                 } else if (fieldId.includes('luno')) {
                     exchange = 'luno';
+                } else if (fieldId.includes('kraken')) {
+                    exchange = 'kraken';
                 }
             }
 
@@ -1148,6 +1279,10 @@
                             console.log(`💾 Stored original format: ${originalKey} = ${value.substring(0, 10)}...`);
                         } else if (exchange === 'luno') {
                             const originalKey = fieldType === 'api' ? 'lunoApiKey' : 'lunoSecretKey';
+                            localStorage.setItem(originalKey, value);
+                            console.log(`💾 Stored original format: ${originalKey} = ${value.substring(0, 10)}...`);
+                        } else if (exchange === 'kraken') {
+                            const originalKey = fieldType === 'api' ? 'krakenApiKey' : 'krakenSecretKey';
                             localStorage.setItem(originalKey, value);
                             console.log(`💾 Stored original format: ${originalKey} = ${value.substring(0, 10)}...`);
                         }
@@ -1177,7 +1312,11 @@
                 'luno-cross-exchange-api', 'luno-cross-exchange-secret',
                 'luno-triangular-api', 'luno-triangular-secret',
                 'luno-transfer-api', 'luno-transfer-secret',
-                'luno-currency-swap-api', 'luno-currency-swap-secret'
+                'luno-currency-swap-api', 'luno-currency-swap-secret',
+                'kraken-cross-exchange-api', 'kraken-cross-exchange-secret',
+                'kraken-triangular-api', 'kraken-triangular-secret',
+                'kraken-transfer-api', 'kraken-transfer-secret',
+                'kraken-currency-swap-api', 'kraken-currency-swap-secret'
             ];
 
             apiKeyFields.forEach(fieldId => {
@@ -1197,7 +1336,7 @@
         function loadStrategyCredentials() {
             console.log('🔄 Loading strategy credentials...');
 
-            const exchanges = ['chainex', 'valr', 'luno'];
+            const exchanges = ['chainex', 'valr', 'luno', 'kraken'];
             const strategies = ['cross-exchange', 'triangular', 'transfer', 'currency-swap'];
 
             exchanges.forEach(exchange => {
@@ -1217,6 +1356,9 @@
                         } else if (exchange === 'luno') {
                             apiKey = localStorage.getItem('lunoApiKey');
                             secretKey = localStorage.getItem('lunoSecretKey');
+                        } else if (exchange === 'kraken') {
+                            apiKey = localStorage.getItem('krakenApiKey');
+                            secretKey = localStorage.getItem('krakenSecretKey');
                         }
                         if (apiKey) {
                             console.log(`📄 Loaded from original format for ${exchange} ${strategy}`);
