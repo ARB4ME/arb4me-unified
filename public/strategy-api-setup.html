@@ -891,7 +891,12 @@
 
         // Format balance display function (similar to original implementation)
         function formatStrategyBalance(balances) {
+            console.log('formatStrategyBalance received:', balances);
+            console.log('balances type:', typeof balances);
+            console.log('balances keys:', Object.keys(balances || {}));
+
             if (!balances || typeof balances !== 'object') {
+                console.log('formatStrategyBalance: invalid balances object');
                 return '$0.00';
             }
 
@@ -901,6 +906,7 @@
             let totalUSDValue = 0;
 
             // Show USDT first if available
+            console.log('checking USDT balance:', balances.USDT, 'parsed:', parseFloat(balances.USDT || 0));
             if (balances.USDT && parseFloat(balances.USDT) > 0) {
                 const usdtAmount = parseFloat(balances.USDT);
                 displayParts.push(`$${usdtAmount.toFixed(2)} USDT`);
@@ -1027,6 +1033,7 @@
                     if (window.opener && window.opener.getRealBalances) {
                         balances = await window.opener.getRealBalances(exchange);
                         console.log(`${exchange} balances from getRealBalances:`, balances);
+                        console.log(`${exchange} balances structure:`, JSON.stringify(balances, null, 2));
                     } else {
                         // Fallback to direct balance endpoint call if parent function unavailable
                         const balanceEndpoint = exchange === 'chainex'
