@@ -1080,9 +1080,6 @@
                         }
                     }
 
-                    // Get balances from the response (balance endpoint returns data directly)
-                    const balances = result.data?.balances || result.balances || result.data || result;
-
                     // Update strategy-specific state
                     window.strategyExchanges[`${exchange}-${strategy}`] = {
                         connected: true,
