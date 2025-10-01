@@ -1802,6 +1802,22 @@
                 const originalState = window.state;
                 window.state = tempState;
 
+                // CRITICAL: Also set state in parent window since getRealBalances uses window.opener.state
+                let originalParentState = null;
+                if (window.opener && window.opener.state) {
+                    originalParentState = JSON.parse(JSON.stringify(window.opener.state.exchanges[exchange] || {}));
+                    window.opener.state.exchanges[exchange] = tempState.exchanges[exchange];
+                    console.log(`🔄 Updated parent window state for ${exchange}:`, window.opener.state.exchanges[exchange]);
+                }
+
+                // Debug: Check what's in parent window
+                if (window.opener) {
+                    console.log(`🪟 Parent window available, has getRealBalances:`, typeof window.opener.getRealBalances);
+                    console.log(`🪟 Parent window state for ${exchange}:`, window.opener.state?.exchanges?.[exchange]);
+                } else {
+                    console.log(`🪟 No parent window available`);
+                }
+
                 try {
                     // APPROACH: Skip /test endpoint for Bitget, go straight to getRealBalances like original
                     console.log(`🔌 ${exchange} connecting directly via getRealBalances (like original setup)`);
@@ -1851,6 +1867,12 @@
 
                     // Restore original state
                     window.state = originalState;
+
+                    // Restore parent window state
+                    if (window.opener && window.opener.state && originalParentState !== null) {
+                        window.opener.state.exchanges[exchange] = originalParentState;
+                        console.log(`🔄 Restored parent window state for ${exchange}`);
+                    }
 
                     if (balances) {
                     // Store credentials in localStorage with strategy prefix
