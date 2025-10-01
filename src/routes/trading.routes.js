@@ -205,7 +205,7 @@ router.post('/connect-exchange', tradingRateLimit, optionalAuth, [
         } else if (exchange.toLowerCase() === 'binance') {
             // Test Binance connection by fetching balance
             const timestamp = Date.now();
-            const recvWindow = 60000; // 60 second window for better reliability
+            const recvWindow = 5000; // 5 second window for better API key compatibility
             const queryString = `recvWindow=${recvWindow}&timestamp=${timestamp}`;
             const signature = createBinanceSignature(queryString, secretKey);
 
@@ -375,7 +375,7 @@ router.post('/test-connection', tradingRateLimit, optionalAuth, [
         } else if (exchange.toLowerCase() === 'binance') {
             // Test Binance connection
             const timestamp = Date.now();
-            const recvWindow = 60000; // 60 second window for better reliability
+            const recvWindow = 5000; // 5 second window for better API key compatibility
             const queryString = `recvWindow=${recvWindow}&timestamp=${timestamp}`;
             const signature = createBinanceSignature(queryString, secretKey);
 
@@ -4160,8 +4160,8 @@ router.post('/binance/balance', tradingRateLimit, optionalAuth, [
         });
         
         const timestamp = Date.now();
-        const recvWindow = 60000; // 60 second window for better reliability
-        // Include recvWindow for better compatibility with trading-enabled API keys
+        const recvWindow = 5000; // 5 second window for better API key compatibility
+        // Smaller recvWindow works with more restricted API keys
         const queryString = `recvWindow=${recvWindow}&timestamp=${timestamp}`;
         const signature = createBinanceSignature(queryString, apiSecret);
         
