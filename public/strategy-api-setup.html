@@ -367,6 +367,33 @@
                 </div>
             </div>
             </form>
+
+            <!-- Luno Cross-Exchange -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">Luno - Cross-Exchange Strategy</div>
+                    <div id="luno-cross-exchange-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="luno-cross-exchange-api">API Key</label>
+                    <input type="text" id="luno-cross-exchange-api" class="form-input" placeholder="Enter Luno API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="luno-cross-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="luno-cross-exchange-secret">Secret Key</label>
+                    <input type="password" id="luno-cross-exchange-secret" class="form-input" placeholder="Enter Luno Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="luno-cross-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="luno-cross-exchange-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('luno', 'cross-exchange')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('luno', 'cross-exchange')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('luno', 'cross-exchange')">Disconnect</button>
+                </div>
+            </div>
+            </form>
         </div>
 
         <!-- Triangular Strategy -->
@@ -420,6 +447,33 @@
                     <button class="btn btn-primary" onclick="connectStrategyExchange('valr', 'triangular')">Connect</button>
                     <button class="btn btn-secondary" onclick="testStrategyConnection('valr', 'triangular')">Test Connection</button>
                     <button class="btn btn-danger" onclick="disconnectStrategyExchange('valr', 'triangular')">Disconnect</button>
+                </div>
+            </div>
+            </form>
+
+            <!-- Luno Triangular -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">Luno - Triangular Strategy</div>
+                    <div id="luno-triangular-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="luno-triangular-api">API Key</label>
+                    <input type="text" id="luno-triangular-api" class="form-input" placeholder="Enter Luno API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="luno-tri-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="luno-triangular-secret">Secret Key</label>
+                    <input type="password" id="luno-triangular-secret" class="form-input" placeholder="Enter Luno Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="luno-tri-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="luno-triangular-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('luno', 'triangular')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('luno', 'triangular')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('luno', 'triangular')">Disconnect</button>
                 </div>
             </div>
             </form>
@@ -479,6 +533,33 @@
                 </div>
             </div>
             </form>
+
+            <!-- Luno Transfer -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">Luno - Transfer Strategy</div>
+                    <div id="luno-transfer-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="luno-transfer-api">API Key</label>
+                    <input type="text" id="luno-transfer-api" class="form-input" placeholder="Enter Luno API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="luno-trans-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="luno-transfer-secret">Secret Key</label>
+                    <input type="password" id="luno-transfer-secret" class="form-input" placeholder="Enter Luno Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="luno-trans-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="luno-transfer-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('luno', 'transfer')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('luno', 'transfer')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('luno', 'transfer')">Disconnect</button>
+                </div>
+            </div>
+            </form>
         </div>
 
         <!-- Currency Swap Strategy -->
@@ -535,6 +616,33 @@
                 </div>
             </div>
             </form>
+
+            <!-- Luno Currency Swap -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">Luno - Currency Swap Strategy</div>
+                    <div id="luno-currency-swap-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="luno-currency-swap-api">API Key</label>
+                    <input type="text" id="luno-currency-swap-api" class="form-input" placeholder="Enter Luno API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="luno-swap-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="luno-currency-swap-secret">Secret Key</label>
+                    <input type="password" id="luno-currency-swap-secret" class="form-input" placeholder="Enter Luno Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="luno-swap-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="luno-currency-swap-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('luno', 'currency-swap')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('luno', 'currency-swap')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('luno', 'currency-swap')">Disconnect</button>
+                </div>
+            </div>
+            </form>
         </div>
     </div>
 
@@ -549,7 +657,11 @@
                 'valr-cross-exchange': { connected: false, balance: null },
                 'valr-triangular': { connected: false, balance: null },
                 'valr-transfer': { connected: false, balance: null },
-                'valr-currency-swap': { connected: false, balance: null }
+                'valr-currency-swap': { connected: false, balance: null },
+                'luno-cross-exchange': { connected: false, balance: null },
+                'luno-triangular': { connected: false, balance: null },
+                'luno-transfer': { connected: false, balance: null },
+                'luno-currency-swap': { connected: false, balance: null }
             };
         }
 
@@ -696,6 +808,9 @@
                         } else if (exchange === 'valr') {
                             localStorage.setItem('valrApiKey', apiKey);
                             localStorage.setItem('valrSecretKey', secretKey);
+                        } else if (exchange === 'luno') {
+                            localStorage.setItem('lunoApiKey', apiKey);
+                            localStorage.setItem('lunoSecretKey', secretKey);
                         }
                     }
 
@@ -762,7 +877,21 @@
                                     }
 
                                     // Update dashboard balance display
-                                    const balanceElementId = exchange === 'chainex' ? 'chainexBalance' : 'valrBalance';
+                                    let balanceElementId, statusElementId, priceStatusElementId;
+                                    if (exchange === 'chainex') {
+                                        balanceElementId = 'chainexBalance';
+                                        statusElementId = 'chainexStatus';
+                                        priceStatusElementId = 'chainexPriceStatus';
+                                    } else if (exchange === 'valr') {
+                                        balanceElementId = 'valrBalance';
+                                        statusElementId = 'valrStatus';
+                                        priceStatusElementId = 'valrPriceStatus';
+                                    } else if (exchange === 'luno') {
+                                        balanceElementId = 'lunoBalance';
+                                        statusElementId = 'lunoStatus';
+                                        priceStatusElementId = 'lunoPriceStatus';
+                                    }
+
                                     const dashboardBalanceElement = window.opener.document.getElementById(balanceElementId);
                                     if (dashboardBalanceElement && window.opener.formatMultiCurrencyBalance) {
                                         const dashboardBalanceDisplay = window.opener.formatMultiCurrencyBalance(balanceData.balances, exchange);
@@ -770,7 +899,6 @@
                                     }
 
                                     // Update dashboard status
-                                    const statusElementId = exchange === 'chainex' ? 'chainexStatus' : 'valrStatus';
                                     const dashboardStatusElement = window.opener.document.getElementById(statusElementId);
                                     if (dashboardStatusElement) {
                                         dashboardStatusElement.textContent = 'Connected (Live)';
@@ -778,7 +906,6 @@
                                     }
 
                                     // Update price status
-                                    const priceStatusElementId = exchange === 'chainex' ? 'chainexPriceStatus' : 'valrPriceStatus';
                                     const priceStatusElement = window.opener.document.getElementById(priceStatusElementId);
                                     if (priceStatusElement) {
                                         priceStatusElement.textContent = 'LIVE';
@@ -887,7 +1014,21 @@
                 }
 
                 // Update dashboard UI
-                const statusElementId = exchange === 'chainex' ? 'chainexStatus' : 'valrStatus';
+                let balanceElementId, statusElementId, priceStatusElementId;
+                if (exchange === 'chainex') {
+                    balanceElementId = 'chainexBalance';
+                    statusElementId = 'chainexStatus';
+                    priceStatusElementId = 'chainexPriceStatus';
+                } else if (exchange === 'valr') {
+                    balanceElementId = 'valrBalance';
+                    statusElementId = 'valrStatus';
+                    priceStatusElementId = 'valrPriceStatus';
+                } else if (exchange === 'luno') {
+                    balanceElementId = 'lunoBalance';
+                    statusElementId = 'lunoStatus';
+                    priceStatusElementId = 'lunoPriceStatus';
+                }
+
                 const dashboardStatusElement = window.opener.document.getElementById(statusElementId);
                 if (dashboardStatusElement) {
                     dashboardStatusElement.textContent = 'Disconnected';
@@ -895,14 +1036,12 @@
                 }
 
                 // Update dashboard balance
-                const balanceElementId = exchange === 'chainex' ? 'chainexBalance' : 'valrBalance';
                 const dashboardBalanceElement = window.opener.document.getElementById(balanceElementId);
                 if (dashboardBalanceElement) {
                     dashboardBalanceElement.textContent = '$0.00';
                 }
 
                 // Update price status
-                const priceStatusElementId = exchange === 'chainex' ? 'chainexPriceStatus' : 'valrPriceStatus';
                 const priceStatusElement = window.opener.document.getElementById(priceStatusElementId);
                 if (priceStatusElement) {
                     priceStatusElement.textContent = 'OFFLINE';
@@ -955,6 +1094,8 @@
                     exchange = 'chainex';
                 } else if (fieldId.includes('valr')) {
                     exchange = 'valr';
+                } else if (fieldId.includes('luno')) {
+                    exchange = 'luno';
                 }
             } else if (fieldId.includes('triangular')) {
                 strategy = 'triangular';
@@ -963,6 +1104,8 @@
                     exchange = 'chainex';
                 } else if (fieldId.includes('valr')) {
                     exchange = 'valr';
+                } else if (fieldId.includes('luno')) {
+                    exchange = 'luno';
                 }
             } else if (fieldId.includes('transfer')) {
                 strategy = 'transfer';
@@ -971,6 +1114,8 @@
                     exchange = 'chainex';
                 } else if (fieldId.includes('valr')) {
                     exchange = 'valr';
+                } else if (fieldId.includes('luno')) {
+                    exchange = 'luno';
                 }
             } else if (fieldId.includes('currency-swap')) {
                 strategy = 'currency-swap';
@@ -979,6 +1124,8 @@
                     exchange = 'chainex';
                 } else if (fieldId.includes('valr')) {
                     exchange = 'valr';
+                } else if (fieldId.includes('luno')) {
+                    exchange = 'luno';
                 }
             }
 
@@ -997,6 +1144,10 @@
                             console.log(`💾 Stored original format: ${originalKey} = ${value.substring(0, 10)}...`);
                         } else if (exchange === 'valr') {
                             const originalKey = fieldType === 'api' ? 'valrApiKey' : 'valrSecretKey';
+                            localStorage.setItem(originalKey, value);
+                            console.log(`💾 Stored original format: ${originalKey} = ${value.substring(0, 10)}...`);
+                        } else if (exchange === 'luno') {
+                            const originalKey = fieldType === 'api' ? 'lunoApiKey' : 'lunoSecretKey';
                             localStorage.setItem(originalKey, value);
                             console.log(`💾 Stored original format: ${originalKey} = ${value.substring(0, 10)}...`);
                         }
@@ -1022,7 +1173,11 @@
                 'valr-cross-exchange-api', 'valr-cross-exchange-secret',
                 'valr-triangular-api', 'valr-triangular-secret',
                 'valr-transfer-api', 'valr-transfer-secret',
-                'valr-currency-swap-api', 'valr-currency-swap-secret'
+                'valr-currency-swap-api', 'valr-currency-swap-secret',
+                'luno-cross-exchange-api', 'luno-cross-exchange-secret',
+                'luno-triangular-api', 'luno-triangular-secret',
+                'luno-transfer-api', 'luno-transfer-secret',
+                'luno-currency-swap-api', 'luno-currency-swap-secret'
             ];
 
             apiKeyFields.forEach(fieldId => {
@@ -1042,7 +1197,7 @@
         function loadStrategyCredentials() {
             console.log('🔄 Loading strategy credentials...');
 
-            const exchanges = ['chainex', 'valr'];
+            const exchanges = ['chainex', 'valr', 'luno'];
             const strategies = ['cross-exchange', 'triangular', 'transfer', 'currency-swap'];
 
             exchanges.forEach(exchange => {
@@ -1059,6 +1214,9 @@
                         } else if (exchange === 'valr') {
                             apiKey = localStorage.getItem('valrApiKey');
                             secretKey = localStorage.getItem('valrSecretKey');
+                        } else if (exchange === 'luno') {
+                            apiKey = localStorage.getItem('lunoApiKey');
+                            secretKey = localStorage.getItem('lunoSecretKey');
                         }
                         if (apiKey) {
                             console.log(`📄 Loaded from original format for ${exchange} ${strategy}`);

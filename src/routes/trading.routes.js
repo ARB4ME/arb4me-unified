@@ -139,6 +139,32 @@ router.post('/connect-exchange', tradingRateLimit, optionalAuth, [
                     }
                 });
             }
+        } else if (exchange.toLowerCase() === 'luno') {
+            // Test Luno connection by fetching balance
+            const encodedAuth = Buffer.from(`${apiKey}:${secretKey}`).toString('base64');
+            const response = await fetch('https://api.luno.com/api/1/balance', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Basic ${encodedAuth}`,
+                    'User-Agent': 'ARB4ME/1.0'
+                }
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Luno API error: ${response.status} - ${errorText}`);
+            }
+
+            const balanceData = await response.json();
+
+            // Transform Luno response
+            if (balanceData.balance && Array.isArray(balanceData.balance)) {
+                balanceData.balance.forEach(balance => {
+                    if (balance.asset && balance.balance) {
+                        balances[balance.asset] = parseFloat(balance.balance);
+                    }
+                });
+            }
         } else {
             throw new APIError(`Exchange ${exchange} not supported`, 400, 'UNSUPPORTED_EXCHANGE');
         }
@@ -224,6 +250,29 @@ router.post('/test-connection', tradingRateLimit, optionalAuth, [
             }
 
             throw new Error('Connection test failed - invalid credentials or API error');
+        } else if (exchange.toLowerCase() === 'luno') {
+            // Test Luno connection
+            const encodedAuth = Buffer.from(`${apiKey}:${secretKey}`).toString('base64');
+            const response = await fetch('https://api.luno.com/api/1/balance', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Basic ${encodedAuth}`,
+                    'User-Agent': 'ARB4ME/1.0'
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data.balance && Array.isArray(data.balance)) {
+                    res.json({
+                        success: true,
+                        message: 'Connection test successful'
+                    });
+                    return;
+                }
+            }
+
+            throw new Error('Connection test failed - invalid credentials');
         } else {
             throw new APIError(`Exchange ${exchange} not supported`, 400, 'UNSUPPORTED_EXCHANGE');
         }
