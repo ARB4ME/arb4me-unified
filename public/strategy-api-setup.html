@@ -368,6 +368,37 @@
             </div>
             </form>
 
+            <!-- OKX Cross Exchange -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">OKX - Cross Exchange Strategy</div>
+                    <div id="okx-cross-exchange-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="okx-cross-exchange-api">API Key</label>
+                    <input type="text" id="okx-cross-exchange-api" class="form-input" placeholder="Enter OKX API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="okx-cross-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="okx-cross-exchange-secret">Secret Key</label>
+                    <input type="password" id="okx-cross-exchange-secret" class="form-input" placeholder="Enter OKX Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="okx-cross-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="okx-cross-exchange-passphrase">Passphrase</label>
+                    <input type="password" id="okx-cross-exchange-passphrase" class="form-input" placeholder="Enter OKX Passphrase" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="okx-cross-passphrase">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="okx-cross-exchange-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('okx', 'cross-exchange')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('okx', 'cross-exchange')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('okx', 'cross-exchange')">Disconnect</button>
+                </div>
+            </div>
+            </form>
+
             <!-- VALR Cross-Exchange -->
             <form autocomplete="off" onsubmit="return false;">
             <div class="exchange-card">
@@ -639,6 +670,37 @@
                 </div>
             </div>
             </form>
+
+            <!-- OKX Triangular -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">OKX - Triangular Strategy</div>
+                    <div id="okx-triangular-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="okx-triangular-api">API Key</label>
+                    <input type="text" id="okx-triangular-api" class="form-input" placeholder="Enter OKX API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="okx-tri-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="okx-triangular-secret">Secret Key</label>
+                    <input type="password" id="okx-triangular-secret" class="form-input" placeholder="Enter OKX Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="okx-tri-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="okx-triangular-passphrase">Passphrase</label>
+                    <input type="password" id="okx-triangular-passphrase" class="form-input" placeholder="Enter OKX Passphrase" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="okx-tri-passphrase">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="okx-triangular-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('okx', 'triangular')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('okx', 'triangular')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('okx', 'triangular')">Disconnect</button>
+                </div>
+            </div>
+            </form>
         </div>
 
         <!-- Transfer Strategy -->
@@ -800,6 +862,37 @@
                     <button class="btn btn-primary" onclick="connectStrategyExchange('bybit', 'transfer')">Connect</button>
                     <button class="btn btn-secondary" onclick="testStrategyConnection('bybit', 'transfer')">Test Connection</button>
                     <button class="btn btn-danger" onclick="disconnectStrategyExchange('bybit', 'transfer')">Disconnect</button>
+                </div>
+            </div>
+            </form>
+
+            <!-- OKX Transfer -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">OKX - Transfer Strategy</div>
+                    <div id="okx-transfer-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="okx-transfer-api">API Key</label>
+                    <input type="text" id="okx-transfer-api" class="form-input" placeholder="Enter OKX API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="okx-trans-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="okx-transfer-secret">Secret Key</label>
+                    <input type="password" id="okx-transfer-secret" class="form-input" placeholder="Enter OKX Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="okx-trans-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="okx-transfer-passphrase">Passphrase</label>
+                    <input type="password" id="okx-transfer-passphrase" class="form-input" placeholder="Enter OKX Passphrase" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="okx-trans-passphrase">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="okx-transfer-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('okx', 'transfer')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('okx', 'transfer')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('okx', 'transfer')">Disconnect</button>
                 </div>
             </div>
             </form>
@@ -969,6 +1062,45 @@
                         <button type="button" onclick="testStrategyConnection('bybit', 'currency-swap')"
                                 class="btn-secondary">Test</button>
                         <button type="button" onclick="disconnectStrategyExchange('bybit', 'currency-swap')"
+                                class="btn-danger">Disconnect</button>
+                    </div>
+                </div>
+            </div>
+            </form>
+
+            <!-- OKX Currency Swap -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">OKX - Currency Swap Strategy</div>
+                    <div id="okx-currency-swap-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="exchange-body">
+                    <div class="form-group">
+                        <label for="okx-currency-swap-api">API Key:</label>
+                        <input type="password" id="okx-currency-swap-api" name="okx_currency_swap_api_unique"
+                               placeholder="Enter OKX API Key" autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label for="okx-currency-swap-secret">Secret Key:</label>
+                        <input type="password" id="okx-currency-swap-secret" name="okx_currency_swap_secret_unique"
+                               placeholder="Enter OKX Secret Key" autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label for="okx-currency-swap-passphrase">Passphrase:</label>
+                        <input type="password" id="okx-currency-swap-passphrase" name="okx_currency_swap_passphrase_unique"
+                               placeholder="Enter OKX Passphrase" autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label>Balance:</label>
+                        <div id="okx-currency-swap-balance" class="balance-display">Not connected</div>
+                    </div>
+                    <div class="button-group">
+                        <button type="button" onclick="connectStrategyExchange('okx', 'currency-swap')"
+                                class="btn-primary">Connect</button>
+                        <button type="button" onclick="testStrategyConnection('okx', 'currency-swap')"
+                                class="btn-secondary">Test</button>
+                        <button type="button" onclick="disconnectStrategyExchange('okx', 'currency-swap')"
                                 class="btn-danger">Disconnect</button>
                     </div>
                 </div>

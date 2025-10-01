@@ -235,6 +235,55 @@ router.post('/connect-exchange', tradingRateLimit, optionalAuth, [
                     }
                 });
             }
+        } else if (exchange.toLowerCase() === 'okx') {
+            // Test OKX connection by fetching balance
+            const { passphrase } = req.body; // OKX requires passphrase
+            if (!passphrase) {
+                throw new Error('OKX requires passphrase');
+            }
+
+            const timestamp = Date.now().toString();
+            const method = 'GET';
+            const requestPath = OKX_CONFIG.endpoints.balance;
+            const signature = createOKXSignature(timestamp, method, requestPath, '', secretKey);
+
+            const response = await fetch(`${OKX_CONFIG.baseUrl}${requestPath}`, {
+                method: 'GET',
+                headers: {
+                    'OK-ACCESS-KEY': apiKey,
+                    'OK-ACCESS-SIGN': signature,
+                    'OK-ACCESS-TIMESTAMP': timestamp,
+                    'OK-ACCESS-PASSPHRASE': passphrase,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`OKX API error: ${response.status} - ${errorText}`);
+            }
+
+            const balanceData = await response.json();
+
+            // Transform OKX response
+            if (balanceData.code !== '0') {
+                throw new Error(`OKX API error: ${balanceData.msg || 'Unknown error'}`);
+            }
+
+            if (balanceData.data && Array.isArray(balanceData.data)) {
+                balanceData.data.forEach(account => {
+                    if (account.details && Array.isArray(account.details)) {
+                        account.details.forEach(balance => {
+                            const available = parseFloat(balance.availBal || 0);
+                            const frozen = parseFloat(balance.frozenBal || 0);
+                            const total = available + frozen;
+                            if (total > 0) {
+                                balances[balance.ccy] = total;
+                            }
+                        });
+                    }
+                });
+            }
         } else {
             throw new APIError(`Exchange ${exchange} not supported`, 400, 'UNSUPPORTED_EXCHANGE');
         }
@@ -390,6 +439,41 @@ router.post('/test-connection', tradingRateLimit, optionalAuth, [
             if (response.ok) {
                 const data = await response.json();
                 if (data.balances && Array.isArray(data.balances)) {
+                    res.json({
+                        success: true,
+                        message: 'Connection test successful'
+                    });
+                    return;
+                }
+            }
+
+            throw new Error('Connection test failed - invalid credentials');
+        } else if (exchange.toLowerCase() === 'okx') {
+            // Test OKX connection
+            const { passphrase } = req.body; // OKX requires passphrase
+            if (!passphrase) {
+                throw new Error('OKX requires passphrase');
+            }
+
+            const timestamp = Date.now().toString();
+            const method = 'GET';
+            const requestPath = OKX_CONFIG.endpoints.balance;
+            const signature = createOKXSignature(timestamp, method, requestPath, '', secretKey);
+
+            const response = await fetch(`${OKX_CONFIG.baseUrl}${requestPath}`, {
+                method: 'GET',
+                headers: {
+                    'OK-ACCESS-KEY': apiKey,
+                    'OK-ACCESS-SIGN': signature,
+                    'OK-ACCESS-TIMESTAMP': timestamp,
+                    'OK-ACCESS-PASSPHRASE': passphrase,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data.code === '0') {
                     res.json({
                         success: true,
                         message: 'Connection test successful'
