@@ -859,6 +859,34 @@
                 </div>
             </div>
             </form>
+
+            <!-- ByBit Cross Exchange -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">ByBit - Cross Exchange Strategy</div>
+                    <div id="bybit-cross-exchange-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="bybit-cross-exchange-api">API Key</label>
+                    <input type="text" id="bybit-cross-exchange-api" class="form-input" placeholder="Enter ByBit API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="bybit-cross-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="bybit-cross-exchange-secret">Secret Key</label>
+                    <input type="password" id="bybit-cross-exchange-secret" class="form-input" placeholder="Enter ByBit Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="bybit-cross-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="bybit-cross-exchange-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('bybit', 'cross-exchange')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('bybit', 'cross-exchange')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('bybit', 'cross-exchange')">Disconnect</button>
+                </div>
+            </div>
+            </form>
+
         </div>
     </div>
 
@@ -1097,6 +1125,9 @@
                         } else if (exchange === 'binance') {
                             localStorage.setItem('binanceApiKey', apiKey);
                             localStorage.setItem('binanceSecretKey', secretKey);
+                        } else if (exchange === 'bybit') {
+                            localStorage.setItem('bybitApiKey', apiKey);
+                            localStorage.setItem('bybitSecretKey', secretKey);
                         }
                     }
 
@@ -1167,6 +1198,10 @@
                                 balanceElementId = 'binanceBalance';
                                 statusElementId = 'binanceStatus';
                                 priceStatusElementId = 'binancePriceStatus';
+                            } else if (exchange === 'bybit') {
+                                balanceElementId = 'bybitBalance';
+                                statusElementId = 'bybitStatus';
+                                priceStatusElementId = 'bybitPriceStatus';
                             }
 
                             if (balanceElementId) {
@@ -1490,7 +1525,11 @@
                 'binance-cross-exchange-api', 'binance-cross-exchange-secret',
                 'binance-triangular-api', 'binance-triangular-secret',
                 'binance-transfer-api', 'binance-transfer-secret',
-                'binance-currency-swap-api', 'binance-currency-swap-secret'
+                'binance-currency-swap-api', 'binance-currency-swap-secret',
+                'bybit-cross-exchange-api', 'bybit-cross-exchange-secret',
+                'bybit-triangular-api', 'bybit-triangular-secret',
+                'bybit-transfer-api', 'bybit-transfer-secret',
+                'bybit-currency-swap-api', 'bybit-currency-swap-secret'
             ];
 
             apiKeyFields.forEach(fieldId => {
@@ -1510,7 +1549,7 @@
         function loadStrategyCredentials() {
             console.log('🔄 Loading strategy credentials...');
 
-            const exchanges = ['chainex', 'valr', 'luno', 'kraken', 'binance'];
+            const exchanges = ['chainex', 'valr', 'luno', 'kraken', 'binance', 'bybit'];
             const strategies = ['cross-exchange', 'triangular', 'transfer', 'currency-swap'];
 
             exchanges.forEach(exchange => {
@@ -1536,6 +1575,9 @@
                         } else if (exchange === 'binance') {
                             apiKey = localStorage.getItem('binanceApiKey');
                             secretKey = localStorage.getItem('binanceSecretKey');
+                        } else if (exchange === 'bybit') {
+                            apiKey = localStorage.getItem('bybitApiKey');
+                            secretKey = localStorage.getItem('bybitSecretKey');
                         }
                         if (apiKey) {
                             console.log(`📄 Loaded from original format for ${exchange} ${strategy}`);
