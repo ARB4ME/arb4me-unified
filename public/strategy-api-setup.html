@@ -484,6 +484,37 @@
             </div>
             </form>
 
+            <!-- Bitget Cross Exchange -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">Bitget - Cross Exchange Strategy</div>
+                    <div id="bitget-cross-exchange-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="bitget-cross-exchange-api">API Key</label>
+                    <input type="text" id="bitget-cross-exchange-api" class="form-input" placeholder="Enter Bitget API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="bitget-cross-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="bitget-cross-exchange-secret">Secret Key</label>
+                    <input type="password" id="bitget-cross-exchange-secret" class="form-input" placeholder="Enter Bitget Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="bitget-cross-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="bitget-cross-exchange-passphrase">Passphrase</label>
+                    <input type="password" id="bitget-cross-exchange-passphrase" class="form-input" placeholder="Enter Bitget Passphrase" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="bitget-cross-passphrase">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="bitget-cross-exchange-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('bitget', 'cross-exchange')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('bitget', 'cross-exchange')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('bitget', 'cross-exchange')">Disconnect</button>
+                </div>
+            </div>
+            </form>
+
             <!-- VALR Cross-Exchange -->
             <form autocomplete="off" onsubmit="return false;">
             <div class="exchange-card">
@@ -871,6 +902,37 @@
                 </div>
             </div>
             </form>
+
+            <!-- Bitget Triangular -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">Bitget - Triangular Strategy</div>
+                    <div id="bitget-triangular-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="bitget-triangular-api">API Key</label>
+                    <input type="text" id="bitget-triangular-api" class="form-input" placeholder="Enter Bitget API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="bitget-tri-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="bitget-triangular-secret">Secret Key</label>
+                    <input type="password" id="bitget-triangular-secret" class="form-input" placeholder="Enter Bitget Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="bitget-tri-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="bitget-triangular-passphrase">Passphrase</label>
+                    <input type="password" id="bitget-triangular-passphrase" class="form-input" placeholder="Enter Bitget Passphrase" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="bitget-tri-passphrase">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="bitget-triangular-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('bitget', 'triangular')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('bitget', 'triangular')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('bitget', 'triangular')">Disconnect</button>
+                </div>
+            </div>
+            </form>
         </div>
 
         <!-- Transfer Strategy -->
@@ -1148,6 +1210,37 @@
                     <button class="btn btn-primary" onclick="connectStrategyExchange('htx', 'transfer')">Connect</button>
                     <button class="btn btn-secondary" onclick="testStrategyConnection('htx', 'transfer')">Test Connection</button>
                     <button class="btn btn-danger" onclick="disconnectStrategyExchange('htx', 'transfer')">Disconnect</button>
+                </div>
+            </div>
+            </form>
+
+            <!-- Bitget Transfer -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">Bitget - Transfer Strategy</div>
+                    <div id="bitget-transfer-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="bitget-transfer-api">API Key</label>
+                    <input type="text" id="bitget-transfer-api" class="form-input" placeholder="Enter Bitget API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="bitget-trans-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="bitget-transfer-secret">Secret Key</label>
+                    <input type="password" id="bitget-transfer-secret" class="form-input" placeholder="Enter Bitget Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="bitget-trans-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="bitget-transfer-passphrase">Passphrase</label>
+                    <input type="password" id="bitget-transfer-passphrase" class="form-input" placeholder="Enter Bitget Passphrase" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="bitget-trans-passphrase">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="bitget-transfer-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('bitget', 'transfer')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('bitget', 'transfer')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('bitget', 'transfer')">Disconnect</button>
                 </div>
             </div>
             </form>
@@ -1463,6 +1556,45 @@
                         <button type="button" onclick="testStrategyConnection('htx', 'currency-swap')"
                                 class="btn-secondary">Test</button>
                         <button type="button" onclick="disconnectStrategyExchange('htx', 'currency-swap')"
+                                class="btn-danger">Disconnect</button>
+                    </div>
+                </div>
+            </div>
+            </form>
+
+            <!-- Bitget Currency Swap -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">Bitget - Currency Swap Strategy</div>
+                    <div id="bitget-currency-swap-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="exchange-body">
+                    <div class="form-group">
+                        <label for="bitget-currency-swap-api">API Key:</label>
+                        <input type="password" id="bitget-currency-swap-api" name="bitget_currency_swap_api_unique"
+                               placeholder="Enter Bitget API Key" autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label for="bitget-currency-swap-secret">Secret Key:</label>
+                        <input type="password" id="bitget-currency-swap-secret" name="bitget_currency_swap_secret_unique"
+                               placeholder="Enter Bitget Secret Key" autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label for="bitget-currency-swap-passphrase">Passphrase:</label>
+                        <input type="password" id="bitget-currency-swap-passphrase" name="bitget_currency_swap_passphrase_unique"
+                               placeholder="Enter Bitget Passphrase" autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label>Balance:</label>
+                        <div id="bitget-currency-swap-balance" class="balance-display">Not connected</div>
+                    </div>
+                    <div class="button-group">
+                        <button type="button" onclick="connectStrategyExchange('bitget', 'currency-swap')"
+                                class="btn-primary">Connect</button>
+                        <button type="button" onclick="testStrategyConnection('bitget', 'currency-swap')"
+                                class="btn-secondary">Test</button>
+                        <button type="button" onclick="disconnectStrategyExchange('bitget', 'currency-swap')"
                                 class="btn-danger">Disconnect</button>
                     </div>
                 </div>
@@ -2127,7 +2259,11 @@
                 'htx-cross-exchange-api', 'htx-cross-exchange-secret',
                 'htx-triangular-api', 'htx-triangular-secret',
                 'htx-transfer-api', 'htx-transfer-secret',
-                'htx-currency-swap-api', 'htx-currency-swap-secret'
+                'htx-currency-swap-api', 'htx-currency-swap-secret',
+                'bitget-cross-exchange-api', 'bitget-cross-exchange-secret', 'bitget-cross-exchange-passphrase',
+                'bitget-triangular-api', 'bitget-triangular-secret', 'bitget-triangular-passphrase',
+                'bitget-transfer-api', 'bitget-transfer-secret', 'bitget-transfer-passphrase',
+                'bitget-currency-swap-api', 'bitget-currency-swap-secret', 'bitget-currency-swap-passphrase'
             ];
 
             apiKeyFields.forEach(fieldId => {
@@ -2147,7 +2283,7 @@
         function loadStrategyCredentials() {
             console.log('🔄 Loading strategy credentials...');
 
-            const exchanges = ['chainex', 'valr', 'luno', 'kraken', 'binance', 'bybit', 'okx', 'mexc', 'kucoin', 'htx'];
+            const exchanges = ['chainex', 'valr', 'luno', 'kraken', 'binance', 'bybit', 'okx', 'mexc', 'kucoin', 'htx', 'bitget'];
             const strategies = ['cross-exchange', 'triangular', 'transfer', 'currency-swap'];
 
             exchanges.forEach(exchange => {
@@ -2191,6 +2327,10 @@
                         } else if (exchange === 'htx') {
                             apiKey = localStorage.getItem('htxApiKey');
                             secretKey = localStorage.getItem('htxSecretKey');
+                        } else if (exchange === 'bitget') {
+                            apiKey = localStorage.getItem('bitgetApiKey');
+                            secretKey = localStorage.getItem('bitgetSecretKey');
+                            passphrase = localStorage.getItem('bitgetPassphrase');
                         }
                         if (apiKey) {
                             console.log(`📄 Loaded from original format for ${exchange} ${strategy}`);

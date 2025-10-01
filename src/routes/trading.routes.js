@@ -439,6 +439,51 @@ router.post('/connect-exchange', tradingRateLimit, optionalAuth, [
                     }
                 }
             }
+        } else if (exchange.toLowerCase() === 'bitget') {
+            // Test Bitget connection by fetching balance
+            const { passphrase } = req.body; // Bitget requires passphrase
+            if (!passphrase) {
+                throw new Error('Bitget requires passphrase');
+            }
+
+            const timestamp = Date.now().toString();
+            const method = 'GET';
+            const requestPath = BITGET_CONFIG.endpoints.balance;
+            const signature = createBitgetSignature(timestamp, method, requestPath, '', secretKey);
+
+            const response = await fetch(`${BITGET_CONFIG.baseUrl}${requestPath}`, {
+                method: 'GET',
+                headers: {
+                    'ACCESS-KEY': apiKey,
+                    'ACCESS-SIGN': signature,
+                    'ACCESS-TIMESTAMP': timestamp,
+                    'ACCESS-PASSPHRASE': passphrase,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Bitget API error: ${response.status} - ${errorText}`);
+            }
+
+            const balanceData = await response.json();
+
+            // Transform Bitget response
+            if (balanceData.code !== '00000') {
+                throw new Error(`Bitget API error: ${balanceData.msg || 'Unknown error'}`);
+            }
+
+            if (balanceData.data && Array.isArray(balanceData.data)) {
+                balanceData.data.forEach(balance => {
+                    const available = parseFloat(balance.available || 0);
+                    const frozen = parseFloat(balance.frozen || 0);
+                    const total = available + frozen;
+                    if (total > 0) {
+                        balances[balance.coin] = total;
+                    }
+                });
+            }
         } else {
             throw new APIError(`Exchange ${exchange} not supported`, 400, 'UNSUPPORTED_EXCHANGE');
         }
@@ -729,6 +774,41 @@ router.post('/test-connection', tradingRateLimit, optionalAuth, [
             if (accountsResponse.ok) {
                 const accountsData = await accountsResponse.json();
                 if (accountsData.status === 'ok') {
+                    res.json({
+                        success: true,
+                        message: 'Connection test successful'
+                    });
+                    return;
+                }
+            }
+
+            throw new Error('Connection test failed - invalid credentials');
+        } else if (exchange.toLowerCase() === 'bitget') {
+            // Test Bitget connection
+            const { passphrase } = req.body; // Bitget requires passphrase
+            if (!passphrase) {
+                throw new Error('Bitget requires passphrase');
+            }
+
+            const timestamp = Date.now().toString();
+            const method = 'GET';
+            const requestPath = BITGET_CONFIG.endpoints.balance;
+            const signature = createBitgetSignature(timestamp, method, requestPath, '', secretKey);
+
+            const response = await fetch(`${BITGET_CONFIG.baseUrl}${requestPath}`, {
+                method: 'GET',
+                headers: {
+                    'ACCESS-KEY': apiKey,
+                    'ACCESS-SIGN': signature,
+                    'ACCESS-TIMESTAMP': timestamp,
+                    'ACCESS-PASSPHRASE': passphrase,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data.code === '00000') {
                     res.json({
                         success: true,
                         message: 'Connection test successful'
