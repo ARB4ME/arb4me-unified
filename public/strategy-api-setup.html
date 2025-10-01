@@ -1745,6 +1745,9 @@
                 const passphraseElement = document.getElementById(`${exchange}-${strategy}-passphrase`);
                 if (passphraseElement) {
                     passphrase = passphraseElement.value;
+                    console.log(`🔑 ${exchange} passphrase field found, value length:`, passphrase ? passphrase.length : 'empty');
+                } else {
+                    console.error(`❌ ${exchange} passphrase field NOT found: ${exchange}-${strategy}-passphrase`);
                 }
                 if (!passphrase) {
                     alert(`Please enter the passphrase for ${exchange.toUpperCase()}`);
@@ -1777,6 +1780,8 @@
                         }
                     }
                 };
+
+                console.log(`🔧 ${exchange} temporary state:`, JSON.stringify(tempState, null, 2));
 
                 // Store current window.state temporarily and replace with our temp state
                 const originalState = window.state;
