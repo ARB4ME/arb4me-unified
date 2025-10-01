@@ -612,6 +612,33 @@
                 </div>
             </div>
             </form>
+
+            <!-- ByBit Triangular -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">ByBit - Triangular Strategy</div>
+                    <div id="bybit-triangular-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="bybit-triangular-api">API Key</label>
+                    <input type="text" id="bybit-triangular-api" class="form-input" placeholder="Enter ByBit API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="bybit-tri-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="bybit-triangular-secret">Secret Key</label>
+                    <input type="password" id="bybit-triangular-secret" class="form-input" placeholder="Enter ByBit Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="bybit-tri-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="bybit-triangular-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('bybit', 'triangular')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('bybit', 'triangular')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('bybit', 'triangular')">Disconnect</button>
+                </div>
+            </div>
+            </form>
         </div>
 
         <!-- Transfer Strategy -->
@@ -749,6 +776,33 @@
                 </div>
             </div>
             </form>
+
+            <!-- ByBit Transfer -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">ByBit - Transfer Strategy</div>
+                    <div id="bybit-transfer-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="bybit-transfer-api">API Key</label>
+                    <input type="text" id="bybit-transfer-api" class="form-input" placeholder="Enter ByBit API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="bybit-trans-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="bybit-transfer-secret">Secret Key</label>
+                    <input type="password" id="bybit-transfer-secret" class="form-input" placeholder="Enter ByBit Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="bybit-trans-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="bybit-transfer-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('bybit', 'transfer')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('bybit', 'transfer')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('bybit', 'transfer')">Disconnect</button>
+                </div>
+            </div>
+            </form>
         </div>
 
         <!-- Currency Swap Strategy -->
@@ -883,6 +937,40 @@
                     <button class="btn btn-primary" onclick="connectStrategyExchange('binance', 'currency-swap')">Connect</button>
                     <button class="btn btn-secondary" onclick="testStrategyConnection('binance', 'currency-swap')">Test Connection</button>
                     <button class="btn btn-danger" onclick="disconnectStrategyExchange('binance', 'currency-swap')">Disconnect</button>
+                </div>
+            </div>
+            </form>
+
+            <!-- ByBit Currency Swap -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">ByBit - Currency Swap Strategy</div>
+                    <div id="bybit-currency-swap-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="exchange-body">
+                    <div class="form-group">
+                        <label for="bybit-currency-swap-api">API Key:</label>
+                        <input type="password" id="bybit-currency-swap-api" name="bybit_currency_swap_api_unique"
+                               placeholder="Enter ByBit API Key" autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label for="bybit-currency-swap-secret">Secret Key:</label>
+                        <input type="password" id="bybit-currency-swap-secret" name="bybit_currency_swap_secret_unique"
+                               placeholder="Enter ByBit Secret Key" autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label>Balance:</label>
+                        <div id="bybit-currency-swap-balance" class="balance-display">Not connected</div>
+                    </div>
+                    <div class="button-group">
+                        <button type="button" onclick="connectStrategyExchange('bybit', 'currency-swap')"
+                                class="btn-primary">Connect</button>
+                        <button type="button" onclick="testStrategyConnection('bybit', 'currency-swap')"
+                                class="btn-secondary">Test</button>
+                        <button type="button" onclick="disconnectStrategyExchange('bybit', 'currency-swap')"
+                                class="btn-danger">Disconnect</button>
+                    </div>
                 </div>
             </div>
             </form>
