@@ -1003,25 +1003,58 @@
             }
 
             try {
-                // Test connection by fetching balance directly (like original setup)
-                const balanceEndpoint = exchange === 'chainex'
-                    ? '/api/v1/trading/chainex/balance'
-                    : `/api/v1/trading/${exchange}/balance`;
+                // APPROACH: Use same method as original setup - temporary state and getRealBalances
+                // Create temporary state structure to mimic original setup
+                const tempState = {
+                    exchanges: {
+                        [exchange]: {
+                            api: {
+                                key: apiKey,
+                                secret: secretKey
+                            }
+                        }
+                    }
+                };
 
-                const response = await fetch(balanceEndpoint, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        apiKey: apiKey,
-                        apiSecret: secretKey
-                    })
-                });
+                // Store current window.state temporarily and replace with our temp state
+                const originalState = window.state;
+                window.state = tempState;
 
-                const result = await response.json();
+                try {
+                    // Use the same method as original setup - getRealBalances()
+                    // This function exists in the parent window (main dashboard)
+                    let balances;
+                    if (window.opener && window.opener.getRealBalances) {
+                        balances = await window.opener.getRealBalances(exchange);
+                    } else {
+                        // Fallback to direct balance endpoint call if parent function unavailable
+                        const balanceEndpoint = exchange === 'chainex'
+                            ? '/api/v1/trading/chainex/balance'
+                            : `/api/v1/trading/${exchange}/balance`;
 
-                if (result.success) {
+                        const response = await fetch(balanceEndpoint, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                apiKey: apiKey,
+                                apiSecret: secretKey
+                            })
+                        });
+
+                        const result = await response.json();
+                        if (result.success) {
+                            balances = result.data?.balances || result.balances || result.data || result;
+                        } else {
+                            throw new Error(result.error?.message || 'Connection failed');
+                        }
+                    }
+
+                    // Restore original state
+                    window.state = originalState;
+
+                    if (balances) {
                     // Store credentials in localStorage with strategy prefix
                     localStorage.setItem(`${exchange}_${strategy}_api`, apiKey);
                     localStorage.setItem(`${exchange}_${strategy}_secret`, secretKey);
@@ -1140,8 +1173,15 @@
                     }
 
                     alert(`${exchange.toUpperCase()} ${strategy} strategy connected successfully!`);
-                } else {
-                    throw new Error(result.error?.message || 'Connection failed');
+                    } else {
+                        throw new Error('No balances returned from API');
+                    }
+                } catch (tempError) {
+                    // Restore original state if getRealBalances failed
+                    if (originalState) {
+                        window.state = originalState;
+                    }
+                    throw tempError;
                 }
             } catch (error) {
                 console.error('Connection error:', error);
