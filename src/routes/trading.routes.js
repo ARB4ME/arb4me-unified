@@ -11847,9 +11847,9 @@ router.post('/cryptocom/sell-order', tradingRateLimit, optionalAuth, [
 const COINCATCH_CONFIG = {
     baseUrl: 'https://api.coincatch.com',
     endpoints: {
-        balance: '/api/v1/account/balance',
+        balance: '/api/spot/v1/account/assets',
         ticker: '/api/v1/market/ticker',
-        test: '/api/v1/account/balance'
+        test: '/api/spot/v1/account/assets'
     }
 };
 
@@ -11881,10 +11881,10 @@ router.post('/coincatch/balance', tradingRateLimit, optionalAuth, [
         const response = await fetch(`${COINCATCH_CONFIG.baseUrl}${requestPath}`, {
             method: 'GET',
             headers: {
-                'CC-API-KEY': apiKey,
-                'CC-API-SIGN': signature,
-                'CC-API-TIMESTAMP': timestamp,
-                'CC-API-PASSPHRASE': passphrase,
+                'ACCESS-KEY': apiKey,
+                'ACCESS-SIGN': signature,
+                'ACCESS-TIMESTAMP': timestamp,
+                'ACCESS-PASSPHRASE': passphrase,
                 'Content-Type': 'application/json'
             }
         });
@@ -11900,7 +11900,7 @@ router.post('/coincatch/balance', tradingRateLimit, optionalAuth, [
             data.data.forEach(balance => {
                 const available = parseFloat(balance.available);
                 if (available > 0) {
-                    balances[balance.currency] = available;
+                    balances[balance.coinName] = available;
                 }
             });
         }
@@ -12003,10 +12003,10 @@ router.post('/coincatch/test', tradingRateLimit, optionalAuth, [
         const response = await fetch(`${COINCATCH_CONFIG.baseUrl}${requestPath}`, {
             method: 'GET',
             headers: {
-                'CC-API-KEY': apiKey,
-                'CC-API-SIGN': signature,
-                'CC-API-TIMESTAMP': timestamp,
-                'CC-API-PASSPHRASE': passphrase,
+                'ACCESS-KEY': apiKey,
+                'ACCESS-SIGN': signature,
+                'ACCESS-TIMESTAMP': timestamp,
+                'ACCESS-PASSPHRASE': passphrase,
                 'Content-Type': 'application/json'
             }
         });
