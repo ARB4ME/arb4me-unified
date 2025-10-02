@@ -573,6 +573,33 @@
             </div>
             </form>
 
+            <!-- Gate.io Cross-Exchange -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">Gate.io - Cross-Exchange Strategy</div>
+                    <div id="gateio-cross-exchange-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="gateio-cross-exchange-api">API Key</label>
+                    <input type="text" id="gateio-cross-exchange-api" class="form-input" placeholder="Enter Gate.io API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="gateio-cross-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="gateio-cross-exchange-secret">Secret Key</label>
+                    <input type="password" id="gateio-cross-exchange-secret" class="form-input" placeholder="Enter Gate.io Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="gateio-cross-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="gateio-cross-exchange-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('gateio', 'cross-exchange')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('gateio', 'cross-exchange')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('gateio', 'cross-exchange')">Disconnect</button>
+                </div>
+            </div>
+            </form>
+
             <!-- Gemini Cross-Exchange -->
             <form autocomplete="off" onsubmit="return false;">
             <div class="exchange-card">
@@ -1162,6 +1189,33 @@
             </div>
             </form>
 
+            <!-- Gate.io Triangular -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">Gate.io - Triangular Strategy</div>
+                    <div id="gateio-triangular-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="gateio-triangular-api">API Key</label>
+                    <input type="text" id="gateio-triangular-api" class="form-input" placeholder="Enter Gate.io API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="gateio-tri-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="gateio-triangular-secret">Secret Key</label>
+                    <input type="password" id="gateio-triangular-secret" class="form-input" placeholder="Enter Gate.io Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="gateio-tri-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="gateio-triangular-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('gateio', 'triangular')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('gateio', 'triangular')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('gateio', 'triangular')">Disconnect</button>
+                </div>
+            </div>
+            </form>
+
             <!-- Gemini Triangular -->
             <form autocomplete="off" onsubmit="return false;">
             <div class="exchange-card">
@@ -1639,6 +1693,33 @@
                     <button class="btn btn-primary" onclick="connectStrategyExchange('bitrue', 'transfer')">Connect</button>
                     <button class="btn btn-secondary" onclick="testStrategyConnection('bitrue', 'transfer')">Test Connection</button>
                     <button class="btn btn-danger" onclick="disconnectStrategyExchange('bitrue', 'transfer')">Disconnect</button>
+                </div>
+            </div>
+            </form>
+
+            <!-- Gate.io Transfer -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">Gate.io - Transfer Strategy</div>
+                    <div id="gateio-transfer-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="gateio-transfer-api">API Key</label>
+                    <input type="text" id="gateio-transfer-api" class="form-input" placeholder="Enter Gate.io API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="gateio-trans-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="gateio-transfer-secret">Secret Key</label>
+                    <input type="password" id="gateio-transfer-secret" class="form-input" placeholder="Enter Gate.io Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="gateio-trans-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="gateio-transfer-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('gateio', 'transfer')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('gateio', 'transfer')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('gateio', 'transfer')">Disconnect</button>
                 </div>
             </div>
             </form>
@@ -2157,6 +2238,33 @@
                     <button class="btn btn-primary" onclick="connectStrategyExchange('bitrue', 'currency-swap')">Connect</button>
                     <button class="btn btn-secondary" onclick="testStrategyConnection('bitrue', 'currency-swap')">Test Connection</button>
                     <button class="btn btn-danger" onclick="disconnectStrategyExchange('bitrue', 'currency-swap')">Disconnect</button>
+                </div>
+            </div>
+            </form>
+
+            <!-- Gate.io Currency Swap -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">Gate.io - Currency Swap Strategy</div>
+                    <div id="gateio-currency-swap-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="gateio-currency-swap-api">API Key</label>
+                    <input type="text" id="gateio-currency-swap-api" class="form-input" placeholder="Enter Gate.io API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="gateio-swap-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="gateio-currency-swap-secret">Secret Key</label>
+                    <input type="password" id="gateio-currency-swap-secret" class="form-input" placeholder="Enter Gate.io Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="gateio-swap-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="gateio-currency-swap-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('gateio', 'currency-swap')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('gateio', 'currency-swap')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('gateio', 'currency-swap')">Disconnect</button>
                 </div>
             </div>
             </form>
@@ -3217,7 +3325,7 @@
         function loadStrategyCredentials() {
             console.log('🔄 Loading strategy credentials...');
 
-            const exchanges = ['chainex', 'valr', 'luno', 'kraken', 'binance', 'bybit', 'okx', 'mexc', 'kucoin', 'htx', 'bitget', 'bitmart', 'bitrue', 'gemini', 'coincatch', 'bingx', 'ascendex'];
+            const exchanges = ['chainex', 'valr', 'luno', 'kraken', 'binance', 'bybit', 'okx', 'mexc', 'kucoin', 'htx', 'bitget', 'bitmart', 'bitrue', 'gemini', 'coincatch', 'bingx', 'ascendex', 'gateio'];
             const strategies = ['cross-exchange', 'triangular', 'transfer', 'currency-swap'];
 
             exchanges.forEach(exchange => {
