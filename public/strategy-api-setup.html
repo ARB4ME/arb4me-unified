@@ -1804,7 +1804,13 @@
 
                 // CRITICAL: Also set state in parent window since getRealBalances uses window.opener.state
                 let originalParentState = null;
-                if (window.opener && window.opener.state) {
+                if (window.opener) {
+                    // Create state object if it doesn't exist
+                    if (!window.opener.state) {
+                        window.opener.state = { exchanges: {} };
+                        console.log(`🔧 Created state object in parent window`);
+                    }
+
                     // Ensure exchanges object exists in parent state
                     if (!window.opener.state.exchanges) {
                         window.opener.state.exchanges = {};
@@ -1818,7 +1824,7 @@
                     window.opener.state.exchanges[exchange] = tempState.exchanges[exchange];
                     console.log(`🔄 Updated parent window state for ${exchange}:`, window.opener.state.exchanges[exchange]);
                 } else {
-                    console.error(`❌ Cannot set parent window state - parent:`, !!window.opener, 'parent.state:', !!window.opener?.state);
+                    console.error(`❌ No parent window available`);
                 }
 
                 // Debug: Check what's in parent window
@@ -1880,15 +1886,17 @@
                     window.state = originalState;
 
                     // Restore parent window state
-                    if (window.opener && window.opener.state && originalParentState !== null) {
-                        if (Object.keys(originalParentState).length === 0) {
-                            // Original state was empty, so delete the exchange
-                            delete window.opener.state.exchanges[exchange];
-                            console.log(`🔄 Removed ${exchange} from parent window state (was originally empty)`);
-                        } else {
-                            // Restore original state
-                            window.opener.state.exchanges[exchange] = originalParentState;
-                            console.log(`🔄 Restored parent window state for ${exchange}`);
+                    if (window.opener && originalParentState !== null) {
+                        if (window.opener.state && window.opener.state.exchanges) {
+                            if (Object.keys(originalParentState).length === 0) {
+                                // Original state was empty, so delete the exchange
+                                delete window.opener.state.exchanges[exchange];
+                                console.log(`🔄 Removed ${exchange} from parent window state (was originally empty)`);
+                            } else {
+                                // Restore original state
+                                window.opener.state.exchanges[exchange] = originalParentState;
+                                console.log(`🔄 Restored parent window state for ${exchange}`);
+                            }
                         }
                     }
 
