@@ -8147,7 +8147,8 @@ router.post('/ascendex/balance', tradingRateLimit, optionalAuth, [
         // Step 1: Get account info to retrieve account group
         const infoTimestamp = Date.now().toString();
         const infoPath = ASCENDEX_CONFIG.endpoints.test; // /api/pro/v1/info
-        const infoSignature = createAscendEXSignature(infoTimestamp, infoPath, apiSecret);
+        // For info endpoint, prehash is timestamp+info (not full path)
+        const infoSignature = createAscendEXSignature(infoTimestamp, 'info', apiSecret);
 
         const infoResponse = await fetch(`${ASCENDEX_CONFIG.baseUrl}${infoPath}`, {
             method: 'GET',
@@ -8179,7 +8180,8 @@ router.post('/ascendex/balance', tradingRateLimit, optionalAuth, [
         // Step 2: Get balance using account group
         const balanceTimestamp = Date.now().toString();
         const balancePath = `/api/pro/v1/cash/balance`;
-        const balanceSignature = createAscendEXSignature(balanceTimestamp, balancePath, apiSecret);
+        // For balance endpoint, prehash is timestamp+balance (not full path)
+        const balanceSignature = createAscendEXSignature(balanceTimestamp, 'balance', apiSecret);
 
         const response = await fetch(`${ASCENDEX_CONFIG.baseUrl}/${accountGroup}${balancePath}`, {
             method: 'GET',
