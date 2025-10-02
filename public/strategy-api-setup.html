@@ -1894,6 +1894,19 @@
                 }
             }
 
+            // Get memo for BitMart (optional)
+            let memo = null;
+            if (exchange === 'bitmart') {
+                const memoElement = document.getElementById(`${exchange}-${strategy}-memo`);
+                if (memoElement) {
+                    memo = memoElement.value;
+                    console.log(`📝 ${exchange} memo field found, value length:`, memo ? memo.length : 'empty');
+                } else {
+                    console.error(`❌ ${exchange} memo field NOT found: ${exchange}-${strategy}-memo`);
+                }
+                // Note: memo is optional for BitMart, so no validation required
+            }
+
             if (!apiKey || !secretKey) {
                 alert('Please enter both API key and Secret key');
                 return;
@@ -1914,7 +1927,8 @@
                             api: {
                                 key: apiKey,
                                 secret: secretKey,
-                                ...(passphrase && { passphrase: passphrase })
+                                ...(passphrase && { passphrase: passphrase }),
+                                ...(memo && { memo: memo })
                             }
                         }
                     }
