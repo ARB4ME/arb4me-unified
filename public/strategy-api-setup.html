@@ -1662,34 +1662,26 @@
                     <div class="exchange-name">Bitget - Currency Swap Strategy</div>
                     <div id="bitget-currency-swap-status" class="connection-status status-disconnected">Disconnected</div>
                 </div>
-                <div class="exchange-body">
-                    <div class="form-group">
-                        <label for="bitget-currency-swap-api">API Key:</label>
-                        <input type="password" id="bitget-currency-swap-api" name="bitget_currency_swap_api_unique"
-                               placeholder="Enter Bitget API Key" autocomplete="off">
-                    </div>
-                    <div class="form-group">
-                        <label for="bitget-currency-swap-secret">Secret Key:</label>
-                        <input type="password" id="bitget-currency-swap-secret" name="bitget_currency_swap_secret_unique"
-                               placeholder="Enter Bitget Secret Key" autocomplete="off">
-                    </div>
-                    <div class="form-group">
-                        <label for="bitget-currency-swap-passphrase">Passphrase:</label>
-                        <input type="password" id="bitget-currency-swap-passphrase" name="bitget_currency_swap_passphrase_unique"
-                               placeholder="Enter Bitget Passphrase" autocomplete="off">
-                    </div>
-                    <div class="form-group">
-                        <label>Balance:</label>
-                        <div id="bitget-currency-swap-balance" class="balance-display">Not connected</div>
-                    </div>
-                    <div class="button-group">
-                        <button type="button" onclick="connectStrategyExchange('bitget', 'currency-swap')"
-                                class="btn-primary">Connect</button>
-                        <button type="button" onclick="testStrategyConnection('bitget', 'currency-swap')"
-                                class="btn-secondary">Test</button>
-                        <button type="button" onclick="disconnectStrategyExchange('bitget', 'currency-swap')"
-                                class="btn-danger">Disconnect</button>
-                    </div>
+                <div class="form-group">
+                    <label class="form-label" for="bitget-currency-swap-api">API Key</label>
+                    <input type="text" id="bitget-currency-swap-api" class="form-input" placeholder="Enter Bitget API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="bitget-swap-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="bitget-currency-swap-secret">Secret Key</label>
+                    <input type="password" id="bitget-currency-swap-secret" class="form-input" placeholder="Enter Bitget Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="bitget-swap-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="bitget-currency-swap-passphrase">Passphrase</label>
+                    <input type="password" id="bitget-currency-swap-passphrase" class="form-input" placeholder="Enter Bitget Passphrase" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="bitget-swap-passphrase">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="bitget-currency-swap-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('bitget', 'currency-swap')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('bitget', 'currency-swap')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('bitget', 'currency-swap')">Disconnect</button>
                 </div>
             </div>
             </form>
