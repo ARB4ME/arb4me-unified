@@ -515,6 +515,37 @@
             </div>
             </form>
 
+            <!-- BitMart Cross-Exchange -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">BitMart - Cross-Exchange Strategy</div>
+                    <div id="bitmart-cross-exchange-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="bitmart-cross-exchange-api">API Key</label>
+                    <input type="text" id="bitmart-cross-exchange-api" class="form-input" placeholder="Enter BitMart API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="bitmart-cross-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="bitmart-cross-exchange-secret">Secret Key</label>
+                    <input type="password" id="bitmart-cross-exchange-secret" class="form-input" placeholder="Enter BitMart Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="bitmart-cross-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="bitmart-cross-exchange-memo">Memo (Optional)</label>
+                    <input type="password" id="bitmart-cross-exchange-memo" class="form-input" placeholder="Enter BitMart Memo (Optional)" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="bitmart-cross-memo">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="bitmart-cross-exchange-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('bitmart', 'cross-exchange')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('bitmart', 'cross-exchange')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('bitmart', 'cross-exchange')">Disconnect</button>
+                </div>
+            </div>
+            </form>
+
             <!-- VALR Cross-Exchange -->
             <form autocomplete="off" onsubmit="return false;">
             <div class="exchange-card">
@@ -933,6 +964,37 @@
                 </div>
             </div>
             </form>
+
+            <!-- BitMart Triangular -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">BitMart - Triangular Strategy</div>
+                    <div id="bitmart-triangular-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="bitmart-triangular-api">API Key</label>
+                    <input type="text" id="bitmart-triangular-api" class="form-input" placeholder="Enter BitMart API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="bitmart-tri-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="bitmart-triangular-secret">Secret Key</label>
+                    <input type="password" id="bitmart-triangular-secret" class="form-input" placeholder="Enter BitMart Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="bitmart-tri-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="bitmart-triangular-memo">Memo (Optional)</label>
+                    <input type="password" id="bitmart-triangular-memo" class="form-input" placeholder="Enter BitMart Memo (Optional)" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="bitmart-tri-memo">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="bitmart-triangular-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('bitmart', 'triangular')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('bitmart', 'triangular')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('bitmart', 'triangular')">Disconnect</button>
+                </div>
+            </div>
+            </form>
         </div>
 
         <!-- Transfer Strategy -->
@@ -1241,6 +1303,37 @@
                     <button class="btn btn-primary" onclick="connectStrategyExchange('bitget', 'transfer')">Connect</button>
                     <button class="btn btn-secondary" onclick="testStrategyConnection('bitget', 'transfer')">Test Connection</button>
                     <button class="btn btn-danger" onclick="disconnectStrategyExchange('bitget', 'transfer')">Disconnect</button>
+                </div>
+            </div>
+            </form>
+
+            <!-- BitMart Transfer -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">BitMart - Transfer Strategy</div>
+                    <div id="bitmart-transfer-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="bitmart-transfer-api">API Key</label>
+                    <input type="text" id="bitmart-transfer-api" class="form-input" placeholder="Enter BitMart API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="bitmart-trans-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="bitmart-transfer-secret">Secret Key</label>
+                    <input type="password" id="bitmart-transfer-secret" class="form-input" placeholder="Enter BitMart Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="bitmart-trans-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="bitmart-transfer-memo">Memo (Optional)</label>
+                    <input type="password" id="bitmart-transfer-memo" class="form-input" placeholder="Enter BitMart Memo (Optional)" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="bitmart-trans-memo">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="bitmart-transfer-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('bitmart', 'transfer')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('bitmart', 'transfer')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('bitmart', 'transfer')">Disconnect</button>
                 </div>
             </div>
             </form>
@@ -1597,6 +1690,37 @@
                         <button type="button" onclick="disconnectStrategyExchange('bitget', 'currency-swap')"
                                 class="btn-danger">Disconnect</button>
                     </div>
+                </div>
+            </div>
+            </form>
+
+            <!-- BitMart Currency Swap -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">BitMart - Currency Swap Strategy</div>
+                    <div id="bitmart-currency-swap-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="bitmart-currency-swap-api">API Key</label>
+                    <input type="text" id="bitmart-currency-swap-api" class="form-input" placeholder="Enter BitMart API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="bitmart-swap-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="bitmart-currency-swap-secret">Secret Key</label>
+                    <input type="password" id="bitmart-currency-swap-secret" class="form-input" placeholder="Enter BitMart Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="bitmart-swap-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="bitmart-currency-swap-memo">Memo (Optional)</label>
+                    <input type="password" id="bitmart-currency-swap-memo" class="form-input" placeholder="Enter BitMart Memo (Optional)" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="bitmart-swap-memo">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="bitmart-currency-swap-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('bitmart', 'currency-swap')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('bitmart', 'currency-swap')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('bitmart', 'currency-swap')">Disconnect</button>
                 </div>
             </div>
             </form>
@@ -2228,7 +2352,7 @@
             let strategy = null;
             if (fieldId.includes('cross-exchange')) {
                 strategy = 'cross-exchange';
-                fieldType = fieldId.includes('-api') ? 'api' : 'secret';
+                fieldType = fieldId.includes('-api') ? 'api' : fieldId.includes('-secret') ? 'secret' : fieldId.includes('-passphrase') ? 'passphrase' : fieldId.includes('-memo') ? 'memo' : 'api';
                 // Determine exchange from field ID
                 if (fieldId.includes('chainex')) {
                     exchange = 'chainex';
@@ -2240,10 +2364,24 @@
                     exchange = 'kraken';
                 } else if (fieldId.includes('binance')) {
                     exchange = 'binance';
+                } else if (fieldId.includes('bybit')) {
+                    exchange = 'bybit';
+                } else if (fieldId.includes('okx')) {
+                    exchange = 'okx';
+                } else if (fieldId.includes('mexc')) {
+                    exchange = 'mexc';
+                } else if (fieldId.includes('kucoin')) {
+                    exchange = 'kucoin';
+                } else if (fieldId.includes('htx')) {
+                    exchange = 'htx';
+                } else if (fieldId.includes('bitget')) {
+                    exchange = 'bitget';
+                } else if (fieldId.includes('bitmart')) {
+                    exchange = 'bitmart';
                 }
             } else if (fieldId.includes('triangular')) {
                 strategy = 'triangular';
-                fieldType = fieldId.includes('-api') ? 'api' : 'secret';
+                fieldType = fieldId.includes('-api') ? 'api' : fieldId.includes('-secret') ? 'secret' : fieldId.includes('-passphrase') ? 'passphrase' : fieldId.includes('-memo') ? 'memo' : 'api';
                 if (fieldId.includes('chainex')) {
                     exchange = 'chainex';
                 } else if (fieldId.includes('valr')) {
@@ -2254,10 +2392,24 @@
                     exchange = 'kraken';
                 } else if (fieldId.includes('binance')) {
                     exchange = 'binance';
+                } else if (fieldId.includes('bybit')) {
+                    exchange = 'bybit';
+                } else if (fieldId.includes('okx')) {
+                    exchange = 'okx';
+                } else if (fieldId.includes('mexc')) {
+                    exchange = 'mexc';
+                } else if (fieldId.includes('kucoin')) {
+                    exchange = 'kucoin';
+                } else if (fieldId.includes('htx')) {
+                    exchange = 'htx';
+                } else if (fieldId.includes('bitget')) {
+                    exchange = 'bitget';
+                } else if (fieldId.includes('bitmart')) {
+                    exchange = 'bitmart';
                 }
             } else if (fieldId.includes('transfer')) {
                 strategy = 'transfer';
-                fieldType = fieldId.includes('-api') ? 'api' : 'secret';
+                fieldType = fieldId.includes('-api') ? 'api' : fieldId.includes('-secret') ? 'secret' : fieldId.includes('-passphrase') ? 'passphrase' : fieldId.includes('-memo') ? 'memo' : 'api';
                 if (fieldId.includes('chainex')) {
                     exchange = 'chainex';
                 } else if (fieldId.includes('valr')) {
@@ -2268,10 +2420,24 @@
                     exchange = 'kraken';
                 } else if (fieldId.includes('binance')) {
                     exchange = 'binance';
+                } else if (fieldId.includes('bybit')) {
+                    exchange = 'bybit';
+                } else if (fieldId.includes('okx')) {
+                    exchange = 'okx';
+                } else if (fieldId.includes('mexc')) {
+                    exchange = 'mexc';
+                } else if (fieldId.includes('kucoin')) {
+                    exchange = 'kucoin';
+                } else if (fieldId.includes('htx')) {
+                    exchange = 'htx';
+                } else if (fieldId.includes('bitget')) {
+                    exchange = 'bitget';
+                } else if (fieldId.includes('bitmart')) {
+                    exchange = 'bitmart';
                 }
             } else if (fieldId.includes('currency-swap')) {
                 strategy = 'currency-swap';
-                fieldType = fieldId.includes('-api') ? 'api' : 'secret';
+                fieldType = fieldId.includes('-api') ? 'api' : fieldId.includes('-secret') ? 'secret' : fieldId.includes('-passphrase') ? 'passphrase' : fieldId.includes('-memo') ? 'memo' : 'api';
                 if (fieldId.includes('chainex')) {
                     exchange = 'chainex';
                 } else if (fieldId.includes('valr')) {
@@ -2282,6 +2448,20 @@
                     exchange = 'kraken';
                 } else if (fieldId.includes('binance')) {
                     exchange = 'binance';
+                } else if (fieldId.includes('bybit')) {
+                    exchange = 'bybit';
+                } else if (fieldId.includes('okx')) {
+                    exchange = 'okx';
+                } else if (fieldId.includes('mexc')) {
+                    exchange = 'mexc';
+                } else if (fieldId.includes('kucoin')) {
+                    exchange = 'kucoin';
+                } else if (fieldId.includes('htx')) {
+                    exchange = 'htx';
+                } else if (fieldId.includes('bitget')) {
+                    exchange = 'bitget';
+                } else if (fieldId.includes('bitmart')) {
+                    exchange = 'bitmart';
                 }
             }
 
@@ -2369,7 +2549,11 @@
                 'bitget-cross-exchange-api', 'bitget-cross-exchange-secret', 'bitget-cross-exchange-passphrase',
                 'bitget-triangular-api', 'bitget-triangular-secret', 'bitget-triangular-passphrase',
                 'bitget-transfer-api', 'bitget-transfer-secret', 'bitget-transfer-passphrase',
-                'bitget-currency-swap-api', 'bitget-currency-swap-secret', 'bitget-currency-swap-passphrase'
+                'bitget-currency-swap-api', 'bitget-currency-swap-secret', 'bitget-currency-swap-passphrase',
+                'bitmart-cross-exchange-api', 'bitmart-cross-exchange-secret', 'bitmart-cross-exchange-memo',
+                'bitmart-triangular-api', 'bitmart-triangular-secret', 'bitmart-triangular-memo',
+                'bitmart-transfer-api', 'bitmart-transfer-secret', 'bitmart-transfer-memo',
+                'bitmart-currency-swap-api', 'bitmart-currency-swap-secret', 'bitmart-currency-swap-memo'
             ];
 
             apiKeyFields.forEach(fieldId => {
@@ -2389,7 +2573,7 @@
         function loadStrategyCredentials() {
             console.log('🔄 Loading strategy credentials...');
 
-            const exchanges = ['chainex', 'valr', 'luno', 'kraken', 'binance', 'bybit', 'okx', 'mexc', 'kucoin', 'htx', 'bitget'];
+            const exchanges = ['chainex', 'valr', 'luno', 'kraken', 'binance', 'bybit', 'okx', 'mexc', 'kucoin', 'htx', 'bitget', 'bitmart'];
             const strategies = ['cross-exchange', 'triangular', 'transfer', 'currency-swap'];
 
             exchanges.forEach(exchange => {
@@ -2398,6 +2582,7 @@
                     let apiKey = localStorage.getItem(`${exchange}_${strategy}_api`);
                     let secretKey = localStorage.getItem(`${exchange}_${strategy}_secret`);
                     let passphrase = localStorage.getItem(`${exchange}_${strategy}_passphrase`);
+                    let memo = localStorage.getItem(`${exchange}_${strategy}_memo`);
 
                     // For cross-exchange, also try original format as fallback
                     if (!apiKey && strategy === 'cross-exchange') {
@@ -2437,19 +2622,24 @@
                             apiKey = localStorage.getItem('bitgetApiKey');
                             secretKey = localStorage.getItem('bitgetSecretKey');
                             passphrase = localStorage.getItem('bitgetPassphrase');
+                        } else if (exchange === 'bitmart') {
+                            apiKey = localStorage.getItem('bitmartApiKey');
+                            secretKey = localStorage.getItem('bitmartSecretKey');
+                            memo = localStorage.getItem('bitmartMemo');
                         }
                         if (apiKey) {
                             console.log(`📄 Loaded from original format for ${exchange} ${strategy}`);
                         }
                     }
 
-                    if (apiKey || secretKey || passphrase) {
+                    if (apiKey || secretKey || passphrase || memo) {
                         console.log(`📊 Found credentials for ${exchange} ${strategy}`);
                     }
 
                     const apiInput = document.getElementById(`${exchange}-${strategy}-api`);
                     const secretInput = document.getElementById(`${exchange}-${strategy}-secret`);
                     const passphraseInput = document.getElementById(`${exchange}-${strategy}-passphrase`);
+                    const memoInput = document.getElementById(`${exchange}-${strategy}-memo`);
 
                     if (apiKey && apiInput) {
                         apiInput.value = apiKey;
@@ -2464,6 +2654,11 @@
                     if (passphrase && passphraseInput) {
                         passphraseInput.value = passphrase;
                         console.log(`✅ Loaded ${exchange} ${strategy} passphrase`);
+                    }
+
+                    if (memo && memoInput) {
+                        memoInput.value = memo;
+                        console.log(`✅ Loaded ${exchange} ${strategy} memo`);
                     }
 
                     // Check connection status
