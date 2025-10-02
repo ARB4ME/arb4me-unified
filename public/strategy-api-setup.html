@@ -738,6 +738,33 @@
                 </div>
             </div>
             </form>
+
+            <!-- BingX Cross-Exchange -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">BingX - Cross-Exchange Strategy</div>
+                    <div id="bingx-cross-exchange-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="bingx-cross-exchange-api">API Key</label>
+                    <input type="text" id="bingx-cross-exchange-api" class="form-input" placeholder="Enter BingX API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="bingx-cross-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="bingx-cross-exchange-secret">Secret Key</label>
+                    <input type="password" id="bingx-cross-exchange-secret" class="form-input" placeholder="Enter BingX Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="bingx-cross-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="bingx-cross-exchange-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('bingx', 'cross-exchange')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('bingx', 'cross-exchange')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('bingx', 'cross-exchange')">Disconnect</button>
+                </div>
+            </div>
+            </form>
         </div>
 
         <!-- Triangular Strategy -->
@@ -1165,6 +1192,33 @@
                 </div>
             </div>
             </form>
+
+            <!-- BingX Triangular -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">BingX - Triangular Strategy</div>
+                    <div id="bingx-triangular-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="bingx-triangular-api">API Key</label>
+                    <input type="text" id="bingx-triangular-api" class="form-input" placeholder="Enter BingX API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="bingx-triangular-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="bingx-triangular-secret">Secret Key</label>
+                    <input type="password" id="bingx-triangular-secret" class="form-input" placeholder="Enter BingX Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="bingx-triangular-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="bingx-triangular-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('bingx', 'triangular')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('bingx', 'triangular')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('bingx', 'triangular')">Disconnect</button>
+                </div>
+            </div>
+            </form>
         </div>
 
         <!-- Transfer Strategy -->
@@ -1589,6 +1643,33 @@
                     <button class="btn btn-primary" onclick="connectStrategyExchange('coincatch', 'transfer')">Connect</button>
                     <button class="btn btn-secondary" onclick="testStrategyConnection('coincatch', 'transfer')">Test Connection</button>
                     <button class="btn btn-danger" onclick="disconnectStrategyExchange('coincatch', 'transfer')">Disconnect</button>
+                </div>
+            </div>
+            </form>
+
+            <!-- BingX Transfer -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">BingX - Transfer Strategy</div>
+                    <div id="bingx-transfer-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="bingx-transfer-api">API Key</label>
+                    <input type="text" id="bingx-transfer-api" class="form-input" placeholder="Enter BingX API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="bingx-transfer-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="bingx-transfer-secret">Secret Key</label>
+                    <input type="password" id="bingx-transfer-secret" class="form-input" placeholder="Enter BingX Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="bingx-transfer-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="bingx-transfer-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('bingx', 'transfer')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('bingx', 'transfer')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('bingx', 'transfer')">Disconnect</button>
                 </div>
             </div>
             </form>
@@ -2053,6 +2134,33 @@
                     <button class="btn btn-primary" onclick="connectStrategyExchange('coincatch', 'currency-swap')">Connect</button>
                     <button class="btn btn-secondary" onclick="testStrategyConnection('coincatch', 'currency-swap')">Test Connection</button>
                     <button class="btn btn-danger" onclick="disconnectStrategyExchange('coincatch', 'currency-swap')">Disconnect</button>
+                </div>
+            </div>
+            </form>
+
+            <!-- BingX Currency Swap -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">BingX - Currency Swap Strategy</div>
+                    <div id="bingx-currency-swap-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="bingx-currency-swap-api">API Key</label>
+                    <input type="text" id="bingx-currency-swap-api" class="form-input" placeholder="Enter BingX API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="bingx-swap-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="bingx-currency-swap-secret">Secret Key</label>
+                    <input type="password" id="bingx-currency-swap-secret" class="form-input" placeholder="Enter BingX Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="bingx-swap-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="bingx-currency-swap-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('bingx', 'currency-swap')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('bingx', 'currency-swap')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('bingx', 'currency-swap')">Disconnect</button>
                 </div>
             </div>
             </form>
