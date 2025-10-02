@@ -8159,15 +8159,20 @@ router.post('/ascendex/balance', tradingRateLimit, optionalAuth, [
             }
         });
 
-        if (!infoResponse.ok) {
-            const errorText = await infoResponse.text();
-            throw new APIError(`AscendEX account info error: ${errorText}`, 502, 'ASCENDEX_INFO_ERROR');
+        const infoData = await infoResponse.json();
+
+        // Check if API returned error code
+        if (infoData.code !== 0) {
+            throw new APIError(`AscendEX account info error: ${infoData.message || 'Unknown error'}`, 502, 'ASCENDEX_INFO_ERROR');
         }
 
-        const infoData = await infoResponse.json();
         const accountGroup = infoData.data?.accountGroup;
 
-        if (!accountGroup) {
+        if (accountGroup === undefined || accountGroup === null) {
+            systemLogger.trading('AscendEX account group missing', {
+                userId: req.user?.id,
+                infoData: infoData
+            });
             throw new APIError('Could not retrieve account group from AscendEX', 502, 'ASCENDEX_ACCOUNT_GROUP_ERROR');
         }
 
