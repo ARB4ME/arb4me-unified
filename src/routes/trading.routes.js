@@ -8124,13 +8124,10 @@ const ASCENDEX_CONFIG = {
     }
 };
 
-// AscendEX Authentication Helper  
+// AscendEX Authentication Helper
 function createAscendEXSignature(timestamp, path, apiSecret) {
-    // AscendEX format: timestamp + method + requestPath + body
-    // For GET requests with no body: timestamp + 'GET' + full_path + ''
-    const method = 'GET';
-    const body = '';
-    const prehashString = timestamp + method + path + body;
+    // AscendEX format: timestamp + "+" + api_path
+    const prehashString = timestamp + '+' + path;
     return crypto.createHmac('sha256', apiSecret).update(prehashString).digest('base64');
 }
 
@@ -8149,9 +8146,7 @@ router.post('/ascendex/balance', tradingRateLimit, optionalAuth, [
     try {
         const timestamp = Date.now().toString();
         const path = ASCENDEX_CONFIG.endpoints.balance;
-        const method = 'GET';
-        const body = '';
-        const prehashString = timestamp + method + path + body;
+        const prehashString = timestamp + '+' + path;
         const signature = createAscendEXSignature(timestamp, path, apiSecret);
 
         // Add comprehensive debugging
@@ -8159,8 +8154,6 @@ router.post('/ascendex/balance', tradingRateLimit, optionalAuth, [
             userId: req.user?.id,
             timestamp: timestamp,
             path: path,
-            method: method,
-            body: body,
             prehashString: prehashString,
             signature: signature.substring(0, 16) + '...',
             apiKeyPrefix: apiKey.substring(0, 8) + '...',
