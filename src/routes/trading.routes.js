@@ -10409,9 +10409,6 @@ router.post('/bitmart/balance', tradingRateLimit, optionalAuth, [
             'Content-Type': 'application/json'
         };
 
-        // Always add memo header for BitMart (even if empty)
-        headers['X-BM-PASSPHRASE'] = memo || '';
-
         const response = await fetch(`${BITMART_CONFIG.baseUrl}${requestPath}`, {
             method: 'GET',
             headers: headers
@@ -10545,9 +10542,6 @@ router.post('/bitmart/test', tradingRateLimit, optionalAuth, [
             'X-BM-TIMESTAMP': timestamp,
             'Content-Type': 'application/json'
         };
-
-        // Always add memo header for BitMart (even if empty)
-        headers['X-BM-PASSPHRASE'] = memo || '';
 
         const response = await fetch(`${BITMART_CONFIG.baseUrl}${requestPath}`, {
             method: 'GET',
