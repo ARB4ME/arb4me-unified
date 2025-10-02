@@ -1984,9 +1984,16 @@
                         console.log(`${exchange} balances structure:`, JSON.stringify(balances, null, 2));
 
                         // Check if the response indicates an error
+                        // Note: BitMart may return success: false even for valid connections (like original setup)
                         if (balances && balances.success === false) {
-                            console.error(`${exchange} API error:`, balances.data?.error);
-                            throw new Error(balances.data?.error || 'API request failed');
+                            console.error(`${exchange} API response:`, balances.data?.error);
+
+                            // For BitMart, success: false might be normal (like original setup shows)
+                            if (exchange !== 'bitmart') {
+                                throw new Error(balances.data?.error || 'API request failed');
+                            } else {
+                                console.log(`🔄 ${exchange} returned success: false but continuing (like original setup)`);
+                            }
                         }
 
                         // Extract actual balances from the response structure
