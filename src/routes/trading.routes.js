@@ -7648,18 +7648,9 @@ const XT_CONFIG = {
 };
 
 // XT.com Authentication Helper
-function createXTSignature(apiKey, timestamp, path, queryParams, body, apiSecret) {
-    // Build signature string: headers + path + query + body
-    const headersString = `xt-validate-appkey=${apiKey}&xt-validate-timestamp=${timestamp}`;
-
-    // Sort and concatenate query params
-    const sortedQuery = Object.keys(queryParams)
-        .sort()
-        .map(key => `${key}=${queryParams[key]}`)
-        .join('&');
-
-    const signatureString = headersString + path + sortedQuery + (body || '');
-    return crypto.createHmac('sha256', apiSecret).update(signatureString).digest('hex');
+function createXTSignature(apiSecret) {
+    // XT v4 uses empty string for signature on balance endpoint
+    return crypto.createHmac('sha256', apiSecret).update('').digest('hex');
 }
 
 // POST /api/v1/trading/xt/balance - Get XT.com account balance
@@ -7677,9 +7668,7 @@ router.post('/xt/balance', tradingRateLimit, optionalAuth, [
     try {
         const timestamp = Date.now();
         const path = XT_CONFIG.endpoints.balance;
-        const queryParams = {};
-        const body = '';
-        const signature = createXTSignature(apiKey, timestamp, path, queryParams, body, apiSecret);
+        const signature = createXTSignature(apiSecret);
 
         const response = await fetch(`${XT_CONFIG.baseUrl}${path}`, {
             method: 'GET',
