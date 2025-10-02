@@ -2799,6 +2799,9 @@
                             localStorage.setItem('bitgetApiKey', apiKey);
                             localStorage.setItem('bitgetSecretKey', secretKey);
                             if (passphrase) localStorage.setItem('bitgetPassphrase', passphrase);
+                        } else if (exchange === 'gateio') {
+                            localStorage.setItem('gateioApiKey', apiKey);
+                            localStorage.setItem('gateioSecretKey', secretKey);
                         }
                     }
 
@@ -3384,6 +3387,9 @@
                         } else if (exchange === 'gemini') {
                             apiKey = localStorage.getItem('geminiApiKey');
                             secretKey = localStorage.getItem('geminiSecretKey');
+                        } else if (exchange === 'gateio') {
+                            apiKey = localStorage.getItem('gateioApiKey');
+                            secretKey = localStorage.getItem('gateioSecretKey');
                         }
                         if (apiKey) {
                             console.log(`📄 Loaded from original format for ${exchange} ${strategy}`);
