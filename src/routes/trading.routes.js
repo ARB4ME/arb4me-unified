@@ -7647,10 +7647,14 @@ const XT_CONFIG = {
     }
 };
 
-// XT.com Authentication Helper - Copy MEXC pattern exactly
-function createXTSignature(queryString, apiSecret) {
-    // Use exact same format as working MEXC implementation
-    return crypto.createHmac('sha256', apiSecret).update(queryString).digest('hex');
+// XT.com Authentication Helper
+function createXTSignature(params, apiSecret) {
+    // Sort parameters by key lexicographically and concatenate key=value pairs
+    const sortedParams = Object.keys(params)
+        .sort()
+        .map(key => `${key}=${params[key]}`)
+        .join('&');
+    return crypto.createHmac('sha256', apiSecret).update(sortedParams).digest('hex');
 }
 
 // POST /api/v1/trading/xt/balance - Get XT.com account balance
@@ -7666,16 +7670,17 @@ router.post('/xt/balance', tradingRateLimit, optionalAuth, [
     const { apiKey, apiSecret } = req.body;
     
     try {
-        // Copy MEXC implementation exactly
         const timestamp = Date.now();
         const recvWindow = 5000;
-        const queryString = `recvWindow=${recvWindow}&timestamp=${timestamp}`;
-        const signature = createXTSignature(queryString, apiSecret);
+        const params = { recvWindow, timestamp };
+        const signature = createXTSignature(params, apiSecret);
 
-        const response = await fetch(`${XT_CONFIG.baseUrl}${XT_CONFIG.endpoints.balance}?${queryString}&signature=${signature}`, {
+        const response = await fetch(`${XT_CONFIG.baseUrl}${XT_CONFIG.endpoints.balance}`, {
             method: 'GET',
             headers: {
-                'XT-APIKEY': apiKey, // Try XT's version of X-MEXC-APIKEY
+                'xt-validate-appkey': apiKey,
+                'xt-validate-timestamp': timestamp.toString(),
+                'xt-validate-signature': signature,
                 'Content-Type': 'application/json'
             }
         });
