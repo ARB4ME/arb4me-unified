@@ -23093,10 +23093,10 @@ ARB4ME Security Team`
             }
             
             // Additional validation for exchanges requiring passphrase
-            if ((exchangeName === 'okx' || exchangeName === 'kucoin' || exchangeName === 'bitget') && (!realPassphrase || realPassphrase.trim() === '')) {
+            if ((exchangeName === 'okx' || exchangeName === 'kucoin' || exchangeName === 'bitget' || exchangeName === 'coincatch') && (!realPassphrase || realPassphrase.trim() === '')) {
                 connectBtn.innerHTML = `🔗 Connect ${exchangeName.toUpperCase()} (Real Mode)`;
                 addActivity(`❌ ${exchangeName.toUpperCase()}: Passphrase is required for this exchange`, 'error');
-                
+
                 document.getElementById(`${exchangeName}Status`).textContent = 'Passphrase required';
                 document.getElementById(`${exchangeName}Status`).className = 'status-error';
                 
@@ -23112,8 +23112,8 @@ ARB4ME Security Team`
                         key: realApiKey,
                         secret: realSecretKey
                     };
-                    // Add passphrase for OKX, KuCoin, and Bitget
-                    if ((exchangeName === 'okx' || exchangeName === 'kucoin' || exchangeName === 'bitget') && realPassphrase) {
+                    // Add passphrase for OKX, KuCoin, Bitget, and Coincatch
+                    if ((exchangeName === 'okx' || exchangeName === 'kucoin' || exchangeName === 'bitget' || exchangeName === 'coincatch') && realPassphrase) {
                         state.exchanges[exchangeName].api.passphrase = realPassphrase;
                     }
                     saveToStorage();
