@@ -3681,6 +3681,10 @@
                         <label>Coincatch API Secret (Required for live trading)</label>
                         <input type="password" id="coincatchSecretKey" placeholder="Enter your Coincatch API secret">
                     </div>
+                    <div class="form-group">
+                        <label>Coincatch Passphrase (Required for authentication)</label>
+                        <input type="password" id="coincatchPassphrase" placeholder="Enter your Coincatch API passphrase">
+                    </div>
                     <button class="btn" id="coincatchConnectBtn">
                         <span id="coincatchConnectText">🔗 Connect Coincatch (Real Mode)</span>
                         <span class="usdt-tooltip">
@@ -20082,7 +20086,8 @@ ARB4ME Security Team`
                         },
                         coincatch: {
                             key: state.exchanges.coincatch.api ? simpleEncrypt(state.exchanges.coincatch.api.key) : '',
-                            secret: state.exchanges.coincatch.api ? simpleEncrypt(state.exchanges.coincatch.api.secret) : ''
+                            secret: state.exchanges.coincatch.api ? simpleEncrypt(state.exchanges.coincatch.api.secret) : '',
+                            passphrase: state.exchanges.coincatch.api ? simpleEncrypt(state.exchanges.coincatch.api.passphrase) : ''
                         }
                     },
                     recovery: {
@@ -20132,7 +20137,7 @@ ARB4ME Security Team`
                                     secret: decryptedSecret
                                 };
                                 // Handle passphrase/memo for exchanges that require it
-                                if (keys.passphrase && (exchange === 'okx' || exchange === 'kucoin' || exchange === 'bitget')) {
+                                if (keys.passphrase && (exchange === 'okx' || exchange === 'kucoin' || exchange === 'bitget' || exchange === 'coincatch')) {
                                     const decryptedPassphrase = simpleDecrypt(keys.passphrase);
                                     if (decryptedPassphrase) {
                                         state.exchanges[exchange].api.passphrase = decryptedPassphrase;
@@ -21082,7 +21087,7 @@ ARB4ME Security Team`
                     };
                     
                     // Add passphrase for exchanges that require it (OKX, KuCoin, Bitget)
-                    if ((exchange === 'okx' || exchange === 'kucoin' || exchange === 'bitget') && exchangeData.api.passphrase) {
+                    if ((exchange === 'okx' || exchange === 'kucoin' || exchange === 'bitget' || exchange === 'coincatch') && exchangeData.api.passphrase) {
                         requestBody.passphrase = exchangeData.api.passphrase;
                     }
                     
@@ -23057,9 +23062,10 @@ ARB4ME Security Team`
             const apiKey = document.getElementById(`${exchangeName}ApiKey`).value;
             const secretKey = document.getElementById(`${exchangeName}SecretKey`).value;
             // Special handling for OKX, KuCoin, and Bitget passphrase
-            const passphrase = exchangeName === 'okx' ? document.getElementById('okxPassphrase').value : 
+            const passphrase = exchangeName === 'okx' ? document.getElementById('okxPassphrase').value :
                               exchangeName === 'kucoin' ? document.getElementById('kucoinPassphrase').value :
-                              exchangeName === 'bitget' ? document.getElementById('bitgetPassphrase').value : null;
+                              exchangeName === 'bitget' ? document.getElementById('bitgetPassphrase').value :
+                              exchangeName === 'coincatch' ? document.getElementById('coincatchPassphrase').value : null;
             
             // If fields show obfuscated keys, get real keys from state
             let realApiKey = apiKey;
@@ -23069,7 +23075,7 @@ ARB4ME Security Team`
             if (apiKey.includes('*') && state.exchanges[exchangeName].api) {
                 realApiKey = state.exchanges[exchangeName].api.key;
                 realSecretKey = state.exchanges[exchangeName].api.secret;
-                if ((exchangeName === 'okx' || exchangeName === 'kucoin' || exchangeName === 'bitget') && passphrase && passphrase.includes('*')) {
+                if ((exchangeName === 'okx' || exchangeName === 'kucoin' || exchangeName === 'bitget' || exchangeName === 'coincatch') && passphrase && passphrase.includes('*')) {
                     realPassphrase = state.exchanges[exchangeName].api.passphrase;
                 }
             }
@@ -25898,7 +25904,7 @@ ARB4ME Security Team`
                 'bitrueApiKey', 'bitrueSecretKey',
                 'geminiApiKey', 'geminiSecretKey',
                 'cryptocomApiKey', 'cryptocomSecretKey',
-                'coincatchApiKey', 'coincatchSecretKey'
+                'coincatchApiKey', 'coincatchSecretKey', 'coincatchPassphrase'
             ];
             
             apiKeyFields.forEach(fieldId => {
