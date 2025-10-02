@@ -1988,8 +1988,8 @@
                         if (balances && balances.success === false) {
                             console.error(`${exchange} API response:`, balances.data?.error);
 
-                            // For BitMart, success: false might be normal (like original setup shows)
-                            if (exchange !== 'bitmart') {
+                            // For BitMart and potentially Bitget, success: false might be normal (like original setup shows)
+                            if (exchange !== 'bitmart' && exchange !== 'bitget') {
                                 throw new Error(balances.data?.error || 'API request failed');
                             } else {
                                 console.log(`🔄 ${exchange} returned success: false but continuing (like original setup)`);
