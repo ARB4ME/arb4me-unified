@@ -573,6 +573,33 @@
             </div>
             </form>
 
+            <!-- Gemini Cross-Exchange -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">Gemini - Cross-Exchange Strategy</div>
+                    <div id="gemini-cross-exchange-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="gemini-cross-exchange-api">API Key</label>
+                    <input type="text" id="gemini-cross-exchange-api" class="form-input" placeholder="Enter Gemini API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="gemini-cross-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="gemini-cross-exchange-secret">Secret Key</label>
+                    <input type="password" id="gemini-cross-exchange-secret" class="form-input" placeholder="Enter Gemini Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="gemini-cross-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="gemini-cross-exchange-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('gemini', 'cross-exchange')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('gemini', 'cross-exchange')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('gemini', 'cross-exchange')">Disconnect</button>
+                </div>
+            </div>
+            </form>
+
             <!-- VALR Cross-Exchange -->
             <form autocomplete="off" onsubmit="return false;">
             <div class="exchange-card">
@@ -1049,6 +1076,33 @@
                 </div>
             </div>
             </form>
+
+            <!-- Gemini Triangular -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">Gemini - Triangular Strategy</div>
+                    <div id="gemini-triangular-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="gemini-triangular-api">API Key</label>
+                    <input type="text" id="gemini-triangular-api" class="form-input" placeholder="Enter Gemini API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="gemini-tri-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="gemini-triangular-secret">Secret Key</label>
+                    <input type="password" id="gemini-triangular-secret" class="form-input" placeholder="Enter Gemini Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="gemini-tri-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="gemini-triangular-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('gemini', 'triangular')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('gemini', 'triangular')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('gemini', 'triangular')">Disconnect</button>
+                </div>
+            </div>
+            </form>
         </div>
 
         <!-- Transfer Strategy -->
@@ -1415,6 +1469,33 @@
                     <button class="btn btn-primary" onclick="connectStrategyExchange('bitrue', 'transfer')">Connect</button>
                     <button class="btn btn-secondary" onclick="testStrategyConnection('bitrue', 'transfer')">Test Connection</button>
                     <button class="btn btn-danger" onclick="disconnectStrategyExchange('bitrue', 'transfer')">Disconnect</button>
+                </div>
+            </div>
+            </form>
+
+            <!-- Gemini Transfer -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">Gemini - Transfer Strategy</div>
+                    <div id="gemini-transfer-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="gemini-transfer-api">API Key</label>
+                    <input type="text" id="gemini-transfer-api" class="form-input" placeholder="Enter Gemini API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="gemini-trans-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="gemini-transfer-secret">Secret Key</label>
+                    <input type="password" id="gemini-transfer-secret" class="form-input" placeholder="Enter Gemini Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="gemini-trans-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="gemini-transfer-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('gemini', 'transfer')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('gemini', 'transfer')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('gemini', 'transfer')">Disconnect</button>
                 </div>
             </div>
             </form>
@@ -1825,6 +1906,33 @@
             </div>
             </form>
 
+            <!-- Gemini Currency Swap -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">Gemini - Currency Swap Strategy</div>
+                    <div id="gemini-currency-swap-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="gemini-currency-swap-api">API Key</label>
+                    <input type="text" id="gemini-currency-swap-api" class="form-input" placeholder="Enter Gemini API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="gemini-swap-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="gemini-currency-swap-secret">Secret Key</label>
+                    <input type="password" id="gemini-currency-swap-secret" class="form-input" placeholder="Enter Gemini Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="gemini-swap-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="gemini-currency-swap-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('gemini', 'currency-swap')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('gemini', 'currency-swap')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('gemini', 'currency-swap')">Disconnect</button>
+                </div>
+            </div>
+            </form>
+
         </div>
     </div>
 
@@ -1883,7 +1991,11 @@
                 'bitrue-cross-exchange': { connected: false, balance: null },
                 'bitrue-triangular': { connected: false, balance: null },
                 'bitrue-transfer': { connected: false, balance: null },
-                'bitrue-currency-swap': { connected: false, balance: null }
+                'bitrue-currency-swap': { connected: false, balance: null },
+                'gemini-cross-exchange': { connected: false, balance: null },
+                'gemini-triangular': { connected: false, balance: null },
+                'gemini-transfer': { connected: false, balance: null },
+                'gemini-currency-swap': { connected: false, balance: null }
             };
         }
 
@@ -2533,6 +2645,8 @@
                     exchange = 'bitmart';
                 } else if (fieldId.includes('bitrue')) {
                     exchange = 'bitrue';
+                } else if (fieldId.includes('gemini')) {
+                    exchange = 'gemini';
                 }
             } else if (fieldId.includes('triangular')) {
                 strategy = 'triangular';
@@ -2563,6 +2677,8 @@
                     exchange = 'bitmart';
                 } else if (fieldId.includes('bitrue')) {
                     exchange = 'bitrue';
+                } else if (fieldId.includes('gemini')) {
+                    exchange = 'gemini';
                 }
             } else if (fieldId.includes('transfer')) {
                 strategy = 'transfer';
@@ -2593,6 +2709,8 @@
                     exchange = 'bitmart';
                 } else if (fieldId.includes('bitrue')) {
                     exchange = 'bitrue';
+                } else if (fieldId.includes('gemini')) {
+                    exchange = 'gemini';
                 }
             } else if (fieldId.includes('currency-swap')) {
                 strategy = 'currency-swap';
@@ -2623,6 +2741,8 @@
                     exchange = 'bitmart';
                 } else if (fieldId.includes('bitrue')) {
                     exchange = 'bitrue';
+                } else if (fieldId.includes('gemini')) {
+                    exchange = 'gemini';
                 }
             }
 
@@ -2718,7 +2838,11 @@
                 'bitrue-cross-exchange-api', 'bitrue-cross-exchange-secret',
                 'bitrue-triangular-api', 'bitrue-triangular-secret',
                 'bitrue-transfer-api', 'bitrue-transfer-secret',
-                'bitrue-currency-swap-api', 'bitrue-currency-swap-secret'
+                'bitrue-currency-swap-api', 'bitrue-currency-swap-secret',
+                'gemini-cross-exchange-api', 'gemini-cross-exchange-secret',
+                'gemini-triangular-api', 'gemini-triangular-secret',
+                'gemini-transfer-api', 'gemini-transfer-secret',
+                'gemini-currency-swap-api', 'gemini-currency-swap-secret'
             ];
 
             apiKeyFields.forEach(fieldId => {
@@ -2738,7 +2862,7 @@
         function loadStrategyCredentials() {
             console.log('🔄 Loading strategy credentials...');
 
-            const exchanges = ['chainex', 'valr', 'luno', 'kraken', 'binance', 'bybit', 'okx', 'mexc', 'kucoin', 'htx', 'bitget', 'bitmart', 'bitrue'];
+            const exchanges = ['chainex', 'valr', 'luno', 'kraken', 'binance', 'bybit', 'okx', 'mexc', 'kucoin', 'htx', 'bitget', 'bitmart', 'bitrue', 'gemini'];
             const strategies = ['cross-exchange', 'triangular', 'transfer', 'currency-swap'];
 
             exchanges.forEach(exchange => {
@@ -2794,6 +2918,9 @@
                         } else if (exchange === 'bitrue') {
                             apiKey = localStorage.getItem('bitrueApiKey');
                             secretKey = localStorage.getItem('bitrueSecretKey');
+                        } else if (exchange === 'gemini') {
+                            apiKey = localStorage.getItem('geminiApiKey');
+                            secretKey = localStorage.getItem('geminiSecretKey');
                         }
                         if (apiKey) {
                             console.log(`📄 Loaded from original format for ${exchange} ${strategy}`);
