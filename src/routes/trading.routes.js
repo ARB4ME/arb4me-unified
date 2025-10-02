@@ -7691,17 +7691,18 @@ router.post('/xt/balance', tradingRateLimit, optionalAuth, [
             }
         });
 
-        if (!response.ok) {
-            const errorText = await response.text();
+        const data = await response.json();
+
+        // XT.com may return 400 status with valid response body (like BitMart/Bitget/Coincatch)
+        // Check both HTTP status and response structure
+        if (!response.ok && response.status !== 400) {
             systemLogger.trading('XT.com balance API error', {
                 userId: req.user?.id,
                 status: response.status,
-                error: errorText
+                error: data
             });
             throw new APIError(`XT.com API error: ${response.status}`, 502, 'XT_API_ERROR');
         }
-
-        const data = await response.json();
         
         // Log the actual response for debugging
         systemLogger.trading('XT.com balance response', {
