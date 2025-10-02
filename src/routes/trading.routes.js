@@ -8142,30 +8142,46 @@ router.post('/ascendex/balance', tradingRateLimit, optionalAuth, [
     }
 
     const { apiKey, apiSecret } = req.body;
-    
+
     try {
-        const timestamp = Date.now().toString();
-        const path = ASCENDEX_CONFIG.endpoints.balance;
-        const prehashString = timestamp + '+' + path;
-        const signature = createAscendEXSignature(timestamp, path, apiSecret);
+        // Step 1: Get account info to retrieve account group
+        const infoTimestamp = Date.now().toString();
+        const infoPath = ASCENDEX_CONFIG.endpoints.test; // /api/pro/v1/info
+        const infoSignature = createAscendEXSignature(infoTimestamp, infoPath, apiSecret);
 
-        // Add comprehensive debugging
-        systemLogger.trading('AscendEX signature debug', {
-            userId: req.user?.id,
-            timestamp: timestamp,
-            path: path,
-            prehashString: prehashString,
-            signature: signature.substring(0, 16) + '...',
-            apiKeyPrefix: apiKey.substring(0, 8) + '...',
-            fullUrl: `${ASCENDEX_CONFIG.baseUrl}${path}`
-        });
-
-        const response = await fetch(`${ASCENDEX_CONFIG.baseUrl}${path}`, {
+        const infoResponse = await fetch(`${ASCENDEX_CONFIG.baseUrl}${infoPath}`, {
             method: 'GET',
             headers: {
                 'x-auth-key': apiKey,
-                'x-auth-timestamp': timestamp,
-                'x-auth-signature': signature,
+                'x-auth-timestamp': infoTimestamp,
+                'x-auth-signature': infoSignature,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!infoResponse.ok) {
+            const errorText = await infoResponse.text();
+            throw new APIError(`AscendEX account info error: ${errorText}`, 502, 'ASCENDEX_INFO_ERROR');
+        }
+
+        const infoData = await infoResponse.json();
+        const accountGroup = infoData.data?.accountGroup;
+
+        if (!accountGroup) {
+            throw new APIError('Could not retrieve account group from AscendEX', 502, 'ASCENDEX_ACCOUNT_GROUP_ERROR');
+        }
+
+        // Step 2: Get balance using account group
+        const balanceTimestamp = Date.now().toString();
+        const balancePath = `/api/pro/v1/cash/balance`;
+        const balanceSignature = createAscendEXSignature(balanceTimestamp, balancePath, apiSecret);
+
+        const response = await fetch(`${ASCENDEX_CONFIG.baseUrl}/${accountGroup}${balancePath}`, {
+            method: 'GET',
+            headers: {
+                'x-auth-key': apiKey,
+                'x-auth-timestamp': balanceTimestamp,
+                'x-auth-signature': balanceSignature,
                 'Content-Type': 'application/json'
             }
         });
