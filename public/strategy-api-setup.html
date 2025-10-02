@@ -707,6 +707,37 @@
                 </div>
             </div>
             </form>
+
+            <!-- Coincatch Cross-Exchange -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">Coincatch - Cross-Exchange Strategy</div>
+                    <div id="coincatch-cross-exchange-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="coincatch-cross-exchange-api">API Key</label>
+                    <input type="text" id="coincatch-cross-exchange-api" class="form-input" placeholder="Enter Coincatch API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="coincatch-cross-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="coincatch-cross-exchange-secret">Secret Key</label>
+                    <input type="password" id="coincatch-cross-exchange-secret" class="form-input" placeholder="Enter Coincatch Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="coincatch-cross-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="coincatch-cross-exchange-passphrase">Passphrase</label>
+                    <input type="password" id="coincatch-cross-exchange-passphrase" class="form-input" placeholder="Enter Coincatch Passphrase" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="coincatch-cross-passphrase">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="coincatch-cross-exchange-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('coincatch', 'cross-exchange')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('coincatch', 'cross-exchange')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('coincatch', 'cross-exchange')">Disconnect</button>
+                </div>
+            </div>
+            </form>
         </div>
 
         <!-- Triangular Strategy -->
@@ -1103,6 +1134,37 @@
                 </div>
             </div>
             </form>
+
+            <!-- Coincatch Triangular -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">Coincatch - Triangular Strategy</div>
+                    <div id="coincatch-triangular-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="coincatch-triangular-api">API Key</label>
+                    <input type="text" id="coincatch-triangular-api" class="form-input" placeholder="Enter Coincatch API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="coincatch-triangular-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="coincatch-triangular-secret">Secret Key</label>
+                    <input type="password" id="coincatch-triangular-secret" class="form-input" placeholder="Enter Coincatch Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="coincatch-triangular-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="coincatch-triangular-passphrase">Passphrase</label>
+                    <input type="password" id="coincatch-triangular-passphrase" class="form-input" placeholder="Enter Coincatch Passphrase" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="coincatch-triangular-passphrase">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="coincatch-triangular-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('coincatch', 'triangular')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('coincatch', 'triangular')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('coincatch', 'triangular')">Disconnect</button>
+                </div>
+            </div>
+            </form>
         </div>
 
         <!-- Transfer Strategy -->
@@ -1496,6 +1558,37 @@
                     <button class="btn btn-primary" onclick="connectStrategyExchange('gemini', 'transfer')">Connect</button>
                     <button class="btn btn-secondary" onclick="testStrategyConnection('gemini', 'transfer')">Test Connection</button>
                     <button class="btn btn-danger" onclick="disconnectStrategyExchange('gemini', 'transfer')">Disconnect</button>
+                </div>
+            </div>
+            </form>
+
+            <!-- Coincatch Transfer -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">Coincatch - Transfer Strategy</div>
+                    <div id="coincatch-transfer-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="coincatch-transfer-api">API Key</label>
+                    <input type="text" id="coincatch-transfer-api" class="form-input" placeholder="Enter Coincatch API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="coincatch-transfer-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="coincatch-transfer-secret">Secret Key</label>
+                    <input type="password" id="coincatch-transfer-secret" class="form-input" placeholder="Enter Coincatch Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="coincatch-transfer-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="coincatch-transfer-passphrase">Passphrase</label>
+                    <input type="password" id="coincatch-transfer-passphrase" class="form-input" placeholder="Enter Coincatch Passphrase" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="coincatch-transfer-passphrase">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="coincatch-transfer-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('coincatch', 'transfer')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('coincatch', 'transfer')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('coincatch', 'transfer')">Disconnect</button>
                 </div>
             </div>
             </form>
@@ -1933,6 +2026,37 @@
             </div>
             </form>
 
+            <!-- Coincatch Currency Swap -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">Coincatch - Currency Swap Strategy</div>
+                    <div id="coincatch-currency-swap-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="coincatch-currency-swap-api">API Key</label>
+                    <input type="text" id="coincatch-currency-swap-api" class="form-input" placeholder="Enter Coincatch API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="coincatch-swap-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="coincatch-currency-swap-secret">Secret Key</label>
+                    <input type="password" id="coincatch-currency-swap-secret" class="form-input" placeholder="Enter Coincatch Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="coincatch-swap-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="coincatch-currency-swap-passphrase">Passphrase</label>
+                    <input type="password" id="coincatch-currency-swap-passphrase" class="form-input" placeholder="Enter Coincatch Passphrase" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="coincatch-swap-passphrase">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="coincatch-currency-swap-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('coincatch', 'currency-swap')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('coincatch', 'currency-swap')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('coincatch', 'currency-swap')">Disconnect</button>
+                </div>
+            </div>
+            </form>
+
         </div>
     </div>
 
@@ -2134,6 +2258,21 @@
                 }
                 if (!passphrase) {
                     alert(`Please enter the passphrase for ${exchange.toUpperCase()} (required by backend)`);
+                    return;
+                }
+            }
+
+            // Coincatch passphrase is required
+            if (exchange === 'coincatch') {
+                const passphraseElement = document.getElementById(`${exchange}-${strategy}-passphrase`);
+                if (passphraseElement) {
+                    passphrase = passphraseElement.value;
+                    console.log(`🔑 ${exchange} passphrase field found, value length:`, passphrase ? passphrase.length : 'empty');
+                } else {
+                    console.error(`❌ ${exchange} passphrase field NOT found: ${exchange}-${strategy}-passphrase`);
+                }
+                if (!passphrase) {
+                    alert(`Please enter the passphrase for ${exchange.toUpperCase()}`);
                     return;
                 }
             }
