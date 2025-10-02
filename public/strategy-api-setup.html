@@ -1928,7 +1928,7 @@
                                 key: apiKey,
                                 secret: secretKey,
                                 ...(passphrase && { passphrase: passphrase }),
-                                ...(memo && { memo: memo })
+                                ...(exchange === 'bitmart' && { memo: memo || '' })
                             }
                         }
                     }
