@@ -546,6 +546,33 @@
             </div>
             </form>
 
+            <!-- Bitrue Cross-Exchange -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">Bitrue - Cross-Exchange Strategy</div>
+                    <div id="bitrue-cross-exchange-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="bitrue-cross-exchange-api">API Key</label>
+                    <input type="text" id="bitrue-cross-exchange-api" class="form-input" placeholder="Enter Bitrue API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="bitrue-cross-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="bitrue-cross-exchange-secret">Secret Key</label>
+                    <input type="password" id="bitrue-cross-exchange-secret" class="form-input" placeholder="Enter Bitrue Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="bitrue-cross-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="bitrue-cross-exchange-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('bitrue', 'cross-exchange')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('bitrue', 'cross-exchange')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('bitrue', 'cross-exchange')">Disconnect</button>
+                </div>
+            </div>
+            </form>
+
             <!-- VALR Cross-Exchange -->
             <form autocomplete="off" onsubmit="return false;">
             <div class="exchange-card">
@@ -995,6 +1022,33 @@
                 </div>
             </div>
             </form>
+
+            <!-- Bitrue Triangular -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">Bitrue - Triangular Strategy</div>
+                    <div id="bitrue-triangular-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="bitrue-triangular-api">API Key</label>
+                    <input type="text" id="bitrue-triangular-api" class="form-input" placeholder="Enter Bitrue API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="bitrue-tri-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="bitrue-triangular-secret">Secret Key</label>
+                    <input type="password" id="bitrue-triangular-secret" class="form-input" placeholder="Enter Bitrue Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="bitrue-tri-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="bitrue-triangular-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('bitrue', 'triangular')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('bitrue', 'triangular')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('bitrue', 'triangular')">Disconnect</button>
+                </div>
+            </div>
+            </form>
         </div>
 
         <!-- Transfer Strategy -->
@@ -1334,6 +1388,33 @@
                     <button class="btn btn-primary" onclick="connectStrategyExchange('bitmart', 'transfer')">Connect</button>
                     <button class="btn btn-secondary" onclick="testStrategyConnection('bitmart', 'transfer')">Test Connection</button>
                     <button class="btn btn-danger" onclick="disconnectStrategyExchange('bitmart', 'transfer')">Disconnect</button>
+                </div>
+            </div>
+            </form>
+
+            <!-- Bitrue Transfer -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">Bitrue - Transfer Strategy</div>
+                    <div id="bitrue-transfer-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="bitrue-transfer-api">API Key</label>
+                    <input type="text" id="bitrue-transfer-api" class="form-input" placeholder="Enter Bitrue API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="bitrue-trans-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="bitrue-transfer-secret">Secret Key</label>
+                    <input type="password" id="bitrue-transfer-secret" class="form-input" placeholder="Enter Bitrue Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="bitrue-trans-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="bitrue-transfer-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('bitrue', 'transfer')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('bitrue', 'transfer')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('bitrue', 'transfer')">Disconnect</button>
                 </div>
             </div>
             </form>
@@ -1717,6 +1798,33 @@
             </div>
             </form>
 
+            <!-- Bitrue Currency Swap -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">Bitrue - Currency Swap Strategy</div>
+                    <div id="bitrue-currency-swap-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="bitrue-currency-swap-api">API Key</label>
+                    <input type="text" id="bitrue-currency-swap-api" class="form-input" placeholder="Enter Bitrue API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="bitrue-swap-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="bitrue-currency-swap-secret">Secret Key</label>
+                    <input type="password" id="bitrue-currency-swap-secret" class="form-input" placeholder="Enter Bitrue Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="bitrue-swap-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="bitrue-currency-swap-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('bitrue', 'currency-swap')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('bitrue', 'currency-swap')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('bitrue', 'currency-swap')">Disconnect</button>
+                </div>
+            </div>
+            </form>
+
         </div>
     </div>
 
@@ -1743,7 +1851,39 @@
                 'binance-cross-exchange': { connected: false, balance: null },
                 'binance-triangular': { connected: false, balance: null },
                 'binance-transfer': { connected: false, balance: null },
-                'binance-currency-swap': { connected: false, balance: null }
+                'binance-currency-swap': { connected: false, balance: null },
+                'bybit-cross-exchange': { connected: false, balance: null },
+                'bybit-triangular': { connected: false, balance: null },
+                'bybit-transfer': { connected: false, balance: null },
+                'bybit-currency-swap': { connected: false, balance: null },
+                'okx-cross-exchange': { connected: false, balance: null },
+                'okx-triangular': { connected: false, balance: null },
+                'okx-transfer': { connected: false, balance: null },
+                'okx-currency-swap': { connected: false, balance: null },
+                'mexc-cross-exchange': { connected: false, balance: null },
+                'mexc-triangular': { connected: false, balance: null },
+                'mexc-transfer': { connected: false, balance: null },
+                'mexc-currency-swap': { connected: false, balance: null },
+                'kucoin-cross-exchange': { connected: false, balance: null },
+                'kucoin-triangular': { connected: false, balance: null },
+                'kucoin-transfer': { connected: false, balance: null },
+                'kucoin-currency-swap': { connected: false, balance: null },
+                'htx-cross-exchange': { connected: false, balance: null },
+                'htx-triangular': { connected: false, balance: null },
+                'htx-transfer': { connected: false, balance: null },
+                'htx-currency-swap': { connected: false, balance: null },
+                'bitget-cross-exchange': { connected: false, balance: null },
+                'bitget-triangular': { connected: false, balance: null },
+                'bitget-transfer': { connected: false, balance: null },
+                'bitget-currency-swap': { connected: false, balance: null },
+                'bitmart-cross-exchange': { connected: false, balance: null },
+                'bitmart-triangular': { connected: false, balance: null },
+                'bitmart-transfer': { connected: false, balance: null },
+                'bitmart-currency-swap': { connected: false, balance: null },
+                'bitrue-cross-exchange': { connected: false, balance: null },
+                'bitrue-triangular': { connected: false, balance: null },
+                'bitrue-transfer': { connected: false, balance: null },
+                'bitrue-currency-swap': { connected: false, balance: null }
             };
         }
 
@@ -2391,6 +2531,8 @@
                     exchange = 'bitget';
                 } else if (fieldId.includes('bitmart')) {
                     exchange = 'bitmart';
+                } else if (fieldId.includes('bitrue')) {
+                    exchange = 'bitrue';
                 }
             } else if (fieldId.includes('triangular')) {
                 strategy = 'triangular';
@@ -2419,6 +2561,8 @@
                     exchange = 'bitget';
                 } else if (fieldId.includes('bitmart')) {
                     exchange = 'bitmart';
+                } else if (fieldId.includes('bitrue')) {
+                    exchange = 'bitrue';
                 }
             } else if (fieldId.includes('transfer')) {
                 strategy = 'transfer';
@@ -2447,6 +2591,8 @@
                     exchange = 'bitget';
                 } else if (fieldId.includes('bitmart')) {
                     exchange = 'bitmart';
+                } else if (fieldId.includes('bitrue')) {
+                    exchange = 'bitrue';
                 }
             } else if (fieldId.includes('currency-swap')) {
                 strategy = 'currency-swap';
@@ -2475,6 +2621,8 @@
                     exchange = 'bitget';
                 } else if (fieldId.includes('bitmart')) {
                     exchange = 'bitmart';
+                } else if (fieldId.includes('bitrue')) {
+                    exchange = 'bitrue';
                 }
             }
 
@@ -2566,7 +2714,11 @@
                 'bitmart-cross-exchange-api', 'bitmart-cross-exchange-secret', 'bitmart-cross-exchange-memo',
                 'bitmart-triangular-api', 'bitmart-triangular-secret', 'bitmart-triangular-memo',
                 'bitmart-transfer-api', 'bitmart-transfer-secret', 'bitmart-transfer-memo',
-                'bitmart-currency-swap-api', 'bitmart-currency-swap-secret', 'bitmart-currency-swap-memo'
+                'bitmart-currency-swap-api', 'bitmart-currency-swap-secret', 'bitmart-currency-swap-memo',
+                'bitrue-cross-exchange-api', 'bitrue-cross-exchange-secret',
+                'bitrue-triangular-api', 'bitrue-triangular-secret',
+                'bitrue-transfer-api', 'bitrue-transfer-secret',
+                'bitrue-currency-swap-api', 'bitrue-currency-swap-secret'
             ];
 
             apiKeyFields.forEach(fieldId => {
@@ -2586,7 +2738,7 @@
         function loadStrategyCredentials() {
             console.log('🔄 Loading strategy credentials...');
 
-            const exchanges = ['chainex', 'valr', 'luno', 'kraken', 'binance', 'bybit', 'okx', 'mexc', 'kucoin', 'htx', 'bitget', 'bitmart'];
+            const exchanges = ['chainex', 'valr', 'luno', 'kraken', 'binance', 'bybit', 'okx', 'mexc', 'kucoin', 'htx', 'bitget', 'bitmart', 'bitrue'];
             const strategies = ['cross-exchange', 'triangular', 'transfer', 'currency-swap'];
 
             exchanges.forEach(exchange => {
@@ -2639,6 +2791,9 @@
                             apiKey = localStorage.getItem('bitmartApiKey');
                             secretKey = localStorage.getItem('bitmartSecretKey');
                             memo = localStorage.getItem('bitmartMemo');
+                        } else if (exchange === 'bitrue') {
+                            apiKey = localStorage.getItem('bitrueApiKey');
+                            secretKey = localStorage.getItem('bitrueSecretKey');
                         }
                         if (apiKey) {
                             console.log(`📄 Loaded from original format for ${exchange} ${strategy}`);
