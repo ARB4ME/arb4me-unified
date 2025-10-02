@@ -11854,9 +11854,15 @@ const COINCATCH_CONFIG = {
 };
 
 // CoinCatch Authentication Helper
-function createCoinCatchSignature(timestamp, method, requestPath, body, apiSecret) {
-    const message = timestamp + method + requestPath + (body || '');
-    return crypto.createHmac('sha256', apiSecret).update(message).digest('hex');
+function createCoinCatchSignature(timestamp, method, requestPath, queryString, body, apiSecret) {
+    // Format: timestamp + method + requestPath + "?" + queryString + body
+    // Note: Only include "?" + queryString if queryString exists
+    let message = timestamp + method + requestPath;
+    if (queryString) {
+        message += '?' + queryString;
+    }
+    message += (body || '');
+    return crypto.createHmac('sha256', apiSecret).update(message).digest('base64');
 }
 
 // POST /api/v1/trading/coincatch/balance - Get CoinCatch account balance
@@ -11876,7 +11882,7 @@ router.post('/coincatch/balance', tradingRateLimit, optionalAuth, [
         const timestamp = Date.now().toString();
         const method = 'GET';
         const requestPath = COINCATCH_CONFIG.endpoints.balance;
-        const signature = createCoinCatchSignature(timestamp, method, requestPath, '', apiSecret);
+        const signature = createCoinCatchSignature(timestamp, method, requestPath, '', '', apiSecret);
 
         const response = await fetch(`${COINCATCH_CONFIG.baseUrl}${requestPath}`, {
             method: 'GET',
@@ -11998,7 +12004,7 @@ router.post('/coincatch/test', tradingRateLimit, optionalAuth, [
         const timestamp = Date.now().toString();
         const method = 'GET';
         const requestPath = COINCATCH_CONFIG.endpoints.test;
-        const signature = createCoinCatchSignature(timestamp, method, requestPath, '', apiSecret);
+        const signature = createCoinCatchSignature(timestamp, method, requestPath, '', '', apiSecret);
 
         const response = await fetch(`${COINCATCH_CONFIG.baseUrl}${requestPath}`, {
             method: 'GET',
