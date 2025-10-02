@@ -765,6 +765,33 @@
                 </div>
             </div>
             </form>
+
+            <!-- AscendEX Cross-Exchange -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">AscendEX - Cross-Exchange Strategy</div>
+                    <div id="ascendex-cross-exchange-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="ascendex-cross-exchange-api">API Key</label>
+                    <input type="text" id="ascendex-cross-exchange-api" class="form-input" placeholder="Enter AscendEX API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="ascendex-cross-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="ascendex-cross-exchange-secret">Secret Key</label>
+                    <input type="password" id="ascendex-cross-exchange-secret" class="form-input" placeholder="Enter AscendEX Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="ascendex-cross-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="ascendex-cross-exchange-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('ascendex', 'cross-exchange')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('ascendex', 'cross-exchange')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('ascendex', 'cross-exchange')">Disconnect</button>
+                </div>
+            </div>
+            </form>
         </div>
 
         <!-- Triangular Strategy -->
@@ -1219,6 +1246,33 @@
                 </div>
             </div>
             </form>
+
+            <!-- AscendEX Triangular -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">AscendEX - Triangular Strategy</div>
+                    <div id="ascendex-triangular-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="ascendex-triangular-api">API Key</label>
+                    <input type="text" id="ascendex-triangular-api" class="form-input" placeholder="Enter AscendEX API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="ascendex-triangular-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="ascendex-triangular-secret">Secret Key</label>
+                    <input type="password" id="ascendex-triangular-secret" class="form-input" placeholder="Enter AscendEX Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="ascendex-triangular-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="ascendex-triangular-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('ascendex', 'triangular')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('ascendex', 'triangular')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('ascendex', 'triangular')">Disconnect</button>
+                </div>
+            </div>
+            </form>
         </div>
 
         <!-- Transfer Strategy -->
@@ -1670,6 +1724,33 @@
                     <button class="btn btn-primary" onclick="connectStrategyExchange('bingx', 'transfer')">Connect</button>
                     <button class="btn btn-secondary" onclick="testStrategyConnection('bingx', 'transfer')">Test Connection</button>
                     <button class="btn btn-danger" onclick="disconnectStrategyExchange('bingx', 'transfer')">Disconnect</button>
+                </div>
+            </div>
+            </form>
+
+            <!-- AscendEX Transfer -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">AscendEX - Transfer Strategy</div>
+                    <div id="ascendex-transfer-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="ascendex-transfer-api">API Key</label>
+                    <input type="text" id="ascendex-transfer-api" class="form-input" placeholder="Enter AscendEX API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="ascendex-transfer-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="ascendex-transfer-secret">Secret Key</label>
+                    <input type="password" id="ascendex-transfer-secret" class="form-input" placeholder="Enter AscendEX Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="ascendex-transfer-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="ascendex-transfer-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('ascendex', 'transfer')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('ascendex', 'transfer')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('ascendex', 'transfer')">Disconnect</button>
                 </div>
             </div>
             </form>
@@ -2161,6 +2242,33 @@
                     <button class="btn btn-primary" onclick="connectStrategyExchange('bingx', 'currency-swap')">Connect</button>
                     <button class="btn btn-secondary" onclick="testStrategyConnection('bingx', 'currency-swap')">Test Connection</button>
                     <button class="btn btn-danger" onclick="disconnectStrategyExchange('bingx', 'currency-swap')">Disconnect</button>
+                </div>
+            </div>
+            </form>
+
+            <!-- AscendEX Currency Swap -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">AscendEX - Currency Swap Strategy</div>
+                    <div id="ascendex-currency-swap-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="ascendex-currency-swap-api">API Key</label>
+                    <input type="text" id="ascendex-currency-swap-api" class="form-input" placeholder="Enter AscendEX API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="ascendex-swap-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="ascendex-currency-swap-secret">Secret Key</label>
+                    <input type="password" id="ascendex-currency-swap-secret" class="form-input" placeholder="Enter AscendEX Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="ascendex-swap-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="ascendex-currency-swap-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('ascendex', 'currency-swap')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('ascendex', 'currency-swap')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('ascendex', 'currency-swap')">Disconnect</button>
                 </div>
             </div>
             </form>
