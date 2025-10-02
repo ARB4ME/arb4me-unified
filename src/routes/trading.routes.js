@@ -11895,11 +11895,13 @@ router.post('/coincatch/balance', tradingRateLimit, optionalAuth, [
             }
         });
 
-        if (!response.ok) {
+        const data = await response.json();
+
+        // CoinCatch may return success: false with 200 status (like BitMart/Bitget)
+        // Check both HTTP status and response structure
+        if (!response.ok && response.status !== 400) {
             throw new APIError(`CoinCatch API error: ${response.status}`, 502, 'COINCATCH_API_ERROR');
         }
-
-        const data = await response.json();
         
         const balances = {};
         if (data.data && Array.isArray(data.data)) {
@@ -11946,11 +11948,13 @@ router.post('/coincatch/ticker', tickerRateLimit, optionalAuth, [
             }
         });
 
-        if (!response.ok) {
+        const data = await response.json();
+
+        // CoinCatch may return success: false with 200 status (like BitMart/Bitget)
+        // Check both HTTP status and response structure
+        if (!response.ok && response.status !== 400) {
             throw new APIError(`CoinCatch API error: ${response.status}`, 502, 'COINCATCH_API_ERROR');
         }
-
-        const data = await response.json();
         
         let ticker = null;
         if (data.data) {
