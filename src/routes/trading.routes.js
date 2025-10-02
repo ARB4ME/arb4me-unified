@@ -10395,11 +10395,12 @@ router.post('/bitmart/balance', tradingRateLimit, optionalAuth, [
     }
 
     const { apiKey, apiSecret, memo } = req.body;
-    
+
     try {
         const timestamp = Date.now().toString();
         // For GET requests, queryString is empty
         const signature = createBitMartSignature(timestamp, memo || '', '', apiSecret);
+        const requestPath = BITMART_CONFIG.endpoints.balance;
 
         const headers = {
             'X-BM-KEY': apiKey,
@@ -10407,7 +10408,7 @@ router.post('/bitmart/balance', tradingRateLimit, optionalAuth, [
             'X-BM-TIMESTAMP': timestamp,
             'Content-Type': 'application/json'
         };
-        
+
         // Only add memo header if provided
         if (memo) {
             headers['X-BM-PASSPHRASE'] = memo;
@@ -10538,6 +10539,7 @@ router.post('/bitmart/test', tradingRateLimit, optionalAuth, [
         const timestamp = Date.now().toString();
         // For GET requests, queryString is empty
         const signature = createBitMartSignature(timestamp, memo || '', '', apiSecret);
+        const requestPath = BITMART_CONFIG.endpoints.test;
 
         const headers = {
             'X-BM-KEY': apiKey,
@@ -10545,7 +10547,7 @@ router.post('/bitmart/test', tradingRateLimit, optionalAuth, [
             'X-BM-TIMESTAMP': timestamp,
             'Content-Type': 'application/json'
         };
-        
+
         // Only add memo header if provided
         if (memo) {
             headers['X-BM-PASSPHRASE'] = memo;
