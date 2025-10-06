@@ -20129,8 +20129,23 @@ ARB4ME Security Team`
                     Object.keys(data.apiKeys).forEach(exchange => {
                         const keys = data.apiKeys[exchange];
                         if (keys.key && keys.secret) {
-                            const decryptedKey = simpleDecrypt(keys.key);
-                            const decryptedSecret = simpleDecrypt(keys.secret);
+                            let decryptedKey = simpleDecrypt(keys.key);
+                            let decryptedSecret = simpleDecrypt(keys.secret);
+
+                            // VALR FIX: Override with direct localStorage if available (more recent)
+                            if (exchange === 'valr') {
+                                const directApiKey = localStorage.getItem('valrApiKey');
+                                const directSecretKey = localStorage.getItem('valrSecretKey');
+                                if (directApiKey && directApiKey.length > 10) {
+                                    decryptedKey = directApiKey;
+                                    console.log(`🔑 VALR: Using direct localStorage API key`);
+                                }
+                                if (directSecretKey && directSecretKey.length > 10) {
+                                    decryptedSecret = directSecretKey;
+                                    console.log(`🔑 VALR: Using direct localStorage secret key`);
+                                }
+                            }
+
                             if (decryptedKey && decryptedSecret) {
                                 state.exchanges[exchange].api = {
                                     key: decryptedKey,
