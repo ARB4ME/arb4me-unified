@@ -2729,6 +2729,7 @@
                         const result = await response.json();
                         console.log(`📊 ${exchange} backend response:`, result);
                         console.log(`📊 ${exchange} response status:`, response.status);
+                        console.log(`📊 ${exchange} full response data:`, JSON.stringify(result, null, 2));
 
                         if (!response.ok) {
                             console.error(`❌ ${exchange} HTTP error: ${response.status}`);
@@ -2739,7 +2740,9 @@
                             balances = result.data?.balances || result.balances || result.data || result;
                         } else {
                             console.error(`❌ ${exchange} API error:`, result.error || result);
-                            throw new Error(result.error?.message || result.message || 'Connection failed');
+                            console.error(`❌ ${exchange} error message:`, result.data?.error || result.data?.message || result.error?.message || result.message);
+                            const errorMsg = result.data?.error || result.data?.message || result.error?.message || result.message || 'Connection failed';
+                            throw new Error(errorMsg);
                         }
                     }
 
