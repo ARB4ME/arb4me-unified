@@ -3532,6 +3532,29 @@
             testLocalStorage();
             loadStrategyCredentials();
             setupAutoSave();
+
+            // Force re-load VALR credentials after delay to override browser autofill
+            setTimeout(() => {
+                console.log('🔄 Re-loading VALR credentials to override browser autofill...');
+                const valrSecretKey = localStorage.getItem('valrSecretKey') || localStorage.getItem('valr_cross-exchange_secret');
+                const valrApiKey = localStorage.getItem('valrApiKey') || localStorage.getItem('valr_cross-exchange_api');
+
+                if (valrSecretKey) {
+                    const secretField = document.getElementById('valr-cross-exchange-secret');
+                    if (secretField) {
+                        console.log(`🔑 Force setting VALR secret: ${valrSecretKey.substring(0, 10)}...`);
+                        secretField.value = valrSecretKey;
+                    }
+                }
+
+                if (valrApiKey) {
+                    const apiField = document.getElementById('valr-cross-exchange-api');
+                    if (apiField) {
+                        console.log(`🔑 Force setting VALR API: ${valrApiKey.substring(0, 10)}...`);
+                        apiField.value = valrApiKey;
+                    }
+                }
+            }, 500);
         });
     </script>
 </body>
