@@ -2552,8 +2552,19 @@
 
         // Connect strategy-specific exchange
         async function connectStrategyExchange(exchange, strategy) {
-            const apiKey = document.getElementById(`${exchange}-${strategy}-api`).value;
-            const secretKey = document.getElementById(`${exchange}-${strategy}-secret`).value;
+            const apiKey = document.getElementById(`${exchange}-${strategy}-api`).value.trim();
+            const secretKey = document.getElementById(`${exchange}-${strategy}-secret`).value.trim();
+
+            // 🔍 DEBUG: Log credential retrieval
+            console.log(`🔑 ${exchange}-${strategy} credentials retrieved:`);
+            console.log(`   API Key length: ${apiKey.length}`);
+            console.log(`   Secret Key length: ${secretKey.length}`);
+
+            // Validate credentials aren't empty
+            if (!apiKey || !secretKey) {
+                alert(`Please enter both API Key and Secret Key for ${exchange.toUpperCase()}`);
+                return;
+            }
 
             // Get passphrase for exchanges that require it (OKX, KuCoin only - Bitget doesn't need it)
             let passphrase = null;
@@ -2714,16 +2725,28 @@
                             ? '/api/v1/trading/chainex/balance'
                             : `/api/v1/trading/${exchange}/balance`;
 
+                        const requestBody = {
+                            apiKey: apiKey,
+                            apiSecret: secretKey,
+                            ...(passphrase && { passphrase: passphrase })
+                        };
+
+                        // 🔍 DEBUG: Log exact request details
+                        console.log(`🔍 ${exchange.toUpperCase()} REQUEST DETAILS:`);
+                        console.log(`   Endpoint: ${balanceEndpoint}`);
+                        console.log(`   API Key (first 10 chars): ${apiKey.substring(0, 10)}...`);
+                        console.log(`   Secret Key (first 10 chars): ${secretKey.substring(0, 10)}...`);
+                        console.log(`   API Key length: ${apiKey.length}`);
+                        console.log(`   Secret Key length: ${secretKey.length}`);
+                        console.log(`   Has passphrase: ${!!passphrase}`);
+                        console.log(`   Request body keys:`, Object.keys(requestBody));
+
                         const response = await fetch(balanceEndpoint, {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
                             },
-                            body: JSON.stringify({
-                                apiKey: apiKey,
-                                apiSecret: secretKey,
-                                ...(passphrase && { passphrase: passphrase })
-                            })
+                            body: JSON.stringify(requestBody)
                         });
 
                         const result = await response.json();
@@ -3455,6 +3478,12 @@
                     if (apiKey && apiInput) {
                         apiInput.value = apiKey;
                         console.log(`✅ Loaded ${exchange} ${strategy} API key`);
+
+                        // Extra debug for Binance
+                        if (exchange === 'binance' && strategy === 'cross-exchange') {
+                            console.log(`🔍 BINANCE LOAD DEBUG - API key length: ${apiKey.length}`);
+                            console.log(`🔍 BINANCE LOAD DEBUG - API key first 10 chars: ${apiKey.substring(0, 10)}...`);
+                        }
                     }
 
                     if (secretKey && secretInput) {
@@ -3466,6 +3495,13 @@
                             console.log(`🔍 VALR LOAD DEBUG - Secret key value: ${secretKey.substring(0, 10)}...`);
                             console.log(`🔍 VALR LOAD DEBUG - Input field ID: ${secretInput.id}`);
                             console.log(`🔍 VALR LOAD DEBUG - Input field value set to: ${secretInput.value.substring(0, 10)}...`);
+                        }
+
+                        // Extra debug for Binance
+                        if (exchange === 'binance' && strategy === 'cross-exchange') {
+                            console.log(`🔍 BINANCE LOAD DEBUG - Secret key length: ${secretKey.length}`);
+                            console.log(`🔍 BINANCE LOAD DEBUG - Secret key first 10 chars: ${secretKey.substring(0, 10)}...`);
+                            console.log(`🔍 BINANCE LOAD DEBUG - Input field value length: ${secretInput.value.length}`);
                         }
                     } else if (exchange === 'valr') {
                         console.log(`⚠️ VALR LOAD DEBUG - Secret key: ${secretKey ? 'EXISTS' : 'MISSING'}, Input field: ${secretInput ? 'FOUND' : 'NOT FOUND'}`);
