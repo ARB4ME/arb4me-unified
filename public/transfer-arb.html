@@ -472,9 +472,14 @@
         let selectedCryptos = [];
 
         function loadCryptoSelection() {
+            console.log('📥 Loading crypto selection from localStorage...');
             const saved = localStorage.getItem('cryptos_transfer');
+            console.log('💾 Saved cryptos:', saved);
+
             if (saved) {
                 selectedCryptos = JSON.parse(saved);
+                console.log('✅ Loaded selected cryptos:', selectedCryptos);
+
                 selectedCryptos.forEach(crypto => {
                     const checkbox = document.getElementById(`crypto-${crypto}`);
                     if (checkbox) {
@@ -487,14 +492,19 @@
 
                 // Show deposit address section if cryptos already selected
                 if (selectedCryptos.length > 0) {
+                    console.log('📬 Generating deposit address section for', selectedCryptos.length, 'cryptos');
                     generateDepositAddressSection();
                 }
+            } else {
+                console.log('ℹ️ No saved crypto selection found');
             }
         }
 
         function selectPreset(presetKey) {
+            console.log('🎯 Preset selected:', presetKey);
             const preset = TRANSFER_PRESETS[presetKey];
             selectedCryptos = [...preset.cryptos];
+            console.log('📋 Preset cryptos:', selectedCryptos);
 
             // Uncheck all first
             document.querySelectorAll('.crypto-item input[type="checkbox"]').forEach(cb => {
@@ -570,7 +580,9 @@
                 return;
             }
 
+            console.log('💾 Saving crypto selection:', selectedCryptos);
             localStorage.setItem('cryptos_transfer', JSON.stringify(selectedCryptos));
+            console.log('✅ Saved to localStorage: cryptos_transfer');
 
             alert(`✅ Saved ${selectedCryptos.length} cryptocurrencies for Transfer ARB
 
@@ -579,6 +591,7 @@ ${selectedCryptos.join(', ')}
 Next: Configure deposit addresses for these cryptos`);
 
             // Show deposit address section
+            console.log('📬 Generating deposit address section...');
             generateDepositAddressSection();
         }
 
@@ -618,8 +631,13 @@ Next: Configure deposit addresses for these cryptos`);
 
         // Load saved settings
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Transfer ARB page loaded');
+            console.log('📍 Current URL:', window.location.href);
+
             // Initialize crypto selector
+            console.log('🔄 Initializing crypto selector...');
             initializeCryptoSelector();
+            console.log('✅ Crypto selector initialized');
 
             // Load configuration from localStorage
             const sourceExchange = localStorage.getItem('transferSourceExchange');
