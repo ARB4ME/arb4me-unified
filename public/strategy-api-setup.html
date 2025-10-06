@@ -3334,6 +3334,31 @@
             });
         }
 
+        // Clear specific exchange credentials (for debugging)
+        function clearExchangeCredentials(exchange) {
+            console.log(`🗑️ Clearing all credentials for ${exchange}...`);
+            const strategies = ['cross-exchange', 'triangular', 'transfer', 'currency-swap'];
+
+            strategies.forEach(strategy => {
+                localStorage.removeItem(`${exchange}_${strategy}_api`);
+                localStorage.removeItem(`${exchange}_${strategy}_secret`);
+                localStorage.removeItem(`${exchange}_${strategy}_passphrase`);
+                localStorage.removeItem(`${exchange}_${strategy}_memo`);
+                localStorage.removeItem(`${exchange}_${strategy}_connected`);
+            });
+
+            // Also clear original format
+            localStorage.removeItem(`${exchange}ApiKey`);
+            localStorage.removeItem(`${exchange}SecretKey`);
+            localStorage.removeItem(`${exchange}Passphrase`);
+
+            console.log(`✅ Cleared all ${exchange} credentials`);
+            alert(`Cleared all ${exchange} credentials. Please refresh the page.`);
+        }
+
+        // Make it available globally for console access
+        window.clearExchangeCredentials = clearExchangeCredentials;
+
         // Load saved credentials using original storage format
         function loadStrategyCredentials() {
             console.log('🔄 Loading strategy credentials...');
