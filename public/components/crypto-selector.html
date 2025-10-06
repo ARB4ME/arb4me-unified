@@ -1,0 +1,495 @@
+<!--
+    Reusable Crypto Selection Component
+    Can be included in any strategy page
+-->
+
+<div class="crypto-selection-container">
+    <!-- Header -->
+    <div class="selection-header">
+        <h3>
+            <span id="strategy-icon">📦</span>
+            <span id="strategy-name">Transfer ARB</span> - Cryptocurrency Selection
+        </h3>
+        <p class="selection-description" id="selection-description">
+            Select cryptocurrencies to scan for Transfer Arbitrage opportunities
+        </p>
+    </div>
+
+    <!-- Preset Categories -->
+    <div class="preset-section">
+        <h4>🎯 Quick Select Presets</h4>
+        <div class="preset-buttons" id="preset-buttons">
+            <!-- Dynamically populated based on strategy -->
+        </div>
+    </div>
+
+    <!-- Search & Filter -->
+    <div class="search-filter">
+        <input
+            type="text"
+            id="crypto-search"
+            placeholder="🔍 Search cryptocurrencies..."
+            oninput="filterCryptos(this.value)"
+        >
+        <div class="filter-options">
+            <label>
+                <input type="checkbox" id="filter-fast" onchange="applyFilters()">
+                Fast transfers only
+            </label>
+            <label>
+                <input type="checkbox" id="filter-low-fee" onchange="applyFilters()">
+                Low fees only
+            </label>
+        </div>
+    </div>
+
+    <!-- Crypto Grid -->
+    <div class="crypto-grid" id="crypto-grid">
+        <!-- Will be populated dynamically -->
+    </div>
+
+    <!-- Selection Summary -->
+    <div class="selection-summary">
+        <div class="summary-stats">
+            <div class="stat">
+                <span class="stat-value" id="selected-count">0</span>
+                <span class="stat-label">Selected</span>
+            </div>
+            <div class="stat">
+                <span class="stat-value" id="deposit-addresses-needed">0</span>
+                <span class="stat-label">Deposit Addresses Needed</span>
+            </div>
+            <div class="stat">
+                <span class="stat-value" id="possible-routes">0</span>
+                <span class="stat-label">Possible Routes</span>
+            </div>
+        </div>
+
+        <div class="action-buttons">
+            <button class="btn btn-secondary" onclick="clearSelection()">
+                🗑️ Clear All
+            </button>
+            <button class="btn btn-primary" onclick="saveSelection()">
+                💾 Save & Apply
+            </button>
+        </div>
+    </div>
+
+    <!-- Selected Cryptos Preview -->
+    <div class="selected-preview" id="selected-preview">
+        <h4>📋 Selected Cryptocurrencies:</h4>
+        <div class="crypto-badges" id="selected-badges">
+            <span class="empty-state">No cryptos selected</span>
+        </div>
+    </div>
+</div>
+
+<style>
+.crypto-selection-container {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 30px;
+}
+
+.selection-header h3 {
+    color: #00d4ff;
+    margin-bottom: 10px;
+}
+
+.selection-description {
+    color: #b8c6db;
+    font-size: 0.9rem;
+    margin-bottom: 20px;
+}
+
+.preset-section {
+    margin-bottom: 25px;
+}
+
+.preset-section h4 {
+    color: #ffb347;
+    font-size: 1rem;
+    margin-bottom: 10px;
+}
+
+.preset-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.preset-btn {
+    background: rgba(102, 126, 234, 0.2);
+    border: 1px solid #667eea;
+    color: #667eea;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.3s;
+}
+
+.preset-btn:hover {
+    background: rgba(102, 126, 234, 0.3);
+    transform: translateY(-2px);
+}
+
+.preset-btn.active {
+    background: #667eea;
+    color: white;
+}
+
+.search-filter {
+    margin-bottom: 20px;
+}
+
+#crypto-search {
+    width: 100%;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    color: white;
+    font-size: 0.9rem;
+    margin-bottom: 10px;
+}
+
+.filter-options {
+    display: flex;
+    gap: 20px;
+    font-size: 0.85rem;
+}
+
+.filter-options label {
+    color: #b8c6db;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.crypto-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px;
+    margin-bottom: 25px;
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+}
+
+.crypto-item {
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid transparent;
+    border-radius: 8px;
+    padding: 12px;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.crypto-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(102, 126, 234, 0.5);
+}
+
+.crypto-item.selected {
+    background: rgba(102, 126, 234, 0.2);
+    border-color: #667eea;
+}
+
+.crypto-item input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.crypto-info {
+    flex: 1;
+}
+
+.crypto-name {
+    color: white;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.crypto-meta {
+    color: #888;
+    font-size: 0.75rem;
+}
+
+.selection-summary {
+    background: rgba(0, 212, 255, 0.1);
+    border: 1px solid #00d4ff;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.summary-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.stat {
+    text-align: center;
+}
+
+.stat-value {
+    display: block;
+    font-size: 2rem;
+    font-weight: bold;
+    color: #00ff88;
+}
+
+.stat-label {
+    display: block;
+    font-size: 0.85rem;
+    color: #b8c6db;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+}
+
+.btn {
+    padding: 12px 30px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-primary {
+    background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+.btn-secondary {
+    background: rgba(255, 107, 107, 0.2);
+    border: 1px solid #ff6b6b;
+    color: #ff6b6b;
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 107, 107, 0.3);
+}
+
+.selected-preview {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    padding: 15px;
+}
+
+.selected-preview h4 {
+    color: #00ff88;
+    margin-bottom: 10px;
+    font-size: 0.9rem;
+}
+
+.crypto-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.crypto-badges .badge {
+    background: rgba(102, 126, 234, 0.3);
+    border: 1px solid #667eea;
+    color: #667eea;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+}
+
+.empty-state {
+    color: #888;
+    font-style: italic;
+    font-size: 0.85rem;
+}
+</style>
+
+<script>
+// Will be customized per strategy
+let currentStrategy = 'transfer'; // Default
+let selectedCryptos = [];
+let allCryptos = [];
+
+// Load strategy-specific configuration
+function initCryptoSelector(strategy, presets) {
+    currentStrategy = strategy;
+
+    // Load saved selection
+    const saved = localStorage.getItem(`cryptos_${strategy}`);
+    selectedCryptos = saved ? JSON.parse(saved) : [];
+
+    // Populate UI
+    populatePresets(presets);
+    populateCryptoGrid();
+    updateSummary();
+}
+
+// Populate preset buttons
+function populatePresets(presets) {
+    const container = document.getElementById('preset-buttons');
+    container.innerHTML = '';
+
+    Object.entries(presets).forEach(([key, preset]) => {
+        const btn = document.createElement('button');
+        btn.className = 'preset-btn';
+        btn.innerHTML = `
+            <div><strong>${preset.name}</strong></div>
+            <div style="font-size: 0.75rem; margin-top: 3px;">${preset.description}</div>
+        `;
+        btn.onclick = () => selectPreset(key, preset);
+        container.appendChild(btn);
+    });
+}
+
+// Select preset
+function selectPreset(key, preset) {
+    preset.cryptos.forEach(crypto => {
+        const checkbox = document.getElementById(`crypto-${crypto}`);
+        if (checkbox) {
+            checkbox.checked = true;
+            toggleCrypto(crypto, true);
+        }
+    });
+
+    updateSummary();
+}
+
+// Populate crypto grid
+function populateCryptoGrid() {
+    const grid = document.getElementById('crypto-grid');
+    grid.innerHTML = '';
+
+    allCryptos.forEach(crypto => {
+        const isSelected = selectedCryptos.includes(crypto.symbol);
+
+        const item = document.createElement('div');
+        item.className = `crypto-item ${isSelected ? 'selected' : ''}`;
+        item.innerHTML = `
+            <input
+                type="checkbox"
+                id="crypto-${crypto.symbol}"
+                ${isSelected ? 'checked' : ''}
+                onchange="toggleCrypto('${crypto.symbol}', this.checked)"
+            >
+            <div class="crypto-info">
+                <div class="crypto-name">${crypto.symbol}</div>
+                <div class="crypto-meta">${crypto.meta || ''}</div>
+            </div>
+        `;
+
+        item.onclick = (e) => {
+            if (e.target.type !== 'checkbox') {
+                const checkbox = item.querySelector('input');
+                checkbox.checked = !checkbox.checked;
+                toggleCrypto(crypto.symbol, checkbox.checked);
+            }
+        };
+
+        grid.appendChild(item);
+    });
+}
+
+// Toggle crypto selection
+function toggleCrypto(symbol, checked) {
+    if (checked && !selectedCryptos.includes(symbol)) {
+        selectedCryptos.push(symbol);
+    } else if (!checked) {
+        selectedCryptos = selectedCryptos.filter(c => c !== symbol);
+    }
+
+    updateSummary();
+    updateSelectedPreview();
+}
+
+// Update summary stats
+function updateSummary() {
+    const connectedExchanges = 18; // Or get from actual connected exchanges
+
+    document.getElementById('selected-count').textContent = selectedCryptos.length;
+    document.getElementById('deposit-addresses-needed').textContent =
+        selectedCryptos.length * connectedExchanges;
+    document.getElementById('possible-routes').textContent =
+        (connectedExchanges * (connectedExchanges - 1)) * selectedCryptos.length;
+}
+
+// Update selected preview
+function updateSelectedPreview() {
+    const container = document.getElementById('selected-badges');
+
+    if (selectedCryptos.length === 0) {
+        container.innerHTML = '<span class="empty-state">No cryptos selected</span>';
+        return;
+    }
+
+    container.innerHTML = selectedCryptos
+        .map(c => `<span class="badge">${c}</span>`)
+        .join('');
+}
+
+// Save selection
+function saveSelection() {
+    localStorage.setItem(`cryptos_${currentStrategy}`, JSON.stringify(selectedCryptos));
+
+    alert(`✅ Saved ${selectedCryptos.length} cryptocurrencies for ${currentStrategy}
+
+${selectedCryptos.join(', ')}
+
+Deposit addresses will be configured for these cryptos.`);
+
+    // Trigger update event
+    window.dispatchEvent(new CustomEvent('cryptos-updated', {
+        detail: { strategy: currentStrategy, cryptos: selectedCryptos }
+    }));
+}
+
+// Clear selection
+function clearSelection() {
+    if (confirm('Clear all selected cryptocurrencies?')) {
+        selectedCryptos = [];
+        document.querySelectorAll('.crypto-item input[type="checkbox"]').forEach(cb => {
+            cb.checked = false;
+        });
+        updateSummary();
+        updateSelectedPreview();
+    }
+}
+
+// Filter cryptos
+function filterCryptos(searchTerm) {
+    const items = document.querySelectorAll('.crypto-item');
+    items.forEach(item => {
+        const symbol = item.querySelector('.crypto-name').textContent;
+        if (symbol.toLowerCase().includes(searchTerm.toLowerCase())) {
+            item.style.display = 'flex';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}
+
+// Apply filters
+function applyFilters() {
+    // Implement filter logic based on checkboxes
+}
+</script>
