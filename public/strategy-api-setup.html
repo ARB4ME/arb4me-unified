@@ -3219,6 +3219,15 @@
                     localStorage.setItem(storageKey, value);
                     console.log(`💾 Stored strategy-specific: ${storageKey} = ${value.substring(0, 10)}...`);
 
+                    // Extra logging for VALR
+                    if (exchange === 'valr') {
+                        console.log(`🔍 VALR DEBUG - Exchange: ${exchange}, Strategy: ${strategy}, Field: ${fieldType}`);
+                        console.log(`🔍 VALR DEBUG - Storage key: ${storageKey}`);
+                        console.log(`🔍 VALR DEBUG - Value length: ${value.length}`);
+                        const verification = localStorage.getItem(storageKey);
+                        console.log(`🔍 VALR DEBUG - Verification read: ${verification ? verification.substring(0, 10) + '...' : 'NULL'}`);
+                    }
+
                     // Also store in original format for dashboard compatibility (cross-exchange only)
                     if (strategy === 'cross-exchange') {
                         if (exchange === 'chainex') {
@@ -3229,6 +3238,7 @@
                             const originalKey = fieldType === 'api' ? 'valrApiKey' : 'valrSecretKey';
                             localStorage.setItem(originalKey, value);
                             console.log(`💾 Stored original format: ${originalKey} = ${value.substring(0, 10)}...`);
+                            console.log(`🔍 VALR DEBUG - Also stored as original key: ${originalKey}`);
                         } else if (exchange === 'luno') {
                             const originalKey = fieldType === 'api' ? 'lunoApiKey' : 'lunoSecretKey';
                             localStorage.setItem(originalKey, value);
@@ -3413,6 +3423,15 @@
                     if (secretKey && secretInput) {
                         secretInput.value = secretKey;
                         console.log(`✅ Loaded ${exchange} ${strategy} secret key`);
+
+                        // Extra debug for VALR
+                        if (exchange === 'valr') {
+                            console.log(`🔍 VALR LOAD DEBUG - Secret key value: ${secretKey.substring(0, 10)}...`);
+                            console.log(`🔍 VALR LOAD DEBUG - Input field ID: ${secretInput.id}`);
+                            console.log(`🔍 VALR LOAD DEBUG - Input field value set to: ${secretInput.value.substring(0, 10)}...`);
+                        }
+                    } else if (exchange === 'valr') {
+                        console.log(`⚠️ VALR LOAD DEBUG - Secret key: ${secretKey ? 'EXISTS' : 'MISSING'}, Input field: ${secretInput ? 'FOUND' : 'NOT FOUND'}`);
                     }
 
                     if (passphrase && passphraseInput) {
