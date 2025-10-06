@@ -313,4 +313,237 @@ router.post('/scan', authenticatedRateLimit, authenticateUser, asyncHandler(asyn
     }
 }));
 
+// =============================================================================
+// REAL-TIME TRANSFER ARB SCANNER (Using Price Cache)
+// =============================================================================
+
+const priceCacheService = require('../services/priceCacheService');
+
+router.post('/scan-realtime', tradingRateLimit, optionalAuth, [
+    body('exchanges').isArray().withMessage('Exchanges must be an array'),
+    body('cryptos').isArray().withMessage('Cryptos must be an array'),
+    body('minProfitPercent').optional().isFloat({ min: 0 }).withMessage('Min profit must be a positive number'),
+    body('maxTransferAmount').optional().isFloat({ min: 0 }).withMessage('Max amount must be a positive number'),
+    body('maxTransferTime').optional().isFloat({ min: 0 }).withMessage('Max transfer time must be a positive number')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const {
+        exchanges,
+        cryptos,
+        minProfitPercent = 2.0,
+        maxTransferAmount = 10000,
+        maxTransferTime = 60
+    } = req.body;
+
+    try {
+        systemLogger.trading('Real-time Transfer ARB scan initiated', {
+            userId: req.user?.id || 'anonymous',
+            exchanges: exchanges.length,
+            cryptos: cryptos.length,
+            filters: { minProfitPercent, maxTransferAmount, maxTransferTime }
+        });
+
+        const opportunities = [];
+
+        // Scan all exchange pairs
+        for (let i = 0; i < exchanges.length; i++) {
+            for (let j = 0; j < exchanges.length; j++) {
+                if (i === j) continue; // Skip same exchange
+
+                const fromExchange = exchanges[i];
+                const toExchange = exchanges[j];
+
+                // Get prices from cache
+                const fromPrices = priceCacheService.getPrices(fromExchange, cryptos);
+                const toPrices = priceCacheService.getPrices(toExchange, cryptos);
+
+                if (!fromPrices || !toPrices) {
+                    systemLogger.warn(`Missing price data for ${fromExchange} or ${toExchange}`);
+                    continue;
+                }
+
+                // Check each crypto
+                for (const crypto of cryptos) {
+                    const symbol = `${crypto}USDT`;
+                    const buyPrice = fromPrices[symbol];
+                    const sellPrice = toPrices[symbol];
+
+                    if (!buyPrice || !sellPrice) {
+                        continue; // Skip if price not available
+                    }
+
+                    // Calculate opportunity
+                    const opportunity = calculateTransferOpportunity(
+                        crypto,
+                        fromExchange,
+                        toExchange,
+                        buyPrice,
+                        sellPrice,
+                        maxTransferAmount
+                    );
+
+                    // Filter by criteria
+                    if (opportunity.profitable &&
+                        opportunity.netProfitPercent >= minProfitPercent &&
+                        opportunity.estimatedTransferTime <= maxTransferTime) {
+                        opportunities.push(opportunity);
+                    }
+                }
+            }
+        }
+
+        // Sort by net profit %
+        opportunities.sort((a, b) => b.netProfitPercent - a.netProfitPercent);
+
+        systemLogger.trading('Real-time scan completed', {
+            userId: req.user?.id || 'anonymous',
+            routesScanned: exchanges.length * (exchanges.length - 1) * cryptos.length,
+            opportunitiesFound: opportunities.length
+        });
+
+        res.json({
+            success: true,
+            data: {
+                opportunities: opportunities.slice(0, 20), // Return top 20
+                scannedAt: new Date().toISOString(),
+                routesScanned: exchanges.length * (exchanges.length - 1) * cryptos.length,
+                filters: { minProfitPercent, maxTransferAmount, maxTransferTime }
+            }
+        });
+
+    } catch (error) {
+        systemLogger.error('Real-time scan failed', {
+            userId: req.user?.id || 'anonymous',
+            error: error.message
+        });
+        throw new APIError(`Real-time scan failed: ${error.message}`, 500, 'REALTIME_SCAN_ERROR');
+    }
+}));
+
+// Helper function to calculate transfer opportunity
+function calculateTransferOpportunity(crypto, fromExchange, toExchange, buyPrice, sellPrice, maxAmount) {
+    // Price spread
+    const priceSpread = ((sellPrice - buyPrice) / buyPrice) * 100;
+
+    // Estimate fees (simplified)
+    const withdrawalFee = getWithdrawalFee(crypto, fromExchange);
+    const depositFee = 0; // Most exchanges don't charge deposit fees
+    const tradingFeePercent = 0.1; // 0.1% trading fee estimate
+
+    // Calculate quantities
+    const usdtToSpend = Math.min(1000, maxAmount); // Default $1000 or max
+    const cryptoQuantity = usdtToSpend / buyPrice;
+    const cryptoAfterWithdrawal = cryptoQuantity - withdrawalFee;
+
+    // Calculate revenue
+    const revenueUSDT = cryptoAfterWithdrawal * sellPrice;
+    const tradingFees = (usdtToSpend * tradingFeePercent / 100) + (revenueUSDT * tradingFeePercent / 100);
+
+    // Net profit
+    const netProfit = revenueUSDT - usdtToSpend - tradingFees;
+    const netProfitPercent = (netProfit / usdtToSpend) * 100;
+
+    // Transfer time estimate
+    const estimatedTransferTime = getTransferTime(crypto);
+
+    // Risk score (1-10)
+    const riskScore = calculateRiskScore(crypto, estimatedTransferTime, netProfitPercent);
+
+    return {
+        crypto,
+        fromExchange,
+        toExchange,
+        buyPrice,
+        sellPrice,
+        priceSpread,
+        usdtToSpend,
+        cryptoQuantity,
+        cryptoAfterWithdrawal,
+        revenueUSDT,
+        withdrawalFee,
+        withdrawalFeeUSD: withdrawalFee * sellPrice,
+        tradingFees,
+        netProfit,
+        netProfitPercent,
+        profitable: netProfit > 0,
+        estimatedTransferTime,
+        riskScore,
+        scannedAt: new Date().toISOString()
+    };
+}
+
+// Get withdrawal fee for crypto
+function getWithdrawalFee(crypto) {
+    const fees = {
+        'XRP': 0.25,
+        'XLM': 0.01,
+        'TRX': 1.0,
+        'LTC': 0.001,
+        'BCH': 0.0005,
+        'BTC': 0.0005,
+        'ETH': 0.005,
+        'USDT': 1.0,
+        'DOGE': 2.0,
+        'ADA': 1.0,
+        'DOT': 0.1
+    };
+    return fees[crypto] || 1.0;
+}
+
+// Get estimated transfer time
+function getTransferTime(crypto) {
+    const times = {
+        'XRP': 3,
+        'XLM': 5,
+        'TRX': 3,
+        'LTC': 15,
+        'BCH': 15,
+        'BTC': 30,
+        'ETH': 10,
+        'USDT': 3,
+        'DOGE': 20,
+        'ADA': 10,
+        'DOT': 10
+    };
+    return times[crypto] || 20;
+}
+
+// Calculate risk score (1-10, lower is better)
+function calculateRiskScore(crypto, transferTime, profitPercent) {
+    let score = 5; // Base risk
+
+    // Time risk
+    if (transferTime > 30) score += 3;
+    else if (transferTime > 15) score += 2;
+    else if (transferTime > 5) score += 1;
+
+    // Profit margin risk
+    if (profitPercent < 2) score += 2;
+    else if (profitPercent < 3) score += 1;
+
+    // Crypto volatility risk
+    const volatile = ['BTC', 'ETH', 'DOGE'];
+    if (volatile.includes(crypto)) score += 1;
+
+    return Math.min(10, score);
+}
+
+// Get price cache status
+router.get('/price-cache-status', optionalAuth, asyncHandler(async (req, res) => {
+    const cacheData = priceCacheService.getAllCachedData();
+
+    res.json({
+        success: true,
+        data: {
+            isRunning: priceCacheService.isRunning,
+            updateInterval: priceCacheService.updateInterval,
+            exchanges: cacheData
+        }
+    });
+}));
+
 module.exports = router;

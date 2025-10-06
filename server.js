@@ -16,6 +16,7 @@ const { setupWebSocket } = require('./src/websocket/socketManager');
 const { errorHandler } = require('./src/middleware/errorHandler');
 const { generalRateLimit } = require('./src/middleware/rateLimiter');
 const autoReminderService = require('./src/services/autoReminderService');
+const priceCacheService = require('./src/services/priceCacheService');
 
 // Import routes
 const authRoutes = require('./src/routes/auth.routes');
@@ -136,6 +137,15 @@ async function startServer() {
         // Setup WebSocket
         setupWebSocket(io);
         logger.info('WebSocket server initialized');
+
+        // Start Price Cache Service for Transfer ARB
+        try {
+            priceCacheService.start();
+            logger.info('Price cache service started - real-time prices available');
+        } catch (error) {
+            logger.warn('Price cache service failed to start', { error: error.message });
+            // Don't crash the server if price cache fails
+        }
 
         // Start HTTP server
         const PORT = process.env.PORT || 3000;

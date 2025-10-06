@@ -691,21 +691,50 @@ Next: Configure deposit addresses for these cryptos`);
             }
         }
 
-        // Mock opportunities (will be replaced with real API call)
+        // Get REAL opportunities from backend
         async function getMockOpportunities(connectedExchanges) {
-            console.log('📊 Generating mock opportunities for', connectedExchanges.length, 'exchanges');
+            console.log('📊 Fetching REAL opportunities for', connectedExchanges.length, 'exchanges');
 
-            // Simulate API delay
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            try {
+                // Get risk settings
+                const minProfitPercent = parseFloat(document.getElementById('minPriceDiff').value);
+                const maxTransferAmount = parseFloat(document.getElementById('maxTransferAmount').value);
+                const maxTransferTime = parseFloat(document.getElementById('maxTransferTime').value);
 
-            // Check if we have real API keys configured
-            const hasRealKeys = connectedExchanges.some(exchange => {
-                const apiKey = localStorage.getItem(`${exchange}_transfer_api`);
-                return apiKey && apiKey.length > 10;
-            });
+                // Call REAL backend scanner API
+                const response = await fetch('/api/v1/transfer-arb/scan-realtime', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        exchanges: connectedExchanges,
+                        cryptos: selectedCryptos,
+                        minProfitPercent,
+                        maxTransferAmount,
+                        maxTransferTime
+                    })
+                });
 
-            if (!hasRealKeys) {
-                console.warn('⚠️ No real API keys found - showing placeholder opportunities');
+                if (!response.ok) {
+                    throw new Error(`Scanner API error: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (data.success) {
+                    console.log(`✅ Found ${data.data.opportunities.length} REAL opportunities`);
+                    console.log(`📊 Scanned ${data.data.routesScanned} routes`);
+                    return data.data.opportunities;
+                } else {
+                    throw new Error(data.error || 'Scanner failed');
+                }
+
+            } catch (error) {
+                console.error('❌ Real scanner failed:', error);
+
+                // Fallback to placeholder if scanner fails
+                console.warn('⚠️ Showing placeholder data due to scanner error');
                 return [{
                     fromExchange: connectedExchanges[0] || 'binance',
                     toExchange: connectedExchanges[1] || 'kraken',
@@ -719,18 +748,10 @@ Next: Configure deposit addresses for these cryptos`);
                     estimatedTransferTime: 3,
                     riskScore: 3,
                     profitable: true,
-                    isPlaceholder: true
+                    isPlaceholder: true,
+                    error: error.message
                 }];
             }
-
-            // TODO: Call backend API to get real prices and calculate opportunities
-            // const response = await fetch('/api/transfer-arb/scan', {
-            //     method: 'POST',
-            //     body: JSON.stringify({ exchanges: connectedExchanges, cryptos: selectedCryptos })
-            // });
-            // return response.json();
-
-            return [];
         }
 
         // Display opportunities
