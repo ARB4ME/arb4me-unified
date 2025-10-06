@@ -858,11 +858,13 @@ Next: Configure deposit addresses for these cryptos`);
                                 <label>${crypto} Deposit Address</label>
                                 <input type="text" id="${exchange}-${crypto}-deposit"
                                        placeholder="${exchange} ${crypto} deposit address"
+                                       oninput="saveDepositAddress('${exchange}', '${crypto}', 'deposit', this.value)"
                                        style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2);
                                               border-radius: 5px; padding: 10px; color: white; width: 100%;">
                                 ${['XRP', 'XLM'].includes(crypto) ? `
                                     <input type="text" id="${exchange}-${crypto}-tag"
                                            placeholder="Memo/Tag (if required)"
+                                           oninput="saveDepositAddress('${exchange}', '${crypto}', 'tag', this.value)"
                                            style="margin-top: 5px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2);
                                                   border-radius: 5px; padding: 10px; color: white; width: 100%;">
                                 ` : ''}
@@ -871,6 +873,49 @@ Next: Configure deposit addresses for these cryptos`);
                     </div>
                 `;
                 document.getElementById('deposit-fields').innerHTML += html;
+            });
+
+            // Load saved deposit addresses after generating fields
+            setTimeout(() => loadDepositAddresses(), 100);
+        }
+
+        // Save deposit address to localStorage
+        function saveDepositAddress(exchange, crypto, type, value) {
+            const key = `deposit_${exchange}_${crypto}_${type}`;
+            localStorage.setItem(key, value);
+            console.log(`💾 Auto-saved: ${key} = ${value.substring(0, 10)}...`);
+        }
+
+        // Load saved deposit addresses
+        function loadDepositAddresses() {
+            console.log('🔄 Loading saved deposit addresses...');
+
+            const connectedExchanges = getConnectedExchanges();
+
+            connectedExchanges.forEach(exchange => {
+                selectedCryptos.forEach(crypto => {
+                    // Load deposit address
+                    const depositKey = `deposit_${exchange}_${crypto}_deposit`;
+                    const depositValue = localStorage.getItem(depositKey);
+                    const depositInput = document.getElementById(`${exchange}-${crypto}-deposit`);
+
+                    if (depositValue && depositInput) {
+                        depositInput.value = depositValue;
+                        console.log(`✅ Loaded ${exchange} ${crypto} deposit address`);
+                    }
+
+                    // Load tag/memo for XRP and XLM
+                    if (['XRP', 'XLM'].includes(crypto)) {
+                        const tagKey = `deposit_${exchange}_${crypto}_tag`;
+                        const tagValue = localStorage.getItem(tagKey);
+                        const tagInput = document.getElementById(`${exchange}-${crypto}-tag`);
+
+                        if (tagValue && tagInput) {
+                            tagInput.value = tagValue;
+                            console.log(`✅ Loaded ${exchange} ${crypto} tag/memo`);
+                        }
+                    }
+                });
             });
         }
 
