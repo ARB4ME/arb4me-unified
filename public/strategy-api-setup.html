@@ -2765,6 +2765,24 @@
                             console.error(`❌ ${exchange} API error:`, result.error || result);
                             console.error(`❌ ${exchange} error message:`, result.data?.error || result.data?.message || result.error?.message || result.message);
                             const errorMsg = result.data?.error || result.data?.message || result.error?.message || result.message || 'Connection failed';
+
+                            // Special handling for Binance IP whitelist error
+                            if (exchange === 'binance' && errorMsg.includes('-2015')) {
+                                console.error('🚨 BINANCE IP WHITELIST ERROR DETECTED');
+                                console.error('📍 Fetching Railway server IP...');
+
+                                try {
+                                    const ipResponse = await fetch('/api/v1/trading/server-ip');
+                                    const ipData = await ipResponse.json();
+                                    console.error('🌐 Railway Server IP:', ipData.ip);
+                                    console.error('⚠️ Add this IP to your Binance API whitelist!');
+
+                                    throw new Error(`Binance IP Whitelist Error!\n\nRailway Server IP: ${ipData.ip}\n\nPlease add this IP to your Binance API key's IP whitelist, or remove IP restrictions.`);
+                                } catch (ipError) {
+                                    console.error('❌ Could not fetch server IP:', ipError);
+                                }
+                            }
+
                             throw new Error(errorMsg);
                         }
                     }
