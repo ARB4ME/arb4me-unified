@@ -2727,10 +2727,19 @@
                         });
 
                         const result = await response.json();
+                        console.log(`📊 ${exchange} backend response:`, result);
+                        console.log(`📊 ${exchange} response status:`, response.status);
+
+                        if (!response.ok) {
+                            console.error(`❌ ${exchange} HTTP error: ${response.status}`);
+                            throw new Error(`HTTP ${response.status}: ${result.error?.message || result.message || 'Connection failed'}`);
+                        }
+
                         if (result.success) {
                             balances = result.data?.balances || result.balances || result.data || result;
                         } else {
-                            throw new Error(result.error?.message || 'Connection failed');
+                            console.error(`❌ ${exchange} API error:`, result.error || result);
+                            throw new Error(result.error?.message || result.message || 'Connection failed');
                         }
                     }
 
