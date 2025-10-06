@@ -284,6 +284,26 @@
                             <span style="font-size: 0.85rem; color: #b8c6db;">Calculate fees in profit</span>
                         </div>
                     </div>
+                    <div class="form-group" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.2);">
+                        <label style="font-size: 1.1rem; font-weight: bold; color: #00ff88;">🤖 Auto-Execute Trades</label>
+                        <div style="display: flex; align-items: center; gap: 15px; margin-top: 10px;">
+                            <div class="toggle-switch" id="autoExecuteToggle">
+                                <div class="toggle-knob"></div>
+                            </div>
+                            <div>
+                                <span id="autoExecuteLabel" style="font-size: 0.95rem; font-weight: bold; color: #ff6b6b;">OFF - Manual Trading</span>
+                                <div style="font-size: 0.75rem; color: #b8c6db; margin-top: 3px;">
+                                    When ON: Automatically executes profitable opportunities
+                                </div>
+                            </div>
+                        </div>
+                        <div id="autoExecuteWarning" style="display: none; background: rgba(255,107,107,0.2); border: 1px solid #ff6b6b; border-radius: 8px; padding: 12px; margin-top: 10px;">
+                            <div style="color: #ff6b6b; font-weight: bold; margin-bottom: 5px;">⚠️ Auto-Execute Active</div>
+                            <div style="color: #b8c6db; font-size: 0.85rem; line-height: 1.4;">
+                                System will automatically execute trades meeting your risk criteria. Scanning every <span id="scanInterval">30</span> seconds.
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Best Practices -->
@@ -634,14 +654,30 @@ Next: Configure deposit addresses for these cryptos`);
             btn.innerHTML = '⏳ Scanning opportunities...';
             btn.disabled = true;
 
+            // Get risk settings for filtering
+            const minPriceDiff = parseFloat(document.getElementById('minPriceDiff').value);
+            const maxTransferAmount = parseFloat(document.getElementById('maxTransferAmount').value);
+            const maxTransferTime = parseFloat(document.getElementById('maxTransferTime').value);
+
             try {
                 // This would normally call backend API to get real prices
                 // For now, show the structure with placeholder data
-                const opportunities = await getMockOpportunities(connectedExchanges);
+                const allOpportunities = await getMockOpportunities(connectedExchanges);
 
-                displayOpportunities(opportunities);
+                // Filter by risk settings
+                const filteredOpportunities = allOpportunities.filter(opp => {
+                    const meetsProfit = opp.netProfitPercent >= minPriceDiff;
+                    const meetsAmount = opp.usdtToSpend <= maxTransferAmount;
+                    const meetsTime = opp.estimatedTransferTime <= maxTransferTime;
 
-                btn.innerHTML = `✅ Scan Complete - Found ${opportunities.length} opportunities`;
+                    return meetsProfit && meetsAmount && meetsTime && opp.profitable;
+                });
+
+                console.log(`📊 Filtered ${filteredOpportunities.length} of ${allOpportunities.length} opportunities based on risk settings`);
+
+                displayOpportunities(filteredOpportunities);
+
+                btn.innerHTML = `✅ Scan Complete - Found ${filteredOpportunities.length} opportunities`;
                 setTimeout(() => {
                     btn.innerHTML = '🔍 Scan Transfer Opportunities';
                     btn.disabled = false;
@@ -955,6 +991,43 @@ Next: Configure deposit addresses for these cryptos`);
             if (localStorage.getItem('includeTransferFees') === 'true') {
                 document.getElementById('includeFeesToggle').classList.add('active');
             }
+
+            // Auto-Execute Toggle
+            const autoExecuteToggle = document.getElementById('autoExecuteToggle');
+            const autoExecuteLabel = document.getElementById('autoExecuteLabel');
+            const autoExecuteWarning = document.getElementById('autoExecuteWarning');
+
+            autoExecuteToggle.addEventListener('click', function() {
+                this.classList.toggle('active');
+                const isActive = this.classList.contains('active');
+
+                localStorage.setItem('transferAutoExecute', isActive);
+
+                if (isActive) {
+                    autoExecuteLabel.textContent = 'ON - Auto Trading Active';
+                    autoExecuteLabel.style.color = '#00ff88';
+                    autoExecuteWarning.style.display = 'block';
+                    console.log('🤖 Auto-Execute ENABLED for Transfer ARB');
+                    startContinuousScan();
+                } else {
+                    autoExecuteLabel.textContent = 'OFF - Manual Trading';
+                    autoExecuteLabel.style.color = '#ff6b6b';
+                    autoExecuteWarning.style.display = 'none';
+                    console.log('⏸️ Auto-Execute DISABLED for Transfer ARB');
+                    stopContinuousScan();
+                }
+            });
+
+            // Load auto-execute state
+            if (localStorage.getItem('transferAutoExecute') === 'true') {
+                autoExecuteToggle.classList.add('active');
+                autoExecuteLabel.textContent = 'ON - Auto Trading Active';
+                autoExecuteLabel.style.color = '#00ff88';
+                autoExecuteWarning.style.display = 'block';
+                console.log('🤖 Auto-Execute was ON, starting continuous scan...');
+                // Start continuous scan after page loads
+                setTimeout(() => startContinuousScan(), 2000);
+            }
         });
 
         // Save settings when changed
@@ -999,6 +1072,105 @@ Next: Configure deposit addresses for these cryptos`);
                 return;
             }
             alert(`Testing transfer route from ${source} to ${dest}...`);
+        }
+
+        // Continuous Scan Variables
+        let continuousScanInterval = null;
+        let isAutoExecuteActive = false;
+        const SCAN_INTERVAL_MS = 30000; // 30 seconds
+
+        // Start continuous scanning
+        function startContinuousScan() {
+            if (continuousScanInterval) {
+                console.log('⚠️ Continuous scan already running');
+                return;
+            }
+
+            isAutoExecuteActive = true;
+            console.log('🚀 Starting continuous scan every', SCAN_INTERVAL_MS / 1000, 'seconds');
+
+            // Run first scan immediately
+            scanWithAutoExecute();
+
+            // Then schedule recurring scans
+            continuousScanInterval = setInterval(() => {
+                scanWithAutoExecute();
+            }, SCAN_INTERVAL_MS);
+        }
+
+        // Stop continuous scanning
+        function stopContinuousScan() {
+            if (continuousScanInterval) {
+                clearInterval(continuousScanInterval);
+                continuousScanInterval = null;
+                isAutoExecuteActive = false;
+                console.log('⏸️ Continuous scan stopped');
+            }
+        }
+
+        // Scan with auto-execute logic
+        async function scanWithAutoExecute() {
+            console.log('🔍 Auto-scan starting...');
+
+            const connectedExchanges = getConnectedExchanges();
+
+            if (connectedExchanges.length < 2) {
+                console.warn('⚠️ Need at least 2 connected exchanges for auto-execute');
+                return;
+            }
+
+            if (selectedCryptos.length === 0) {
+                console.warn('⚠️ No cryptocurrencies selected for scanning');
+                return;
+            }
+
+            // Get risk settings
+            const minPriceDiff = parseFloat(document.getElementById('minPriceDiff').value);
+            const maxTransferAmount = parseFloat(document.getElementById('maxTransferAmount').value);
+            const maxTransferTime = parseFloat(document.getElementById('maxTransferTime').value);
+            const includeFees = document.getElementById('includeFeesToggle').classList.contains('active');
+
+            console.log('📊 Risk Settings:', {
+                minPriceDiff: minPriceDiff + '%',
+                maxTransferAmount: '$' + maxTransferAmount,
+                maxTransferTime: maxTransferTime + ' mins',
+                includeFees
+            });
+
+            try {
+                // Get opportunities (currently returns mock data)
+                const opportunities = await getMockOpportunities(connectedExchanges);
+
+                // Filter by risk settings
+                const filteredOpportunities = opportunities.filter(opp => {
+                    const meetsProfit = opp.netProfitPercent >= minPriceDiff;
+                    const meetsAmount = opp.usdtToSpend <= maxTransferAmount;
+                    const meetsTime = opp.estimatedTransferTime <= maxTransferTime;
+
+                    return meetsProfit && meetsAmount && meetsTime && opp.profitable;
+                });
+
+                console.log(`✅ Found ${filteredOpportunities.length} opportunities meeting criteria (${opportunities.length} total)`);
+
+                if (filteredOpportunities.length > 0 && isAutoExecuteActive) {
+                    // Sort by profit and take best one
+                    const bestOpp = filteredOpportunities.sort((a, b) => b.netProfitPercent - a.netProfitPercent)[0];
+
+                    console.log('💎 Best opportunity:', bestOpp);
+                    console.log(`   ${bestOpp.crypto}: ${bestOpp.fromExchange} → ${bestOpp.toExchange}`);
+                    console.log(`   Profit: $${bestOpp.netProfit} (${bestOpp.netProfitPercent}%)`);
+
+                    // TODO: Execute the trade automatically
+                    // For now, just log it
+                    console.log('🤖 AUTO-EXECUTE: Would execute this opportunity (execution not implemented yet)');
+                }
+
+                // Update display
+                displayOpportunities(filteredOpportunities);
+
+            } catch (error) {
+                console.error('❌ Auto-scan error:', error);
+            }
         }
 
         function quickCalculate() {
