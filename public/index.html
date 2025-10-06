@@ -20161,6 +20161,13 @@ ARB4ME Security Team`
                                 const secretField = document.getElementById(`${exchange}SecretKey`);
                                 if (keyField) keyField.value = obfuscateApiKey(decryptedKey);
                                 if (secretField) secretField.value = obfuscateApiKey(decryptedSecret);
+
+                                // VALR FIX: Also store full keys in localStorage for direct access
+                                if (exchange === 'valr') {
+                                    localStorage.setItem('valrApiKey', decryptedKey);
+                                    localStorage.setItem('valrSecretKey', decryptedSecret);
+                                    console.log(`🔑 VALR keys refreshed in localStorage`);
+                                }
                             }
                         }
                     });
