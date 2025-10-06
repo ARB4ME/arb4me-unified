@@ -3092,11 +3092,11 @@
                     </div>
                     <div class="form-group">
                         <label>VALR API Key (Required for live trading)</label>
-                        <input type="text" id="valrApiKey" placeholder="Enter your VALR API key">
+                        <input type="text" id="valrApiKey" placeholder="Enter your VALR API key" autocomplete="off">
                     </div>
                     <div class="form-group">
                         <label>VALR Secret Key (Required for live trading)</label>
-                        <input type="password" id="valrSecretKey" placeholder="Enter your VALR secret key">
+                        <input type="password" id="valrSecretKey" placeholder="Enter your VALR secret key" autocomplete="off" data-lpignore="true">
                     </div>
                     <button class="btn" id="valrConnectBtn">
                         <span id="valrConnectText">🔗 Connect VALR (Real Mode)</span>
@@ -25628,6 +25628,28 @@ ARB4ME Security Team`
             
             // Migrate existing user data to multi-user system
             migrateExistingUserData();
+
+            // Force reload VALR credentials after browser autofill completes
+            setTimeout(() => {
+                const valrApiKey = localStorage.getItem('valrApiKey');
+                const valrSecretKey = localStorage.getItem('valrSecretKey');
+
+                if (valrApiKey) {
+                    const apiField = document.getElementById('valrApiKey');
+                    if (apiField && apiField.value !== valrApiKey) {
+                        console.log('🔄 Overriding browser autofill for VALR API key');
+                        apiField.value = valrApiKey.substring(0, 8) + '...' + valrApiKey.substring(valrApiKey.length - 8);
+                    }
+                }
+
+                if (valrSecretKey) {
+                    const secretField = document.getElementById('valrSecretKey');
+                    if (secretField && secretField.value !== valrSecretKey) {
+                        console.log('🔄 Overriding browser autofill for VALR secret key');
+                        secretField.value = valrSecretKey.substring(0, 8) + '...' + valrSecretKey.substring(valrSecretKey.length - 8);
+                    }
+                }
+            }, 1000);
             
             // Initialize auto-refresh for admin dashboard (every 30 minutes)
             initializeAutoRefresh();
