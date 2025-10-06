@@ -23089,16 +23089,30 @@ ARB4ME Security Team`
                               exchangeName === 'bitget' ? document.getElementById('bitgetPassphrase').value :
                               exchangeName === 'coincatch' ? document.getElementById('coincatchPassphrase').value : null;
             
-            // If fields show obfuscated keys, get real keys from state
+            // If fields show obfuscated keys, get real keys from state or localStorage
             let realApiKey = apiKey;
             let realSecretKey = secretKey;
             let realPassphrase = passphrase;
-            
-            if (apiKey.includes('*') && state.exchanges[exchangeName].api) {
-                realApiKey = state.exchanges[exchangeName].api.key;
-                realSecretKey = state.exchanges[exchangeName].api.secret;
-                if ((exchangeName === 'okx' || exchangeName === 'kucoin' || exchangeName === 'bitget' || exchangeName === 'coincatch') && passphrase && passphrase.includes('*')) {
-                    realPassphrase = state.exchanges[exchangeName].api.passphrase;
+
+            if (apiKey.includes('*') || apiKey.includes('...')) {
+                // VALR FIX: Get from localStorage first (most reliable)
+                if (exchangeName === 'valr') {
+                    const directApiKey = localStorage.getItem('valrApiKey');
+                    const directSecretKey = localStorage.getItem('valrSecretKey');
+                    if (directApiKey && directApiKey.length > 10) {
+                        realApiKey = directApiKey;
+                        console.log('🔑 VALR: Using direct localStorage API key for connection');
+                    }
+                    if (directSecretKey && directSecretKey.length > 10) {
+                        realSecretKey = directSecretKey;
+                        console.log('🔑 VALR: Using direct localStorage secret key for connection');
+                    }
+                } else if (state.exchanges[exchangeName].api) {
+                    realApiKey = state.exchanges[exchangeName].api.key;
+                    realSecretKey = state.exchanges[exchangeName].api.secret;
+                    if ((exchangeName === 'okx' || exchangeName === 'kucoin' || exchangeName === 'bitget' || exchangeName === 'coincatch') && passphrase && passphrase.includes('*')) {
+                        realPassphrase = state.exchanges[exchangeName].api.passphrase;
+                    }
                 }
             }
             
