@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const { systemLogger } = require('../utils/logger');
 const CurrencySwap = require('../models/CurrencySwap');
 const CurrencySwapSettings = require('../models/CurrencySwapSettings');
+const priceCacheService = require('./priceCacheService');
 
 /**
  * Exchange configuration for fiat currency support
@@ -290,49 +291,83 @@ async function detectCurrencySwapOpportunities(userId, category = 'ZAR') {
             // Find routes
             const routes = findAllRoutes(fromCurrency, toCurrency, settings.preferred_bridge);
 
-            // TODO: Get real-time prices from exchanges
-            // For now, calculate with mock rates
-
             for (const route of routes) {
-                // Mock calculation (in production, fetch real prices)
-                const mockAmount = 10000; // Test with 10000 units of fromCurrency
-                const calculation = calculateEffectiveRate(
-                    fromCurrency,
-                    toCurrency,
-                    route.path.map(p => ({
-                        ...p,
-                        rate: Math.random() * 20 + 15 // Mock rate
-                    })),
-                    mockAmount
-                );
+                try {
+                    // Fetch REAL prices for each hop in the route
+                    const routeWithPrices = [];
+                    let pricesAvailable = true;
 
-                // Compare with Wise
-                const comparison = await compareWithWiseRate(
-                    fromCurrency,
-                    toCurrency,
-                    calculation.effectiveRate
-                );
+                    for (const hop of route.path) {
+                        const [crypto, fiat] = hop.pair.split('/');
+                        const exchange = hop.exchange;
 
-                // Calculate net profit percentage
-                const netProfitPercent = comparison.savingsPercent || 0;
+                        // Fetch real price from exchange
+                        const price = await priceCacheService.getFiatCryptoPrice(
+                            exchange.toLowerCase(),
+                            crypto,
+                            fiat
+                        );
 
-                // Check if meets threshold
-                if (netProfitPercent >= settings.threshold_percent) {
-                    opportunities.push({
-                        category,
-                        pair,
+                        if (!price) {
+                            systemLogger.warn(`Price not available for ${hop.pair} on ${exchange}`);
+                            pricesAvailable = false;
+                            break;
+                        }
+
+                        routeWithPrices.push({
+                            ...hop,
+                            rate: price
+                        });
+                    }
+
+                    // Skip this route if any price is unavailable
+                    if (!pricesAvailable) {
+                        continue;
+                    }
+
+                    // Calculate effective rate with REAL prices
+                    const testAmount = 10000; // Test with 10000 units of fromCurrency
+                    const calculation = calculateEffectiveRate(
                         fromCurrency,
                         toCurrency,
-                        route: route.path,
-                        fromExchange: route.fromExchange,
-                        toExchange: route.toExchange,
-                        bridge: route.bridge,
-                        effectiveRate: calculation.effectiveRate,
-                        wiseRate: comparison.wiseRate,
-                        netProfit: netProfitPercent,
-                        fees: calculation.fees,
-                        estimatedAmount: calculation.finalAmount,
-                        meetsThreshold: true
+                        routeWithPrices,
+                        testAmount
+                    );
+
+                    // Compare with Wise
+                    const comparison = await compareWithWiseRate(
+                        fromCurrency,
+                        toCurrency,
+                        calculation.effectiveRate
+                    );
+
+                    // Calculate net profit percentage
+                    const netProfitPercent = comparison.savingsPercent || 0;
+
+                    // Check if meets threshold
+                    if (netProfitPercent >= settings.threshold_percent) {
+                        opportunities.push({
+                            category,
+                            pair,
+                            fromCurrency,
+                            toCurrency,
+                            route: routeWithPrices,
+                            fromExchange: route.fromExchange,
+                            toExchange: route.toExchange,
+                            bridge: route.bridge,
+                            effectiveRate: calculation.effectiveRate,
+                            wiseRate: comparison.wiseRate,
+                            netProfit: netProfitPercent,
+                            fees: calculation.fees,
+                            estimatedAmount: calculation.finalAmount,
+                            meetsThreshold: true
+                        });
+                    }
+
+                } catch (error) {
+                    systemLogger.error(`Error calculating route`, {
+                        route: route.path.map(p => p.description).join(' → '),
+                        error: error.message
                     });
                 }
             }

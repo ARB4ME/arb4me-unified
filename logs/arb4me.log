@@ -18,3 +18,6 @@
 {"level":"info","message":"Server running on port 3000 in undefined mode","timestamp":"2025-09-29 13:01:45"}
 {"level":"info","message":"API available at http://localhost:3000/api/v1","timestamp":"2025-09-29 13:01:45"}
 {"level":"info","message":"::1 - - [29/Sep/2025:11:01:56 +0000] \"HEAD /triangular-arb.html HTTP/1.1\" 200 26740 \"-\" \"curl/8.14.1\"","timestamp":"2025-09-29 13:01:56"}
+{"level":"info","logLevel":"info","logsDirectory":"C:\\Users\\Jonathan\\OneDrive\\Documents\\Work\\JONO WORK\\AIM Arbitrage\\2023\\IDATCO\\ARB4ME\\arb4me-unified\\logs","message":"ARB4ME Backend Logger initialized","timestamp":"2025-10-07 11:42:05"}
+{"level":"info","logLevel":"info","logsDirectory":"C:\\Users\\Jonathan\\OneDrive\\Documents\\Work\\JONO WORK\\AIM Arbitrage\\2023\\IDATCO\\ARB4ME\\arb4me-unified\\logs","message":"ARB4ME Backend Logger initialized","timestamp":"2025-10-07 11:46:46"}
+{"level":"info","logLevel":"info","logsDirectory":"C:\\Users\\Jonathan\\OneDrive\\Documents\\Work\\JONO WORK\\AIM Arbitrage\\2023\\IDATCO\\ARB4ME\\arb4me-unified\\logs","message":"ARB4ME Backend Logger initialized","timestamp":"2025-10-07 11:48:49"}
