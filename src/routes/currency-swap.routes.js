@@ -6,6 +6,7 @@ const router = express.Router();
 const { systemLogger } = require('../utils/logger');
 const CurrencySwap = require('../models/CurrencySwap');
 const CurrencySwapSettings = require('../models/CurrencySwapSettings');
+const CurrencySwapCredentials = require('../models/CurrencySwapCredentials');
 const currencySwapService = require('../services/currencySwapExecutionService');
 
 /**
@@ -454,6 +455,241 @@ router.get('/stats', async (req, res) => {
     } catch (error) {
         systemLogger.error('Failed to get stats', {
             userId: req.query.userId,
+            error: error.message
+        });
+
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * POST /api/v1/currency-swap/credentials
+ * Save API credentials for an exchange
+ */
+router.post('/credentials', async (req, res) => {
+    try {
+        const { userId, exchange, apiKey, apiSecret, apiPassphrase, memo } = req.body;
+
+        if (!userId || !exchange || !apiKey || !apiSecret) {
+            return res.status(400).json({
+                success: false,
+                error: 'Missing required fields: userId, exchange, apiKey, apiSecret'
+            });
+        }
+
+        await CurrencySwapCredentials.saveCredentials(userId, exchange, {
+            apiKey,
+            apiSecret,
+            apiPassphrase,
+            memo
+        });
+
+        systemLogger.trading('Currency Swap credentials saved', {
+            userId,
+            exchange
+        });
+
+        res.json({
+            success: true,
+            message: `Credentials saved for ${exchange}`
+        });
+    } catch (error) {
+        systemLogger.error('Failed to save credentials', {
+            exchange: req.body.exchange,
+            error: error.message
+        });
+
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * GET /api/v1/currency-swap/credentials
+ * Get all saved credentials for a user (API keys masked)
+ */
+router.get('/credentials', async (req, res) => {
+    try {
+        const userId = req.query.userId || 1;
+
+        const credentials = await CurrencySwapCredentials.getAllCredentials(userId);
+
+        // Mask API keys for security (only show last 4 characters)
+        const maskedCredentials = credentials.map(cred => ({
+            exchange: cred.exchange,
+            apiKey: '***' + cred.apiKey.slice(-4),
+            hasSecret: !!cred.apiSecret,
+            hasPassphrase: !!cred.apiPassphrase,
+            hasMemo: !!cred.memo,
+            depositAddresses: cred.depositAddresses,
+            isConnected: cred.isConnected,
+            lastConnectedAt: cred.lastConnectedAt
+        }));
+
+        res.json({
+            success: true,
+            data: maskedCredentials
+        });
+    } catch (error) {
+        systemLogger.error('Failed to get credentials', {
+            error: error.message
+        });
+
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * GET /api/v1/currency-swap/credentials/:exchange
+ * Get credentials for a specific exchange (for internal use, returns decrypted)
+ */
+router.get('/credentials/:exchange', async (req, res) => {
+    try {
+        const { exchange } = req.params;
+        const userId = req.query.userId || 1;
+
+        const credentials = await CurrencySwapCredentials.getCredentials(userId, exchange);
+
+        if (!credentials) {
+            return res.status(404).json({
+                success: false,
+                error: `No credentials found for ${exchange}`
+            });
+        }
+
+        res.json({
+            success: true,
+            data: credentials
+        });
+    } catch (error) {
+        systemLogger.error('Failed to get exchange credentials', {
+            exchange: req.params.exchange,
+            error: error.message
+        });
+
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * POST /api/v1/currency-swap/credentials/:exchange/deposit-addresses
+ * Update deposit addresses for an exchange
+ */
+router.post('/credentials/:exchange/deposit-addresses', async (req, res) => {
+    try {
+        const { exchange } = req.params;
+        const { userId, depositAddresses } = req.body;
+
+        if (!userId || !depositAddresses) {
+            return res.status(400).json({
+                success: false,
+                error: 'Missing required fields: userId, depositAddresses'
+            });
+        }
+
+        const updated = await CurrencySwapCredentials.updateDepositAddresses(
+            userId,
+            exchange,
+            depositAddresses
+        );
+
+        if (updated) {
+            systemLogger.trading('Deposit addresses updated', {
+                userId,
+                exchange,
+                currencies: Object.keys(depositAddresses)
+            });
+
+            res.json({
+                success: true,
+                message: `Deposit addresses updated for ${exchange}`
+            });
+        } else {
+            res.status(404).json({
+                success: false,
+                error: `Exchange ${exchange} not found or not connected`
+            });
+        }
+    } catch (error) {
+        systemLogger.error('Failed to update deposit addresses', {
+            exchange: req.params.exchange,
+            error: error.message
+        });
+
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * DELETE /api/v1/currency-swap/credentials/:exchange
+ * Delete credentials for an exchange
+ */
+router.delete('/credentials/:exchange', async (req, res) => {
+    try {
+        const { exchange } = req.params;
+        const userId = req.query.userId || 1;
+
+        const deleted = await CurrencySwapCredentials.deleteCredentials(userId, exchange);
+
+        if (deleted) {
+            systemLogger.trading('Currency Swap credentials deleted', {
+                userId,
+                exchange
+            });
+
+            res.json({
+                success: true,
+                message: `Credentials deleted for ${exchange}`
+            });
+        } else {
+            res.status(404).json({
+                success: false,
+                error: `No credentials found for ${exchange}`
+            });
+        }
+    } catch (error) {
+        systemLogger.error('Failed to delete credentials', {
+            exchange: req.params.exchange,
+            error: error.message
+        });
+
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * GET /api/v1/currency-swap/connected-exchanges
+ * Get list of connected exchanges
+ */
+router.get('/connected-exchanges', async (req, res) => {
+    try {
+        const userId = req.query.userId || 1;
+
+        const connectedExchanges = await CurrencySwapCredentials.getConnectedExchanges(userId);
+
+        res.json({
+            success: true,
+            data: connectedExchanges
+        });
+    } catch (error) {
+        systemLogger.error('Failed to get connected exchanges', {
             error: error.message
         });
 
