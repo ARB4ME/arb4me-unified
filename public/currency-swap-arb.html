@@ -785,9 +785,15 @@
                         exchangeDiv.style.cssText = 'padding: 15px; background: rgba(97, 218, 251, 0.1); border-radius: 8px; border: 1px solid rgba(97, 218, 251, 0.3);';
 
                         // Get existing addresses if any
-                        const credResponse = await fetch(`${API_BASE}/credentials/${exchange.exchange}?userId=${USER_ID}`);
-                        const credData = await credResponse.json();
-                        const depositAddresses = credData.success ? credData.data.depositAddresses : {};
+                        let depositAddresses = {};
+                        try {
+                            const credResponse = await fetch(`${API_BASE}/credentials/${exchange.exchange}?userId=${USER_ID}`);
+                            const credData = await credResponse.json();
+                            depositAddresses = credData.success && credData.data ? credData.data.depositAddresses : {};
+                        } catch (error) {
+                            console.warn(`Could not load deposit addresses for ${exchange.exchange}:`, error);
+                            depositAddresses = {};
+                        }
 
                         exchangeDiv.innerHTML = `
                             <h5 style="color: #61dafb; margin-bottom: 10px;">
