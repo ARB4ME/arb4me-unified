@@ -1546,28 +1546,368 @@ class TransferExecutionService {
     }
 
     // ========================================
-    // MEXC, KuCoin, HTX, Gate.io - Placeholder implementations
+    // MEXC Exchange Implementation
     // ========================================
 
-    async executeMEXCBuy(crypto, usdtAmount, credentials) { throw new Error('MEXC buy order not implemented yet'); }
-    async executeMEXCSell(crypto, amount, credentials) { throw new Error('MEXC sell order not implemented yet'); }
-    async executeMEXCWithdrawal(crypto, amount, address, credentials) { throw new Error('MEXC withdrawal not implemented yet'); }
-    async checkMEXCDeposit(crypto, credentials) { throw new Error('MEXC deposit checking not implemented yet'); }
+    async executeMEXCBuy(crypto, usdtAmount, credentials) {
+        systemLogger.trading('Executing MEXC buy order', { crypto, usdtAmount });
+        try {
+            const symbol = `${crypto}USDT`;
+            const timestamp = Date.now();
+            const params = { symbol, side: 'BUY', type: 'MARKET', quoteOrderQty: usdtAmount.toFixed(2), timestamp, recvWindow: 5000 };
+            const queryString = Object.entries(params).map(([k,v]) => `${k}=${v}`).join('&');
+            const signature = crypto.createHmac('sha256', credentials.apiSecret).update(queryString).digest('hex');
 
-    async executeKuCoinBuy(crypto, usdtAmount, credentials) { throw new Error('KuCoin buy order not implemented yet'); }
-    async executeKuCoinSell(crypto, amount, credentials) { throw new Error('KuCoin sell order not implemented yet'); }
-    async executeKuCoinWithdrawal(crypto, amount, address, credentials) { throw new Error('KuCoin withdrawal not implemented yet'); }
-    async checkKuCoinDeposit(crypto, credentials) { throw new Error('KuCoin deposit checking not implemented yet'); }
+            const response = await fetch(`https://api.mexc.com/api/v3/order?${queryString}&signature=${signature}`, {
+                method: 'POST',
+                headers: { 'X-MEXC-APIKEY': credentials.apiKey, 'Content-Type': 'application/json' }
+            });
 
-    async executeHTXBuy(crypto, usdtAmount, credentials) { throw new Error('HTX buy order not implemented yet'); }
-    async executeHTXSell(crypto, amount, credentials) { throw new Error('HTX sell order not implemented yet'); }
-    async executeHTXWithdrawal(crypto, amount, address, credentials) { throw new Error('HTX withdrawal not implemented yet'); }
-    async checkHTXDeposit(crypto, credentials) { throw new Error('HTX deposit checking not implemented yet'); }
+            const orderData = await response.json();
+            if (orderData.code && orderData.code !== 200) throw new Error(`MEXC error ${orderData.code}: ${orderData.msg}`);
 
-    async executeGateIOBuy(crypto, usdtAmount, credentials) { throw new Error('Gate.io buy order not implemented yet'); }
-    async executeGateIOSell(crypto, amount, credentials) { throw new Error('Gate.io sell order not implemented yet'); }
-    async executeGateIOWithdrawal(crypto, amount, address, credentials) { throw new Error('Gate.io withdrawal not implemented yet'); }
-    async checkGateIODeposit(crypto, credentials) { throw new Error('Gate.io deposit checking not implemented yet'); }
+            systemLogger.trading('MEXC buy order executed', { orderId: orderData.orderId, symbol });
+            return { orderId: orderData.orderId, symbol, quantity: parseFloat(orderData.executedQty || 0), averagePrice: 0, totalCost: usdtAmount, status: 'filled' };
+        } catch (error) {
+            systemLogger.error('MEXC buy order failed', { crypto, error: error.message });
+            throw error;
+        }
+    }
+
+    async executeMEXCSell(crypto, amount, credentials) {
+        systemLogger.trading('Executing MEXC sell order', { crypto, amount });
+        try {
+            const symbol = `${crypto}USDT`;
+            const timestamp = Date.now();
+            const params = { symbol, side: 'SELL', type: 'MARKET', quantity: amount.toFixed(8), timestamp, recvWindow: 5000 };
+            const queryString = Object.entries(params).map(([k,v]) => `${k}=${v}`).join('&');
+            const signature = crypto.createHmac('sha256', credentials.apiSecret).update(queryString).digest('hex');
+
+            const response = await fetch(`https://api.mexc.com/api/v3/order?${queryString}&signature=${signature}`, {
+                method: 'POST',
+                headers: { 'X-MEXC-APIKEY': credentials.apiKey, 'Content-Type': 'application/json' }
+            });
+
+            const orderData = await response.json();
+            if (orderData.code && orderData.code !== 200) throw new Error(`MEXC error ${orderData.code}: ${orderData.msg}`);
+
+            systemLogger.trading('MEXC sell order executed', { orderId: orderData.orderId, symbol });
+            return { orderId: orderData.orderId, symbol, quantity: amount, averagePrice: 0, usdtReceived: 0, status: 'filled' };
+        } catch (error) {
+            systemLogger.error('MEXC sell order failed', { crypto, error: error.message });
+            throw error;
+        }
+    }
+
+    async executeMEXCWithdrawal(crypto, amount, address, credentials) {
+        systemLogger.trading('Executing MEXC withdrawal', { crypto, amount });
+        try {
+            const timestamp = Date.now();
+            const params = { coin: crypto, address, amount: amount.toFixed(8), timestamp };
+            const queryString = Object.entries(params).map(([k,v]) => `${k}=${v}`).join('&');
+            const signature = crypto.createHmac('sha256', credentials.apiSecret).update(queryString).digest('hex');
+
+            const response = await fetch(`https://api.mexc.com/api/v3/capital/withdraw/apply?${queryString}&signature=${signature}`, {
+                method: 'POST',
+                headers: { 'X-MEXC-APIKEY': credentials.apiKey, 'Content-Type': 'application/json' }
+            });
+
+            const withdrawalData = await response.json();
+            if (withdrawalData.code && withdrawalData.code !== 200) throw new Error(`MEXC error: ${withdrawalData.msg}`);
+
+            systemLogger.trading('MEXC withdrawal initiated', { id: withdrawalData.id });
+            return { withdrawalId: withdrawalData.id, crypto, amount, address, txHash: null };
+        } catch (error) {
+            systemLogger.error('MEXC withdrawal failed', { crypto, error: error.message });
+            throw error;
+        }
+    }
+
+    async checkMEXCDeposit(crypto, credentials) {
+        try {
+            const timestamp = Date.now();
+            const queryString = `coin=${crypto}&timestamp=${timestamp}`;
+            const signature = crypto.createHmac('sha256', credentials.apiSecret).update(queryString).digest('hex');
+
+            const response = await fetch(`https://api.mexc.com/api/v3/capital/deposit/hisrec?${queryString}&signature=${signature}`, {
+                method: 'GET',
+                headers: { 'X-MEXC-APIKEY': credentials.apiKey }
+            });
+
+            const data = await response.json();
+            if (data && data.length > 0) {
+                const recentDeposit = data.find(d => d.status === 1);
+                if (recentDeposit) return { arrived: true, amount: parseFloat(recentDeposit.amount), confirmations: 0, txHash: recentDeposit.txId };
+            }
+            return { arrived: false, amount: 0, confirmations: 0, txHash: null };
+        } catch (error) {
+            systemLogger.error('MEXC deposit check failed', { crypto, error: error.message });
+            throw error;
+        }
+    }
+
+    // ========================================
+    // KuCoin Exchange Implementation
+    // ========================================
+
+    async executeKuCoinBuy(crypto, usdtAmount, credentials) {
+        systemLogger.trading('Executing KuCoin buy order', { crypto, usdtAmount });
+        try {
+            const symbol = `${crypto}-USDT`;
+            const timestamp = Date.now();
+            const endpoint = '/api/v1/orders';
+            const bodyString = JSON.stringify({ clientOid: `${timestamp}`, side: 'buy', symbol, type: 'market', funds: usdtAmount.toFixed(2) });
+            const strForSign = timestamp + 'POST' + endpoint + bodyString;
+            const signature = crypto.createHmac('sha256', credentials.apiSecret).update(strForSign).digest('base64');
+            const passphrase = crypto.createHmac('sha256', credentials.apiSecret).update(credentials.passphrase).digest('base64');
+
+            const response = await fetch(`https://api.kucoin.com${endpoint}`, {
+                method: 'POST',
+                headers: { 'KC-API-KEY': credentials.apiKey, 'KC-API-SIGN': signature, 'KC-API-TIMESTAMP': timestamp.toString(), 'KC-API-PASSPHRASE': passphrase, 'KC-API-KEY-VERSION': '2', 'Content-Type': 'application/json' },
+                body: bodyString
+            });
+
+            const orderData = await response.json();
+            if (orderData.code !== '200000') throw new Error(`KuCoin error ${orderData.code}: ${orderData.msg}`);
+
+            systemLogger.trading('KuCoin buy order executed', { orderId: orderData.data.orderId });
+            return { orderId: orderData.data.orderId, symbol, quantity: 0, averagePrice: 0, totalCost: usdtAmount, status: 'filled' };
+        } catch (error) {
+            systemLogger.error('KuCoin buy order failed', { crypto, error: error.message });
+            throw error;
+        }
+    }
+
+    async executeKuCoinSell(crypto, amount, credentials) {
+        systemLogger.trading('Executing KuCoin sell order', { crypto, amount });
+        try {
+            const symbol = `${crypto}-USDT`;
+            const timestamp = Date.now();
+            const endpoint = '/api/v1/orders';
+            const bodyString = JSON.stringify({ clientOid: `${timestamp}`, side: 'sell', symbol, type: 'market', size: amount.toFixed(8) });
+            const strForSign = timestamp + 'POST' + endpoint + bodyString;
+            const signature = crypto.createHmac('sha256', credentials.apiSecret).update(strForSign).digest('base64');
+            const passphrase = crypto.createHmac('sha256', credentials.apiSecret).update(credentials.passphrase).digest('base64');
+
+            const response = await fetch(`https://api.kucoin.com${endpoint}`, {
+                method: 'POST',
+                headers: { 'KC-API-KEY': credentials.apiKey, 'KC-API-SIGN': signature, 'KC-API-TIMESTAMP': timestamp.toString(), 'KC-API-PASSPHRASE': passphrase, 'KC-API-KEY-VERSION': '2', 'Content-Type': 'application/json' },
+                body: bodyString
+            });
+
+            const orderData = await response.json();
+            if (orderData.code !== '200000') throw new Error(`KuCoin error ${orderData.code}: ${orderData.msg}`);
+
+            systemLogger.trading('KuCoin sell order executed', { orderId: orderData.data.orderId });
+            return { orderId: orderData.data.orderId, symbol, quantity: amount, averagePrice: 0, usdtReceived: 0, status: 'filled' };
+        } catch (error) {
+            systemLogger.error('KuCoin sell order failed', { crypto, error: error.message });
+            throw error;
+        }
+    }
+
+    async executeKuCoinWithdrawal(crypto, amount, address, credentials) {
+        systemLogger.trading('Executing KuCoin withdrawal', { crypto, amount });
+        try {
+            const timestamp = Date.now();
+            const endpoint = '/api/v1/withdrawals';
+            const bodyString = JSON.stringify({ currency: crypto, address, amount: amount.toFixed(8) });
+            const strForSign = timestamp + 'POST' + endpoint + bodyString;
+            const signature = crypto.createHmac('sha256', credentials.apiSecret).update(strForSign).digest('base64');
+            const passphrase = crypto.createHmac('sha256', credentials.apiSecret).update(credentials.passphrase).digest('base64');
+
+            const response = await fetch(`https://api.kucoin.com${endpoint}`, {
+                method: 'POST',
+                headers: { 'KC-API-KEY': credentials.apiKey, 'KC-API-SIGN': signature, 'KC-API-TIMESTAMP': timestamp.toString(), 'KC-API-PASSPHRASE': passphrase, 'KC-API-KEY-VERSION': '2', 'Content-Type': 'application/json' },
+                body: bodyString
+            });
+
+            const withdrawalData = await response.json();
+            if (withdrawalData.code !== '200000') throw new Error(`KuCoin error: ${withdrawalData.msg}`);
+
+            systemLogger.trading('KuCoin withdrawal initiated', { withdrawalId: withdrawalData.data.withdrawalId });
+            return { withdrawalId: withdrawalData.data.withdrawalId, crypto, amount, address, txHash: null };
+        } catch (error) {
+            systemLogger.error('KuCoin withdrawal failed', { crypto, error: error.message });
+            throw error;
+        }
+    }
+
+    async checkKuCoinDeposit(crypto, credentials) {
+        try {
+            const timestamp = Date.now();
+            const endpoint = `/api/v1/deposits?currency=${crypto}`;
+            const strForSign = timestamp + 'GET' + endpoint;
+            const signature = crypto.createHmac('sha256', credentials.apiSecret).update(strForSign).digest('base64');
+            const passphrase = crypto.createHmac('sha256', credentials.apiSecret).update(credentials.passphrase).digest('base64');
+
+            const response = await fetch(`https://api.kucoin.com${endpoint}`, {
+                method: 'GET',
+                headers: { 'KC-API-KEY': credentials.apiKey, 'KC-API-SIGN': signature, 'KC-API-TIMESTAMP': timestamp.toString(), 'KC-API-PASSPHRASE': passphrase, 'KC-API-KEY-VERSION': '2' }
+            });
+
+            const data = await response.json();
+            if (data.code === '200000' && data.data.items.length > 0) {
+                const recentDeposit = data.data.items.find(d => d.status === 'SUCCESS');
+                if (recentDeposit) return { arrived: true, amount: parseFloat(recentDeposit.amount), confirmations: 0, txHash: recentDeposit.walletTxId };
+            }
+            return { arrived: false, amount: 0, confirmations: 0, txHash: null };
+        } catch (error) {
+            systemLogger.error('KuCoin deposit check failed', { crypto, error: error.message });
+            throw error;
+        }
+    }
+
+    // ========================================
+    // HTX (Huobi) Exchange Implementation
+    // ========================================
+
+    async executeHTXBuy(crypto, usdtAmount, credentials) {
+        systemLogger.trading('Executing HTX buy order', { crypto, usdtAmount });
+        try {
+            const symbol = `${crypto.toLowerCase()}usdt`;
+            const timestamp = new Date().toISOString().slice(0, 19);
+            const params = { AccessKeyId: credentials.apiKey, SignatureMethod: 'HmacSHA256', SignatureVersion: '2', Timestamp: timestamp, 'account-id': credentials.accountId, amount: (usdtAmount / 100).toFixed(4), symbol, type: 'buy-market' };
+            const sortedParams = Object.keys(params).sort().map(k => `${k}=${encodeURIComponent(params[k])}`).join('&');
+            const payload = `POST\napi.huobi.pro\n/v1/order/orders/place\n${sortedParams}`;
+            const signature = crypto.createHmac('sha256', credentials.apiSecret).update(payload).digest('base64');
+
+            const response = await fetch(`https://api.huobi.pro/v1/order/orders/place?${sortedParams}&Signature=${encodeURIComponent(signature)}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(params)
+            });
+
+            const orderData = await response.json();
+            if (orderData.status !== 'ok') throw new Error(`HTX error: ${orderData['err-msg']}`);
+
+            systemLogger.trading('HTX buy order executed', { orderId: orderData.data });
+            return { orderId: orderData.data, symbol, quantity: 0, averagePrice: 0, totalCost: usdtAmount, status: 'filled' };
+        } catch (error) {
+            systemLogger.error('HTX buy order failed', { crypto, error: error.message });
+            throw error;
+        }
+    }
+
+    async executeHTXSell(crypto, amount, credentials) {
+        systemLogger.trading('Executing HTX sell order', { crypto, amount });
+        try {
+            const symbol = `${crypto.toLowerCase()}usdt`;
+            const timestamp = new Date().toISOString().slice(0, 19);
+            const params = { AccessKeyId: credentials.apiKey, SignatureMethod: 'HmacSHA256', SignatureVersion: '2', Timestamp: timestamp, 'account-id': credentials.accountId, amount: amount.toFixed(8), symbol, type: 'sell-market' };
+            const sortedParams = Object.keys(params).sort().map(k => `${k}=${encodeURIComponent(params[k])}`).join('&');
+            const payload = `POST\napi.huobi.pro\n/v1/order/orders/place\n${sortedParams}`;
+            const signature = crypto.createHmac('sha256', credentials.apiSecret).update(payload).digest('base64');
+
+            const response = await fetch(`https://api.huobi.pro/v1/order/orders/place?${sortedParams}&Signature=${encodeURIComponent(signature)}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(params)
+            });
+
+            const orderData = await response.json();
+            if (orderData.status !== 'ok') throw new Error(`HTX error: ${orderData['err-msg']}`);
+
+            systemLogger.trading('HTX sell order executed', { orderId: orderData.data });
+            return { orderId: orderData.data, symbol, quantity: amount, averagePrice: 0, usdtReceived: 0, status: 'filled' };
+        } catch (error) {
+            systemLogger.error('HTX sell order failed', { crypto, error: error.message });
+            throw error;
+        }
+    }
+
+    async executeHTXWithdrawal(crypto, amount, address, credentials) {
+        throw new Error('HTX withdrawal API requires additional setup - not implemented');
+    }
+
+    async checkHTXDeposit(crypto, credentials) {
+        throw new Error('HTX deposit checking not implemented yet');
+    }
+
+    // ========================================
+    // Gate.io Exchange Implementation
+    // ========================================
+
+    async executeGateIOBuy(crypto, usdtAmount, credentials) {
+        systemLogger.trading('Executing Gate.io buy order', { crypto, usdtAmount });
+        try {
+            const symbol = `${crypto}_USDT`;
+            const timestamp = Math.floor(Date.now() / 1000);
+            const bodyString = JSON.stringify({ currency_pair: symbol, type: 'market', side: 'buy', amount: (usdtAmount / 100).toFixed(4) });
+            const hashedBody = crypto.createHash('sha512').update(bodyString).digest('hex');
+            const signString = `POST\n/api/v4/spot/orders\n\n${hashedBody}\n${timestamp}`;
+            const signature = crypto.createHmac('sha512', credentials.apiSecret).update(signString).digest('hex');
+
+            const response = await fetch('https://api.gateio.ws/api/v4/spot/orders', {
+                method: 'POST',
+                headers: { 'KEY': credentials.apiKey, 'SIGN': signature, 'Timestamp': timestamp.toString(), 'Content-Type': 'application/json' },
+                body: bodyString
+            });
+
+            const orderData = await response.json();
+            if (orderData.label) throw new Error(`Gate.io error: ${orderData.message}`);
+
+            systemLogger.trading('Gate.io buy order executed', { orderId: orderData.id });
+            return { orderId: orderData.id, symbol, quantity: 0, averagePrice: 0, totalCost: usdtAmount, status: 'filled' };
+        } catch (error) {
+            systemLogger.error('Gate.io buy order failed', { crypto, error: error.message });
+            throw error;
+        }
+    }
+
+    async executeGateIOSell(crypto, amount, credentials) {
+        systemLogger.trading('Executing Gate.io sell order', { crypto, amount });
+        try {
+            const symbol = `${crypto}_USDT`;
+            const timestamp = Math.floor(Date.now() / 1000);
+            const bodyString = JSON.stringify({ currency_pair: symbol, type: 'market', side: 'sell', amount: amount.toFixed(8) });
+            const hashedBody = crypto.createHash('sha512').update(bodyString).digest('hex');
+            const signString = `POST\n/api/v4/spot/orders\n\n${hashedBody}\n${timestamp}`;
+            const signature = crypto.createHmac('sha512', credentials.apiSecret).update(signString).digest('hex');
+
+            const response = await fetch('https://api.gateio.ws/api/v4/spot/orders', {
+                method: 'POST',
+                headers: { 'KEY': credentials.apiKey, 'SIGN': signature, 'Timestamp': timestamp.toString(), 'Content-Type': 'application/json' },
+                body: bodyString
+            });
+
+            const orderData = await response.json();
+            if (orderData.label) throw new Error(`Gate.io error: ${orderData.message}`);
+
+            systemLogger.trading('Gate.io sell order executed', { orderId: orderData.id });
+            return { orderId: orderData.id, symbol, quantity: amount, averagePrice: 0, usdtReceived: 0, status: 'filled' };
+        } catch (error) {
+            systemLogger.error('Gate.io sell order failed', { crypto, error: error.message });
+            throw error;
+        }
+    }
+
+    async executeGateIOWithdrawal(crypto, amount, address, credentials) {
+        throw new Error('Gate.io withdrawal not fully implemented yet');
+    }
+
+    async checkGateIODeposit(crypto, credentials) {
+        throw new Error('Gate.io deposit checking not implemented yet');
+    }
+
+    // ========================================
+    // Luno, AltCoinTrader, BingX - Placeholders (South African/Regional exchanges)
+    // ========================================
+
+    async executeLunoBuy(crypto, usdtAmount, credentials) { throw new Error('Luno buy order not implemented yet'); }
+    async executeLunoSell(crypto, amount, credentials) { throw new Error('Luno sell order not implemented yet'); }
+    async executeLunoWithdrawal(crypto, amount, address, credentials) { throw new Error('Luno withdrawal not implemented yet'); }
+    async checkLunoDeposit(crypto, credentials) { throw new Error('Luno deposit checking not implemented yet'); }
+
+    async executeAltCoinTraderBuy(crypto, usdtAmount, credentials) { throw new Error('AltCoinTrader buy order not implemented yet'); }
+    async executeAltCoinTraderSell(crypto, amount, credentials) { throw new Error('AltCoinTrader sell order not implemented yet'); }
+    async executeAltCoinTraderWithdrawal(crypto, amount, address, credentials) { throw new Error('AltCoinTrader withdrawal not implemented yet'); }
+    async checkAltCoinTraderDeposit(crypto, credentials) { throw new Error('AltCoinTrader deposit checking not implemented yet'); }
+
+    async executeBingXBuy(crypto, usdtAmount, credentials) { throw new Error('BingX buy order not implemented yet'); }
+    async executeBingXSell(crypto, amount, credentials) { throw new Error('BingX sell order not implemented yet'); }
+    async executeBingXWithdrawal(crypto, amount, address, credentials) { throw new Error('BingX withdrawal not implemented yet'); }
+    async checkBingXDeposit(crypto, credentials) { throw new Error('BingX deposit checking not implemented yet'); }
 
     // ========================================
     // Helper methods
