@@ -154,11 +154,18 @@
 </head>
 <body>
     <div class="currency-swap-container">
-        <!-- Return to Platform Button -->
-        <div style="margin-bottom: 20px; text-align: center;">
-            <button onclick="returnToPlatform()" class="btn" style="background: linear-gradient(45deg, #ff6b6b 0%, #ee5a24 100%); font-size: 1rem; padding: 15px 30px;">
-                ← Return to ARB4ME Platform
+        <!-- Header with Auto-Trading Toggle -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
+            <button onclick="returnToPlatform()" class="btn" style="background: linear-gradient(45deg, #ff6b6b 0%, #ee5a24 100%);">
+                ← Return to Platform
             </button>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <span style="color: #b8c6db;">Auto-Trading:</span>
+                <div class="toggle-switch" id="autoTradingToggle">
+                    <div class="toggle-knob"></div>
+                </div>
+                <button onclick="openRiskSettings()" class="btn">⚙️ Risk Settings</button>
+            </div>
         </div>
 
         <!-- Currency Swap Arbitrage Management Tab -->
@@ -420,7 +427,60 @@
         </div>
     </div>
 
+    <!-- Risk Settings Modal -->
+    <div id="riskSettingsModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center;">
+        <div style="background: #1a1a2e; padding: 30px; border-radius: 15px; max-width: 500px; width: 90%; border: 2px solid #667eea;">
+            <h3 style="color: #00d4ff; margin-bottom: 20px;">⚙️ Currency Swap Risk Settings</h3>
+
+            <div class="form-group">
+                <label>Minimum Net Profit Threshold (%)</label>
+                <input type="number" id="thresholdPercent" min="0.1" max="10" step="0.1" value="0.5">
+                <small style="color: #888;">Guaranteed profit AFTER all fees</small>
+            </div>
+
+            <div class="form-group">
+                <label>Max Trade Amount (USDT)</label>
+                <input type="number" id="maxTradeAmountUSDT" min="100" max="100000" step="100" value="5000">
+            </div>
+
+            <div class="form-group">
+                <label>Max Daily Swaps</label>
+                <input type="number" id="maxDailySwaps" min="1" max="100" value="10">
+            </div>
+
+            <div class="form-group">
+                <label>Preferred Bridge Currency</label>
+                <select id="preferredBridge">
+                    <option value="AUTO">Auto (Best Rate)</option>
+                    <option value="XRP">XRP (Fastest, Cheapest)</option>
+                    <option value="USDT">USDT (Most Liquid)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Enable Categories</label>
+                <div style="display: flex; gap: 15px; margin-top: 5px;">
+                    <label style="display: flex; align-items: center; gap: 5px;">
+                        <input type="checkbox" id="enableZAR" checked> ZAR Conversions
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 5px;">
+                        <input type="checkbox" id="enableInternational"> International
+                    </label>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button onclick="saveRiskSettings()" class="btn" style="flex: 1;">Save Settings</button>
+                <button onclick="closeRiskSettings()" class="btn" style="flex: 1; background: #ff6b6b;">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <script>
+        // API Base URL
+        const API_BASE = '/api/v1/currency-swap';
+        const USER_ID = 1; // TODO: Get from auth
+
         // Return to Platform Function
         function returnToPlatform() {
             // Set currency swap toggle state to OFF
@@ -432,6 +492,18 @@
 
         // Initialize toggles
         document.addEventListener('DOMContentLoaded', function() {
+            // Load stats from API
+            loadStats();
+
+            // Auto-trading toggle
+            const autoTradingToggle = document.getElementById('autoTradingToggle');
+            if (autoTradingToggle) {
+                autoTradingToggle.addEventListener('click', function() {
+                    this.classList.toggle('active');
+                    toggleAutoTrading();
+                });
+            }
+
             // Currency pair toggles
             const currencyToggles = [
                 'zarUsdToggle', 'eurUsdToggle', 'gbpUsdToggle',
@@ -478,22 +550,180 @@
             localStorage.setItem('maxFiatTrade', this.value);
         });
 
-        // Placeholder functions
-        function scanForexOpportunities() {
-            alert('Scanning forex rates across exchanges...\n\nThis will compare exchange rates for your selected currency pairs.');
+        // Risk Settings Modal Functions
+        function openRiskSettings() {
+            document.getElementById('riskSettingsModal').style.display = 'flex';
+            loadRiskSettings();
         }
 
-        function calculateSwapProfit() {
-            alert('Opening detailed currency swap profit calculator...');
+        function closeRiskSettings() {
+            document.getElementById('riskSettingsModal').style.display = 'none';
         }
 
-        function viewSwapHistory() {
-            alert('Loading currency swap history...');
+        async function loadRiskSettings() {
+            try {
+                const response = await fetch(`${API_BASE}/settings?userId=${USER_ID}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    const settings = data.data;
+                    document.getElementById('thresholdPercent').value = settings.threshold_percent || 0.5;
+                    document.getElementById('maxTradeAmountUSDT').value = settings.max_trade_amount_usdt || 5000;
+                    document.getElementById('maxDailySwaps').value = settings.max_daily_swaps || 10;
+                    document.getElementById('preferredBridge').value = settings.preferred_bridge || 'AUTO';
+
+                    const categories = typeof settings.enabled_categories === 'string'
+                        ? JSON.parse(settings.enabled_categories)
+                        : settings.enabled_categories;
+                    document.getElementById('enableZAR').checked = categories?.ZAR !== false;
+                    document.getElementById('enableInternational').checked = categories?.INTERNATIONAL === true;
+                }
+            } catch (error) {
+                console.error('Failed to load settings:', error);
+            }
         }
 
+        async function saveRiskSettings() {
+            try {
+                const settings = {
+                    userId: USER_ID,
+                    thresholdPercent: parseFloat(document.getElementById('thresholdPercent').value),
+                    maxTradeAmountUSDT: parseFloat(document.getElementById('maxTradeAmountUSDT').value),
+                    maxDailySwaps: parseInt(document.getElementById('maxDailySwaps').value),
+                    preferredBridge: document.getElementById('preferredBridge').value,
+                    enabledCategories: {
+                        ZAR: document.getElementById('enableZAR').checked,
+                        INTERNATIONAL: document.getElementById('enableInternational').checked
+                    }
+                };
+
+                const response = await fetch(`${API_BASE}/settings`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(settings)
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    alert('✅ Settings saved successfully!');
+                    closeRiskSettings();
+                } else {
+                    alert('❌ Failed to save settings: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Failed to save settings:', error);
+                alert('❌ Error saving settings');
+            }
+        }
+
+        // Auto-Trading Toggle
+        async function toggleAutoTrading() {
+            const toggle = document.getElementById('autoTradingToggle');
+            const enabled = toggle.classList.contains('active');
+
+            try {
+                const response = await fetch(`${API_BASE}/settings/toggle-auto`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: USER_ID, enabled })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    console.log(`Auto-trading ${enabled ? 'enabled' : 'disabled'}`);
+                }
+            } catch (error) {
+                console.error('Failed to toggle auto-trading:', error);
+            }
+        }
+
+        // Scan for opportunities
+        async function scanForexOpportunities() {
+            const category = 'ZAR'; // TODO: Make selectable
+            try {
+                const response = await fetch(`${API_BASE}/opportunities/${category}?userId=${USER_ID}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    console.log(`Found ${data.data.count} opportunities:`, data.data.opportunities);
+                    alert(`Found ${data.data.count} currency swap opportunities!\n\nCheck console for details.`);
+
+                    // Update stats
+                    document.getElementById('activePairs').textContent = data.data.opportunities.length;
+                } else {
+                    alert('Failed to scan opportunities: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Scan failed:', error);
+                alert('Error scanning opportunities');
+            }
+        }
+
+        // Calculate route
+        async function calculateSwapProfit() {
+            const from = document.getElementById('fromCurrency').value;
+            const amount = parseFloat(document.getElementById('swapAmount').value) || 10000;
+
+            try {
+                const response = await fetch(`${API_BASE}/calculate-route`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ from, to: 'USDT', amount })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    console.log('Best route:', data.data.bestRoute);
+                    alert(`Best route found!\nRate: ${data.data.bestRoute.effectiveRate.toFixed(4)}\nFees: $${data.data.bestRoute.fees.total.toFixed(2)}`);
+                }
+            } catch (error) {
+                console.error('Calculate failed:', error);
+            }
+        }
+
+        // View swap history
+        async function viewSwapHistory() {
+            try {
+                const response = await fetch(`${API_BASE}/history?userId=${USER_ID}&limit=20`);
+                const data = await response.json();
+
+                if (data.success) {
+                    console.log('Swap history:', data.data);
+                    alert(`Total swaps: ${data.data.count}\nCompleted: ${data.data.stats.completed_swaps}\nTotal profit: ${data.data.stats.total_profit}%`);
+
+                    document.getElementById('swapsToday').textContent = data.data.swaps.length;
+                }
+            } catch (error) {
+                console.error('History failed:', error);
+            }
+        }
+
+        // Setup alerts (placeholder)
         function setupAlerts() {
             const minSpread = document.getElementById('minSpread').value;
-            alert(`Setting up alerts for spreads above ${minSpread}%...`);
+            alert(`Setting up alerts for spreads above ${minSpread}%...\n\n(Coming soon)`);
+        }
+
+        // Load stats on page load
+        async function loadStats() {
+            try {
+                const response = await fetch(`${API_BASE}/stats?userId=${USER_ID}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('activePairs').textContent = data.data.totalSwaps || 0;
+                    document.getElementById('swapsToday').textContent = data.data.dailySwapsToday || 0;
+                    document.getElementById('totalForexProfit').textContent = `${data.data.totalProfit?.toFixed(2) || 0}%`;
+                    document.getElementById('avgSpread').textContent = `${data.data.avgProfit?.toFixed(2) || 0}%`;
+
+                    // Set auto-trading toggle state
+                    if (data.data.autoTradingEnabled) {
+                        document.getElementById('autoTradingToggle').classList.add('active');
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load stats:', error);
+            }
         }
 
         function calculateForexArbitrage() {
