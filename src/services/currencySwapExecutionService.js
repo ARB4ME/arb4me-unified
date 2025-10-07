@@ -160,7 +160,7 @@ function findAllRoutes(fromCurrency, toCurrency, bridgePreference = 'AUTO') {
         EXCHANGE_FIAT_SUPPORT[ex].fiats.includes(toCurrency)
     );
 
-    systemLogger.info(`Currency swap route search`, {
+    systemLogger.trading(`Currency swap route search`, {
         fromCurrency,
         toCurrency,
         fromExchanges: fromExchanges.length,
@@ -199,7 +199,7 @@ function findAllRoutes(fromCurrency, toCurrency, bridgePreference = 'AUTO') {
         });
     });
 
-    systemLogger.info(`Generated ${routes.length} possible routes`, {
+    systemLogger.trading(`Generated ${routes.length} possible routes`, {
         fromCurrency,
         toCurrency
     });
@@ -228,7 +228,7 @@ async function compareWithWiseRate(fromCurrency, toCurrency, effectiveRate) {
         const wiseRate = mockWiseRates[pairKey];
 
         if (!wiseRate) {
-            systemLogger.warn(`No Wise rate available for ${pairKey}`);
+            systemLogger.trading(`No Wise rate available for ${pairKey}`);
             return {
                 wiseRate: null,
                 yourRate: effectiveRate,
@@ -270,14 +270,14 @@ async function detectCurrencySwapOpportunities(userId, category = 'ZAR') {
             : settings.enabled_categories;
 
         if (!enabledCategories[category]) {
-            systemLogger.info(`Category ${category} is disabled for user ${userId}`);
+            systemLogger.trading(`Category ${category} is disabled for user ${userId}`);
             return [];
         }
 
         // Get allowed pairs
         const allowedPairs = settings.allowed_pairs || [];
 
-        systemLogger.info(`Scanning for ${category} currency swap opportunities`, {
+        systemLogger.trading(`Scanning for ${category} currency swap opportunities`, {
             userId,
             allowedPairs: allowedPairs.length,
             threshold: settings.threshold_percent
@@ -338,7 +338,7 @@ async function detectCurrencySwapOpportunities(userId, category = 'ZAR') {
             }
         }
 
-        systemLogger.info(`Found ${opportunities.length} opportunities above threshold`, {
+        systemLogger.trading(`Found ${opportunities.length} opportunities above threshold`, {
             userId,
             category,
             threshold: settings.threshold_percent
@@ -390,7 +390,7 @@ async function executeCurrencySwap(swapId, userId, credentials) {
             const hop = route[i];
             const { exchange, action, pair } = hop;
 
-            systemLogger.info(`Executing hop ${i + 1}/${route.length}`, {
+            systemLogger.trading(`Executing hop ${i + 1}/${route.length}`, {
                 exchange,
                 action,
                 pair
@@ -437,11 +437,11 @@ async function executeCurrencySwap(swapId, userId, credentials) {
             if (i < route.length - 1) {
                 const nextExchange = route[i + 1].exchange;
 
-                systemLogger.info(`Transferring ${crypto} from ${exchange} to ${nextExchange}`);
+                systemLogger.trading(`Transferring ${crypto} from ${exchange} to ${nextExchange}`);
 
                 // TODO: Implement withdrawal and deposit monitoring
                 // For now, just log
-                systemLogger.warn('Transfer between exchanges not yet implemented', {
+                systemLogger.trading('Transfer between exchanges not yet implemented', {
                     from: exchange,
                     to: nextExchange,
                     crypto,
