@@ -1011,6 +1011,329 @@ class TransferExecutionService {
     }
 
     // ========================================
+    // OKX Exchange Implementation
+    // ========================================
+
+    async executeOKXBuy(crypto, usdtAmount, credentials) {
+        systemLogger.trading('Executing OKX buy order', {
+            crypto,
+            usdtAmount,
+            type: 'MARKET'
+        });
+
+        try {
+            const symbol = `${crypto}-USDT`;
+            const timestamp = new Date().toISOString();
+
+            const orderPayload = {
+                instId: symbol,
+                tdMode: 'cash',
+                side: 'buy',
+                ordType: 'market',
+                sz: usdtAmount.toFixed(2)
+            };
+
+            const bodyString = JSON.stringify(orderPayload);
+            const prehash = timestamp + 'POST' + '/api/v5/trade/order' + bodyString;
+            const signature = crypto
+                .createHmac('sha256', credentials.apiSecret)
+                .update(prehash)
+                .digest('base64');
+
+            const response = await fetch('https://www.okx.com/api/v5/trade/order', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'OK-ACCESS-KEY': credentials.apiKey,
+                    'OK-ACCESS-SIGN': signature,
+                    'OK-ACCESS-TIMESTAMP': timestamp,
+                    'OK-ACCESS-PASSPHRASE': credentials.passphrase || ''
+                },
+                body: bodyString
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`OKX buy order failed: HTTP ${response.status} - ${errorText}`);
+            }
+
+            const orderData = await response.json();
+
+            if (orderData.code !== '0') {
+                throw new Error(`OKX error ${orderData.code}: ${orderData.msg}`);
+            }
+
+            const orderId = orderData.data[0].ordId;
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            const statusData = await this.getOKXOrderStatus(orderId, symbol, credentials);
+
+            systemLogger.trading('OKX buy order executed', {
+                orderId,
+                symbol,
+                status: statusData.state
+            });
+
+            const quantity = parseFloat(statusData.fillSz || 0);
+            const totalCost = parseFloat(statusData.fillNotionalUsd || usdtAmount);
+            const averagePrice = quantity > 0 ? totalCost / quantity : 0;
+
+            return {
+                orderId,
+                symbol,
+                quantity,
+                averagePrice,
+                totalCost,
+                status: statusData.state
+            };
+
+        } catch (error) {
+            systemLogger.error('OKX buy order failed', {
+                crypto,
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    async executeOKXSell(crypto, amount, credentials) {
+        systemLogger.trading('Executing OKX sell order', {
+            crypto,
+            amount,
+            type: 'MARKET'
+        });
+
+        try {
+            const symbol = `${crypto}-USDT`;
+            const timestamp = new Date().toISOString();
+
+            const orderPayload = {
+                instId: symbol,
+                tdMode: 'cash',
+                side: 'sell',
+                ordType: 'market',
+                sz: amount.toFixed(8)
+            };
+
+            const bodyString = JSON.stringify(orderPayload);
+            const prehash = timestamp + 'POST' + '/api/v5/trade/order' + bodyString;
+            const signature = crypto
+                .createHmac('sha256', credentials.apiSecret)
+                .update(prehash)
+                .digest('base64');
+
+            const response = await fetch('https://www.okx.com/api/v5/trade/order', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'OK-ACCESS-KEY': credentials.apiKey,
+                    'OK-ACCESS-SIGN': signature,
+                    'OK-ACCESS-TIMESTAMP': timestamp,
+                    'OK-ACCESS-PASSPHRASE': credentials.passphrase || ''
+                },
+                body: bodyString
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`OKX sell order failed: HTTP ${response.status} - ${errorText}`);
+            }
+
+            const orderData = await response.json();
+
+            if (orderData.code !== '0') {
+                throw new Error(`OKX error ${orderData.code}: ${orderData.msg}`);
+            }
+
+            const orderId = orderData.data[0].ordId;
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            const statusData = await this.getOKXOrderStatus(orderId, symbol, credentials);
+
+            systemLogger.trading('OKX sell order executed', {
+                orderId,
+                symbol,
+                status: statusData.state
+            });
+
+            const quantity = parseFloat(statusData.fillSz || 0);
+            const usdtReceived = parseFloat(statusData.fillNotionalUsd || 0);
+            const averagePrice = quantity > 0 ? usdtReceived / quantity : 0;
+
+            return {
+                orderId,
+                symbol,
+                quantity,
+                averagePrice,
+                usdtReceived,
+                status: statusData.state
+            };
+
+        } catch (error) {
+            systemLogger.error('OKX sell order failed', {
+                crypto,
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    async executeOKXWithdrawal(crypto, amount, address, credentials) {
+        systemLogger.trading('Executing OKX withdrawal', {
+            crypto,
+            amount,
+            destination: address.substring(0, 10) + '...'
+        });
+
+        try {
+            const timestamp = new Date().toISOString();
+
+            const withdrawPayload = {
+                ccy: crypto,
+                amt: amount.toFixed(8),
+                dest: '4',
+                toAddr: address,
+                fee: '0.0001'
+            };
+
+            const bodyString = JSON.stringify(withdrawPayload);
+            const prehash = timestamp + 'POST' + '/api/v5/asset/withdrawal' + bodyString;
+            const signature = crypto
+                .createHmac('sha256', credentials.apiSecret)
+                .update(prehash)
+                .digest('base64');
+
+            const response = await fetch('https://www.okx.com/api/v5/asset/withdrawal', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'OK-ACCESS-KEY': credentials.apiKey,
+                    'OK-ACCESS-SIGN': signature,
+                    'OK-ACCESS-TIMESTAMP': timestamp,
+                    'OK-ACCESS-PASSPHRASE': credentials.passphrase || ''
+                },
+                body: bodyString
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`OKX withdrawal failed: HTTP ${response.status} - ${errorText}`);
+            }
+
+            const withdrawalData = await response.json();
+
+            if (withdrawalData.code !== '0') {
+                throw new Error(`OKX error ${withdrawalData.code}: ${withdrawalData.msg}`);
+            }
+
+            systemLogger.trading('OKX withdrawal initiated', {
+                withdrawalId: withdrawalData.data[0].wdId,
+                crypto,
+                amount
+            });
+
+            return {
+                withdrawalId: withdrawalData.data[0].wdId,
+                crypto,
+                amount,
+                address,
+                txHash: null
+            };
+
+        } catch (error) {
+            systemLogger.error('OKX withdrawal failed', {
+                crypto,
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    async getOKXOrderStatus(orderId, symbol, credentials) {
+        const timestamp = new Date().toISOString();
+        const endpoint = `/api/v5/trade/order?ordId=${orderId}&instId=${symbol}`;
+        const prehash = timestamp + 'GET' + endpoint;
+
+        const signature = crypto
+            .createHmac('sha256', credentials.apiSecret)
+            .update(prehash)
+            .digest('base64');
+
+        const response = await fetch(`https://www.okx.com${endpoint}`, {
+            method: 'GET',
+            headers: {
+                'OK-ACCESS-KEY': credentials.apiKey,
+                'OK-ACCESS-SIGN': signature,
+                'OK-ACCESS-TIMESTAMP': timestamp,
+                'OK-ACCESS-PASSPHRASE': credentials.passphrase || ''
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`OKX order status check failed: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data.data[0];
+    }
+
+    async checkOKXDeposit(crypto, credentials) {
+        try {
+            const timestamp = new Date().toISOString();
+            const endpoint = `/api/v5/asset/deposit-history?ccy=${crypto}`;
+            const prehash = timestamp + 'GET' + endpoint;
+
+            const signature = crypto
+                .createHmac('sha256', credentials.apiSecret)
+                .update(prehash)
+                .digest('base64');
+
+            const response = await fetch(`https://www.okx.com${endpoint}`, {
+                method: 'GET',
+                headers: {
+                    'OK-ACCESS-KEY': credentials.apiKey,
+                    'OK-ACCESS-SIGN': signature,
+                    'OK-ACCESS-TIMESTAMP': timestamp,
+                    'OK-ACCESS-PASSPHRASE': credentials.passphrase || ''
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`OKX deposit check failed: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            if (data.code === '0' && data.data.length > 0) {
+                const recentDeposit = data.data.find(d => d.state === '2');
+
+                if (recentDeposit) {
+                    return {
+                        arrived: true,
+                        amount: parseFloat(recentDeposit.amt),
+                        confirmations: 0,
+                        txHash: recentDeposit.txId
+                    };
+                }
+            }
+
+            return {
+                arrived: false,
+                amount: 0,
+                confirmations: 0,
+                txHash: null
+            };
+
+        } catch (error) {
+            systemLogger.error('OKX deposit check failed', {
+                crypto,
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    // ========================================
     // Helper methods
     // ========================================
 
