@@ -30,6 +30,7 @@ const tradingActivityRoutes = require('./src/routes/trading-activity.routes');
 const analyticsRoutes = require('./src/routes/analytics.routes');
 const settingsRoutes = require('./src/routes/settings.routes');
 const transferArbRoutes = require('./src/routes/transfer-arb.routes');
+const currencySwapRoutes = require('./src/routes/currency-swap.routes');
 
 // Initialize Express app
 const app = express();
@@ -86,6 +87,7 @@ app.use(`${API_PREFIX}/trading-activity`, tradingActivityRoutes);
 app.use(`${API_PREFIX}/analytics`, analyticsRoutes);
 app.use(`${API_PREFIX}/settings`, settingsRoutes);
 app.use(`${API_PREFIX}/transfer-arb`, transferArbRoutes);
+app.use(`${API_PREFIX}/currency-swap`, currencySwapRoutes);
 
 // Serve PWA static files
 app.use(express.static('public'));
