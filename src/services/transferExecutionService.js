@@ -223,6 +223,8 @@ class TransferExecutionService {
         switch (exchange) {
             case 'binance':
                 return await this.executeBinanceBuy(crypto, usdtAmount, credentials);
+            case 'valr':
+                return await this.executeVALRBuy(crypto, usdtAmount, credentials);
             case 'kraken':
                 return await this.executeKrakenBuy(crypto, usdtAmount, credentials);
             case 'okx':
@@ -250,6 +252,8 @@ class TransferExecutionService {
         switch (exchange) {
             case 'binance':
                 return await this.executeBinanceWithdrawal(crypto, amount, destinationAddress, credentials);
+            case 'valr':
+                return await this.executeVALRWithdrawal(crypto, amount, destinationAddress, credentials);
             case 'kraken':
                 return await this.executeKrakenWithdrawal(crypto, amount, destinationAddress, credentials);
             case 'okx':
@@ -331,6 +335,8 @@ class TransferExecutionService {
         switch (exchange) {
             case 'binance':
                 return await this.executeBinanceSell(crypto, amount, credentials);
+            case 'valr':
+                return await this.executeVALRSell(crypto, amount, credentials);
             case 'kraken':
                 return await this.executeKrakenSell(crypto, amount, credentials);
             case 'okx':
@@ -583,6 +589,8 @@ class TransferExecutionService {
         switch (exchange) {
             case 'binance':
                 return await this.checkBinanceDeposit(crypto, credentials);
+            case 'valr':
+                return await this.checkVALRDeposit(crypto, credentials);
             case 'kraken':
                 return await this.checkKrakenDeposit(crypto, credentials);
             case 'okx':
@@ -677,6 +685,329 @@ class TransferExecutionService {
     async checkBybitDeposit(crypto, credentials) {
         // TODO: Implement Bybit deposit checking
         throw new Error('Bybit deposit checking not implemented yet');
+    }
+
+    // ========================================
+    // VALR Exchange Implementation
+    // ========================================
+
+    async executeVALRBuy(crypto, usdtAmount, credentials) {
+        systemLogger.trading('Executing VALR buy order', {
+            crypto,
+            usdtAmount,
+            type: 'MARKET'
+        });
+
+        try {
+            // VALR uses pair format like BTCUSDT
+            const pair = `${crypto}USDT`;
+
+            // VALR market buy order - specify quote currency amount (USDT)
+            const orderPayload = {
+                side: 'BUY',
+                quantity: usdtAmount.toFixed(2),
+                pair: pair,
+                postOnly: false,
+                customerOrderId: `BUY-${Date.now()}`
+            };
+
+            const timestamp = Date.now().toString();
+            const endpoint = '/v1/orders/market';
+            const bodyString = JSON.stringify(orderPayload);
+            const payload = timestamp + 'POST' + endpoint + bodyString;
+
+            const signature = crypto
+                .createHmac('sha512', credentials.apiSecret)
+                .update(payload)
+                .digest('hex');
+
+            const response = await fetch(`https://api.valr.com${endpoint}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-VALR-API-KEY': credentials.apiKey,
+                    'X-VALR-SIGNATURE': signature,
+                    'X-VALR-TIMESTAMP': timestamp
+                },
+                body: bodyString
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`VALR buy order failed: HTTP ${response.status} - ${errorText}`);
+            }
+
+            const orderData = await response.json();
+
+            // Get order status to confirm execution
+            const orderId = orderData.id;
+            await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2s for order to settle
+
+            const statusData = await this.getVALROrderStatus(orderId, credentials);
+
+            systemLogger.trading('VALR buy order executed', {
+                orderId,
+                pair,
+                status: statusData.orderStatusType
+            });
+
+            // Calculate average price and quantity from fills
+            const totalCost = parseFloat(statusData.totalPrice || usdtAmount);
+            const quantity = parseFloat(statusData.totalQuantity || 0);
+            const averagePrice = quantity > 0 ? totalCost / quantity : 0;
+
+            return {
+                orderId,
+                symbol: pair,
+                quantity,
+                averagePrice,
+                totalCost,
+                status: statusData.orderStatusType
+            };
+
+        } catch (error) {
+            systemLogger.error('VALR buy order failed', {
+                crypto,
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    async executeVALRSell(crypto, amount, credentials) {
+        systemLogger.trading('Executing VALR sell order', {
+            crypto,
+            amount,
+            type: 'MARKET'
+        });
+
+        try {
+            // VALR uses pair format like BTCUSDT
+            const pair = `${crypto}USDT`;
+
+            // VALR market sell order - specify base currency amount (crypto)
+            const orderPayload = {
+                side: 'SELL',
+                quantity: amount.toFixed(8),
+                pair: pair,
+                postOnly: false,
+                customerOrderId: `SELL-${Date.now()}`
+            };
+
+            const timestamp = Date.now().toString();
+            const endpoint = '/v1/orders/market';
+            const bodyString = JSON.stringify(orderPayload);
+            const payload = timestamp + 'POST' + endpoint + bodyString;
+
+            const signature = crypto
+                .createHmac('sha512', credentials.apiSecret)
+                .update(payload)
+                .digest('hex');
+
+            const response = await fetch(`https://api.valr.com${endpoint}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-VALR-API-KEY': credentials.apiKey,
+                    'X-VALR-SIGNATURE': signature,
+                    'X-VALR-TIMESTAMP': timestamp
+                },
+                body: bodyString
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`VALR sell order failed: HTTP ${response.status} - ${errorText}`);
+            }
+
+            const orderData = await response.json();
+
+            // Get order status to confirm execution
+            const orderId = orderData.id;
+            await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2s for order to settle
+
+            const statusData = await this.getVALROrderStatus(orderId, credentials);
+
+            systemLogger.trading('VALR sell order executed', {
+                orderId,
+                pair,
+                status: statusData.orderStatusType
+            });
+
+            // Calculate USDT received
+            const usdtReceived = parseFloat(statusData.totalPrice || 0);
+            const quantity = parseFloat(statusData.totalQuantity || 0);
+            const averagePrice = quantity > 0 ? usdtReceived / quantity : 0;
+
+            return {
+                orderId,
+                symbol: pair,
+                quantity,
+                averagePrice,
+                usdtReceived,
+                status: statusData.orderStatusType
+            };
+
+        } catch (error) {
+            systemLogger.error('VALR sell order failed', {
+                crypto,
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    async executeVALRWithdrawal(crypto, amount, address, credentials) {
+        systemLogger.trading('Executing VALR withdrawal', {
+            crypto,
+            amount,
+            destination: address.substring(0, 10) + '...'
+        });
+
+        try {
+            // VALR withdrawal endpoint
+            const orderPayload = {
+                currency: crypto,
+                amount: amount.toFixed(8),
+                address: address
+            };
+
+            const timestamp = Date.now().toString();
+            const endpoint = '/v1/wallet/crypto/withdraw';
+            const bodyString = JSON.stringify(orderPayload);
+            const payload = timestamp + 'POST' + endpoint + bodyString;
+
+            const signature = crypto
+                .createHmac('sha512', credentials.apiSecret)
+                .update(payload)
+                .digest('hex');
+
+            const response = await fetch(`https://api.valr.com${endpoint}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-VALR-API-KEY': credentials.apiKey,
+                    'X-VALR-SIGNATURE': signature,
+                    'X-VALR-TIMESTAMP': timestamp
+                },
+                body: bodyString
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`VALR withdrawal failed: HTTP ${response.status} - ${errorText}`);
+            }
+
+            const withdrawalData = await response.json();
+
+            systemLogger.trading('VALR withdrawal initiated', {
+                withdrawalId: withdrawalData.id,
+                crypto,
+                amount
+            });
+
+            return {
+                withdrawalId: withdrawalData.id,
+                crypto: crypto,
+                amount: amount,
+                address: address,
+                txHash: null // Will be available later
+            };
+
+        } catch (error) {
+            systemLogger.error('VALR withdrawal failed', {
+                crypto,
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    async getVALROrderStatus(orderId, credentials) {
+        const timestamp = Date.now().toString();
+        const endpoint = `/v1/orders/${orderId}`;
+        const payload = timestamp + 'GET' + endpoint;
+
+        const signature = crypto
+            .createHmac('sha512', credentials.apiSecret)
+            .update(payload)
+            .digest('hex');
+
+        const response = await fetch(`https://api.valr.com${endpoint}`, {
+            method: 'GET',
+            headers: {
+                'X-VALR-API-KEY': credentials.apiKey,
+                'X-VALR-SIGNATURE': signature,
+                'X-VALR-TIMESTAMP': timestamp
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`VALR order status check failed: ${response.status}`);
+        }
+
+        return await response.json();
+    }
+
+    async checkVALRDeposit(crypto, credentials) {
+        try {
+            // Get deposit history
+            const timestamp = Date.now().toString();
+            const endpoint = `/v1/wallet/crypto/deposit/history?currency=${crypto}`;
+            const payload = timestamp + 'GET' + endpoint;
+
+            const signature = crypto
+                .createHmac('sha512', credentials.apiSecret)
+                .update(payload)
+                .digest('hex');
+
+            const response = await fetch(`https://api.valr.com${endpoint}`, {
+                method: 'GET',
+                headers: {
+                    'X-VALR-API-KEY': credentials.apiKey,
+                    'X-VALR-SIGNATURE': signature,
+                    'X-VALR-TIMESTAMP': timestamp
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`VALR deposit check failed: ${response.status}`);
+            }
+
+            const deposits = await response.json();
+
+            // Look for most recent completed deposit
+            if (Array.isArray(deposits) && deposits.length > 0) {
+                const recentDeposit = deposits.find(d =>
+                    d.currencyCode === crypto &&
+                    d.confirmations >= d.confirmedThreshold
+                );
+
+                if (recentDeposit) {
+                    return {
+                        arrived: true,
+                        amount: parseFloat(recentDeposit.amount),
+                        confirmations: recentDeposit.confirmations,
+                        txHash: recentDeposit.transactionHash
+                    };
+                }
+            }
+
+            // Not arrived yet
+            return {
+                arrived: false,
+                amount: 0,
+                confirmations: 0,
+                txHash: null
+            };
+
+        } catch (error) {
+            systemLogger.error('VALR deposit check failed', {
+                crypto,
+                error: error.message
+            });
+            throw error;
+        }
     }
 
     // ========================================
