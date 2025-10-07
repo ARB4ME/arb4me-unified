@@ -2550,6 +2550,136 @@
             document.getElementById(strategy + '-content').classList.add('active');
         }
 
+        // Connect Currency Swap Exchange (independent API)
+        async function connectCurrencySwapExchange(exchange, apiKey, secretKey) {
+            console.log(`💱 Connecting Currency Swap - ${exchange}`);
+
+            // Get additional fields if needed
+            let passphrase = null;
+            let memo = null;
+
+            // Check for passphrase (OKX, KuCoin, Bitget, Coincatch)
+            if (['okx', 'kucoin', 'bitget', 'coincatch'].includes(exchange)) {
+                const passphraseElement = document.getElementById(`${exchange}-currency-swap-passphrase`);
+                if (passphraseElement) {
+                    passphrase = passphraseElement.value.trim();
+                }
+                if (!passphrase) {
+                    alert(`Please enter the passphrase for ${exchange.toUpperCase()}`);
+                    return;
+                }
+            }
+
+            // Check for memo (BitMart)
+            if (exchange === 'bitmart') {
+                const memoElement = document.getElementById(`${exchange}-currency-swap-memo`);
+                if (memoElement) {
+                    memo = memoElement.value.trim();
+                }
+            }
+
+            const statusElement = document.getElementById(`${exchange}-currency-swap-status`);
+            if (statusElement) {
+                statusElement.textContent = 'Connecting...';
+                statusElement.className = 'connection-status status-connecting';
+            }
+
+            try {
+                // Save credentials to Currency Swap API
+                const response = await fetch('/api/v1/currency-swap/credentials', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        userId: window.USER_ID,
+                        exchange: exchange,
+                        apiKey: apiKey,
+                        apiSecret: secretKey,
+                        apiPassphrase: passphrase,
+                        memo: memo
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    console.log(`✅ ${exchange} credentials saved successfully`);
+
+                    // Update status
+                    if (statusElement) {
+                        statusElement.textContent = 'Connected ✓';
+                        statusElement.className = 'connection-status status-connected';
+                    }
+
+                    // Try to fetch and display balances
+                    await fetchCurrencySwapBalance(exchange, apiKey, secretKey, passphrase, memo);
+
+                    alert(`Successfully connected ${exchange.toUpperCase()} for Currency Swap!`);
+
+                } else {
+                    throw new Error(data.error || 'Failed to save credentials');
+                }
+
+            } catch (error) {
+                console.error(`❌ Error connecting ${exchange}:`, error);
+
+                if (statusElement) {
+                    statusElement.textContent = 'Connection Failed';
+                    statusElement.className = 'connection-status status-disconnected';
+                }
+
+                alert(`Failed to connect ${exchange.toUpperCase()}: ${error.message}`);
+            }
+        }
+
+        // Fetch balance for Currency Swap exchange
+        async function fetchCurrencySwapBalance(exchange, apiKey, secretKey, passphrase = null, memo = null) {
+            try {
+                console.log(`💰 Fetching Currency Swap balance for ${exchange}...`);
+
+                // Use trading API to get balance (same endpoints work)
+                const endpoint = exchange === 'chainex'
+                    ? '/api/v1/trading/chainex/balance'
+                    : `/api/v1/trading/${exchange}/balance`;
+
+                const requestBody = {
+                    apiKey: apiKey,
+                    apiSecret: secretKey
+                };
+
+                if (passphrase) requestBody.apiPassphrase = passphrase;
+                if (memo) requestBody.memo = memo;
+
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                if (response.ok) {
+                    const balanceData = await response.json();
+                    if (balanceData.success && balanceData.balances) {
+                        console.log(`✅ ${exchange} balance fetched:`, balanceData.balances);
+
+                        // Format and display balance
+                        const balanceDisplay = formatStrategyBalance(balanceData.balances);
+                        const balanceElement = document.getElementById(`${exchange}-currency-swap-balance`);
+                        if (balanceElement) {
+                            balanceElement.innerHTML = balanceDisplay;
+                        }
+                    }
+                } else {
+                    console.warn(`⚠️ Failed to fetch ${exchange} balance:`, response.status);
+                }
+
+            } catch (error) {
+                console.error(`❌ Error fetching ${exchange} balance:`, error);
+            }
+        }
+
         // Connect strategy-specific exchange
         async function connectStrategyExchange(exchange, strategy) {
             const apiKey = document.getElementById(`${exchange}-${strategy}-api`).value.trim();
@@ -2564,6 +2694,11 @@
             if (!apiKey || !secretKey) {
                 alert(`Please enter both API Key and Secret Key for ${exchange.toUpperCase()}`);
                 return;
+            }
+
+            // **CURRENCY SWAP STRATEGY - Independent API**
+            if (strategy === 'currency-swap') {
+                return await connectCurrencySwapExchange(exchange, apiKey, secretKey);
             }
 
             // Get passphrase for exchanges that require it (OKX, KuCoin only - Bitget doesn't need it)
