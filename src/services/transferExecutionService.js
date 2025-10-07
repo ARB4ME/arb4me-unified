@@ -1334,6 +1334,242 @@ class TransferExecutionService {
     }
 
     // ========================================
+    // Bybit Exchange Implementation
+    // ========================================
+
+    async executeBybitBuy(crypto, usdtAmount, credentials) {
+        systemLogger.trading('Executing Bybit buy order', { crypto, usdtAmount, type: 'MARKET' });
+        try {
+            const symbol = `${crypto}USDT`;
+            const timestamp = Date.now();
+            const params = { category: 'spot', symbol, side: 'Buy', orderType: 'Market', marketUnit: 'quoteCoin', qty: usdtAmount.toFixed(2) };
+            const queryString = Object.entries(params).sort().map(([k,v]) => `${k}=${v}`).join('&') + `&timestamp=${timestamp}`;
+            const signature = crypto.createHmac('sha256', credentials.apiSecret).update(queryString).digest('hex');
+
+            const response = await fetch('https://api.bybit.com/v5/order/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-BAPI-API-KEY': credentials.apiKey, 'X-BAPI-TIMESTAMP': timestamp.toString(), 'X-BAPI-SIGN': signature },
+                body: JSON.stringify(params)
+            });
+
+            const orderData = await response.json();
+            if (orderData.retCode !== 0) throw new Error(`Bybit error ${orderData.retCode}: ${orderData.retMsg}`);
+
+            systemLogger.trading('Bybit buy order executed', { orderId: orderData.result.orderId, symbol });
+            return { orderId: orderData.result.orderId, symbol, quantity: 0, averagePrice: 0, totalCost: usdtAmount, status: 'filled' };
+        } catch (error) {
+            systemLogger.error('Bybit buy order failed', { crypto, error: error.message });
+            throw error;
+        }
+    }
+
+    async executeBybitSell(crypto, amount, credentials) {
+        systemLogger.trading('Executing Bybit sell order', { crypto, amount, type: 'MARKET' });
+        try {
+            const symbol = `${crypto}USDT`;
+            const timestamp = Date.now();
+            const params = { category: 'spot', symbol, side: 'Sell', orderType: 'Market', qty: amount.toFixed(8) };
+            const queryString = Object.entries(params).sort().map(([k,v]) => `${k}=${v}`).join('&') + `&timestamp=${timestamp}`;
+            const signature = crypto.createHmac('sha256', credentials.apiSecret).update(queryString).digest('hex');
+
+            const response = await fetch('https://api.bybit.com/v5/order/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-BAPI-API-KEY': credentials.apiKey, 'X-BAPI-TIMESTAMP': timestamp.toString(), 'X-BAPI-SIGN': signature },
+                body: JSON.stringify(params)
+            });
+
+            const orderData = await response.json();
+            if (orderData.retCode !== 0) throw new Error(`Bybit error ${orderData.retCode}: ${orderData.retMsg}`);
+
+            systemLogger.trading('Bybit sell order executed', { orderId: orderData.result.orderId, symbol });
+            return { orderId: orderData.result.orderId, symbol, quantity: amount, averagePrice: 0, usdtReceived: 0, status: 'filled' };
+        } catch (error) {
+            systemLogger.error('Bybit sell order failed', { crypto, error: error.message });
+            throw error;
+        }
+    }
+
+    async executeBybitWithdrawal(crypto, amount, address, credentials) {
+        systemLogger.trading('Executing Bybit withdrawal', { crypto, amount });
+        try {
+            const timestamp = Date.now();
+            const params = { coin: crypto, chain: 'ETH', address, amount: amount.toFixed(8) };
+            const queryString = Object.entries(params).sort().map(([k,v]) => `${k}=${v}`).join('&') + `&timestamp=${timestamp}`;
+            const signature = crypto.createHmac('sha256', credentials.apiSecret).update(queryString).digest('hex');
+
+            const response = await fetch('https://api.bybit.com/v5/asset/withdraw/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-BAPI-API-KEY': credentials.apiKey, 'X-BAPI-TIMESTAMP': timestamp.toString(), 'X-BAPI-SIGN': signature },
+                body: JSON.stringify(params)
+            });
+
+            const withdrawalData = await response.json();
+            if (withdrawalData.retCode !== 0) throw new Error(`Bybit error ${withdrawalData.retCode}: ${withdrawalData.retMsg}`);
+
+            systemLogger.trading('Bybit withdrawal initiated', { withdrawalId: withdrawalData.result.id });
+            return { withdrawalId: withdrawalData.result.id, crypto, amount, address, txHash: null };
+        } catch (error) {
+            systemLogger.error('Bybit withdrawal failed', { crypto, error: error.message });
+            throw error;
+        }
+    }
+
+    async checkBybitDeposit(crypto, credentials) {
+        try {
+            const timestamp = Date.now();
+            const queryString = `coin=${crypto}&timestamp=${timestamp}`;
+            const signature = crypto.createHmac('sha256', credentials.apiSecret).update(queryString).digest('hex');
+
+            const response = await fetch(`https://api.bybit.com/v5/asset/deposit/query-record?${queryString}`, {
+                method: 'GET',
+                headers: { 'X-BAPI-API-KEY': credentials.apiKey, 'X-BAPI-TIMESTAMP': timestamp.toString(), 'X-BAPI-SIGN': signature }
+            });
+
+            const data = await response.json();
+            if (data.retCode === 0 && data.result.rows.length > 0) {
+                const recentDeposit = data.result.rows.find(d => d.status === 3);
+                if (recentDeposit) return { arrived: true, amount: parseFloat(recentDeposit.amount), confirmations: 0, txHash: recentDeposit.txID };
+            }
+            return { arrived: false, amount: 0, confirmations: 0, txHash: null };
+        } catch (error) {
+            systemLogger.error('Bybit deposit check failed', { crypto, error: error.message });
+            throw error;
+        }
+    }
+
+    // ========================================
+    // Kraken Exchange Implementation
+    // ========================================
+
+    async executeKrakenBuy(crypto, usdtAmount, credentials) {
+        systemLogger.trading('Executing Kraken buy order', { crypto, usdtAmount });
+        try {
+            const pair = `${crypto}USDT`;
+            const nonce = Date.now();
+            const postData = `nonce=${nonce}&pair=${pair}&type=buy&ordertype=market&volume=${(usdtAmount / 1000).toFixed(4)}`;
+            const path = '/0/private/AddOrder';
+            const signature = crypto.createHmac('sha512', Buffer.from(credentials.apiSecret, 'base64')).update(path + crypto.createHash('sha256').update(nonce + postData).digest()).digest('base64');
+
+            const response = await fetch(`https://api.kraken.com${path}`, {
+                method: 'POST',
+                headers: { 'API-Key': credentials.apiKey, 'API-Sign': signature, 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: postData
+            });
+
+            const orderData = await response.json();
+            if (orderData.error && orderData.error.length > 0) throw new Error(`Kraken error: ${orderData.error.join(', ')}`);
+
+            systemLogger.trading('Kraken buy order executed', { orderId: orderData.result.txid[0] });
+            return { orderId: orderData.result.txid[0], symbol: pair, quantity: 0, averagePrice: 0, totalCost: usdtAmount, status: 'filled' };
+        } catch (error) {
+            systemLogger.error('Kraken buy order failed', { crypto, error: error.message });
+            throw error;
+        }
+    }
+
+    async executeKrakenSell(crypto, amount, credentials) {
+        systemLogger.trading('Executing Kraken sell order', { crypto, amount });
+        try {
+            const pair = `${crypto}USDT`;
+            const nonce = Date.now();
+            const postData = `nonce=${nonce}&pair=${pair}&type=sell&ordertype=market&volume=${amount.toFixed(8)}`;
+            const path = '/0/private/AddOrder';
+            const signature = crypto.createHmac('sha512', Buffer.from(credentials.apiSecret, 'base64')).update(path + crypto.createHash('sha256').update(nonce + postData).digest()).digest('base64');
+
+            const response = await fetch(`https://api.kraken.com${path}`, {
+                method: 'POST',
+                headers: { 'API-Key': credentials.apiKey, 'API-Sign': signature, 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: postData
+            });
+
+            const orderData = await response.json();
+            if (orderData.error && orderData.error.length > 0) throw new Error(`Kraken error: ${orderData.error.join(', ')}`);
+
+            systemLogger.trading('Kraken sell order executed', { orderId: orderData.result.txid[0] });
+            return { orderId: orderData.result.txid[0], symbol: pair, quantity: amount, averagePrice: 0, usdtReceived: 0, status: 'filled' };
+        } catch (error) {
+            systemLogger.error('Kraken sell order failed', { crypto, error: error.message });
+            throw error;
+        }
+    }
+
+    async executeKrakenWithdrawal(crypto, amount, address, credentials) {
+        systemLogger.trading('Executing Kraken withdrawal', { crypto, amount });
+        try {
+            const nonce = Date.now();
+            const postData = `nonce=${nonce}&asset=${crypto}&key=${address}&amount=${amount.toFixed(8)}`;
+            const path = '/0/private/Withdraw';
+            const signature = crypto.createHmac('sha512', Buffer.from(credentials.apiSecret, 'base64')).update(path + crypto.createHash('sha256').update(nonce + postData).digest()).digest('base64');
+
+            const response = await fetch(`https://api.kraken.com${path}`, {
+                method: 'POST',
+                headers: { 'API-Key': credentials.apiKey, 'API-Sign': signature, 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: postData
+            });
+
+            const withdrawalData = await response.json();
+            if (withdrawalData.error && withdrawalData.error.length > 0) throw new Error(`Kraken error: ${withdrawalData.error.join(', ')}`);
+
+            systemLogger.trading('Kraken withdrawal initiated', { refid: withdrawalData.result.refid });
+            return { withdrawalId: withdrawalData.result.refid, crypto, amount, address, txHash: null };
+        } catch (error) {
+            systemLogger.error('Kraken withdrawal failed', { crypto, error: error.message });
+            throw error;
+        }
+    }
+
+    async checkKrakenDeposit(crypto, credentials) {
+        try {
+            const nonce = Date.now();
+            const postData = `nonce=${nonce}&asset=${crypto}`;
+            const path = '/0/private/DepositStatus';
+            const signature = crypto.createHmac('sha512', Buffer.from(credentials.apiSecret, 'base64')).update(path + crypto.createHash('sha256').update(nonce + postData).digest()).digest('base64');
+
+            const response = await fetch(`https://api.kraken.com${path}`, {
+                method: 'POST',
+                headers: { 'API-Key': credentials.apiKey, 'API-Sign': signature, 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: postData
+            });
+
+            const data = await response.json();
+            if (data.error && data.error.length > 0) throw new Error(`Kraken error: ${data.error.join(', ')}`);
+
+            if (data.result && data.result.length > 0) {
+                const recentDeposit = data.result.find(d => d.status === 'Success');
+                if (recentDeposit) return { arrived: true, amount: parseFloat(recentDeposit.amount), confirmations: 0, txHash: recentDeposit.txid };
+            }
+            return { arrived: false, amount: 0, confirmations: 0, txHash: null };
+        } catch (error) {
+            systemLogger.error('Kraken deposit check failed', { crypto, error: error.message });
+            throw error;
+        }
+    }
+
+    // ========================================
+    // MEXC, KuCoin, HTX, Gate.io - Placeholder implementations
+    // ========================================
+
+    async executeMEXCBuy(crypto, usdtAmount, credentials) { throw new Error('MEXC buy order not implemented yet'); }
+    async executeMEXCSell(crypto, amount, credentials) { throw new Error('MEXC sell order not implemented yet'); }
+    async executeMEXCWithdrawal(crypto, amount, address, credentials) { throw new Error('MEXC withdrawal not implemented yet'); }
+    async checkMEXCDeposit(crypto, credentials) { throw new Error('MEXC deposit checking not implemented yet'); }
+
+    async executeKuCoinBuy(crypto, usdtAmount, credentials) { throw new Error('KuCoin buy order not implemented yet'); }
+    async executeKuCoinSell(crypto, amount, credentials) { throw new Error('KuCoin sell order not implemented yet'); }
+    async executeKuCoinWithdrawal(crypto, amount, address, credentials) { throw new Error('KuCoin withdrawal not implemented yet'); }
+    async checkKuCoinDeposit(crypto, credentials) { throw new Error('KuCoin deposit checking not implemented yet'); }
+
+    async executeHTXBuy(crypto, usdtAmount, credentials) { throw new Error('HTX buy order not implemented yet'); }
+    async executeHTXSell(crypto, amount, credentials) { throw new Error('HTX sell order not implemented yet'); }
+    async executeHTXWithdrawal(crypto, amount, address, credentials) { throw new Error('HTX withdrawal not implemented yet'); }
+    async checkHTXDeposit(crypto, credentials) { throw new Error('HTX deposit checking not implemented yet'); }
+
+    async executeGateIOBuy(crypto, usdtAmount, credentials) { throw new Error('Gate.io buy order not implemented yet'); }
+    async executeGateIOSell(crypto, amount, credentials) { throw new Error('Gate.io sell order not implemented yet'); }
+    async executeGateIOWithdrawal(crypto, amount, address, credentials) { throw new Error('Gate.io withdrawal not implemented yet'); }
+    async checkGateIODeposit(crypto, credentials) { throw new Error('Gate.io deposit checking not implemented yet'); }
+
+    // ========================================
     // Helper methods
     // ========================================
 
