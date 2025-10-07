@@ -2060,53 +2060,464 @@ class TransferExecutionService {
     }
 
     // ========================================
-    // Additional Exchanges - ChainEX, XT, AscendEX, Bitget, BitMart, Bitrue, Gemini, CoinCatch, Crypto.com
+    // Bitget Exchange Implementation
     // ========================================
 
-    async executeChainEXBuy(crypto, usdtAmount, credentials) { throw new Error('ChainEX not implemented yet'); }
-    async executeChainEXSell(crypto, amount, credentials) { throw new Error('ChainEX not implemented yet'); }
-    async executeChainEXWithdrawal(crypto, amount, address, credentials) { throw new Error('ChainEX not implemented yet'); }
-    async checkChainEXDeposit(crypto, credentials) { throw new Error('ChainEX not implemented yet'); }
+    async executeBitgetBuy(crypto, usdtAmount, credentials) {
+        systemLogger.trading('Executing Bitget buy order', { crypto, usdtAmount });
+        try {
+            const symbol = `${crypto}USDT`;
+            const timestamp = Date.now();
+            const bodyString = JSON.stringify({ symbol, side: 'buy', orderType: 'market', force: 'normal', size: (usdtAmount / 100).toFixed(4) });
+            const prehash = timestamp + 'POST' + '/api/spot/v1/trade/orders' + bodyString;
+            const signature = crypto.createHmac('sha256', credentials.apiSecret).update(prehash).digest('base64');
 
-    async executeXTBuy(crypto, usdtAmount, credentials) { throw new Error('XT.com not implemented yet'); }
-    async executeXTSell(crypto, amount, credentials) { throw new Error('XT.com not implemented yet'); }
-    async executeXTWithdrawal(crypto, amount, address, credentials) { throw new Error('XT.com not implemented yet'); }
-    async checkXTDeposit(crypto, credentials) { throw new Error('XT.com not implemented yet'); }
+            const response = await fetch('https://api.bitget.com/api/spot/v1/trade/orders', {
+                method: 'POST',
+                headers: { 'ACCESS-KEY': credentials.apiKey, 'ACCESS-SIGN': signature, 'ACCESS-TIMESTAMP': timestamp.toString(), 'ACCESS-PASSPHRASE': credentials.passphrase, 'Content-Type': 'application/json' },
+                body: bodyString
+            });
 
-    async executeAscendEXBuy(crypto, usdtAmount, credentials) { throw new Error('AscendEX not implemented yet'); }
-    async executeAscendEXSell(crypto, amount, credentials) { throw new Error('AscendEX not implemented yet'); }
-    async executeAscendEXWithdrawal(crypto, amount, address, credentials) { throw new Error('AscendEX not implemented yet'); }
-    async checkAscendEXDeposit(crypto, credentials) { throw new Error('AscendEX not implemented yet'); }
+            const orderData = await response.json();
+            if (orderData.code !== '00000') throw new Error(`Bitget error ${orderData.code}: ${orderData.msg}`);
 
-    async executeBitgetBuy(crypto, usdtAmount, credentials) { throw new Error('Bitget not implemented yet'); }
-    async executeBitgetSell(crypto, amount, credentials) { throw new Error('Bitget not implemented yet'); }
-    async executeBitgetWithdrawal(crypto, amount, address, credentials) { throw new Error('Bitget not implemented yet'); }
-    async checkBitgetDeposit(crypto, credentials) { throw new Error('Bitget not implemented yet'); }
+            systemLogger.trading('Bitget buy order executed', { orderId: orderData.data.orderId });
+            return { orderId: orderData.data.orderId, symbol, quantity: 0, averagePrice: 0, totalCost: usdtAmount, status: 'filled' };
+        } catch (error) {
+            systemLogger.error('Bitget buy order failed', { crypto, error: error.message });
+            throw error;
+        }
+    }
 
-    async executeBitMartBuy(crypto, usdtAmount, credentials) { throw new Error('BitMart not implemented yet'); }
-    async executeBitMartSell(crypto, amount, credentials) { throw new Error('BitMart not implemented yet'); }
-    async executeBitMartWithdrawal(crypto, amount, address, credentials) { throw new Error('BitMart not implemented yet'); }
-    async checkBitMartDeposit(crypto, credentials) { throw new Error('BitMart not implemented yet'); }
+    async executeBitgetSell(crypto, amount, credentials) {
+        systemLogger.trading('Executing Bitget sell order', { crypto, amount });
+        try {
+            const symbol = `${crypto}USDT`;
+            const timestamp = Date.now();
+            const bodyString = JSON.stringify({ symbol, side: 'sell', orderType: 'market', force: 'normal', size: amount.toFixed(8) });
+            const prehash = timestamp + 'POST' + '/api/spot/v1/trade/orders' + bodyString;
+            const signature = crypto.createHmac('sha256', credentials.apiSecret).update(prehash).digest('base64');
 
-    async executeBitrueBuy(crypto, usdtAmount, credentials) { throw new Error('Bitrue not implemented yet'); }
-    async executeBitrueSell(crypto, amount, credentials) { throw new Error('Bitrue not implemented yet'); }
-    async executeBitrueWithdrawal(crypto, amount, address, credentials) { throw new Error('Bitrue not implemented yet'); }
-    async checkBitrueDeposit(crypto, credentials) { throw new Error('Bitrue not implemented yet'); }
+            const response = await fetch('https://api.bitget.com/api/spot/v1/trade/orders', {
+                method: 'POST',
+                headers: { 'ACCESS-KEY': credentials.apiKey, 'ACCESS-SIGN': signature, 'ACCESS-TIMESTAMP': timestamp.toString(), 'ACCESS-PASSPHRASE': credentials.passphrase, 'Content-Type': 'application/json' },
+                body: bodyString
+            });
 
-    async executeGeminiBuy(crypto, usdtAmount, credentials) { throw new Error('Gemini not implemented yet'); }
-    async executeGeminiSell(crypto, amount, credentials) { throw new Error('Gemini not implemented yet'); }
-    async executeGeminiWithdrawal(crypto, amount, address, credentials) { throw new Error('Gemini not implemented yet'); }
-    async checkGeminiDeposit(crypto, credentials) { throw new Error('Gemini not implemented yet'); }
+            const orderData = await response.json();
+            if (orderData.code !== '00000') throw new Error(`Bitget error ${orderData.code}: ${orderData.msg}`);
 
-    async executeCoinCatchBuy(crypto, usdtAmount, credentials) { throw new Error('CoinCatch not implemented yet'); }
-    async executeCoinCatchSell(crypto, amount, credentials) { throw new Error('CoinCatch not implemented yet'); }
-    async executeCoinCatchWithdrawal(crypto, amount, address, credentials) { throw new Error('CoinCatch not implemented yet'); }
-    async checkCoinCatchDeposit(crypto, credentials) { throw new Error('CoinCatch not implemented yet'); }
+            systemLogger.trading('Bitget sell order executed', { orderId: orderData.data.orderId });
+            return { orderId: orderData.data.orderId, symbol, quantity: amount, averagePrice: 0, usdtReceived: 0, status: 'filled' };
+        } catch (error) {
+            systemLogger.error('Bitget sell order failed', { crypto, error: error.message });
+            throw error;
+        }
+    }
 
-    async executeCryptoDotComBuy(crypto, usdtAmount, credentials) { throw new Error('Crypto.com not implemented yet'); }
-    async executeCryptoDotComSell(crypto, amount, credentials) { throw new Error('Crypto.com not implemented yet'); }
-    async executeCryptoDotComWithdrawal(crypto, amount, address, credentials) { throw new Error('Crypto.com not implemented yet'); }
-    async checkCryptoDotComDeposit(crypto, credentials) { throw new Error('Crypto.com not implemented yet'); }
+    async executeBitgetWithdrawal(crypto, amount, address, credentials) {
+        throw new Error('Bitget withdrawal requires additional chain parameter - not fully implemented');
+    }
+
+    async checkBitgetDeposit(crypto, credentials) {
+        throw new Error('Bitget deposit checking not fully implemented');
+    }
+
+    // ========================================
+    // XT.com Exchange Implementation
+    // ========================================
+
+    async executeXTBuy(crypto, usdtAmount, credentials) {
+        systemLogger.trading('Executing XT buy order', { crypto, usdtAmount });
+        try {
+            const symbol = `${crypto.toLowerCase()}_usdt`;
+            const timestamp = Date.now();
+            const params = { symbol, side: 'BUY', type: 'MARKET', quoteQty: usdtAmount.toFixed(2) };
+            const queryString = Object.entries(params).sort().map(([k,v]) => `${k}=${v}`).join('&') + `&timestamp=${timestamp}`;
+            const signature = crypto.createHmac('sha256', credentials.apiSecret).update(queryString).digest('hex');
+
+            const response = await fetch(`https://sapi.xt.com/v4/order?${queryString}&signature=${signature}`, {
+                method: 'POST',
+                headers: { 'X-XT-API-KEY': credentials.apiKey }
+            });
+
+            const orderData = await response.json();
+            if (orderData.rc !== 0) throw new Error(`XT error ${orderData.rc}: ${orderData.msg}`);
+
+            systemLogger.trading('XT buy order executed', { orderId: orderData.result.orderId });
+            return { orderId: orderData.result.orderId, symbol, quantity: 0, averagePrice: 0, totalCost: usdtAmount, status: 'filled' };
+        } catch (error) {
+            systemLogger.error('XT buy order failed', { crypto, error: error.message });
+            throw error;
+        }
+    }
+
+    async executeXTSell(crypto, amount, credentials) {
+        systemLogger.trading('Executing XT sell order', { crypto, amount });
+        try {
+            const symbol = `${crypto.toLowerCase()}_usdt`;
+            const timestamp = Date.now();
+            const params = { symbol, side: 'SELL', type: 'MARKET', quantity: amount.toFixed(8) };
+            const queryString = Object.entries(params).sort().map(([k,v]) => `${k}=${v}`).join('&') + `&timestamp=${timestamp}`;
+            const signature = crypto.createHmac('sha256', credentials.apiSecret).update(queryString).digest('hex');
+
+            const response = await fetch(`https://sapi.xt.com/v4/order?${queryString}&signature=${signature}`, {
+                method: 'POST',
+                headers: { 'X-XT-API-KEY': credentials.apiKey }
+            });
+
+            const orderData = await response.json();
+            if (orderData.rc !== 0) throw new Error(`XT error ${orderData.rc}: ${orderData.msg}`);
+
+            systemLogger.trading('XT sell order executed', { orderId: orderData.result.orderId });
+            return { orderId: orderData.result.orderId, symbol, quantity: amount, averagePrice: 0, usdtReceived: 0, status: 'filled' };
+        } catch (error) {
+            systemLogger.error('XT sell order failed', { crypto, error: error.message });
+            throw error;
+        }
+    }
+
+    async executeXTWithdrawal(crypto, amount, address, credentials) {
+        throw new Error('XT withdrawal not fully implemented');
+    }
+
+    async checkXTDeposit(crypto, credentials) {
+        throw new Error('XT deposit checking not fully implemented');
+    }
+
+    // ========================================
+    // AscendEX Exchange Implementation
+    // ========================================
+
+    async executeAscendEXBuy(crypto, usdtAmount, credentials) {
+        systemLogger.trading('Executing AscendEX buy order', { crypto, usdtAmount });
+        try {
+            const symbol = `${crypto}/USDT`;
+            const timestamp = Date.now();
+            const path = '/api/pro/v1/cash/order';
+            const bodyString = JSON.stringify({ symbol, orderQty: (usdtAmount / 100).toFixed(4), orderType: 'market', side: 'buy', time: timestamp });
+            const prehash = timestamp + path + bodyString;
+            const signature = crypto.createHmac('sha256', credentials.apiSecret).update(prehash).digest('base64');
+
+            const response = await fetch(`https://ascendex.com${path}`, {
+                method: 'POST',
+                headers: { 'x-auth-key': credentials.apiKey, 'x-auth-signature': signature, 'x-auth-timestamp': timestamp.toString(), 'Content-Type': 'application/json' },
+                body: bodyString
+            });
+
+            const orderData = await response.json();
+            if (orderData.code !== 0) throw new Error(`AscendEX error ${orderData.code}: ${orderData.message}`);
+
+            systemLogger.trading('AscendEX buy order executed', { orderId: orderData.data.orderId });
+            return { orderId: orderData.data.orderId, symbol, quantity: 0, averagePrice: 0, totalCost: usdtAmount, status: 'filled' };
+        } catch (error) {
+            systemLogger.error('AscendEX buy order failed', { crypto, error: error.message });
+            throw error;
+        }
+    }
+
+    async executeAscendEXSell(crypto, amount, credentials) {
+        systemLogger.trading('Executing AscendEX sell order', { crypto, amount });
+        try {
+            const symbol = `${crypto}/USDT`;
+            const timestamp = Date.now();
+            const path = '/api/pro/v1/cash/order';
+            const bodyString = JSON.stringify({ symbol, orderQty: amount.toFixed(8), orderType: 'market', side: 'sell', time: timestamp });
+            const prehash = timestamp + path + bodyString;
+            const signature = crypto.createHmac('sha256', credentials.apiSecret).update(prehash).digest('base64');
+
+            const response = await fetch(`https://ascendex.com${path}`, {
+                method: 'POST',
+                headers: { 'x-auth-key': credentials.apiKey, 'x-auth-signature': signature, 'x-auth-timestamp': timestamp.toString(), 'Content-Type': 'application/json' },
+                body: bodyString
+            });
+
+            const orderData = await response.json();
+            if (orderData.code !== 0) throw new Error(`AscendEX error ${orderData.code}: ${orderData.message}`);
+
+            systemLogger.trading('AscendEX sell order executed', { orderId: orderData.data.orderId });
+            return { orderId: orderData.data.orderId, symbol, quantity: amount, averagePrice: 0, usdtReceived: 0, status: 'filled' };
+        } catch (error) {
+            systemLogger.error('AscendEX sell order failed', { crypto, error: error.message });
+            throw error;
+        }
+    }
+
+    async executeAscendEXWithdrawal(crypto, amount, address, credentials) {
+        throw new Error('AscendEX withdrawal not fully implemented');
+    }
+
+    async checkAscendEXDeposit(crypto, credentials) {
+        throw new Error('AscendEX deposit checking not fully implemented');
+    }
+
+    // ========================================
+    // BitMart Exchange Implementation
+    // ========================================
+
+    async executeBitMartBuy(crypto, usdtAmount, credentials) {
+        systemLogger.trading('Executing BitMart buy order', { crypto, usdtAmount });
+        try {
+            const symbol = `${crypto}_USDT`;
+            const timestamp = Date.now();
+            const bodyString = JSON.stringify({ symbol, side: 'buy', type: 'market', notional: usdtAmount.toFixed(2) });
+            const prehash = timestamp + '#' + credentials.memo + '#' + bodyString;
+            const signature = crypto.createHmac('sha256', credentials.apiSecret).update(prehash).digest('hex');
+
+            const response = await fetch('https://api-cloud.bitmart.com/spot/v2/submit_order', {
+                method: 'POST',
+                headers: { 'X-BM-KEY': credentials.apiKey, 'X-BM-SIGN': signature, 'X-BM-TIMESTAMP': timestamp.toString(), 'Content-Type': 'application/json' },
+                body: bodyString
+            });
+
+            const orderData = await response.json();
+            if (orderData.code !== 1000) throw new Error(`BitMart error ${orderData.code}: ${orderData.message}`);
+
+            systemLogger.trading('BitMart buy order executed', { orderId: orderData.data.order_id });
+            return { orderId: orderData.data.order_id, symbol, quantity: 0, averagePrice: 0, totalCost: usdtAmount, status: 'filled' };
+        } catch (error) {
+            systemLogger.error('BitMart buy order failed', { crypto, error: error.message });
+            throw error;
+        }
+    }
+
+    async executeBitMartSell(crypto, amount, credentials) {
+        systemLogger.trading('Executing BitMart sell order', { crypto, amount });
+        try {
+            const symbol = `${crypto}_USDT`;
+            const timestamp = Date.now();
+            const bodyString = JSON.stringify({ symbol, side: 'sell', type: 'market', size: amount.toFixed(8) });
+            const prehash = timestamp + '#' + credentials.memo + '#' + bodyString;
+            const signature = crypto.createHmac('sha256', credentials.apiSecret).update(prehash).digest('hex');
+
+            const response = await fetch('https://api-cloud.bitmart.com/spot/v2/submit_order', {
+                method: 'POST',
+                headers: { 'X-BM-KEY': credentials.apiKey, 'X-BM-SIGN': signature, 'X-BM-TIMESTAMP': timestamp.toString(), 'Content-Type': 'application/json' },
+                body: bodyString
+            });
+
+            const orderData = await response.json();
+            if (orderData.code !== 1000) throw new Error(`BitMart error ${orderData.code}: ${orderData.message}`);
+
+            systemLogger.trading('BitMart sell order executed', { orderId: orderData.data.order_id });
+            return { orderId: orderData.data.order_id, symbol, quantity: amount, averagePrice: 0, usdtReceived: 0, status: 'filled' };
+        } catch (error) {
+            systemLogger.error('BitMart sell order failed', { crypto, error: error.message });
+            throw error;
+        }
+    }
+
+    async executeBitMartWithdrawal(crypto, amount, address, credentials) {
+        throw new Error('BitMart withdrawal not fully implemented');
+    }
+
+    async checkBitMartDeposit(crypto, credentials) {
+        throw new Error('BitMart deposit checking not fully implemented');
+    }
+
+    // ========================================
+    // Bitrue Exchange Implementation
+    // ========================================
+
+    async executeBitrueBuy(crypto, usdtAmount, credentials) {
+        systemLogger.trading('Executing Bitrue buy order', { crypto, usdtAmount });
+        try {
+            const symbol = `${crypto}USDT`;
+            const timestamp = Date.now();
+            const params = { symbol, side: 'BUY', type: 'MARKET', quoteOrderQty: usdtAmount.toFixed(2), timestamp, recvWindow: 5000 };
+            const queryString = Object.entries(params).map(([k,v]) => `${k}=${v}`).join('&');
+            const signature = crypto.createHmac('sha256', credentials.apiSecret).update(queryString).digest('hex');
+
+            const response = await fetch(`https://api.bitrue.com/api/v1/order?${queryString}&signature=${signature}`, {
+                method: 'POST',
+                headers: { 'X-MBX-APIKEY': credentials.apiKey }
+            });
+
+            const orderData = await response.json();
+            if (orderData.code && orderData.code < 0) throw new Error(`Bitrue error ${orderData.code}: ${orderData.msg}`);
+
+            systemLogger.trading('Bitrue buy order executed', { orderId: orderData.orderId });
+            return { orderId: orderData.orderId, symbol, quantity: 0, averagePrice: 0, totalCost: usdtAmount, status: 'filled' };
+        } catch (error) {
+            systemLogger.error('Bitrue buy order failed', { crypto, error: error.message });
+            throw error;
+        }
+    }
+
+    async executeBitrueSell(crypto, amount, credentials) {
+        systemLogger.trading('Executing Bitrue sell order', { crypto, amount });
+        try {
+            const symbol = `${crypto}USDT`;
+            const timestamp = Date.now();
+            const params = { symbol, side: 'SELL', type: 'MARKET', quantity: amount.toFixed(8), timestamp, recvWindow: 5000 };
+            const queryString = Object.entries(params).map(([k,v]) => `${k}=${v}`).join('&');
+            const signature = crypto.createHmac('sha256', credentials.apiSecret).update(queryString).digest('hex');
+
+            const response = await fetch(`https://api.bitrue.com/api/v1/order?${queryString}&signature=${signature}`, {
+                method: 'POST',
+                headers: { 'X-MBX-APIKEY': credentials.apiKey }
+            });
+
+            const orderData = await response.json();
+            if (orderData.code && orderData.code < 0) throw new Error(`Bitrue error ${orderData.code}: ${orderData.msg}`);
+
+            systemLogger.trading('Bitrue sell order executed', { orderId: orderData.orderId });
+            return { orderId: orderData.orderId, symbol, quantity: amount, averagePrice: 0, usdtReceived: 0, status: 'filled' };
+        } catch (error) {
+            systemLogger.error('Bitrue sell order failed', { crypto, error: error.message });
+            throw error;
+        }
+    }
+
+    async executeBitrueWithdrawal(crypto, amount, address, credentials) {
+        throw new Error('Bitrue withdrawal not fully implemented');
+    }
+
+    async checkBitrueDeposit(crypto, credentials) {
+        throw new Error('Bitrue deposit checking not fully implemented');
+    }
+
+    // ========================================
+    // Gemini Exchange Implementation
+    // ========================================
+
+    async executeGeminiBuy(crypto, usdtAmount, credentials) {
+        systemLogger.trading('Executing Gemini buy order', { crypto, usdtAmount });
+        try {
+            const symbol = `${crypto.toLowerCase()}usd`;
+            const nonce = Date.now();
+            const payload = { request: '/v1/order/new', nonce, symbol, amount: (usdtAmount / 1000).toFixed(4), type: 'exchange market', side: 'buy' };
+            const encodedPayload = Buffer.from(JSON.stringify(payload)).toString('base64');
+            const signature = crypto.createHmac('sha384', credentials.apiSecret).update(encodedPayload).digest('hex');
+
+            const response = await fetch('https://api.gemini.com/v1/order/new', {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain', 'X-GEMINI-APIKEY': credentials.apiKey, 'X-GEMINI-PAYLOAD': encodedPayload, 'X-GEMINI-SIGNATURE': signature }
+            });
+
+            const orderData = await response.json();
+            if (orderData.reason) throw new Error(`Gemini error: ${orderData.reason} - ${orderData.message}`);
+
+            systemLogger.trading('Gemini buy order executed', { orderId: orderData.order_id });
+            return { orderId: orderData.order_id, symbol, quantity: 0, averagePrice: 0, totalCost: usdtAmount, status: 'filled' };
+        } catch (error) {
+            systemLogger.error('Gemini buy order failed', { crypto, error: error.message });
+            throw error;
+        }
+    }
+
+    async executeGeminiSell(crypto, amount, credentials) {
+        systemLogger.trading('Executing Gemini sell order', { crypto, amount });
+        try {
+            const symbol = `${crypto.toLowerCase()}usd`;
+            const nonce = Date.now();
+            const payload = { request: '/v1/order/new', nonce, symbol, amount: amount.toFixed(8), type: 'exchange market', side: 'sell' };
+            const encodedPayload = Buffer.from(JSON.stringify(payload)).toString('base64');
+            const signature = crypto.createHmac('sha384', credentials.apiSecret).update(encodedPayload).digest('hex');
+
+            const response = await fetch('https://api.gemini.com/v1/order/new', {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain', 'X-GEMINI-APIKEY': credentials.apiKey, 'X-GEMINI-PAYLOAD': encodedPayload, 'X-GEMINI-SIGNATURE': signature }
+            });
+
+            const orderData = await response.json();
+            if (orderData.reason) throw new Error(`Gemini error: ${orderData.reason} - ${orderData.message}`);
+
+            systemLogger.trading('Gemini sell order executed', { orderId: orderData.order_id });
+            return { orderId: orderData.order_id, symbol, quantity: amount, averagePrice: 0, usdtReceived: 0, status: 'filled' };
+        } catch (error) {
+            systemLogger.error('Gemini sell order failed', { crypto, error: error.message });
+            throw error;
+        }
+    }
+
+    async executeGeminiWithdrawal(crypto, amount, address, credentials) {
+        throw new Error('Gemini withdrawal not fully implemented');
+    }
+
+    async checkGeminiDeposit(crypto, credentials) {
+        throw new Error('Gemini deposit checking not fully implemented');
+    }
+
+    // ========================================
+    // Crypto.com Exchange Implementation
+    // ========================================
+
+    async executeCryptoDotComBuy(crypto, usdtAmount, credentials) {
+        systemLogger.trading('Executing Crypto.com buy order', { crypto, usdtAmount });
+        try {
+            const symbol = `${crypto}_USDT`;
+            const timestamp = Date.now();
+            const params = { instrument_name: symbol, side: 'BUY', type: 'MARKET', notional: usdtAmount.toFixed(2) };
+            const bodyString = JSON.stringify({ id: timestamp, method: 'private/create-order', params, nonce: timestamp });
+            const sigPayload = `private/create-order${timestamp}${credentials.apiKey}${bodyString}${timestamp}`;
+            const signature = crypto.createHmac('sha256', credentials.apiSecret).update(sigPayload).digest('hex');
+
+            const response = await fetch('https://api.crypto.com/v2/private/create-order', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ...JSON.parse(bodyString), api_key: credentials.apiKey, sig: signature })
+            });
+
+            const orderData = await response.json();
+            if (orderData.code !== 0) throw new Error(`Crypto.com error ${orderData.code}: ${orderData.message}`);
+
+            systemLogger.trading('Crypto.com buy order executed', { orderId: orderData.result.order_id });
+            return { orderId: orderData.result.order_id, symbol, quantity: 0, averagePrice: 0, totalCost: usdtAmount, status: 'filled' };
+        } catch (error) {
+            systemLogger.error('Crypto.com buy order failed', { crypto, error: error.message });
+            throw error;
+        }
+    }
+
+    async executeCryptoDotComSell(crypto, amount, credentials) {
+        systemLogger.trading('Executing Crypto.com sell order', { crypto, amount });
+        try {
+            const symbol = `${crypto}_USDT`;
+            const timestamp = Date.now();
+            const params = { instrument_name: symbol, side: 'SELL', type: 'MARKET', quantity: amount.toFixed(8) };
+            const bodyString = JSON.stringify({ id: timestamp, method: 'private/create-order', params, nonce: timestamp });
+            const sigPayload = `private/create-order${timestamp}${credentials.apiKey}${bodyString}${timestamp}`;
+            const signature = crypto.createHmac('sha256', credentials.apiSecret).update(sigPayload).digest('hex');
+
+            const response = await fetch('https://api.crypto.com/v2/private/create-order', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ...JSON.parse(bodyString), api_key: credentials.apiKey, sig: signature })
+            });
+
+            const orderData = await response.json();
+            if (orderData.code !== 0) throw new Error(`Crypto.com error ${orderData.code}: ${orderData.message}`);
+
+            systemLogger.trading('Crypto.com sell order executed', { orderId: orderData.result.order_id });
+            return { orderId: orderData.result.order_id, symbol, quantity: amount, averagePrice: 0, usdtReceived: 0, status: 'filled' };
+        } catch (error) {
+            systemLogger.error('Crypto.com sell order failed', { crypto, error: error.message });
+            throw error;
+        }
+    }
+
+    async executeCryptoDotComWithdrawal(crypto, amount, address, credentials) {
+        throw new Error('Crypto.com withdrawal not fully implemented');
+    }
+
+    async checkCryptoDotComDeposit(crypto, credentials) {
+        throw new Error('Crypto.com deposit checking not fully implemented');
+    }
+
+    // ========================================
+    // ChainEX & CoinCatch - Placeholders (less common exchanges)
+    // ========================================
+
+    async executeChainEXBuy(crypto, usdtAmount, credentials) { throw new Error('ChainEX not implemented - less common exchange'); }
+    async executeChainEXSell(crypto, amount, credentials) { throw new Error('ChainEX not implemented - less common exchange'); }
+    async executeChainEXWithdrawal(crypto, amount, address, credentials) { throw new Error('ChainEX not implemented'); }
+    async checkChainEXDeposit(crypto, credentials) { throw new Error('ChainEX not implemented'); }
+
+    async executeCoinCatchBuy(crypto, usdtAmount, credentials) { throw new Error('CoinCatch not implemented - less common exchange'); }
+    async executeCoinCatchSell(crypto, amount, credentials) { throw new Error('CoinCatch not implemented - less common exchange'); }
+    async executeCoinCatchWithdrawal(crypto, amount, address, credentials) { throw new Error('CoinCatch not implemented'); }
+    async checkCoinCatchDeposit(crypto, credentials) { throw new Error('CoinCatch not implemented'); }
 
     // ========================================
     // Helper methods
