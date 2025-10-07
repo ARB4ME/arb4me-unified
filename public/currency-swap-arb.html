@@ -307,6 +307,25 @@
                     </div>
                 </div>
 
+                <!-- Deposit Addresses -->
+                <div class="stat-card">
+                    <h4 style="color: #61dafb; margin-bottom: 15px;">📬 Deposit Addresses</h4>
+                    <p style="font-size: 0.85rem; color: #b8c6db; margin-bottom: 15px;">
+                        Configure deposit addresses for exchanges connected in Strategy Setup. Required for automated transfers.
+                    </p>
+
+                    <div id="depositAddressList" style="display: flex; flex-direction: column; gap: 15px;">
+                        <!-- Deposit addresses will be loaded here -->
+                        <p style="color: #b8c6db; font-size: 0.85rem;">
+                            Loading connected exchanges...
+                        </p>
+                    </div>
+
+                    <button id="saveDepositAddresses" class="save-btn" style="margin-top: 15px; width: 100%; padding: 12px; background: #00ff88; color: #0a0e1a; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                        Save All Addresses
+                    </button>
+                </div>
+
                 <!-- Best Opportunities -->
                 <div class="stat-card">
                     <h4 style="color: #00ff88; margin-bottom: 15px;">🎯 Best Opportunities</h4>
@@ -498,6 +517,15 @@
 
             // Load stats from API
             loadStats();
+
+            // Load deposit addresses
+            loadDepositAddresses();
+
+            // Wire up save button
+            const saveButton = document.getElementById('saveDepositAddresses');
+            if (saveButton) {
+                saveButton.addEventListener('click', saveDepositAddresses);
+            }
 
             // Auto-trading toggle
             const autoTradingToggle = document.getElementById('autoTradingToggle');
@@ -736,6 +764,163 @@
                 }
             } catch (error) {
                 console.error('❌ Failed to load stats:', error);
+            }
+        }
+
+        // Load deposit addresses for connected exchanges
+        async function loadDepositAddresses() {
+            console.log('📬 Loading deposit addresses...');
+            try {
+                const response = await fetch(`${API_BASE}/connected-exchanges?userId=${USER_ID}`);
+                const data = await response.json();
+
+                console.log('✅ Connected exchanges loaded:', data);
+
+                if (data.success && data.data.length > 0) {
+                    const depositListDiv = document.getElementById('depositAddressList');
+                    depositListDiv.innerHTML = '';
+
+                    for (const exchange of data.data) {
+                        const exchangeDiv = document.createElement('div');
+                        exchangeDiv.style.cssText = 'padding: 15px; background: rgba(97, 218, 251, 0.1); border-radius: 8px; border: 1px solid rgba(97, 218, 251, 0.3);';
+
+                        // Get existing addresses if any
+                        const credResponse = await fetch(`${API_BASE}/credentials/${exchange.exchange}?userId=${USER_ID}`);
+                        const credData = await credResponse.json();
+                        const depositAddresses = credData.success ? credData.data.depositAddresses : {};
+
+                        exchangeDiv.innerHTML = `
+                            <h5 style="color: #61dafb; margin-bottom: 10px;">
+                                ${exchange.exchange.toUpperCase()}
+                                ${exchange.isConnected ? '<span style="color: #00ff88;">✓</span>' : '<span style="color: #ff6b6b;">✗</span>'}
+                            </h5>
+                            <div style="display: flex; flex-direction: column; gap: 10px;">
+                                <!-- XRP Address -->
+                                <div>
+                                    <label style="color: #b8c6db; font-size: 0.85rem; display: block; margin-bottom: 5px;">
+                                        XRP Deposit Address
+                                    </label>
+                                    <input
+                                        type="text"
+                                        id="${exchange.exchange}-xrp-address"
+                                        value="${depositAddresses.XRP || ''}"
+                                        placeholder="rXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+                                        style="width: 100%; padding: 8px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; color: #fff; font-family: monospace; font-size: 0.85rem;"
+                                    />
+                                </div>
+
+                                <!-- XRP Destination Tag -->
+                                <div>
+                                    <label style="color: #b8c6db; font-size: 0.85rem; display: block; margin-bottom: 5px;">
+                                        XRP Destination Tag (if required)
+                                    </label>
+                                    <input
+                                        type="text"
+                                        id="${exchange.exchange}-xrp-tag"
+                                        value="${depositAddresses.XRP_TAG || ''}"
+                                        placeholder="12345678"
+                                        style="width: 100%; padding: 8px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; color: #fff; font-family: monospace; font-size: 0.85rem;"
+                                    />
+                                </div>
+
+                                <!-- USDT Address -->
+                                <div>
+                                    <label style="color: #b8c6db; font-size: 0.85rem; display: block; margin-bottom: 5px;">
+                                        USDT Deposit Address (TRC20)
+                                    </label>
+                                    <input
+                                        type="text"
+                                        id="${exchange.exchange}-usdt-address"
+                                        value="${depositAddresses.USDT || ''}"
+                                        placeholder="TXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+                                        style="width: 100%; padding: 8px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; color: #fff; font-family: monospace; font-size: 0.85rem;"
+                                    />
+                                </div>
+                            </div>
+                        `;
+
+                        depositListDiv.appendChild(exchangeDiv);
+                    }
+
+                    console.log('📬 Deposit address UI created for', data.data.length, 'exchanges');
+                } else {
+                    const depositListDiv = document.getElementById('depositAddressList');
+                    depositListDiv.innerHTML = `
+                        <p style="color: #ff6b6b; font-size: 0.85rem;">
+                            No exchanges connected yet. Go to <a href="strategy-api-setup.html" style="color: #61dafb;">Strategy API Setup</a> to connect exchanges first.
+                        </p>
+                    `;
+                }
+
+            } catch (error) {
+                console.error('❌ Failed to load deposit addresses:', error);
+            }
+        }
+
+        // Save all deposit addresses
+        async function saveDepositAddresses() {
+            console.log('💾 Saving deposit addresses...');
+
+            try {
+                const response = await fetch(`${API_BASE}/connected-exchanges?userId=${USER_ID}`);
+                const data = await response.json();
+
+                if (!data.success || data.data.length === 0) {
+                    alert('No connected exchanges found');
+                    return;
+                }
+
+                let savedCount = 0;
+                let errorCount = 0;
+
+                for (const exchange of data.data) {
+                    const xrpAddress = document.getElementById(`${exchange.exchange}-xrp-address`)?.value.trim() || '';
+                    const xrpTag = document.getElementById(`${exchange.exchange}-xrp-tag`)?.value.trim() || '';
+                    const usdtAddress = document.getElementById(`${exchange.exchange}-usdt-address`)?.value.trim() || '';
+
+                    const depositAddresses = {
+                        XRP: xrpAddress,
+                        XRP_TAG: xrpTag,
+                        USDT: usdtAddress
+                    };
+
+                    try {
+                        const saveResponse = await fetch(`${API_BASE}/credentials/${exchange.exchange}/deposit-addresses`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                userId: USER_ID,
+                                depositAddresses
+                            })
+                        });
+
+                        const saveData = await saveResponse.json();
+
+                        if (saveData.success) {
+                            savedCount++;
+                            console.log(`✅ Saved addresses for ${exchange.exchange}`);
+                        } else {
+                            errorCount++;
+                            console.error(`❌ Failed to save addresses for ${exchange.exchange}:`, saveData.error);
+                        }
+
+                    } catch (error) {
+                        errorCount++;
+                        console.error(`❌ Error saving addresses for ${exchange.exchange}:`, error);
+                    }
+                }
+
+                if (errorCount === 0) {
+                    alert(`✅ Successfully saved deposit addresses for ${savedCount} exchange(s)!`);
+                } else {
+                    alert(`⚠️ Saved ${savedCount} exchange(s), but ${errorCount} failed. Check console for details.`);
+                }
+
+            } catch (error) {
+                console.error('❌ Failed to save deposit addresses:', error);
+                alert('Failed to save deposit addresses. Check console for details.');
             }
         }
 
