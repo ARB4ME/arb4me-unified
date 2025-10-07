@@ -809,8 +809,11 @@
                                     <input
                                         type="text"
                                         id="${exchange.exchange}-xrp-address"
+                                        data-exchange="${exchange.exchange}"
+                                        data-field="XRP"
                                         value="${depositAddresses.XRP || ''}"
                                         placeholder="rXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+                                        class="deposit-address-input"
                                         style="width: 100%; padding: 8px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; color: #fff; font-family: monospace; font-size: 0.85rem;"
                                     />
                                 </div>
@@ -823,8 +826,11 @@
                                     <input
                                         type="text"
                                         id="${exchange.exchange}-xrp-tag"
+                                        data-exchange="${exchange.exchange}"
+                                        data-field="XRP_TAG"
                                         value="${depositAddresses.XRP_TAG || ''}"
                                         placeholder="12345678"
+                                        class="deposit-address-input"
                                         style="width: 100%; padding: 8px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; color: #fff; font-family: monospace; font-size: 0.85rem;"
                                     />
                                 </div>
@@ -837,8 +843,11 @@
                                     <input
                                         type="text"
                                         id="${exchange.exchange}-usdt-address"
+                                        data-exchange="${exchange.exchange}"
+                                        data-field="USDT"
                                         value="${depositAddresses.USDT || ''}"
                                         placeholder="TXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+                                        class="deposit-address-input"
                                         style="width: 100%; padding: 8px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; color: #fff; font-family: monospace; font-size: 0.85rem;"
                                     />
                                 </div>
@@ -847,6 +856,17 @@
 
                         depositListDiv.appendChild(exchangeDiv);
                     }
+
+                    // Add auto-save on input change (debounced)
+                    let autoSaveTimeout;
+                    document.querySelectorAll('.deposit-address-input').forEach(input => {
+                        input.addEventListener('input', () => {
+                            clearTimeout(autoSaveTimeout);
+                            autoSaveTimeout = setTimeout(() => {
+                                autoSaveDepositAddress(input.dataset.exchange, input.dataset.field, input.value);
+                            }, 1000); // Save 1 second after user stops typing
+                        });
+                    });
 
                     console.log('📬 Deposit address UI created for', data.data.length, 'exchanges');
                 } else {
@@ -860,6 +880,46 @@
 
             } catch (error) {
                 console.error('❌ Failed to load deposit addresses:', error);
+            }
+        }
+
+        // Auto-save single deposit address field (debounced)
+        async function autoSaveDepositAddress(exchange, field, value) {
+            try {
+                console.log(`💾 Auto-saving ${field} for ${exchange}...`);
+
+                // Get current values for this exchange
+                const xrpAddress = document.getElementById(`${exchange}-xrp-address`)?.value.trim() || '';
+                const xrpTag = document.getElementById(`${exchange}-xrp-tag`)?.value.trim() || '';
+                const usdtAddress = document.getElementById(`${exchange}-usdt-address`)?.value.trim() || '';
+
+                const depositAddresses = {
+                    XRP: xrpAddress,
+                    XRP_TAG: xrpTag,
+                    USDT: usdtAddress
+                };
+
+                const response = await fetch(`${API_BASE}/credentials/${exchange}/deposit-addresses`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        userId: USER_ID,
+                        depositAddresses
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    console.log(`✅ Auto-saved ${field} for ${exchange}`);
+                } else {
+                    console.error(`❌ Failed to auto-save for ${exchange}:`, data.error);
+                }
+
+            } catch (error) {
+                console.error(`❌ Error auto-saving for ${exchange}:`, error);
             }
         }
 
