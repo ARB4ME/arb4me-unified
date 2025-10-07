@@ -209,14 +209,124 @@ function findAllRoutes(fromCurrency, toCurrency, bridgePreference = 'AUTO') {
 }
 
 /**
- * Compare with Wise/TransferWise rates (or other forex baseline)
+ * Cache for forex rates (1 hour TTL)
+ */
+let forexRateCache = {
+    rates: {},
+    lastUpdated: null,
+    ttl: 3600000 // 1 hour in milliseconds
+};
+
+/**
+ * Fetch real forex rates from free API
+ */
+async function fetchForexRates(baseCurrency = 'USD') {
+    // Check cache first
+    if (forexRateCache.rates[baseCurrency] && forexRateCache.lastUpdated) {
+        const cacheAge = Date.now() - forexRateCache.lastUpdated;
+        if (cacheAge < forexRateCache.ttl) {
+            systemLogger.trading(`Using cached forex rates for ${baseCurrency}`, {
+                age: `${Math.floor(cacheAge / 1000)}s`
+            });
+            return forexRateCache.rates[baseCurrency];
+        }
+    }
+
+    try {
+        // Using exchangerate-api.com free tier (1,500 requests/month)
+        // Alternative: api.exchangerate.host (also free)
+        const response = await fetch(`https://api.exchangerate-api.com/v4/latest/${baseCurrency}`);
+
+        if (!response.ok) {
+            throw new Error(`Forex API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        // Cache the rates
+        if (!forexRateCache.rates) forexRateCache.rates = {};
+        forexRateCache.rates[baseCurrency] = data.rates;
+        forexRateCache.lastUpdated = Date.now();
+
+        systemLogger.trading(`Fetched fresh forex rates for ${baseCurrency}`, {
+            pairCount: Object.keys(data.rates).length
+        });
+
+        return data.rates;
+
+    } catch (error) {
+        systemLogger.error(`Failed to fetch forex rates for ${baseCurrency}`, {
+            error: error.message
+        });
+
+        // Return cached data even if stale
+        if (forexRateCache.rates[baseCurrency]) {
+            systemLogger.warn(`Using stale forex rates for ${baseCurrency}`);
+            return forexRateCache.rates[baseCurrency];
+        }
+
+        throw error;
+    }
+}
+
+/**
+ * Compare with Wise/TransferWise rates (using real forex data)
  */
 async function compareWithWiseRate(fromCurrency, toCurrency, effectiveRate) {
     try {
-        // TODO: Integrate with Wise API or forex rate API
-        // For now, use mock comparison
+        // Normalize currency codes (USDT -> USD for forex comparison)
+        const fromFiat = fromCurrency === 'USDT' ? 'USD' : fromCurrency;
+        const toFiat = toCurrency === 'USDT' ? 'USD' : toCurrency;
 
-        // Mock Wise rates (approximate)
+        // Fetch real forex rates
+        const rates = await fetchForexRates(fromFiat);
+
+        if (!rates || !rates[toFiat]) {
+            systemLogger.warn(`No forex rate available for ${fromFiat}/${toFiat}`);
+            return {
+                wiseRate: null,
+                yourRate: effectiveRate,
+                savingsPercent: null
+            };
+        }
+
+        // Real market rate (similar to what Wise would charge before fees)
+        const marketRate = rates[toFiat];
+
+        // Wise typically adds 0.5-1% markup on top of market rate
+        // We'll use 0.7% as average Wise fee
+        const wiseMarkup = 1.007;
+        const wiseRate = marketRate * wiseMarkup;
+
+        // Calculate savings: how much better is your rate vs Wise
+        // For direct comparison, we compare how much of toCurrency you get per 1 unit of fromCurrency
+        // Lower rate means worse deal (paying more fromCurrency for each toCurrency)
+        // Higher rate means better deal (paying less fromCurrency for each toCurrency)
+
+        // effectiveRate is how much fromCurrency you pay per 1 toCurrency
+        // wiseRate is how much fromCurrency Wise charges per 1 toCurrency
+        // If your rate is lower, you're saving money vs Wise
+
+        const savingsPercent = ((wiseRate - effectiveRate) / wiseRate) * 100;
+
+        systemLogger.trading(`Forex comparison for ${fromFiat}/${toFiat}`, {
+            marketRate,
+            wiseRate,
+            yourRate: effectiveRate,
+            savingsPercent: savingsPercent.toFixed(2) + '%'
+        });
+
+        return {
+            wiseRate,
+            marketRate,
+            yourRate: effectiveRate,
+            savingsPercent,
+            betterThanWise: savingsPercent > 0
+        };
+    } catch (error) {
+        systemLogger.error('Failed to compare with Wise rate', { error: error.message });
+
+        // Return mock fallback for critical pairs
         const mockWiseRates = {
             'ZAR-USDT': 18.5,
             'ZAR-USD': 18.5,
@@ -226,29 +336,19 @@ async function compareWithWiseRate(fromCurrency, toCurrency, effectiveRate) {
         };
 
         const pairKey = `${fromCurrency}-${toCurrency}`;
-        const wiseRate = mockWiseRates[pairKey];
+        const fallbackRate = mockWiseRates[pairKey];
 
-        if (!wiseRate) {
-            systemLogger.trading(`No Wise rate available for ${pairKey}`);
+        if (fallbackRate) {
+            const savingsPercent = ((fallbackRate - effectiveRate) / fallbackRate) * 100;
             return {
-                wiseRate: null,
+                wiseRate: fallbackRate,
                 yourRate: effectiveRate,
-                savingsPercent: null
+                savingsPercent,
+                betterThanWise: savingsPercent > 0,
+                isFallback: true
             };
         }
 
-        // Calculate savings: how much better is your rate vs Wise
-        // Lower rate is better (less fromCurrency per toCurrency)
-        const savingsPercent = ((wiseRate - effectiveRate) / wiseRate) * 100;
-
-        return {
-            wiseRate,
-            yourRate: effectiveRate,
-            savingsPercent,
-            betterThanWise: savingsPercent > 0
-        };
-    } catch (error) {
-        systemLogger.error('Failed to compare with Wise rate', { error: error.message });
         return {
             wiseRate: null,
             yourRate: effectiveRate,
