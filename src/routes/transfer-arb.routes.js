@@ -11,6 +11,9 @@ const { broadcastToAdmins } = require('../websocket/socketManager');
 const crypto = require('crypto');
 const https = require('https');
 
+// Import execution service
+const transferExecutionService = require('../services/transferExecutionService');
+
 const router = express.Router();
 
 // =============================================================================
@@ -542,6 +545,122 @@ router.get('/price-cache-status', optionalAuth, asyncHandler(async (req, res) =>
             isRunning: priceCacheService.isRunning,
             updateInterval: priceCacheService.updateInterval,
             exchanges: cacheData
+        }
+    });
+}));
+
+// =============================================================================
+// EXECUTE TRANSFER ARBITRAGE
+// =============================================================================
+
+/**
+ * POST /api/v1/transfer-arb/execute
+ * Execute a transfer arbitrage opportunity
+ */
+router.post('/execute', tradingRateLimit, optionalAuth, [
+    body('opportunity').isObject().withMessage('Opportunity object is required'),
+    body('opportunity.crypto').notEmpty().withMessage('Crypto symbol is required'),
+    body('opportunity.fromExchange').notEmpty().withMessage('Source exchange is required'),
+    body('opportunity.toExchange').notEmpty().withMessage('Destination exchange is required'),
+    body('opportunity.usdtToSpend').isFloat({ min: 0 }).withMessage('Valid USDT amount is required'),
+    body('credentials').isObject().withMessage('Credentials object is required'),
+    body('credentials.fromExchange').isObject().withMessage('Source exchange credentials required'),
+    body('credentials.fromExchange.apiKey').notEmpty().withMessage('Source API key required'),
+    body('credentials.fromExchange.apiSecret').notEmpty().withMessage('Source API secret required'),
+    body('credentials.toExchange').isObject().withMessage('Destination exchange credentials required'),
+    body('credentials.toExchange.apiKey').notEmpty().withMessage('Destination API key required'),
+    body('credentials.toExchange.apiSecret').notEmpty().withMessage('Destination API secret required'),
+    body('credentials.depositAddress').notEmpty().withMessage('Deposit address is required')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR', errors.array());
+    }
+
+    const { opportunity, credentials } = req.body;
+
+    systemLogger.trading('Transfer ARB execution initiated', {
+        userId: req.user?.id || 'anonymous',
+        crypto: opportunity.crypto,
+        fromExchange: opportunity.fromExchange,
+        toExchange: opportunity.toExchange,
+        expectedProfit: opportunity.netProfit
+    });
+
+    try {
+        // Check if a transfer is already in progress
+        if (transferExecutionService.isTransferInProgress()) {
+            throw new APIError(
+                'A transfer is already in progress. Please wait for it to complete.',
+                409,
+                'TRANSFER_IN_PROGRESS'
+            );
+        }
+
+        // Execute the transfer
+        const result = await transferExecutionService.executeTransfer(opportunity, credentials);
+
+        systemLogger.trading('Transfer ARB execution completed', {
+            userId: req.user?.id || 'anonymous',
+            transferId: result.transferId,
+            actualProfit: result.actualProfit,
+            duration: result.duration
+        });
+
+        res.json({
+            success: true,
+            data: result
+        });
+
+    } catch (error) {
+        systemLogger.error('Transfer ARB execution failed', {
+            userId: req.user?.id || 'anonymous',
+            error: error.message,
+            stack: error.stack
+        });
+
+        throw new APIError(
+            error.message || 'Transfer execution failed',
+            500,
+            'EXECUTION_ERROR'
+        );
+    }
+}));
+
+// =============================================================================
+// GET TRANSFER STATUS & HISTORY
+// =============================================================================
+
+/**
+ * GET /api/v1/transfer-arb/active-transfers
+ * Get currently active transfers
+ */
+router.get('/active-transfers', tradingRateLimit, optionalAuth, asyncHandler(async (req, res) => {
+    const activeTransfers = transferExecutionService.getActiveTransfers();
+
+    res.json({
+        success: true,
+        data: {
+            transfers: activeTransfers,
+            count: activeTransfers.length,
+            isExecuting: transferExecutionService.isTransferInProgress()
+        }
+    });
+}));
+
+/**
+ * GET /api/v1/transfer-arb/history
+ * Get transfer history
+ */
+router.get('/history', tradingRateLimit, optionalAuth, asyncHandler(async (req, res) => {
+    const limit = parseInt(req.query.limit) || 50;
+    const history = transferExecutionService.getTransferHistory(limit);
+
+    res.json({
+        success: true,
+        data: {
+            transfers: history,
+            count: history.length
         }
     });
 }));
