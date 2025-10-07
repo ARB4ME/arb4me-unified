@@ -119,10 +119,22 @@ async function startServer() {
         const dbConnection = await connectDatabase();
         if (dbConnection) {
             logger.info('Database connected successfully');
-            
+
             // Skip automatic migration - should be run separately
             // Migration can be triggered via npm run migrate
-            
+
+            // Auto-create Currency Swap tables if they don't exist
+            try {
+                const CurrencySwap = require('./src/models/CurrencySwap');
+                const CurrencySwapSettings = require('./src/models/CurrencySwapSettings');
+                await CurrencySwap.createTable();
+                await CurrencySwapSettings.createTable();
+                logger.info('Currency Swap tables verified/created');
+            } catch (error) {
+                logger.warn('Currency Swap table creation skipped', { error: error.message });
+                // Don't crash if tables already exist
+            }
+
             // Initialize Auto-Reminder Service only if database is connected
             try {
                 autoReminderService.initialize();
