@@ -492,6 +492,10 @@
 
         // Initialize toggles
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('💱 Currency Swap Strategy page loaded');
+            console.log('📡 API Base URL:', API_BASE);
+            console.log('👤 User ID:', USER_ID);
+
             // Load stats from API
             loadStats();
 
@@ -706,9 +710,12 @@
 
         // Load stats on page load
         async function loadStats() {
+            console.log('🔄 Loading Currency Swap stats...');
             try {
                 const response = await fetch(`${API_BASE}/stats?userId=${USER_ID}`);
                 const data = await response.json();
+
+                console.log('✅ Stats loaded:', data);
 
                 if (data.success) {
                     document.getElementById('activePairs').textContent = data.data.totalSwaps || 0;
@@ -720,9 +727,15 @@
                     if (data.data.autoTradingEnabled) {
                         document.getElementById('autoTradingToggle').classList.add('active');
                     }
+
+                    console.log('📊 Stats updated on page:', {
+                        totalSwaps: data.data.totalSwaps,
+                        dailySwaps: data.data.dailySwapsToday,
+                        autoTrading: data.data.autoTradingEnabled
+                    });
                 }
             } catch (error) {
-                console.error('Failed to load stats:', error);
+                console.error('❌ Failed to load stats:', error);
             }
         }
 
