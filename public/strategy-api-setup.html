@@ -3800,12 +3800,102 @@
             }
         }
 
+        // Auto-save Currency Swap credentials to database (debounced)
+        let currencySwapAutoSaveTimeout = {};
+        async function autoSaveCurrencySwapCredential(exchange, field, value) {
+            const timeoutKey = `${exchange}-${field}`;
+
+            // Clear existing timeout for this field
+            if (currencySwapAutoSaveTimeout[timeoutKey]) {
+                clearTimeout(currencySwapAutoSaveTimeout[timeoutKey]);
+            }
+
+            // Set new timeout to save 2 seconds after user stops typing
+            currencySwapAutoSaveTimeout[timeoutKey] = setTimeout(async () => {
+                try {
+                    console.log(`💾 Auto-saving Currency Swap ${field} for ${exchange}...`);
+
+                    // Get all current values for this exchange
+                    const apiKey = document.getElementById(`${exchange}-currency-swap-api`)?.value.trim() || '';
+                    const secretKey = document.getElementById(`${exchange}-currency-swap-secret`)?.value.trim() || '';
+                    const passphrase = document.getElementById(`${exchange}-currency-swap-passphrase`)?.value.trim() || null;
+                    const memo = document.getElementById(`${exchange}-currency-swap-memo`)?.value.trim() || null;
+
+                    // Only save if we have at least API key and secret
+                    if (!apiKey || !secretKey) {
+                        console.log(`⚠️ Skipping auto-save for ${exchange} - missing API key or secret`);
+                        return;
+                    }
+
+                    const response = await fetch('/api/v1/currency-swap/credentials', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            userId: window.USER_ID,
+                            exchange: exchange,
+                            apiKey: apiKey,
+                            apiSecret: secretKey,
+                            apiPassphrase: passphrase,
+                            memo: memo
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        console.log(`✅ Auto-saved Currency Swap credentials for ${exchange}`);
+                    } else {
+                        console.error(`❌ Failed to auto-save for ${exchange}:`, data.error);
+                    }
+
+                } catch (error) {
+                    console.error(`❌ Error auto-saving Currency Swap credentials for ${exchange}:`, error);
+                }
+            }, 2000);
+        }
+
+        // Setup auto-save listeners for Currency Swap fields
+        function setupCurrencySwapAutoSave() {
+            const exchanges = ['chainex', 'valr', 'luno', 'kraken', 'binance', 'bybit', 'okx', 'mexc', 'kucoin', 'htx', 'bitget', 'bitmart', 'bitrue', 'gemini', 'coincatch', 'bingx', 'ascendex', 'gateio'];
+
+            exchanges.forEach(exchange => {
+                // API key field
+                const apiField = document.getElementById(`${exchange}-currency-swap-api`);
+                if (apiField) {
+                    apiField.addEventListener('input', () => autoSaveCurrencySwapCredential(exchange, 'api', apiField.value));
+                }
+
+                // Secret key field
+                const secretField = document.getElementById(`${exchange}-currency-swap-secret`);
+                if (secretField) {
+                    secretField.addEventListener('input', () => autoSaveCurrencySwapCredential(exchange, 'secret', secretField.value));
+                }
+
+                // Passphrase field (if exists)
+                const passphraseField = document.getElementById(`${exchange}-currency-swap-passphrase`);
+                if (passphraseField) {
+                    passphraseField.addEventListener('input', () => autoSaveCurrencySwapCredential(exchange, 'passphrase', passphraseField.value));
+                }
+
+                // Memo field (if exists)
+                const memoField = document.getElementById(`${exchange}-currency-swap-memo`);
+                if (memoField) {
+                    memoField.addEventListener('input', () => autoSaveCurrencySwapCredential(exchange, 'memo', memoField.value));
+                }
+            });
+
+            console.log('✅ Currency Swap auto-save listeners setup complete');
+        }
+
         // Initialize page
         document.addEventListener('DOMContentLoaded', function() {
             testLocalStorage();
             loadStrategyCredentials();
             loadCurrencySwapCredentials(); // Load Currency Swap credentials
             setupAutoSave();
+            setupCurrencySwapAutoSave(); // Setup auto-save for Currency Swap
 
             // Force re-load VALR credentials after delay to override browser autofill
             setTimeout(() => {
