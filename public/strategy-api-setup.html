@@ -3812,12 +3812,8 @@
                             console.log(`✅ Loaded memo for ${exchange}`);
                         }
 
-                        // Update connection status
-                        const statusField = document.getElementById(`${exchange}-currency-swap-status`);
-                        if (statusField && cred.isConnected) {
-                            statusField.textContent = 'Connected ✓';
-                            statusField.className = 'connection-status status-connected';
-                        }
+                        // Don't auto-update connection status - user must manually connect each session
+                        // This ensures fresh connection validation rather than showing stale "Connected" status
                     }
                     console.log(`✅ Loaded credentials for ${data.data.length} Currency Swap exchanges`);
                 }
