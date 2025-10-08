@@ -2662,20 +2662,25 @@
                     body: JSON.stringify(requestBody)
                 });
 
-                if (response.ok) {
-                    const balanceData = await response.json();
-                    if (balanceData.success && balanceData.balances) {
-                        console.log(`✅ ${exchange} balance fetched:`, balanceData.balances);
+                const balanceData = await response.json();
+                console.log(`📊 ${exchange} balance response:`, balanceData);
 
-                        // Format and display balance
-                        const balanceDisplay = formatStrategyBalance(balanceData.balances);
-                        const balanceElement = document.getElementById(`${exchange}-currency-swap-balance`);
-                        if (balanceElement) {
-                            balanceElement.innerHTML = balanceDisplay;
-                        }
+                if (response.ok && balanceData.success && balanceData.balances) {
+                    console.log(`✅ ${exchange} balance fetched:`, balanceData.balances);
+
+                    // Format and display balance
+                    const balanceDisplay = formatStrategyBalance(balanceData.balances);
+                    const balanceElement = document.getElementById(`${exchange}-currency-swap-balance`);
+                    if (balanceElement) {
+                        balanceElement.innerHTML = balanceDisplay;
                     }
                 } else {
-                    console.warn(`⚠️ Failed to fetch ${exchange} balance:`, response.status);
+                    console.error(`⚠️ Failed to fetch ${exchange} balance:`, {
+                        status: response.status,
+                        success: balanceData.success,
+                        error: balanceData.error || balanceData.data?.error,
+                        fullResponse: balanceData
+                    });
                 }
 
             } catch (error) {
