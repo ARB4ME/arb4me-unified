@@ -274,6 +274,60 @@
             font-size: 0.85rem;
         }
 
+        /* 3-column grid layout for Currency Swap (same as other strategies) */
+        #currency-swap-content.active {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            padding: 0;
+        }
+
+        @media (max-width: 1200px) {
+            #currency-swap-content.active {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            #currency-swap-content.active {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        #currency-swap-content .exchange-card {
+            margin-bottom: 0;
+            padding: 20px;
+            height: fit-content;
+        }
+
+        #currency-swap-content .exchange-name {
+            font-size: 1.1rem;
+            margin-bottom: 5px;
+        }
+
+        #currency-swap-content .form-group {
+            margin-bottom: 12px;
+        }
+
+        #currency-swap-content .form-label {
+            font-size: 0.85rem;
+            margin-bottom: 5px;
+        }
+
+        #currency-swap-content .form-input {
+            padding: 8px 12px;
+            font-size: 0.9rem;
+        }
+
+        #currency-swap-content .button-group {
+            gap: 8px;
+        }
+
+        #currency-swap-content .btn {
+            padding: 8px 12px;
+            font-size: 0.85rem;
+        }
+
         .exchange-header {
             display: flex;
             justify-content: space-between;
