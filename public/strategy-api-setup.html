@@ -100,6 +100,28 @@
             display: block;
         }
 
+        /* 3-column grid layout for Cross-Exchange (like original SETUP page) */
+        #cross-exchange-content.active {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            padding: 0;
+        }
+
+        /* Responsive: 2 columns on tablets */
+        @media (max-width: 1200px) {
+            #cross-exchange-content.active {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        /* Responsive: 1 column on mobile */
+        @media (max-width: 768px) {
+            #cross-exchange-content.active {
+                grid-template-columns: 1fr;
+            }
+        }
+
         .exchange-card {
             background: rgba(255,255,255,0.95);
             border-radius: 15px;
@@ -107,6 +129,41 @@
             margin-bottom: 20px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
             backdrop-filter: blur(10px);
+        }
+
+        /* Compact card styling for Cross-Exchange grid layout */
+        #cross-exchange-content .exchange-card {
+            margin-bottom: 0;
+            padding: 20px;
+            height: fit-content;
+        }
+
+        #cross-exchange-content .exchange-name {
+            font-size: 1.1rem;
+            margin-bottom: 5px;
+        }
+
+        #cross-exchange-content .form-group {
+            margin-bottom: 12px;
+        }
+
+        #cross-exchange-content .form-label {
+            font-size: 0.85rem;
+            margin-bottom: 5px;
+        }
+
+        #cross-exchange-content .form-input {
+            padding: 8px 12px;
+            font-size: 0.9rem;
+        }
+
+        #cross-exchange-content .button-group {
+            gap: 8px;
+        }
+
+        #cross-exchange-content .btn {
+            padding: 8px 12px;
+            font-size: 0.85rem;
         }
 
         .exchange-header {
