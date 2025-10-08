@@ -166,6 +166,60 @@
             font-size: 0.85rem;
         }
 
+        /* 3-column grid layout for Triangular (same as Cross-Exchange) */
+        #triangular-content.active {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            padding: 0;
+        }
+
+        @media (max-width: 1200px) {
+            #triangular-content.active {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            #triangular-content.active {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        #triangular-content .exchange-card {
+            margin-bottom: 0;
+            padding: 20px;
+            height: fit-content;
+        }
+
+        #triangular-content .exchange-name {
+            font-size: 1.1rem;
+            margin-bottom: 5px;
+        }
+
+        #triangular-content .form-group {
+            margin-bottom: 12px;
+        }
+
+        #triangular-content .form-label {
+            font-size: 0.85rem;
+            margin-bottom: 5px;
+        }
+
+        #triangular-content .form-input {
+            padding: 8px 12px;
+            font-size: 0.9rem;
+        }
+
+        #triangular-content .button-group {
+            gap: 8px;
+        }
+
+        #triangular-content .btn {
+            padding: 8px 12px;
+            font-size: 0.85rem;
+        }
+
         .exchange-header {
             display: flex;
             justify-content: space-between;
