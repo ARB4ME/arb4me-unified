@@ -2599,8 +2599,8 @@
                         exchange: exchange,
                         apiKey: apiKey,
                         apiSecret: secretKey,
-                        apiPassphrase: passphrase,
-                        memo: memo
+                        ...(passphrase && passphrase.trim() && { apiPassphrase: passphrase }),
+                        ...(memo && memo.trim() && { memo: memo })
                     })
                 });
 
@@ -2651,8 +2651,9 @@
                     apiSecret: secretKey
                 };
 
-                if (passphrase) requestBody.apiPassphrase = passphrase;
-                if (memo) requestBody.memo = memo;
+                // Only add passphrase/memo if they have values (for exchanges that need them)
+                if (passphrase && passphrase.trim()) requestBody.passphrase = passphrase;
+                if (memo && memo.trim()) requestBody.memo = memo;
 
                 const response = await fetch(endpoint, {
                     method: 'POST',
