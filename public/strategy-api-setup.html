@@ -2145,29 +2145,22 @@
                     <div class="exchange-name">ByBit - Currency Swap Strategy</div>
                     <div id="bybit-currency-swap-status" class="connection-status status-disconnected">Disconnected</div>
                 </div>
-                <div class="exchange-body">
-                    <div class="form-group">
-                        <label for="bybit-currency-swap-api">API Key:</label>
-                        <input type="password" id="bybit-currency-swap-api" name="bybit_currency_swap_api_unique"
-                               placeholder="Enter ByBit API Key" autocomplete="off">
-                    </div>
-                    <div class="form-group">
-                        <label for="bybit-currency-swap-secret">Secret Key:</label>
-                        <input type="password" id="bybit-currency-swap-secret" name="bybit_currency_swap_secret_unique"
-                               placeholder="Enter ByBit Secret Key" autocomplete="off">
-                    </div>
-                    <div class="form-group">
-                        <label>Balance:</label>
-                        <div id="bybit-currency-swap-balance" class="balance-display">Not connected</div>
-                    </div>
-                    <div class="button-group">
-                        <button type="button" onclick="connectStrategyExchange('bybit', 'currency-swap')"
-                                class="btn-primary">Connect</button>
-                        <button type="button" onclick="testStrategyConnection('bybit', 'currency-swap')"
-                                class="btn-secondary">Test</button>
-                        <button type="button" onclick="disconnectStrategyExchange('bybit', 'currency-swap')"
-                                class="btn-danger">Disconnect</button>
-                    </div>
+                <div class="form-group">
+                    <label class="form-label" for="bybit-currency-swap-api">API Key</label>
+                    <input type="text" id="bybit-currency-swap-api" class="form-input" placeholder="Enter ByBit API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="bybit-swap-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="bybit-currency-swap-secret">Secret Key</label>
+                    <input type="password" id="bybit-currency-swap-secret" class="form-input" placeholder="Enter ByBit Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="bybit-swap-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="bybit-currency-swap-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('bybit', 'currency-swap')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('bybit', 'currency-swap')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('bybit', 'currency-swap')">Disconnect</button>
                 </div>
             </div>
             </form>
@@ -2179,34 +2172,26 @@
                     <div class="exchange-name">OKX - Currency Swap Strategy</div>
                     <div id="okx-currency-swap-status" class="connection-status status-disconnected">Disconnected</div>
                 </div>
-                <div class="exchange-body">
-                    <div class="form-group">
-                        <label for="okx-currency-swap-api">API Key:</label>
-                        <input type="password" id="okx-currency-swap-api" name="okx_currency_swap_api_unique"
-                               placeholder="Enter OKX API Key" autocomplete="off">
-                    </div>
-                    <div class="form-group">
-                        <label for="okx-currency-swap-secret">Secret Key:</label>
-                        <input type="password" id="okx-currency-swap-secret" name="okx_currency_swap_secret_unique"
-                               placeholder="Enter OKX Secret Key" autocomplete="off">
-                    </div>
-                    <div class="form-group">
-                        <label for="okx-currency-swap-passphrase">Passphrase:</label>
-                        <input type="password" id="okx-currency-swap-passphrase" name="okx_currency_swap_passphrase_unique"
-                               placeholder="Enter OKX Passphrase" autocomplete="off">
-                    </div>
-                    <div class="form-group">
-                        <label>Balance:</label>
-                        <div id="okx-currency-swap-balance" class="balance-display">Not connected</div>
-                    </div>
-                    <div class="button-group">
-                        <button type="button" onclick="connectStrategyExchange('okx', 'currency-swap')"
-                                class="btn-primary">Connect</button>
-                        <button type="button" onclick="testStrategyConnection('okx', 'currency-swap')"
-                                class="btn-secondary">Test</button>
-                        <button type="button" onclick="disconnectStrategyExchange('okx', 'currency-swap')"
-                                class="btn-danger">Disconnect</button>
-                    </div>
+                <div class="form-group">
+                    <label class="form-label" for="okx-currency-swap-api">API Key</label>
+                    <input type="text" id="okx-currency-swap-api" class="form-input" placeholder="Enter OKX API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="okx_currency_swap_api_unique">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="okx-currency-swap-secret">Secret Key</label>
+                    <input type="password" id="okx-currency-swap-secret" class="form-input" placeholder="Enter OKX Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="okx_currency_swap_secret_unique">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="okx-currency-swap-passphrase">Passphrase</label>
+                    <input type="password" id="okx-currency-swap-passphrase" class="form-input" placeholder="Enter OKX Passphrase" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="okx_currency_swap_passphrase_unique">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="okx-currency-swap-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('okx', 'currency-swap')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('okx', 'currency-swap')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('okx', 'currency-swap')">Disconnect</button>
                 </div>
             </div>
             </form>
@@ -2218,29 +2203,22 @@
                     <div class="exchange-name">MEXC - Currency Swap Strategy</div>
                     <div id="mexc-currency-swap-status" class="connection-status status-disconnected">Disconnected</div>
                 </div>
-                <div class="exchange-body">
-                    <div class="form-group">
-                        <label for="mexc-currency-swap-api">API Key:</label>
-                        <input type="password" id="mexc-currency-swap-api" name="mexc_currency_swap_api_unique"
-                               placeholder="Enter MEXC API Key" autocomplete="off">
-                    </div>
-                    <div class="form-group">
-                        <label for="mexc-currency-swap-secret">Secret Key:</label>
-                        <input type="password" id="mexc-currency-swap-secret" name="mexc_currency_swap_secret_unique"
-                               placeholder="Enter MEXC Secret Key" autocomplete="off">
-                    </div>
-                    <div class="form-group">
-                        <label>Balance:</label>
-                        <div id="mexc-currency-swap-balance" class="balance-display">Not connected</div>
-                    </div>
-                    <div class="button-group">
-                        <button type="button" onclick="connectStrategyExchange('mexc', 'currency-swap')"
-                                class="btn-primary">Connect</button>
-                        <button type="button" onclick="testStrategyConnection('mexc', 'currency-swap')"
-                                class="btn-secondary">Test</button>
-                        <button type="button" onclick="disconnectStrategyExchange('mexc', 'currency-swap')"
-                                class="btn-danger">Disconnect</button>
-                    </div>
+                <div class="form-group">
+                    <label class="form-label" for="mexc-currency-swap-api">API Key</label>
+                    <input type="text" id="mexc-currency-swap-api" class="form-input" placeholder="Enter MEXC API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="mexc_currency_swap_api_unique">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="mexc-currency-swap-secret">Secret Key</label>
+                    <input type="password" id="mexc-currency-swap-secret" class="form-input" placeholder="Enter MEXC Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="mexc_currency_swap_secret_unique">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="mexc-currency-swap-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('mexc', 'currency-swap')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('mexc', 'currency-swap')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('mexc', 'currency-swap')">Disconnect</button>
                 </div>
             </div>
             </form>
@@ -2252,34 +2230,26 @@
                     <div class="exchange-name">KuCoin - Currency Swap Strategy</div>
                     <div id="kucoin-currency-swap-status" class="connection-status status-disconnected">Disconnected</div>
                 </div>
-                <div class="exchange-body">
-                    <div class="form-group">
-                        <label for="kucoin-currency-swap-api">API Key:</label>
-                        <input type="password" id="kucoin-currency-swap-api" name="kucoin_currency_swap_api_unique"
-                               placeholder="Enter KuCoin API Key" autocomplete="off">
-                    </div>
-                    <div class="form-group">
-                        <label for="kucoin-currency-swap-secret">Secret Key:</label>
-                        <input type="password" id="kucoin-currency-swap-secret" name="kucoin_currency_swap_secret_unique"
-                               placeholder="Enter KuCoin Secret Key" autocomplete="off">
-                    </div>
-                    <div class="form-group">
-                        <label for="kucoin-currency-swap-passphrase">Passphrase:</label>
-                        <input type="password" id="kucoin-currency-swap-passphrase" name="kucoin_currency_swap_passphrase_unique"
-                               placeholder="Enter KuCoin Passphrase" autocomplete="off">
-                    </div>
-                    <div class="form-group">
-                        <label>Balance:</label>
-                        <div id="kucoin-currency-swap-balance" class="balance-display">Not connected</div>
-                    </div>
-                    <div class="button-group">
-                        <button type="button" onclick="connectStrategyExchange('kucoin', 'currency-swap')"
-                                class="btn-primary">Connect</button>
-                        <button type="button" onclick="testStrategyConnection('kucoin', 'currency-swap')"
-                                class="btn-secondary">Test</button>
-                        <button type="button" onclick="disconnectStrategyExchange('kucoin', 'currency-swap')"
-                                class="btn-danger">Disconnect</button>
-                    </div>
+                <div class="form-group">
+                    <label class="form-label" for="kucoin-currency-swap-api">API Key</label>
+                    <input type="text" id="kucoin-currency-swap-api" class="form-input" placeholder="Enter KuCoin API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="kucoin_currency_swap_api_unique">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="kucoin-currency-swap-secret">Secret Key</label>
+                    <input type="password" id="kucoin-currency-swap-secret" class="form-input" placeholder="Enter KuCoin Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="kucoin_currency_swap_secret_unique">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="kucoin-currency-swap-passphrase">Passphrase</label>
+                    <input type="password" id="kucoin-currency-swap-passphrase" class="form-input" placeholder="Enter KuCoin Passphrase" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="kucoin_currency_swap_passphrase_unique">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="kucoin-currency-swap-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('kucoin', 'currency-swap')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('kucoin', 'currency-swap')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('kucoin', 'currency-swap')">Disconnect</button>
                 </div>
             </div>
             </form>
@@ -2291,29 +2261,22 @@
                     <div class="exchange-name">HTX (Huobi) - Currency Swap Strategy</div>
                     <div id="htx-currency-swap-status" class="connection-status status-disconnected">Disconnected</div>
                 </div>
-                <div class="exchange-body">
-                    <div class="form-group">
-                        <label for="htx-currency-swap-api">API Key:</label>
-                        <input type="password" id="htx-currency-swap-api" name="htx_currency_swap_api_unique"
-                               placeholder="Enter HTX API Key" autocomplete="off">
-                    </div>
-                    <div class="form-group">
-                        <label for="htx-currency-swap-secret">Secret Key:</label>
-                        <input type="password" id="htx-currency-swap-secret" name="htx_currency_swap_secret_unique"
-                               placeholder="Enter HTX Secret Key" autocomplete="off">
-                    </div>
-                    <div class="form-group">
-                        <label>Balance:</label>
-                        <div id="htx-currency-swap-balance" class="balance-display">Not connected</div>
-                    </div>
-                    <div class="button-group">
-                        <button type="button" onclick="connectStrategyExchange('htx', 'currency-swap')"
-                                class="btn-primary">Connect</button>
-                        <button type="button" onclick="testStrategyConnection('htx', 'currency-swap')"
-                                class="btn-secondary">Test</button>
-                        <button type="button" onclick="disconnectStrategyExchange('htx', 'currency-swap')"
-                                class="btn-danger">Disconnect</button>
-                    </div>
+                <div class="form-group">
+                    <label class="form-label" for="htx-currency-swap-api">API Key</label>
+                    <input type="text" id="htx-currency-swap-api" class="form-input" placeholder="Enter HTX API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="htx_currency_swap_api_unique">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="htx-currency-swap-secret">Secret Key</label>
+                    <input type="password" id="htx-currency-swap-secret" class="form-input" placeholder="Enter HTX Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="htx_currency_swap_secret_unique">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="htx-currency-swap-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('htx', 'currency-swap')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('htx', 'currency-swap')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('htx', 'currency-swap')">Disconnect</button>
                 </div>
             </div>
             </form>
