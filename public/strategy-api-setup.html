@@ -2830,44 +2830,28 @@
                 }
 
                 try {
-                    // APPROACH: Skip /test endpoint for Bitget, go straight to getRealBalances like original
-                    console.log(`🔌 ${exchange} connecting directly via getRealBalances (like original setup)`);
+                    // For Binance, Bitget, BitMart, and Bitrue: Use direct API calls (same as Currency Swap and original setup)
+                    // For other exchanges: Try parent window getRealBalances first
+                    const useDirectAPI = ['binance', 'bitget', 'bitmart', 'bitrue'].includes(exchange);
 
                     let balances;
-                    if (window.opener && window.opener.getRealBalances) {
-                        balances = await window.opener.getRealBalances(exchange);
-                        console.log(`${exchange} balances from getRealBalances:`, balances);
-                        console.log(`${exchange} balances structure:`, JSON.stringify(balances, null, 2));
 
-                        // Check if the response indicates an error
-                        // Note: BitMart may return success: false even for valid connections (like original setup)
-                        if (balances && balances.success === false) {
-                            console.error(`${exchange} API response:`, balances.data?.error);
+                    if (useDirectAPI || !window.opener || !window.opener.getRealBalances) {
+                        // Direct API call to backend (same as Currency Swap)
+                        console.log(`🔌 ${exchange} connecting via direct backend API call`);
 
-                            // For BitMart, Bitget, and Bitrue, success: false might be normal (like original setup shows)
-                            if (exchange !== 'bitmart' && exchange !== 'bitget' && exchange !== 'bitrue') {
-                                throw new Error(balances.data?.error || 'API request failed');
-                            } else {
-                                console.log(`🔄 ${exchange} returned success: false but continuing (like original setup)`);
-                            }
-                        }
-
-                        // Extract actual balances from the response structure
-                        if (balances && balances.success === true && balances.data && balances.data.balances) {
-                            balances = balances.data.balances;
-                            console.log(`${exchange} extracted balances:`, balances);
-                        }
-                    } else {
-                        // Fallback to direct balance endpoint call if parent function unavailable
                         const balanceEndpoint = exchange === 'chainex'
                             ? '/api/v1/trading/chainex/balance'
                             : `/api/v1/trading/${exchange}/balance`;
 
                         const requestBody = {
                             apiKey: apiKey,
-                            apiSecret: secretKey,
-                            ...(passphrase && { passphrase: passphrase })
+                            apiSecret: secretKey
                         };
+
+                        // Add passphrase with correct field name (backend expects 'passphrase' not 'apiPassphrase')
+                        if (passphrase) requestBody.passphrase = passphrase;
+                        if (memo) requestBody.memo = memo;
 
                         // 🔍 DEBUG: Log exact request details
                         console.log(`🔍 ${exchange.toUpperCase()} REQUEST DETAILS:`);
@@ -2877,6 +2861,7 @@
                         console.log(`   API Key length: ${apiKey.length}`);
                         console.log(`   Secret Key length: ${secretKey.length}`);
                         console.log(`   Has passphrase: ${!!passphrase}`);
+                        console.log(`   Has memo: ${!!memo}`);
                         console.log(`   Request body keys:`, Object.keys(requestBody));
 
                         const response = await fetch(balanceEndpoint, {
@@ -2897,12 +2882,15 @@
                             throw new Error(`HTTP ${response.status}: ${result.error?.message || result.message || 'Connection failed'}`);
                         }
 
-                        if (result.success) {
-                            balances = result.data?.balances || result.balances || result.data || result;
-                        } else {
+                        // Handle different backend response formats (same as original setup)
+                        if (result.success === true && result.data) {
+                            balances = result.data.balances || result.data;
+                        } else if (result.success === false) {
                             console.error(`❌ ${exchange} API error:`, result.error || result);
                             console.error(`❌ ${exchange} error message:`, result.data?.error || result.data?.message || result.error?.message || result.message);
-                            const errorMsg = result.data?.error || result.data?.message || result.error?.message || result.message || 'Connection failed';
+                            const errorMsg = typeof result.error === 'object' ?
+                                (result.error.message || JSON.stringify(result.error)) :
+                                (result.error || result.message || 'Failed to fetch balance');
 
                             // Special handling for Binance IP whitelist error
                             if (exchange === 'binance' && errorMsg.includes('-2015')) {
@@ -2922,6 +2910,28 @@
                             }
 
                             throw new Error(errorMsg);
+                        } else {
+                            // Fallback for other formats (same as original setup line 21154-21155)
+                            balances = result.balances || result.data?.balances || result.data || result;
+                        }
+                    } else {
+                        // Use parent window getRealBalances (for exchanges other than Binance/Bitget/BitMart/Bitrue)
+                        console.log(`🔌 ${exchange} connecting via parent window getRealBalances`);
+
+                        balances = await window.opener.getRealBalances(exchange);
+                        console.log(`${exchange} balances from getRealBalances:`, balances);
+                        console.log(`${exchange} balances structure:`, JSON.stringify(balances, null, 2));
+
+                        // Check if the response indicates an error
+                        if (balances && balances.success === false) {
+                            console.error(`${exchange} API response:`, balances.data?.error);
+                            throw new Error(balances.data?.error || 'API request failed');
+                        }
+
+                        // Extract actual balances from the response structure
+                        if (balances && balances.success === true && balances.data && balances.data.balances) {
+                            balances = balances.data.balances;
+                            console.log(`${exchange} extracted balances:`, balances);
                         }
                     }
 
