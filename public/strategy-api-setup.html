@@ -3731,10 +3731,64 @@
         }
 
 
+        // Load saved Currency Swap credentials from database
+        async function loadCurrencySwapCredentials() {
+            try {
+                console.log('🔄 Loading saved Currency Swap credentials...');
+                const response = await fetch(`/api/v1/currency-swap/credentials?userId=${window.USER_ID}`);
+                const data = await response.json();
+
+                if (data.success && data.data.length > 0) {
+                    for (const cred of data.data) {
+                        const exchange = cred.exchange.toLowerCase();
+
+                        // Populate API key field
+                        const apiField = document.getElementById(`${exchange}-currency-swap-api`);
+                        if (apiField && cred.apiKey) {
+                            apiField.value = cred.apiKey;
+                            console.log(`✅ Loaded API key for ${exchange}`);
+                        }
+
+                        // Populate secret key field
+                        const secretField = document.getElementById(`${exchange}-currency-swap-secret`);
+                        if (secretField && cred.apiSecret) {
+                            secretField.value = cred.apiSecret;
+                            console.log(`✅ Loaded secret key for ${exchange}`);
+                        }
+
+                        // Populate passphrase if exists
+                        const passphraseField = document.getElementById(`${exchange}-currency-swap-passphrase`);
+                        if (passphraseField && cred.apiPassphrase) {
+                            passphraseField.value = cred.apiPassphrase;
+                            console.log(`✅ Loaded passphrase for ${exchange}`);
+                        }
+
+                        // Populate memo if exists (BitMart)
+                        const memoField = document.getElementById(`${exchange}-currency-swap-memo`);
+                        if (memoField && cred.memo) {
+                            memoField.value = cred.memo;
+                            console.log(`✅ Loaded memo for ${exchange}`);
+                        }
+
+                        // Update connection status
+                        const statusField = document.getElementById(`${exchange}-currency-swap-status`);
+                        if (statusField && cred.isConnected) {
+                            statusField.textContent = 'Connected ✓';
+                            statusField.className = 'connection-status status-connected';
+                        }
+                    }
+                    console.log(`✅ Loaded credentials for ${data.data.length} Currency Swap exchanges`);
+                }
+            } catch (error) {
+                console.error('❌ Failed to load Currency Swap credentials:', error);
+            }
+        }
+
         // Initialize page
         document.addEventListener('DOMContentLoaded', function() {
             testLocalStorage();
             loadStrategyCredentials();
+            loadCurrencySwapCredentials(); // Load Currency Swap credentials
             setupAutoSave();
 
             // Force re-load VALR credentials after delay to override browser autofill
