@@ -2588,41 +2588,29 @@
             }
 
             try {
-                // Save credentials to Currency Swap API
-                const response = await fetch('/api/v1/currency-swap/credentials', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        userId: window.USER_ID,
-                        exchange: exchange,
-                        apiKey: apiKey,
-                        apiSecret: secretKey,
-                        ...(passphrase && passphrase.trim() && { apiPassphrase: passphrase }),
-                        ...(memo && memo.trim() && { memo: memo })
-                    })
-                });
+                // Test connection by fetching balance (same as other strategies)
+                await fetchCurrencySwapBalance(exchange, apiKey, secretKey, passphrase, memo);
 
-                const data = await response.json();
-
-                if (response.ok && data.success) {
-                    console.log(`✅ ${exchange} credentials saved successfully`);
-
-                    // Update status
-                    if (statusElement) {
-                        statusElement.textContent = 'Connected ✓';
-                        statusElement.className = 'connection-status status-connected';
-                    }
-
-                    // Try to fetch and display balances
-                    await fetchCurrencySwapBalance(exchange, apiKey, secretKey, passphrase, memo);
-
-                    alert(`Successfully connected ${exchange.toUpperCase()} for Currency Swap!`);
-
-                } else {
-                    throw new Error(data.error || 'Failed to save credentials');
+                // If balance fetch succeeded, save to localStorage (same as other strategies)
+                localStorage.setItem(`${exchange}_currency-swap_api`, apiKey);
+                localStorage.setItem(`${exchange}_currency-swap_secret`, secretKey);
+                if (passphrase) {
+                    localStorage.setItem(`${exchange}_currency-swap_passphrase`, passphrase);
                 }
+                if (memo) {
+                    localStorage.setItem(`${exchange}_currency-swap_memo`, memo);
+                }
+                localStorage.setItem(`${exchange}_currency-swap_connected`, 'true');
+
+                console.log(`✅ ${exchange} credentials saved to localStorage`);
+
+                // Update status
+                if (statusElement) {
+                    statusElement.textContent = 'Connected ✓';
+                    statusElement.className = 'connection-status status-connected';
+                }
+
+                alert(`Successfully connected ${exchange.toUpperCase()} for Currency Swap!`);
 
             } catch (error) {
                 console.error(`❌ Error connecting ${exchange}:`, error);
@@ -2676,16 +2664,20 @@
                         balanceElement.innerHTML = balanceDisplay;
                     }
                 } else {
+                    // Balance fetch failed - throw error so connection fails
+                    const errorMsg = balanceData.error || balanceData.data?.error || 'Failed to fetch balance';
                     console.error(`⚠️ Failed to fetch ${exchange} balance:`, {
                         status: response.status,
                         success: balanceData.success,
-                        error: balanceData.error || balanceData.data?.error,
+                        error: errorMsg,
                         fullResponse: balanceData
                     });
+                    throw new Error(errorMsg);
                 }
 
             } catch (error) {
                 console.error(`❌ Error fetching ${exchange} balance:`, error);
+                throw error; // Re-throw so connectCurrencySwapExchange catches it
             }
         }
 
@@ -3921,9 +3913,8 @@
         document.addEventListener('DOMContentLoaded', function() {
             testLocalStorage();
             loadStrategyCredentials();
-            loadCurrencySwapCredentials(); // Load Currency Swap credentials
+            // Currency Swap now uses localStorage like other strategies (no database loading needed)
             setupAutoSave();
-            setupCurrencySwapAutoSave(); // Setup auto-save for Currency Swap
 
             // Force re-load VALR credentials after delay to override browser autofill
             setTimeout(() => {
