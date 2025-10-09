@@ -2529,19 +2529,8 @@ router.get('/luno/triangular/recent-trades', authenticatedRateLimit, authenticat
 // CHAINEX TRIANGULAR ARBITRAGE ROUTES
 // ============================================================================
 
-// ChainEX API Configuration
-const CHAINEX_CONFIG = {
-    baseUrl: 'https://api.chainex.io',
-    endpoints: {
-        balance: '/v1/balance',
-        ticker: '/v1/ticker',
-        orderBook: '/v1/orderbook',
-        order: '/v1/order',
-        pairs: '/v1/pairs'
-    }
-};
-
-// Helper function to create ChainEX authentication
+// Note: CHAINEX_CONFIG is defined later in the file (line ~4702)
+// ChainEX authentication helper
 function createChainExAuth(apiKey, apiSecret) {
     return Buffer.from(`${apiKey}:${apiSecret}`).toString('base64');
 }
@@ -4705,7 +4694,9 @@ const CHAINEX_CONFIG = {
         balance: '/wallet/balances',
         ticker: '/market/summary',
         markets: '/market/summary',
-        order: '/trading/order'
+        order: '/trading/order',
+        orderBook: '/market/orderbook',  // Added for triangular arbitrage
+        pairs: '/market/pairs'            // Added for triangular arbitrage
     }
 };
 
