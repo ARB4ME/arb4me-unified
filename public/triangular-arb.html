@@ -754,6 +754,114 @@
             </div>
         </div>
 
+        <!-- BYBIT Exchange Card -->
+        <div style="background: rgba(255,165,0,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 2px solid #FFA500;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="color: #FFA500; margin: 0;">🟡 BYBIT Triangular Arbitrage</h3>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <span style="color: #b8c6db; font-size: 0.9rem;">BYBIT Live Trading:</span>
+                    <div class="toggle-switch" id="bybitTriangularEnabled">
+                        <div class="toggle-knob"></div>
+                    </div>
+                    <span id="bybitTriangularStatus" style="color: #ff6b6b; font-size: 0.9rem; margin-left: 10px;">OFF</span>
+                </div>
+            </div>
+
+            <!-- BYBIT Settings Grid -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 20px;">
+                <!-- Risk Management -->
+                <div class="stat-card">
+                    <h4 style="color: #ffb347; margin-bottom: 15px;">⚖️ Risk Management</h4>
+                    <div class="form-group">
+                        <label>Max Single Trade (USDT)</label>
+                        <input type="number" id="bybitMaxTrade" value="100" min="10" max="5000">
+                    </div>
+                    <div class="form-group">
+                        <label>Portfolio % per Trade</label>
+                        <input type="number" id="bybitPortfolioPercent" value="10" min="1" max="50">
+                    </div>
+                    <div class="form-group">
+                        <label>Min Profit Threshold (%)</label>
+                        <input type="number" id="bybitProfitThreshold" value="0.5" min="0.1" max="5" step="0.1">
+                    </div>
+                </div>
+
+                <!-- Path Categories -->
+                <div class="stat-card">
+                    <h4 style="color: #ffb347; margin-bottom: 15px;">📊 Path Sets (30 Paths in 5 Sets)</h4>
+                    <div style="display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; max-height: 200px; overflow-y: auto;">
+                        <span style="color: #ffd700; font-size: 0.85rem;">SET 1: Major Coins (8 paths)</span>
+                        <input type="checkbox" id="bybitSet1Enabled" checked>
+
+                        <span style="color: #32cd32; font-size: 0.85rem;">SET 2: Mid-Cap (7 paths)</span>
+                        <input type="checkbox" id="bybitSet2Enabled" checked>
+
+                        <span style="color: #00d4ff; font-size: 0.85rem;">SET 3: DeFi/Gaming (6 paths)</span>
+                        <input type="checkbox" id="bybitSet3Enabled">
+
+                        <span style="color: #ff69b4; font-size: 0.85rem;">SET 4: High Volatility (5 paths)</span>
+                        <input type="checkbox" id="bybitSet4Enabled">
+
+                        <span style="color: #778899; font-size: 0.85rem;">SET 5: Extended Multi-Leg (4 paths)</span>
+                        <input type="checkbox" id="bybitSet5Enabled">
+                    </div>
+                    <div style="margin-top: 10px; padding: 8px; background: rgba(255,165,0,0.1); border-radius: 6px; font-size: 0.8rem; color: #b8c6db;">
+                        💡 Sets 1-2 are essential (15 paths). ByBit uses BTC as bridge for all triangular paths.
+                    </div>
+                </div>
+
+                <!-- Performance Stats -->
+                <div class="stat-card">
+                    <h4 style="color: #ffb347; margin-bottom: 15px;">📈 Performance Stats</h4>
+                    <div style="display: grid; grid-template-columns: 1fr auto; gap: 10px; font-size: 0.9rem;">
+                        <span style="color: #b8c6db;">Total Trades:</span>
+                        <span style="color: #FFA500;" id="bybitTotalTrades">0</span>
+
+                        <span style="color: #b8c6db;">Successful Trades:</span>
+                        <span style="color: #FFA500;" id="bybitSuccessfulTrades">0</span>
+
+                        <span style="color: #b8c6db;">Success Rate:</span>
+                        <span style="color: #FFA500;" id="bybitSuccessRate">0%</span>
+
+                        <span style="color: #b8c6db;">Total Profit:</span>
+                        <span style="color: #FFA500;" id="bybitTotalProfit">$0.00</span>
+
+                        <span style="color: #b8c6db;">Best Path:</span>
+                        <span style="color: #FFA500;" id="bybitBestPath">-</span>
+
+                        <span style="color: #b8c6db;">Last Scan:</span>
+                        <span style="color: #b8c6db;" id="bybitLastScan">Never</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- BYBIT Control Buttons -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                <button onclick="testByBitTriangularConnection()" class="btn">
+                    🔍 Test Connection
+                </button>
+                <button onclick="scanByBitTriangularPaths()" class="btn">
+                    ⚡ Manual Scan
+                </button>
+                <button onclick="viewByBitPathDetails()" class="btn">
+                    📊 View Paths
+                </button>
+                <button onclick="clearByBitTriangularHistory()" class="btn">
+                    🗑️ Clear History
+                </button>
+            </div>
+
+            <!-- Recent BYBIT Trades -->
+            <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px;">
+                <h4 style="color: #ffb347; margin-bottom: 15px;">🕒 Recent Triangular Trades</h4>
+                <div id="bybitRecentTrades" style="max-height: 200px; overflow-y: auto;">
+                    <div style="text-align: center; color: #888; padding: 20px;">
+                        No triangular trades yet. Enable live trading to start.
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Future Exchanges Placeholder -->
         <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 15px; border: 2px dashed #666;">
             <div style="text-align: center; color: #888;">
@@ -762,8 +870,7 @@
                 <div style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;">
                     <span style="color: #666; padding: 8px 16px; border: 1px solid #555; border-radius: 20px;">Binance</span>
                     <span style="color: #666; padding: 8px 16px; border: 1px solid #555; border-radius: 20px;">OKX</span>
-                    <span style="color: #666; padding: 8px 16px; border: 1px solid #555; border-radius: 20px;">ByBit</span>
-                    <span style="color: #666; padding: 8px 16px; border: 1px solid #555; border-radius: 20px;">+ 13 more</span>
+                    <span style="color: #666; padding: 8px 16px; border: 1px solid #555; border-radius: 20px;">+ 12 more</span>
                 </div>
             </div>
         </div>
@@ -1830,6 +1937,315 @@
                 const checkbox = document.getElementById(`krakenSet${i}Enabled`);
                 if (checkbox) {
                     checkbox.addEventListener('change', saveKrakenTriangularSettings);
+                }
+            }
+        });
+
+        // ============================================================================
+        // BYBIT TRIANGULAR ARBITRAGE JAVASCRIPT
+        // ============================================================================
+
+        // Toggle for ByBit Triangular trading
+        document.getElementById('bybitTriangularEnabled').addEventListener('click', function() {
+            console.log('🔄 [BYBIT] Toggle clicked');
+            this.classList.toggle('active');
+            const status = document.getElementById('bybitTriangularStatus');
+
+            if (this.classList.contains('active')) {
+                console.log('✅ [BYBIT] Live trading enabled');
+                status.textContent = 'ON';
+                status.style.color = '#FFA500';
+                localStorage.setItem('bybitTriangularEnabled', 'true');
+            } else {
+                console.log('❌ [BYBIT] Live trading disabled');
+                status.textContent = 'OFF';
+                status.style.color = '#ff6b6b';
+                localStorage.setItem('bybitTriangularEnabled', 'false');
+            }
+        });
+
+        // Load saved ByBit toggle state on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const bybitEnabled = localStorage.getItem('bybitTriangularEnabled') === 'true';
+            const toggle = document.getElementById('bybitTriangularEnabled');
+            const status = document.getElementById('bybitTriangularStatus');
+
+            if (bybitEnabled) {
+                toggle.classList.add('active');
+                status.textContent = 'ON';
+                status.style.color = '#FFA500';
+            }
+
+            // Load ByBit settings
+            loadByBitTriangularSettings();
+        });
+
+        // Test ByBit Triangular Connection
+        async function testByBitTriangularConnection() {
+            console.log('🔍 [BYBIT] Testing connection...');
+            try {
+                // Get credentials from localStorage (saved from strategy-api-setup.html)
+                const apiKey = localStorage.getItem('bybit_triangular_api');
+                const apiSecret = localStorage.getItem('bybit_triangular_secret');
+                console.log('🔑 [BYBIT] API credentials retrieved from localStorage');
+
+                if (!apiKey || !apiSecret) {
+                    console.warn('⚠️ [BYBIT] Missing API credentials');
+                    alert('❌ Please set up your ByBit API credentials first in the Strategy API Setup page.');
+                    return;
+                }
+
+                // Show loading message
+                const btn = event.target;
+                const originalText = btn.textContent;
+                btn.textContent = '⏳ Testing...';
+                btn.disabled = true;
+
+                // Call backend test-connection route
+                console.log('📡 [BYBIT] Sending test connection request to backend...');
+                const response = await fetch('/api/v1/trading/bybit/triangular/test-connection', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        apiKey: apiKey,
+                        apiSecret: apiSecret
+                    })
+                });
+
+                const result = await response.json();
+                console.log('✅ [BYBIT] Test connection response received:', result);
+
+                btn.textContent = originalText;
+                btn.disabled = false;
+
+                if (result.success) {
+                    console.log('✅ [BYBIT] Connection successful!', result.data);
+                    alert(`✅ ByBit Connection Successful!\n\n` +
+                          `• Authenticated: ${result.data.authenticated ? 'Yes' : 'No'}\n` +
+                          `• Balance Access: ${result.data.balanceAccess ? 'Yes' : 'No'}\n` +
+                          `• Available Pairs: ${result.data.availablePairs}\n` +
+                          `• Required Pairs: ${result.data.requiredPairs}\n` +
+                          `• Triangular Ready: ${result.data.triangularReady ? 'Yes' : 'No'}`);
+                } else {
+                    console.error('❌ [BYBIT] Connection failed:', result.message);
+                    alert(`❌ Connection Failed: ${result.message || 'Unknown error'}`);
+                }
+            } catch (error) {
+                console.error('❌ [BYBIT] Connection error:', error);
+                alert(`❌ Connection Error: ${error.message}`);
+            }
+        }
+
+        // Scan ByBit Triangular Paths
+        async function scanByBitTriangularPaths() {
+            console.log('🔍 [BYBIT] Starting path scan...');
+            try {
+                const apiKey = localStorage.getItem('bybit_triangular_api');
+                const apiSecret = localStorage.getItem('bybit_triangular_secret');
+
+                if (!apiKey || !apiSecret) {
+                    console.warn('⚠️ [BYBIT] Missing API credentials');
+                    alert('❌ Please set up your ByBit API credentials first.');
+                    return;
+                }
+
+                const btn = event.target;
+                const originalText = btn.textContent;
+                btn.textContent = '⏳ Scanning...';
+                btn.disabled = true;
+
+                // Get enabled path sets
+                const enabledSets = [];
+                for (let i = 1; i <= 5; i++) {
+                    const checkbox = document.getElementById(`bybitSet${i}Enabled`);
+                    if (checkbox && checkbox.checked) {
+                        enabledSets.push(i);
+                    }
+                }
+                console.log('📊 [BYBIT] Enabled path sets:', enabledSets);
+
+                console.log('📡 [BYBIT] Sending scan request to backend...');
+                const response = await fetch('/api/v1/trading/bybit/triangular/scan', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        apiKey: apiKey,
+                        apiSecret: apiSecret,
+                        paths: enabledSets.length > 0 ? enabledSets : 'all'
+                    })
+                });
+
+                const result = await response.json();
+                console.log('✅ [BYBIT] Scan response received:', result);
+
+                btn.textContent = originalText;
+                btn.disabled = false;
+
+                if (result.success) {
+                    document.getElementById('bybitLastScan').textContent = new Date().toLocaleTimeString();
+                    console.log(`✅ [BYBIT] Scan successful! Found ${result.data.opportunities.length} opportunities`);
+
+                    let message = `✅ Scan Complete!\n\n`;
+                    message += `• Paths Scanned: ${result.data.scannedPaths}\n`;
+                    message += `• Path Sets: ${result.data.pathSetsScanned}\n`;
+                    message += `• Opportunities Found: ${result.data.opportunities.length}\n\n`;
+                    message += `${result.data.message || 'Full scanning implementation coming soon!'}`;
+
+                    alert(message);
+                } else {
+                    console.error('❌ [BYBIT] Scan failed:', result.message);
+                    alert(`❌ Scan Failed: ${result.message || 'Unknown error'}`);
+                }
+            } catch (error) {
+                console.error('❌ [BYBIT] Scan error:', error);
+                alert(`❌ Scan Error: ${error.message}`);
+            }
+        }
+
+        // View ByBit Path Details
+        async function viewByBitPathDetails() {
+            console.log('🔍 [BYBIT] Viewing path details...');
+            try {
+                console.log('📡 [BYBIT] Fetching path details from backend...');
+                const response = await fetch('/api/v1/trading/bybit/triangular/paths', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const result = await response.json();
+                console.log('✅ [BYBIT] Path details received:', result);
+
+                if (result.success) {
+                    let message = '📊 ByBit Triangular Paths\n\n';
+                    message += `Total Paths: ${result.data.totalPaths}\n\n`;
+
+                    for (const [key, value] of Object.entries(result.data.pathSets)) {
+                        const setNumber = key.replace('SET_', '').split('_')[0];
+                        message += `SET ${setNumber}: ${value.description}\n`;
+                        message += `  Paths: ${value.count} | Enabled: ${value.enabled ? 'Yes' : 'No'}\n\n`;
+                    }
+
+                    console.log('✅ [BYBIT] Displaying path details to user');
+                    alert(message);
+                } else {
+                    console.error('❌ [BYBIT] Failed to fetch paths:', result.message);
+                    alert(`❌ Failed to fetch paths: ${result.message || 'Unknown error'}`);
+                }
+            } catch (error) {
+                console.error('❌ [BYBIT] Path details error:', error);
+                alert(`❌ Error: ${error.message}`);
+            }
+        }
+
+        // Clear ByBit Triangular History
+        async function clearByBitTriangularHistory() {
+            console.log('🗑️ [BYBIT] Clear history requested');
+            if (!confirm('⚠️ Clear all ByBit triangular trade history?\n\nThis action cannot be undone.')) {
+                console.log('❌ [BYBIT] Clear history cancelled by user');
+                return;
+            }
+
+            try {
+                console.log('📡 [BYBIT] Sending delete request to backend...');
+                const response = await fetch('/api/v1/trading/bybit/triangular/history', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const result = await response.json();
+                console.log('✅ [BYBIT] Delete response received:', result);
+
+                if (result.success) {
+                    console.log('✅ [BYBIT] History cleared, resetting UI stats...');
+                    // Reset stats display
+                    document.getElementById('bybitTotalTrades').textContent = '0';
+                    document.getElementById('bybitSuccessfulTrades').textContent = '0';
+                    document.getElementById('bybitSuccessRate').textContent = '0%';
+                    document.getElementById('bybitTotalProfit').textContent = '$0.00';
+                    document.getElementById('bybitBestPath').textContent = '-';
+                    document.getElementById('bybitLastScan').textContent = 'Never';
+
+                    // Clear recent trades display
+                    document.getElementById('bybitRecentTrades').innerHTML =
+                        '<div style="text-align: center; color: #888; padding: 20px;">No triangular trades yet. Enable live trading to start.</div>';
+
+                    alert(`✅ History cleared successfully!\n\nDeleted ${result.data.deletedCount} records.`);
+                } else {
+                    console.error('❌ [BYBIT] Failed to clear history:', result.message);
+                    alert(`❌ Failed to clear history: ${result.message || 'Unknown error'}`);
+                }
+            } catch (error) {
+                console.error('❌ [BYBIT] Clear history error:', error);
+                alert(`❌ Error: ${error.message}`);
+            }
+        }
+
+        // Save ByBit settings to localStorage
+        function saveByBitTriangularSettings() {
+            console.log('💾 [BYBIT] Saving settings to localStorage...');
+            const settings = {
+                maxTrade: document.getElementById('bybitMaxTrade').value,
+                portfolioPercent: document.getElementById('bybitPortfolioPercent').value,
+                profitThreshold: document.getElementById('bybitProfitThreshold').value
+            };
+
+            // Save path set states (5 sets for ByBit)
+            for (let i = 1; i <= 5; i++) {
+                const checkbox = document.getElementById(`bybitSet${i}Enabled`);
+                if (checkbox) {
+                    settings[`set${i}Enabled`] = checkbox.checked;
+                }
+            }
+
+            localStorage.setItem('bybitTriangularSettings', JSON.stringify(settings));
+            console.log('✅ [BYBIT] Settings saved:', settings);
+        }
+
+        // Load ByBit settings from localStorage
+        function loadByBitTriangularSettings() {
+            console.log('💾 [BYBIT] Loading settings from localStorage...');
+            const savedSettings = localStorage.getItem('bybitTriangularSettings');
+            if (savedSettings) {
+                const settings = JSON.parse(savedSettings);
+                console.log('✅ [BYBIT] Settings loaded:', settings);
+
+                if (settings.maxTrade) document.getElementById('bybitMaxTrade').value = settings.maxTrade;
+                if (settings.portfolioPercent) document.getElementById('bybitPortfolioPercent').value = settings.portfolioPercent;
+                if (settings.profitThreshold) document.getElementById('bybitProfitThreshold').value = settings.profitThreshold;
+
+                // Load path set states (5 sets)
+                for (let i = 1; i <= 5; i++) {
+                    const checkbox = document.getElementById(`bybitSet${i}Enabled`);
+                    if (checkbox && settings[`set${i}Enabled`] !== undefined) {
+                        checkbox.checked = settings[`set${i}Enabled`];
+                    }
+                }
+            } else {
+                console.log('ℹ️ [BYBIT] No saved settings found, using defaults');
+            }
+        }
+
+        // Auto-save ByBit settings when changed
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add event listeners for ByBit settings auto-save
+            const bybitInputs = document.querySelectorAll('#bybitMaxTrade, #bybitPortfolioPercent, #bybitProfitThreshold');
+            bybitInputs.forEach(input => {
+                input.addEventListener('change', saveByBitTriangularSettings);
+            });
+
+            // Add event listeners for ByBit checkboxes (5 sets)
+            for (let i = 1; i <= 5; i++) {
+                const checkbox = document.getElementById(`bybitSet${i}Enabled`);
+                if (checkbox) {
+                    checkbox.addEventListener('change', saveByBitTriangularSettings);
                 }
             }
         });
