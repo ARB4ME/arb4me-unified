@@ -2549,21 +2549,21 @@ function createChainExAuth(apiKey, apiSecret) {
 // POST /api/v1/trading/chainex/triangular/test-connection
 // Test ChainEX API credentials and verify triangular arbitrage capability
 router.post('/chainex/triangular/test-connection', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
-    const { apiKey, apiSecret } = req.body;
-
-    // Validate credentials
-    if (!apiKey || !apiSecret) {
-        throw new APIError('ChainEX API credentials required', 400, 'CHAINEX_CREDENTIALS_REQUIRED');
-    }
-
-    const auth = createChainExAuth(apiKey, apiSecret);
-
     try {
+        const { apiKey, apiSecret } = req.body;
+
         systemLogger.trading('Testing ChainEX triangular arbitrage connection', {
             userId: req.user.id,
             exchange: 'chainex',
             strategy: 'triangular'
         });
+
+        // Validate credentials
+        if (!apiKey || !apiSecret) {
+            throw new APIError('ChainEX API credentials required', 400, 'CHAINEX_CREDENTIALS_REQUIRED');
+        }
+
+        const auth = createChainExAuth(apiKey, apiSecret);
 
         // Test balance access
         const balanceResponse = await fetch(`${CHAINEX_CONFIG.baseUrl}${CHAINEX_CONFIG.endpoints.balance}`, {
@@ -2629,16 +2629,22 @@ router.post('/chainex/triangular/test-connection', authenticatedRateLimit, authe
 // POST /api/v1/trading/chainex/triangular/scan
 // Scan for triangular arbitrage opportunities on ChainEX
 router.post('/chainex/triangular/scan', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
-    const { paths = 'all', apiKey, apiSecret } = req.body;
+    try {
+        const { paths = 'all', apiKey, apiSecret } = req.body;
 
-    if (!apiKey || !apiSecret) {
-        throw new APIError('ChainEX API credentials required', 400, 'CHAINEX_CREDENTIALS_REQUIRED');
-    }
+        systemLogger.trading('Starting ChainEX triangular arbitrage scan', {
+            userId: req.user.id,
+            requestedPaths: paths
+        });
 
-    const auth = createChainExAuth(apiKey, apiSecret);
+        if (!apiKey || !apiSecret) {
+            throw new APIError('ChainEX API credentials required', 400, 'CHAINEX_CREDENTIALS_REQUIRED');
+        }
 
-    // Define all 28 ChainEX triangular arbitrage paths across 6 sets
-    const allPathSets = {
+        const auth = createChainExAuth(apiKey, apiSecret);
+
+        // Define all 28 ChainEX triangular arbitrage paths across 6 sets
+        const allPathSets = {
         SET_1_ZAR_FOCUS: [
             { id: 'ZAR_BTC_ETH_ZAR', pairs: ['BTCZAR', 'ETHBTC', 'ETHZAR'], sequence: 'ZAR → BTC → ETH → ZAR', steps: [{ pair: 'BTCZAR', side: 'buy' }, { pair: 'ETHBTC', side: 'buy' }, { pair: 'ETHZAR', side: 'sell' }] },
             { id: 'ZAR_BTC_XRP_ZAR', pairs: ['BTCZAR', 'XRPBTC', 'XRPZAR'], sequence: 'ZAR → BTC → XRP → ZAR', steps: [{ pair: 'BTCZAR', side: 'buy' }, { pair: 'XRPBTC', side: 'buy' }, { pair: 'XRPZAR', side: 'sell' }] },
@@ -2680,12 +2686,6 @@ router.post('/chainex/triangular/scan', authenticatedRateLimit, authenticateUser
             { id: 'BCH_BTC_USDT_BCH', pairs: ['BCHBTC', 'BTCUSDT', 'BCHUSDT'], sequence: 'BCH → BTC → USDT → BCH', steps: [{ pair: 'BCHBTC', side: 'sell' }, { pair: 'BTCUSDT', side: 'sell' }, { pair: 'BCHUSDT', side: 'buy' }] }
         ]
     };
-
-    try {
-        systemLogger.trading('Starting ChainEX triangular arbitrage scan', {
-            userId: req.user.id,
-            requestedPaths: paths
-        });
 
         // Determine which path sets to scan
         let pathsToScan = [];
@@ -2832,21 +2832,21 @@ router.get('/chainex/triangular/paths', authenticatedRateLimit, authenticateUser
 // POST /api/v1/trading/chainex/triangular/execute
 // Execute a ChainEX triangular arbitrage trade
 router.post('/chainex/triangular/execute', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
-    const { pathId, initialAmount, apiKey, apiSecret, dryRun = false } = req.body;
-
-    if (!apiKey || !apiSecret) {
-        throw new APIError('ChainEX API credentials required', 400, 'CHAINEX_CREDENTIALS_REQUIRED');
-    }
-
-    const auth = createChainExAuth(apiKey, apiSecret);
-
     try {
+        const { pathId, initialAmount, apiKey, apiSecret, dryRun = false } = req.body;
+
         systemLogger.trading('ChainEX triangular execution started', {
             userId: req.user.id,
             pathId: pathId,
             initialAmount: initialAmount,
             dryRun: dryRun
         });
+
+        if (!apiKey || !apiSecret) {
+            throw new APIError('ChainEX API credentials required', 400, 'CHAINEX_CREDENTIALS_REQUIRED');
+        }
+
+        const auth = createChainExAuth(apiKey, apiSecret);
 
         const tradeRecord = {
             userId: req.user.id,
