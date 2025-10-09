@@ -862,15 +862,116 @@
             </div>
         </div>
 
+        <!-- Binance Exchange -->
+        <div style="background: rgba(240,185,11,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 2px solid #F0B90B;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="color: #F0B90B; margin: 0;">🟡 BINANCE Triangular Arbitrage</h3>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <span style="color: #b8c6db; font-size: 0.9rem;">BINANCE Live Trading:</span>
+                    <div class="toggle-switch" id="binanceTriangularEnabled">
+                        <div class="toggle-knob"></div>
+                    </div>
+                    <span id="binanceTriangularStatus" style="color: #ff6b6b; font-size: 0.9rem; margin-left: 10px;">OFF</span>
+                </div>
+            </div>
+
+            <!-- API Configuration Section -->
+            <div class="stat-card" style="margin-bottom: 20px;">
+                <h4 style="color: #F0B90B; margin-bottom: 15px;">🔑 API Configuration</h4>
+                <div class="form-group">
+                    <label>API Key</label>
+                    <input type="text" id="binanceTriangularApiKey" placeholder="Enter Binance API Key">
+                </div>
+                <div class="form-group">
+                    <label>API Secret</label>
+                    <input type="password" id="binanceTriangularApiSecret" placeholder="Enter Binance API Secret">
+                </div>
+                <button onclick="saveBinanceTriangularSettings()" class="btn" style="background: linear-gradient(135deg, #F0B90B, #FCD535); margin-top: 10px;">💾 Save Settings</button>
+            </div>
+
+            <!-- Risk Management Section -->
+            <div class="stat-card">
+                <h4 style="color: #F0B90B; margin-bottom: 15px;">⚖️ Risk Management</h4>
+                <div class="form-group">
+                    <label>Max Single Trade (USDT)</label>
+                    <input type="number" id="binanceMaxTrade" value="100" min="10" max="10000">
+                </div>
+                <div class="form-group">
+                    <label>Portfolio % per Trade</label>
+                    <input type="number" id="binancePortfolioPercent" value="10" min="1" max="50">
+                </div>
+                <div class="form-group">
+                    <label>Min Profit Threshold (%)</label>
+                    <input type="number" id="binanceProfitThreshold" value="0.5" min="0.1" max="5" step="0.1">
+                </div>
+            </div>
+
+            <!-- Path Sets Section -->
+            <div class="stat-card">
+                <h4 style="color: #F0B90B; margin-bottom: 15px;">📊 Path Sets (33 Paths in 5 Sets)</h4>
+                <div style="display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center;">
+                    <span style="color: #ffd700; font-size: 0.85rem;">SET 1: Major BNB Bridge (7 paths)</span>
+                    <input type="checkbox" id="binanceSet1Enabled" checked>
+
+                    <span style="color: #32cd32; font-size: 0.85rem;">SET 2: Mid-Cap ETH Bridge (7 paths)</span>
+                    <input type="checkbox" id="binanceSet2Enabled" checked>
+
+                    <span style="color: #00d4ff; font-size: 0.85rem;">SET 3: DeFi/Gaming (6 paths)</span>
+                    <input type="checkbox" id="binanceSet3Enabled">
+
+                    <span style="color: #ff69b4; font-size: 0.85rem;">SET 4: High Volatility (6 paths)</span>
+                    <input type="checkbox" id="binanceSet4Enabled">
+
+                    <span style="color: #ff8c00; font-size: 0.85rem;">SET 5: Extended Multi-Bridge (7 paths)</span>
+                    <input type="checkbox" id="binanceSet5Enabled">
+                </div>
+            </div>
+
+            <!-- Statistics Section -->
+            <div class="stat-card">
+                <h4 style="color: #F0B90B; margin-bottom: 15px;">📈 Today's Statistics</h4>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                    <div>
+                        <div style="color: #888; font-size: 0.75rem;">Scans</div>
+                        <div style="color: #F0B90B; font-size: 1.3rem; font-weight: bold;">0</div>
+                    </div>
+                    <div>
+                        <div style="color: #888; font-size: 0.75rem;">Opportunities</div>
+                        <div style="color: #32cd32; font-size: 1.3rem; font-weight: bold;">0</div>
+                    </div>
+                    <div>
+                        <div style="color: #888; font-size: 0.75rem;">Profit (ZAR)</div>
+                        <div style="color: #F0B90B; font-size: 1.3rem; font-weight: bold;">R 0.00</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Control Buttons -->
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px;">
+                <button onclick="testBinanceTriangularConnection()" class="btn" style="background: linear-gradient(135deg, #F0B90B, #FCD535);">🔍 Test Connection</button>
+                <button onclick="scanBinanceTriangularPaths()" class="btn" style="background: linear-gradient(135deg, #32cd32, #98fb98);">⚡ Manual Scan</button>
+                <button onclick="viewBinancePathDetails()" class="btn" style="background: linear-gradient(135deg, #00bfff, #87ceeb);">📊 View Paths</button>
+                <button onclick="clearBinanceTriangularHistory()" class="btn" style="background: linear-gradient(135deg, #ff6b6b, #ff9999);">🗑️ Clear History</button>
+            </div>
+
+            <!-- Live Feed Section -->
+            <div class="stat-card">
+                <h4 style="color: #F0B90B; margin-bottom: 15px;">📡 Live Feed</h4>
+                <div id="binanceLiveFeed" style="max-height: 200px; overflow-y: auto; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; font-family: monospace; font-size: 0.85rem; color: #b8c6db;">
+                    <div style="color: #888;">Waiting for scan results...</div>
+                </div>
+            </div>
+        </div>
+
         <!-- Future Exchanges Placeholder -->
         <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 15px; border: 2px dashed #666;">
             <div style="text-align: center; color: #888;">
                 <h3 style="color: #666; margin-bottom: 15px;">🔮 Future Exchanges</h3>
                 <p style="margin-bottom: 15px;">Additional exchanges will be added here as they're implemented:</p>
                 <div style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;">
-                    <span style="color: #666; padding: 8px 16px; border: 1px solid #555; border-radius: 20px;">Binance</span>
                     <span style="color: #666; padding: 8px 16px; border: 1px solid #555; border-radius: 20px;">OKX</span>
-                    <span style="color: #666; padding: 8px 16px; border: 1px solid #555; border-radius: 20px;">+ 12 more</span>
+                    <span style="color: #666; padding: 8px 16px; border: 1px solid #555; border-radius: 20px;">Coinbase</span>
+                    <span style="color: #666; padding: 8px 16px; border: 1px solid #555; border-radius: 20px;">+ 11 more</span>
                 </div>
             </div>
         </div>
@@ -2246,6 +2347,328 @@
                 const checkbox = document.getElementById(`bybitSet${i}Enabled`);
                 if (checkbox) {
                     checkbox.addEventListener('change', saveByBitTriangularSettings);
+                }
+            }
+        });
+
+        // ========================================================================
+        // BINANCE TRIANGULAR ARBITRAGE FUNCTIONS
+        // ========================================================================
+
+        // Binance Toggle Event Listener
+        document.getElementById('binanceTriangularEnabled').addEventListener('click', function() {
+            console.log('🔄 [BINANCE] Toggle clicked');
+            this.classList.toggle('active');
+            const status = document.getElementById('binanceTriangularStatus');
+
+            if (this.classList.contains('active')) {
+                console.log('✅ [BINANCE] Live trading enabled');
+                status.textContent = 'ON';
+                status.style.color = '#F0B90B';
+                localStorage.setItem('binanceTriangularEnabled', 'true');
+            } else {
+                console.log('❌ [BINANCE] Live trading disabled');
+                status.textContent = 'OFF';
+                status.style.color = '#ff6b6b';
+                localStorage.setItem('binanceTriangularEnabled', 'false');
+            }
+        });
+
+        // Test Binance Connection
+        async function testBinanceTriangularConnection() {
+            console.log('🔍 [BINANCE] Testing connection...');
+            const apiKey = localStorage.getItem('binance_triangular_api');
+            const apiSecret = localStorage.getItem('binance_triangular_secret');
+
+            if (!apiKey || !apiSecret) {
+                alert('❌ Please enter your Binance API credentials first and save settings.');
+                console.log('⚠️ [BINANCE] API credentials missing');
+                return;
+            }
+
+            try {
+                console.log('📡 [BINANCE] Sending test connection request to backend...');
+                const response = await fetch('/api/v1/trading/binance/triangular/test-connection', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    },
+                    body: JSON.stringify({
+                        apiKey: apiKey,
+                        apiSecret: apiSecret
+                    })
+                });
+
+                const result = await response.json();
+                console.log('✅ [BINANCE] Test connection response received:', result);
+
+                if (result.success) {
+                    alert(`✅ Binance Connection Successful!\n\n` +
+                          `• Authenticated: ${result.data.authenticated ? 'Yes' : 'No'}\n` +
+                          `• Balance Access: ${result.data.balanceAccess ? 'Yes' : 'No'}\n` +
+                          `• Market Data Access: ${result.data.marketDataAccess ? 'Yes' : 'No'}\n` +
+                          `• Available Pairs: ${result.data.availablePairs}\n` +
+                          `• Triangular Ready: ${result.data.triangularReady ? 'Yes' : 'No'}\n` +
+                          `• Sample Price: ${result.data.samplePrice}`);
+                } else {
+                    alert(`❌ Binance Connection Failed\n\n${result.message}`);
+                    console.error('❌ [BINANCE] Connection test failed:', result);
+                }
+            } catch (error) {
+                console.error('❌ [BINANCE] Connection test error:', error);
+                alert(`❌ Connection Error: ${error.message}`);
+            }
+        }
+
+        // Scan Binance Triangular Paths
+        async function scanBinanceTriangularPaths() {
+            console.log('🔍 [BINANCE] Starting path scan...');
+            const apiKey = localStorage.getItem('binance_triangular_api');
+            const apiSecret = localStorage.getItem('binance_triangular_secret');
+
+            if (!apiKey || !apiSecret) {
+                alert('❌ Please enter your Binance API credentials first and save settings.');
+                console.log('⚠️ [BINANCE] API credentials missing');
+                return;
+            }
+
+            // Gather enabled sets
+            const enabledSets = [];
+            for (let i = 1; i <= 5; i++) {
+                const checkbox = document.getElementById(`binanceSet${i}Enabled`);
+                if (checkbox && checkbox.checked) {
+                    enabledSets.push(i);
+                }
+            }
+
+            console.log('📊 [BINANCE] Enabled path sets:', enabledSets);
+
+            const profitThreshold = parseFloat(document.getElementById('binanceProfitThreshold').value) || 0.5;
+            console.log('📈 [BINANCE] Profit threshold:', profitThreshold, '%');
+
+            try {
+                console.log('📡 [BINANCE] Sending scan request to backend...');
+                const response = await fetch('/api/v1/trading/binance/triangular/scan', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    },
+                    body: JSON.stringify({
+                        apiKey: apiKey,
+                        apiSecret: apiSecret,
+                        enabledSets: enabledSets,
+                        profitThreshold: profitThreshold
+                    })
+                });
+
+                const result = await response.json();
+                console.log('✅ [BINANCE] Scan response received:', result);
+
+                if (result.success) {
+                    const feedDiv = document.getElementById('binanceLiveFeed');
+                    const timestamp = new Date().toLocaleTimeString();
+
+                    let feedMessage = `<div style="color: #F0B90B; margin-bottom: 8px;">[${timestamp}] Scan Complete</div>`;
+                    feedMessage += `<div style="color: #b8c6db;">• Scanned: ${result.data.scannedPaths} paths</div>`;
+                    feedMessage += `<div style="color: #b8c6db;">• Opportunities: ${result.data.opportunities.length}</div>`;
+                    feedMessage += `<div style="color: #888; margin-top: 4px; font-size: 0.8rem;">${result.data.message}</div>`;
+
+                    feedDiv.innerHTML = feedMessage + feedDiv.innerHTML;
+
+                    if (result.data.opportunities.length > 0) {
+                        alert(`🎯 Found ${result.data.opportunities.length} Binance arbitrage opportunities!`);
+                    } else {
+                        alert(`✅ Scan complete. No opportunities above ${profitThreshold}% threshold found.`);
+                    }
+                } else {
+                    alert(`❌ Scan Failed\n\n${result.message}`);
+                    console.error('❌ [BINANCE] Scan failed:', result);
+                }
+            } catch (error) {
+                console.error('❌ [BINANCE] Scan error:', error);
+                alert(`❌ Scan Error: ${error.message}`);
+            }
+        }
+
+        // View Binance Path Details
+        async function viewBinancePathDetails() {
+            console.log('📊 [BINANCE] Fetching path details...');
+
+            try {
+                console.log('📡 [BINANCE] Sending paths request to backend...');
+                const response = await fetch('/api/v1/trading/binance/triangular/paths', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    }
+                });
+
+                const result = await response.json();
+                console.log('✅ [BINANCE] Path details received:', result);
+
+                if (result.success) {
+                    let message = `📊 Binance Triangular Arbitrage Paths\n\n`;
+                    message += `Total Paths: ${result.data.totalPaths}\n`;
+                    message += `Total Sets: ${result.data.totalSets}\n`;
+                    message += `Funding: ${result.data.fundingCurrency}\n`;
+                    message += `Bridge Currencies: ${result.data.bridgeCurrencies.join(', ')}\n\n`;
+                    message += `Path Sets:\n`;
+
+                    result.data.sets.forEach(set => {
+                        message += `\nSET ${set.id}: ${set.name}\n`;
+                        message += `  • Paths: ${set.paths}\n`;
+                        message += `  • Liquidity: ${set.liquidity}\n`;
+                    });
+
+                    message += `\n${result.data.note}`;
+
+                    alert(message);
+                } else {
+                    alert(`❌ Failed to retrieve path details\n\n${result.message}`);
+                    console.error('❌ [BINANCE] Path details failed:', result);
+                }
+            } catch (error) {
+                console.error('❌ [BINANCE] Path details error:', error);
+                alert(`❌ Error: ${error.message}`);
+            }
+        }
+
+        // Clear Binance Trade History
+        async function clearBinanceTriangularHistory() {
+            console.log('🗑️ [BINANCE] Clearing trade history...');
+
+            if (!confirm('⚠️ Are you sure you want to clear all Binance triangular trade history?')) {
+                console.log('❌ [BINANCE] History clear cancelled by user');
+                return;
+            }
+
+            try {
+                console.log('📡 [BINANCE] Sending delete history request to backend...');
+                const response = await fetch('/api/v1/trading/binance/triangular/history', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    }
+                });
+
+                const result = await response.json();
+                console.log('✅ [BINANCE] Delete history response received:', result);
+
+                if (result.success) {
+                    alert(`✅ Cleared ${result.data.deletedCount} Binance trades from history`);
+                    document.getElementById('binanceLiveFeed').innerHTML = '<div style="color: #888;">Trade history cleared. Waiting for scan results...</div>';
+                } else {
+                    alert(`❌ Failed to clear history\n\n${result.message}`);
+                    console.error('❌ [BINANCE] Clear history failed:', result);
+                }
+            } catch (error) {
+                console.error('❌ [BINANCE] Clear history error:', error);
+                alert(`❌ Error: ${error.message}`);
+            }
+        }
+
+        // Save Binance Triangular Settings
+        function saveBinanceTriangularSettings() {
+            console.log('💾 [BINANCE] Saving settings to localStorage...');
+
+            const apiKey = document.getElementById('binanceTriangularApiKey').value.trim();
+            const apiSecret = document.getElementById('binanceTriangularApiSecret').value.trim();
+            const maxTrade = document.getElementById('binanceMaxTrade').value;
+            const portfolioPercent = document.getElementById('binancePortfolioPercent').value;
+            const profitThreshold = document.getElementById('binanceProfitThreshold').value;
+
+            // Save API credentials
+            if (apiKey) localStorage.setItem('binance_triangular_api', apiKey);
+            if (apiSecret) localStorage.setItem('binance_triangular_secret', apiSecret);
+
+            // Save settings
+            const settings = {
+                maxTrade: maxTrade,
+                portfolioPercent: portfolioPercent,
+                profitThreshold: profitThreshold
+            };
+
+            // Save path set preferences
+            for (let i = 1; i <= 5; i++) {
+                const checkbox = document.getElementById(`binanceSet${i}Enabled`);
+                if (checkbox) {
+                    settings[`set${i}Enabled`] = checkbox.checked;
+                }
+            }
+
+            localStorage.setItem('binanceTriangularSettings', JSON.stringify(settings));
+            console.log('✅ [BINANCE] Settings saved:', settings);
+            alert('✅ Binance settings saved successfully!');
+        }
+
+        // Load Binance Triangular Settings
+        function loadBinanceTriangularSettings() {
+            console.log('📥 [BINANCE] Loading settings from localStorage...');
+
+            // Load API credentials
+            const apiKey = localStorage.getItem('binance_triangular_api');
+            const apiSecret = localStorage.getItem('binance_triangular_secret');
+            if (apiKey) document.getElementById('binanceTriangularApiKey').value = apiKey;
+            if (apiSecret) document.getElementById('binanceTriangularApiSecret').value = apiSecret;
+
+            // Load other settings
+            const settingsJson = localStorage.getItem('binanceTriangularSettings');
+            if (settingsJson) {
+                try {
+                    const settings = JSON.parse(settingsJson);
+                    console.log('✅ [BINANCE] Settings loaded:', settings);
+
+                    if (settings.maxTrade) document.getElementById('binanceMaxTrade').value = settings.maxTrade;
+                    if (settings.portfolioPercent) document.getElementById('binancePortfolioPercent').value = settings.portfolioPercent;
+                    if (settings.profitThreshold) document.getElementById('binanceProfitThreshold').value = settings.profitThreshold;
+
+                    // Load path set preferences
+                    for (let i = 1; i <= 5; i++) {
+                        const checkbox = document.getElementById(`binanceSet${i}Enabled`);
+                        if (checkbox && settings.hasOwnProperty(`set${i}Enabled`)) {
+                            checkbox.checked = settings[`set${i}Enabled`];
+                        }
+                    }
+                } catch (error) {
+                    console.error('❌ [BINANCE] Failed to parse settings:', error);
+                }
+            }
+
+            // Load toggle state
+            const toggleEnabled = localStorage.getItem('binanceTriangularEnabled') === 'true';
+            const toggle = document.getElementById('binanceTriangularEnabled');
+            const status = document.getElementById('binanceTriangularStatus');
+
+            if (toggleEnabled) {
+                toggle.classList.add('active');
+                status.textContent = 'ON';
+                status.style.color = '#F0B90B';
+                console.log('✅ [BINANCE] Live trading enabled (from localStorage)');
+            } else {
+                console.log('ℹ️ [BINANCE] Live trading disabled (from localStorage)');
+            }
+        }
+
+        // Initialize Binance settings on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 [BINANCE] Initializing triangular arbitrage settings...');
+            loadBinanceTriangularSettings();
+
+            // Add event listeners for Binance inputs (auto-save)
+            const binanceInputs = document.querySelectorAll('#binanceMaxTrade, #binancePortfolioPercent, #binanceProfitThreshold');
+            binanceInputs.forEach(input => {
+                input.addEventListener('change', saveBinanceTriangularSettings);
+            });
+
+            // Add event listeners for Binance checkboxes (5 sets)
+            for (let i = 1; i <= 5; i++) {
+                const checkbox = document.getElementById(`binanceSet${i}Enabled`);
+                if (checkbox) {
+                    checkbox.addEventListener('change', saveBinanceTriangularSettings);
                 }
             }
         });

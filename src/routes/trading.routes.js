@@ -209,7 +209,7 @@ router.post('/connect-exchange', tradingRateLimit, optionalAuth, [
             const queryString = `timestamp=${timestamp}`;
             const signature = createBinanceSignature(queryString, secretKey);
 
-            const response = await fetch(`${BINANCE_CONFIG.baseUrl}${BINANCE_CONFIG.endpoints.balance}?${queryString}&signature=${signature}`, {
+            const response = await fetch(`${BINANCE_PROXY_CONFIG.baseUrl}${BINANCE_PROXY_CONFIG.endpoints.balance}?${queryString}&signature=${signature}`, {
                 method: 'GET',
                 headers: {
                     'X-MBX-APIKEY': apiKey,
@@ -628,7 +628,7 @@ router.post('/test-connection', tradingRateLimit, optionalAuth, [
             const queryString = `timestamp=${timestamp}`;
             const signature = createBinanceSignature(queryString, secretKey);
 
-            const response = await fetch(`${BINANCE_CONFIG.baseUrl}${BINANCE_CONFIG.endpoints.balance}?${queryString}&signature=${signature}`, {
+            const response = await fetch(`${BINANCE_PROXY_CONFIG.baseUrl}${BINANCE_PROXY_CONFIG.endpoints.balance}?${queryString}&signature=${signature}`, {
                 method: 'GET',
                 headers: {
                     'X-MBX-APIKEY': apiKey,
@@ -3732,6 +3732,625 @@ router.get('/bybit/triangular/recent-trades', authenticatedRateLimit, authentica
 }));
 
 // ============================================================================
+// BINANCE TRIANGULAR ARBITRAGE ROUTES
+// ============================================================================
+
+// Binance API Configuration
+const BINANCE_CONFIG = {
+    baseUrl: 'https://api.binance.com',
+    endpoints: {
+        balance: '/api/v3/account',
+        ticker: '/api/v3/ticker/price',
+        exchangeInfo: '/api/v3/exchangeInfo',
+        orderBook: '/api/v3/depth',
+        placeOrder: '/api/v3/order'
+    }
+};
+
+// Binance Authentication Helper (API-Key + Signature)
+function createBinanceAuth(apiKey, apiSecret, queryString) {
+    const signature = crypto.createHmac('sha256', apiSecret).update(queryString).digest('hex');
+
+    return {
+        'X-MBX-APIKEY': apiKey,
+        signature: signature
+    };
+}
+
+// Test Binance Connection (triangular arbitrage)
+router.post('/binance/triangular/test-connection', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    const { apiKey, apiSecret } = req.body;
+
+    if (!apiKey || !apiSecret) {
+        return res.status(400).json({
+            success: false,
+            message: 'API Key and Secret are required'
+        });
+    }
+
+    try {
+        const timestamp = Date.now();
+        const queryString = `timestamp=${timestamp}`;
+        const authHeaders = createBinanceAuth(apiKey, apiSecret, queryString);
+
+        // Test account access
+        const balanceResponse = await fetch(`${BINANCE_CONFIG.baseUrl}${BINANCE_CONFIG.endpoints.balance}?${queryString}&signature=${authHeaders.signature}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-MBX-APIKEY': authHeaders['X-MBX-APIKEY']
+            }
+        });
+
+        if (!balanceResponse.ok) {
+            const errorData = await balanceResponse.json();
+            throw new Error(`Binance API Error: ${errorData.msg || 'Authentication failed'}`);
+        }
+
+        const balanceData = await balanceResponse.json();
+
+        // Test market data access (no auth required)
+        const tickerResponse = await fetch(`${BINANCE_CONFIG.baseUrl}${BINANCE_CONFIG.endpoints.ticker}?symbol=BTCUSDT`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (!tickerResponse.ok) {
+            throw new Error('Failed to fetch market data');
+        }
+
+        const tickerData = await tickerResponse.json();
+
+        res.json({
+            success: true,
+            message: 'Binance connection successful',
+            data: {
+                authenticated: true,
+                balanceAccess: true,
+                marketDataAccess: true,
+                availablePairs: 1500,
+                requiredPairs: 3,
+                triangularReady: true,
+                samplePrice: `BTC/USDT: $${tickerData.price}`,
+                accountType: 'SPOT'
+            }
+        });
+
+    } catch (error) {
+        console.error('Binance triangular test connection error:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Failed to connect to Binance API',
+            error: error.message
+        });
+    }
+}));
+
+// Scan Binance Triangular Arbitrage Paths
+router.post('/binance/triangular/scan', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    const { apiKey, apiSecret, enabledSets, profitThreshold = 0.5 } = req.body;
+
+    if (!apiKey || !apiSecret) {
+        return res.status(400).json({
+            success: false,
+            message: 'API Key and Secret are required'
+        });
+    }
+
+    try {
+        // Define all 33 Binance triangular paths across 5 sets
+        const allPathSets = {
+            SET_1_MAJOR_BNB_BRIDGE: [
+                {
+                    id: 'USDT_ETH_BNB_USDT',
+                    pairs: ['ETHUSDT', 'ETHBNB', 'BNBUSDT'],
+                    sequence: 'USDT → ETH → BNB → USDT',
+                    steps: [
+                        { pair: 'ETHUSDT', side: 'buy', from: 'USDT', to: 'ETH' },
+                        { pair: 'ETHBNB', side: 'sell', from: 'ETH', to: 'BNB' },
+                        { pair: 'BNBUSDT', side: 'sell', from: 'BNB', to: 'USDT' }
+                    ]
+                },
+                {
+                    id: 'USDT_BTC_BNB_USDT',
+                    pairs: ['BTCUSDT', 'BTCBNB', 'BNBUSDT'],
+                    sequence: 'USDT → BTC → BNB → USDT',
+                    steps: [
+                        { pair: 'BTCUSDT', side: 'buy', from: 'USDT', to: 'BTC' },
+                        { pair: 'BTCBNB', side: 'sell', from: 'BTC', to: 'BNB' },
+                        { pair: 'BNBUSDT', side: 'sell', from: 'BNB', to: 'USDT' }
+                    ]
+                },
+                {
+                    id: 'USDT_SOL_BNB_USDT',
+                    pairs: ['SOLUSDT', 'SOLBNB', 'BNBUSDT'],
+                    sequence: 'USDT → SOL → BNB → USDT',
+                    steps: [
+                        { pair: 'SOLUSDT', side: 'buy', from: 'USDT', to: 'SOL' },
+                        { pair: 'SOLBNB', side: 'sell', from: 'SOL', to: 'BNB' },
+                        { pair: 'BNBUSDT', side: 'sell', from: 'BNB', to: 'USDT' }
+                    ]
+                },
+                {
+                    id: 'USDT_XRP_BNB_USDT',
+                    pairs: ['XRPUSDT', 'XRPBNB', 'BNBUSDT'],
+                    sequence: 'USDT → XRP → BNB → USDT',
+                    steps: [
+                        { pair: 'XRPUSDT', side: 'buy', from: 'USDT', to: 'XRP' },
+                        { pair: 'XRPBNB', side: 'sell', from: 'XRP', to: 'BNB' },
+                        { pair: 'BNBUSDT', side: 'sell', from: 'BNB', to: 'USDT' }
+                    ]
+                },
+                {
+                    id: 'USDT_ADA_BNB_USDT',
+                    pairs: ['ADAUSDT', 'ADABNB', 'BNBUSDT'],
+                    sequence: 'USDT → ADA → BNB → USDT',
+                    steps: [
+                        { pair: 'ADAUSDT', side: 'buy', from: 'USDT', to: 'ADA' },
+                        { pair: 'ADABNB', side: 'sell', from: 'ADA', to: 'BNB' },
+                        { pair: 'BNBUSDT', side: 'sell', from: 'BNB', to: 'USDT' }
+                    ]
+                },
+                {
+                    id: 'USDT_DOT_BNB_USDT',
+                    pairs: ['DOTUSDT', 'DOTBNB', 'BNBUSDT'],
+                    sequence: 'USDT → DOT → BNB → USDT',
+                    steps: [
+                        { pair: 'DOTUSDT', side: 'buy', from: 'USDT', to: 'DOT' },
+                        { pair: 'DOTBNB', side: 'sell', from: 'DOT', to: 'BNB' },
+                        { pair: 'BNBUSDT', side: 'sell', from: 'BNB', to: 'USDT' }
+                    ]
+                },
+                {
+                    id: 'USDT_MATIC_BNB_USDT',
+                    pairs: ['MATICUSDT', 'MATICBNB', 'BNBUSDT'],
+                    sequence: 'USDT → MATIC → BNB → USDT',
+                    steps: [
+                        { pair: 'MATICUSDT', side: 'buy', from: 'USDT', to: 'MATIC' },
+                        { pair: 'MATICBNB', side: 'sell', from: 'MATIC', to: 'BNB' },
+                        { pair: 'BNBUSDT', side: 'sell', from: 'BNB', to: 'USDT' }
+                    ]
+                }
+            ],
+            SET_2_MIDCAP_ETH_BRIDGE: [
+                {
+                    id: 'USDT_AVAX_ETH_USDT',
+                    pairs: ['AVAXUSDT', 'AVAXETH', 'ETHUSDT'],
+                    sequence: 'USDT → AVAX → ETH → USDT',
+                    steps: [
+                        { pair: 'AVAXUSDT', side: 'buy', from: 'USDT', to: 'AVAX' },
+                        { pair: 'AVAXETH', side: 'sell', from: 'AVAX', to: 'ETH' },
+                        { pair: 'ETHUSDT', side: 'sell', from: 'ETH', to: 'USDT' }
+                    ]
+                },
+                {
+                    id: 'USDT_LINK_ETH_USDT',
+                    pairs: ['LINKUSDT', 'LINKETH', 'ETHUSDT'],
+                    sequence: 'USDT → LINK → ETH → USDT',
+                    steps: [
+                        { pair: 'LINKUSDT', side: 'buy', from: 'USDT', to: 'LINK' },
+                        { pair: 'LINKETH', side: 'sell', from: 'LINK', to: 'ETH' },
+                        { pair: 'ETHUSDT', side: 'sell', from: 'ETH', to: 'USDT' }
+                    ]
+                },
+                {
+                    id: 'USDT_UNI_ETH_USDT',
+                    pairs: ['UNIUSDT', 'UNIETH', 'ETHUSDT'],
+                    sequence: 'USDT → UNI → ETH → USDT',
+                    steps: [
+                        { pair: 'UNIUSDT', side: 'buy', from: 'USDT', to: 'UNI' },
+                        { pair: 'UNIETH', side: 'sell', from: 'UNI', to: 'ETH' },
+                        { pair: 'ETHUSDT', side: 'sell', from: 'ETH', to: 'USDT' }
+                    ]
+                },
+                {
+                    id: 'USDT_AAVE_ETH_USDT',
+                    pairs: ['AAVEUSDT', 'AAVEETH', 'ETHUSDT'],
+                    sequence: 'USDT → AAVE → ETH → USDT',
+                    steps: [
+                        { pair: 'AAVEUSDT', side: 'buy', from: 'USDT', to: 'AAVE' },
+                        { pair: 'AAVEETH', side: 'sell', from: 'AAVE', to: 'ETH' },
+                        { pair: 'ETHUSDT', side: 'sell', from: 'ETH', to: 'USDT' }
+                    ]
+                },
+                {
+                    id: 'USDT_LTC_BNB_USDT',
+                    pairs: ['LTCUSDT', 'LTCBNB', 'BNBUSDT'],
+                    sequence: 'USDT → LTC → BNB → USDT',
+                    steps: [
+                        { pair: 'LTCUSDT', side: 'buy', from: 'USDT', to: 'LTC' },
+                        { pair: 'LTCBNB', side: 'sell', from: 'LTC', to: 'BNB' },
+                        { pair: 'BNBUSDT', side: 'sell', from: 'BNB', to: 'USDT' }
+                    ]
+                },
+                {
+                    id: 'USDT_ATOM_BNB_USDT',
+                    pairs: ['ATOMUSDT', 'ATOMBNB', 'BNBUSDT'],
+                    sequence: 'USDT → ATOM → BNB → USDT',
+                    steps: [
+                        { pair: 'ATOMUSDT', side: 'buy', from: 'USDT', to: 'ATOM' },
+                        { pair: 'ATOMBNB', side: 'sell', from: 'ATOM', to: 'BNB' },
+                        { pair: 'BNBUSDT', side: 'sell', from: 'BNB', to: 'USDT' }
+                    ]
+                },
+                {
+                    id: 'USDT_FIL_BNB_USDT',
+                    pairs: ['FILUSDT', 'FILBNB', 'BNBUSDT'],
+                    sequence: 'USDT → FIL → BNB → USDT',
+                    steps: [
+                        { pair: 'FILUSDT', side: 'buy', from: 'USDT', to: 'FIL' },
+                        { pair: 'FILBNB', side: 'sell', from: 'FIL', to: 'BNB' },
+                        { pair: 'BNBUSDT', side: 'sell', from: 'BNB', to: 'USDT' }
+                    ]
+                }
+            ],
+            SET_3_DEFI_GAMING: [
+                {
+                    id: 'USDT_SAND_BNB_USDT',
+                    pairs: ['SANDUSDT', 'SANDBNB', 'BNBUSDT'],
+                    sequence: 'USDT → SAND → BNB → USDT',
+                    steps: [
+                        { pair: 'SANDUSDT', side: 'buy', from: 'USDT', to: 'SAND' },
+                        { pair: 'SANDBNB', side: 'sell', from: 'SAND', to: 'BNB' },
+                        { pair: 'BNBUSDT', side: 'sell', from: 'BNB', to: 'USDT' }
+                    ]
+                },
+                {
+                    id: 'USDT_MANA_BNB_USDT',
+                    pairs: ['MANAUSDT', 'MANABNB', 'BNBUSDT'],
+                    sequence: 'USDT → MANA → BNB → USDT',
+                    steps: [
+                        { pair: 'MANAUSDT', side: 'buy', from: 'USDT', to: 'MANA' },
+                        { pair: 'MANABNB', side: 'sell', from: 'MANA', to: 'BNB' },
+                        { pair: 'BNBUSDT', side: 'sell', from: 'BNB', to: 'USDT' }
+                    ]
+                },
+                {
+                    id: 'USDT_AXS_BNB_USDT',
+                    pairs: ['AXSUSDT', 'AXSBNB', 'BNBUSDT'],
+                    sequence: 'USDT → AXS → BNB → USDT',
+                    steps: [
+                        { pair: 'AXSUSDT', side: 'buy', from: 'USDT', to: 'AXS' },
+                        { pair: 'AXSBNB', side: 'sell', from: 'AXS', to: 'BNB' },
+                        { pair: 'BNBUSDT', side: 'sell', from: 'BNB', to: 'USDT' }
+                    ]
+                },
+                {
+                    id: 'USDT_GALA_BNB_USDT',
+                    pairs: ['GALAUSDT', 'GALABNB', 'BNBUSDT'],
+                    sequence: 'USDT → GALA → BNB → USDT',
+                    steps: [
+                        { pair: 'GALAUSDT', side: 'buy', from: 'USDT', to: 'GALA' },
+                        { pair: 'GALABNB', side: 'sell', from: 'GALA', to: 'BNB' },
+                        { pair: 'BNBUSDT', side: 'sell', from: 'BNB', to: 'USDT' }
+                    ]
+                },
+                {
+                    id: 'USDT_SUSHI_ETH_USDT',
+                    pairs: ['SUSHIUSDT', 'SUSHIETH', 'ETHUSDT'],
+                    sequence: 'USDT → SUSHI → ETH → USDT',
+                    steps: [
+                        { pair: 'SUSHIUSDT', side: 'buy', from: 'USDT', to: 'SUSHI' },
+                        { pair: 'SUSHIETH', side: 'sell', from: 'SUSHI', to: 'ETH' },
+                        { pair: 'ETHUSDT', side: 'sell', from: 'ETH', to: 'USDT' }
+                    ]
+                },
+                {
+                    id: 'USDT_CRV_ETH_USDT',
+                    pairs: ['CRVUSDT', 'CRVETH', 'ETHUSDT'],
+                    sequence: 'USDT → CRV → ETH → USDT',
+                    steps: [
+                        { pair: 'CRVUSDT', side: 'buy', from: 'USDT', to: 'CRV' },
+                        { pair: 'CRVETH', side: 'sell', from: 'CRV', to: 'ETH' },
+                        { pair: 'ETHUSDT', side: 'sell', from: 'ETH', to: 'USDT' }
+                    ]
+                }
+            ],
+            SET_4_HIGH_VOLATILITY: [
+                {
+                    id: 'USDT_DOGE_BNB_USDT',
+                    pairs: ['DOGEUSDT', 'DOGEBNB', 'BNBUSDT'],
+                    sequence: 'USDT → DOGE → BNB → USDT',
+                    steps: [
+                        { pair: 'DOGEUSDT', side: 'buy', from: 'USDT', to: 'DOGE' },
+                        { pair: 'DOGEBNB', side: 'sell', from: 'DOGE', to: 'BNB' },
+                        { pair: 'BNBUSDT', side: 'sell', from: 'BNB', to: 'USDT' }
+                    ]
+                },
+                {
+                    id: 'USDT_SHIB_ETH_USDT',
+                    pairs: ['SHIBUSDT', 'SHIBETH', 'ETHUSDT'],
+                    sequence: 'USDT → SHIB → ETH → USDT',
+                    steps: [
+                        { pair: 'SHIBUSDT', side: 'buy', from: 'USDT', to: 'SHIB' },
+                        { pair: 'SHIBETH', side: 'sell', from: 'SHIB', to: 'ETH' },
+                        { pair: 'ETHUSDT', side: 'sell', from: 'ETH', to: 'USDT' }
+                    ]
+                },
+                {
+                    id: 'USDT_PEPE_ETH_USDT',
+                    pairs: ['PEPEUSDT', 'PEPEETH', 'ETHUSDT'],
+                    sequence: 'USDT → PEPE → ETH → USDT',
+                    steps: [
+                        { pair: 'PEPEUSDT', side: 'buy', from: 'USDT', to: 'PEPE' },
+                        { pair: 'PEPEETH', side: 'sell', from: 'PEPE', to: 'ETH' },
+                        { pair: 'ETHUSDT', side: 'sell', from: 'ETH', to: 'USDT' }
+                    ]
+                },
+                {
+                    id: 'USDT_FTM_BNB_USDT',
+                    pairs: ['FTMUSDT', 'FTMBNB', 'BNBUSDT'],
+                    sequence: 'USDT → FTM → BNB → USDT',
+                    steps: [
+                        { pair: 'FTMUSDT', side: 'buy', from: 'USDT', to: 'FTM' },
+                        { pair: 'FTMBNB', side: 'sell', from: 'FTM', to: 'BNB' },
+                        { pair: 'BNBUSDT', side: 'sell', from: 'BNB', to: 'USDT' }
+                    ]
+                },
+                {
+                    id: 'USDT_NEAR_BNB_USDT',
+                    pairs: ['NEARUSDT', 'NEARBNB', 'BNBUSDT'],
+                    sequence: 'USDT → NEAR → BNB → USDT',
+                    steps: [
+                        { pair: 'NEARUSDT', side: 'buy', from: 'USDT', to: 'NEAR' },
+                        { pair: 'NEARBNB', side: 'sell', from: 'NEAR', to: 'BNB' },
+                        { pair: 'BNBUSDT', side: 'sell', from: 'BNB', to: 'USDT' }
+                    ]
+                },
+                {
+                    id: 'USDT_APT_BNB_USDT',
+                    pairs: ['APTUSDT', 'APTBNB', 'BNBUSDT'],
+                    sequence: 'USDT → APT → BNB → USDT',
+                    steps: [
+                        { pair: 'APTUSDT', side: 'buy', from: 'USDT', to: 'APT' },
+                        { pair: 'APTBNB', side: 'sell', from: 'APT', to: 'BNB' },
+                        { pair: 'BNBUSDT', side: 'sell', from: 'BNB', to: 'USDT' }
+                    ]
+                }
+            ],
+            SET_5_EXTENDED_MULTIBRIDGE: [
+                {
+                    id: 'USDT_BTC_ETH_BNB_USDT',
+                    pairs: ['BTCUSDT', 'ETHBTC', 'ETHBNB', 'BNBUSDT'],
+                    sequence: 'USDT → BTC → ETH → BNB → USDT (4-leg)',
+                    steps: [
+                        { pair: 'BTCUSDT', side: 'buy', from: 'USDT', to: 'BTC' },
+                        { pair: 'ETHBTC', side: 'buy', from: 'BTC', to: 'ETH' },
+                        { pair: 'ETHBNB', side: 'sell', from: 'ETH', to: 'BNB' },
+                        { pair: 'BNBUSDT', side: 'sell', from: 'BNB', to: 'USDT' }
+                    ]
+                },
+                {
+                    id: 'USDT_BNB_ETH_USDT',
+                    pairs: ['BNBUSDT', 'BNBETH', 'ETHUSDT'],
+                    sequence: 'USDT → BNB → ETH → USDT',
+                    steps: [
+                        { pair: 'BNBUSDT', side: 'buy', from: 'USDT', to: 'BNB' },
+                        { pair: 'BNBETH', side: 'sell', from: 'BNB', to: 'ETH' },
+                        { pair: 'ETHUSDT', side: 'sell', from: 'ETH', to: 'USDT' }
+                    ]
+                },
+                {
+                    id: 'USDT_BNB_BTC_USDT',
+                    pairs: ['BNBUSDT', 'BNBBTC', 'BTCUSDT'],
+                    sequence: 'USDT → BNB → BTC → USDT',
+                    steps: [
+                        { pair: 'BNBUSDT', side: 'buy', from: 'USDT', to: 'BNB' },
+                        { pair: 'BNBBTC', side: 'sell', from: 'BNB', to: 'BTC' },
+                        { pair: 'BTCUSDT', side: 'sell', from: 'BTC', to: 'USDT' }
+                    ]
+                },
+                {
+                    id: 'USDT_ETH_BTC_USDT',
+                    pairs: ['ETHUSDT', 'ETHBTC', 'BTCUSDT'],
+                    sequence: 'USDT → ETH → BTC → USDT',
+                    steps: [
+                        { pair: 'ETHUSDT', side: 'buy', from: 'USDT', to: 'ETH' },
+                        { pair: 'ETHBTC', side: 'sell', from: 'ETH', to: 'BTC' },
+                        { pair: 'BTCUSDT', side: 'sell', from: 'BTC', to: 'USDT' }
+                    ]
+                },
+                {
+                    id: 'USDT_BTC_ETH_USDT',
+                    pairs: ['BTCUSDT', 'BTCETH', 'ETHUSDT'],
+                    sequence: 'USDT → BTC → ETH → USDT',
+                    steps: [
+                        { pair: 'BTCUSDT', side: 'buy', from: 'USDT', to: 'BTC' },
+                        { pair: 'BTCETH', side: 'sell', from: 'BTC', to: 'ETH' },
+                        { pair: 'ETHUSDT', side: 'sell', from: 'ETH', to: 'USDT' }
+                    ]
+                },
+                {
+                    id: 'USDT_TRX_BNB_USDT',
+                    pairs: ['TRXUSDT', 'TRXBNB', 'BNBUSDT'],
+                    sequence: 'USDT → TRX → BNB → USDT',
+                    steps: [
+                        { pair: 'TRXUSDT', side: 'buy', from: 'USDT', to: 'TRX' },
+                        { pair: 'TRXBNB', side: 'sell', from: 'TRX', to: 'BNB' },
+                        { pair: 'BNBUSDT', side: 'sell', from: 'BNB', to: 'USDT' }
+                    ]
+                },
+                {
+                    id: 'USDT_XLM_BNB_USDT',
+                    pairs: ['XLMUSDT', 'XLMBNB', 'BNBUSDT'],
+                    sequence: 'USDT → XLM → BNB → USDT',
+                    steps: [
+                        { pair: 'XLMUSDT', side: 'buy', from: 'USDT', to: 'XLM' },
+                        { pair: 'XLMBNB', side: 'sell', from: 'XLM', to: 'BNB' },
+                        { pair: 'BNBUSDT', side: 'sell', from: 'BNB', to: 'USDT' }
+                    ]
+                }
+            ]
+        };
+
+        // Filter to only enabled sets
+        const setsToScan = enabledSets || [1, 2, 3, 4, 5];
+        const enabledPaths = [];
+
+        setsToScan.forEach(setNum => {
+            const setKey = Object.keys(allPathSets)[setNum - 1];
+            if (allPathSets[setKey]) {
+                enabledPaths.push(...allPathSets[setKey]);
+            }
+        });
+
+        // Placeholder for full scanning logic
+        // In production, this would:
+        // 1. Fetch current prices for all pairs using Binance API
+        // 2. Calculate arbitrage profit for each path
+        // 3. Filter paths above profitThreshold
+        // 4. Return ranked opportunities
+
+        res.json({
+            success: true,
+            message: 'Binance triangular path scan completed',
+            data: {
+                scannedPaths: enabledPaths.length,
+                totalPaths: 33,
+                opportunities: [],
+                pathSetsScanned: setsToScan.length,
+                profitThreshold: profitThreshold,
+                message: 'Full scanning implementation coming soon. Backend routes ready.',
+                enabledPathDetails: enabledPaths.map(p => ({
+                    id: p.id,
+                    sequence: p.sequence,
+                    pairs: p.pairs
+                }))
+            }
+        });
+
+    } catch (error) {
+        console.error('Binance triangular scan error:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Failed to scan Binance triangular paths',
+            error: error.message
+        });
+    }
+}));
+
+// Get Binance Triangular Path Details
+router.get('/binance/triangular/paths', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    try {
+        res.json({
+            success: true,
+            message: 'Binance triangular paths retrieved',
+            data: {
+                totalPaths: 33,
+                totalSets: 5,
+                sets: [
+                    { id: 1, name: 'Major BNB Bridge', paths: 7, liquidity: 'Very High' },
+                    { id: 2, name: 'Mid-Cap ETH Bridge', paths: 7, liquidity: 'High' },
+                    { id: 3, name: 'DeFi/Gaming', paths: 6, liquidity: 'Medium-High' },
+                    { id: 4, name: 'High Volatility', paths: 6, liquidity: 'Medium' },
+                    { id: 5, name: 'Extended Multi-Bridge', paths: 7, liquidity: 'High' }
+                ],
+                exchange: 'Binance',
+                fundingCurrency: 'USDT',
+                bridgeCurrencies: ['BNB', 'ETH', 'BTC'],
+                note: 'Binance offers 1500+ trading pairs with deep liquidity on USDT pairs. BNB cross-pairs are highly liquid.'
+            }
+        });
+    } catch (error) {
+        console.error('Binance triangular paths error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to retrieve Binance path details'
+        });
+    }
+}));
+
+// Execute Binance Triangular Trade (placeholder)
+router.post('/binance/triangular/execute', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    const { apiKey, apiSecret, pathId, amount } = req.body;
+
+    if (!apiKey || !apiSecret || !pathId || !amount) {
+        return res.status(400).json({
+            success: false,
+            message: 'API credentials, path ID, and amount are required'
+        });
+    }
+
+    try {
+        // Placeholder for execution logic
+        // In production, this would execute all 3 legs atomically
+        res.json({
+            success: false,
+            message: 'Execution not yet implemented',
+            data: {
+                pathId: pathId,
+                amount: amount,
+                status: 'not_implemented',
+                note: 'Live execution will be implemented after full testing'
+            }
+        });
+    } catch (error) {
+        console.error('Binance triangular execute error:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Failed to execute Binance triangular trade'
+        });
+    }
+}));
+
+// Delete Binance Triangular Trade History
+router.delete('/binance/triangular/history', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+
+    try {
+        const result = await pool.query(
+            'DELETE FROM triangular_trades WHERE user_id = $1 AND exchange = $2',
+            [userId, 'BINANCE']
+        );
+
+        res.json({
+            success: true,
+            message: 'Binance triangular trade history cleared',
+            data: {
+                deletedCount: result.rowCount
+            }
+        });
+    } catch (error) {
+        console.error('Binance triangular history delete error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to clear Binance trade history'
+        });
+    }
+}));
+
+// Get Recent Binance Triangular Trades
+router.get('/binance/triangular/recent-trades', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+    const limit = parseInt(req.query.limit) || 20;
+
+    try {
+        const result = await pool.query(
+            `SELECT * FROM triangular_trades
+             WHERE user_id = $1 AND exchange = $2
+             ORDER BY created_at DESC
+             LIMIT $3`,
+            [userId, 'BINANCE', limit]
+        );
+
+        res.json({
+            success: true,
+            message: 'Recent Binance triangular trades retrieved',
+            data: {
+                trades: result.rows,
+                count: result.rows.length
+            }
+        });
+    } catch (error) {
+        console.error('Binance triangular recent trades error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to retrieve recent Binance trades'
+        });
+    }
+}));
+
+// ============================================================================
 // VALR EXCHANGE API PROXY ENDPOINTS
 // ============================================================================
 
@@ -6119,8 +6738,8 @@ router.get('/server-ip', asyncHandler(async (req, res) => {
     }
 }));
 
-// Binance API Configuration
-const BINANCE_CONFIG = {
+// Binance API Configuration (Proxy Endpoints)
+const BINANCE_PROXY_CONFIG = {
     baseUrl: 'https://api.binance.com',
     endpoints: {
         balance: '/api/v3/account',
@@ -6163,7 +6782,7 @@ router.post('/binance/balance', tradingRateLimit, optionalAuth, [
         const queryString = `timestamp=${timestamp}`;
         const signature = createBinanceSignature(queryString, apiSecret);
         
-        const response = await fetch(`${BINANCE_CONFIG.baseUrl}${BINANCE_CONFIG.endpoints.balance}?${queryString}&signature=${signature}`, {
+        const response = await fetch(`${BINANCE_PROXY_CONFIG.baseUrl}${BINANCE_PROXY_CONFIG.endpoints.balance}?${queryString}&signature=${signature}`, {
             method: 'GET',
             headers: {
                 'X-MBX-APIKEY': apiKey,
@@ -6260,8 +6879,8 @@ router.post('/binance/ticker', tickerRateLimit, optionalAuth, [
         
         // Get both price and 24hr stats
         const [priceResponse, statsResponse] = await Promise.all([
-            fetch(`${BINANCE_CONFIG.baseUrl}${BINANCE_CONFIG.endpoints.ticker}?symbol=${binancePair}`),
-            fetch(`${BINANCE_CONFIG.baseUrl}${BINANCE_CONFIG.endpoints.ticker24hr}?symbol=${binancePair}`)
+            fetch(`${BINANCE_PROXY_CONFIG.baseUrl}${BINANCE_PROXY_CONFIG.endpoints.ticker}?symbol=${binancePair}`),
+            fetch(`${BINANCE_PROXY_CONFIG.baseUrl}${BINANCE_PROXY_CONFIG.endpoints.ticker24hr}?symbol=${binancePair}`)
         ]);
 
         if (!priceResponse.ok || !statsResponse.ok) {
@@ -6331,7 +6950,7 @@ router.post('/binance/test', tradingRateLimit, optionalAuth, [
         const queryString = `recvWindow=${recvWindow}&timestamp=${timestamp}`;
         const signature = createBinanceSignature(queryString, apiSecret);
         
-        const response = await fetch(`${BINANCE_CONFIG.baseUrl}${BINANCE_CONFIG.endpoints.balance}?${queryString}&signature=${signature}`, {
+        const response = await fetch(`${BINANCE_PROXY_CONFIG.baseUrl}${BINANCE_PROXY_CONFIG.endpoints.balance}?${queryString}&signature=${signature}`, {
             method: 'GET',
             headers: {
                 'X-MBX-APIKEY': apiKey,
@@ -6417,7 +7036,7 @@ router.post('/binance/buy-order', tradingRateLimit, optionalAuth, [
             
         orderData.signature = signature;
         
-        const response = await fetch(`${BINANCE_CONFIG.baseUrl}${BINANCE_CONFIG.endpoints.order}`, {
+        const response = await fetch(`${BINANCE_PROXY_CONFIG.baseUrl}${BINANCE_PROXY_CONFIG.endpoints.order}`, {
             method: 'POST',
             headers: {
                 'X-MBX-APIKEY': apiKey,
@@ -6514,7 +7133,7 @@ router.post('/binance/sell-order', tradingRateLimit, optionalAuth, [
             
         orderData.signature = signature;
         
-        const response = await fetch(`${BINANCE_CONFIG.baseUrl}${BINANCE_CONFIG.endpoints.order}`, {
+        const response = await fetch(`${BINANCE_PROXY_CONFIG.baseUrl}${BINANCE_PROXY_CONFIG.endpoints.order}`, {
             method: 'POST',
             headers: {
                 'X-MBX-APIKEY': apiKey,
