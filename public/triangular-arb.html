@@ -532,17 +532,127 @@
             </div>
         </div>
 
+        <!-- CHAINEX Exchange Card -->
+        <div style="background: rgba(255,152,0,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 2px solid #ff9800;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="color: #ff9800; margin: 0;">🔶 CHAINEX Triangular Arbitrage</h3>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <span style="color: #b8c6db; font-size: 0.9rem;">CHAINEX Live Trading:</span>
+                    <div class="toggle-switch" id="chainexTriangularEnabled">
+                        <div class="toggle-knob"></div>
+                    </div>
+                    <span id="chainexTriangularStatus" style="color: #ff6b6b; font-size: 0.9rem; margin-left: 10px;">OFF</span>
+                </div>
+            </div>
+
+            <!-- CHAINEX Settings Grid -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 20px;">
+                <!-- Risk Management -->
+                <div class="stat-card">
+                    <h4 style="color: #ffb347; margin-bottom: 15px;">⚖️ Risk Management</h4>
+                    <div class="form-group">
+                        <label>Max Single Trade (ZAR)</label>
+                        <input type="number" id="chainexMaxTrade" value="500" min="100" max="10000">
+                    </div>
+                    <div class="form-group">
+                        <label>Portfolio % per Trade</label>
+                        <input type="number" id="chainexPortfolioPercent" value="10" min="1" max="50">
+                    </div>
+                    <div class="form-group">
+                        <label>Min Profit Threshold (%)</label>
+                        <input type="number" id="chainexProfitThreshold" value="0.5" min="0.1" max="5" step="0.1">
+                    </div>
+                </div>
+
+                <!-- Path Categories -->
+                <div class="stat-card">
+                    <h4 style="color: #ffb347; margin-bottom: 15px;">📊 Path Sets (28 Paths in 6 Sets)</h4>
+                    <div style="display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; max-height: 200px; overflow-y: auto;">
+                        <span style="color: #ffd700; font-size: 0.85rem;">SET 1: ZAR Focus (8 paths)</span>
+                        <input type="checkbox" id="chainexSet1Enabled" checked>
+
+                        <span style="color: #ff9800; font-size: 0.85rem;">SET 2: BTC Focus (7 paths)</span>
+                        <input type="checkbox" id="chainexSet2Enabled" checked>
+
+                        <span style="color: #32cd32; font-size: 0.85rem;">SET 3: USDT Focus (6 paths)</span>
+                        <input type="checkbox" id="chainexSet3Enabled" checked>
+
+                        <span style="color: #00d4ff; font-size: 0.85rem;">SET 4: ETH Focus (4 paths)</span>
+                        <input type="checkbox" id="chainexSet4Enabled">
+
+                        <span style="color: #9370db; font-size: 0.85rem;">SET 5: Cross-Currency (2 paths)</span>
+                        <input type="checkbox" id="chainexSet5Enabled">
+
+                        <span style="color: #778899; font-size: 0.85rem;">SET 6: Extended Altcoins (1 path)</span>
+                        <input type="checkbox" id="chainexSet6Enabled">
+                    </div>
+                    <div style="margin-top: 10px; padding: 8px; background: rgba(255,152,0,0.1); border-radius: 6px; font-size: 0.8rem; color: #b8c6db;">
+                        💡 Sets 1-3 are essential (21 paths). ChainEX specializes in ZAR and major crypto pairs with competitive fees.
+                    </div>
+                </div>
+
+                <!-- Performance Stats -->
+                <div class="stat-card">
+                    <h4 style="color: #ffb347; margin-bottom: 15px;">📈 Performance Stats</h4>
+                    <div style="display: grid; grid-template-columns: 1fr auto; gap: 10px; font-size: 0.9rem;">
+                        <span style="color: #b8c6db;">Total Trades:</span>
+                        <span style="color: #ff9800;" id="chainexTotalTrades">0</span>
+
+                        <span style="color: #b8c6db;">Successful Trades:</span>
+                        <span style="color: #ff9800;" id="chainexSuccessfulTrades">0</span>
+
+                        <span style="color: #b8c6db;">Success Rate:</span>
+                        <span style="color: #ff9800;" id="chainexSuccessRate">0%</span>
+
+                        <span style="color: #b8c6db;">Total Profit:</span>
+                        <span style="color: #ff9800;" id="chainexTotalProfit">R 0.00</span>
+
+                        <span style="color: #b8c6db;">Best Path:</span>
+                        <span style="color: #ff9800;" id="chainexBestPath">-</span>
+
+                        <span style="color: #b8c6db;">Last Scan:</span>
+                        <span style="color: #b8c6db;" id="chainexLastScan">Never</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CHAINEX Control Buttons -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                <button onclick="testChainExTriangularConnection()" class="btn">
+                    🔍 Test Connection
+                </button>
+                <button onclick="scanChainExTriangularPaths()" class="btn">
+                    ⚡ Manual Scan
+                </button>
+                <button onclick="viewChainExPathDetails()" class="btn">
+                    📊 View Paths
+                </button>
+                <button onclick="clearChainExTriangularHistory()" class="btn">
+                    🗑️ Clear History
+                </button>
+            </div>
+
+            <!-- Recent CHAINEX Trades -->
+            <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px;">
+                <h4 style="color: #ffb347; margin-bottom: 15px;">🕒 Recent Triangular Trades</h4>
+                <div id="chainexRecentTrades" style="max-height: 200px; overflow-y: auto;">
+                    <div style="text-align: center; color: #888; padding: 20px;">
+                        No triangular trades yet. Enable live trading to start.
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Future Exchanges Placeholder -->
         <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 15px; border: 2px dashed #666;">
             <div style="text-align: center; color: #888;">
                 <h3 style="color: #666; margin-bottom: 15px;">🔮 Future Exchanges</h3>
                 <p style="margin-bottom: 15px;">Additional exchanges will be added here as they're implemented:</p>
                 <div style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;">
-                    <span style="color: #666; padding: 8px 16px; border: 1px solid #555; border-radius: 20px;">Luno</span>
                     <span style="color: #666; padding: 8px 16px; border: 1px solid #555; border-radius: 20px;">Binance</span>
                     <span style="color: #666; padding: 8px 16px; border: 1px solid #555; border-radius: 20px;">Kraken</span>
                     <span style="color: #666; padding: 8px 16px; border: 1px solid #555; border-radius: 20px;">OKX</span>
-                    <span style="color: #666; padding: 8px 16px; border: 1px solid #555; border-radius: 20px;">+ 8 more</span>
+                    <span style="color: #666; padding: 8px 16px; border: 1px solid #555; border-radius: 20px;">+ 14 more</span>
                 </div>
             </div>
         </div>
@@ -933,6 +1043,289 @@
                 const checkbox = document.getElementById(`lunoSet${i}Enabled`);
                 if (checkbox) {
                     checkbox.addEventListener('change', saveLunoTriangularSettings);
+                }
+            }
+        });
+
+        // ============================================================================
+        // CHAINEX TRIANGULAR ARBITRAGE JAVASCRIPT
+        // ============================================================================
+
+        // Toggle for ChainEX Triangular trading
+        document.getElementById('chainexTriangularEnabled').addEventListener('click', function() {
+            this.classList.toggle('active');
+            const status = document.getElementById('chainexTriangularStatus');
+
+            if (this.classList.contains('active')) {
+                status.textContent = 'ON';
+                status.style.color = '#ff9800';
+                localStorage.setItem('chainexTriangularEnabled', 'true');
+            } else {
+                status.textContent = 'OFF';
+                status.style.color = '#ff6b6b';
+                localStorage.setItem('chainexTriangularEnabled', 'false');
+            }
+        });
+
+        // Load saved ChainEX toggle state on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const chainexEnabled = localStorage.getItem('chainexTriangularEnabled') === 'true';
+            const toggle = document.getElementById('chainexTriangularEnabled');
+            const status = document.getElementById('chainexTriangularStatus');
+
+            if (chainexEnabled) {
+                toggle.classList.add('active');
+                status.textContent = 'ON';
+                status.style.color = '#ff9800';
+            }
+
+            // Load ChainEX settings
+            loadChainExTriangularSettings();
+        });
+
+        // Test ChainEX Triangular Connection
+        async function testChainExTriangularConnection() {
+            try {
+                // Get credentials from localStorage (saved from strategy-api-setup.html)
+                const apiKey = localStorage.getItem('chainex_triangular_api');
+                const apiSecret = localStorage.getItem('chainex_triangular_secret');
+
+                if (!apiKey || !apiSecret) {
+                    alert('❌ Please set up your ChainEX API credentials first in the Strategy API Setup page.');
+                    return;
+                }
+
+                // Show loading message
+                const btn = event.target;
+                const originalText = btn.textContent;
+                btn.textContent = '⏳ Testing...';
+                btn.disabled = true;
+
+                // Call backend test-connection route
+                const response = await fetch('/api/v1/trading/chainex/triangular/test-connection', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        apiKey: apiKey,
+                        apiSecret: apiSecret
+                    })
+                });
+
+                const result = await response.json();
+
+                btn.textContent = originalText;
+                btn.disabled = false;
+
+                if (result.success) {
+                    alert(`✅ ChainEX Connection Successful!\n\n` +
+                          `• Authenticated: ${result.data.authenticated ? 'Yes' : 'No'}\n` +
+                          `• Available Pairs: ${result.data.availablePairs}\n` +
+                          `• Required Pairs: ${result.data.requiredPairs}\n` +
+                          `• Missing Pairs: ${result.data.missingPairs.length}\n` +
+                          `• Triangular Ready: ${result.data.triangularReady ? 'Yes' : 'No'}`);
+                } else {
+                    alert(`❌ Connection Failed: ${result.message || 'Unknown error'}`);
+                }
+            } catch (error) {
+                alert(`❌ Connection Error: ${error.message}`);
+                console.error('ChainEX test connection error:', error);
+            }
+        }
+
+        // Scan ChainEX Triangular Paths
+        async function scanChainExTriangularPaths() {
+            try {
+                const apiKey = localStorage.getItem('chainex_triangular_api');
+                const apiSecret = localStorage.getItem('chainex_triangular_secret');
+
+                if (!apiKey || !apiSecret) {
+                    alert('❌ Please set up your ChainEX API credentials first.');
+                    return;
+                }
+
+                const btn = event.target;
+                const originalText = btn.textContent;
+                btn.textContent = '⏳ Scanning...';
+                btn.disabled = true;
+
+                // Get enabled path sets
+                const enabledSets = [];
+                for (let i = 1; i <= 6; i++) {
+                    const checkbox = document.getElementById(`chainexSet${i}Enabled`);
+                    if (checkbox && checkbox.checked) {
+                        enabledSets.push(i);
+                    }
+                }
+
+                const response = await fetch('/api/v1/trading/chainex/triangular/scan', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        apiKey: apiKey,
+                        apiSecret: apiSecret,
+                        paths: enabledSets.length > 0 ? enabledSets : 'all'
+                    })
+                });
+
+                const result = await response.json();
+
+                btn.textContent = originalText;
+                btn.disabled = false;
+
+                if (result.success) {
+                    document.getElementById('chainexLastScan').textContent = new Date().toLocaleTimeString();
+
+                    let message = `✅ Scan Complete!\n\n`;
+                    message += `• Paths Scanned: ${result.data.scannedPaths}\n`;
+                    message += `• Opportunities Found: ${result.data.opportunities.length}\n\n`;
+
+                    if (result.data.opportunities.length > 0) {
+                        message += `Top 3 Opportunities:\n`;
+                        result.data.opportunities.slice(0, 3).forEach((opp, i) => {
+                            message += `${i + 1}. ${opp.sequence}\n`;
+                            message += `   Profit: ${opp.profitPercent.toFixed(2)}% (R ${opp.profitZar.toFixed(2)})\n`;
+                        });
+                    } else {
+                        message += `No profitable opportunities found at this time.`;
+                    }
+
+                    alert(message);
+                } else {
+                    alert(`❌ Scan Failed: ${result.message || 'Unknown error'}`);
+                }
+            } catch (error) {
+                alert(`❌ Scan Error: ${error.message}`);
+                console.error('ChainEX scan error:', error);
+            }
+        }
+
+        // View ChainEX Path Details
+        async function viewChainExPathDetails() {
+            try {
+                const response = await fetch('/api/v1/trading/chainex/triangular/paths', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    let message = '📊 ChainEX Triangular Paths\n\n';
+                    message += `Total Paths: ${result.data.totalPaths}\n\n`;
+
+                    for (const [key, value] of Object.entries(result.data.pathSets)) {
+                        const setNumber = key.replace('SET_', '').split('_')[0];
+                        message += `SET ${setNumber}: ${value.description}\n`;
+                        message += `  Paths: ${value.count} | Enabled: ${value.enabled ? 'Yes' : 'No'}\n\n`;
+                    }
+
+                    alert(message);
+                } else {
+                    alert(`❌ Failed to fetch paths: ${result.message || 'Unknown error'}`);
+                }
+            } catch (error) {
+                alert(`❌ Error: ${error.message}`);
+                console.error('ChainEX paths error:', error);
+            }
+        }
+
+        // Clear ChainEX Triangular History
+        async function clearChainExTriangularHistory() {
+            if (!confirm('⚠️ Clear all ChainEX triangular trade history?\n\nThis action cannot be undone.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/v1/trading/chainex/triangular/history', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Reset stats display
+                    document.getElementById('chainexTotalTrades').textContent = '0';
+                    document.getElementById('chainexSuccessfulTrades').textContent = '0';
+                    document.getElementById('chainexSuccessRate').textContent = '0%';
+                    document.getElementById('chainexTotalProfit').textContent = 'R 0.00';
+                    document.getElementById('chainexBestPath').textContent = '-';
+                    document.getElementById('chainexLastScan').textContent = 'Never';
+
+                    // Clear recent trades display
+                    document.getElementById('chainexRecentTrades').innerHTML =
+                        '<div style="text-align: center; color: #888; padding: 20px;">No triangular trades yet. Enable live trading to start.</div>';
+
+                    alert(`✅ History cleared successfully!\n\nDeleted ${result.data.deletedCount} records.`);
+                } else {
+                    alert(`❌ Failed to clear history: ${result.message || 'Unknown error'}`);
+                }
+            } catch (error) {
+                alert(`❌ Error: ${error.message}`);
+                console.error('ChainEX clear history error:', error);
+            }
+        }
+
+        // Save ChainEX settings to localStorage
+        function saveChainExTriangularSettings() {
+            const settings = {
+                maxTrade: document.getElementById('chainexMaxTrade').value,
+                portfolioPercent: document.getElementById('chainexPortfolioPercent').value,
+                profitThreshold: document.getElementById('chainexProfitThreshold').value
+            };
+
+            // Save path set states (6 sets for ChainEX)
+            for (let i = 1; i <= 6; i++) {
+                const checkbox = document.getElementById(`chainexSet${i}Enabled`);
+                if (checkbox) {
+                    settings[`set${i}Enabled`] = checkbox.checked;
+                }
+            }
+
+            localStorage.setItem('chainexTriangularSettings', JSON.stringify(settings));
+        }
+
+        // Load ChainEX settings from localStorage
+        function loadChainExTriangularSettings() {
+            const savedSettings = localStorage.getItem('chainexTriangularSettings');
+            if (savedSettings) {
+                const settings = JSON.parse(savedSettings);
+
+                if (settings.maxTrade) document.getElementById('chainexMaxTrade').value = settings.maxTrade;
+                if (settings.portfolioPercent) document.getElementById('chainexPortfolioPercent').value = settings.portfolioPercent;
+                if (settings.profitThreshold) document.getElementById('chainexProfitThreshold').value = settings.profitThreshold;
+
+                // Load path set states (6 sets)
+                for (let i = 1; i <= 6; i++) {
+                    const checkbox = document.getElementById(`chainexSet${i}Enabled`);
+                    if (checkbox && settings[`set${i}Enabled`] !== undefined) {
+                        checkbox.checked = settings[`set${i}Enabled`];
+                    }
+                }
+            }
+        }
+
+        // Auto-save ChainEX settings when changed
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add event listeners for ChainEX settings auto-save
+            const chainexInputs = document.querySelectorAll('#chainexMaxTrade, #chainexPortfolioPercent, #chainexProfitThreshold');
+            chainexInputs.forEach(input => {
+                input.addEventListener('change', saveChainExTriangularSettings);
+            });
+
+            // Add event listeners for ChainEX checkboxes (6 sets)
+            for (let i = 1; i <= 6; i++) {
+                const checkbox = document.getElementById(`chainexSet${i}Enabled`);
+                if (checkbox) {
+                    checkbox.addEventListener('change', saveChainExTriangularSettings);
                 }
             }
         });
