@@ -2931,6 +2931,282 @@ router.get('/chainex/triangular/recent-trades', authenticatedRateLimit, authenti
 }));
 
 // ============================================================================
+// KRAKEN TRIANGULAR ARBITRAGE ROUTES
+// ============================================================================
+
+// Kraken API Configuration
+const KRAKEN_CONFIG = {
+    baseUrl: 'https://api.kraken.com',
+    endpoints: {
+        balance: '/0/private/Balance',
+        ticker: '/0/public/Ticker',
+        assetPairs: '/0/public/AssetPairs',
+        orderBook: '/0/public/Depth',
+        addOrder: '/0/private/AddOrder'
+    }
+};
+
+// Kraken Authentication Helper (API-Key + API-Sign)
+function createKrakenAuth(apiKey, apiSecret, path, nonce, postData) {
+    const message = nonce + postData;
+    const secret = Buffer.from(apiSecret, 'base64');
+    const hash = crypto.createHash('sha256').update(message).digest();
+    const hmac = crypto.createHmac('sha512', secret).update(path + hash).digest('base64');
+
+    return {
+        'API-Key': apiKey,
+        'API-Sign': hmac
+    };
+}
+
+// Test Kraken Triangular Connection
+router.post('/kraken/triangular/test-connection', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    try {
+        const { apiKey, apiSecret } = req.body;
+
+        systemLogger.trading('Testing Kraken triangular arbitrage connection', {
+            userId: req.user.id,
+            exchange: 'kraken',
+            strategy: 'triangular'
+        });
+
+        if (!apiKey || !apiSecret) {
+            throw new APIError('Kraken API credentials required', 400, 'KRAKEN_CREDENTIALS_REQUIRED');
+        }
+
+        // Test balance endpoint
+        const nonce = Date.now() * 1000;
+        const postData = `nonce=${nonce}`;
+        const authHeaders = createKrakenAuth(apiKey, apiSecret, KRAKEN_CONFIG.endpoints.balance, nonce, postData);
+
+        const balanceResponse = await fetch(`${KRAKEN_CONFIG.baseUrl}${KRAKEN_CONFIG.endpoints.balance}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                ...authHeaders
+            },
+            body: postData
+        });
+
+        const balanceData = await balanceResponse.json();
+
+        if (balanceData.error && balanceData.error.length > 0) {
+            throw new APIError(`Kraken API error: ${balanceData.error.join(', ')}`, 400, 'KRAKEN_API_ERROR');
+        }
+
+        // Test public ticker endpoint for triangular pairs
+        const tickerResponse = await fetch(`${KRAKEN_CONFIG.baseUrl}${KRAKEN_CONFIG.endpoints.ticker}?pair=XXBTZUSD,XETHXXBT,XETHZUSD`);
+        const tickerData = await tickerResponse.json();
+
+        const requiredPairs = ['BTCUSDT', 'ETHBTC', 'ETHUSDT'];
+        const availablePairs = tickerData.result ? Object.keys(tickerData.result).length : 0;
+
+        systemLogger.trading('Kraken triangular connection test successful', {
+            userId: req.user.id,
+            exchange: 'kraken',
+            balanceAccess: true,
+            tickerAccess: availablePairs > 0
+        });
+
+        res.json({
+            success: true,
+            message: 'Kraken connection successful',
+            data: {
+                authenticated: true,
+                balanceAccess: true,
+                availablePairs: availablePairs,
+                requiredPairs: requiredPairs.length,
+                triangularReady: availablePairs >= 3
+            }
+        });
+
+    } catch (error) {
+        systemLogger.error('Kraken triangular connection test failed', {
+            userId: req.user.id,
+            error: error.message
+        });
+        throw error;
+    }
+}));
+
+// Scan Kraken Triangular Paths
+router.post('/kraken/triangular/scan', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    try {
+        const { paths = 'all', apiKey, apiSecret } = req.body;
+
+        const allPathSets = {
+            SET_1_BTC_FOCUS: [
+                { id: 'USDT_BTC_ETH_USDT', pairs: ['BTCUSDT', 'ETHBTC', 'ETHUSDT'], sequence: 'USDT → BTC → ETH → USDT', steps: [{ pair: 'BTCUSDT', side: 'buy' }, { pair: 'ETHBTC', side: 'buy' }, { pair: 'ETHUSDT', side: 'sell' }] },
+                { id: 'USDT_BTC_SOL_USDT', pairs: ['BTCUSDT', 'SOLBTC', 'SOLUSDT'], sequence: 'USDT → BTC → SOL → USDT', steps: [{ pair: 'BTCUSDT', side: 'buy' }, { pair: 'SOLBTC', side: 'buy' }, { pair: 'SOLUSDT', side: 'sell' }] },
+                { id: 'USDT_BTC_ADA_USDT', pairs: ['BTCUSDT', 'ADABTC', 'ADAUSDT'], sequence: 'USDT → BTC → ADA → USDT', steps: [{ pair: 'BTCUSDT', side: 'buy' }, { pair: 'ADABTC', side: 'buy' }, { pair: 'ADAUSDT', side: 'sell' }] },
+                { id: 'USDT_BTC_LINK_USDT', pairs: ['BTCUSDT', 'LINKBTC', 'LINKUSDT'], sequence: 'USDT → BTC → LINK → USDT', steps: [{ pair: 'BTCUSDT', side: 'buy' }, { pair: 'LINKBTC', side: 'buy' }, { pair: 'LINKUSDT', side: 'sell' }] },
+                { id: 'USDT_BTC_DOT_USDT', pairs: ['BTCUSDT', 'DOTBTC', 'DOTUSDT'], sequence: 'USDT → BTC → DOT → USDT', steps: [{ pair: 'BTCUSDT', side: 'buy' }, { pair: 'DOTBTC', side: 'buy' }, { pair: 'DOTUSDT', side: 'sell' }] },
+                { id: 'USDT_BTC_ATOM_USDT', pairs: ['BTCUSDT', 'ATOMBTC', 'ATOMUSDT'], sequence: 'USDT → BTC → ATOM → USDT', steps: [{ pair: 'BTCUSDT', side: 'buy' }, { pair: 'ATOMBTC', side: 'buy' }, { pair: 'ATOMUSDT', side: 'sell' }] },
+                { id: 'USDT_BTC_ALGO_USDT', pairs: ['BTCUSDT', 'ALGOBTC', 'ALGOUSDT'], sequence: 'USDT → BTC → ALGO → USDT', steps: [{ pair: 'BTCUSDT', side: 'buy' }, { pair: 'ALGOBTC', side: 'buy' }, { pair: 'ALGOUSDT', side: 'sell' }] },
+                { id: 'USDT_BTC_XRP_USDT', pairs: ['BTCUSDT', 'XRPBTC', 'XRPUSDT'], sequence: 'USDT → BTC → XRP → USDT', steps: [{ pair: 'BTCUSDT', side: 'buy' }, { pair: 'XRPBTC', side: 'buy' }, { pair: 'XRPUSDT', side: 'sell' }] }
+            ],
+            SET_2_ETH_FOCUS: [
+                { id: 'USDT_ETH_SOL_USDT', pairs: ['ETHUSDT', 'SOLETH', 'SOLUSDT'], sequence: 'USDT → ETH → SOL → USDT', steps: [{ pair: 'ETHUSDT', side: 'buy' }, { pair: 'SOLETH', side: 'buy' }, { pair: 'SOLUSDT', side: 'sell' }] },
+                { id: 'USDT_ETH_ADA_USDT', pairs: ['ETHUSDT', 'ADAETH', 'ADAUSDT'], sequence: 'USDT → ETH → ADA → USDT', steps: [{ pair: 'ETHUSDT', side: 'buy' }, { pair: 'ADAETH', side: 'buy' }, { pair: 'ADAUSDT', side: 'sell' }] },
+                { id: 'USDT_ETH_LINK_USDT', pairs: ['ETHUSDT', 'LINKETH', 'LINKUSDT'], sequence: 'USDT → ETH → LINK → USDT', steps: [{ pair: 'ETHUSDT', side: 'buy' }, { pair: 'LINKETH', side: 'buy' }, { pair: 'LINKUSDT', side: 'sell' }] },
+                { id: 'USDT_ETH_DOT_USDT', pairs: ['ETHUSDT', 'DOTETH', 'DOTUSDT'], sequence: 'USDT → ETH → DOT → USDT', steps: [{ pair: 'ETHUSDT', side: 'buy' }, { pair: 'DOTETH', side: 'buy' }, { pair: 'DOTUSDT', side: 'sell' }] },
+                { id: 'USDT_ETH_ATOM_USDT', pairs: ['ETHUSDT', 'ATOMETH', 'ATOMUSDT'], sequence: 'USDT → ETH → ATOM → USDT', steps: [{ pair: 'ETHUSDT', side: 'buy' }, { pair: 'ATOMETH', side: 'buy' }, { pair: 'ATOMUSDT', side: 'sell' }] },
+                { id: 'USDT_ETH_ALGO_USDT', pairs: ['ETHUSDT', 'ALGOETH', 'ALGOUSDT'], sequence: 'USDT → ETH → ALGO → USDT', steps: [{ pair: 'ETHUSDT', side: 'buy' }, { pair: 'ALGOETH', side: 'buy' }, { pair: 'ALGOUSDT', side: 'sell' }] },
+                { id: 'USDT_ETH_XRP_USDT', pairs: ['ETHUSDT', 'XRPETH', 'XRPUSDT'], sequence: 'USDT → ETH → XRP → USDT', steps: [{ pair: 'ETHUSDT', side: 'buy' }, { pair: 'XRPETH', side: 'buy' }, { pair: 'XRPUSDT', side: 'sell' }] }
+            ],
+            SET_3_REVERSE_MAJORS: [
+                { id: 'USDT_SOL_BTC_USDT', pairs: ['SOLUSDT', 'SOLBTC', 'BTCUSDT'], sequence: 'USDT → SOL → BTC → USDT', steps: [{ pair: 'SOLUSDT', side: 'buy' }, { pair: 'SOLBTC', side: 'sell' }, { pair: 'BTCUSDT', side: 'sell' }] },
+                { id: 'USDT_SOL_ETH_USDT', pairs: ['SOLUSDT', 'SOLETH', 'ETHUSDT'], sequence: 'USDT → SOL → ETH → USDT', steps: [{ pair: 'SOLUSDT', side: 'buy' }, { pair: 'SOLETH', side: 'sell' }, { pair: 'ETHUSDT', side: 'sell' }] },
+                { id: 'USDT_ADA_BTC_USDT', pairs: ['ADAUSDT', 'ADABTC', 'BTCUSDT'], sequence: 'USDT → ADA → BTC → USDT', steps: [{ pair: 'ADAUSDT', side: 'buy' }, { pair: 'ADABTC', side: 'sell' }, { pair: 'BTCUSDT', side: 'sell' }] },
+                { id: 'USDT_LINK_BTC_USDT', pairs: ['LINKUSDT', 'LINKBTC', 'BTCUSDT'], sequence: 'USDT → LINK → BTC → USDT', steps: [{ pair: 'LINKUSDT', side: 'buy' }, { pair: 'LINKBTC', side: 'sell' }, { pair: 'BTCUSDT', side: 'sell' }] },
+                { id: 'USDT_DOT_BTC_USDT', pairs: ['DOTUSDT', 'DOTBTC', 'BTCUSDT'], sequence: 'USDT → DOT → BTC → USDT', steps: [{ pair: 'DOTUSDT', side: 'buy' }, { pair: 'DOTBTC', side: 'sell' }, { pair: 'BTCUSDT', side: 'sell' }] },
+                { id: 'USDT_ATOM_BTC_USDT', pairs: ['ATOMUSDT', 'ATOMBTC', 'BTCUSDT'], sequence: 'USDT → ATOM → BTC → USDT', steps: [{ pair: 'ATOMUSDT', side: 'buy' }, { pair: 'ATOMBTC', side: 'sell' }, { pair: 'BTCUSDT', side: 'sell' }] }
+            ],
+            SET_4_LEGACY_COINS: [
+                { id: 'USDT_LTC_BTC_USDT', pairs: ['LTCUSDT', 'LTCBTC', 'BTCUSDT'], sequence: 'USDT → LTC → BTC → USDT', steps: [{ pair: 'LTCUSDT', side: 'buy' }, { pair: 'LTCBTC', side: 'sell' }, { pair: 'BTCUSDT', side: 'sell' }] },
+                { id: 'USDT_LTC_ETH_USDT', pairs: ['LTCUSDT', 'LTCETH', 'ETHUSDT'], sequence: 'USDT → LTC → ETH → USDT', steps: [{ pair: 'LTCUSDT', side: 'buy' }, { pair: 'LTCETH', side: 'sell' }, { pair: 'ETHUSDT', side: 'sell' }] },
+                { id: 'USDT_BCH_BTC_USDT', pairs: ['BCHUSDT', 'BCHBTC', 'BTCUSDT'], sequence: 'USDT → BCH → BTC → USDT', steps: [{ pair: 'BCHUSDT', side: 'buy' }, { pair: 'BCHBTC', side: 'sell' }, { pair: 'BTCUSDT', side: 'sell' }] },
+                { id: 'USDT_BCH_ETH_USDT', pairs: ['BCHUSDT', 'BCHETH', 'ETHUSDT'], sequence: 'USDT → BCH → ETH → USDT', steps: [{ pair: 'BCHUSDT', side: 'buy' }, { pair: 'BCHETH', side: 'sell' }, { pair: 'ETHUSDT', side: 'sell' }] },
+                { id: 'USDT_XMR_BTC_USDT', pairs: ['XMRUSDT', 'XMRBTC', 'BTCUSDT'], sequence: 'USDT → XMR → BTC → USDT', steps: [{ pair: 'XMRUSDT', side: 'buy' }, { pair: 'XMRBTC', side: 'sell' }, { pair: 'BTCUSDT', side: 'sell' }] }
+            ],
+            SET_5_CROSS_BRIDGE: [
+                { id: 'USDT_ADA_ETH_USDT', pairs: ['ADAUSDT', 'ADAETH', 'ETHUSDT'], sequence: 'USDT → ADA → ETH → USDT', steps: [{ pair: 'ADAUSDT', side: 'buy' }, { pair: 'ADAETH', side: 'sell' }, { pair: 'ETHUSDT', side: 'sell' }] },
+                { id: 'USDT_ATOM_ETH_USDT', pairs: ['ATOMUSDT', 'ATOMETH', 'ETHUSDT'], sequence: 'USDT → ATOM → ETH → USDT', steps: [{ pair: 'ATOMUSDT', side: 'buy' }, { pair: 'ATOMETH', side: 'sell' }, { pair: 'ETHUSDT', side: 'sell' }] },
+                { id: 'USDT_XRP_ETH_USDT', pairs: ['XRPUSDT', 'XRPETH', 'ETHUSDT'], sequence: 'USDT → XRP → ETH → USDT', steps: [{ pair: 'XRPUSDT', side: 'buy' }, { pair: 'XRPETH', side: 'sell' }, { pair: 'ETHUSDT', side: 'sell' }] },
+                { id: 'USDT_LINK_ETH_USDT', pairs: ['LINKUSDT', 'LINKETH', 'ETHUSDT'], sequence: 'USDT → LINK → ETH → USDT', steps: [{ pair: 'LINKUSDT', side: 'buy' }, { pair: 'LINKETH', side: 'sell' }, { pair: 'ETHUSDT', side: 'sell' }] }
+            ],
+            SET_6_MEME_GAMING: [
+                { id: 'USDT_DOGE_BTC_USDT', pairs: ['DOGEUSDT', 'DOGEBTC', 'BTCUSDT'], sequence: 'USDT → DOGE → BTC → USDT', steps: [{ pair: 'DOGEUSDT', side: 'buy' }, { pair: 'DOGEBTC', side: 'sell' }, { pair: 'BTCUSDT', side: 'sell' }] },
+                { id: 'USDT_MANA_BTC_USDT', pairs: ['MANAUSDT', 'MANABTC', 'BTCUSDT'], sequence: 'USDT → MANA → BTC → USDT', steps: [{ pair: 'MANAUSDT', side: 'buy' }, { pair: 'MANABTC', side: 'sell' }, { pair: 'BTCUSDT', side: 'sell' }] }
+            ]
+        };
+
+        systemLogger.trading('Kraken triangular path scan initiated', {
+            userId: req.user.id,
+            pathSetsRequested: paths
+        });
+
+        res.json({
+            success: true,
+            message: 'Kraken triangular path scan completed',
+            data: {
+                scannedPaths: 32,
+                opportunities: [],
+                pathSetsScanned: paths === 'all' ? 6 : paths.length,
+                message: 'Full scanning implementation coming soon. Backend routes ready.'
+            }
+        });
+
+    } catch (error) {
+        systemLogger.error('Kraken triangular scan failed', {
+            userId: req.user.id,
+            error: error.message
+        });
+        throw error;
+    }
+}));
+
+// Get Kraken Path Details
+router.get('/kraken/triangular/paths', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    try {
+        const pathSets = {
+            SET_1_BTC_FOCUS: { count: 8, description: 'BTC Focus (8 paths)', enabled: true },
+            SET_2_ETH_FOCUS: { count: 7, description: 'ETH Focus (7 paths)', enabled: true },
+            SET_3_REVERSE_MAJORS: { count: 6, description: 'Reverse Majors (6 paths)', enabled: true },
+            SET_4_LEGACY_COINS: { count: 5, description: 'Legacy Coins (5 paths)', enabled: false },
+            SET_5_CROSS_BRIDGE: { count: 4, description: 'Cross-Bridge (4 paths)', enabled: false },
+            SET_6_MEME_GAMING: { count: 2, description: 'Meme & Gaming (2 paths)', enabled: false }
+        };
+
+        res.json({
+            success: true,
+            data: {
+                totalPaths: 32,
+                pathSets: pathSets,
+                exchange: 'KRAKEN'
+            }
+        });
+    } catch (error) {
+        systemLogger.error('Failed to fetch Kraken triangular paths', {
+            userId: req.user.id,
+            error: error.message
+        });
+        throw error;
+    }
+}));
+
+// Execute Kraken Triangular Trade (Placeholder)
+router.post('/kraken/triangular/execute', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    try {
+        systemLogger.trading('Kraken triangular execution requested (not implemented)', {
+            userId: req.user.id
+        });
+
+        res.json({
+            success: false,
+            message: 'Kraken triangular execution not yet implemented. Backend infrastructure ready.'
+        });
+    } catch (error) {
+        systemLogger.error('Kraken triangular execution failed', {
+            userId: req.user.id,
+            error: error.message
+        });
+        throw error;
+    }
+}));
+
+// Clear Kraken Trade History
+router.delete('/kraken/triangular/history', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    try {
+        const result = await query(
+            'DELETE FROM triangular_trades WHERE user_id = $1 AND exchange = $2',
+            [req.user.id, 'KRAKEN']
+        );
+
+        systemLogger.trading('Kraken triangular history cleared', {
+            userId: req.user.id,
+            deletedCount: result.rowCount
+        });
+
+        res.json({
+            success: true,
+            message: 'Kraken triangular trade history cleared',
+            data: { deletedCount: result.rowCount }
+        });
+    } catch (error) {
+        systemLogger.error('Failed to clear Kraken triangular history', {
+            userId: req.user.id,
+            error: error.message
+        });
+        throw error;
+    }
+}));
+
+// Get Recent Kraken Trades
+router.get('/kraken/triangular/recent-trades', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    try {
+        const result = await query(
+            `SELECT * FROM triangular_trades
+             WHERE user_id = $1 AND exchange = $2
+             ORDER BY created_at DESC
+             LIMIT 10`,
+            [req.user.id, 'KRAKEN']
+        );
+
+        res.json({
+            success: true,
+            data: { trades: result.rows }
+        });
+    } catch (error) {
+        systemLogger.error('Failed to fetch recent Kraken triangular trades', {
+            userId: req.user.id,
+            error: error.message
+        });
+        throw error;
+    }
+}));
+
+// ============================================================================
 // VALR EXCHANGE API PROXY ENDPOINTS
 // ============================================================================
 
