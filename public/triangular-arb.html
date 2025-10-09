@@ -672,15 +672,18 @@
 
         // Toggle for VALR Triangular trading
         document.getElementById('valrTriangularEnabled').addEventListener('click', function() {
+            console.log('🔄 [VALR] Toggle clicked');
             this.classList.toggle('active');
             const status = document.getElementById('valrTriangularStatus');
 
             if (this.classList.contains('active')) {
+                console.log('✅ [VALR] Live trading enabled');
                 status.textContent = 'ON';
                 status.style.color = '#00ff88';
                 // Save state to localStorage
                 localStorage.setItem('valrTriangularEnabled', 'true');
             } else {
+                console.log('❌ [VALR] Live trading disabled');
                 status.textContent = 'OFF';
                 status.style.color = '#ff6b6b';
                 localStorage.setItem('valrTriangularEnabled', 'false');
@@ -702,25 +705,33 @@
 
         // Placeholder functions for triangular arbitrage functionality
         function testValrTriangularConnection() {
+            console.log('🔍 [VALR] Testing connection...');
             alert('Testing VALR Triangular connection...');
         }
 
         function scanValrTriangularPaths() {
+            console.log('🔍 [VALR] Scanning paths...');
             alert('Scanning VALR Triangular paths...');
         }
 
         function viewValrPathDetails() {
+            console.log('🔍 [VALR] Viewing path details...');
             alert('Viewing VALR path details...');
         }
 
         function clearValrTriangularHistory() {
+            console.log('🔍 [VALR] Clear history requested');
             if (confirm('Clear all triangular trade history?')) {
+                console.log('✅ [VALR] History cleared');
                 alert('History cleared!');
+            } else {
+                console.log('❌ [VALR] Clear history cancelled');
             }
         }
 
         // Save form values to localStorage
         function saveTriangularSettings() {
+            console.log('💾 [VALR] Saving settings to localStorage...');
             const settings = {
                 maxTrade: document.getElementById('valrMaxTrade').value,
                 portfolioPercent: document.getElementById('valrPortfolioPercent').value,
@@ -736,13 +747,16 @@
             }
 
             localStorage.setItem('triangularSettings', JSON.stringify(settings));
+            console.log('✅ [VALR] Settings saved:', settings);
         }
 
         // Load form values from localStorage
         function loadTriangularSettings() {
+            console.log('💾 [VALR] Loading settings from localStorage...');
             const savedSettings = localStorage.getItem('triangularSettings');
             if (savedSettings) {
                 const settings = JSON.parse(savedSettings);
+                console.log('✅ [VALR] Settings loaded:', settings);
 
                 if (settings.maxTrade) document.getElementById('valrMaxTrade').value = settings.maxTrade;
                 if (settings.portfolioPercent) document.getElementById('valrPortfolioPercent').value = settings.portfolioPercent;
@@ -755,6 +769,8 @@
                         checkbox.checked = settings[`set${i}Enabled`];
                     }
                 }
+            } else {
+                console.log('ℹ️ [VALR] No saved settings found, using defaults');
             }
         }
 
@@ -783,14 +799,17 @@
 
         // Toggle for Luno Triangular trading
         document.getElementById('lunoTriangularEnabled').addEventListener('click', function() {
+            console.log('🔄 [LUNO] Toggle clicked');
             this.classList.toggle('active');
             const status = document.getElementById('lunoTriangularStatus');
 
             if (this.classList.contains('active')) {
+                console.log('✅ [LUNO] Live trading enabled');
                 status.textContent = 'ON';
                 status.style.color = '#00d4ff';
                 localStorage.setItem('lunoTriangularEnabled', 'true');
             } else {
+                console.log('❌ [LUNO] Live trading disabled');
                 status.textContent = 'OFF';
                 status.style.color = '#ff6b6b';
                 localStorage.setItem('lunoTriangularEnabled', 'false');
@@ -815,12 +834,15 @@
 
         // Test Luno Triangular Connection
         async function testLunoTriangularConnection() {
+            console.log('🔍 [LUNO] Testing connection...');
             try {
                 // Get credentials from localStorage (saved from strategy-api-setup.html)
                 const apiKey = localStorage.getItem('luno_triangular_api');
                 const apiSecret = localStorage.getItem('luno_triangular_secret');
+                console.log('🔑 [LUNO] API credentials retrieved from localStorage');
 
                 if (!apiKey || !apiSecret) {
+                    console.warn('⚠️ [LUNO] Missing API credentials');
                     alert('❌ Please set up your Luno API credentials first in the Strategy API Setup page.');
                     return;
                 }
@@ -832,6 +854,7 @@
                 btn.disabled = true;
 
                 // Call backend test-connection route
+                console.log('📡 [LUNO] Sending test connection request to backend...');
                 const response = await fetch('/api/v1/trading/luno/triangular/test-connection', {
                     method: 'POST',
                     headers: {
@@ -844,32 +867,37 @@
                 });
 
                 const result = await response.json();
+                console.log('✅ [LUNO] Test connection response received:', result);
 
                 btn.textContent = originalText;
                 btn.disabled = false;
 
                 if (result.success) {
+                    console.log('✅ [LUNO] Connection successful!', result.data);
                     alert(`✅ Luno Connection Successful!\n\n` +
                           `• Balance Access: ${result.data.balanceAccess ? 'Yes' : 'No'}\n` +
                           `• Triangular Pairs Available: ${result.data.triangularPairsAvailable ? 'Yes' : 'No'}\n` +
                           `• Total Pairs: ${result.data.totalPairs}\n` +
                           `• Required Pairs Found: ${result.data.requiredPairsFound.length}/6`);
                 } else {
+                    console.error('❌ [LUNO] Connection failed:', result.message);
                     alert(`❌ Connection Failed: ${result.message || 'Unknown error'}`);
                 }
             } catch (error) {
+                console.error('❌ [LUNO] Connection error:', error);
                 alert(`❌ Connection Error: ${error.message}`);
-                console.error('Luno test connection error:', error);
             }
         }
 
         // Scan Luno Triangular Paths
         async function scanLunoTriangularPaths() {
+            console.log('🔍 [LUNO] Starting path scan...');
             try {
                 const apiKey = localStorage.getItem('luno_triangular_api');
                 const apiSecret = localStorage.getItem('luno_triangular_secret');
 
                 if (!apiKey || !apiSecret) {
+                    console.warn('⚠️ [LUNO] Missing API credentials');
                     alert('❌ Please set up your Luno API credentials first.');
                     return;
                 }
@@ -887,7 +915,9 @@
                         enabledSets.push(i);
                     }
                 }
+                console.log('📊 [LUNO] Enabled path sets:', enabledSets);
 
+                console.log('📡 [LUNO] Sending scan request to backend...');
                 const response = await fetch('/api/v1/trading/luno/triangular/scan', {
                     method: 'POST',
                     headers: {
@@ -901,29 +931,34 @@
                 });
 
                 const result = await response.json();
+                console.log('✅ [LUNO] Scan response received:', result);
 
                 btn.textContent = originalText;
                 btn.disabled = false;
 
                 if (result.success) {
                     document.getElementById('lunoLastScan').textContent = new Date().toLocaleTimeString();
+                    console.log(`✅ [LUNO] Scan successful! Found ${result.data.opportunities.length} opportunities`);
                     alert(`✅ Scan Complete!\n\n` +
                           `• Path Sets Scanned: ${result.data.pathSetsScanned}\n` +
                           `• Total Paths: ${result.data.totalPathsScanned}\n` +
                           `• Opportunities Found: ${result.data.opportunities.length}\n\n` +
                           `${result.data.message || 'Full implementation coming soon!'}`);
                 } else {
+                    console.error('❌ [LUNO] Scan failed:', result.message);
                     alert(`❌ Scan Failed: ${result.message || 'Unknown error'}`);
                 }
             } catch (error) {
+                console.error('❌ [LUNO] Scan error:', error);
                 alert(`❌ Scan Error: ${error.message}`);
-                console.error('Luno scan error:', error);
             }
         }
 
         // View Luno Path Details
         async function viewLunoPathDetails() {
+            console.log('🔍 [LUNO] Viewing path details...');
             try {
+                console.log('📡 [LUNO] Fetching path details from backend...');
                 const response = await fetch('/api/v1/trading/luno/triangular/paths', {
                     method: 'GET',
                     headers: {
@@ -932,6 +967,7 @@
                 });
 
                 const result = await response.json();
+                console.log('✅ [LUNO] Path details received:', result);
 
                 if (result.success) {
                     let message = '📊 Luno Triangular Paths\n\n';
@@ -942,23 +978,28 @@
                         message += `${value.description}\n\n`;
                     }
 
+                    console.log('✅ [LUNO] Displaying path details to user');
                     alert(message);
                 } else {
+                    console.error('❌ [LUNO] Failed to fetch paths:', result.message);
                     alert(`❌ Failed to fetch paths: ${result.message || 'Unknown error'}`);
                 }
             } catch (error) {
+                console.error('❌ [LUNO] Path details error:', error);
                 alert(`❌ Error: ${error.message}`);
-                console.error('Luno paths error:', error);
             }
         }
 
         // Clear Luno Triangular History
         async function clearLunoTriangularHistory() {
+            console.log('🗑️ [LUNO] Clear history requested');
             if (!confirm('⚠️ Clear all Luno triangular trade history?\n\nThis action cannot be undone.')) {
+                console.log('❌ [LUNO] Clear history cancelled by user');
                 return;
             }
 
             try {
+                console.log('📡 [LUNO] Sending delete request to backend...');
                 const response = await fetch('/api/v1/trading/luno/triangular/history', {
                     method: 'DELETE',
                     headers: {
@@ -967,8 +1008,10 @@
                 });
 
                 const result = await response.json();
+                console.log('✅ [LUNO] Delete response received:', result);
 
                 if (result.success) {
+                    console.log('✅ [LUNO] History cleared, resetting UI stats...');
                     // Reset stats display
                     document.getElementById('lunoTotalTrades').textContent = '0';
                     document.getElementById('lunoSuccessfulTrades').textContent = '0';
@@ -983,16 +1026,18 @@
 
                     alert('✅ History cleared successfully!');
                 } else {
+                    console.error('❌ [LUNO] Failed to clear history:', result.message);
                     alert(`❌ Failed to clear history: ${result.message || 'Unknown error'}`);
                 }
             } catch (error) {
+                console.error('❌ [LUNO] Clear history error:', error);
                 alert(`❌ Error: ${error.message}`);
-                console.error('Luno clear history error:', error);
             }
         }
 
         // Save Luno settings to localStorage
         function saveLunoTriangularSettings() {
+            console.log('💾 [LUNO] Saving settings to localStorage...');
             const settings = {
                 maxTrade: document.getElementById('lunoMaxTrade').value,
                 portfolioPercent: document.getElementById('lunoPortfolioPercent').value,
@@ -1008,13 +1053,16 @@
             }
 
             localStorage.setItem('lunoTriangularSettings', JSON.stringify(settings));
+            console.log('✅ [LUNO] Settings saved:', settings);
         }
 
         // Load Luno settings from localStorage
         function loadLunoTriangularSettings() {
+            console.log('💾 [LUNO] Loading settings from localStorage...');
             const savedSettings = localStorage.getItem('lunoTriangularSettings');
             if (savedSettings) {
                 const settings = JSON.parse(savedSettings);
+                console.log('✅ [LUNO] Settings loaded:', settings);
 
                 if (settings.maxTrade) document.getElementById('lunoMaxTrade').value = settings.maxTrade;
                 if (settings.portfolioPercent) document.getElementById('lunoPortfolioPercent').value = settings.portfolioPercent;
@@ -1027,6 +1075,8 @@
                         checkbox.checked = settings[`set${i}Enabled`];
                     }
                 }
+            } else {
+                console.log('ℹ️ [LUNO] No saved settings found, using defaults');
             }
         }
 
@@ -1053,14 +1103,17 @@
 
         // Toggle for ChainEX Triangular trading
         document.getElementById('chainexTriangularEnabled').addEventListener('click', function() {
+            console.log('🔄 [CHAINEX] Toggle clicked');
             this.classList.toggle('active');
             const status = document.getElementById('chainexTriangularStatus');
 
             if (this.classList.contains('active')) {
+                console.log('✅ [CHAINEX] Live trading enabled');
                 status.textContent = 'ON';
                 status.style.color = '#ff9800';
                 localStorage.setItem('chainexTriangularEnabled', 'true');
             } else {
+                console.log('❌ [CHAINEX] Live trading disabled');
                 status.textContent = 'OFF';
                 status.style.color = '#ff6b6b';
                 localStorage.setItem('chainexTriangularEnabled', 'false');
@@ -1085,12 +1138,15 @@
 
         // Test ChainEX Triangular Connection
         async function testChainExTriangularConnection() {
+            console.log('🔍 [CHAINEX] Testing connection...');
             try {
                 // Get credentials from localStorage (saved from strategy-api-setup.html)
                 const apiKey = localStorage.getItem('chainex_triangular_api');
                 const apiSecret = localStorage.getItem('chainex_triangular_secret');
+                console.log('🔑 [CHAINEX] API credentials retrieved from localStorage');
 
                 if (!apiKey || !apiSecret) {
+                    console.warn('⚠️ [CHAINEX] Missing API credentials');
                     alert('❌ Please set up your ChainEX API credentials first in the Strategy API Setup page.');
                     return;
                 }
@@ -1102,6 +1158,7 @@
                 btn.disabled = true;
 
                 // Call backend test-connection route
+                console.log('📡 [CHAINEX] Sending test connection request to backend...');
                 const response = await fetch('/api/v1/trading/chainex/triangular/test-connection', {
                     method: 'POST',
                     headers: {
@@ -1114,11 +1171,13 @@
                 });
 
                 const result = await response.json();
+                console.log('✅ [CHAINEX] Test connection response received:', result);
 
                 btn.textContent = originalText;
                 btn.disabled = false;
 
                 if (result.success) {
+                    console.log('✅ [CHAINEX] Connection successful!', result.data);
                     alert(`✅ ChainEX Connection Successful!\n\n` +
                           `• Authenticated: ${result.data.authenticated ? 'Yes' : 'No'}\n` +
                           `• Available Pairs: ${result.data.availablePairs}\n` +
@@ -1126,21 +1185,24 @@
                           `• Missing Pairs: ${result.data.missingPairs.length}\n` +
                           `• Triangular Ready: ${result.data.triangularReady ? 'Yes' : 'No'}`);
                 } else {
+                    console.error('❌ [CHAINEX] Connection failed:', result.message);
                     alert(`❌ Connection Failed: ${result.message || 'Unknown error'}`);
                 }
             } catch (error) {
+                console.error('❌ [CHAINEX] Connection error:', error);
                 alert(`❌ Connection Error: ${error.message}`);
-                console.error('ChainEX test connection error:', error);
             }
         }
 
         // Scan ChainEX Triangular Paths
         async function scanChainExTriangularPaths() {
+            console.log('🔍 [CHAINEX] Starting path scan...');
             try {
                 const apiKey = localStorage.getItem('chainex_triangular_api');
                 const apiSecret = localStorage.getItem('chainex_triangular_secret');
 
                 if (!apiKey || !apiSecret) {
+                    console.warn('⚠️ [CHAINEX] Missing API credentials');
                     alert('❌ Please set up your ChainEX API credentials first.');
                     return;
                 }
@@ -1158,7 +1220,9 @@
                         enabledSets.push(i);
                     }
                 }
+                console.log('📊 [CHAINEX] Enabled path sets:', enabledSets);
 
+                console.log('📡 [CHAINEX] Sending scan request to backend...');
                 const response = await fetch('/api/v1/trading/chainex/triangular/scan', {
                     method: 'POST',
                     headers: {
@@ -1172,12 +1236,14 @@
                 });
 
                 const result = await response.json();
+                console.log('✅ [CHAINEX] Scan response received:', result);
 
                 btn.textContent = originalText;
                 btn.disabled = false;
 
                 if (result.success) {
                     document.getElementById('chainexLastScan').textContent = new Date().toLocaleTimeString();
+                    console.log(`✅ [CHAINEX] Scan successful! Found ${result.data.opportunities.length} opportunities`);
 
                     let message = `✅ Scan Complete!\n\n`;
                     message += `• Paths Scanned: ${result.data.scannedPaths}\n`;
@@ -1195,17 +1261,20 @@
 
                     alert(message);
                 } else {
+                    console.error('❌ [CHAINEX] Scan failed:', result.message);
                     alert(`❌ Scan Failed: ${result.message || 'Unknown error'}`);
                 }
             } catch (error) {
+                console.error('❌ [CHAINEX] Scan error:', error);
                 alert(`❌ Scan Error: ${error.message}`);
-                console.error('ChainEX scan error:', error);
             }
         }
 
         // View ChainEX Path Details
         async function viewChainExPathDetails() {
+            console.log('🔍 [CHAINEX] Viewing path details...');
             try {
+                console.log('📡 [CHAINEX] Fetching path details from backend...');
                 const response = await fetch('/api/v1/trading/chainex/triangular/paths', {
                     method: 'GET',
                     headers: {
@@ -1214,6 +1283,7 @@
                 });
 
                 const result = await response.json();
+                console.log('✅ [CHAINEX] Path details received:', result);
 
                 if (result.success) {
                     let message = '📊 ChainEX Triangular Paths\n\n';
@@ -1225,23 +1295,28 @@
                         message += `  Paths: ${value.count} | Enabled: ${value.enabled ? 'Yes' : 'No'}\n\n`;
                     }
 
+                    console.log('✅ [CHAINEX] Displaying path details to user');
                     alert(message);
                 } else {
+                    console.error('❌ [CHAINEX] Failed to fetch paths:', result.message);
                     alert(`❌ Failed to fetch paths: ${result.message || 'Unknown error'}`);
                 }
             } catch (error) {
+                console.error('❌ [CHAINEX] Path details error:', error);
                 alert(`❌ Error: ${error.message}`);
-                console.error('ChainEX paths error:', error);
             }
         }
 
         // Clear ChainEX Triangular History
         async function clearChainExTriangularHistory() {
+            console.log('🗑️ [CHAINEX] Clear history requested');
             if (!confirm('⚠️ Clear all ChainEX triangular trade history?\n\nThis action cannot be undone.')) {
+                console.log('❌ [CHAINEX] Clear history cancelled by user');
                 return;
             }
 
             try {
+                console.log('📡 [CHAINEX] Sending delete request to backend...');
                 const response = await fetch('/api/v1/trading/chainex/triangular/history', {
                     method: 'DELETE',
                     headers: {
@@ -1250,8 +1325,10 @@
                 });
 
                 const result = await response.json();
+                console.log('✅ [CHAINEX] Delete response received:', result);
 
                 if (result.success) {
+                    console.log('✅ [CHAINEX] History cleared, resetting UI stats...');
                     // Reset stats display
                     document.getElementById('chainexTotalTrades').textContent = '0';
                     document.getElementById('chainexSuccessfulTrades').textContent = '0';
@@ -1266,16 +1343,18 @@
 
                     alert(`✅ History cleared successfully!\n\nDeleted ${result.data.deletedCount} records.`);
                 } else {
+                    console.error('❌ [CHAINEX] Failed to clear history:', result.message);
                     alert(`❌ Failed to clear history: ${result.message || 'Unknown error'}`);
                 }
             } catch (error) {
+                console.error('❌ [CHAINEX] Clear history error:', error);
                 alert(`❌ Error: ${error.message}`);
-                console.error('ChainEX clear history error:', error);
             }
         }
 
         // Save ChainEX settings to localStorage
         function saveChainExTriangularSettings() {
+            console.log('💾 [CHAINEX] Saving settings to localStorage...');
             const settings = {
                 maxTrade: document.getElementById('chainexMaxTrade').value,
                 portfolioPercent: document.getElementById('chainexPortfolioPercent').value,
@@ -1291,13 +1370,16 @@
             }
 
             localStorage.setItem('chainexTriangularSettings', JSON.stringify(settings));
+            console.log('✅ [CHAINEX] Settings saved:', settings);
         }
 
         // Load ChainEX settings from localStorage
         function loadChainExTriangularSettings() {
+            console.log('💾 [CHAINEX] Loading settings from localStorage...');
             const savedSettings = localStorage.getItem('chainexTriangularSettings');
             if (savedSettings) {
                 const settings = JSON.parse(savedSettings);
+                console.log('✅ [CHAINEX] Settings loaded:', settings);
 
                 if (settings.maxTrade) document.getElementById('chainexMaxTrade').value = settings.maxTrade;
                 if (settings.portfolioPercent) document.getElementById('chainexPortfolioPercent').value = settings.portfolioPercent;
@@ -1310,6 +1392,8 @@
                         checkbox.checked = settings[`set${i}Enabled`];
                     }
                 }
+            } else {
+                console.log('ℹ️ [CHAINEX] No saved settings found, using defaults');
             }
         }
 
