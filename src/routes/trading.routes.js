@@ -2154,6 +2154,378 @@ router.post('/luno/triangular', tradingRateLimit, optionalAuth, [
 }));
 
 // ============================================================================
+// LUNO TRIANGULAR ARBITRAGE ROUTES
+// ============================================================================
+
+// POST /api/v1/trading/luno/triangular/test-connection
+// Test Luno API connection for triangular trading
+router.post('/luno/triangular/test-connection', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    try {
+        const { apiKey, apiSecret } = req.body;
+
+        systemLogger.trading('Luno triangular connection test initiated', {
+            userId: req.user.id,
+            timestamp: new Date().toISOString()
+        });
+
+        // Validate Luno API credentials
+        if (!apiKey || !apiSecret) {
+            throw new APIError('Luno API credentials required', 400, 'LUNO_CREDENTIALS_REQUIRED');
+        }
+
+        const auth = createLunoAuth(apiKey, apiSecret);
+
+        // Test API connection by fetching balance
+        const balanceResponse = await fetch(`${LUNO_CONFIG.baseUrl}${LUNO_CONFIG.endpoints.balance}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Basic ${auth}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!balanceResponse.ok) {
+            throw new Error(`Luno balance check failed: HTTP ${balanceResponse.status}`);
+        }
+
+        const balanceData = await balanceResponse.json();
+
+        // Check if we have access to triangular pairs
+        const requiredPairs = ['ETHXBT', 'ETHUSDT', 'XBTUSDT', 'XRPZAR', 'XRPXBT', 'USDTZAR'];
+        const pairsResponse = await fetch(`${LUNO_CONFIG.baseUrl}${LUNO_CONFIG.endpoints.tickers}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!pairsResponse.ok) {
+            throw new Error(`Luno pairs check failed: HTTP ${pairsResponse.status}`);
+        }
+
+        const pairsData = await pairsResponse.json();
+        const availablePairs = pairsData.tickers.map(t => t.pair);
+        const triangularPairsAvailable = requiredPairs.every(pair => availablePairs.includes(pair));
+
+        systemLogger.trading('Luno triangular connection test successful', {
+            userId: req.user.id,
+            balanceCount: balanceData.balance?.length || 0,
+            triangularPairsAvailable
+        });
+
+        res.json({
+            success: true,
+            data: {
+                connected: true,
+                balanceAccess: true,
+                triangularPairsAvailable,
+                totalPairs: availablePairs.length,
+                requiredPairsFound: requiredPairs.filter(p => availablePairs.includes(p)),
+                timestamp: new Date().toISOString()
+            }
+        });
+    } catch (error) {
+        systemLogger.error('Luno triangular connection test failed', {
+            userId: req.user.id,
+            error: error.message
+        });
+        throw error;
+    }
+}));
+
+// POST /api/v1/trading/luno/triangular/scan
+// Scan for Luno triangular arbitrage opportunities with live prices
+router.post('/luno/triangular/scan', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    try {
+        const { paths = 'all', apiKey, apiSecret } = req.body;
+
+        systemLogger.trading('Luno triangular scan initiated', {
+            userId: req.user.id,
+            paths,
+            timestamp: new Date().toISOString()
+        });
+
+        // Validate Luno API credentials
+        if (!apiKey || !apiSecret) {
+            throw new APIError('Luno API credentials required', 400, 'LUNO_CREDENTIALS_REQUIRED');
+        }
+
+        // Define all Luno triangular path sets (42 PATHS across 7 sets)
+        const allPathSets = {
+            SET_1_USDT_FOCUS: [
+                { id: 'USDT_XBT_ETH_USDT', pairs: ['XBTUSDT', 'ETHXBT', 'ETHUSDT'], sequence: 'USDT → XBT → ETH → USDT', steps: [{ pair: 'XBTUSDT', side: 'buy' }, { pair: 'ETHXBT', side: 'buy' }, { pair: 'ETHUSDT', side: 'sell' }] },
+                { id: 'USDT_XBT_XRP_USDT', pairs: ['XBTUSDT', 'XRPXBT', 'XRPUSDT'], sequence: 'USDT → XBT → XRP → USDT', steps: [{ pair: 'XBTUSDT', side: 'buy' }, { pair: 'XRPXBT', side: 'buy' }, { pair: 'XRPUSDT', side: 'sell' }] },
+                { id: 'USDT_XBT_SOL_USDT', pairs: ['XBTUSDT', 'SOLXBT', 'SOLUSDT'], sequence: 'USDT → XBT → SOL → USDT', steps: [{ pair: 'XBTUSDT', side: 'buy' }, { pair: 'SOLXBT', side: 'buy' }, { pair: 'SOLUSDT', side: 'sell' }] },
+                { id: 'USDT_ETH_XBT_USDT', pairs: ['ETHUSDT', 'ETHXBT', 'XBTUSDT'], sequence: 'USDT → ETH → XBT → USDT', steps: [{ pair: 'ETHUSDT', side: 'buy' }, { pair: 'ETHXBT', side: 'sell' }, { pair: 'XBTUSDT', side: 'sell' }] },
+                { id: 'USDT_XRP_XBT_USDT', pairs: ['XRPUSDT', 'XRPXBT', 'XBTUSDT'], sequence: 'USDT → XRP → XBT → USDT', steps: [{ pair: 'XRPUSDT', side: 'buy' }, { pair: 'XRPXBT', side: 'sell' }, { pair: 'XBTUSDT', side: 'sell' }] },
+                { id: 'USDT_SOL_XBT_USDT', pairs: ['SOLUSDT', 'SOLXBT', 'XBTUSDT'], sequence: 'USDT → SOL → XBT → USDT', steps: [{ pair: 'SOLUSDT', side: 'buy' }, { pair: 'SOLXBT', side: 'sell' }, { pair: 'XBTUSDT', side: 'sell' }] },
+                { id: 'USDT_USDC_ETH_USDT', pairs: ['USDCUSDT', 'ETHUSDC', 'ETHUSDT'], sequence: 'USDT → USDC → ETH → USDT', steps: [{ pair: 'USDCUSDT', side: 'buy' }, { pair: 'ETHUSDC', side: 'buy' }, { pair: 'ETHUSDT', side: 'sell' }] }
+            ],
+            SET_2_XBT_FOCUS: [
+                { id: 'XBT_ETH_USDT_XBT', pairs: ['ETHXBT', 'ETHUSDT', 'XBTUSDT'], sequence: 'XBT → ETH → USDT → XBT', steps: [{ pair: 'ETHXBT', side: 'buy' }, { pair: 'ETHUSDT', side: 'sell' }, { pair: 'XBTUSDT', side: 'buy' }] },
+                { id: 'XBT_ETH_ZAR_XBT', pairs: ['ETHXBT', 'ETHZAR', 'XBTZAR'], sequence: 'XBT → ETH → ZAR → XBT', steps: [{ pair: 'ETHXBT', side: 'buy' }, { pair: 'ETHZAR', side: 'sell' }, { pair: 'XBTZAR', side: 'buy' }] },
+                { id: 'XBT_SOL_USDT_XBT', pairs: ['SOLXBT', 'SOLUSDT', 'XBTUSDT'], sequence: 'XBT → SOL → USDT → XBT', steps: [{ pair: 'SOLXBT', side: 'buy' }, { pair: 'SOLUSDT', side: 'sell' }, { pair: 'XBTUSDT', side: 'buy' }] },
+                { id: 'XBT_SOL_XRP_XBT', pairs: ['SOLXBT', 'SOLXRP', 'XRPXBT'], sequence: 'XBT → SOL → XRP → XBT', steps: [{ pair: 'SOLXBT', side: 'buy' }, { pair: 'SOLXRP', side: 'sell' }, { pair: 'XRPXBT', side: 'buy' }] },
+                { id: 'XBT_XRP_USDT_XBT', pairs: ['XRPXBT', 'XRPUSDT', 'XBTUSDT'], sequence: 'XBT → XRP → USDT → XBT', steps: [{ pair: 'XRPXBT', side: 'buy' }, { pair: 'XRPUSDT', side: 'sell' }, { pair: 'XBTUSDT', side: 'buy' }] },
+                { id: 'XBT_XRP_ZAR_XBT', pairs: ['XRPXBT', 'XRPZAR', 'XBTZAR'], sequence: 'XBT → XRP → ZAR → XBT', steps: [{ pair: 'XRPXBT', side: 'buy' }, { pair: 'XRPZAR', side: 'sell' }, { pair: 'XBTZAR', side: 'buy' }] },
+                { id: 'XBT_ADA_ZAR_XBT', pairs: ['ADAXBT', 'ADAZAR', 'XBTZAR'], sequence: 'XBT → ADA → ZAR → XBT', steps: [{ pair: 'ADAXBT', side: 'buy' }, { pair: 'ADAZAR', side: 'sell' }, { pair: 'XBTZAR', side: 'buy' }] },
+                { id: 'XBT_DOT_ZAR_XBT', pairs: ['DOTXBT', 'DOTZAR', 'XBTZAR'], sequence: 'XBT → DOT → ZAR → XBT', steps: [{ pair: 'DOTXBT', side: 'buy' }, { pair: 'DOTZAR', side: 'sell' }, { pair: 'XBTZAR', side: 'buy' }] },
+                { id: 'XBT_AVAX_ZAR_XBT', pairs: ['AVAXXBT', 'AVAXZAR', 'XBTZAR'], sequence: 'XBT → AVAX → ZAR → XBT', steps: [{ pair: 'AVAXXBT', side: 'buy' }, { pair: 'AVAXZAR', side: 'sell' }, { pair: 'XBTZAR', side: 'buy' }] },
+                { id: 'XBT_LINK_ZAR_XBT', pairs: ['LINKXBT', 'LINKZAR', 'XBTZAR'], sequence: 'XBT → LINK → ZAR → XBT', steps: [{ pair: 'LINKXBT', side: 'buy' }, { pair: 'LINKZAR', side: 'sell' }, { pair: 'XBTZAR', side: 'buy' }] },
+                { id: 'XBT_UNI_ZAR_XBT', pairs: ['UNIXBT', 'UNIZAR', 'XBTZAR'], sequence: 'XBT → UNI → ZAR → XBT', steps: [{ pair: 'UNIXBT', side: 'buy' }, { pair: 'UNIZAR', side: 'sell' }, { pair: 'XBTZAR', side: 'buy' }] },
+                { id: 'XBT_LTC_ZAR_XBT', pairs: ['LTCXBT', 'LTCZAR', 'XBTZAR'], sequence: 'XBT → LTC → ZAR → XBT', steps: [{ pair: 'LTCXBT', side: 'buy' }, { pair: 'LTCZAR', side: 'sell' }, { pair: 'XBTZAR', side: 'buy' }] }
+            ],
+            SET_3_ZAR_FOCUS: [
+                { id: 'ZAR_XBT_ETH_ZAR', pairs: ['XBTZAR', 'ETHXBT', 'ETHZAR'], sequence: 'ZAR → XBT → ETH → ZAR', steps: [{ pair: 'XBTZAR', side: 'buy' }, { pair: 'ETHXBT', side: 'buy' }, { pair: 'ETHZAR', side: 'sell' }] },
+                { id: 'ZAR_XBT_SOL_ZAR', pairs: ['XBTZAR', 'SOLXBT', 'SOLZAR'], sequence: 'ZAR → XBT → SOL → ZAR', steps: [{ pair: 'XBTZAR', side: 'buy' }, { pair: 'SOLXBT', side: 'buy' }, { pair: 'SOLZAR', side: 'sell' }] },
+                { id: 'ZAR_XBT_XRP_ZAR', pairs: ['XBTZAR', 'XRPXBT', 'XRPZAR'], sequence: 'ZAR → XBT → XRP → ZAR', steps: [{ pair: 'XBTZAR', side: 'buy' }, { pair: 'XRPXBT', side: 'buy' }, { pair: 'XRPZAR', side: 'sell' }] },
+                { id: 'ZAR_ETH_XBT_ZAR', pairs: ['ETHZAR', 'ETHXBT', 'XBTZAR'], sequence: 'ZAR → ETH → XBT → ZAR', steps: [{ pair: 'ETHZAR', side: 'buy' }, { pair: 'ETHXBT', side: 'sell' }, { pair: 'XBTZAR', side: 'sell' }] },
+                { id: 'ZAR_SOL_XBT_ZAR', pairs: ['SOLZAR', 'SOLXBT', 'XBTZAR'], sequence: 'ZAR → SOL → XBT → ZAR', steps: [{ pair: 'SOLZAR', side: 'buy' }, { pair: 'SOLXBT', side: 'sell' }, { pair: 'XBTZAR', side: 'sell' }] },
+                { id: 'ZAR_XRP_XBT_ZAR', pairs: ['XRPZAR', 'XRPXBT', 'XBTZAR'], sequence: 'ZAR → XRP → XBT → ZAR', steps: [{ pair: 'XRPZAR', side: 'buy' }, { pair: 'XRPXBT', side: 'sell' }, { pair: 'XBTZAR', side: 'sell' }] },
+                { id: 'ZAR_USDT_XBT_ZAR', pairs: ['USDTZAR', 'XBTUSDT', 'XBTZAR'], sequence: 'ZAR → USDT → XBT → ZAR', steps: [{ pair: 'USDTZAR', side: 'buy' }, { pair: 'XBTUSDT', side: 'buy' }, { pair: 'XBTZAR', side: 'sell' }] },
+                { id: 'ZAR_USDC_ETH_ZAR', pairs: ['USDCZAR', 'ETHUSDC', 'ETHZAR'], sequence: 'ZAR → USDC → ETH → ZAR', steps: [{ pair: 'USDCZAR', side: 'buy' }, { pair: 'ETHUSDC', side: 'buy' }, { pair: 'ETHZAR', side: 'sell' }] }
+            ],
+            SET_4_ETH_FOCUS: [
+                { id: 'ETH_XBT_USDT_ETH', pairs: ['ETHXBT', 'XBTUSDT', 'ETHUSDT'], sequence: 'ETH → XBT → USDT → ETH', steps: [{ pair: 'ETHXBT', side: 'sell' }, { pair: 'XBTUSDT', side: 'sell' }, { pair: 'ETHUSDT', side: 'buy' }] },
+                { id: 'ETH_XBT_ZAR_ETH', pairs: ['ETHXBT', 'XBTZAR', 'ETHZAR'], sequence: 'ETH → XBT → ZAR → ETH', steps: [{ pair: 'ETHXBT', side: 'sell' }, { pair: 'XBTZAR', side: 'sell' }, { pair: 'ETHZAR', side: 'buy' }] },
+                { id: 'ETH_USDT_XBT_ETH', pairs: ['ETHUSDT', 'XBTUSDT', 'ETHXBT'], sequence: 'ETH → USDT → XBT → ETH', steps: [{ pair: 'ETHUSDT', side: 'sell' }, { pair: 'XBTUSDT', side: 'buy' }, { pair: 'ETHXBT', side: 'buy' }] },
+                { id: 'ETH_USDC_USDT_ETH', pairs: ['ETHUSDC', 'USDCUSDT', 'ETHUSDT'], sequence: 'ETH → USDC → USDT → ETH', steps: [{ pair: 'ETHUSDC', side: 'sell' }, { pair: 'USDCUSDT', side: 'sell' }, { pair: 'ETHUSDT', side: 'buy' }] },
+                { id: 'ETH_ZAR_XBT_ETH', pairs: ['ETHZAR', 'XBTZAR', 'ETHXBT'], sequence: 'ETH → ZAR → XBT → ETH', steps: [{ pair: 'ETHZAR', side: 'sell' }, { pair: 'XBTZAR', side: 'buy' }, { pair: 'ETHXBT', side: 'buy' }] },
+                { id: 'ETH_XBT_SOL_ETH', pairs: ['ETHXBT', 'SOLXBT', 'SOLETH'], sequence: 'ETH → XBT → SOL → ETH', steps: [{ pair: 'ETHXBT', side: 'sell' }, { pair: 'SOLXBT', side: 'buy' }, { pair: 'SOLETH', side: 'sell' }] }
+            ],
+            SET_5_SOL_UNIQUE: [
+                { id: 'SOL_ADA_ZAR_SOL', pairs: ['SOLADA', 'ADAZAR', 'SOLZAR'], sequence: 'SOL → ADA → ZAR → SOL', steps: [{ pair: 'SOLADA', side: 'sell' }, { pair: 'ADAZAR', side: 'sell' }, { pair: 'SOLZAR', side: 'buy' }] },
+                { id: 'SOL_XRP_XBT_SOL', pairs: ['SOLXRP', 'XRPXBT', 'SOLXBT'], sequence: 'SOL → XRP → XBT → SOL', steps: [{ pair: 'SOLXRP', side: 'sell' }, { pair: 'XRPXBT', side: 'sell' }, { pair: 'SOLXBT', side: 'buy' }] },
+                { id: 'SOL_XBT_USDT_SOL', pairs: ['SOLXBT', 'XBTUSDT', 'SOLUSDT'], sequence: 'SOL → XBT → USDT → SOL', steps: [{ pair: 'SOLXBT', side: 'sell' }, { pair: 'XBTUSDT', side: 'sell' }, { pair: 'SOLUSDT', side: 'buy' }] },
+                { id: 'SOL_USDT_XBT_SOL', pairs: ['SOLUSDT', 'XBTUSDT', 'SOLXBT'], sequence: 'SOL → USDT → XBT → SOL', steps: [{ pair: 'SOLUSDT', side: 'sell' }, { pair: 'XBTUSDT', side: 'buy' }, { pair: 'SOLXBT', side: 'buy' }] },
+                { id: 'SOL_ZAR_XBT_SOL', pairs: ['SOLZAR', 'XBTZAR', 'SOLXBT'], sequence: 'SOL → ZAR → XBT → SOL', steps: [{ pair: 'SOLZAR', side: 'sell' }, { pair: 'XBTZAR', side: 'buy' }, { pair: 'SOLXBT', side: 'buy' }] }
+            ],
+            SET_6_STABLECOIN_ARB: [
+                { id: 'USDC_ETH_XBT_USDC', pairs: ['ETHUSDC', 'ETHXBT', 'XBTUSDC'], sequence: 'USDC → ETH → XBT → USDC', steps: [{ pair: 'ETHUSDC', side: 'buy' }, { pair: 'ETHXBT', side: 'sell' }, { pair: 'XBTUSDC', side: 'sell' }] },
+                { id: 'USDC_USDT_ETH_USDC', pairs: ['USDCUSDT', 'ETHUSDT', 'ETHUSDC'], sequence: 'USDC → USDT → ETH → USDC', steps: [{ pair: 'USDCUSDT', side: 'sell' }, { pair: 'ETHUSDT', side: 'buy' }, { pair: 'ETHUSDC', side: 'sell' }] },
+                { id: 'XRP_SOL_XBT_XRP', pairs: ['SOLXRP', 'SOLXBT', 'XRPXBT'], sequence: 'XRP → SOL → XBT → XRP', steps: [{ pair: 'SOLXRP', side: 'buy' }, { pair: 'SOLXBT', side: 'sell' }, { pair: 'XRPXBT', side: 'buy' }] },
+                { id: 'ADA_SOL_ZAR_ADA', pairs: ['SOLADA', 'SOLZAR', 'ADAZAR'], sequence: 'ADA → SOL → ZAR → ADA', steps: [{ pair: 'SOLADA', side: 'buy' }, { pair: 'SOLZAR', side: 'sell' }, { pair: 'ADAZAR', side: 'buy' }] }
+            ],
+            SET_7_EXTENDED_ALTCOINS: [
+                // Future expansion with ALGO, ATOM, BCH, CRV, GRT, HBAR, NEAR, POL, SAND, SNX, TRX, XLM
+            ]
+        };
+
+        // Return basic scan structure (full implementation would fetch order books and calculate profits)
+        systemLogger.trading('Luno triangular scan completed (placeholder)', {
+            userId: req.user.id,
+            pathSetsCount: Object.keys(allPathSets).length
+        });
+
+        res.json({
+            success: true,
+            data: {
+                opportunities: [],
+                pathSetsScanned: Object.keys(allPathSets).length,
+                totalPathsScanned: Object.values(allPathSets).reduce((sum, set) => sum + set.length, 0),
+                message: 'Luno triangular scan structure ready. Full order book analysis to be implemented.',
+                timestamp: new Date().toISOString()
+            }
+        });
+
+    } catch (error) {
+        systemLogger.error('Luno triangular scan failed', {
+            userId: req.user.id,
+            error: error.message
+        });
+        throw error;
+    }
+}));
+
+// GET /api/v1/trading/luno/triangular/paths
+// Get all configured Luno triangular arbitrage paths
+router.get('/luno/triangular/paths', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    try {
+        // Return all 42 configured paths organized in 7 sets
+        const allPaths = {
+            SET_1_USDT_FOCUS: {
+                name: 'USDT Focus (Essential)',
+                description: 'Paths starting/ending with USDT',
+                pathCount: 7
+            },
+            SET_2_XBT_FOCUS: {
+                name: 'XBT Focus (High Volume)',
+                description: 'Paths with Bitcoin as intermediary',
+                pathCount: 12
+            },
+            SET_3_ZAR_FOCUS: {
+                name: 'ZAR Focus (SA Market)',
+                description: 'Paths for South African Rand trading',
+                pathCount: 8
+            },
+            SET_4_ETH_FOCUS: {
+                name: 'ETH Focus (DeFi)',
+                description: 'Ethereum-based triangular paths',
+                pathCount: 6
+            },
+            SET_5_SOL_UNIQUE: {
+                name: 'SOL Unique Paths',
+                description: 'Solana paths with direct SOL/ADA and SOL/XRP pairs',
+                pathCount: 5
+            },
+            SET_6_STABLECOIN_ARB: {
+                name: 'Stablecoin Arbitrage',
+                description: 'Low-risk USDC/USDT paths',
+                pathCount: 4
+            },
+            SET_7_EXTENDED_ALTCOINS: {
+                name: 'Extended Altcoins',
+                description: 'Future expansion with more altcoins',
+                pathCount: 0
+            }
+        };
+
+        res.json({
+            success: true,
+            data: {
+                pathSets: allPaths,
+                totalPaths: 42,
+                timestamp: new Date().toISOString()
+            }
+        });
+    } catch (error) {
+        systemLogger.error('Luno triangular paths fetch failed', {
+            userId: req.user.id,
+            error: error.message
+        });
+        throw error;
+    }
+}));
+
+// POST /api/v1/trading/luno/triangular/execute
+// Execute a Luno triangular arbitrage trade (3-leg atomic transaction)
+router.post('/luno/triangular/execute', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    try {
+        const { pathId, amount, simulate = true } = req.body;
+
+        if (!pathId || !amount) {
+            throw new APIError('Path ID and amount are required', 400, 'MISSING_PARAMETERS');
+        }
+
+        systemLogger.trading('Luno triangular execution initiated', {
+            userId: req.user.id,
+            pathId,
+            amount,
+            simulate,
+            timestamp: new Date().toISOString()
+        });
+
+        // For now, return a placeholder response
+        // Full implementation would execute 3-leg trade with rollback on failure
+        res.json({
+            success: true,
+            data: {
+                message: 'Luno triangular execution structure ready. Full atomic trade implementation pending.',
+                pathId,
+                amount,
+                simulate,
+                timestamp: new Date().toISOString()
+            }
+        });
+
+    } catch (error) {
+        systemLogger.error('Luno triangular execution failed', {
+            userId: req.user.id,
+            error: error.message
+        });
+        throw error;
+    }
+}));
+
+// DELETE /api/v1/trading/luno/triangular/history
+// Clear Luno triangular arbitrage trade history
+router.delete('/luno/triangular/history', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    try {
+        systemLogger.trading('Luno triangular history clear initiated', {
+            userId: req.user.id,
+            timestamp: new Date().toISOString()
+        });
+
+        // Clear triangular trade history for Luno only
+        await query(`
+            DELETE FROM triangular_trades
+            WHERE user_id = $1 AND exchange = 'LUNO'
+        `, [req.user.id]);
+
+        // Reset stats for Luno
+        await query(`
+            UPDATE trading_activity
+            SET triangular_trades_count = triangular_trades_count - (
+                SELECT COUNT(*) FROM triangular_trades
+                WHERE user_id = $1 AND exchange = 'LUNO'
+            ),
+            updated_at = CURRENT_TIMESTAMP
+            WHERE user_id = $1
+        `, [req.user.id]);
+
+        systemLogger.trading('Luno triangular history cleared', {
+            userId: req.user.id
+        });
+
+        res.json({
+            success: true,
+            message: 'Luno triangular trade history cleared successfully',
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        systemLogger.error('Luno triangular history clear failed', {
+            userId: req.user.id,
+            error: error.message
+        });
+        throw error;
+    }
+}));
+
+// GET /api/v1/trading/luno/triangular/recent-trades
+// Get recent Luno triangular trades
+router.get('/luno/triangular/recent-trades', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    try {
+        const limit = parseInt(req.query.limit) || 20;
+
+        // Query only Luno triangular trades
+        const tradesQuery = `
+            SELECT
+                id, trade_id, exchange, path_id, path_sequence,
+                execution_status, actual_profit_zar, actual_profit_percent,
+                total_execution_time_ms, created_at, execution_completed_at,
+                error_message, dry_run
+            FROM triangular_trades
+            WHERE user_id = $1 AND exchange = 'LUNO'
+            ORDER BY created_at DESC
+            LIMIT $2
+        `;
+
+        const result = await query(tradesQuery, [req.user.id, limit]);
+
+        systemLogger.info('Recent Luno triangular trades fetched', {
+            userId: req.user.id,
+            tradesCount: result.rows.length
+        });
+
+        res.json({
+            success: true,
+            data: {
+                trades: result.rows,
+                count: result.rows.length,
+                timestamp: new Date().toISOString()
+            }
+        });
+
+    } catch (error) {
+        systemLogger.error('Failed to fetch recent Luno triangular trades', {
+            userId: req.user.id,
+            error: error.message
+        });
+        throw error;
+    }
+}));
+
+// ============================================================================
 // VALR EXCHANGE API PROXY ENDPOINTS
 // ============================================================================
 
