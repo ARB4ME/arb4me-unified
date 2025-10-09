@@ -6047,8 +6047,8 @@ router.post('/binance/sell-order', tradingRateLimit, optionalAuth, [
 // KRAKEN EXCHANGE API PROXY ENDPOINTS
 // ============================================================================
 
-// Kraken API Configuration
-const KRAKEN_CONFIG = {
+// Kraken Proxy API Configuration (renamed to avoid conflict with triangular routes)
+const KRAKEN_PROXY_CONFIG = {
     baseUrl: 'https://api.kraken.com',
     endpoints: {
         balance: '/0/private/Balance',
@@ -6083,10 +6083,10 @@ router.post('/kraken/balance', tradingRateLimit, optionalAuth, [
     try {
         const nonce = Date.now().toString();
         const postdata = `nonce=${nonce}`;
-        const path = KRAKEN_CONFIG.endpoints.balance;
+        const path = KRAKEN_PROXY_CONFIG.endpoints.balance;
         const signature = createKrakenSignature(path, postdata, apiSecret, nonce);
 
-        const response = await fetch(`${KRAKEN_CONFIG.baseUrl}${path}`, {
+        const response = await fetch(`${KRAKEN_PROXY_CONFIG.baseUrl}${path}`, {
             method: 'POST',
             headers: {
                 'API-Key': apiKey,
@@ -6165,7 +6165,7 @@ router.post('/kraken/ticker', tickerRateLimit, optionalAuth, [
         if (pair === 'BTCUSDT') krakenPair = 'XBTUSDT';
         if (pair === 'ETHUSDT') krakenPair = 'ETHUSDT';
         
-        const response = await fetch(`${KRAKEN_CONFIG.baseUrl}${KRAKEN_CONFIG.endpoints.ticker}?pair=${krakenPair}`, {
+        const response = await fetch(`${KRAKEN_PROXY_CONFIG.baseUrl}${KRAKEN_PROXY_CONFIG.endpoints.ticker}?pair=${krakenPair}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json'
@@ -6253,10 +6253,10 @@ router.post('/kraken/test', tradingRateLimit, optionalAuth, [
     try {
         const nonce = Date.now().toString();
         const postdata = `nonce=${nonce}`;
-        const path = KRAKEN_CONFIG.endpoints.test;
+        const path = KRAKEN_PROXY_CONFIG.endpoints.test;
         const signature = createKrakenSignature(path, postdata, apiSecret, nonce);
 
-        const response = await fetch(`${KRAKEN_CONFIG.baseUrl}${path}`, {
+        const response = await fetch(`${KRAKEN_PROXY_CONFIG.baseUrl}${path}`, {
             method: 'POST',
             headers: {
                 'API-Key': apiKey,
@@ -6353,13 +6353,13 @@ router.post('/kraken/buy-order', tradingRateLimit, optionalAuth, [
         };
         
         const postData = new URLSearchParams(orderData).toString();
-        const path = KRAKEN_CONFIG.endpoints.order;
+        const path = KRAKEN_PROXY_CONFIG.endpoints.order;
         const signature = crypto
             .createHmac('sha512', Buffer.from(apiSecret, 'base64'))
             .update(path + crypto.createHash('sha256').update(nonce + postData).digest())
             .digest('base64');
-        
-        const response = await fetch(`${KRAKEN_CONFIG.baseUrl}${path}`, {
+
+        const response = await fetch(`${KRAKEN_PROXY_CONFIG.baseUrl}${path}`, {
             method: 'POST',
             headers: {
                 'API-Key': apiKey,
@@ -6454,13 +6454,13 @@ router.post('/kraken/sell-order', tradingRateLimit, optionalAuth, [
         };
         
         const postData = new URLSearchParams(orderData).toString();
-        const path = KRAKEN_CONFIG.endpoints.order;
+        const path = KRAKEN_PROXY_CONFIG.endpoints.order;
         const signature = crypto
             .createHmac('sha512', Buffer.from(apiSecret, 'base64'))
             .update(path + crypto.createHash('sha256').update(nonce + postData).digest())
             .digest('base64');
-        
-        const response = await fetch(`${KRAKEN_CONFIG.baseUrl}${path}`, {
+
+        const response = await fetch(`${KRAKEN_PROXY_CONFIG.baseUrl}${path}`, {
             method: 'POST',
             headers: {
                 'API-Key': apiKey,
