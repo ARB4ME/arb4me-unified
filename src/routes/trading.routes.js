@@ -2885,7 +2885,7 @@ router.delete('/chainex/triangular/history', authenticatedRateLimit, authenticat
             userId: req.user.id
         });
 
-        const result = await db.query(
+        const result = await query(
             'DELETE FROM triangular_trades WHERE user_id = $1 AND exchange = $2',
             [req.user.id, 'CHAINEX']
         );
@@ -2918,7 +2918,7 @@ router.get('/chainex/triangular/recent-trades', authenticatedRateLimit, authenti
             limit: limit
         });
 
-        const result = await db.query(
+        const result = await query(
             'SELECT * FROM triangular_trades WHERE user_id = $1 AND exchange = $2 ORDER BY created_at DESC LIMIT $3',
             [req.user.id, 'CHAINEX', limit]
         );
