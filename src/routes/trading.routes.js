@@ -2951,7 +2951,9 @@ function createKrakenAuth(apiKey, apiSecret, path, nonce, postData) {
     const message = nonce + postData;
     const secret = Buffer.from(apiSecret, 'base64');
     const hash = crypto.createHash('sha256').update(message).digest();
-    const hmac = crypto.createHmac('sha512', secret).update(path + hash).digest('base64');
+    const hmac = crypto.createHmac('sha512', secret)
+        .update(Buffer.concat([Buffer.from(path, 'utf8'), hash]))
+        .digest('base64');
 
     return {
         'API-Key': apiKey,
