@@ -418,6 +418,120 @@
             </div>
         </div>
 
+        <!-- LUNO Exchange Card -->
+        <div style="background: rgba(0,212,255,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 2px solid #00d4ff;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="color: #00d4ff; margin: 0;">🔷 LUNO Triangular Arbitrage</h3>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <span style="color: #b8c6db; font-size: 0.9rem;">LUNO Live Trading:</span>
+                    <div class="toggle-switch" id="lunoTriangularEnabled">
+                        <div class="toggle-knob"></div>
+                    </div>
+                    <span id="lunoTriangularStatus" style="color: #ff6b6b; font-size: 0.9rem; margin-left: 10px;">OFF</span>
+                </div>
+            </div>
+
+            <!-- LUNO Settings Grid -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 20px;">
+                <!-- Risk Management -->
+                <div class="stat-card">
+                    <h4 style="color: #ffb347; margin-bottom: 15px;">⚖️ Risk Management</h4>
+                    <div class="form-group">
+                        <label>Max Single Trade (USDT)</label>
+                        <input type="number" id="lunoMaxTrade" value="50" min="10" max="1000">
+                    </div>
+                    <div class="form-group">
+                        <label>Portfolio % per Trade</label>
+                        <input type="number" id="lunoPortfolioPercent" value="10" min="1" max="50">
+                    </div>
+                    <div class="form-group">
+                        <label>Min Profit Threshold (%)</label>
+                        <input type="number" id="lunoProfitThreshold" value="0.5" min="0.1" max="5" step="0.1">
+                    </div>
+                </div>
+
+                <!-- Path Categories -->
+                <div class="stat-card">
+                    <h4 style="color: #ffb347; margin-bottom: 15px;">📊 Path Sets (42 Paths in 7 Sets)</h4>
+                    <div style="display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; max-height: 200px; overflow-y: auto;">
+                        <span style="color: #ffd700; font-size: 0.85rem;">SET 1: USDT Focus (7 paths)</span>
+                        <input type="checkbox" id="lunoSet1Enabled" checked>
+
+                        <span style="color: #ffb347; font-size: 0.85rem;">SET 2: XBT Focus (12 paths)</span>
+                        <input type="checkbox" id="lunoSet2Enabled" checked>
+
+                        <span style="color: #32cd32; font-size: 0.85rem;">SET 3: ZAR Focus (8 paths)</span>
+                        <input type="checkbox" id="lunoSet3Enabled" checked>
+
+                        <span style="color: #00d4ff; font-size: 0.85rem;">SET 4: ETH Focus (6 paths)</span>
+                        <input type="checkbox" id="lunoSet4Enabled">
+
+                        <span style="color: #9370db; font-size: 0.85rem;">SET 5: SOL Unique (5 paths) ⭐</span>
+                        <input type="checkbox" id="lunoSet5Enabled">
+
+                        <span style="color: #00ced1; font-size: 0.85rem;">SET 6: Stablecoin Arb (4 paths)</span>
+                        <input type="checkbox" id="lunoSet6Enabled">
+
+                        <span style="color: #778899; font-size: 0.85rem;">SET 7: Extended Altcoins (0 paths)</span>
+                        <input type="checkbox" id="lunoSet7Enabled">
+                    </div>
+                    <div style="margin-top: 10px; padding: 8px; background: rgba(0,212,255,0.1); border-radius: 6px; font-size: 0.8rem; color: #b8c6db;">
+                        💡 Sets 1-3 are essential (27 paths). SET 5 includes unique SOL/ADA and SOL/XRP pairs exclusive to Luno.
+                    </div>
+                </div>
+
+                <!-- Performance Stats -->
+                <div class="stat-card">
+                    <h4 style="color: #ffb347; margin-bottom: 15px;">📈 Performance Stats</h4>
+                    <div style="display: grid; grid-template-columns: 1fr auto; gap: 10px; font-size: 0.9rem;">
+                        <span style="color: #b8c6db;">Total Trades:</span>
+                        <span style="color: #00d4ff;" id="lunoTotalTrades">0</span>
+
+                        <span style="color: #b8c6db;">Successful Trades:</span>
+                        <span style="color: #00d4ff;" id="lunoSuccessfulTrades">0</span>
+
+                        <span style="color: #b8c6db;">Success Rate:</span>
+                        <span style="color: #00d4ff;" id="lunoSuccessRate">0%</span>
+
+                        <span style="color: #b8c6db;">Total Profit:</span>
+                        <span style="color: #00d4ff;" id="lunoTotalProfit">$0.00</span>
+
+                        <span style="color: #b8c6db;">Best Path:</span>
+                        <span style="color: #00d4ff;" id="lunoBestPath">-</span>
+
+                        <span style="color: #b8c6db;">Last Scan:</span>
+                        <span style="color: #b8c6db;" id="lunoLastScan">Never</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LUNO Control Buttons -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                <button onclick="testLunoTriangularConnection()" class="btn">
+                    🔍 Test Connection
+                </button>
+                <button onclick="scanLunoTriangularPaths()" class="btn">
+                    ⚡ Manual Scan
+                </button>
+                <button onclick="viewLunoPathDetails()" class="btn">
+                    📊 View Paths
+                </button>
+                <button onclick="clearLunoTriangularHistory()" class="btn">
+                    🗑️ Clear History
+                </button>
+            </div>
+
+            <!-- Recent LUNO Trades -->
+            <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px;">
+                <h4 style="color: #ffb347; margin-bottom: 15px;">🕒 Recent Triangular Trades</h4>
+                <div id="lunoRecentTrades" style="max-height: 200px; overflow-y: auto;">
+                    <div style="text-align: center; color: #888; padding: 20px;">
+                        No triangular trades yet. Enable live trading to start.
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Future Exchanges Placeholder -->
         <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 15px; border: 2px dashed #666;">
             <div style="text-align: center; color: #888;">
@@ -549,6 +663,276 @@
                 const checkbox = document.getElementById(`valrSet${i}Enabled`);
                 if (checkbox) {
                     checkbox.addEventListener('change', saveTriangularSettings);
+                }
+            }
+        });
+
+        // ============================================================================
+        // LUNO TRIANGULAR ARBITRAGE JAVASCRIPT
+        // ============================================================================
+
+        // Toggle for Luno Triangular trading
+        document.getElementById('lunoTriangularEnabled').addEventListener('click', function() {
+            this.classList.toggle('active');
+            const status = document.getElementById('lunoTriangularStatus');
+
+            if (this.classList.contains('active')) {
+                status.textContent = 'ON';
+                status.style.color = '#00d4ff';
+                localStorage.setItem('lunoTriangularEnabled', 'true');
+            } else {
+                status.textContent = 'OFF';
+                status.style.color = '#ff6b6b';
+                localStorage.setItem('lunoTriangularEnabled', 'false');
+            }
+        });
+
+        // Load saved Luno toggle state on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const lunoEnabled = localStorage.getItem('lunoTriangularEnabled') === 'true';
+            const toggle = document.getElementById('lunoTriangularEnabled');
+            const status = document.getElementById('lunoTriangularStatus');
+
+            if (lunoEnabled) {
+                toggle.classList.add('active');
+                status.textContent = 'ON';
+                status.style.color = '#00d4ff';
+            }
+
+            // Load Luno settings
+            loadLunoTriangularSettings();
+        });
+
+        // Test Luno Triangular Connection
+        async function testLunoTriangularConnection() {
+            try {
+                // Get credentials from localStorage (saved from strategy-api-setup.html)
+                const apiKey = localStorage.getItem('luno_triangular_api');
+                const apiSecret = localStorage.getItem('luno_triangular_secret');
+
+                if (!apiKey || !apiSecret) {
+                    alert('❌ Please set up your Luno API credentials first in the Strategy API Setup page.');
+                    return;
+                }
+
+                // Show loading message
+                const btn = event.target;
+                const originalText = btn.textContent;
+                btn.textContent = '⏳ Testing...';
+                btn.disabled = true;
+
+                // Call backend test-connection route
+                const response = await fetch('/api/v1/trading/luno/triangular/test-connection', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        apiKey: apiKey,
+                        apiSecret: apiSecret
+                    })
+                });
+
+                const result = await response.json();
+
+                btn.textContent = originalText;
+                btn.disabled = false;
+
+                if (result.success) {
+                    alert(`✅ Luno Connection Successful!\n\n` +
+                          `• Balance Access: ${result.data.balanceAccess ? 'Yes' : 'No'}\n` +
+                          `• Triangular Pairs Available: ${result.data.triangularPairsAvailable ? 'Yes' : 'No'}\n` +
+                          `• Total Pairs: ${result.data.totalPairs}\n` +
+                          `• Required Pairs Found: ${result.data.requiredPairsFound.length}/6`);
+                } else {
+                    alert(`❌ Connection Failed: ${result.message || 'Unknown error'}`);
+                }
+            } catch (error) {
+                alert(`❌ Connection Error: ${error.message}`);
+                console.error('Luno test connection error:', error);
+            }
+        }
+
+        // Scan Luno Triangular Paths
+        async function scanLunoTriangularPaths() {
+            try {
+                const apiKey = localStorage.getItem('luno_triangular_api');
+                const apiSecret = localStorage.getItem('luno_triangular_secret');
+
+                if (!apiKey || !apiSecret) {
+                    alert('❌ Please set up your Luno API credentials first.');
+                    return;
+                }
+
+                const btn = event.target;
+                const originalText = btn.textContent;
+                btn.textContent = '⏳ Scanning...';
+                btn.disabled = true;
+
+                // Get enabled path sets
+                const enabledSets = [];
+                for (let i = 1; i <= 7; i++) {
+                    const checkbox = document.getElementById(`lunoSet${i}Enabled`);
+                    if (checkbox && checkbox.checked) {
+                        enabledSets.push(i);
+                    }
+                }
+
+                const response = await fetch('/api/v1/trading/luno/triangular/scan', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        apiKey: apiKey,
+                        apiSecret: apiSecret,
+                        paths: enabledSets.length > 0 ? enabledSets : 'all'
+                    })
+                });
+
+                const result = await response.json();
+
+                btn.textContent = originalText;
+                btn.disabled = false;
+
+                if (result.success) {
+                    document.getElementById('lunoLastScan').textContent = new Date().toLocaleTimeString();
+                    alert(`✅ Scan Complete!\n\n` +
+                          `• Path Sets Scanned: ${result.data.pathSetsScanned}\n` +
+                          `• Total Paths: ${result.data.totalPathsScanned}\n` +
+                          `• Opportunities Found: ${result.data.opportunities.length}\n\n` +
+                          `${result.data.message || 'Full implementation coming soon!'}`);
+                } else {
+                    alert(`❌ Scan Failed: ${result.message || 'Unknown error'}`);
+                }
+            } catch (error) {
+                alert(`❌ Scan Error: ${error.message}`);
+                console.error('Luno scan error:', error);
+            }
+        }
+
+        // View Luno Path Details
+        async function viewLunoPathDetails() {
+            try {
+                const response = await fetch('/api/v1/trading/luno/triangular/paths', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    let message = '📊 Luno Triangular Paths\n\n';
+                    message += `Total Paths: ${result.data.totalPaths}\n\n`;
+
+                    for (const [key, value] of Object.entries(result.data.pathSets)) {
+                        message += `${value.name}: ${value.pathCount} paths\n`;
+                        message += `${value.description}\n\n`;
+                    }
+
+                    alert(message);
+                } else {
+                    alert(`❌ Failed to fetch paths: ${result.message || 'Unknown error'}`);
+                }
+            } catch (error) {
+                alert(`❌ Error: ${error.message}`);
+                console.error('Luno paths error:', error);
+            }
+        }
+
+        // Clear Luno Triangular History
+        async function clearLunoTriangularHistory() {
+            if (!confirm('⚠️ Clear all Luno triangular trade history?\n\nThis action cannot be undone.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/v1/trading/luno/triangular/history', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Reset stats display
+                    document.getElementById('lunoTotalTrades').textContent = '0';
+                    document.getElementById('lunoSuccessfulTrades').textContent = '0';
+                    document.getElementById('lunoSuccessRate').textContent = '0%';
+                    document.getElementById('lunoTotalProfit').textContent = '$0.00';
+                    document.getElementById('lunoBestPath').textContent = '-';
+                    document.getElementById('lunoLastScan').textContent = 'Never';
+
+                    // Clear recent trades display
+                    document.getElementById('lunoRecentTrades').innerHTML =
+                        '<div style="text-align: center; color: #888; padding: 20px;">No triangular trades yet. Enable live trading to start.</div>';
+
+                    alert('✅ History cleared successfully!');
+                } else {
+                    alert(`❌ Failed to clear history: ${result.message || 'Unknown error'}`);
+                }
+            } catch (error) {
+                alert(`❌ Error: ${error.message}`);
+                console.error('Luno clear history error:', error);
+            }
+        }
+
+        // Save Luno settings to localStorage
+        function saveLunoTriangularSettings() {
+            const settings = {
+                maxTrade: document.getElementById('lunoMaxTrade').value,
+                portfolioPercent: document.getElementById('lunoPortfolioPercent').value,
+                profitThreshold: document.getElementById('lunoProfitThreshold').value
+            };
+
+            // Save path set states (7 sets for Luno)
+            for (let i = 1; i <= 7; i++) {
+                const checkbox = document.getElementById(`lunoSet${i}Enabled`);
+                if (checkbox) {
+                    settings[`set${i}Enabled`] = checkbox.checked;
+                }
+            }
+
+            localStorage.setItem('lunoTriangularSettings', JSON.stringify(settings));
+        }
+
+        // Load Luno settings from localStorage
+        function loadLunoTriangularSettings() {
+            const savedSettings = localStorage.getItem('lunoTriangularSettings');
+            if (savedSettings) {
+                const settings = JSON.parse(savedSettings);
+
+                if (settings.maxTrade) document.getElementById('lunoMaxTrade').value = settings.maxTrade;
+                if (settings.portfolioPercent) document.getElementById('lunoPortfolioPercent').value = settings.portfolioPercent;
+                if (settings.profitThreshold) document.getElementById('lunoProfitThreshold').value = settings.profitThreshold;
+
+                // Load path set states (7 sets)
+                for (let i = 1; i <= 7; i++) {
+                    const checkbox = document.getElementById(`lunoSet${i}Enabled`);
+                    if (checkbox && settings[`set${i}Enabled`] !== undefined) {
+                        checkbox.checked = settings[`set${i}Enabled`];
+                    }
+                }
+            }
+        }
+
+        // Auto-save Luno settings when changed
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add event listeners for Luno settings auto-save
+            const lunoInputs = document.querySelectorAll('#lunoMaxTrade, #lunoPortfolioPercent, #lunoProfitThreshold');
+            lunoInputs.forEach(input => {
+                input.addEventListener('change', saveLunoTriangularSettings);
+            });
+
+            // Add event listeners for Luno checkboxes (7 sets)
+            for (let i = 1; i <= 7; i++) {
+                const checkbox = document.getElementById(`lunoSet${i}Enabled`);
+                if (checkbox) {
+                    checkbox.addEventListener('change', saveLunoTriangularSettings);
                 }
             }
         });
