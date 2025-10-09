@@ -949,15 +949,102 @@
             </div>
         </div>
 
+        <!-- OKX Exchange -->
+        <div style="background: rgba(0,166,255,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 2px solid #00A6FF;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="color: #00A6FF; margin: 0;">🔵 OKX Triangular Arbitrage</h3>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <span style="color: #b8c6db; font-size: 0.9rem;">OKX Live Trading:</span>
+                    <div class="toggle-switch" id="okxTriangularEnabled">
+                        <div class="toggle-knob"></div>
+                    </div>
+                    <span id="okxTriangularStatus" style="color: #ff6b6b; font-size: 0.9rem; margin-left: 10px;">OFF</span>
+                </div>
+            </div>
+
+            <!-- Risk Management Section -->
+            <div class="stat-card">
+                <h4 style="color: #00A6FF; margin-bottom: 15px;">⚖️ Risk Management</h4>
+                <div class="form-group">
+                    <label>Max Single Trade (USDT)</label>
+                    <input type="number" id="okxMaxTrade" value="100" min="10" max="10000">
+                </div>
+                <div class="form-group">
+                    <label>Portfolio % per Trade</label>
+                    <input type="number" id="okxPortfolioPercent" value="10" min="1" max="50">
+                </div>
+                <div class="form-group">
+                    <label>Min Profit Threshold (%)</label>
+                    <input type="number" id="okxProfitThreshold" value="0.5" min="0.1" max="5" step="0.1">
+                </div>
+            </div>
+
+            <!-- Path Sets Section -->
+            <div class="stat-card">
+                <h4 style="color: #00A6FF; margin-bottom: 15px;">📊 Path Sets (32 Paths in 5 Sets)</h4>
+                <div style="display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center;">
+                    <span style="color: #ffd700; font-size: 0.85rem;">SET 1: Major ETH Bridge (7 paths)</span>
+                    <input type="checkbox" id="okxSet1Enabled" checked>
+
+                    <span style="color: #32cd32; font-size: 0.85rem;">SET 2: Mid-Cap BTC Bridge (7 paths)</span>
+                    <input type="checkbox" id="okxSet2Enabled" checked>
+
+                    <span style="color: #00d4ff; font-size: 0.85rem;">SET 3: OKB Native Bridge (6 paths)</span>
+                    <input type="checkbox" id="okxSet3Enabled">
+
+                    <span style="color: #ff69b4; font-size: 0.85rem;">SET 4: High Volatility (6 paths)</span>
+                    <input type="checkbox" id="okxSet4Enabled">
+
+                    <span style="color: #ff8c00; font-size: 0.85rem;">SET 5: Extended Multi-Bridge (6 paths)</span>
+                    <input type="checkbox" id="okxSet5Enabled">
+                </div>
+            </div>
+
+            <!-- Statistics Section -->
+            <div class="stat-card">
+                <h4 style="color: #00A6FF; margin-bottom: 15px;">📈 Today's Statistics</h4>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                    <div>
+                        <div style="color: #888; font-size: 0.75rem;">Scans</div>
+                        <div style="color: #00A6FF; font-size: 1.3rem; font-weight: bold;">0</div>
+                    </div>
+                    <div>
+                        <div style="color: #888; font-size: 0.75rem;">Opportunities</div>
+                        <div style="color: #32cd32; font-size: 1.3rem; font-weight: bold;">0</div>
+                    </div>
+                    <div>
+                        <div style="color: #888; font-size: 0.75rem;">Profit (ZAR)</div>
+                        <div style="color: #00A6FF; font-size: 1.3rem; font-weight: bold;">R 0.00</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Control Buttons -->
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px;">
+                <button onclick="testOKXTriangularConnection()" class="btn" style="background: linear-gradient(135deg, #00A6FF, #00D4FF);">🔍 Test Connection</button>
+                <button onclick="scanOKXTriangularPaths()" class="btn" style="background: linear-gradient(135deg, #32cd32, #98fb98);">⚡ Manual Scan</button>
+                <button onclick="viewOKXPathDetails()" class="btn" style="background: linear-gradient(135deg, #00bfff, #87ceeb);">📊 View Paths</button>
+                <button onclick="clearOKXTriangularHistory()" class="btn" style="background: linear-gradient(135deg, #ff6b6b, #ff9999);">🗑️ Clear History</button>
+            </div>
+
+            <!-- Live Feed Section -->
+            <div class="stat-card">
+                <h4 style="color: #00A6FF; margin-bottom: 15px;">📡 Live Feed</h4>
+                <div id="okxLiveFeed" style="max-height: 200px; overflow-y: auto; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; font-family: monospace; font-size: 0.85rem; color: #b8c6db;">
+                    <div style="color: #888;">Waiting for scan results...</div>
+                </div>
+            </div>
+        </div>
+
         <!-- Future Exchanges Placeholder -->
         <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 15px; border: 2px dashed #666;">
             <div style="text-align: center; color: #888;">
                 <h3 style="color: #666; margin-bottom: 15px;">🔮 Future Exchanges</h3>
                 <p style="margin-bottom: 15px;">Additional exchanges will be added here as they're implemented:</p>
                 <div style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;">
-                    <span style="color: #666; padding: 8px 16px; border: 1px solid #555; border-radius: 20px;">OKX</span>
                     <span style="color: #666; padding: 8px 16px; border: 1px solid #555; border-radius: 20px;">Coinbase</span>
-                    <span style="color: #666; padding: 8px 16px; border: 1px solid #555; border-radius: 20px;">+ 11 more</span>
+                    <span style="color: #666; padding: 8px 16px; border: 1px solid #555; border-radius: 20px;">KuCoin</span>
+                    <span style="color: #666; padding: 8px 16px; border: 1px solid #555; border-radius: 20px;">+ 10 more</span>
                 </div>
             </div>
         </div>
@@ -2642,6 +2729,319 @@
                 const checkbox = document.getElementById(`binanceSet${i}Enabled`);
                 if (checkbox) {
                     checkbox.addEventListener('change', saveBinanceTriangularSettings);
+                }
+            }
+        });
+
+        // ========================================================================
+        // OKX TRIANGULAR ARBITRAGE FUNCTIONS
+        // ========================================================================
+
+        // OKX Toggle Event Listener
+        document.getElementById('okxTriangularEnabled').addEventListener('click', function() {
+            console.log('🔄 [OKX] Toggle clicked');
+            this.classList.toggle('active');
+            const status = document.getElementById('okxTriangularStatus');
+
+            if (this.classList.contains('active')) {
+                console.log('✅ [OKX] Live trading enabled');
+                status.textContent = 'ON';
+                status.style.color = '#00A6FF';
+                localStorage.setItem('okxTriangularEnabled', 'true');
+            } else {
+                console.log('❌ [OKX] Live trading disabled');
+                status.textContent = 'OFF';
+                status.style.color = '#ff6b6b';
+                localStorage.setItem('okxTriangularEnabled', 'false');
+            }
+        });
+
+        // Test OKX Connection
+        async function testOKXTriangularConnection() {
+            console.log('🔍 [OKX] Testing connection...');
+            const apiKey = localStorage.getItem('okx_triangular_api');
+            const apiSecret = localStorage.getItem('okx_triangular_secret');
+            const passphrase = localStorage.getItem('okx_triangular_passphrase');
+
+            if (!apiKey || !apiSecret || !passphrase) {
+                alert('❌ Please configure your OKX API credentials in platform settings first.');
+                console.log('⚠️ [OKX] API credentials missing');
+                return;
+            }
+
+            try {
+                console.log('📡 [OKX] Sending test connection request to backend...');
+                const response = await fetch('/api/v1/trading/okx/triangular/test-connection', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    },
+                    body: JSON.stringify({
+                        apiKey: apiKey,
+                        apiSecret: apiSecret,
+                        passphrase: passphrase
+                    })
+                });
+
+                const result = await response.json();
+                console.log('✅ [OKX] Test connection response received:', result);
+
+                if (result.success) {
+                    alert(`✅ OKX Connection Successful!\n\n` +
+                          `• Authenticated: ${result.data.authenticated ? 'Yes' : 'No'}\n` +
+                          `• Balance Access: ${result.data.balanceAccess ? 'Yes' : 'No'}\n` +
+                          `• Market Data Access: ${result.data.marketDataAccess ? 'Yes' : 'No'}\n` +
+                          `• Available Pairs: ${result.data.availablePairs}\n` +
+                          `• Triangular Ready: ${result.data.triangularReady ? 'Yes' : 'No'}\n` +
+                          `• Sample Price: ${result.data.samplePrice}`);
+                } else {
+                    alert(`❌ OKX Connection Failed\n\n${result.message}`);
+                    console.error('❌ [OKX] Connection test failed:', result);
+                }
+            } catch (error) {
+                console.error('❌ [OKX] Connection test error:', error);
+                alert(`❌ Connection Error: ${error.message}`);
+            }
+        }
+
+        // Scan OKX Triangular Paths
+        async function scanOKXTriangularPaths() {
+            console.log('🔍 [OKX] Starting path scan...');
+            const apiKey = localStorage.getItem('okx_triangular_api');
+            const apiSecret = localStorage.getItem('okx_triangular_secret');
+            const passphrase = localStorage.getItem('okx_triangular_passphrase');
+
+            if (!apiKey || !apiSecret || !passphrase) {
+                alert('❌ Please configure your OKX API credentials in platform settings first.');
+                console.log('⚠️ [OKX] API credentials missing');
+                return;
+            }
+
+            // Gather enabled sets
+            const enabledSets = [];
+            for (let i = 1; i <= 5; i++) {
+                const checkbox = document.getElementById(`okxSet${i}Enabled`);
+                if (checkbox && checkbox.checked) {
+                    enabledSets.push(i);
+                }
+            }
+
+            console.log('📊 [OKX] Enabled path sets:', enabledSets);
+
+            const profitThreshold = parseFloat(document.getElementById('okxProfitThreshold').value) || 0.5;
+            console.log('📈 [OKX] Profit threshold:', profitThreshold, '%');
+
+            try {
+                console.log('📡 [OKX] Sending scan request to backend...');
+                const response = await fetch('/api/v1/trading/okx/triangular/scan', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    },
+                    body: JSON.stringify({
+                        apiKey: apiKey,
+                        apiSecret: apiSecret,
+                        passphrase: passphrase,
+                        enabledSets: enabledSets,
+                        profitThreshold: profitThreshold
+                    })
+                });
+
+                const result = await response.json();
+                console.log('✅ [OKX] Scan response received:', result);
+
+                if (result.success) {
+                    const feedDiv = document.getElementById('okxLiveFeed');
+                    const timestamp = new Date().toLocaleTimeString();
+
+                    let feedMessage = `<div style="color: #00A6FF; margin-bottom: 8px;">[${timestamp}] Scan Complete</div>`;
+                    feedMessage += `<div style="color: #b8c6db;">• Scanned: ${result.data.scannedPaths} paths</div>`;
+                    feedMessage += `<div style="color: #b8c6db;">• Opportunities: ${result.data.opportunities.length}</div>`;
+                    feedMessage += `<div style="color: #888; margin-top: 4px; font-size: 0.8rem;">${result.data.message}</div>`;
+
+                    feedDiv.innerHTML = feedMessage + feedDiv.innerHTML;
+
+                    if (result.data.opportunities.length > 0) {
+                        alert(`🎯 Found ${result.data.opportunities.length} OKX arbitrage opportunities!`);
+                    } else {
+                        alert(`✅ Scan complete. No opportunities above ${profitThreshold}% threshold found.`);
+                    }
+                } else {
+                    alert(`❌ Scan Failed\n\n${result.message}`);
+                    console.error('❌ [OKX] Scan failed:', result);
+                }
+            } catch (error) {
+                console.error('❌ [OKX] Scan error:', error);
+                alert(`❌ Scan Error: ${error.message}`);
+            }
+        }
+
+        // View OKX Path Details
+        async function viewOKXPathDetails() {
+            console.log('📊 [OKX] Fetching path details...');
+
+            try {
+                console.log('📡 [OKX] Sending paths request to backend...');
+                const response = await fetch('/api/v1/trading/okx/triangular/paths', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    }
+                });
+
+                const result = await response.json();
+                console.log('✅ [OKX] Path details received:', result);
+
+                if (result.success) {
+                    let message = `📊 OKX Triangular Arbitrage Paths\n\n`;
+                    message += `Total Paths: ${result.data.totalPaths}\n`;
+                    message += `Total Sets: ${result.data.totalSets}\n`;
+                    message += `Funding: ${result.data.fundingCurrency}\n`;
+                    message += `Bridge Currencies: ${result.data.bridgeCurrencies.join(', ')}\n\n`;
+                    message += `Path Sets:\n`;
+
+                    result.data.sets.forEach(set => {
+                        message += `\nSET ${set.id}: ${set.name}\n`;
+                        message += `  • Paths: ${set.paths}\n`;
+                        message += `  • Liquidity: ${set.liquidity}\n`;
+                    });
+
+                    message += `\n${result.data.note}`;
+
+                    alert(message);
+                } else {
+                    alert(`❌ Failed to retrieve path details\n\n${result.message}`);
+                    console.error('❌ [OKX] Path details failed:', result);
+                }
+            } catch (error) {
+                console.error('❌ [OKX] Path details error:', error);
+                alert(`❌ Error: ${error.message}`);
+            }
+        }
+
+        // Clear OKX Trade History
+        async function clearOKXTriangularHistory() {
+            console.log('🗑️ [OKX] Clearing trade history...');
+
+            if (!confirm('⚠️ Are you sure you want to clear all OKX triangular trade history?')) {
+                console.log('❌ [OKX] History clear cancelled by user');
+                return;
+            }
+
+            try {
+                console.log('📡 [OKX] Sending delete history request to backend...');
+                const response = await fetch('/api/v1/trading/okx/triangular/history', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    }
+                });
+
+                const result = await response.json();
+                console.log('✅ [OKX] Delete history response received:', result);
+
+                if (result.success) {
+                    alert(`✅ Cleared ${result.data.deletedCount} OKX trades from history`);
+                    document.getElementById('okxLiveFeed').innerHTML = '<div style="color: #888;">Trade history cleared. Waiting for scan results...</div>';
+                } else {
+                    alert(`❌ Failed to clear history\n\n${result.message}`);
+                    console.error('❌ [OKX] Clear history failed:', result);
+                }
+            } catch (error) {
+                console.error('❌ [OKX] Clear history error:', error);
+                alert(`❌ Error: ${error.message}`);
+            }
+        }
+
+        // Save OKX Triangular Settings
+        function saveOKXTriangularSettings() {
+            console.log('💾 [OKX] Saving settings to localStorage...');
+
+            const maxTrade = document.getElementById('okxMaxTrade').value;
+            const portfolioPercent = document.getElementById('okxPortfolioPercent').value;
+            const profitThreshold = document.getElementById('okxProfitThreshold').value;
+
+            // Save settings
+            const settings = {
+                maxTrade: maxTrade,
+                portfolioPercent: portfolioPercent,
+                profitThreshold: profitThreshold
+            };
+
+            // Save path set preferences
+            for (let i = 1; i <= 5; i++) {
+                const checkbox = document.getElementById(`okxSet${i}Enabled`);
+                if (checkbox) {
+                    settings[`set${i}Enabled`] = checkbox.checked;
+                }
+            }
+
+            localStorage.setItem('okxTriangularSettings', JSON.stringify(settings));
+            console.log('✅ [OKX] Settings saved:', settings);
+        }
+
+        // Load OKX Triangular Settings
+        function loadOKXTriangularSettings() {
+            console.log('📥 [OKX] Loading settings from localStorage...');
+
+            // Load settings
+            const settingsJson = localStorage.getItem('okxTriangularSettings');
+            if (settingsJson) {
+                try {
+                    const settings = JSON.parse(settingsJson);
+                    console.log('✅ [OKX] Settings loaded:', settings);
+
+                    if (settings.maxTrade) document.getElementById('okxMaxTrade').value = settings.maxTrade;
+                    if (settings.portfolioPercent) document.getElementById('okxPortfolioPercent').value = settings.portfolioPercent;
+                    if (settings.profitThreshold) document.getElementById('okxProfitThreshold').value = settings.profitThreshold;
+
+                    // Load path set preferences
+                    for (let i = 1; i <= 5; i++) {
+                        const checkbox = document.getElementById(`okxSet${i}Enabled`);
+                        if (checkbox && settings.hasOwnProperty(`set${i}Enabled`)) {
+                            checkbox.checked = settings[`set${i}Enabled`];
+                        }
+                    }
+                } catch (error) {
+                    console.error('❌ [OKX] Failed to parse settings:', error);
+                }
+            }
+
+            // Load toggle state
+            const toggleEnabled = localStorage.getItem('okxTriangularEnabled') === 'true';
+            const toggle = document.getElementById('okxTriangularEnabled');
+            const status = document.getElementById('okxTriangularStatus');
+
+            if (toggleEnabled) {
+                toggle.classList.add('active');
+                status.textContent = 'ON';
+                status.style.color = '#00A6FF';
+                console.log('✅ [OKX] Live trading enabled (from localStorage)');
+            } else {
+                console.log('ℹ️ [OKX] Live trading disabled (from localStorage)');
+            }
+        }
+
+        // Initialize OKX settings on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 [OKX] Initializing triangular arbitrage settings...');
+            loadOKXTriangularSettings();
+
+            // Add event listeners for OKX inputs (auto-save)
+            const okxInputs = document.querySelectorAll('#okxMaxTrade, #okxPortfolioPercent, #okxProfitThreshold');
+            okxInputs.forEach(input => {
+                input.addEventListener('change', saveOKXTriangularSettings);
+            });
+
+            // Add event listeners for OKX checkboxes (5 sets)
+            for (let i = 1; i <= 5; i++) {
+                const checkbox = document.getElementById(`okxSet${i}Enabled`);
+                if (checkbox) {
+                    checkbox.addEventListener('change', saveOKXTriangularSettings);
                 }
             }
         });

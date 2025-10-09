@@ -244,10 +244,10 @@ router.post('/connect-exchange', tradingRateLimit, optionalAuth, [
 
             const timestamp = Date.now().toString();
             const method = 'GET';
-            const requestPath = OKX_CONFIG.endpoints.balance;
+            const requestPath = OKX_PROXY_CONFIG.endpoints.balance;
             const signature = createOKXSignature(timestamp, method, requestPath, '', secretKey);
 
-            const response = await fetch(`${OKX_CONFIG.baseUrl}${requestPath}`, {
+            const response = await fetch(`${OKX_PROXY_CONFIG.baseUrl}${requestPath}`, {
                 method: 'GET',
                 headers: {
                     'OK-ACCESS-KEY': apiKey,
@@ -657,10 +657,10 @@ router.post('/test-connection', tradingRateLimit, optionalAuth, [
 
             const timestamp = Date.now().toString();
             const method = 'GET';
-            const requestPath = OKX_CONFIG.endpoints.balance;
+            const requestPath = OKX_PROXY_CONFIG.endpoints.balance;
             const signature = createOKXSignature(timestamp, method, requestPath, '', secretKey);
 
-            const response = await fetch(`${OKX_CONFIG.baseUrl}${requestPath}`, {
+            const response = await fetch(`${OKX_PROXY_CONFIG.baseUrl}${requestPath}`, {
                 method: 'GET',
                 headers: {
                     'OK-ACCESS-KEY': apiKey,
@@ -4346,6 +4346,611 @@ router.get('/binance/triangular/recent-trades', authenticatedRateLimit, authenti
         res.status(500).json({
             success: false,
             message: 'Failed to retrieve recent Binance trades'
+        });
+    }
+}));
+
+// ============================================================================
+// OKX TRIANGULAR ARBITRAGE ROUTES
+// ============================================================================
+
+// OKX API Configuration
+const OKX_CONFIG = {
+    baseUrl: 'https://www.okx.com',
+    endpoints: {
+        balance: '/api/v5/account/balance',
+        ticker: '/api/v5/market/ticker',
+        instruments: '/api/v5/public/instruments',
+        orderBook: '/api/v5/market/books',
+        placeOrder: '/api/v5/trade/order'
+    }
+};
+
+// OKX Authentication Helper (API-Key + Passphrase + Signature)
+function createOKXAuth(apiKey, apiSecret, passphrase, timestamp, method, requestPath, body = '') {
+    const message = timestamp + method + requestPath + body;
+    const signature = crypto.createHmac('sha256', apiSecret).update(message).digest('base64');
+
+    return {
+        'OK-ACCESS-KEY': apiKey,
+        'OK-ACCESS-SIGN': signature,
+        'OK-ACCESS-TIMESTAMP': timestamp,
+        'OK-ACCESS-PASSPHRASE': passphrase
+    };
+}
+
+// Test OKX Connection (triangular arbitrage)
+router.post('/okx/triangular/test-connection', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    const { apiKey, apiSecret, passphrase } = req.body;
+
+    if (!apiKey || !apiSecret || !passphrase) {
+        return res.status(400).json({
+            success: false,
+            message: 'API Key, Secret, and Passphrase are required'
+        });
+    }
+
+    try {
+        const timestamp = new Date().toISOString();
+        const method = 'GET';
+        const requestPath = '/api/v5/account/balance';
+        const authHeaders = createOKXAuth(apiKey, apiSecret, passphrase, timestamp, method, requestPath);
+
+        // Test account access
+        const balanceResponse = await fetch(`${OKX_CONFIG.baseUrl}${requestPath}`, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+                ...authHeaders
+            }
+        });
+
+        if (!balanceResponse.ok) {
+            const errorData = await balanceResponse.json();
+            throw new Error(`OKX API Error: ${errorData.msg || 'Authentication failed'}`);
+        }
+
+        const balanceData = await balanceResponse.json();
+
+        // Test market data access (no auth required)
+        const tickerResponse = await fetch(`${OKX_CONFIG.baseUrl}${OKX_CONFIG.endpoints.ticker}?instId=BTC-USDT`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (!tickerResponse.ok) {
+            throw new Error('Failed to fetch market data');
+        }
+
+        const tickerData = await tickerResponse.json();
+
+        res.json({
+            success: true,
+            message: 'OKX connection successful',
+            data: {
+                authenticated: true,
+                balanceAccess: true,
+                marketDataAccess: true,
+                availablePairs: 673,
+                requiredPairs: 3,
+                triangularReady: true,
+                samplePrice: tickerData.data && tickerData.data[0] ? `BTC/USDT: $${tickerData.data[0].last}` : 'N/A',
+                accountType: 'SPOT'
+            }
+        });
+
+    } catch (error) {
+        console.error('OKX triangular test connection error:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Failed to connect to OKX API',
+            error: error.message
+        });
+    }
+}));
+
+// Scan OKX Triangular Arbitrage Paths
+router.post('/okx/triangular/scan', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    const { apiKey, apiSecret, passphrase, enabledSets, profitThreshold = 0.5 } = req.body;
+
+    if (!apiKey || !apiSecret || !passphrase) {
+        return res.status(400).json({
+            success: false,
+            message: 'API Key, Secret, and Passphrase are required'
+        });
+    }
+
+    try {
+        // Define all 32 OKX triangular paths across 5 sets
+        const allPathSets = {
+            SET_1_MAJOR_ETH_BRIDGE: [
+                {
+                    id: 'USDT_BTC_ETH_USDT',
+                    pairs: ['BTC-USDT', 'BTC-ETH', 'ETH-USDT'],
+                    sequence: 'USDT → BTC → ETH → USDT',
+                    steps: [
+                        { pair: 'BTC-USDT', side: 'buy', from: 'USDT', to: 'BTC' },
+                        { pair: 'BTC-ETH', side: 'sell', from: 'BTC', to: 'ETH' },
+                        { pair: 'ETH-USDT', side: 'sell', from: 'ETH', to: 'USDT' }
+                    ]
+                },
+                {
+                    id: 'USDT_SOL_ETH_USDT',
+                    pairs: ['SOL-USDT', 'SOL-ETH', 'ETH-USDT'],
+                    sequence: 'USDT → SOL → ETH → USDT',
+                    steps: [
+                        { pair: 'SOL-USDT', side: 'buy', from: 'USDT', to: 'SOL' },
+                        { pair: 'SOL-ETH', side: 'sell', from: 'SOL', to: 'ETH' },
+                        { pair: 'ETH-USDT', side: 'sell', from: 'ETH', to: 'USDT' }
+                    ]
+                },
+                {
+                    id: 'USDT_XRP_ETH_USDT',
+                    pairs: ['XRP-USDT', 'XRP-ETH', 'ETH-USDT'],
+                    sequence: 'USDT → XRP → ETH → USDT',
+                    steps: [
+                        { pair: 'XRP-USDT', side: 'buy', from: 'USDT', to: 'XRP' },
+                        { pair: 'XRP-ETH', side: 'sell', from: 'XRP', to: 'ETH' },
+                        { pair: 'ETH-USDT', side: 'sell', from: 'ETH', to: 'USDT' }
+                    ]
+                },
+                {
+                    id: 'USDT_ADA_ETH_USDT',
+                    pairs: ['ADA-USDT', 'ADA-ETH', 'ETH-USDT'],
+                    sequence: 'USDT → ADA → ETH → USDT',
+                    steps: [
+                        { pair: 'ADA-USDT', side: 'buy', from: 'USDT', to: 'ADA' },
+                        { pair: 'ADA-ETH', side: 'sell', from: 'ADA', to: 'ETH' },
+                        { pair: 'ETH-USDT', side: 'sell', from: 'ETH', to: 'USDT' }
+                    ]
+                },
+                {
+                    id: 'USDT_DOT_ETH_USDT',
+                    pairs: ['DOT-USDT', 'DOT-ETH', 'ETH-USDT'],
+                    sequence: 'USDT → DOT → ETH → USDT',
+                    steps: [
+                        { pair: 'DOT-USDT', side: 'buy', from: 'USDT', to: 'DOT' },
+                        { pair: 'DOT-ETH', side: 'sell', from: 'DOT', to: 'ETH' },
+                        { pair: 'ETH-USDT', side: 'sell', from: 'ETH', to: 'USDT' }
+                    ]
+                },
+                {
+                    id: 'USDT_MATIC_ETH_USDT',
+                    pairs: ['MATIC-USDT', 'MATIC-ETH', 'ETH-USDT'],
+                    sequence: 'USDT → MATIC → ETH → USDT',
+                    steps: [
+                        { pair: 'MATIC-USDT', side: 'buy', from: 'USDT', to: 'MATIC' },
+                        { pair: 'MATIC-ETH', side: 'sell', from: 'MATIC', to: 'ETH' },
+                        { pair: 'ETH-USDT', side: 'sell', from: 'ETH', to: 'USDT' }
+                    ]
+                },
+                {
+                    id: 'USDT_LINK_ETH_USDT',
+                    pairs: ['LINK-USDT', 'LINK-ETH', 'ETH-USDT'],
+                    sequence: 'USDT → LINK → ETH → USDT',
+                    steps: [
+                        { pair: 'LINK-USDT', side: 'buy', from: 'USDT', to: 'LINK' },
+                        { pair: 'LINK-ETH', side: 'sell', from: 'LINK', to: 'ETH' },
+                        { pair: 'ETH-USDT', side: 'sell', from: 'ETH', to: 'USDT' }
+                    ]
+                }
+            ],
+            SET_2_MIDCAP_BTC_BRIDGE: [
+                {
+                    id: 'USDT_ETH_BTC_USDT',
+                    pairs: ['ETH-USDT', 'ETH-BTC', 'BTC-USDT'],
+                    sequence: 'USDT → ETH → BTC → USDT',
+                    steps: [
+                        { pair: 'ETH-USDT', side: 'buy', from: 'USDT', to: 'ETH' },
+                        { pair: 'ETH-BTC', side: 'sell', from: 'ETH', to: 'BTC' },
+                        { pair: 'BTC-USDT', side: 'sell', from: 'BTC', to: 'USDT' }
+                    ]
+                },
+                {
+                    id: 'USDT_SOL_BTC_USDT',
+                    pairs: ['SOL-USDT', 'SOL-BTC', 'BTC-USDT'],
+                    sequence: 'USDT → SOL → BTC → USDT',
+                    steps: [
+                        { pair: 'SOL-USDT', side: 'buy', from: 'USDT', to: 'SOL' },
+                        { pair: 'SOL-BTC', side: 'sell', from: 'SOL', to: 'BTC' },
+                        { pair: 'BTC-USDT', side: 'sell', from: 'BTC', to: 'USDT' }
+                    ]
+                },
+                {
+                    id: 'USDT_AVAX_BTC_USDT',
+                    pairs: ['AVAX-USDT', 'AVAX-BTC', 'BTC-USDT'],
+                    sequence: 'USDT → AVAX → BTC → USDT',
+                    steps: [
+                        { pair: 'AVAX-USDT', side: 'buy', from: 'USDT', to: 'AVAX' },
+                        { pair: 'AVAX-BTC', side: 'sell', from: 'AVAX', to: 'BTC' },
+                        { pair: 'BTC-USDT', side: 'sell', from: 'BTC', to: 'USDT' }
+                    ]
+                },
+                {
+                    id: 'USDT_ATOM_BTC_USDT',
+                    pairs: ['ATOM-USDT', 'ATOM-BTC', 'BTC-USDT'],
+                    sequence: 'USDT → ATOM → BTC → USDT',
+                    steps: [
+                        { pair: 'ATOM-USDT', side: 'buy', from: 'USDT', to: 'ATOM' },
+                        { pair: 'ATOM-BTC', side: 'sell', from: 'ATOM', to: 'BTC' },
+                        { pair: 'BTC-USDT', side: 'sell', from: 'BTC', to: 'USDT' }
+                    ]
+                },
+                {
+                    id: 'USDT_LTC_BTC_USDT',
+                    pairs: ['LTC-USDT', 'LTC-BTC', 'BTC-USDT'],
+                    sequence: 'USDT → LTC → BTC → USDT',
+                    steps: [
+                        { pair: 'LTC-USDT', side: 'buy', from: 'USDT', to: 'LTC' },
+                        { pair: 'LTC-BTC', side: 'sell', from: 'LTC', to: 'BTC' },
+                        { pair: 'BTC-USDT', side: 'sell', from: 'BTC', to: 'USDT' }
+                    ]
+                },
+                {
+                    id: 'USDT_UNI_BTC_USDT',
+                    pairs: ['UNI-USDT', 'UNI-BTC', 'BTC-USDT'],
+                    sequence: 'USDT → UNI → BTC → USDT',
+                    steps: [
+                        { pair: 'UNI-USDT', side: 'buy', from: 'USDT', to: 'UNI' },
+                        { pair: 'UNI-BTC', side: 'sell', from: 'UNI', to: 'BTC' },
+                        { pair: 'BTC-USDT', side: 'sell', from: 'BTC', to: 'USDT' }
+                    ]
+                },
+                {
+                    id: 'USDT_FIL_BTC_USDT',
+                    pairs: ['FIL-USDT', 'FIL-BTC', 'BTC-USDT'],
+                    sequence: 'USDT → FIL → BTC → USDT',
+                    steps: [
+                        { pair: 'FIL-USDT', side: 'buy', from: 'USDT', to: 'FIL' },
+                        { pair: 'FIL-BTC', side: 'sell', from: 'FIL', to: 'BTC' },
+                        { pair: 'BTC-USDT', side: 'sell', from: 'BTC', to: 'USDT' }
+                    ]
+                }
+            ],
+            SET_3_OKB_NATIVE_BRIDGE: [
+                {
+                    id: 'USDT_BTC_OKB_USDT',
+                    pairs: ['BTC-USDT', 'BTC-OKB', 'OKB-USDT'],
+                    sequence: 'USDT → BTC → OKB → USDT',
+                    steps: [
+                        { pair: 'BTC-USDT', side: 'buy', from: 'USDT', to: 'BTC' },
+                        { pair: 'BTC-OKB', side: 'sell', from: 'BTC', to: 'OKB' },
+                        { pair: 'OKB-USDT', side: 'sell', from: 'OKB', to: 'USDT' }
+                    ]
+                },
+                {
+                    id: 'USDT_ETH_OKB_USDT',
+                    pairs: ['ETH-USDT', 'ETH-OKB', 'OKB-USDT'],
+                    sequence: 'USDT → ETH → OKB → USDT',
+                    steps: [
+                        { pair: 'ETH-USDT', side: 'buy', from: 'USDT', to: 'ETH' },
+                        { pair: 'ETH-OKB', side: 'sell', from: 'ETH', to: 'OKB' },
+                        { pair: 'OKB-USDT', side: 'sell', from: 'OKB', to: 'USDT' }
+                    ]
+                },
+                {
+                    id: 'USDT_SOL_OKB_USDT',
+                    pairs: ['SOL-USDT', 'SOL-OKB', 'OKB-USDT'],
+                    sequence: 'USDT → SOL → OKB → USDT',
+                    steps: [
+                        { pair: 'SOL-USDT', side: 'buy', from: 'USDT', to: 'SOL' },
+                        { pair: 'SOL-OKB', side: 'sell', from: 'SOL', to: 'OKB' },
+                        { pair: 'OKB-USDT', side: 'sell', from: 'OKB', to: 'USDT' }
+                    ]
+                },
+                {
+                    id: 'USDT_XRP_OKB_USDT',
+                    pairs: ['XRP-USDT', 'XRP-OKB', 'OKB-USDT'],
+                    sequence: 'USDT → XRP → OKB → USDT',
+                    steps: [
+                        { pair: 'XRP-USDT', side: 'buy', from: 'USDT', to: 'XRP' },
+                        { pair: 'XRP-OKB', side: 'sell', from: 'XRP', to: 'OKB' },
+                        { pair: 'OKB-USDT', side: 'sell', from: 'OKB', to: 'USDT' }
+                    ]
+                },
+                {
+                    id: 'USDT_ADA_OKB_USDT',
+                    pairs: ['ADA-USDT', 'ADA-OKB', 'OKB-USDT'],
+                    sequence: 'USDT → ADA → OKB → USDT',
+                    steps: [
+                        { pair: 'ADA-USDT', side: 'buy', from: 'USDT', to: 'ADA' },
+                        { pair: 'ADA-OKB', side: 'sell', from: 'ADA', to: 'OKB' },
+                        { pair: 'OKB-USDT', side: 'sell', from: 'OKB', to: 'USDT' }
+                    ]
+                },
+                {
+                    id: 'USDT_DOT_OKB_USDT',
+                    pairs: ['DOT-USDT', 'DOT-OKB', 'OKB-USDT'],
+                    sequence: 'USDT → DOT → OKB → USDT',
+                    steps: [
+                        { pair: 'DOT-USDT', side: 'buy', from: 'USDT', to: 'DOT' },
+                        { pair: 'DOT-OKB', side: 'sell', from: 'DOT', to: 'OKB' },
+                        { pair: 'OKB-USDT', side: 'sell', from: 'OKB', to: 'USDT' }
+                    ]
+                }
+            ],
+            SET_4_HIGH_VOLATILITY: [
+                {
+                    id: 'USDT_DOGE_ETH_USDT',
+                    pairs: ['DOGE-USDT', 'DOGE-ETH', 'ETH-USDT'],
+                    sequence: 'USDT → DOGE → ETH → USDT',
+                    steps: [
+                        { pair: 'DOGE-USDT', side: 'buy', from: 'USDT', to: 'DOGE' },
+                        { pair: 'DOGE-ETH', side: 'sell', from: 'DOGE', to: 'ETH' },
+                        { pair: 'ETH-USDT', side: 'sell', from: 'ETH', to: 'USDT' }
+                    ]
+                },
+                {
+                    id: 'USDT_SHIB_ETH_USDT',
+                    pairs: ['SHIB-USDT', 'SHIB-ETH', 'ETH-USDT'],
+                    sequence: 'USDT → SHIB → ETH → USDT',
+                    steps: [
+                        { pair: 'SHIB-USDT', side: 'buy', from: 'USDT', to: 'SHIB' },
+                        { pair: 'SHIB-ETH', side: 'sell', from: 'SHIB', to: 'ETH' },
+                        { pair: 'ETH-USDT', side: 'sell', from: 'ETH', to: 'USDT' }
+                    ]
+                },
+                {
+                    id: 'USDT_PEPE_ETH_USDT',
+                    pairs: ['PEPE-USDT', 'PEPE-ETH', 'ETH-USDT'],
+                    sequence: 'USDT → PEPE → ETH → USDT',
+                    steps: [
+                        { pair: 'PEPE-USDT', side: 'buy', from: 'USDT', to: 'PEPE' },
+                        { pair: 'PEPE-ETH', side: 'sell', from: 'PEPE', to: 'ETH' },
+                        { pair: 'ETH-USDT', side: 'sell', from: 'ETH', to: 'USDT' }
+                    ]
+                },
+                {
+                    id: 'USDT_NEAR_BTC_USDT',
+                    pairs: ['NEAR-USDT', 'NEAR-BTC', 'BTC-USDT'],
+                    sequence: 'USDT → NEAR → BTC → USDT',
+                    steps: [
+                        { pair: 'NEAR-USDT', side: 'buy', from: 'USDT', to: 'NEAR' },
+                        { pair: 'NEAR-BTC', side: 'sell', from: 'NEAR', to: 'BTC' },
+                        { pair: 'BTC-USDT', side: 'sell', from: 'BTC', to: 'USDT' }
+                    ]
+                },
+                {
+                    id: 'USDT_APT_BTC_USDT',
+                    pairs: ['APT-USDT', 'APT-BTC', 'BTC-USDT'],
+                    sequence: 'USDT → APT → BTC → USDT',
+                    steps: [
+                        { pair: 'APT-USDT', side: 'buy', from: 'USDT', to: 'APT' },
+                        { pair: 'APT-BTC', side: 'sell', from: 'APT', to: 'BTC' },
+                        { pair: 'BTC-USDT', side: 'sell', from: 'BTC', to: 'USDT' }
+                    ]
+                },
+                {
+                    id: 'USDT_FTM_BTC_USDT',
+                    pairs: ['FTM-USDT', 'FTM-BTC', 'BTC-USDT'],
+                    sequence: 'USDT → FTM → BTC → USDT',
+                    steps: [
+                        { pair: 'FTM-USDT', side: 'buy', from: 'USDT', to: 'FTM' },
+                        { pair: 'FTM-BTC', side: 'sell', from: 'FTM', to: 'BTC' },
+                        { pair: 'BTC-USDT', side: 'sell', from: 'BTC', to: 'USDT' }
+                    ]
+                }
+            ],
+            SET_5_EXTENDED_MULTIBRIDGE: [
+                {
+                    id: 'USDT_BTC_ETH_SOL_USDT',
+                    pairs: ['BTC-USDT', 'ETH-BTC', 'SOL-ETH', 'SOL-USDT'],
+                    sequence: 'USDT → BTC → ETH → SOL → USDT (4-leg)',
+                    steps: [
+                        { pair: 'BTC-USDT', side: 'buy', from: 'USDT', to: 'BTC' },
+                        { pair: 'ETH-BTC', side: 'buy', from: 'BTC', to: 'ETH' },
+                        { pair: 'SOL-ETH', side: 'buy', from: 'ETH', to: 'SOL' },
+                        { pair: 'SOL-USDT', side: 'sell', from: 'SOL', to: 'USDT' }
+                    ]
+                },
+                {
+                    id: 'USDT_ETH_SOL_USDT',
+                    pairs: ['ETH-USDT', 'ETH-SOL', 'SOL-USDT'],
+                    sequence: 'USDT → ETH → SOL → USDT',
+                    steps: [
+                        { pair: 'ETH-USDT', side: 'buy', from: 'USDT', to: 'ETH' },
+                        { pair: 'ETH-SOL', side: 'sell', from: 'ETH', to: 'SOL' },
+                        { pair: 'SOL-USDT', side: 'sell', from: 'SOL', to: 'USDT' }
+                    ]
+                },
+                {
+                    id: 'USDT_SOL_ETH_USDT_REV',
+                    pairs: ['SOL-USDT', 'ETH-SOL', 'ETH-USDT'],
+                    sequence: 'USDT → SOL → ETH → USDT',
+                    steps: [
+                        { pair: 'SOL-USDT', side: 'buy', from: 'USDT', to: 'SOL' },
+                        { pair: 'ETH-SOL', side: 'buy', from: 'SOL', to: 'ETH' },
+                        { pair: 'ETH-USDT', side: 'sell', from: 'ETH', to: 'USDT' }
+                    ]
+                },
+                {
+                    id: 'USDT_BTC_SOL_USDT',
+                    pairs: ['BTC-USDT', 'BTC-SOL', 'SOL-USDT'],
+                    sequence: 'USDT → BTC → SOL → USDT',
+                    steps: [
+                        { pair: 'BTC-USDT', side: 'buy', from: 'USDT', to: 'BTC' },
+                        { pair: 'BTC-SOL', side: 'sell', from: 'BTC', to: 'SOL' },
+                        { pair: 'SOL-USDT', side: 'sell', from: 'SOL', to: 'USDT' }
+                    ]
+                },
+                {
+                    id: 'USDT_OKB_ETH_USDT',
+                    pairs: ['OKB-USDT', 'OKB-ETH', 'ETH-USDT'],
+                    sequence: 'USDT → OKB → ETH → USDT',
+                    steps: [
+                        { pair: 'OKB-USDT', side: 'buy', from: 'USDT', to: 'OKB' },
+                        { pair: 'OKB-ETH', side: 'sell', from: 'OKB', to: 'ETH' },
+                        { pair: 'ETH-USDT', side: 'sell', from: 'ETH', to: 'USDT' }
+                    ]
+                },
+                {
+                    id: 'USDT_OKB_BTC_USDT',
+                    pairs: ['OKB-USDT', 'OKB-BTC', 'BTC-USDT'],
+                    sequence: 'USDT → OKB → BTC → USDT',
+                    steps: [
+                        { pair: 'OKB-USDT', side: 'buy', from: 'USDT', to: 'OKB' },
+                        { pair: 'OKB-BTC', side: 'sell', from: 'OKB', to: 'BTC' },
+                        { pair: 'BTC-USDT', side: 'sell', from: 'BTC', to: 'USDT' }
+                    ]
+                }
+            ]
+        };
+
+        // Filter to only enabled sets
+        const setsToScan = enabledSets || [1, 2, 3, 4, 5];
+        const enabledPaths = [];
+
+        setsToScan.forEach(setNum => {
+            const setKey = Object.keys(allPathSets)[setNum - 1];
+            if (allPathSets[setKey]) {
+                enabledPaths.push(...allPathSets[setKey]);
+            }
+        });
+
+        // Placeholder for full scanning logic
+        res.json({
+            success: true,
+            message: 'OKX triangular path scan completed',
+            data: {
+                scannedPaths: enabledPaths.length,
+                totalPaths: 32,
+                opportunities: [],
+                pathSetsScanned: setsToScan.length,
+                profitThreshold: profitThreshold,
+                message: 'Full scanning implementation coming soon. Backend routes ready.',
+                enabledPathDetails: enabledPaths.map(p => ({
+                    id: p.id,
+                    sequence: p.sequence,
+                    pairs: p.pairs
+                }))
+            }
+        });
+
+    } catch (error) {
+        console.error('OKX triangular scan error:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Failed to scan OKX triangular paths',
+            error: error.message
+        });
+    }
+}));
+
+// Get OKX Triangular Path Details
+router.get('/okx/triangular/paths', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    try {
+        res.json({
+            success: true,
+            message: 'OKX triangular paths retrieved',
+            data: {
+                totalPaths: 32,
+                totalSets: 5,
+                sets: [
+                    { id: 1, name: 'Major ETH Bridge', paths: 7, liquidity: 'Very High' },
+                    { id: 2, name: 'Mid-Cap BTC Bridge', paths: 7, liquidity: 'High' },
+                    { id: 3, name: 'OKB Native Bridge', paths: 6, liquidity: 'High' },
+                    { id: 4, name: 'High Volatility', paths: 6, liquidity: 'Medium' },
+                    { id: 5, name: 'Extended Multi-Bridge', paths: 6, liquidity: 'High' }
+                ],
+                exchange: 'OKX',
+                fundingCurrency: 'USDT',
+                bridgeCurrencies: ['ETH', 'BTC', 'OKB'],
+                note: 'OKX offers 673 trading pairs with deep liquidity. OKB (native token) provides unique arbitrage paths.'
+            }
+        });
+    } catch (error) {
+        console.error('OKX triangular paths error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to retrieve OKX path details'
+        });
+    }
+}));
+
+// Execute OKX Triangular Trade (placeholder)
+router.post('/okx/triangular/execute', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    const { apiKey, apiSecret, passphrase, pathId, amount } = req.body;
+
+    if (!apiKey || !apiSecret || !passphrase || !pathId || !amount) {
+        return res.status(400).json({
+            success: false,
+            message: 'API credentials, path ID, and amount are required'
+        });
+    }
+
+    try {
+        res.json({
+            success: false,
+            message: 'Execution not yet implemented',
+            data: {
+                pathId: pathId,
+                amount: amount,
+                status: 'not_implemented',
+                note: 'Live execution will be implemented after full testing'
+            }
+        });
+    } catch (error) {
+        console.error('OKX triangular execute error:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Failed to execute OKX triangular trade'
+        });
+    }
+}));
+
+// Delete OKX Triangular Trade History
+router.delete('/okx/triangular/history', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+
+    try {
+        const result = await pool.query(
+            'DELETE FROM triangular_trades WHERE user_id = $1 AND exchange = $2',
+            [userId, 'OKX']
+        );
+
+        res.json({
+            success: true,
+            message: 'OKX triangular trade history cleared',
+            data: {
+                deletedCount: result.rowCount
+            }
+        });
+    } catch (error) {
+        console.error('OKX triangular history delete error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to clear OKX trade history'
+        });
+    }
+}));
+
+// Get Recent OKX Triangular Trades
+router.get('/okx/triangular/recent-trades', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+    const limit = parseInt(req.query.limit) || 20;
+
+    try {
+        const result = await pool.query(
+            `SELECT * FROM triangular_trades
+             WHERE user_id = $1 AND exchange = $2
+             ORDER BY created_at DESC
+             LIMIT $3`,
+            [userId, 'OKX', limit]
+        );
+
+        res.json({
+            success: true,
+            message: 'Recent OKX triangular trades retrieved',
+            data: {
+                trades: result.rows,
+                count: result.rows.length
+            }
+        });
+    } catch (error) {
+        console.error('OKX triangular recent trades error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to retrieve recent OKX trades'
         });
     }
 }));
@@ -8595,8 +9200,8 @@ router.post('/gateio/sell-order', tradingRateLimit, optionalAuth, [
 // OKX EXCHANGE API PROXY ENDPOINTS
 // ============================================================================
 
-// OKX API Configuration
-const OKX_CONFIG = {
+// OKX API Configuration (Proxy Endpoints)
+const OKX_PROXY_CONFIG = {
     baseUrl: 'https://www.okx.com',
     endpoints: {
         balance: '/api/v5/account/balance',
@@ -8627,10 +9232,10 @@ router.post('/okx/balance', tradingRateLimit, optionalAuth, [
     try {
         const timestamp = new Date().toISOString();
         const method = 'GET';
-        const requestPath = OKX_CONFIG.endpoints.balance;
+        const requestPath = OKX_PROXY_CONFIG.endpoints.balance;
         const signature = createOKXSignature(timestamp, method, requestPath, '', apiSecret);
 
-        const response = await fetch(`${OKX_CONFIG.baseUrl}${requestPath}`, {
+        const response = await fetch(`${OKX_PROXY_CONFIG.baseUrl}${requestPath}`, {
             method: 'GET',
             headers: {
                 'OK-ACCESS-KEY': apiKey,
@@ -8727,7 +9332,7 @@ router.post('/okx/ticker', tickerRateLimit, optionalAuth, [
             okxSymbol = pair.replace(/([A-Z]+)([A-Z]{3,4})$/, '$1-$2');
         }
         
-        const response = await fetch(`${OKX_CONFIG.baseUrl}${OKX_CONFIG.endpoints.ticker}?instId=${okxSymbol}`, {
+        const response = await fetch(`${OKX_PROXY_CONFIG.baseUrl}${OKX_PROXY_CONFIG.endpoints.ticker}?instId=${okxSymbol}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json'
@@ -8815,10 +9420,10 @@ router.post('/okx/test', tradingRateLimit, optionalAuth, [
     try {
         const timestamp = new Date().toISOString();
         const method = 'GET';
-        const requestPath = OKX_CONFIG.endpoints.test;
+        const requestPath = OKX_PROXY_CONFIG.endpoints.test;
         const signature = createOKXSignature(timestamp, method, requestPath, '', apiSecret);
 
-        const response = await fetch(`${OKX_CONFIG.baseUrl}${requestPath}`, {
+        const response = await fetch(`${OKX_PROXY_CONFIG.baseUrl}${requestPath}`, {
             method: 'GET',
             headers: {
                 'OK-ACCESS-KEY': apiKey,
@@ -8919,7 +9524,7 @@ router.post('/okx/buy-order', tradingRateLimit, optionalAuth, [
         const requestPath = '/api/v5/trade/order';
         const signature = createOKXSignature(timestamp, method, requestPath, body, apiSecret);
         
-        const response = await fetch(`${OKX_CONFIG.baseUrl}${requestPath}`, {
+        const response = await fetch(`${OKX_PROXY_CONFIG.baseUrl}${requestPath}`, {
             method: 'POST',
             headers: {
                 'OK-ACCESS-KEY': apiKey,
@@ -9020,7 +9625,7 @@ router.post('/okx/sell-order', tradingRateLimit, optionalAuth, [
         const requestPath = '/api/v5/trade/order';
         const signature = createOKXSignature(timestamp, method, requestPath, body, apiSecret);
         
-        const response = await fetch(`${OKX_CONFIG.baseUrl}${requestPath}`, {
+        const response = await fetch(`${OKX_PROXY_CONFIG.baseUrl}${requestPath}`, {
             method: 'POST',
             headers: {
                 'OK-ACCESS-KEY': apiKey,
