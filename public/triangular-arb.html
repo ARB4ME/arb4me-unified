@@ -875,20 +875,6 @@
                 </div>
             </div>
 
-            <!-- API Configuration Section -->
-            <div class="stat-card" style="margin-bottom: 20px;">
-                <h4 style="color: #F0B90B; margin-bottom: 15px;">🔑 API Configuration</h4>
-                <div class="form-group">
-                    <label>API Key</label>
-                    <input type="text" id="binanceTriangularApiKey" placeholder="Enter Binance API Key">
-                </div>
-                <div class="form-group">
-                    <label>API Secret</label>
-                    <input type="password" id="binanceTriangularApiSecret" placeholder="Enter Binance API Secret">
-                </div>
-                <button onclick="saveBinanceTriangularSettings()" class="btn" style="background: linear-gradient(135deg, #F0B90B, #FCD535); margin-top: 10px;">💾 Save Settings</button>
-            </div>
-
             <!-- Risk Management Section -->
             <div class="stat-card">
                 <h4 style="color: #F0B90B; margin-bottom: 15px;">⚖️ Risk Management</h4>
@@ -2575,15 +2561,9 @@
         function saveBinanceTriangularSettings() {
             console.log('💾 [BINANCE] Saving settings to localStorage...');
 
-            const apiKey = document.getElementById('binanceTriangularApiKey').value.trim();
-            const apiSecret = document.getElementById('binanceTriangularApiSecret').value.trim();
             const maxTrade = document.getElementById('binanceMaxTrade').value;
             const portfolioPercent = document.getElementById('binancePortfolioPercent').value;
             const profitThreshold = document.getElementById('binanceProfitThreshold').value;
-
-            // Save API credentials
-            if (apiKey) localStorage.setItem('binance_triangular_api', apiKey);
-            if (apiSecret) localStorage.setItem('binance_triangular_secret', apiSecret);
 
             // Save settings
             const settings = {
@@ -2602,20 +2582,13 @@
 
             localStorage.setItem('binanceTriangularSettings', JSON.stringify(settings));
             console.log('✅ [BINANCE] Settings saved:', settings);
-            alert('✅ Binance settings saved successfully!');
         }
 
         // Load Binance Triangular Settings
         function loadBinanceTriangularSettings() {
             console.log('📥 [BINANCE] Loading settings from localStorage...');
 
-            // Load API credentials
-            const apiKey = localStorage.getItem('binance_triangular_api');
-            const apiSecret = localStorage.getItem('binance_triangular_secret');
-            if (apiKey) document.getElementById('binanceTriangularApiKey').value = apiKey;
-            if (apiSecret) document.getElementById('binanceTriangularApiSecret').value = apiSecret;
-
-            // Load other settings
+            // Load settings
             const settingsJson = localStorage.getItem('binanceTriangularSettings');
             if (settingsJson) {
                 try {
