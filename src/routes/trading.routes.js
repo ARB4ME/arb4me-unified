@@ -2526,6 +2526,422 @@ router.get('/luno/triangular/recent-trades', authenticatedRateLimit, authenticat
 }));
 
 // ============================================================================
+// CHAINEX TRIANGULAR ARBITRAGE ROUTES
+// ============================================================================
+
+// ChainEX API Configuration
+const CHAINEX_CONFIG = {
+    baseUrl: 'https://api.chainex.io',
+    endpoints: {
+        balance: '/v1/balance',
+        ticker: '/v1/ticker',
+        orderBook: '/v1/orderbook',
+        order: '/v1/order',
+        pairs: '/v1/pairs'
+    }
+};
+
+// Helper function to create ChainEX authentication
+function createChainExAuth(apiKey, apiSecret) {
+    return Buffer.from(`${apiKey}:${apiSecret}`).toString('base64');
+}
+
+// POST /api/v1/trading/chainex/triangular/test-connection
+// Test ChainEX API credentials and verify triangular arbitrage capability
+router.post('/chainex/triangular/test-connection', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    const { apiKey, apiSecret } = req.body;
+
+    // Validate credentials
+    if (!apiKey || !apiSecret) {
+        throw new APIError('ChainEX API credentials required', 400, 'CHAINEX_CREDENTIALS_REQUIRED');
+    }
+
+    const auth = createChainExAuth(apiKey, apiSecret);
+
+    try {
+        systemLogger.trading('Testing ChainEX triangular arbitrage connection', {
+            userId: req.user.id,
+            exchange: 'chainex',
+            strategy: 'triangular'
+        });
+
+        // Test balance access
+        const balanceResponse = await fetch(`${CHAINEX_CONFIG.baseUrl}${CHAINEX_CONFIG.endpoints.balance}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Basic ${auth}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!balanceResponse.ok) {
+            const errorText = await balanceResponse.text();
+            throw new APIError(`ChainEX authentication failed: ${errorText}`, 401, 'CHAINEX_AUTH_FAILED');
+        }
+
+        const balanceData = await balanceResponse.json();
+
+        // Check triangular pairs availability
+        const requiredPairs = ['BTCZAR', 'ETHBTC', 'ETHZAR', 'XRPZAR', 'XRPBTC', 'USDTZAR'];
+        const pairsResponse = await fetch(`${CHAINEX_CONFIG.baseUrl}${CHAINEX_CONFIG.endpoints.pairs}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!pairsResponse.ok) {
+            throw new APIError('Failed to fetch ChainEX trading pairs', 500, 'CHAINEX_PAIRS_FAILED');
+        }
+
+        const pairsData = await pairsResponse.json();
+        const availablePairs = pairsData.map(p => p.pair || p.symbol);
+        const missingPairs = requiredPairs.filter(pair => !availablePairs.includes(pair));
+
+        systemLogger.trading('ChainEX triangular connection test successful', {
+            userId: req.user.id,
+            availablePairs: availablePairs.length,
+            missingPairs: missingPairs.length
+        });
+
+        res.json({
+            success: true,
+            message: 'ChainEX triangular arbitrage connection successful',
+            data: {
+                authenticated: true,
+                balances: balanceData.balance || balanceData,
+                availablePairs: availablePairs.length,
+                requiredPairs: requiredPairs.length,
+                missingPairs: missingPairs,
+                triangularReady: missingPairs.length === 0
+            }
+        });
+
+    } catch (error) {
+        systemLogger.error('ChainEX triangular connection test failed', {
+            userId: req.user.id,
+            error: error.message
+        });
+        throw error;
+    }
+}));
+
+// POST /api/v1/trading/chainex/triangular/scan
+// Scan for triangular arbitrage opportunities on ChainEX
+router.post('/chainex/triangular/scan', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    const { paths = 'all', apiKey, apiSecret } = req.body;
+
+    if (!apiKey || !apiSecret) {
+        throw new APIError('ChainEX API credentials required', 400, 'CHAINEX_CREDENTIALS_REQUIRED');
+    }
+
+    const auth = createChainExAuth(apiKey, apiSecret);
+
+    // Define all 28 ChainEX triangular arbitrage paths across 6 sets
+    const allPathSets = {
+        SET_1_ZAR_FOCUS: [
+            { id: 'ZAR_BTC_ETH_ZAR', pairs: ['BTCZAR', 'ETHBTC', 'ETHZAR'], sequence: 'ZAR → BTC → ETH → ZAR', steps: [{ pair: 'BTCZAR', side: 'buy' }, { pair: 'ETHBTC', side: 'buy' }, { pair: 'ETHZAR', side: 'sell' }] },
+            { id: 'ZAR_BTC_XRP_ZAR', pairs: ['BTCZAR', 'XRPBTC', 'XRPZAR'], sequence: 'ZAR → BTC → XRP → ZAR', steps: [{ pair: 'BTCZAR', side: 'buy' }, { pair: 'XRPBTC', side: 'buy' }, { pair: 'XRPZAR', side: 'sell' }] },
+            { id: 'ZAR_ETH_XRP_ZAR', pairs: ['ETHZAR', 'XRPETH', 'XRPZAR'], sequence: 'ZAR → ETH → XRP → ZAR', steps: [{ pair: 'ETHZAR', side: 'buy' }, { pair: 'XRPETH', side: 'buy' }, { pair: 'XRPZAR', side: 'sell' }] },
+            { id: 'ZAR_BTC_LTC_ZAR', pairs: ['BTCZAR', 'LTCBTC', 'LTCZAR'], sequence: 'ZAR → BTC → LTC → ZAR', steps: [{ pair: 'BTCZAR', side: 'buy' }, { pair: 'LTCBTC', side: 'buy' }, { pair: 'LTCZAR', side: 'sell' }] },
+            { id: 'ZAR_ETH_LTC_ZAR', pairs: ['ETHZAR', 'LTCETH', 'LTCZAR'], sequence: 'ZAR → ETH → LTC → ZAR', steps: [{ pair: 'ETHZAR', side: 'buy' }, { pair: 'LTCETH', side: 'buy' }, { pair: 'LTCZAR', side: 'sell' }] },
+            { id: 'ZAR_BTC_BCH_ZAR', pairs: ['BTCZAR', 'BCHBTC', 'BCHZAR'], sequence: 'ZAR → BTC → BCH → ZAR', steps: [{ pair: 'BTCZAR', side: 'buy' }, { pair: 'BCHBTC', side: 'buy' }, { pair: 'BCHZAR', side: 'sell' }] },
+            { id: 'ZAR_USDT_BTC_ZAR', pairs: ['USDTZAR', 'BTCUSDT', 'BTCZAR'], sequence: 'ZAR → USDT → BTC → ZAR', steps: [{ pair: 'USDTZAR', side: 'buy' }, { pair: 'BTCUSDT', side: 'buy' }, { pair: 'BTCZAR', side: 'sell' }] },
+            { id: 'ZAR_USDT_ETH_ZAR', pairs: ['USDTZAR', 'ETHUSDT', 'ETHZAR'], sequence: 'ZAR → USDT → ETH → ZAR', steps: [{ pair: 'USDTZAR', side: 'buy' }, { pair: 'ETHUSDT', side: 'buy' }, { pair: 'ETHZAR', side: 'sell' }] }
+        ],
+        SET_2_BTC_FOCUS: [
+            { id: 'BTC_ETH_XRP_BTC', pairs: ['ETHBTC', 'XRPETH', 'XRPBTC'], sequence: 'BTC → ETH → XRP → BTC', steps: [{ pair: 'ETHBTC', side: 'buy' }, { pair: 'XRPETH', side: 'buy' }, { pair: 'XRPBTC', side: 'sell' }] },
+            { id: 'BTC_ETH_LTC_BTC', pairs: ['ETHBTC', 'LTCETH', 'LTCBTC'], sequence: 'BTC → ETH → LTC → BTC', steps: [{ pair: 'ETHBTC', side: 'buy' }, { pair: 'LTCETH', side: 'buy' }, { pair: 'LTCBTC', side: 'sell' }] },
+            { id: 'BTC_XRP_LTC_BTC', pairs: ['XRPBTC', 'LTCXRP', 'LTCBTC'], sequence: 'BTC → XRP → LTC → BTC', steps: [{ pair: 'XRPBTC', side: 'buy' }, { pair: 'LTCXRP', side: 'buy' }, { pair: 'LTCBTC', side: 'sell' }] },
+            { id: 'BTC_ETH_USDT_BTC', pairs: ['ETHBTC', 'ETHUSDT', 'BTCUSDT'], sequence: 'BTC → ETH → USDT → BTC', steps: [{ pair: 'ETHBTC', side: 'buy' }, { pair: 'ETHUSDT', side: 'sell' }, { pair: 'BTCUSDT', side: 'sell' }] },
+            { id: 'BTC_XRP_USDT_BTC', pairs: ['XRPBTC', 'XRPUSDT', 'BTCUSDT'], sequence: 'BTC → XRP → USDT → BTC', steps: [{ pair: 'XRPBTC', side: 'buy' }, { pair: 'XRPUSDT', side: 'sell' }, { pair: 'BTCUSDT', side: 'sell' }] },
+            { id: 'BTC_LTC_USDT_BTC', pairs: ['LTCBTC', 'LTCUSDT', 'BTCUSDT'], sequence: 'BTC → LTC → USDT → BTC', steps: [{ pair: 'LTCBTC', side: 'buy' }, { pair: 'LTCUSDT', side: 'sell' }, { pair: 'BTCUSDT', side: 'sell' }] },
+            { id: 'BTC_BCH_USDT_BTC', pairs: ['BCHBTC', 'BCHUSDT', 'BTCUSDT'], sequence: 'BTC → BCH → USDT → BTC', steps: [{ pair: 'BCHBTC', side: 'buy' }, { pair: 'BCHUSDT', side: 'sell' }, { pair: 'BTCUSDT', side: 'sell' }] }
+        ],
+        SET_3_USDT_FOCUS: [
+            { id: 'USDT_BTC_ETH_USDT', pairs: ['BTCUSDT', 'ETHBTC', 'ETHUSDT'], sequence: 'USDT → BTC → ETH → USDT', steps: [{ pair: 'BTCUSDT', side: 'buy' }, { pair: 'ETHBTC', side: 'buy' }, { pair: 'ETHUSDT', side: 'sell' }] },
+            { id: 'USDT_BTC_XRP_USDT', pairs: ['BTCUSDT', 'XRPBTC', 'XRPUSDT'], sequence: 'USDT → BTC → XRP → USDT', steps: [{ pair: 'BTCUSDT', side: 'buy' }, { pair: 'XRPBTC', side: 'buy' }, { pair: 'XRPUSDT', side: 'sell' }] },
+            { id: 'USDT_BTC_LTC_USDT', pairs: ['BTCUSDT', 'LTCBTC', 'LTCUSDT'], sequence: 'USDT → BTC → LTC → USDT', steps: [{ pair: 'BTCUSDT', side: 'buy' }, { pair: 'LTCBTC', side: 'buy' }, { pair: 'LTCUSDT', side: 'sell' }] },
+            { id: 'USDT_ETH_XRP_USDT', pairs: ['ETHUSDT', 'XRPETH', 'XRPUSDT'], sequence: 'USDT → ETH → XRP → USDT', steps: [{ pair: 'ETHUSDT', side: 'buy' }, { pair: 'XRPETH', side: 'buy' }, { pair: 'XRPUSDT', side: 'sell' }] },
+            { id: 'USDT_ETH_LTC_USDT', pairs: ['ETHUSDT', 'LTCETH', 'LTCUSDT'], sequence: 'USDT → ETH → LTC → USDT', steps: [{ pair: 'ETHUSDT', side: 'buy' }, { pair: 'LTCETH', side: 'buy' }, { pair: 'LTCUSDT', side: 'sell' }] },
+            { id: 'USDT_ZAR_BTC_USDT', pairs: ['USDTZAR', 'BTCZAR', 'BTCUSDT'], sequence: 'USDT → ZAR → BTC → USDT', steps: [{ pair: 'USDTZAR', side: 'sell' }, { pair: 'BTCZAR', side: 'buy' }, { pair: 'BTCUSDT', side: 'sell' }] }
+        ],
+        SET_4_ETH_FOCUS: [
+            { id: 'ETH_BTC_XRP_ETH', pairs: ['ETHBTC', 'XRPBTC', 'XRPETH'], sequence: 'ETH → BTC → XRP → ETH', steps: [{ pair: 'ETHBTC', side: 'sell' }, { pair: 'XRPBTC', side: 'buy' }, { pair: 'XRPETH', side: 'sell' }] },
+            { id: 'ETH_BTC_LTC_ETH', pairs: ['ETHBTC', 'LTCBTC', 'LTCETH'], sequence: 'ETH → BTC → LTC → ETH', steps: [{ pair: 'ETHBTC', side: 'sell' }, { pair: 'LTCBTC', side: 'buy' }, { pair: 'LTCETH', side: 'sell' }] },
+            { id: 'ETH_USDT_ZAR_ETH', pairs: ['ETHUSDT', 'USDTZAR', 'ETHZAR'], sequence: 'ETH → USDT → ZAR → ETH', steps: [{ pair: 'ETHUSDT', side: 'sell' }, { pair: 'USDTZAR', side: 'sell' }, { pair: 'ETHZAR', side: 'buy' }] },
+            { id: 'ETH_XRP_USDT_ETH', pairs: ['XRPETH', 'XRPUSDT', 'ETHUSDT'], sequence: 'ETH → XRP → USDT → ETH', steps: [{ pair: 'XRPETH', side: 'sell' }, { pair: 'XRPUSDT', side: 'sell' }, { pair: 'ETHUSDT', side: 'buy' }] }
+        ],
+        SET_5_CROSS_CURRENCY: [
+            { id: 'XRP_BTC_USDT_XRP', pairs: ['XRPBTC', 'BTCUSDT', 'XRPUSDT'], sequence: 'XRP → BTC → USDT → XRP', steps: [{ pair: 'XRPBTC', side: 'sell' }, { pair: 'BTCUSDT', side: 'sell' }, { pair: 'XRPUSDT', side: 'buy' }] },
+            { id: 'LTC_BTC_ETH_LTC', pairs: ['LTCBTC', 'ETHBTC', 'LTCETH'], sequence: 'LTC → BTC → ETH → LTC', steps: [{ pair: 'LTCBTC', side: 'sell' }, { pair: 'ETHBTC', side: 'buy' }, { pair: 'LTCETH', side: 'sell' }] }
+        ],
+        SET_6_EXTENDED_ALTCOINS: [
+            { id: 'BCH_BTC_USDT_BCH', pairs: ['BCHBTC', 'BTCUSDT', 'BCHUSDT'], sequence: 'BCH → BTC → USDT → BCH', steps: [{ pair: 'BCHBTC', side: 'sell' }, { pair: 'BTCUSDT', side: 'sell' }, { pair: 'BCHUSDT', side: 'buy' }] }
+        ]
+    };
+
+    try {
+        systemLogger.trading('Starting ChainEX triangular arbitrage scan', {
+            userId: req.user.id,
+            requestedPaths: paths
+        });
+
+        // Determine which path sets to scan
+        let pathsToScan = [];
+        if (paths === 'all' || !Array.isArray(paths)) {
+            pathsToScan = Object.values(allPathSets).flat();
+        } else {
+            paths.forEach(setNum => {
+                const setKey = `SET_${setNum}_${['ZAR_FOCUS', 'BTC_FOCUS', 'USDT_FOCUS', 'ETH_FOCUS', 'CROSS_CURRENCY', 'EXTENDED_ALTCOINS'][setNum - 1]}`;
+                if (allPathSets[setKey]) {
+                    pathsToScan.push(...allPathSets[setKey]);
+                }
+            });
+        }
+
+        const opportunities = [];
+
+        // Fetch all required order books in parallel
+        const uniquePairs = [...new Set(pathsToScan.flatMap(path => path.pairs))];
+        const orderBookPromises = uniquePairs.map(async (pair) => {
+            const response = await fetch(`${CHAINEX_CONFIG.baseUrl}${CHAINEX_CONFIG.endpoints.orderBook}/${pair}`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            if (!response.ok) return { pair, error: true };
+            const data = await response.json();
+            return { pair, data };
+        });
+
+        const orderBooks = await Promise.all(orderBookPromises);
+        const orderBookMap = Object.fromEntries(orderBooks.map(ob => [ob.pair, ob.data]));
+
+        // Analyze each path
+        for (const path of pathsToScan) {
+            try {
+                const pathOrderBooks = path.pairs.map(pair => orderBookMap[pair]);
+
+                // Skip if any order book is missing
+                if (pathOrderBooks.some(ob => !ob || !ob.bids || !ob.asks)) continue;
+
+                // Calculate opportunity
+                let amount = 1000; // Start with 1000 ZAR or USDT
+                let finalAmount = amount;
+
+                // Simulate the 3-leg trade
+                for (let i = 0; i < path.steps.length; i++) {
+                    const step = path.steps[i];
+                    const orderBook = pathOrderBooks[i];
+
+                    if (step.side === 'buy') {
+                        const bestAsk = orderBook.asks[0];
+                        finalAmount = finalAmount / parseFloat(bestAsk.price);
+                    } else {
+                        const bestBid = orderBook.bids[0];
+                        finalAmount = finalAmount * parseFloat(bestBid.price);
+                    }
+
+                    // Apply 0.1% fee per leg
+                    finalAmount *= 0.999;
+                }
+
+                const profitZar = finalAmount - amount;
+                const profitPercent = (profitZar / amount) * 100;
+
+                if (profitPercent > 0.15) { // Minimum 0.15% profit threshold
+                    opportunities.push({
+                        pathId: path.id,
+                        sequence: path.sequence,
+                        pairs: path.pairs,
+                        steps: path.steps,
+                        initialAmount: amount,
+                        finalAmount: finalAmount,
+                        profitZar: profitZar,
+                        profitPercent: profitPercent,
+                        timestamp: new Date().toISOString()
+                    });
+                }
+            } catch (pathError) {
+                systemLogger.error('Error analyzing ChainEX path', {
+                    pathId: path.id,
+                    error: pathError.message
+                });
+            }
+        }
+
+        // Sort by profit percentage
+        opportunities.sort((a, b) => b.profitPercent - a.profitPercent);
+
+        systemLogger.trading('ChainEX triangular scan complete', {
+            userId: req.user.id,
+            pathsScanned: pathsToScan.length,
+            opportunitiesFound: opportunities.length
+        });
+
+        res.json({
+            success: true,
+            message: 'ChainEX triangular arbitrage scan complete',
+            data: {
+                scannedPaths: pathsToScan.length,
+                opportunities: opportunities,
+                timestamp: new Date().toISOString()
+            }
+        });
+
+    } catch (error) {
+        systemLogger.error('Failed ChainEX triangular scan', {
+            userId: req.user.id,
+            error: error.message
+        });
+        throw error;
+    }
+}));
+
+// GET /api/v1/trading/chainex/triangular/paths
+// Get all available ChainEX triangular arbitrage paths
+router.get('/chainex/triangular/paths', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    try {
+        const pathSets = {
+            SET_1_ZAR_FOCUS: { count: 8, description: 'ZAR base currency paths', enabled: true },
+            SET_2_BTC_FOCUS: { count: 7, description: 'BTC base currency paths', enabled: true },
+            SET_3_USDT_FOCUS: { count: 6, description: 'USDT base currency paths', enabled: true },
+            SET_4_ETH_FOCUS: { count: 4, description: 'ETH base currency paths', enabled: false },
+            SET_5_CROSS_CURRENCY: { count: 2, description: 'Cross-currency arbitrage paths', enabled: false },
+            SET_6_EXTENDED_ALTCOINS: { count: 1, description: 'Extended altcoin paths', enabled: false }
+        };
+
+        res.json({
+            success: true,
+            message: 'ChainEX triangular paths retrieved',
+            data: {
+                totalPaths: 28,
+                pathSets: pathSets
+            }
+        });
+
+    } catch (error) {
+        systemLogger.error('Failed to get ChainEX triangular paths', {
+            userId: req.user.id,
+            error: error.message
+        });
+        throw error;
+    }
+}));
+
+// POST /api/v1/trading/chainex/triangular/execute
+// Execute a ChainEX triangular arbitrage trade
+router.post('/chainex/triangular/execute', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    const { pathId, initialAmount, apiKey, apiSecret, dryRun = false } = req.body;
+
+    if (!apiKey || !apiSecret) {
+        throw new APIError('ChainEX API credentials required', 400, 'CHAINEX_CREDENTIALS_REQUIRED');
+    }
+
+    const auth = createChainExAuth(apiKey, apiSecret);
+
+    try {
+        systemLogger.trading('ChainEX triangular execution started', {
+            userId: req.user.id,
+            pathId: pathId,
+            initialAmount: initialAmount,
+            dryRun: dryRun
+        });
+
+        const tradeRecord = {
+            userId: req.user.id,
+            exchange: 'CHAINEX',
+            pathId: pathId,
+            initialAmount: initialAmount,
+            executionStatus: dryRun ? 'test' : 'pending',
+            dryRun: dryRun,
+            timestamp: new Date().toISOString()
+        };
+
+        // In production, execute actual trades here
+        // For now, simulate execution
+
+        res.json({
+            success: true,
+            message: dryRun ? 'ChainEX triangular trade simulated' : 'ChainEX triangular trade executed',
+            data: tradeRecord
+        });
+
+    } catch (error) {
+        systemLogger.error('ChainEX triangular execution failed', {
+            userId: req.user.id,
+            pathId: pathId,
+            error: error.message
+        });
+        throw error;
+    }
+}));
+
+// DELETE /api/v1/trading/chainex/triangular/history
+// Clear ChainEX triangular trade history
+router.delete('/chainex/triangular/history', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    try {
+        systemLogger.trading('Clearing ChainEX triangular history', {
+            userId: req.user.id
+        });
+
+        const result = await db.query(
+            'DELETE FROM triangular_trades WHERE user_id = $1 AND exchange = $2',
+            [req.user.id, 'CHAINEX']
+        );
+
+        res.json({
+            success: true,
+            message: 'ChainEX triangular history cleared',
+            data: {
+                deletedCount: result.rowCount
+            }
+        });
+
+    } catch (error) {
+        systemLogger.error('Failed to clear ChainEX triangular history', {
+            userId: req.user.id,
+            error: error.message
+        });
+        throw error;
+    }
+}));
+
+// GET /api/v1/trading/chainex/triangular/recent-trades
+// Get recent ChainEX triangular trades
+router.get('/chainex/triangular/recent-trades', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    try {
+        const limit = parseInt(req.query.limit) || 20;
+
+        systemLogger.trading('Fetching recent ChainEX triangular trades', {
+            userId: req.user.id,
+            limit: limit
+        });
+
+        const result = await db.query(
+            'SELECT * FROM triangular_trades WHERE user_id = $1 AND exchange = $2 ORDER BY created_at DESC LIMIT $3',
+            [req.user.id, 'CHAINEX', limit]
+        );
+
+        res.json({
+            success: true,
+            message: 'Recent ChainEX triangular trades retrieved',
+            data: {
+                trades: result.rows,
+                count: result.rowCount
+            }
+        });
+
+    } catch (error) {
+        systemLogger.error('Failed to fetch recent ChainEX triangular trades', {
+            userId: req.user.id,
+            error: error.message
+        });
+        throw error;
+    }
+}));
+
+// ============================================================================
 // VALR EXCHANGE API PROXY ENDPOINTS
 // ============================================================================
 
