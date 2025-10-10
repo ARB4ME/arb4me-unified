@@ -6652,6 +6652,472 @@ router.get('/bingx/triangular/recent-trades', asyncHandler(async (req, res) => {
 }));
 
 // ============================================================================
+// BITGET TRIANGULAR ARBITRAGE ROUTES
+// ============================================================================
+
+// Bitget Triangular Arbitrage API Configuration
+const BITGET_TRIANGULAR_CONFIG = {
+    baseUrl: 'https://api.bitget.com',
+    endpoints: {
+        ticker: '/api/v2/spot/market/tickers',
+        balance: '/api/v2/spot/account/assets',
+        placeOrder: '/api/v2/spot/trade/place-order',
+        symbols: '/api/v2/spot/public/symbols'
+    }
+};
+
+// Bitget HMAC-SHA256 Authentication Helper (Base64 encoding)
+function createBitgetTriangularSignature(timestamp, method, requestPath, body, apiSecret) {
+    const message = timestamp + method + requestPath + (body || '');
+    return crypto.createHmac('sha256', apiSecret).update(message).digest('base64');
+}
+
+// Bitget Triangular Arbitrage Paths (32 paths - includes BGB native token)
+const BITGET_TRIANGULAR_PATHS = {
+    SET_1_ESSENTIAL_ETH_BRIDGE: [
+        { id: 'BITGET_ETH_1', path: ['USDT', 'ETH', 'BTC', 'USDT'], pairs: ['ETHUSDT_SPBL', 'BTCETH_SPBL', 'BTCUSDT_SPBL'], description: 'ETH → BTC Bridge' },
+        { id: 'BITGET_ETH_2', path: ['USDT', 'ETH', 'SOL', 'USDT'], pairs: ['ETHUSDT_SPBL', 'SOLETH_SPBL', 'SOLUSDT_SPBL'], description: 'ETH → SOL Bridge' },
+        { id: 'BITGET_ETH_3', path: ['USDT', 'ETH', 'LINK', 'USDT'], pairs: ['ETHUSDT_SPBL', 'LINKETH_SPBL', 'LINKUSDT_SPBL'], description: 'ETH → LINK Bridge' },
+        { id: 'BITGET_ETH_4', path: ['USDT', 'ETH', 'AVAX', 'USDT'], pairs: ['ETHUSDT_SPBL', 'AVAXETH_SPBL', 'AVAXUSDT_SPBL'], description: 'ETH → AVAX Bridge' },
+        { id: 'BITGET_ETH_5', path: ['USDT', 'ETH', 'MATIC', 'USDT'], pairs: ['ETHUSDT_SPBL', 'MATICETH_SPBL', 'MATICUSDT_SPBL'], description: 'ETH → MATIC Bridge' },
+        { id: 'BITGET_ETH_6', path: ['USDT', 'ETH', 'UNI', 'USDT'], pairs: ['ETHUSDT_SPBL', 'UNIETH_SPBL', 'UNIUSDT_SPBL'], description: 'ETH → UNI Bridge' },
+        { id: 'BITGET_ETH_7', path: ['USDT', 'ETH', 'AAVE', 'USDT'], pairs: ['ETHUSDT_SPBL', 'AAVEETH_SPBL', 'AAVEUSDT_SPBL'], description: 'ETH → AAVE Bridge' }
+    ],
+    SET_2_MIDCAP_BTC_BRIDGE: [
+        { id: 'BITGET_BTC_1', path: ['USDT', 'BTC', 'DOGE', 'USDT'], pairs: ['BTCUSDT_SPBL', 'DOGEBTC_SPBL', 'DOGEUSDT_SPBL'], description: 'BTC → DOGE Bridge' },
+        { id: 'BITGET_BTC_2', path: ['USDT', 'BTC', 'LTC', 'USDT'], pairs: ['BTCUSDT_SPBL', 'LTCBTC_SPBL', 'LTCUSDT_SPBL'], description: 'BTC → LTC Bridge' },
+        { id: 'BITGET_BTC_3', path: ['USDT', 'BTC', 'XRP', 'USDT'], pairs: ['BTCUSDT_SPBL', 'XRPBTC_SPBL', 'XRPUSDT_SPBL'], description: 'BTC → XRP Bridge' },
+        { id: 'BITGET_BTC_4', path: ['USDT', 'BTC', 'ADA', 'USDT'], pairs: ['BTCUSDT_SPBL', 'ADABTC_SPBL', 'ADAUSDT_SPBL'], description: 'BTC → ADA Bridge' },
+        { id: 'BITGET_BTC_5', path: ['USDT', 'BTC', 'DOT', 'USDT'], pairs: ['BTCUSDT_SPBL', 'DOTBTC_SPBL', 'DOTUSDT_SPBL'], description: 'BTC → DOT Bridge' },
+        { id: 'BITGET_BTC_6', path: ['USDT', 'BTC', 'BCH', 'USDT'], pairs: ['BTCUSDT_SPBL', 'BCHBTC_SPBL', 'BCHUSDT_SPBL'], description: 'BTC → BCH Bridge' },
+        { id: 'BITGET_BTC_7', path: ['USDT', 'BTC', 'TRX', 'USDT'], pairs: ['BTCUSDT_SPBL', 'TRXBTC_SPBL', 'TRXUSDT_SPBL'], description: 'BTC → TRX Bridge' }
+    ],
+    SET_3_BGB_NATIVE_TOKEN: [
+        { id: 'BITGET_BGB_1', path: ['USDT', 'BGB', 'BTC', 'USDT'], pairs: ['BGBUSDT_SPBL', 'BTCBGB_SPBL', 'BTCUSDT_SPBL'], description: 'BGB → BTC Native Bridge' },
+        { id: 'BITGET_BGB_2', path: ['USDT', 'BGB', 'ETH', 'USDT'], pairs: ['BGBUSDT_SPBL', 'ETHBGB_SPBL', 'ETHUSDT_SPBL'], description: 'BGB → ETH Native Bridge' },
+        { id: 'BITGET_BGB_3', path: ['USDT', 'BTC', 'BGB', 'USDT'], pairs: ['BTCUSDT_SPBL', 'BGBBTC_SPBL', 'BGBUSDT_SPBL'], description: 'BTC → BGB Native' },
+        { id: 'BITGET_BGB_4', path: ['USDT', 'ETH', 'BGB', 'USDT'], pairs: ['ETHUSDT_SPBL', 'BGBETH_SPBL', 'BGBUSDT_SPBL'], description: 'ETH → BGB Native' },
+        { id: 'BITGET_BGB_5', path: ['USDT', 'BGB', 'SOL', 'USDT'], pairs: ['BGBUSDT_SPBL', 'SOLBGB_SPBL', 'SOLUSDT_SPBL'], description: 'BGB → SOL Native Bridge' },
+        { id: 'BITGET_BGB_6', path: ['USDT', 'SOL', 'BGB', 'USDT'], pairs: ['SOLUSDT_SPBL', 'BGBSOL_SPBL', 'BGBUSDT_SPBL'], description: 'SOL → BGB Native' }
+    ],
+    SET_4_HIGH_VOLATILITY: [
+        { id: 'BITGET_VOL_1', path: ['USDT', 'SOL', 'LINK', 'USDT'], pairs: ['SOLUSDT_SPBL', 'LINKSOL_SPBL', 'LINKUSDT_SPBL'], description: 'SOL → LINK Volatility' },
+        { id: 'BITGET_VOL_2', path: ['USDT', 'SOL', 'MATIC', 'USDT'], pairs: ['SOLUSDT_SPBL', 'MATICSOL_SPBL', 'MATICUSDT_SPBL'], description: 'SOL → MATIC Volatility' },
+        { id: 'BITGET_VOL_3', path: ['USDT', 'LINK', 'BTC', 'USDT'], pairs: ['LINKUSDT_SPBL', 'BTCLINK_SPBL', 'BTCUSDT_SPBL'], description: 'LINK → BTC Volatility' },
+        { id: 'BITGET_VOL_4', path: ['USDT', 'AVAX', 'SOL', 'USDT'], pairs: ['AVAXUSDT_SPBL', 'SOLAVAX_SPBL', 'SOLUSDT_SPBL'], description: 'AVAX → SOL Volatility' },
+        { id: 'BITGET_VOL_5', path: ['USDT', 'MATIC', 'BTC', 'USDT'], pairs: ['MATICUSDT_SPBL', 'BTCMATIC_SPBL', 'BTCUSDT_SPBL'], description: 'MATIC → BTC Volatility' },
+        { id: 'BITGET_VOL_6', path: ['USDT', 'UNI', 'ETH', 'USDT'], pairs: ['UNIUSDT_SPBL', 'ETHUNI_SPBL', 'ETHUSDT_SPBL'], description: 'UNI → ETH Volatility' }
+    ],
+    SET_5_EXTENDED_MULTIBRIDGE: [
+        { id: 'BITGET_EXT_1', path: ['USDT', 'ATOM', 'BTC', 'USDT'], pairs: ['ATOMUSDT_SPBL', 'BTCATOM_SPBL', 'BTCUSDT_SPBL'], description: 'ATOM → BTC Extended' },
+        { id: 'BITGET_EXT_2', path: ['USDT', 'FIL', 'ETH', 'USDT'], pairs: ['FILUSDT_SPBL', 'ETHFIL_SPBL', 'ETHUSDT_SPBL'], description: 'FIL → ETH Extended' },
+        { id: 'BITGET_EXT_3', path: ['USDT', 'XLM', 'BTC', 'USDT'], pairs: ['XLMUSDT_SPBL', 'BTCXLM_SPBL', 'BTCUSDT_SPBL'], description: 'XLM → BTC Extended' },
+        { id: 'BITGET_EXT_4', path: ['USDT', 'ALGO', 'ETH', 'USDT'], pairs: ['ALGOUSDT_SPBL', 'ETHALGO_SPBL', 'ETHUSDT_SPBL'], description: 'ALGO → ETH Extended' },
+        { id: 'BITGET_EXT_5', path: ['USDT', 'ETH', 'BTC', 'SOL', 'USDT'], pairs: ['ETHUSDT_SPBL', 'BTCETH_SPBL', 'SOLBTC_SPBL', 'SOLUSDT_SPBL'], description: 'Four-Leg: ETH→BTC→SOL' },
+        { id: 'BITGET_EXT_6', path: ['USDT', 'BTC', 'ETH', 'LINK', 'USDT'], pairs: ['BTCUSDT_SPBL', 'ETHBTC_SPBL', 'LINKETH_SPBL', 'LINKUSDT_SPBL'], description: 'Four-Leg: BTC→ETH→LINK' }
+    ]
+};
+
+// ROUTE 1: Test Bitget Connection
+router.post('/bitget/triangular/test-connection', asyncHandler(async (req, res) => {
+    try {
+        const { apiKey, apiSecret, passphrase } = req.body;
+
+        if (!apiKey || !apiSecret || !passphrase) {
+            return res.status(400).json({
+                success: false,
+                message: 'API credentials (key, secret, and passphrase) are required'
+            });
+        }
+
+        const timestamp = Date.now().toString();
+        const method = 'GET';
+        const requestPath = BITGET_TRIANGULAR_CONFIG.endpoints.balance;
+        const signature = createBitgetTriangularSignature(timestamp, method, requestPath, '', apiSecret);
+
+        const response = await axios.get(
+            `${BITGET_TRIANGULAR_CONFIG.baseUrl}${requestPath}`,
+            {
+                headers: {
+                    'ACCESS-KEY': apiKey,
+                    'ACCESS-SIGN': signature,
+                    'ACCESS-TIMESTAMP': timestamp,
+                    'ACCESS-PASSPHRASE': passphrase,
+                    'Content-Type': 'application/json'
+                }
+            }
+        );
+
+        if (response.data.code === '00000') {
+            res.json({
+                success: true,
+                message: 'Bitget connection successful',
+                data: {
+                    balances: response.data.data || [],
+                    timestamp: new Date().toISOString()
+                }
+            });
+        } else {
+            res.status(400).json({
+                success: false,
+                message: `Bitget API error: ${response.data.msg || 'Unknown error'}`
+            });
+        }
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.response?.data?.msg || 'Failed to connect to Bitget'
+        });
+    }
+}));
+
+// ROUTE 2: Scan Bitget Triangular Opportunities
+router.post('/bitget/triangular/scan', asyncHandler(async (req, res) => {
+    try {
+        const { apiKey, apiSecret, passphrase, minProfitPercent = 0.3, enabledSets = ['SET_1', 'SET_2', 'SET_3', 'SET_4', 'SET_5'] } = req.body;
+
+        if (!apiKey || !apiSecret || !passphrase) {
+            return res.status(400).json({
+                success: false,
+                message: 'API credentials required'
+            });
+        }
+
+        // Fetch all tickers
+        const tickerResponse = await axios.get(
+            `${BITGET_TRIANGULAR_CONFIG.baseUrl}${BITGET_TRIANGULAR_CONFIG.endpoints.ticker}`
+        );
+
+        if (tickerResponse.data.code !== '00000') {
+            return res.status(400).json({
+                success: false,
+                message: 'Failed to fetch Bitget market data'
+            });
+        }
+
+        const tickers = tickerResponse.data.data || [];
+        const priceMap = {};
+
+        tickers.forEach(ticker => {
+            if (ticker.symbol) {
+                priceMap[ticker.symbol] = {
+                    bid: parseFloat(ticker.bidPr || ticker.buyOne || 0),
+                    ask: parseFloat(ticker.askPr || ticker.sellOne || 0),
+                    last: parseFloat(ticker.lastPr || ticker.close || 0)
+                };
+            }
+        });
+
+        // Filter enabled paths
+        let allPaths = [];
+        if (enabledSets.includes('SET_1')) allPaths = allPaths.concat(BITGET_TRIANGULAR_PATHS.SET_1_ESSENTIAL_ETH_BRIDGE);
+        if (enabledSets.includes('SET_2')) allPaths = allPaths.concat(BITGET_TRIANGULAR_PATHS.SET_2_MIDCAP_BTC_BRIDGE);
+        if (enabledSets.includes('SET_3')) allPaths = allPaths.concat(BITGET_TRIANGULAR_PATHS.SET_3_BGB_NATIVE_TOKEN);
+        if (enabledSets.includes('SET_4')) allPaths = allPaths.concat(BITGET_TRIANGULAR_PATHS.SET_4_HIGH_VOLATILITY);
+        if (enabledSets.includes('SET_5')) allPaths = allPaths.concat(BITGET_TRIANGULAR_PATHS.SET_5_EXTENDED_MULTIBRIDGE);
+
+        const opportunities = [];
+        const feePercent = 0.10; // Bitget 0.10% maker/taker fee
+
+        allPaths.forEach(pathConfig => {
+            const pairs = pathConfig.pairs;
+            let isValid = true;
+            let prices = [];
+
+            // Get prices for each pair
+            for (const pair of pairs) {
+                if (!priceMap[pair]) {
+                    isValid = false;
+                    break;
+                }
+                prices.push(priceMap[pair]);
+            }
+
+            if (!isValid) return;
+
+            // Calculate profit for triangular path
+            let amount = 100; // Start with 100 USDT
+
+            // Execute each leg
+            for (let i = 0; i < pairs.length; i++) {
+                const price = prices[i];
+                const avgPrice = (price.bid + price.ask) / 2;
+
+                // Apply fee
+                amount = amount * (1 - feePercent / 100);
+
+                // Execute trade
+                if (i === 0 || i === pairs.length - 1) {
+                    // First and last leg: buying/selling against USDT
+                    amount = amount / avgPrice;
+                } else {
+                    // Middle legs: cross pairs
+                    amount = amount * avgPrice;
+                }
+            }
+
+            const profitPercent = ((amount - 100) / 100) * 100;
+
+            if (profitPercent >= minProfitPercent) {
+                opportunities.push({
+                    id: pathConfig.id,
+                    path: pathConfig.path,
+                    pairs: pathConfig.pairs,
+                    description: pathConfig.description,
+                    profitPercent: profitPercent.toFixed(3),
+                    estimatedProfit: (amount - 100).toFixed(2),
+                    prices: prices.map(p => ({
+                        bid: p.bid,
+                        ask: p.ask,
+                        spread: ((p.ask - p.bid) / p.bid * 100).toFixed(3)
+                    }))
+                });
+            }
+        });
+
+        // Sort by profit
+        opportunities.sort((a, b) => parseFloat(b.profitPercent) - parseFloat(a.profitPercent));
+
+        res.json({
+            success: true,
+            opportunities,
+            scannedPaths: allPaths.length,
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Failed to scan Bitget opportunities'
+        });
+    }
+}));
+
+// ROUTE 3: Get Bitget Triangular Paths
+router.get('/bitget/triangular/paths', asyncHandler(async (req, res) => {
+    const allPaths = [
+        ...BITGET_TRIANGULAR_PATHS.SET_1_ESSENTIAL_ETH_BRIDGE,
+        ...BITGET_TRIANGULAR_PATHS.SET_2_MIDCAP_BTC_BRIDGE,
+        ...BITGET_TRIANGULAR_PATHS.SET_3_BGB_NATIVE_TOKEN,
+        ...BITGET_TRIANGULAR_PATHS.SET_4_HIGH_VOLATILITY,
+        ...BITGET_TRIANGULAR_PATHS.SET_5_EXTENDED_MULTIBRIDGE
+    ];
+
+    res.json({
+        success: true,
+        exchange: 'Bitget',
+        totalPaths: allPaths.length,
+        sets: {
+            SET_1_ESSENTIAL_ETH_BRIDGE: {
+                name: 'Essential ETH Bridge',
+                count: BITGET_TRIANGULAR_PATHS.SET_1_ESSENTIAL_ETH_BRIDGE.length,
+                paths: BITGET_TRIANGULAR_PATHS.SET_1_ESSENTIAL_ETH_BRIDGE
+            },
+            SET_2_MIDCAP_BTC_BRIDGE: {
+                name: 'Midcap BTC Bridge',
+                count: BITGET_TRIANGULAR_PATHS.SET_2_MIDCAP_BTC_BRIDGE.length,
+                paths: BITGET_TRIANGULAR_PATHS.SET_2_MIDCAP_BTC_BRIDGE
+            },
+            SET_3_BGB_NATIVE_TOKEN: {
+                name: 'BGB Native Token',
+                count: BITGET_TRIANGULAR_PATHS.SET_3_BGB_NATIVE_TOKEN.length,
+                paths: BITGET_TRIANGULAR_PATHS.SET_3_BGB_NATIVE_TOKEN
+            },
+            SET_4_HIGH_VOLATILITY: {
+                name: 'High Volatility',
+                count: BITGET_TRIANGULAR_PATHS.SET_4_HIGH_VOLATILITY.length,
+                paths: BITGET_TRIANGULAR_PATHS.SET_4_HIGH_VOLATILITY
+            },
+            SET_5_EXTENDED_MULTIBRIDGE: {
+                name: 'Extended Multi-Bridge',
+                count: BITGET_TRIANGULAR_PATHS.SET_5_EXTENDED_MULTIBRIDGE.length,
+                paths: BITGET_TRIANGULAR_PATHS.SET_5_EXTENDED_MULTIBRIDGE
+            }
+        }
+    });
+}));
+
+// ROUTE 4: Execute Bitget Triangular Trade
+router.post('/bitget/triangular/execute', asyncHandler(async (req, res) => {
+    try {
+        const { apiKey, apiSecret, passphrase, pathId, amount, userId } = req.body;
+
+        if (!apiKey || !apiSecret || !passphrase) {
+            return res.status(400).json({
+                success: false,
+                message: 'API credentials required'
+            });
+        }
+
+        // Find the path configuration
+        const allPaths = [
+            ...BITGET_TRIANGULAR_PATHS.SET_1_ESSENTIAL_ETH_BRIDGE,
+            ...BITGET_TRIANGULAR_PATHS.SET_2_MIDCAP_BTC_BRIDGE,
+            ...BITGET_TRIANGULAR_PATHS.SET_3_BGB_NATIVE_TOKEN,
+            ...BITGET_TRIANGULAR_PATHS.SET_4_HIGH_VOLATILITY,
+            ...BITGET_TRIANGULAR_PATHS.SET_5_EXTENDED_MULTIBRIDGE
+        ];
+
+        const pathConfig = allPaths.find(p => p.id === pathId);
+        if (!pathConfig) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid path ID'
+            });
+        }
+
+        const executionResults = [];
+        let currentAmount = parseFloat(amount);
+
+        // Execute each leg sequentially
+        for (let i = 0; i < pathConfig.pairs.length; i++) {
+            const symbol = pathConfig.pairs[i];
+            const timestamp = Date.now().toString();
+            const method = 'POST';
+            const requestPath = BITGET_TRIANGULAR_CONFIG.endpoints.placeOrder;
+
+            const orderData = {
+                symbol: symbol,
+                side: i % 2 === 0 ? 'buy' : 'sell',
+                orderType: 'market',
+                force: 'gtc',
+                size: currentAmount.toString()
+            };
+
+            const body = JSON.stringify(orderData);
+            const signature = createBitgetTriangularSignature(timestamp, method, requestPath, body, apiSecret);
+
+            const response = await axios.post(
+                `${BITGET_TRIANGULAR_CONFIG.baseUrl}${requestPath}`,
+                orderData,
+                {
+                    headers: {
+                        'ACCESS-KEY': apiKey,
+                        'ACCESS-SIGN': signature,
+                        'ACCESS-TIMESTAMP': timestamp,
+                        'ACCESS-PASSPHRASE': passphrase,
+                        'Content-Type': 'application/json'
+                    }
+                }
+            );
+
+            if (response.data.code !== '00000') {
+                throw new Error(`Order failed at leg ${i + 1}: ${response.data.msg}`);
+            }
+
+            executionResults.push({
+                leg: i + 1,
+                symbol: symbol,
+                orderId: response.data.data?.orderId,
+                status: 'filled'
+            });
+
+            // Update amount for next leg (simplified)
+            currentAmount = response.data.data?.fillSize || currentAmount;
+        }
+
+        // Store trade in database
+        if (userId) {
+            await pool.query(
+                `INSERT INTO triangular_trades
+                (user_id, exchange, path_id, path_description, initial_amount, final_amount, profit, profit_percent, status, execution_details, created_at)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())`,
+                [
+                    userId,
+                    'Bitget',
+                    pathConfig.id,
+                    pathConfig.description,
+                    parseFloat(amount),
+                    currentAmount,
+                    currentAmount - parseFloat(amount),
+                    ((currentAmount - parseFloat(amount)) / parseFloat(amount)) * 100,
+                    'completed',
+                    JSON.stringify(executionResults)
+                ]
+            );
+        }
+
+        res.json({
+            success: true,
+            message: 'Triangular arbitrage executed successfully',
+            execution: {
+                pathId: pathConfig.id,
+                initialAmount: parseFloat(amount),
+                finalAmount: currentAmount,
+                profit: currentAmount - parseFloat(amount),
+                profitPercent: ((currentAmount - parseFloat(amount)) / parseFloat(amount)) * 100,
+                legs: executionResults
+            }
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Failed to execute Bitget triangular trade'
+        });
+    }
+}));
+
+// ROUTE 5: Get Bitget Trade History (User-Specific)
+router.post('/bitget/triangular/history', asyncHandler(async (req, res) => {
+    try {
+        const { userId } = req.body;
+        const limit = req.body.limit || 20;
+
+        if (!userId) {
+            return res.status(400).json({
+                success: false,
+                message: 'User ID required'
+            });
+        }
+
+        const result = await pool.query(
+            `SELECT * FROM triangular_trades
+             WHERE user_id = $1 AND exchange = 'Bitget'
+             ORDER BY created_at DESC
+             LIMIT $2`,
+            [userId, limit]
+        );
+
+        res.json({
+            success: true,
+            trades: result.rows
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Failed to retrieve Bitget trade history'
+        });
+    }
+}));
+
+// ROUTE 6: Get Recent Bitget Trades (All Users)
+router.get('/bitget/triangular/recent-trades', asyncHandler(async (req, res) => {
+    try {
+        const result = await pool.query(
+            `SELECT * FROM triangular_recent_trades
+             WHERE exchange = 'Bitget'
+             ORDER BY created_at DESC
+             LIMIT 20`
+        );
+
+        res.json({
+            success: true,
+            trades: result.rows
+        });
+
+    } catch (error) {
+        console.error('Bitget recent trades error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to retrieve recent Bitget trades'
+        });
+    }
+}));
+
+// ============================================================================
 // VALR TRIANGULAR ARBITRAGE ENDPOINTS
 // ============================================
 // Specific endpoints for triangular arbitrage functionality

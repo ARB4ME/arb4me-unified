@@ -1864,6 +1864,98 @@
             </div>
         </div>
 
+        <!-- Bitget Exchange -->
+        <div style="background: rgba(138,43,226,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 2px solid #8A2BE2;">
+            <h3 style="color: #8A2BE2; margin: 0;">💜 Bitget Triangular Arbitrage</h3>
+            <p style="color: #888; margin: 10px 0 0 0; font-size: 14px;">
+                700+ USDT pairs | BGB native token | 0.10% fees | Passphrase required | HMAC-SHA256 Base64
+            </p>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 20px;">
+                <!-- Status Card -->
+                <div class="stat-card">
+                    <h4 style="color: #8A2BE2; margin-bottom: 15px;">📊 Status</h4>
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                        <div id="bitgetStatusIndicator" style="width: 12px; height: 12px; border-radius: 50%; background: #666;"></div>
+                        <span id="bitgetStatusText" style="color: #888;">Not Connected</span>
+                    </div>
+                    <div style="margin-top: 15px; display: flex; gap: 10px;">
+                        <button onclick="testBitgetTriangularConnection()" style="flex: 1; padding: 10px; background: #8A2BE2; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                            Test Connection
+                        </button>
+                        <button onclick="viewBitgetPathDetails()" style="flex: 1; padding: 10px; background: rgba(138,43,226,0.2); color: #8A2BE2; border: 1px solid #8A2BE2; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                            View Paths
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Risk Management -->
+                <div class="stat-card">
+                    <h4 style="color: #8A2BE2; margin-bottom: 15px;">⚖️ Risk Management</h4>
+                    <label style="display: block; color: #888; margin-bottom: 5px; font-size: 14px;">Max Trade Amount (USDT)</label>
+                    <input type="number" id="bitgetMaxTrade" value="100" min="10" max="10000" step="10" style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid #444; border-radius: 8px; color: white; margin-bottom: 15px;">
+
+                    <label style="display: block; color: #888; margin-bottom: 5px; font-size: 14px;">Portfolio % Risk</label>
+                    <input type="number" id="bitgetPortfolioPercent" value="5" min="1" max="20" step="1" style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid #444; border-radius: 8px; color: white; margin-bottom: 15px;">
+
+                    <label style="display: block; color: #888; margin-bottom: 5px; font-size: 14px;">Min Profit Threshold (%)</label>
+                    <input type="number" id="bitgetProfitThreshold" value="0.3" min="0.1" max="5" step="0.1" style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid #444; border-radius: 8px; color: white;">
+                </div>
+
+                <!-- Path Sets -->
+                <div class="stat-card">
+                    <h4 style="color: #8A2BE2; margin-bottom: 15px;">🔀 Path Selection (32 Total)</h4>
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                            <input type="checkbox" id="bitgetSet1Enabled" checked style="width: 18px; height: 18px; cursor: pointer;">
+                            <span style="color: #ddd;">✅ SET 1: Essential ETH Bridge (7 paths)</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                            <input type="checkbox" id="bitgetSet2Enabled" checked style="width: 18px; height: 18px; cursor: pointer;">
+                            <span style="color: #ddd;">✅ SET 2: Mid-Cap BTC Bridge (7 paths)</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                            <input type="checkbox" id="bitgetSet3Enabled" checked style="width: 18px; height: 18px; cursor: pointer;">
+                            <span style="color: #ddd;">💜 SET 3: BGB Native Token (6 paths)</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                            <input type="checkbox" id="bitgetSet4Enabled" style="width: 18px; height: 18px; cursor: pointer;">
+                            <span style="color: #ddd;">⚡ SET 4: High Volatility (6 paths)</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                            <input type="checkbox" id="bitgetSet5Enabled" style="width: 18px; height: 18px; cursor: pointer;">
+                            <span style="color: #ddd;">🔁 SET 5: Extended Multi-Bridge (6 paths)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Scanner Controls -->
+                <div class="stat-card">
+                    <h4 style="color: #8A2BE2; margin-bottom: 15px;">🔍 Scanner</h4>
+                    <button onclick="scanBitgetTriangularPaths()" style="width: 100%; padding: 12px; background: #8A2BE2; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 16px; margin-bottom: 15px;">
+                        💜 SCAN FOR OPPORTUNITIES
+                    </button>
+                    <div id="bitgetScanStatus" style="color: #888; font-size: 14px; text-align: center; min-height: 20px;"></div>
+                </div>
+
+                <!-- Opportunities Display -->
+                <div class="stat-card" style="grid-column: 1 / -1;">
+                    <h4 style="color: #8A2BE2; margin-bottom: 15px;">💎 Active Opportunities</h4>
+                    <div id="bitgetOpportunities" style="color: #888; font-size: 14px;">
+                        No scan results yet. Click "SCAN FOR OPPORTUNITIES" to begin.
+                    </div>
+                </div>
+
+                <!-- Trade History -->
+                <div class="stat-card" style="grid-column: 1 / -1;">
+                    <h4 style="color: #8A2BE2; margin-bottom: 15px;">📜 Recent Trades</h4>
+                    <div id="bitgetTradeHistory" style="color: #888; font-size: 14px;">
+                        No trade history available.
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Future Exchanges Placeholder -->
         <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 15px; border: 2px dashed #666;">
             <div style="text-align: center; color: #888;">
@@ -6832,6 +6924,333 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
                 const checkbox = document.getElementById(`bingxSet${i}Enabled`);
                 if (checkbox) {
                     checkbox.addEventListener('change', saveBingXTriangularSettings);
+                }
+            }
+        });
+
+        // ============================================================================
+        // BITGET TRIANGULAR ARBITRAGE FUNCTIONS
+        // ============================================================================
+
+        // Test Bitget Connection
+        async function testBitgetTriangularConnection() {
+            const apiKey = localStorage.getItem('bitget_api') || '';
+            const apiSecret = localStorage.getItem('bitget_secret') || '';
+            const passphrase = localStorage.getItem('bitget_passphrase') || '';
+            const statusIndicator = document.getElementById('bitgetStatusIndicator');
+            const statusText = document.getElementById('bitgetStatusText');
+
+            if (!apiKey || !apiSecret || !passphrase) {
+                statusIndicator.style.background = '#FF4444';
+                statusText.textContent = 'No API credentials configured';
+                statusText.style.color = '#FF4444';
+                alert('⚠️ Please configure your Bitget API credentials (including passphrase) on the Exchange Connections page first.');
+                return;
+            }
+
+            statusIndicator.style.background = '#FFA500';
+            statusText.textContent = 'Testing connection...';
+            statusText.style.color = '#FFA500';
+
+            try {
+                const response = await fetch('/api/v1/trading/bitget/triangular/test-connection', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ apiKey, apiSecret, passphrase })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    statusIndicator.style.background = '#00FF00';
+                    statusText.textContent = `✅ Connected - ${data.data?.balances?.length || 0} assets`;
+                    statusText.style.color = '#00FF00';
+                } else {
+                    statusIndicator.style.background = '#FF4444';
+                    statusText.textContent = '❌ Connection Failed';
+                    statusText.style.color = '#FF4444';
+                    alert(`Connection failed: ${data.message}`);
+                }
+            } catch (error) {
+                statusIndicator.style.background = '#FF4444';
+                statusText.textContent = '❌ Connection Error';
+                statusText.style.color = '#FF4444';
+                alert(`Error: ${error.message}`);
+            }
+        }
+
+        // View Bitget Path Details
+        async function viewBitgetPathDetails() {
+            try {
+                const response = await fetch('/api/v1/trading/bitget/triangular/paths');
+                const data = await response.json();
+
+                if (data.success) {
+                    let pathsHtml = '<div style="max-height: 600px; overflow-y: auto;">';
+
+                    Object.entries(data.sets).forEach(([setKey, setData]) => {
+                        pathsHtml += `
+                            <div style="margin-bottom: 20px; padding: 15px; background: rgba(138,43,226,0.1); border-radius: 10px; border: 1px solid #8A2BE2;">
+                                <h4 style="color: #8A2BE2; margin-bottom: 10px;">${setData.name} (${setData.count} paths)</h4>
+                                <div style="display: grid; gap: 10px;">
+                        `;
+
+                        setData.paths.forEach(path => {
+                            pathsHtml += `
+                                <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 8px; border-left: 3px solid #8A2BE2;">
+                                    <div style="color: #8A2BE2; font-weight: 600; margin-bottom: 5px;">${path.id}</div>
+                                    <div style="color: #ddd; margin-bottom: 5px;">${path.description}</div>
+                                    <div style="color: #888; font-size: 14px;">Path: ${path.path.join(' → ')}</div>
+                                    <div style="color: #666; font-size: 12px; margin-top: 5px;">Pairs: ${path.pairs.join(', ')}</div>
+                                </div>
+                            `;
+                        });
+
+                        pathsHtml += '</div></div>';
+                    });
+
+                    pathsHtml += '</div>';
+
+                    const modal = document.createElement('div');
+                    modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px;';
+                    modal.innerHTML = `
+                        <div style="background: #1a1a1a; padding: 30px; border-radius: 15px; max-width: 900px; width: 100%; max-height: 90vh; overflow-y: auto; border: 2px solid #8A2BE2;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                                <h3 style="color: #8A2BE2; margin: 0;">💜 Bitget Triangular Paths (${data.totalPaths} Total)</h3>
+                                <button onclick="this.closest('[style*=fixed]').remove()" style="background: #FF4444; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 600;">Close</button>
+                            </div>
+                            ${pathsHtml}
+                        </div>
+                    `;
+                    document.body.appendChild(modal);
+                }
+            } catch (error) {
+                alert(`Error loading paths: ${error.message}`);
+            }
+        }
+
+        // Scan Bitget Triangular Paths
+        async function scanBitgetTriangularPaths() {
+            const apiKey = localStorage.getItem('bitget_api') || '';
+            const apiSecret = localStorage.getItem('bitget_secret') || '';
+            const passphrase = localStorage.getItem('bitget_passphrase') || '';
+            const minProfitPercent = parseFloat(document.getElementById('bitgetProfitThreshold').value);
+            const scanStatus = document.getElementById('bitgetScanStatus');
+            const opportunitiesDiv = document.getElementById('bitgetOpportunities');
+
+            if (!apiKey || !apiSecret || !passphrase) {
+                alert('⚠️ Please configure your Bitget API credentials (including passphrase) on the Exchange Connections page first.');
+                return;
+            }
+
+            scanStatus.textContent = '🔄 Scanning 32 triangular paths...';
+            scanStatus.style.color = '#FFA500';
+            opportunitiesDiv.innerHTML = '<div style="text-align: center; color: #888; padding: 20px;">Scanning for opportunities...</div>';
+
+            try {
+                const enabledSets = [];
+                for (let i = 1; i <= 5; i++) {
+                    const checkbox = document.getElementById(`bitgetSet${i}Enabled`);
+                    if (checkbox && checkbox.checked) {
+                        enabledSets.push(`SET_${i}`);
+                    }
+                }
+
+                const response = await fetch('/api/v1/trading/bitget/triangular/scan', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ apiKey, apiSecret, passphrase, minProfitPercent, enabledSets })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    scanStatus.textContent = `✅ Found ${data.opportunities.length} opportunities (scanned ${data.scannedPaths} paths)`;
+                    scanStatus.style.color = '#00FF00';
+
+                    if (data.opportunities.length > 0) {
+                        let opportunitiesHtml = '<div style="display: grid; gap: 15px;">';
+
+                        data.opportunities.forEach((opp, index) => {
+                            const profitColor = parseFloat(opp.profitPercent) >= 0.5 ? '#00FF00' : '#FFA500';
+
+                            opportunitiesHtml += `
+                                <div style="padding: 15px; background: rgba(138,43,226,0.1); border-radius: 10px; border: 2px solid #8A2BE2;">
+                                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                                        <div>
+                                            <div style="color: #8A2BE2; font-weight: 600; margin-bottom: 5px;">${opp.id}</div>
+                                            <div style="color: #ddd; margin-bottom: 5px;">${opp.description}</div>
+                                            <div style="color: #888; font-size: 14px;">Path: ${opp.path.join(' → ')}</div>
+                                        </div>
+                                        <div style="text-align: right;">
+                                            <div style="color: ${profitColor}; font-size: 24px; font-weight: 700;">${opp.profitPercent}%</div>
+                                            <div style="color: #888; font-size: 14px;">~$${opp.estimatedProfit} profit</div>
+                                        </div>
+                                    </div>
+                                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #444;">
+                                        <div style="color: #888; font-size: 12px; margin-bottom: 5px;">Pairs: ${opp.pairs.join(', ')}</div>
+                                        <button onclick="executeBitgetTriangularTrade('${opp.id}')" style="width: 100%; padding: 8px; background: #8A2BE2; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; margin-top: 10px;">
+                                            💜 Execute Trade
+                                        </button>
+                                    </div>
+                                </div>
+                            `;
+                        });
+
+                        opportunitiesHtml += '</div>';
+                        opportunitiesDiv.innerHTML = opportunitiesHtml;
+                    } else {
+                        opportunitiesDiv.innerHTML = '<div style="text-align: center; color: #888; padding: 20px;">No profitable opportunities found. Try lowering the profit threshold.</div>';
+                    }
+                } else {
+                    scanStatus.textContent = '❌ Scan failed';
+                    scanStatus.style.color = '#FF4444';
+                    opportunitiesDiv.innerHTML = `<div style="text-align: center; color: #FF4444; padding: 20px;">${data.message}</div>`;
+                }
+            } catch (error) {
+                scanStatus.textContent = '❌ Scan error';
+                scanStatus.style.color = '#FF4444';
+                opportunitiesDiv.innerHTML = `<div style="text-align: center; color: #FF4444; padding: 20px;">Error: ${error.message}</div>`;
+            }
+        }
+
+        // Execute Bitget Triangular Trade
+        async function executeBitgetTriangularTrade(pathId) {
+            const apiKey = localStorage.getItem('bitget_api') || '';
+            const apiSecret = localStorage.getItem('bitget_secret') || '';
+            const passphrase = localStorage.getItem('bitget_passphrase') || '';
+            const maxTrade = parseFloat(document.getElementById('bitgetMaxTrade').value);
+            const userId = localStorage.getItem('userId');
+
+            if (!confirm(`⚠️ Execute triangular arbitrage trade?\n\nPath: ${pathId}\nAmount: ${maxTrade} USDT\n\nThis will execute real trades on Bitget.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/v1/trading/bitget/triangular/execute', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ apiKey, apiSecret, passphrase, pathId, amount: maxTrade, userId })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert(`✅ Trade executed successfully!\n\nProfit: $${data.execution.profit.toFixed(2)} (${data.execution.profitPercent.toFixed(3)}%)\nFinal Amount: ${data.execution.finalAmount.toFixed(2)} USDT`);
+
+                    // Refresh opportunities and history
+                    scanBitgetTriangularPaths();
+                    loadBitgetTradeHistory();
+                } else {
+                    alert(`❌ Trade execution failed:\n\n${data.message}`);
+                }
+            } catch (error) {
+                alert(`❌ Trade execution error:\n\n${error.message}`);
+            }
+        }
+
+        // Save Bitget Settings
+        function saveBitgetTriangularSettings() {
+            const settings = {
+                maxTrade: document.getElementById('bitgetMaxTrade').value,
+                portfolioPercent: document.getElementById('bitgetPortfolioPercent').value,
+                profitThreshold: document.getElementById('bitgetProfitThreshold').value,
+                set1Enabled: document.getElementById('bitgetSet1Enabled').checked,
+                set2Enabled: document.getElementById('bitgetSet2Enabled').checked,
+                set3Enabled: document.getElementById('bitgetSet3Enabled').checked,
+                set4Enabled: document.getElementById('bitgetSet4Enabled').checked,
+                set5Enabled: document.getElementById('bitgetSet5Enabled').checked
+            };
+            localStorage.setItem('bitget_triangular_settings', JSON.stringify(settings));
+            console.log('💜 [BITGET] Settings saved:', settings);
+        }
+
+        // Load Bitget Settings
+        function loadBitgetTriangularSettings() {
+            try {
+                const saved = localStorage.getItem('bitget_triangular_settings');
+                if (saved) {
+                    const settings = JSON.parse(saved);
+
+                    if (settings.maxTrade) document.getElementById('bitgetMaxTrade').value = settings.maxTrade;
+                    if (settings.portfolioPercent) document.getElementById('bitgetPortfolioPercent').value = settings.portfolioPercent;
+                    if (settings.profitThreshold) document.getElementById('bitgetProfitThreshold').value = settings.profitThreshold;
+
+                    if (settings.set1Enabled !== undefined) document.getElementById('bitgetSet1Enabled').checked = settings.set1Enabled;
+                    if (settings.set2Enabled !== undefined) document.getElementById('bitgetSet2Enabled').checked = settings.set2Enabled;
+                    if (settings.set3Enabled !== undefined) document.getElementById('bitgetSet3Enabled').checked = settings.set3Enabled;
+                    if (settings.set4Enabled !== undefined) document.getElementById('bitgetSet4Enabled').checked = settings.set4Enabled;
+                    if (settings.set5Enabled !== undefined) document.getElementById('bitgetSet5Enabled').checked = settings.set5Enabled;
+
+                    console.log('💜 [BITGET] Settings loaded:', settings);
+                }
+            } catch (error) {
+                console.error('💜 [BITGET] Error loading settings:', error);
+            }
+        }
+
+        // Load Bitget Trade History
+        async function loadBitgetTradeHistory() {
+            const userId = localStorage.getItem('userId');
+
+            if (!userId) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/v1/trading/bitget/triangular/history', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId, limit: 20 })
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.trades.length > 0) {
+                    let historyHtml = '<div style="display: grid; gap: 10px;">';
+
+                    data.trades.forEach(trade => {
+                        const profitColor = trade.profit >= 0 ? '#00FF00' : '#FF4444';
+
+                        historyHtml += `
+                            <div style="padding: 12px; background: rgba(0,0,0,0.3); border-radius: 8px; border-left: 3px solid ${profitColor};">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <div style="color: #8A2BE2; font-weight: 600;">${trade.path_id}</div>
+                                        <div style="color: #888; font-size: 12px;">${trade.path_description}</div>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div style="color: ${profitColor}; font-weight: 600;">${trade.profit_percent?.toFixed(3)}%</div>
+                                        <div style="color: #888; font-size: 12px;">$${trade.profit?.toFixed(2)}</div>
+                                    </div>
+                                </div>
+                                <div style="color: #888; font-size: 12px;">${new Date(trade.created_at).toLocaleString()}</div>
+                            </div>
+                        `;
+                    });
+
+                    historyHtml += '</div>';
+                    document.getElementById('bitgetTradeHistory').innerHTML = historyHtml;
+                }
+            } catch (error) {
+                console.error('Bitget history error:', error);
+            }
+        }
+
+        // Initialize Bitget settings on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('💜 [BITGET] Initializing triangular arbitrage settings...');
+            loadBitgetTriangularSettings();
+
+            const bitgetInputs = document.querySelectorAll('#bitgetMaxTrade, #bitgetPortfolioPercent, #bitgetProfitThreshold');
+            bitgetInputs.forEach(input => {
+                input.addEventListener('change', saveBitgetTriangularSettings);
+            });
+
+            for (let i = 1; i <= 5; i++) {
+                const checkbox = document.getElementById(`bitgetSet${i}Enabled`);
+                if (checkbox) {
+                    checkbox.addEventListener('change', saveBitgetTriangularSettings);
                 }
             }
         });
