@@ -8474,7 +8474,7 @@ router.get('/gemini/triangular/history', authenticatedRateLimit, authenticateUse
 
 // GET /api/v1/trading/gemini/triangular/recent-trades
 // Get recent Gemini triangular arbitrage trades (last 24 hours, all users)
-router.get('/gemini/triangular/recent-trades', generalRateLimit, asyncHandler(async (req, res) => {
+router.get('/gemini/triangular/recent-trades', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
     try {
         if (!req.db) {
             return res.json({
