@@ -18,6 +18,192 @@ const router = express.Router();
 const authenticate = authenticateUser;
 
 // ============================================================================
+// AUTHENTICATION HELPER FUNCTIONS
+// ============================================================================
+
+// LUNO Authentication Helper - Simple Basic Auth
+function createLunoAuth(apiKey, apiSecret) {
+    return Buffer.from(`${apiKey}:${apiSecret}`).toString('base64');
+}
+
+// VALR Authentication Helper - FIXED TO MATCH FRONTEND BASE64 ENCODING
+function createValrSignature(apiSecret, timestamp, verb, path, body = '') {
+    const payload = timestamp + verb.toUpperCase() + path + (body || '');
+
+    systemLogger.trading('VALR signature payload', {
+        timestamp,
+        method: verb.toUpperCase(),
+        path,
+        body: body || '',
+        payload: payload
+    });
+
+    // Localhost server.js uses hex - match exactly
+    const signature = crypto
+        .createHmac('sha512', apiSecret)  // UTF-8 string
+        .update(payload)
+        .digest('hex');  // Use hex like working localhost server.js
+
+    systemLogger.trading('VALR signature generated (hex)', {
+        signature: signature.substring(0, 20) + '...',
+        encoding: 'hex',
+        payloadLength: payload.length
+    });
+
+    return signature;
+}
+
+// VALR HTTP Request Helper
+async function makeValrRequest(endpoint, method, apiKey, apiSecret, body = null) {
+    const maxRetries = 3;
+    const retryDelays = [1000, 2000, 3000]; // Exponential backoff: 1s, 2s, 3s
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+            systemLogger.trading(`VALR API request attempt ${attempt + 1}/${maxRetries + 1}`, {
+                endpoint,
+                method,
+                attempt: attempt + 1
+            });
+
+            const result = await makeValrRequestSingle(endpoint, method, apiKey, apiSecret, body);
+
+            // Success on first try or after retries
+            if (attempt > 0) {
+                systemLogger.trading(`VALR API request succeeded after ${attempt + 1} attempts`, {
+                    endpoint,
+                    method,
+                    totalAttempts: attempt + 1
+                });
+            }
+
+            return result;
+
+        } catch (error) {
+            const isLastAttempt = attempt === maxRetries;
+            const isRetriableError = error.message.includes('Empty response') ||
+                                   error.message.includes('timeout') ||
+                                   error.message.includes('ECONNRESET') ||
+                                   error.message.includes('ENOTFOUND');
+
+            systemLogger.trading(`VALR API request failed - attempt ${attempt + 1}`, {
+                endpoint,
+                method,
+                error: error.message,
+                isRetriable: isRetriableError,
+                isLastAttempt,
+                willRetry: !isLastAttempt && isRetriableError
+            });
+
+            if (isLastAttempt || !isRetriableError) {
+                throw error;
+            }
+
+            // Wait before retry with exponential backoff
+            const delayMs = retryDelays[attempt] || 3000;
+            systemLogger.trading(`VALR API retrying in ${delayMs}ms`, {
+                endpoint,
+                method,
+                attempt: attempt + 1,
+                delayMs
+            });
+
+            await new Promise(resolve => setTimeout(resolve, delayMs));
+        }
+    }
+}
+
+function makeValrRequestSingle(endpoint, method, apiKey, apiSecret, body = null) {
+    return new Promise((resolve, reject) => {
+        const timestamp = Date.now();
+        const path = endpoint;
+        const bodyString = body ? JSON.stringify(body) : '';
+
+        const options = {
+            hostname: 'api.valr.com',
+            path: path,
+            method: method.toUpperCase(),
+            headers: {
+                'Content-Type': 'application/json',
+                'User-Agent': 'ARB4ME/1.0'
+            }
+        };
+
+        // Add Content-Length if we have a body
+        if (bodyString) {
+            options.headers['Content-Length'] = Buffer.byteLength(bodyString);
+        }
+
+        // Only add authentication headers if API key is provided (for private endpoints)
+        if (apiKey && apiSecret) {
+            const signature = createValrSignature(apiSecret, timestamp.toString(), method, path, bodyString);
+            // Use correct VALR header names (from working localhost version)
+            options.headers['X-VALR-API-KEY'] = apiKey;
+            options.headers['X-VALR-SIGNATURE'] = signature;
+            options.headers['X-VALR-TIMESTAMP'] = timestamp.toString();
+        }
+
+        systemLogger.trading('VALR API request details', {
+            method: method.toUpperCase(),
+            path: path,
+            hostname: options.hostname,
+            headers: options.headers,
+            bodyString: bodyString,
+            hasAuth: !!(apiKey && apiSecret)
+        });
+
+        const req = https.request(options, (res) => {
+            let data = '';
+
+            res.on('data', (chunk) => {
+                data += chunk;
+            });
+
+            res.on('end', () => {
+                systemLogger.trading('VALR API raw response', {
+                    statusCode: res.statusCode,
+                    data: data.substring(0, 500),
+                    headers: res.headers
+                });
+
+                try {
+                    if (!data || data.trim() === '') {
+                        reject(new Error('Empty response from VALR API'));
+                        return;
+                    }
+
+                    const jsonData = JSON.parse(data);
+
+                    if (res.statusCode >= 200 && res.statusCode < 300) {
+                        resolve(jsonData);
+                    } else {
+                        reject(new Error(jsonData.message || jsonData.error || `HTTP ${res.statusCode}: ${data.substring(0, 200)}`));
+                    }
+                } catch (parseError) {
+                    reject(new Error(`Invalid JSON response from VALR: ${data.substring(0, 200)}`));
+                }
+            });
+        });
+
+        req.on('error', (error) => {
+            reject(error);
+        });
+
+        // Set timeout to detect hanging requests
+        req.setTimeout(10000, () => {
+            req.destroy();
+            reject(new Error('VALR API request timeout (10s)'));
+        });
+
+        if (bodyString) {
+            req.write(bodyString);
+        }
+
+        req.end();
+    });
+}
+
+// ============================================================================
 // TRIANGULAR ARBITRAGE ROUTES
 // ============================================================================
 // This file contains all triangular arbitrage routes extracted from trading.routes.js
