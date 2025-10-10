@@ -8511,6 +8511,516 @@ router.get('/gemini/triangular/recent-trades', authenticatedRateLimit, authentic
 }));
 
 // ============================================================================
+// COINCATCH TRIANGULAR ARBITRAGE ENDPOINTS
+// ============================================================================
+// Coincatch Exchange - 129 spot pairs, limited cross pairs (only ETHBTC, GMTBTC)
+// Using mixed 3-leg and 4-leg paths due to cross pair limitations
+
+// Coincatch Triangular Arbitrage API Configuration
+const COINCATCH_TRIANGULAR_CONFIG = {
+    baseUrl: 'https://api.coincatch.com',
+    endpoints: {
+        ticker: '/api/spot/v1/market/tickers',
+        balance: '/api/spot/v1/account/assets',
+        placeOrder: '/api/spot/v1/trade/orders',
+        products: '/api/spot/v1/public/products'
+    }
+};
+
+// Coincatch HMAC-SHA256 Authentication Helper
+function createCoincatchTriangularSignature(timestamp, method, requestPath, queryString, body, apiSecret) {
+    const message = timestamp + method.toUpperCase() + requestPath + queryString + body;
+    return crypto.createHmac('sha256', apiSecret).update(message).digest('base64');
+}
+
+// Coincatch Triangular Arbitrage Paths (32 paths - mixed 3-leg and 4-leg)
+// NOTE: Coincatch only has 2 BTC cross pairs: ETHBTC_SPBL, GMTBTC_SPBL
+const COINCATCH_TRIANGULAR_PATHS = {
+    SET_1_BTC_ETH_DIRECT: [
+        { id: 'COINCATCH_BTCETH_1', path: ['USDT', 'BTC', 'ETH', 'USDT'], pairs: ['BTCUSDT_SPBL', 'ETHBTC_SPBL', 'ETHUSDT_SPBL'], description: 'Direct BTC-ETH bridge (forward)' },
+        { id: 'COINCATCH_ETHBTC_1', path: ['USDT', 'ETH', 'BTC', 'USDT'], pairs: ['ETHUSDT_SPBL', 'ETHBTC_SPBL', 'BTCUSDT_SPBL'], description: 'Direct ETH-BTC bridge (reverse)' }
+    ],
+    SET_2_GMT_BTC_BRIDGE: [
+        { id: 'COINCATCH_GMT_1', path: ['USDT', 'BTC', 'GMT', 'USDT'], pairs: ['BTCUSDT_SPBL', 'GMTBTC_SPBL', 'GMTUSDT_SPBL'], description: 'BTC → GMT bridge' },
+        { id: 'COINCATCH_GMT_2', path: ['USDT', 'GMT', 'BTC', 'USDT'], pairs: ['GMTUSDT_SPBL', 'GMTBTC_SPBL', 'BTCUSDT_SPBL'], description: 'GMT → BTC bridge' }
+    ],
+    SET_3_MAJOR_4LEG: [
+        { id: 'COINCATCH_4LEG_1', path: ['USDT', 'BTC', 'USDT', 'ETH', 'USDT'], pairs: ['BTCUSDT_SPBL', 'BTCUSDT_SPBL', 'ETHUSDT_SPBL', 'ETHUSDT_SPBL'], description: 'BTC ⇄ ETH via USDT' },
+        { id: 'COINCATCH_4LEG_2', path: ['USDT', 'BTC', 'USDT', 'SOL', 'USDT'], pairs: ['BTCUSDT_SPBL', 'BTCUSDT_SPBL', 'SOLUSDT_SPBL', 'SOLUSDT_SPBL'], description: 'BTC ⇄ SOL via USDT' },
+        { id: 'COINCATCH_4LEG_3', path: ['USDT', 'BTC', 'USDT', 'LINK', 'USDT'], pairs: ['BTCUSDT_SPBL', 'BTCUSDT_SPBL', 'LINKUSDT_SPBL', 'LINKUSDT_SPBL'], description: 'BTC ⇄ LINK via USDT' },
+        { id: 'COINCATCH_4LEG_4', path: ['USDT', 'ETH', 'USDT', 'SOL', 'USDT'], pairs: ['ETHUSDT_SPBL', 'ETHUSDT_SPBL', 'SOLUSDT_SPBL', 'SOLUSDT_SPBL'], description: 'ETH ⇄ SOL via USDT' },
+        { id: 'COINCATCH_4LEG_5', path: ['USDT', 'ETH', 'USDT', 'LINK', 'USDT'], pairs: ['ETHUSDT_SPBL', 'ETHUSDT_SPBL', 'LINKUSDT_SPBL', 'LINKUSDT_SPBL'], description: 'ETH ⇄ LINK via USDT' },
+        { id: 'COINCATCH_4LEG_6', path: ['USDT', 'ETH', 'USDT', 'AVAX', 'USDT'], pairs: ['ETHUSDT_SPBL', 'ETHUSDT_SPBL', 'AVAXUSDT_SPBL', 'AVAXUSDT_SPBL'], description: 'ETH ⇄ AVAX via USDT' },
+        { id: 'COINCATCH_4LEG_7', path: ['USDT', 'SOL', 'USDT', 'LINK', 'USDT'], pairs: ['SOLUSDT_SPBL', 'SOLUSDT_SPBL', 'LINKUSDT_SPBL', 'LINKUSDT_SPBL'], description: 'SOL ⇄ LINK via USDT' },
+        { id: 'COINCATCH_4LEG_8', path: ['USDT', 'SOL', 'USDT', 'UNI', 'USDT'], pairs: ['SOLUSDT_SPBL', 'SOLUSDT_SPBL', 'UNIUSDT_SPBL', 'UNIUSDT_SPBL'], description: 'SOL ⇄ UNI via USDT' }
+    ],
+    SET_4_ALTCOIN_4LEG: [
+        { id: 'COINCATCH_4LEG_9', path: ['USDT', 'DOGE', 'USDT', 'XRP', 'USDT'], pairs: ['DOGEUSDT_SPBL', 'DOGEUSDT_SPBL', 'XRPUSDT_SPBL', 'XRPUSDT_SPBL'], description: 'DOGE ⇄ XRP via USDT' },
+        { id: 'COINCATCH_4LEG_10', path: ['USDT', 'LINK', 'USDT', 'UNI', 'USDT'], pairs: ['LINKUSDT_SPBL', 'LINKUSDT_SPBL', 'UNIUSDT_SPBL', 'UNIUSDT_SPBL'], description: 'LINK ⇄ UNI via USDT' },
+        { id: 'COINCATCH_4LEG_11', path: ['USDT', 'AVAX', 'USDT', 'ATOM', 'USDT'], pairs: ['AVAXUSDT_SPBL', 'AVAXUSDT_SPBL', 'ATOMUSDT_SPBL', 'ATOMUSDT_SPBL'], description: 'AVAX ⇄ ATOM via USDT' },
+        { id: 'COINCATCH_4LEG_12', path: ['USDT', 'DOT', 'USDT', 'UNI', 'USDT'], pairs: ['DOTUSDT_SPBL', 'DOTUSDT_SPBL', 'UNIUSDT_SPBL', 'UNIUSDT_SPBL'], description: 'DOT ⇄ UNI via USDT' },
+        { id: 'COINCATCH_4LEG_13', path: ['USDT', 'ATOM', 'USDT', 'LINK', 'USDT'], pairs: ['ATOMUSDT_SPBL', 'ATOMUSDT_SPBL', 'LINKUSDT_SPBL', 'LINKUSDT_SPBL'], description: 'ATOM ⇄ LINK via USDT' },
+        { id: 'COINCATCH_4LEG_14', path: ['USDT', 'ADA', 'USDT', 'DOT', 'USDT'], pairs: ['ADAUSDT_SPBL', 'ADAUSDT_SPBL', 'DOTUSDT_SPBL', 'DOTUSDT_SPBL'], description: 'ADA ⇄ DOT via USDT' },
+        { id: 'COINCATCH_4LEG_15', path: ['USDT', 'LTC', 'USDT', 'BCH', 'USDT'], pairs: ['LTCUSDT_SPBL', 'LTCUSDT_SPBL', 'BCHUSDT_SPBL', 'BCHUSDT_SPBL'], description: 'LTC ⇄ BCH via USDT' },
+        { id: 'COINCATCH_4LEG_16', path: ['USDT', 'XRP', 'USDT', 'TRX', 'USDT'], pairs: ['XRPUSDT_SPBL', 'XRPUSDT_SPBL', 'TRXUSDT_SPBL', 'TRXUSDT_SPBL'], description: 'XRP ⇄ TRX via USDT' },
+        { id: 'COINCATCH_4LEG_17', path: ['USDT', 'UNI', 'USDT', 'AAVE', 'USDT'], pairs: ['UNIUSDT_SPBL', 'UNIUSDT_SPBL', 'AAVEUSDT_SPBL', 'AAVEUSDT_SPBL'], description: 'UNI ⇄ AAVE via USDT' },
+        { id: 'COINCATCH_4LEG_18', path: ['USDT', 'BNB', 'USDT', 'OP', 'USDT'], pairs: ['BNBUSDT_SPBL', 'BNBUSDT_SPBL', 'OPUSDT_SPBL', 'OPUSDT_SPBL'], description: 'BNB ⇄ OP via USDT' }
+    ],
+    SET_5_EXTENDED_4LEG: [
+        { id: 'COINCATCH_4LEG_19', path: ['USDT', 'PEPE', 'USDT', 'SHIB', 'USDT'], pairs: ['PEPEUSDT_SPBL', 'PEPEUSDT_SPBL', 'SHIBUSDT_SPBL', 'SHIBUSDT_SPBL'], description: 'PEPE ⇄ SHIB via USDT' },
+        { id: 'COINCATCH_4LEG_20', path: ['USDT', 'APT', 'USDT', 'SUI', 'USDT'], pairs: ['APTUSDT_SPBL', 'APTUSDT_SPBL', 'SUIUSDT_SPBL', 'SUIUSDT_SPBL'], description: 'APT ⇄ SUI via USDT' },
+        { id: 'COINCATCH_4LEG_21', path: ['USDT', 'INJ', 'USDT', 'OP', 'USDT'], pairs: ['INJUSDT_SPBL', 'INJUSDT_SPBL', 'OPUSDT_SPBL', 'OPUSDT_SPBL'], description: 'INJ ⇄ OP via USDT' },
+        { id: 'COINCATCH_4LEG_22', path: ['USDT', 'ARB', 'USDT', 'OP', 'USDT'], pairs: ['ARBUSDT_SPBL', 'ARBUSDT_SPBL', 'OPUSDT_SPBL', 'OPUSDT_SPBL'], description: 'ARB ⇄ OP via USDT' },
+        { id: 'COINCATCH_4LEG_23', path: ['USDT', 'FIL', 'USDT', 'ICP', 'USDT'], pairs: ['FILUSDT_SPBL', 'FILUSDT_SPBL', 'ICPUSDT_SPBL', 'ICPUSDT_SPBL'], description: 'FIL ⇄ ICP via USDT' },
+        { id: 'COINCATCH_4LEG_24', path: ['USDT', 'COMP', 'USDT', 'AAVE', 'USDT'], pairs: ['COMPUSDT_SPBL', 'COMPUSDT_SPBL', 'AAVEUSDT_SPBL', 'AAVEUSDT_SPBL'], description: 'COMP ⇄ AAVE via USDT' },
+        { id: 'COINCATCH_4LEG_25', path: ['USDT', 'SNX', 'USDT', 'CRV', 'USDT'], pairs: ['SNXUSDT_SPBL', 'SNXUSDT_SPBL', 'CRVUSDT_SPBL', 'CRVUSDT_SPBL'], description: 'SNX ⇄ CRV via USDT' },
+        { id: 'COINCATCH_4LEG_26', path: ['USDT', 'GALA', 'USDT', 'MANA', 'USDT'], pairs: ['GALAUSDT_SPBL', 'GALAUSDT_SPBL', 'MANAUSDT_SPBL', 'MANAUSDT_SPBL'], description: 'GALA ⇄ MANA via USDT' },
+        { id: 'COINCATCH_4LEG_27', path: ['USDT', 'FLOKI', 'USDT', 'PEPE', 'USDT'], pairs: ['FLOKIUSDT_SPBL', 'FLOKIUSDT_SPBL', 'PEPEUSDT_SPBL', 'PEPEUSDT_SPBL'], description: 'FLOKI ⇄ PEPE via USDT' },
+        { id: 'COINCATCH_4LEG_28', path: ['USDT', 'GRT', 'USDT', 'LDO', 'USDT'], pairs: ['GRTUSDT_SPBL', 'GRTUSDT_SPBL', 'LDOUSDT_SPBL', 'LDOUSDT_SPBL'], description: 'GRT ⇄ LDO via USDT' },
+        { id: 'COINCATCH_4LEG_29', path: ['USDT', 'APE', 'USDT', 'SAND', 'USDT'], pairs: ['APEUSDT_SPBL', 'APEUSDT_SPBL', 'SANDUSDT_SPBL', 'SANDUSDT_SPBL'], description: 'APE ⇄ SAND via USDT' },
+        { id: 'COINCATCH_4LEG_30', path: ['USDT', 'CHZ', 'USDT', 'STORJ', 'USDT'], pairs: ['CHZUSDT_SPBL', 'CHZUSDT_SPBL', 'STORJUSDT_SPBL', 'STORJUSDT_SPBL'], description: 'CHZ ⇄ STORJ via USDT' }
+    ]
+};
+
+// POST /api/v1/trading/coincatch/triangular/test-connection
+// Test Coincatch API connection for triangular trading
+router.post('/coincatch/triangular/test-connection', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    try {
+        const { apiKey, apiSecret, passphrase } = req.body;
+
+        systemLogger.trading('Coincatch triangular connection test initiated', {
+            userId: req.user.id,
+            timestamp: new Date().toISOString()
+        });
+
+        // Validate Coincatch API credentials
+        if (!apiKey || !apiSecret || !passphrase) {
+            throw new APIError('Coincatch API credentials (apiKey, apiSecret, passphrase) required', 400, 'COINCATCH_CREDENTIALS_REQUIRED');
+        }
+
+        // Test connection with account balance request
+        const timestamp = Date.now().toString();
+        const method = 'GET';
+        const requestPath = '/api/spot/v1/account/assets';
+        const signature = createCoincatchTriangularSignature(timestamp, method, requestPath, '', '', apiSecret);
+
+        const balanceResponse = await axios.get(`${COINCATCH_TRIANGULAR_CONFIG.baseUrl}${requestPath}`, {
+            headers: {
+                'ACCESS-KEY': apiKey,
+                'ACCESS-SIGN': signature,
+                'ACCESS-TIMESTAMP': timestamp,
+                'ACCESS-PASSPHRASE': passphrase,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (balanceResponse.data.code !== '00000') {
+            throw new APIError(`Coincatch API error: ${balanceResponse.data.msg}`, 400, 'COINCATCH_API_ERROR');
+        }
+
+        // Find USDT balance
+        const assets = balanceResponse.data.data || [];
+        const usdtAsset = assets.find(a => a.coinName === 'USDT');
+        const balance = usdtAsset ? {
+            available: parseFloat(usdtAsset.available),
+            total: parseFloat(usdtAsset.available) + parseFloat(usdtAsset.frozen || 0)
+        } : { available: 0, total: 0 };
+
+        systemLogger.trading('Coincatch triangular connection successful', {
+            userId: req.user.id,
+            balance: balance.available
+        });
+
+        res.json({
+            success: true,
+            message: 'Coincatch connection successful',
+            balance
+        });
+
+    } catch (error) {
+        systemLogger.trading('Coincatch triangular connection failed', {
+            userId: req.user.id,
+            error: error.message
+        });
+
+        if (error.response?.data) {
+            throw new APIError(`Coincatch API error: ${JSON.stringify(error.response.data)}`, 400, 'COINCATCH_API_ERROR');
+        }
+
+        throw error;
+    }
+}));
+
+// POST /api/v1/trading/coincatch/triangular/scan
+// Scan for Coincatch triangular arbitrage opportunities
+router.post('/coincatch/triangular/scan', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    try {
+        const { apiKey, apiSecret, passphrase, selectedSets } = req.body;
+
+        systemLogger.trading('Coincatch triangular scan initiated', {
+            userId: req.user.id,
+            selectedSets
+        });
+
+        // Validate inputs
+        if (!apiKey || !apiSecret || !passphrase) {
+            throw new APIError('Coincatch API credentials required', 400, 'COINCATCH_CREDENTIALS_REQUIRED');
+        }
+
+        if (!selectedSets || selectedSets.length === 0) {
+            throw new APIError('At least one path set must be selected', 400, 'NO_PATHS_SELECTED');
+        }
+
+        // Collect all paths from selected sets
+        let allPaths = [];
+        selectedSets.forEach(setName => {
+            if (COINCATCH_TRIANGULAR_PATHS[setName]) {
+                allPaths = allPaths.concat(COINCATCH_TRIANGULAR_PATHS[setName]);
+            }
+        });
+
+        if (allPaths.length === 0) {
+            throw new APIError('No valid paths found in selected sets', 400, 'NO_VALID_PATHS');
+        }
+
+        // Fetch all unique symbols (no authentication needed for ticker data)
+        const uniqueSymbols = [...new Set(allPaths.flatMap(p => p.pairs))];
+
+        const tickerResponse = await axios.get(`${COINCATCH_TRIANGULAR_CONFIG.baseUrl}${COINCATCH_TRIANGULAR_CONFIG.endpoints.ticker}`);
+
+        if (tickerResponse.data.code !== '00000') {
+            throw new APIError('Failed to fetch Coincatch ticker data', 500, 'COINCATCH_TICKER_ERROR');
+        }
+
+        // Create ticker map
+        const tickerMap = {};
+        tickerResponse.data.data.forEach(ticker => {
+            if (uniqueSymbols.includes(ticker.symbol)) {
+                tickerMap[ticker.symbol] = {
+                    symbol: ticker.symbol,
+                    bid: parseFloat(ticker.bidPr),
+                    ask: parseFloat(ticker.askPr)
+                };
+            }
+        });
+
+        // Calculate arbitrage opportunities
+        const opportunities = [];
+        for (const pathConfig of allPaths) {
+            try {
+                // Check if all required tickers are available
+                const missingTickers = pathConfig.pairs.filter(pair => !tickerMap[pair]);
+                if (missingTickers.length > 0) {
+                    continue;
+                }
+
+                let simulatedAmount = 1000; // Start with $1000 USDT
+                const trades = [];
+
+                // Execute simulated trades
+                for (let i = 0; i < pathConfig.pairs.length; i++) {
+                    const pair = pathConfig.pairs[i];
+                    const ticker = tickerMap[pair];
+                    const fromCurrency = pathConfig.path[i];
+                    const toCurrency = pathConfig.path[i + 1];
+
+                    // Determine if we're buying or selling
+                    let price, side;
+
+                    // For 4-leg paths with duplicate pairs, alternate buy/sell
+                    if (pair.includes(fromCurrency) && pair.includes(toCurrency)) {
+                        // Determine based on position in path
+                        if (fromCurrency === 'USDT') {
+                            side = 'buy';
+                            price = ticker.ask;
+                        } else if (toCurrency === 'USDT') {
+                            side = 'sell';
+                            price = ticker.bid;
+                        } else {
+                            side = (i % 2 === 0) ? 'buy' : 'sell';
+                            price = (i % 2 === 0) ? ticker.ask : ticker.bid;
+                        }
+                    } else {
+                        // Standard 3-leg logic
+                        if (pair === `${toCurrency}USDT_SPBL` || pair === `${toCurrency}BTC_SPBL`) {
+                            side = 'buy';
+                            price = ticker.ask;
+                        } else {
+                            side = 'sell';
+                            price = ticker.bid;
+                        }
+                    }
+
+                    const newAmount = side === 'buy' ? simulatedAmount / price : simulatedAmount * price;
+
+                    trades.push({
+                        pair,
+                        side,
+                        price,
+                        fromAmount: simulatedAmount,
+                        toAmount: newAmount,
+                        fromCurrency,
+                        toCurrency
+                    });
+
+                    simulatedAmount = newAmount;
+                }
+
+                const profit = simulatedAmount - 1000;
+                const profitPercentage = (profit / 1000) * 100;
+
+                // Consider 0.1% trading fee per leg
+                const feePercentage = 0.1 * pathConfig.pairs.length;
+                const netProfitPercentage = profitPercentage - feePercentage;
+
+                if (netProfitPercentage > 0.1) { // Minimum 0.1% profit after fees
+                    opportunities.push({
+                        pathId: pathConfig.id,
+                        path: pathConfig.path,
+                        pairs: pathConfig.pairs,
+                        description: pathConfig.description,
+                        profitPercentage: netProfitPercentage,
+                        estimatedProfit: (netProfitPercentage / 100) * 1000,
+                        trades
+                    });
+                }
+
+            } catch (error) {
+                systemLogger.trading(`Error calculating path ${pathConfig.id}`, { error: error.message });
+            }
+        }
+
+        // Sort by profit percentage
+        opportunities.sort((a, b) => b.profitPercentage - a.profitPercentage);
+
+        systemLogger.trading('Coincatch triangular scan completed', {
+            userId: req.user.id,
+            pathsScanned: allPaths.length,
+            opportunitiesFound: opportunities.length
+        });
+
+        res.json({
+            success: true,
+            opportunities,
+            scannedPaths: allPaths.length,
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        console.error('Coincatch scan error:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Failed to scan Coincatch triangular opportunities'
+        });
+    }
+}));
+
+// GET /api/v1/trading/coincatch/triangular/paths
+// Get available Coincatch triangular arbitrage paths
+router.get('/coincatch/triangular/paths', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    res.json({
+        success: true,
+        paths: COINCATCH_TRIANGULAR_PATHS,
+        note: 'Coincatch has limited cross pairs (ETHBTC, GMTBTC) - using mixed 3-leg and 4-leg paths'
+    });
+}));
+
+// POST /api/v1/trading/coincatch/triangular/execute
+// Execute a Coincatch triangular arbitrage trade
+router.post('/coincatch/triangular/execute', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    try {
+        const { apiKey, apiSecret, passphrase, opportunity, investmentAmount } = req.body;
+
+        systemLogger.trading('Coincatch triangular execution initiated', {
+            userId: req.user.id,
+            pathId: opportunity.pathId,
+            investmentAmount
+        });
+
+        // Validate inputs
+        if (!apiKey || !apiSecret || !passphrase) {
+            throw new APIError('Coincatch API credentials required', 400, 'COINCATCH_CREDENTIALS_REQUIRED');
+        }
+
+        if (!opportunity || !investmentAmount) {
+            throw new APIError('Opportunity and investment amount required', 400, 'MISSING_PARAMETERS');
+        }
+
+        const executedTrades = [];
+        let currentAmount = investmentAmount;
+
+        // Execute each leg of the triangular arbitrage
+        for (let i = 0; i < opportunity.trades.length; i++) {
+            const trade = opportunity.trades[i];
+
+            const timestamp = Date.now().toString();
+            const method = 'POST';
+            const requestPath = '/api/spot/v1/trade/orders';
+
+            const orderBody = JSON.stringify({
+                symbol: trade.pair,
+                side: trade.side,
+                orderType: 'limit',
+                force: 'normal',
+                price: trade.price.toFixed(8),
+                quantity: (currentAmount / trade.price).toFixed(8),
+                clientOrderId: `triangular_${Date.now()}_${i}`
+            });
+
+            const signature = createCoincatchTriangularSignature(timestamp, method, requestPath, '', orderBody, apiSecret);
+
+            const orderResponse = await axios.post(`${COINCATCH_TRIANGULAR_CONFIG.baseUrl}${requestPath}`, orderBody, {
+                headers: {
+                    'ACCESS-KEY': apiKey,
+                    'ACCESS-SIGN': signature,
+                    'ACCESS-TIMESTAMP': timestamp,
+                    'ACCESS-PASSPHRASE': passphrase,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (orderResponse.data.code !== '00000') {
+                throw new APIError(`Order failed: ${orderResponse.data.msg}`, 400, 'COINCATCH_ORDER_ERROR');
+            }
+
+            executedTrades.push({
+                pair: trade.pair,
+                side: trade.side,
+                price: trade.price,
+                amount: parseFloat((currentAmount / trade.price).toFixed(8)),
+                orderId: orderResponse.data.data.orderId
+            });
+
+            currentAmount = trade.toAmount;
+
+            // Small delay between trades
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+
+        const finalProfit = currentAmount - investmentAmount;
+
+        // Save to database
+        if (req.db) {
+            await req.db.query(
+                `INSERT INTO triangular_trades
+                (user_id, exchange, path_id, investment_amount, final_amount, profit, status, trades_data, created_at)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())`,
+                [
+                    req.user.id,
+                    'coincatch',
+                    opportunity.pathId,
+                    investmentAmount,
+                    currentAmount,
+                    finalProfit,
+                    'completed',
+                    JSON.stringify(executedTrades)
+                ]
+            );
+        }
+
+        systemLogger.trading('Coincatch triangular execution completed', {
+            userId: req.user.id,
+            pathId: opportunity.pathId,
+            profit: finalProfit
+        });
+
+        res.json({
+            success: true,
+            message: 'Triangular arbitrage executed successfully',
+            executedTrades,
+            finalAmount: currentAmount,
+            profit: finalProfit,
+            profitPercentage: ((finalProfit / investmentAmount) * 100).toFixed(2)
+        });
+
+    } catch (error) {
+        console.error('Coincatch execution error:', error);
+
+        systemLogger.trading('Coincatch triangular execution failed', {
+            userId: req.user.id,
+            error: error.message
+        });
+
+        res.status(500).json({
+            success: false,
+            message: error.response?.data?.msg || error.message || 'Execution failed'
+        });
+    }
+}));
+
+// GET /api/v1/trading/coincatch/triangular/history
+// Get Coincatch triangular arbitrage trade history
+router.get('/coincatch/triangular/history', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    try {
+        if (!req.db) {
+            return res.json({
+                success: true,
+                trades: [],
+                message: 'Database not connected'
+            });
+        }
+
+        const result = await req.db.query(
+            `SELECT * FROM triangular_trades
+            WHERE user_id = $1 AND exchange = $2
+            ORDER BY created_at DESC
+            LIMIT 50`,
+            [req.user.id, 'coincatch']
+        );
+
+        res.json({
+            success: true,
+            trades: result.rows
+        });
+
+    } catch (error) {
+        console.error('Coincatch history error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to retrieve Coincatch trade history'
+        });
+    }
+}));
+
+// GET /api/v1/trading/coincatch/triangular/recent-trades
+// Get recent Coincatch triangular arbitrage trades (last 24 hours, all users)
+router.get('/coincatch/triangular/recent-trades', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    try {
+        if (!req.db) {
+            return res.json({
+                success: true,
+                trades: []
+            });
+        }
+
+        const result = await req.db.query(
+            `SELECT path_id, investment_amount, profit,
+                    (profit / investment_amount * 100) as profit_percentage,
+                    created_at
+            FROM triangular_trades
+            WHERE exchange = $1
+            AND created_at > NOW() - INTERVAL '24 hours'
+            AND status = 'completed'
+            ORDER BY created_at DESC
+            LIMIT 20`,
+            ['coincatch']
+        );
+
+        res.json({
+            success: true,
+            trades: result.rows
+        });
+
+    } catch (error) {
+        console.error('Coincatch recent trades error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to retrieve recent Coincatch trades'
+        });
+    }
+}));
+
+// ============================================================================
 // VALR TRIANGULAR ARBITRAGE ENDPOINTS
 // ============================================
 // Specific endpoints for triangular arbitrage functionality
