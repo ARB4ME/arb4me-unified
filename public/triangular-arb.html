@@ -120,6 +120,29 @@
             visibility: visible !important;
             opacity: 1 !important;
         }
+
+        /* Notification animations */
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+        }
     </style>
 </head>
 <body>
@@ -2364,6 +2387,45 @@
 
             // Navigate back to main platform
             window.location.href = '/';
+        }
+
+        // Notification Utility Function
+        function showNotification(message, type = 'info') {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 15px 25px;
+                border-radius: 8px;
+                color: white;
+                font-weight: bold;
+                z-index: 10000;
+                animation: slideIn 0.3s ease-out;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            `;
+
+            // Set background color based on type
+            const colors = {
+                success: '#00FF00',
+                error: '#FF0000',
+                warning: '#FFA500',
+                info: '#00AADD'
+            };
+            notification.style.background = colors[type] || colors.info;
+            notification.textContent = message;
+
+            // Add to page
+            document.body.appendChild(notification);
+
+            // Remove after 3 seconds
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease-in';
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 300);
+            }, 3000);
         }
 
         // Triangular Arbitrage JavaScript Functions
