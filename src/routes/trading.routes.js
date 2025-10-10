@@ -7032,6 +7032,426 @@ router.get('/cryptocom/triangular/recent-trades', asyncHandler(async (req, res) 
 }));
 
 // ============================================================================
+// MEXC EXCHANGE - TRIANGULAR ARBITRAGE
+// ============================================================================
+
+// MEXC Triangular Arbitrage API Configuration
+const MEXC_TRIANGULAR_CONFIG = {
+    baseUrl: 'https://api.mexc.com/api/v3',
+    endpoints: {
+        ticker: '/ticker/24hr',
+        orderBook: '/depth',
+        account: '/account',
+        placeOrder: '/order'
+    }
+};
+
+// MEXC HMAC-SHA256 Authentication Helper
+function createMexcSignature(apiKey, apiSecret, timestamp, params = '') {
+    // Signature format: accessKey + timestamp + params
+    const signatureString = apiKey + timestamp + params;
+
+    // Generate HMAC-SHA256 signature (lowercase only for MEXC)
+    const signature = crypto.createHmac('sha256', apiSecret).update(signatureString).digest('hex');
+
+    return signature;
+}
+
+// ROUTE 1: Test MEXC Connection
+router.post('/mexc/triangular/test-connection', asyncHandler(async (req, res) => {
+    try {
+        const { apiKey, apiSecret } = req.body;
+
+        if (!apiKey || !apiSecret) {
+            return res.status(400).json({
+                success: false,
+                message: 'API key and secret are required'
+            });
+        }
+
+        // Test connection by fetching account info
+        const timestamp = Date.now().toString();
+        const queryString = `timestamp=${timestamp}`;
+        const signature = createMexcSignature(apiKey, apiSecret, timestamp, queryString);
+
+        const response = await fetch(`${MEXC_TRIANGULAR_CONFIG.baseUrl}${MEXC_TRIANGULAR_CONFIG.endpoints.account}?${queryString}&signature=${signature}`, {
+            method: 'GET',
+            headers: {
+                'X-MEXC-APIKEY': apiKey,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            return res.status(401).json({
+                success: false,
+                message: 'MEXC API authentication failed',
+                error: errorText
+            });
+        }
+
+        const accountData = await response.json();
+
+        // Find USDT balance
+        const balances = accountData.balances || [];
+        const usdtBalance = balances.find(b => b.asset === 'USDT');
+        const usdtAvailable = usdtBalance ? parseFloat(usdtBalance.free) : 0;
+
+        res.json({
+            success: true,
+            message: 'MEXC connection successful',
+            balances: {
+                USDT: usdtAvailable.toFixed(2)
+            }
+        });
+
+    } catch (error) {
+        console.error('MEXC connection test error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to connect to MEXC'
+        });
+    }
+}));
+
+// ROUTE 2: Scan MEXC Triangular Arbitrage Opportunities
+router.post('/mexc/triangular/scan', asyncHandler(async (req, res) => {
+    try {
+        const { apiKey, apiSecret, maxTradeAmount, profitThreshold, enabledSets } = req.body;
+
+        if (!apiKey || !apiSecret) {
+            return res.status(400).json({
+                success: false,
+                message: 'API credentials required'
+            });
+        }
+
+        // Define all 32 triangular arbitrage paths
+        const allPaths = {
+            SET_1_ESSENTIAL_ETH_BRIDGE: [
+                { id: 'MEXC_ETH_1', path: ['USDT', 'ETH', 'BTC', 'USDT'], pairs: ['ETHUSDT', 'BTCETH', 'BTCUSDT'], description: 'ETH → BTC Bridge' },
+                { id: 'MEXC_ETH_2', path: ['USDT', 'ETH', 'SOL', 'USDT'], pairs: ['ETHUSDT', 'SOLETH', 'SOLUSDT'], description: 'ETH → SOL Bridge' },
+                { id: 'MEXC_ETH_3', path: ['USDT', 'ETH', 'XRP', 'USDT'], pairs: ['ETHUSDT', 'XRPETH', 'XRPUSDT'], description: 'ETH → XRP Bridge' },
+                { id: 'MEXC_ETH_4', path: ['USDT', 'ETH', 'ADA', 'USDT'], pairs: ['ETHUSDT', 'ADAETH', 'ADAUSDT'], description: 'ETH → ADA Bridge' },
+                { id: 'MEXC_ETH_5', path: ['USDT', 'ETH', 'MATIC', 'USDT'], pairs: ['ETHUSDT', 'MATICETH', 'MATICUSDT'], description: 'ETH → MATIC Bridge' },
+                { id: 'MEXC_ETH_6', path: ['USDT', 'ETH', 'DOT', 'USDT'], pairs: ['ETHUSDT', 'DOTETH', 'DOTUSDT'], description: 'ETH → DOT Bridge' },
+                { id: 'MEXC_ETH_7', path: ['USDT', 'ETH', 'AVAX', 'USDT'], pairs: ['ETHUSDT', 'AVAXETH', 'AVAXUSDT'], description: 'ETH → AVAX Bridge' }
+            ],
+            SET_2_MIDCAP_BTC_BRIDGE: [
+                { id: 'MEXC_BTC_1', path: ['USDT', 'BTC', 'ETH', 'USDT'], pairs: ['BTCUSDT', 'ETHBTC', 'ETHUSDT'], description: 'BTC → ETH Bridge' },
+                { id: 'MEXC_BTC_2', path: ['USDT', 'BTC', 'SOL', 'USDT'], pairs: ['BTCUSDT', 'SOLBTC', 'SOLUSDT'], description: 'BTC → SOL Bridge' },
+                { id: 'MEXC_BTC_3', path: ['USDT', 'BTC', 'XRP', 'USDT'], pairs: ['BTCUSDT', 'XRPBTC', 'XRPUSDT'], description: 'BTC → XRP Bridge' },
+                { id: 'MEXC_BTC_4', path: ['USDT', 'BTC', 'LTC', 'USDT'], pairs: ['BTCUSDT', 'LTCBTC', 'LTCUSDT'], description: 'BTC → LTC Bridge' },
+                { id: 'MEXC_BTC_5', path: ['USDT', 'BTC', 'LINK', 'USDT'], pairs: ['BTCUSDT', 'LINKBTC', 'LINKUSDT'], description: 'BTC → LINK Bridge' },
+                { id: 'MEXC_BTC_6', path: ['USDT', 'BTC', 'ATOM', 'USDT'], pairs: ['BTCUSDT', 'ATOMBTC', 'ATOMUSDT'], description: 'BTC → ATOM Bridge' },
+                { id: 'MEXC_BTC_7', path: ['USDT', 'BTC', 'UNI', 'USDT'], pairs: ['BTCUSDT', 'UNIBTC', 'UNIUSDT'], description: 'BTC → UNI Bridge' }
+            ],
+            SET_3_MX_NATIVE_BRIDGE: [
+                { id: 'MEXC_MX_1', path: ['USDT', 'MX', 'BTC', 'USDT'], pairs: ['MXUSDT', 'BTCMX', 'BTCUSDT'], description: 'MX → BTC Native' },
+                { id: 'MEXC_MX_2', path: ['USDT', 'MX', 'ETH', 'USDT'], pairs: ['MXUSDT', 'ETHMX', 'ETHUSDT'], description: 'MX → ETH Native' },
+                { id: 'MEXC_MX_3', path: ['USDT', 'MX', 'SOL', 'USDT'], pairs: ['MXUSDT', 'SOLMX', 'SOLUSDT'], description: 'MX → SOL Native' },
+                { id: 'MEXC_MX_4', path: ['USDT', 'BTC', 'MX', 'USDT'], pairs: ['BTCUSDT', 'MXBTC', 'MXUSDT'], description: 'BTC → MX Reverse' },
+                { id: 'MEXC_MX_5', path: ['USDT', 'ETH', 'MX', 'USDT'], pairs: ['ETHUSDT', 'MXETH', 'MXUSDT'], description: 'ETH → MX Reverse' },
+                { id: 'MEXC_MX_6', path: ['USDT', 'MX', 'BNB', 'USDT'], pairs: ['MXUSDT', 'BNBMX', 'BNBUSDT'], description: 'MX → BNB Native' }
+            ],
+            SET_4_HIGH_VOLATILITY: [
+                { id: 'MEXC_VOL_1', path: ['USDT', 'DOGE', 'BTC', 'USDT'], pairs: ['DOGEUSDT', 'BTCDOGE', 'BTCUSDT'], description: 'DOGE → BTC Volatility' },
+                { id: 'MEXC_VOL_2', path: ['USDT', 'SHIB', 'ETH', 'USDT'], pairs: ['SHIBUSDT', 'ETHSHIB', 'ETHUSDT'], description: 'SHIB → ETH Volatility' },
+                { id: 'MEXC_VOL_3', path: ['USDT', 'PEPE', 'ETH', 'USDT'], pairs: ['PEPEUSDT', 'ETHPEPE', 'ETHUSDT'], description: 'PEPE → ETH Volatility' },
+                { id: 'MEXC_VOL_4', path: ['USDT', 'FLOKI', 'BTC', 'USDT'], pairs: ['FLOKIUSDT', 'BTCFLOKI', 'BTCUSDT'], description: 'FLOKI → BTC Volatility' },
+                { id: 'MEXC_VOL_5', path: ['USDT', 'TON', 'ETH', 'USDT'], pairs: ['TONUSDT', 'ETHTON', 'ETHUSDT'], description: 'TON → ETH Volatility' },
+                { id: 'MEXC_VOL_6', path: ['USDT', 'SUI', 'BTC', 'USDT'], pairs: ['SUIUSDT', 'BTCSUI', 'BTCUSDT'], description: 'SUI → BTC Volatility' }
+            ],
+            SET_5_EXTENDED_MULTIBRIDGE: [
+                { id: 'MEXC_EXT_1', path: ['USDT', 'SOL', 'BTC', 'USDT'], pairs: ['SOLUSDT', 'BTCSOL', 'BTCUSDT'], description: 'SOL → BTC Multi-Bridge' },
+                { id: 'MEXC_EXT_2', path: ['USDT', 'ADA', 'BTC', 'USDT'], pairs: ['ADAUSDT', 'BTCADA', 'BTCUSDT'], description: 'ADA → BTC Multi-Bridge' },
+                { id: 'MEXC_EXT_3', path: ['USDT', 'AVAX', 'BTC', 'USDT'], pairs: ['AVAXUSDT', 'BTCAVAX', 'BTCUSDT'], description: 'AVAX → BTC Multi-Bridge' },
+                { id: 'MEXC_EXT_4', path: ['USDT', 'MATIC', 'ETH', 'USDT'], pairs: ['MATICUSDT', 'ETHMATIC', 'ETHUSDT'], description: 'MATIC → ETH Multi-Bridge' },
+                { id: 'MEXC_EXT_5', path: ['USDT', 'BTC', 'ETH', 'SOL', 'USDT'], pairs: ['BTCUSDT', 'ETHBTC', 'SOLETH', 'SOLUSDT'], description: '4-Leg BTC-ETH-SOL' },
+                { id: 'MEXC_EXT_6', path: ['USDT', 'ETH', 'BTC', 'XRP', 'USDT'], pairs: ['ETHUSDT', 'BTCETH', 'XRPBTC', 'XRPUSDT'], description: '4-Leg ETH-BTC-XRP' }
+            ]
+        };
+
+        // Filter paths based on enabled sets
+        let pathsToScan = [];
+        Object.keys(allPaths).forEach(setKey => {
+            if (enabledSets[setKey]) {
+                pathsToScan = pathsToScan.concat(allPaths[setKey]);
+            }
+        });
+
+        // Fetch all tickers (public endpoint, no auth needed)
+        const tickersResponse = await fetch(`${MEXC_TRIANGULAR_CONFIG.baseUrl}${MEXC_TRIANGULAR_CONFIG.endpoints.ticker}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!tickersResponse.ok) {
+            throw new Error('Failed to fetch MEXC tickers');
+        }
+
+        const tickers = await tickersResponse.json();
+
+        // Build price map
+        const priceMap = {};
+        tickers.forEach(ticker => {
+            priceMap[ticker.symbol] = {
+                bid: parseFloat(ticker.bidPrice) || 0,
+                ask: parseFloat(ticker.askPrice) || 0,
+                last: parseFloat(ticker.lastPrice) || 0
+            };
+        });
+
+        // Scan each path for arbitrage opportunities
+        const opportunities = [];
+
+        for (const pathDef of pathsToScan) {
+            try {
+                const { path, pairs, id, description } = pathDef;
+                let currentAmount = maxTradeAmount;
+                let prices = [];
+                let valid = true;
+
+                // Calculate through each leg
+                for (let i = 0; i < pairs.length; i++) {
+                    const pair = pairs[i];
+                    const priceData = priceMap[pair];
+
+                    if (!priceData || priceData.bid === 0 || priceData.ask === 0) {
+                        valid = false;
+                        break;
+                    }
+
+                    const fromCurrency = path[i];
+                    const toCurrency = path[i + 1];
+
+                    // Determine if we're buying or selling the pair
+                    // MEXC format: BTCUSDT means BTC is base, USDT is quote
+                    let base, quote;
+                    if (pair.endsWith('USDT')) {
+                        quote = 'USDT';
+                        base = pair.replace('USDT', '');
+                    } else if (pair.endsWith('BTC')) {
+                        quote = 'BTC';
+                        base = pair.replace('BTC', '');
+                    } else if (pair.endsWith('ETH')) {
+                        quote = 'ETH';
+                        base = pair.replace('ETH', '');
+                    } else {
+                        valid = false;
+                        break;
+                    }
+
+                    if (fromCurrency === quote && toCurrency === base) {
+                        // Buying base with quote (use ask price)
+                        const price = priceData.ask;
+                        currentAmount = currentAmount / price;
+                        prices.push({ pair, side: 'buy', price, amount: currentAmount });
+                    } else if (fromCurrency === base && toCurrency === quote) {
+                        // Selling base for quote (use bid price)
+                        const price = priceData.bid;
+                        currentAmount = currentAmount * price;
+                        prices.push({ pair, side: 'sell', price, amount: currentAmount });
+                    } else {
+                        valid = false;
+                        break;
+                    }
+                }
+
+                if (valid) {
+                    const finalAmount = currentAmount;
+                    const profit = finalAmount - maxTradeAmount;
+                    const profitPercent = (profit / maxTradeAmount) * 100;
+
+                    if (profitPercent >= profitThreshold) {
+                        opportunities.push({
+                            pathId: id,
+                            path: path.join(' → '),
+                            pairs: pairs,
+                            description: description,
+                            initialAmount: maxTradeAmount,
+                            finalAmount: finalAmount.toFixed(2),
+                            profit: profit.toFixed(2),
+                            profitPercent: profitPercent.toFixed(4),
+                            legs: prices,
+                            timestamp: new Date().toISOString()
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error(`Error scanning path ${pathDef.id}:`, error);
+            }
+        }
+
+        // Sort by profit percentage descending
+        opportunities.sort((a, b) => parseFloat(b.profitPercent) - parseFloat(a.profitPercent));
+
+        res.json({
+            success: true,
+            scanned: pathsToScan.length,
+            opportunities: opportunities,
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        console.error('MEXC scan error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to scan MEXC triangular paths'
+        });
+    }
+}));
+
+// ROUTE 3: Get All MEXC Triangular Paths
+router.get('/mexc/triangular/paths', asyncHandler(async (req, res) => {
+    const allPaths = {
+        SET_1_ESSENTIAL_ETH_BRIDGE: [
+            { id: 'MEXC_ETH_1', path: ['USDT', 'ETH', 'BTC', 'USDT'], pairs: ['ETHUSDT', 'BTCETH', 'BTCUSDT'], description: 'ETH → BTC Bridge' },
+            { id: 'MEXC_ETH_2', path: ['USDT', 'ETH', 'SOL', 'USDT'], pairs: ['ETHUSDT', 'SOLETH', 'SOLUSDT'], description: 'ETH → SOL Bridge' },
+            { id: 'MEXC_ETH_3', path: ['USDT', 'ETH', 'XRP', 'USDT'], pairs: ['ETHUSDT', 'XRPETH', 'XRPUSDT'], description: 'ETH → XRP Bridge' },
+            { id: 'MEXC_ETH_4', path: ['USDT', 'ETH', 'ADA', 'USDT'], pairs: ['ETHUSDT', 'ADAETH', 'ADAUSDT'], description: 'ETH → ADA Bridge' },
+            { id: 'MEXC_ETH_5', path: ['USDT', 'ETH', 'MATIC', 'USDT'], pairs: ['ETHUSDT', 'MATICETH', 'MATICUSDT'], description: 'ETH → MATIC Bridge' },
+            { id: 'MEXC_ETH_6', path: ['USDT', 'ETH', 'DOT', 'USDT'], pairs: ['ETHUSDT', 'DOTETH', 'DOTUSDT'], description: 'ETH → DOT Bridge' },
+            { id: 'MEXC_ETH_7', path: ['USDT', 'ETH', 'AVAX', 'USDT'], pairs: ['ETHUSDT', 'AVAXETH', 'AVAXUSDT'], description: 'ETH → AVAX Bridge' }
+        ],
+        SET_2_MIDCAP_BTC_BRIDGE: [
+            { id: 'MEXC_BTC_1', path: ['USDT', 'BTC', 'ETH', 'USDT'], pairs: ['BTCUSDT', 'ETHBTC', 'ETHUSDT'], description: 'BTC → ETH Bridge' },
+            { id: 'MEXC_BTC_2', path: ['USDT', 'BTC', 'SOL', 'USDT'], pairs: ['BTCUSDT', 'SOLBTC', 'SOLUSDT'], description: 'BTC → SOL Bridge' },
+            { id: 'MEXC_BTC_3', path: ['USDT', 'BTC', 'XRP', 'USDT'], pairs: ['BTCUSDT', 'XRPBTC', 'XRPUSDT'], description: 'BTC → XRP Bridge' },
+            { id: 'MEXC_BTC_4', path: ['USDT', 'BTC', 'LTC', 'USDT'], pairs: ['BTCUSDT', 'LTCBTC', 'LTCUSDT'], description: 'BTC → LTC Bridge' },
+            { id: 'MEXC_BTC_5', path: ['USDT', 'BTC', 'LINK', 'USDT'], pairs: ['BTCUSDT', 'LINKBTC', 'LINKUSDT'], description: 'BTC → LINK Bridge' },
+            { id: 'MEXC_BTC_6', path: ['USDT', 'BTC', 'ATOM', 'USDT'], pairs: ['BTCUSDT', 'ATOMBTC', 'ATOMUSDT'], description: 'BTC → ATOM Bridge' },
+            { id: 'MEXC_BTC_7', path: ['USDT', 'BTC', 'UNI', 'USDT'], pairs: ['BTCUSDT', 'UNIBTC', 'UNIUSDT'], description: 'BTC → UNI Bridge' }
+        ],
+        SET_3_MX_NATIVE_BRIDGE: [
+            { id: 'MEXC_MX_1', path: ['USDT', 'MX', 'BTC', 'USDT'], pairs: ['MXUSDT', 'BTCMX', 'BTCUSDT'], description: 'MX → BTC Native' },
+            { id: 'MEXC_MX_2', path: ['USDT', 'MX', 'ETH', 'USDT'], pairs: ['MXUSDT', 'ETHMX', 'ETHUSDT'], description: 'MX → ETH Native' },
+            { id: 'MEXC_MX_3', path: ['USDT', 'MX', 'SOL', 'USDT'], pairs: ['MXUSDT', 'SOLMX', 'SOLUSDT'], description: 'MX → SOL Native' },
+            { id: 'MEXC_MX_4', path: ['USDT', 'BTC', 'MX', 'USDT'], pairs: ['BTCUSDT', 'MXBTC', 'MXUSDT'], description: 'BTC → MX Reverse' },
+            { id: 'MEXC_MX_5', path: ['USDT', 'ETH', 'MX', 'USDT'], pairs: ['ETHUSDT', 'MXETH', 'MXUSDT'], description: 'ETH → MX Reverse' },
+            { id: 'MEXC_MX_6', path: ['USDT', 'MX', 'BNB', 'USDT'], pairs: ['MXUSDT', 'BNBMX', 'BNBUSDT'], description: 'MX → BNB Native' }
+        ],
+        SET_4_HIGH_VOLATILITY: [
+            { id: 'MEXC_VOL_1', path: ['USDT', 'DOGE', 'BTC', 'USDT'], pairs: ['DOGEUSDT', 'BTCDOGE', 'BTCUSDT'], description: 'DOGE → BTC Volatility' },
+            { id: 'MEXC_VOL_2', path: ['USDT', 'SHIB', 'ETH', 'USDT'], pairs: ['SHIBUSDT', 'ETHSHIB', 'ETHUSDT'], description: 'SHIB → ETH Volatility' },
+            { id: 'MEXC_VOL_3', path: ['USDT', 'PEPE', 'ETH', 'USDT'], pairs: ['PEPEUSDT', 'ETHPEPE', 'ETHUSDT'], description: 'PEPE → ETH Volatility' },
+            { id: 'MEXC_VOL_4', path: ['USDT', 'FLOKI', 'BTC', 'USDT'], pairs: ['FLOKIUSDT', 'BTCFLOKI', 'BTCUSDT'], description: 'FLOKI → BTC Volatility' },
+            { id: 'MEXC_VOL_5', path: ['USDT', 'TON', 'ETH', 'USDT'], pairs: ['TONUSDT', 'ETHTON', 'ETHUSDT'], description: 'TON → ETH Volatility' },
+            { id: 'MEXC_VOL_6', path: ['USDT', 'SUI', 'BTC', 'USDT'], pairs: ['SUIUSDT', 'BTCSUI', 'BTCUSDT'], description: 'SUI → BTC Volatility' }
+        ],
+        SET_5_EXTENDED_MULTIBRIDGE: [
+            { id: 'MEXC_EXT_1', path: ['USDT', 'SOL', 'BTC', 'USDT'], pairs: ['SOLUSDT', 'BTCSOL', 'BTCUSDT'], description: 'SOL → BTC Multi-Bridge' },
+            { id: 'MEXC_EXT_2', path: ['USDT', 'ADA', 'BTC', 'USDT'], pairs: ['ADAUSDT', 'BTCADA', 'BTCUSDT'], description: 'ADA → BTC Multi-Bridge' },
+            { id: 'MEXC_EXT_3', path: ['USDT', 'AVAX', 'BTC', 'USDT'], pairs: ['AVAXUSDT', 'BTCAVAX', 'BTCUSDT'], description: 'AVAX → BTC Multi-Bridge' },
+            { id: 'MEXC_EXT_4', path: ['USDT', 'MATIC', 'ETH', 'USDT'], pairs: ['MATICUSDT', 'ETHMATIC', 'ETHUSDT'], description: 'MATIC → ETH Multi-Bridge' },
+            { id: 'MEXC_EXT_5', path: ['USDT', 'BTC', 'ETH', 'SOL', 'USDT'], pairs: ['BTCUSDT', 'ETHBTC', 'SOLETH', 'SOLUSDT'], description: '4-Leg BTC-ETH-SOL' },
+            { id: 'MEXC_EXT_6', path: ['USDT', 'ETH', 'BTC', 'XRP', 'USDT'], pairs: ['ETHUSDT', 'BTCETH', 'XRPBTC', 'XRPUSDT'], description: '4-Leg ETH-BTC-XRP' }
+        ]
+    };
+
+    res.json({
+        success: true,
+        totalPaths: 32,
+        sets: allPaths
+    });
+}));
+
+// ROUTE 4: Execute MEXC Triangular Trade
+router.post('/mexc/triangular/execute', asyncHandler(async (req, res) => {
+    try {
+        const { apiKey, apiSecret, opportunity, dryRun } = req.body;
+
+        if (!apiKey || !apiSecret) {
+            return res.status(400).json({
+                success: false,
+                message: 'API credentials required'
+            });
+        }
+
+        if (dryRun) {
+            return res.json({
+                success: true,
+                message: 'DRY RUN - Trade would execute with following parameters',
+                opportunity: opportunity,
+                execution: {
+                    leg1: { status: 'simulated', pair: opportunity.legs[0].pair },
+                    leg2: { status: 'simulated', pair: opportunity.legs[1].pair },
+                    leg3: { status: 'simulated', pair: opportunity.legs[2].pair }
+                }
+            });
+        }
+
+        // Real execution would go here
+        res.json({
+            success: true,
+            message: 'MEXC triangular trade execution endpoint ready',
+            note: 'Full execution logic to be implemented after testing phase'
+        });
+
+    } catch (error) {
+        console.error('MEXC execute error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to execute MEXC triangular trade'
+        });
+    }
+}));
+
+// ROUTE 5: Get MEXC Trade History
+router.post('/mexc/triangular/history', asyncHandler(async (req, res) => {
+    try {
+        const { userId, limit = 50 } = req.body;
+
+        const result = await pool.query(
+            `SELECT * FROM triangular_trades
+             WHERE user_id = $1 AND exchange = 'MEXC'
+             ORDER BY created_at DESC
+             LIMIT $2`,
+            [userId, limit]
+        );
+
+        res.json({
+            success: true,
+            trades: result.rows
+        });
+
+    } catch (error) {
+        console.error('MEXC history error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to retrieve MEXC trade history'
+        });
+    }
+}));
+
+// ROUTE 6: Get Recent MEXC Trades (All Users)
+router.get('/mexc/triangular/recent-trades', asyncHandler(async (req, res) => {
+    try {
+        const result = await pool.query(
+            `SELECT * FROM triangular_recent_trades
+             WHERE exchange = 'MEXC'
+             ORDER BY created_at DESC
+             LIMIT 20`
+        );
+
+        res.json({
+            success: true,
+            trades: result.rows
+        });
+
+    } catch (error) {
+        console.error('MEXC recent trades error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to retrieve recent MEXC trades'
+        });
+    }
+}));
+
+// ============================================================================
 // VALR EXCHANGE API PROXY ENDPOINTS
 // ============================================================================
 
