@@ -4552,7 +4552,7 @@ router.post('/gateio/triangular/scan', asyncHandler(async (req, res) => {
 }));
 
 // ROUTE 3: Get All Gate.io Triangular Paths
-router.get('/gateio/triangular/paths', asyncHandler(async (req, res) => {
+router.get('/gateio/triangular/paths', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
     const allPaths = {
         SET_1_ESSENTIAL_ETH_BRIDGE: [
             { id: 'GT_ETH_1', path: ['USDT', 'ETH', 'BTC', 'USDT'], pairs: ['ETH_USDT', 'BTC_ETH', 'BTC_USDT'], description: 'ETH → BTC Bridge' },
@@ -4674,7 +4674,7 @@ router.post('/gateio/triangular/history', asyncHandler(async (req, res) => {
 }));
 
 // ROUTE 6: Get Recent Gate.io Trades (All Users)
-router.get('/gateio/triangular/recent-trades', asyncHandler(async (req, res) => {
+router.get('/gateio/triangular/recent-trades', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
     try {
         const result = await pool.query(
             `SELECT * FROM triangular_recent_trades
@@ -4993,7 +4993,7 @@ router.post('/cryptocom/triangular/scan', asyncHandler(async (req, res) => {
 }));
 
 // ROUTE 3: Get All Crypto.com Triangular Paths
-router.get('/cryptocom/triangular/paths', asyncHandler(async (req, res) => {
+router.get('/cryptocom/triangular/paths', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
     const allPaths = {
         SET_1_ESSENTIAL_ETH_BRIDGE: [
             { id: 'CDC_ETH_1', path: ['USDT', 'ETH', 'BTC', 'USDT'], pairs: ['ETH_USDT', 'BTC_ETH', 'BTC_USDT'], description: 'ETH → BTC Bridge' },
@@ -5115,7 +5115,7 @@ router.post('/cryptocom/triangular/history', asyncHandler(async (req, res) => {
 }));
 
 // ROUTE 6: Get Recent Crypto.com Trades (All Users)
-router.get('/cryptocom/triangular/recent-trades', asyncHandler(async (req, res) => {
+router.get('/cryptocom/triangular/recent-trades', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
     try {
         const result = await pool.query(
             `SELECT * FROM triangular_recent_trades
@@ -5413,7 +5413,7 @@ router.post('/mexc/triangular/scan', asyncHandler(async (req, res) => {
 }));
 
 // ROUTE 3: Get All MEXC Triangular Paths
-router.get('/mexc/triangular/paths', asyncHandler(async (req, res) => {
+router.get('/mexc/triangular/paths', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
     const allPaths = {
         SET_1_ESSENTIAL_ETH_BRIDGE: [
             { id: 'MEXC_ETH_1', path: ['USDT', 'ETH', 'BTC', 'USDT'], pairs: ['ETHUSDT', 'BTCETH', 'BTCUSDT'], description: 'ETH → BTC Bridge' },
@@ -5535,7 +5535,7 @@ router.post('/mexc/triangular/history', asyncHandler(async (req, res) => {
 }));
 
 // ROUTE 6: Get Recent MEXC Trades (All Users)
-router.get('/mexc/triangular/recent-trades', asyncHandler(async (req, res) => {
+router.get('/mexc/triangular/recent-trades', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
     try {
         const result = await pool.query(
             `SELECT * FROM triangular_recent_trades
@@ -5807,7 +5807,7 @@ router.post('/xt/triangular/scan', authenticate, asyncHandler(async (req, res) =
 }));
 
 // 3. XT Get Available Paths Route
-router.get('/xt/triangular/paths', authenticate, asyncHandler(async (req, res) => {
+router.get('/xt/triangular/paths', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
     res.json({
         success: true,
         exchange: 'xt',
@@ -5887,7 +5887,7 @@ router.post('/xt/triangular/history', authenticate, asyncHandler(async (req, res
 }));
 
 // 6. XT Recent Trades Route (Public Feed)
-router.get('/xt/triangular/recent-trades', asyncHandler(async (req, res) => {
+router.get('/xt/triangular/recent-trades', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
     try {
         const query = `
             SELECT
@@ -6195,7 +6195,7 @@ router.post('/ascendex/triangular/scan', authenticate, asyncHandler(async (req, 
 }));
 
 // 3. AscendEX Get Available Paths Route
-router.get('/ascendex/triangular/paths', authenticate, asyncHandler(async (req, res) => {
+router.get('/ascendex/triangular/paths', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
     res.json({
         success: true,
         exchange: 'ascendex',
@@ -6275,7 +6275,7 @@ router.post('/ascendex/triangular/history', authenticate, asyncHandler(async (re
 }));
 
 // 6. AscendEX Recent Trades Route (Public Feed)
-router.get('/ascendex/triangular/recent-trades', asyncHandler(async (req, res) => {
+router.get('/ascendex/triangular/recent-trades', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
     try {
         const query = `
             SELECT
@@ -6510,7 +6510,7 @@ router.post('/bingx/triangular/scan', asyncHandler(async (req, res) => {
 }));
 
 // ROUTE 3: Get BingX Triangular Paths
-router.get('/bingx/triangular/paths', asyncHandler(async (req, res) => {
+router.get('/bingx/triangular/paths', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
     const totalPaths = Object.values(BINGX_TRIANGULAR_PATHS).reduce((sum, set) => sum + set.length, 0);
 
     res.json({
@@ -6628,7 +6628,7 @@ router.post('/bingx/triangular/history', asyncHandler(async (req, res) => {
 }));
 
 // ROUTE 6: Get Recent BingX Trades (All Users)
-router.get('/bingx/triangular/recent-trades', asyncHandler(async (req, res) => {
+router.get('/bingx/triangular/recent-trades', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
     try {
         const result = await pool.query(
             `SELECT * FROM triangular_recent_trades
@@ -6895,7 +6895,7 @@ router.post('/bitget/triangular/scan', asyncHandler(async (req, res) => {
 }));
 
 // ROUTE 3: Get Bitget Triangular Paths
-router.get('/bitget/triangular/paths', asyncHandler(async (req, res) => {
+router.get('/bitget/triangular/paths', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
     const allPaths = [
         ...BITGET_TRIANGULAR_PATHS.SET_1_ESSENTIAL_ETH_BRIDGE,
         ...BITGET_TRIANGULAR_PATHS.SET_2_MIDCAP_BTC_BRIDGE,
@@ -7094,7 +7094,7 @@ router.post('/bitget/triangular/history', asyncHandler(async (req, res) => {
 }));
 
 // ROUTE 6: Get Recent Bitget Trades (All Users)
-router.get('/bitget/triangular/recent-trades', asyncHandler(async (req, res) => {
+router.get('/bitget/triangular/recent-trades', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
     try {
         const result = await pool.query(
             `SELECT * FROM triangular_recent_trades
@@ -7359,7 +7359,7 @@ router.post('/bitmart/triangular/scan', asyncHandler(async (req, res) => {
 }));
 
 // ROUTE 3: Get Bitmart Triangular Paths
-router.get('/bitmart/triangular/paths', asyncHandler(async (req, res) => {
+router.get('/bitmart/triangular/paths', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
     const allPaths = [
         ...BITMART_TRIANGULAR_PATHS.SET_1_ESSENTIAL_ETH_BRIDGE,
         ...BITMART_TRIANGULAR_PATHS.SET_2_MIDCAP_BTC_BRIDGE,
@@ -7557,7 +7557,7 @@ router.post('/bitmart/triangular/history', asyncHandler(async (req, res) => {
 }));
 
 // ROUTE 6: Get Recent Bitmart Trades (All Users)
-router.get('/bitmart/triangular/recent-trades', asyncHandler(async (req, res) => {
+router.get('/bitmart/triangular/recent-trades', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
     try {
         const result = await pool.query(
             `SELECT * FROM triangular_recent_trades
@@ -7818,7 +7818,7 @@ router.post('/bitrue/triangular/scan', asyncHandler(async (req, res) => {
 }));
 
 // ROUTE 3: Get Bitrue Triangular Paths
-router.get('/bitrue/triangular/paths', asyncHandler(async (req, res) => {
+router.get('/bitrue/triangular/paths', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
     const allPaths = [
         ...BITRUE_TRIANGULAR_PATHS.SET_1_ESSENTIAL_ETH_BRIDGE,
         ...BITRUE_TRIANGULAR_PATHS.SET_2_MIDCAP_BTC_BRIDGE,
@@ -8014,7 +8014,7 @@ router.post('/bitrue/triangular/history', asyncHandler(async (req, res) => {
 }));
 
 // ROUTE 6: Get Recent Bitrue Trades (All Users)
-router.get('/bitrue/triangular/recent-trades', asyncHandler(async (req, res) => {
+router.get('/bitrue/triangular/recent-trades', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
     try {
         const result = await pool.query(
             `SELECT * FROM triangular_recent_trades
