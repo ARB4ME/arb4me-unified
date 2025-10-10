@@ -1151,106 +1151,6 @@
             </div>
         </div>
 
-        <!-- Coinbase Exchange -->
-        <div style="background: rgba(0,82,255,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 2px solid #0052FF; position: relative; opacity: 0.5; pointer-events: none;">
-            <!-- Coming Soon Overlay -->
-            <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.7); border-radius: 15px; display: flex; align-items: center; justify-content: center; z-index: 10; pointer-events: none;">
-                <div style="text-align: center; color: white;">
-                    <h2 style="font-size: 2.5rem; margin: 0 0 10px 0; color: #FFD700;">🚧 COMING SOON 🚧</h2>
-                    <p style="font-size: 1.2rem; margin: 0; color: #b8c6db;">Coinbase integration in development</p>
-                </div>
-            </div>
-
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h3 style="color: #0052FF; margin: 0;">🔵 COINBASE Triangular Arbitrage (USDC)</h3>
-                <div style="display: flex; align-items: center; gap: 15px;">
-                    <div class="toggle-switch" id="coinbaseTriangularEnabled" onclick="toggleCoinbaseTriangular()">
-                        <div class="toggle-knob"></div>
-                    </div>
-                    <span id="coinbaseTriangularStatus" style="color: #ff6b6b; font-weight: 600;">OFF</span>
-                </div>
-            </div>
-
-            <div class="stat-grid">
-                <!-- Risk Management -->
-                <div class="stat-card">
-                    <h4 style="color: #0052FF; margin-bottom: 15px;">⚖️ Risk Management</h4>
-                    <div class="form-group" style="margin-bottom: 15px;">
-                        <label style="display: block; margin-bottom: 5px; font-weight: 500;">Max Trade (USDC)</label>
-                        <input type="number" id="coinbaseMaxTrade" value="100" min="10" max="10000" step="10"
-                               style="width: 100%; padding: 8px; border: 1px solid #0052FF; border-radius: 5px; background: rgba(0,82,255,0.05);">
-                    </div>
-                    <div class="form-group" style="margin-bottom: 15px;">
-                        <label style="display: block; margin-bottom: 5px; font-weight: 500;">Portfolio % per Trade</label>
-                        <input type="number" id="coinbasePortfolioPercent" value="10" min="1" max="50" step="1"
-                               style="width: 100%; padding: 8px; border: 1px solid #0052FF; border-radius: 5px; background: rgba(0,82,255,0.05);">
-                    </div>
-                    <div class="form-group">
-                        <label style="display: block; margin-bottom: 5px; font-weight: 500;">Min Profit % Threshold</label>
-                        <input type="number" id="coinbaseProfitThreshold" value="0.5" min="0.1" max="5" step="0.1"
-                               style="width: 100%; padding: 8px; border: 1px solid #0052FF; border-radius: 5px; background: rgba(0,82,255,0.05);">
-                    </div>
-                </div>
-
-                <!-- Path Sets Configuration -->
-                <div class="stat-card">
-                    <h4 style="color: #0052FF; margin-bottom: 15px;">🎯 Triangular Path Sets (32 Paths)</h4>
-                    <div style="display: flex; flex-direction: column; gap: 10px;">
-                        <label style="display: flex; align-items: center; cursor: pointer;">
-                            <input type="checkbox" id="coinbaseSet1Enabled" checked style="margin-right: 10px; width: 18px; height: 18px;">
-                            <span><strong>SET 1:</strong> Essential ETH Bridge (7 paths) - BTC, SOL, XRP, ADA, DOT, MATIC, LINK</span>
-                        </label>
-                        <label style="display: flex; align-items: center; cursor: pointer;">
-                            <input type="checkbox" id="coinbaseSet2Enabled" checked style="margin-right: 10px; width: 18px; height: 18px;">
-                            <span><strong>SET 2:</strong> Mid-Cap BTC Bridge (7 paths) - ETH, SOL, AVAX, ATOM, LTC, UNI, ALGO</span>
-                        </label>
-                        <label style="display: flex; align-items: center; cursor: pointer;">
-                            <input type="checkbox" id="coinbaseSet3Enabled" style="margin-right: 10px; width: 18px; height: 18px;">
-                            <span><strong>SET 3:</strong> DeFi Native (6 paths) - AAVE, COMP, MKR, SNX, CRV, SUSHI</span>
-                        </label>
-                        <label style="display: flex; align-items: center; cursor: pointer;">
-                            <input type="checkbox" id="coinbaseSet4Enabled" style="margin-right: 10px; width: 18px; height: 18px;">
-                            <span><strong>SET 4:</strong> High Volatility (6 paths) - DOGE, SHIB, APE, GALA, SAND, MANA</span>
-                        </label>
-                        <label style="display: flex; align-items: center; cursor: pointer;">
-                            <input type="checkbox" id="coinbaseSet5Enabled" style="margin-right: 10px; width: 18px; height: 18px;">
-                            <span><strong>SET 5:</strong> Extended Multi-Bridge (6 paths) - FIL, GRT, ICP, CHZ, ENJ + 4-leg path</span>
-                        </label>
-                    </div>
-                </div>
-
-                <!-- Actions -->
-                <div class="stat-card">
-                    <h4 style="color: #0052FF; margin-bottom: 15px;">🔧 Actions</h4>
-                    <button onclick="testCoinbaseTriangularConnection()" class="btn" style="background: #0052FF; width: 100%; margin-bottom: 10px;">
-                        🔌 Test Connection
-                    </button>
-                    <button onclick="scanCoinbaseTriangularPaths()" class="btn" style="background: #0052FF; width: 100%; margin-bottom: 10px;">
-                        🔍 Scan Opportunities
-                    </button>
-                    <button onclick="viewCoinbasePathDetails()" class="btn" style="background: #666; width: 100%; margin-bottom: 10px;">
-                        📋 View All Paths
-                    </button>
-                    <button onclick="clearCoinbaseTriangularHistory()" class="btn" style="background: #ff6b6b; width: 100%; margin-bottom: 10px;">
-                        🗑️ Clear History
-                    </button>
-                    <button onclick="saveCoinbaseTriangularSettings()" class="btn" style="background: #4CAF50; width: 100%;">
-                        💾 Save Settings
-                    </button>
-                </div>
-
-                <!-- Current Opportunities -->
-                <div class="stat-card" style="grid-column: span 2;">
-                    <h4 style="color: #0052FF; margin-bottom: 15px;">💰 Current Opportunities</h4>
-                    <div id="coinbaseOpportunities" style="max-height: 400px; overflow-y: auto;">
-                        <p style="color: #888; text-align: center; padding: 20px;">
-                            Click "Scan Opportunities" to find triangular arbitrage paths
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <!-- Huobi (HTX) Exchange -->
         <div style="background: rgba(45,108,248,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 2px solid #2D6CF8;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
@@ -2372,6 +2272,107 @@
                 </div>
             </div>
         </div>
+
+        <!-- Coinbase Exchange -->
+        <div style="background: rgba(0,82,255,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 2px solid #0052FF; position: relative; opacity: 0.5; pointer-events: none;">
+            <!-- Coming Soon Overlay -->
+            <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.7); border-radius: 15px; display: flex; align-items: center; justify-content: center; z-index: 10; pointer-events: none;">
+                <div style="text-align: center; color: white;">
+                    <h2 style="font-size: 2.5rem; margin: 0 0 10px 0; color: #FFD700;">🚧 COMING SOON 🚧</h2>
+                    <p style="font-size: 1.2rem; margin: 0; color: #b8c6db;">Coinbase integration in development</p>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="color: #0052FF; margin: 0;">🔵 COINBASE Triangular Arbitrage (USDC)</h3>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <div class="toggle-switch" id="coinbaseTriangularEnabled" onclick="toggleCoinbaseTriangular()">
+                        <div class="toggle-knob"></div>
+                    </div>
+                    <span id="coinbaseTriangularStatus" style="color: #ff6b6b; font-weight: 600;">OFF</span>
+                </div>
+            </div>
+
+            <div class="stat-grid">
+                <!-- Risk Management -->
+                <div class="stat-card">
+                    <h4 style="color: #0052FF; margin-bottom: 15px;">⚖️ Risk Management</h4>
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 500;">Max Trade (USDC)</label>
+                        <input type="number" id="coinbaseMaxTrade" value="100" min="10" max="10000" step="10"
+                               style="width: 100%; padding: 8px; border: 1px solid #0052FF; border-radius: 5px; background: rgba(0,82,255,0.05);">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 500;">Portfolio % per Trade</label>
+                        <input type="number" id="coinbasePortfolioPercent" value="10" min="1" max="50" step="1"
+                               style="width: 100%; padding: 8px; border: 1px solid #0052FF; border-radius: 5px; background: rgba(0,82,255,0.05);">
+                    </div>
+                    <div class="form-group">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 500;">Min Profit % Threshold</label>
+                        <input type="number" id="coinbaseProfitThreshold" value="0.5" min="0.1" max="5" step="0.1"
+                               style="width: 100%; padding: 8px; border: 1px solid #0052FF; border-radius: 5px; background: rgba(0,82,255,0.05);">
+                    </div>
+                </div>
+
+                <!-- Path Sets Configuration -->
+                <div class="stat-card">
+                    <h4 style="color: #0052FF; margin-bottom: 15px;">🎯 Triangular Path Sets (32 Paths)</h4>
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" id="coinbaseSet1Enabled" checked style="margin-right: 10px; width: 18px; height: 18px;">
+                            <span><strong>SET 1:</strong> Essential ETH Bridge (7 paths) - BTC, SOL, XRP, ADA, DOT, MATIC, LINK</span>
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" id="coinbaseSet2Enabled" checked style="margin-right: 10px; width: 18px; height: 18px;">
+                            <span><strong>SET 2:</strong> Mid-Cap BTC Bridge (7 paths) - ETH, SOL, AVAX, ATOM, LTC, UNI, ALGO</span>
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" id="coinbaseSet3Enabled" style="margin-right: 10px; width: 18px; height: 18px;">
+                            <span><strong>SET 3:</strong> DeFi Native (6 paths) - AAVE, COMP, MKR, SNX, CRV, SUSHI</span>
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" id="coinbaseSet4Enabled" style="margin-right: 10px; width: 18px; height: 18px;">
+                            <span><strong>SET 4:</strong> High Volatility (6 paths) - DOGE, SHIB, APE, GALA, SAND, MANA</span>
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" id="coinbaseSet5Enabled" style="margin-right: 10px; width: 18px; height: 18px;">
+                            <span><strong>SET 5:</strong> Extended Multi-Bridge (6 paths) - FIL, GRT, ICP, CHZ, ENJ + 4-leg path</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="stat-card">
+                    <h4 style="color: #0052FF; margin-bottom: 15px;">🔧 Actions</h4>
+                    <button onclick="testCoinbaseTriangularConnection()" class="btn" style="background: #0052FF; width: 100%; margin-bottom: 10px;">
+                        🔌 Test Connection
+                    </button>
+                    <button onclick="scanCoinbaseTriangularPaths()" class="btn" style="background: #0052FF; width: 100%; margin-bottom: 10px;">
+                        🔍 Scan Opportunities
+                    </button>
+                    <button onclick="viewCoinbasePathDetails()" class="btn" style="background: #666; width: 100%; margin-bottom: 10px;">
+                        📋 View All Paths
+                    </button>
+                    <button onclick="clearCoinbaseTriangularHistory()" class="btn" style="background: #ff6b6b; width: 100%; margin-bottom: 10px;">
+                        🗑️ Clear History
+                    </button>
+                    <button onclick="saveCoinbaseTriangularSettings()" class="btn" style="background: #4CAF50; width: 100%;">
+                        💾 Save Settings
+                    </button>
+                </div>
+
+                <!-- Current Opportunities -->
+                <div class="stat-card" style="grid-column: span 2;">
+                    <h4 style="color: #0052FF; margin-bottom: 15px;">💰 Current Opportunities</h4>
+                    <div id="coinbaseOpportunities" style="max-height: 400px; overflow-y: auto;">
+                        <p style="color: #888; text-align: center; padding: 20px;">
+                            Click "Scan Opportunities" to find triangular arbitrage paths
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
 
         <!-- All 21 Exchanges Complete! -->
         <div style="background: linear-gradient(135deg, rgba(0,255,0,0.1) 0%, rgba(0,170,255,0.1) 100%); padding: 30px; border-radius: 15px; border: 2px solid #00FF00; text-align: center;">
