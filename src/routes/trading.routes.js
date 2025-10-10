@@ -6175,6 +6175,422 @@ router.get('/huobi/triangular/recent-trades', authenticatedRateLimit, authentica
 }));
 
 // ============================================================================
+// GATE.IO EXCHANGE - TRIANGULAR ARBITRAGE
+// ============================================================================
+
+// Gate.io API Configuration
+const GATE_CONFIG = {
+    baseUrl: 'https://api.gateio.ws/api/v4',
+    endpoints: {
+        currencyPairs: '/spot/currency_pairs',
+        tickers: '/spot/tickers',
+        orderBook: '/spot/order_book',
+        balances: '/spot/accounts',
+        placeOrder: '/spot/orders'
+    }
+};
+
+// Gate.io HMAC-SHA512 Authentication Helper
+function createGateSignature(apiKey, apiSecret, method, endpoint, queryString = '', body = '') {
+    const timestamp = Math.floor(Date.now() / 1000).toString();
+
+    // Hash the request body with SHA512 if present
+    const bodyHash = body ? crypto.createHash('sha512').update(body).digest('hex') : crypto.createHash('sha512').update('').digest('hex');
+
+    // Build signature string: method + "\n" + url + "\n" + query + "\n" + bodyHash + "\n" + timestamp
+    const signatureString = `${method.toUpperCase()}\n${endpoint}\n${queryString}\n${bodyHash}\n${timestamp}`;
+
+    // Generate HMAC-SHA512 signature
+    const signature = crypto.createHmac('sha512', apiSecret).update(signatureString).digest('hex');
+
+    return {
+        timestamp: timestamp,
+        signature: signature
+    };
+}
+
+// ROUTE 1: Test Gate.io Connection
+router.post('/gateio/triangular/test-connection', asyncHandler(async (req, res) => {
+    try {
+        const { apiKey, apiSecret } = req.body;
+
+        if (!apiKey || !apiSecret) {
+            return res.status(400).json({
+                success: false,
+                message: 'API key and secret are required'
+            });
+        }
+
+        // Test connection by fetching account balances
+        const method = 'GET';
+        const endpoint = GATE_CONFIG.endpoints.balances;
+        const auth = createGateSignature(apiKey, apiSecret, method, endpoint);
+
+        const response = await fetch(`${GATE_CONFIG.baseUrl}${endpoint}`, {
+            method: method,
+            headers: {
+                'KEY': apiKey,
+                'Timestamp': auth.timestamp,
+                'SIGN': auth.signature,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            return res.status(401).json({
+                success: false,
+                message: 'Gate.io API authentication failed',
+                error: errorText
+            });
+        }
+
+        const balances = await response.json();
+
+        // Find USDT balance
+        const usdtBalance = balances.find(b => b.currency === 'USDT');
+        const usdtAvailable = usdtBalance ? parseFloat(usdtBalance.available) : 0;
+
+        res.json({
+            success: true,
+            message: 'Gate.io connection successful',
+            balances: {
+                USDT: usdtAvailable.toFixed(2)
+            }
+        });
+
+    } catch (error) {
+        console.error('Gate.io connection test error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to connect to Gate.io'
+        });
+    }
+}));
+
+// ROUTE 2: Scan Gate.io Triangular Arbitrage Opportunities
+router.post('/gateio/triangular/scan', asyncHandler(async (req, res) => {
+    try {
+        const { apiKey, apiSecret, maxTradeAmount, profitThreshold, enabledSets } = req.body;
+
+        if (!apiKey || !apiSecret) {
+            return res.status(400).json({
+                success: false,
+                message: 'API credentials required'
+            });
+        }
+
+        // Define all 32 triangular arbitrage paths
+        const allPaths = {
+            SET_1_ESSENTIAL_ETH_BRIDGE: [
+                { id: 'GT_ETH_1', path: ['USDT', 'ETH', 'BTC', 'USDT'], pairs: ['ETH_USDT', 'BTC_ETH', 'BTC_USDT'], description: 'ETH → BTC Bridge' },
+                { id: 'GT_ETH_2', path: ['USDT', 'ETH', 'SOL', 'USDT'], pairs: ['ETH_USDT', 'SOL_ETH', 'SOL_USDT'], description: 'ETH → SOL Bridge' },
+                { id: 'GT_ETH_3', path: ['USDT', 'ETH', 'XRP', 'USDT'], pairs: ['ETH_USDT', 'XRP_ETH', 'XRP_USDT'], description: 'ETH → XRP Bridge' },
+                { id: 'GT_ETH_4', path: ['USDT', 'ETH', 'ADA', 'USDT'], pairs: ['ETH_USDT', 'ADA_ETH', 'ADA_USDT'], description: 'ETH → ADA Bridge' },
+                { id: 'GT_ETH_5', path: ['USDT', 'ETH', 'MATIC', 'USDT'], pairs: ['ETH_USDT', 'MATIC_ETH', 'MATIC_USDT'], description: 'ETH → MATIC Bridge' },
+                { id: 'GT_ETH_6', path: ['USDT', 'ETH', 'LINK', 'USDT'], pairs: ['ETH_USDT', 'LINK_ETH', 'LINK_USDT'], description: 'ETH → LINK Bridge' },
+                { id: 'GT_ETH_7', path: ['USDT', 'ETH', 'AVAX', 'USDT'], pairs: ['ETH_USDT', 'AVAX_ETH', 'AVAX_USDT'], description: 'ETH → AVAX Bridge' }
+            ],
+            SET_2_MIDCAP_BTC_BRIDGE: [
+                { id: 'GT_BTC_1', path: ['USDT', 'BTC', 'ETH', 'USDT'], pairs: ['BTC_USDT', 'ETH_BTC', 'ETH_USDT'], description: 'BTC → ETH Bridge' },
+                { id: 'GT_BTC_2', path: ['USDT', 'BTC', 'SOL', 'USDT'], pairs: ['BTC_USDT', 'SOL_BTC', 'SOL_USDT'], description: 'BTC → SOL Bridge' },
+                { id: 'GT_BTC_3', path: ['USDT', 'BTC', 'LTC', 'USDT'], pairs: ['BTC_USDT', 'LTC_BTC', 'LTC_USDT'], description: 'BTC → LTC Bridge' },
+                { id: 'GT_BTC_4', path: ['USDT', 'BTC', 'DOT', 'USDT'], pairs: ['BTC_USDT', 'DOT_BTC', 'DOT_USDT'], description: 'BTC → DOT Bridge' },
+                { id: 'GT_BTC_5', path: ['USDT', 'BTC', 'ATOM', 'USDT'], pairs: ['BTC_USDT', 'ATOM_BTC', 'ATOM_USDT'], description: 'BTC → ATOM Bridge' },
+                { id: 'GT_BTC_6', path: ['USDT', 'BTC', 'UNI', 'USDT'], pairs: ['BTC_USDT', 'UNI_BTC', 'UNI_USDT'], description: 'BTC → UNI Bridge' },
+                { id: 'GT_BTC_7', path: ['USDT', 'BTC', 'BCH', 'USDT'], pairs: ['BTC_USDT', 'BCH_BTC', 'BCH_USDT'], description: 'BTC → BCH Bridge' }
+            ],
+            SET_3_GT_NATIVE_BRIDGE: [
+                { id: 'GT_GT_1', path: ['USDT', 'GT', 'BTC', 'USDT'], pairs: ['GT_USDT', 'BTC_GT', 'BTC_USDT'], description: 'GT → BTC Native' },
+                { id: 'GT_GT_2', path: ['USDT', 'GT', 'ETH', 'USDT'], pairs: ['GT_USDT', 'ETH_GT', 'ETH_USDT'], description: 'GT → ETH Native' },
+                { id: 'GT_GT_3', path: ['USDT', 'GT', 'SOL', 'USDT'], pairs: ['GT_USDT', 'SOL_GT', 'SOL_USDT'], description: 'GT → SOL Native' },
+                { id: 'GT_GT_4', path: ['USDT', 'BTC', 'GT', 'USDT'], pairs: ['BTC_USDT', 'GT_BTC', 'GT_USDT'], description: 'BTC → GT Reverse' },
+                { id: 'GT_GT_5', path: ['USDT', 'ETH', 'GT', 'USDT'], pairs: ['ETH_USDT', 'GT_ETH', 'GT_USDT'], description: 'ETH → GT Reverse' },
+                { id: 'GT_GT_6', path: ['USDT', 'GT', 'TRX', 'USDT'], pairs: ['GT_USDT', 'TRX_GT', 'TRX_USDT'], description: 'GT → TRX Native' }
+            ],
+            SET_4_HIGH_VOLATILITY: [
+                { id: 'GT_VOL_1', path: ['USDT', 'DOGE', 'BTC', 'USDT'], pairs: ['DOGE_USDT', 'BTC_DOGE', 'BTC_USDT'], description: 'DOGE → BTC Volatility' },
+                { id: 'GT_VOL_2', path: ['USDT', 'SHIB', 'ETH', 'USDT'], pairs: ['SHIB_USDT', 'ETH_SHIB', 'ETH_USDT'], description: 'SHIB → ETH Volatility' },
+                { id: 'GT_VOL_3', path: ['USDT', 'FTM', 'BTC', 'USDT'], pairs: ['FTM_USDT', 'BTC_FTM', 'BTC_USDT'], description: 'FTM → BTC Volatility' },
+                { id: 'GT_VOL_4', path: ['USDT', 'SAND', 'ETH', 'USDT'], pairs: ['SAND_USDT', 'ETH_SAND', 'ETH_USDT'], description: 'SAND → ETH Volatility' },
+                { id: 'GT_VOL_5', path: ['USDT', 'MANA', 'BTC', 'USDT'], pairs: ['MANA_USDT', 'BTC_MANA', 'BTC_USDT'], description: 'MANA → BTC Volatility' },
+                { id: 'GT_VOL_6', path: ['USDT', 'APE', 'ETH', 'USDT'], pairs: ['APE_USDT', 'ETH_APE', 'ETH_USDT'], description: 'APE → ETH Volatility' }
+            ],
+            SET_5_EXTENDED_MULTIBRIDGE: [
+                { id: 'GT_EXT_1', path: ['USDT', 'SOL', 'ETH', 'USDT'], pairs: ['SOL_USDT', 'ETH_SOL', 'ETH_USDT'], description: 'SOL → ETH Multi-Bridge' },
+                { id: 'GT_EXT_2', path: ['USDT', 'XRP', 'BTC', 'USDT'], pairs: ['XRP_USDT', 'BTC_XRP', 'BTC_USDT'], description: 'XRP → BTC Multi-Bridge' },
+                { id: 'GT_EXT_3', path: ['USDT', 'TRX', 'BTC', 'USDT'], pairs: ['TRX_USDT', 'BTC_TRX', 'BTC_USDT'], description: 'TRX → BTC Multi-Bridge' },
+                { id: 'GT_EXT_4', path: ['USDT', 'ADA', 'BTC', 'USDT'], pairs: ['ADA_USDT', 'BTC_ADA', 'BTC_USDT'], description: 'ADA → BTC Multi-Bridge' },
+                { id: 'GT_EXT_5', path: ['USDT', 'BTC', 'ETH', 'SOL', 'USDT'], pairs: ['BTC_USDT', 'ETH_BTC', 'SOL_ETH', 'SOL_USDT'], description: '4-Leg BTC-ETH-SOL' },
+                { id: 'GT_EXT_6', path: ['USDT', 'ETH', 'BTC', 'XRP', 'USDT'], pairs: ['ETH_USDT', 'BTC_ETH', 'XRP_BTC', 'XRP_USDT'], description: '4-Leg ETH-BTC-XRP' }
+            ]
+        };
+
+        // Filter paths based on enabled sets
+        let pathsToScan = [];
+        Object.keys(allPaths).forEach(setKey => {
+            if (enabledSets[setKey]) {
+                pathsToScan = pathsToScan.concat(allPaths[setKey]);
+            }
+        });
+
+        // Fetch all tickers to build price map
+        const tickersResponse = await fetch(`${GATE_CONFIG.baseUrl}${GATE_CONFIG.endpoints.tickers}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!tickersResponse.ok) {
+            throw new Error('Failed to fetch Gate.io tickers');
+        }
+
+        const tickers = await tickersResponse.json();
+
+        // Build price map
+        const priceMap = {};
+        tickers.forEach(ticker => {
+            priceMap[ticker.currency_pair] = {
+                bid: parseFloat(ticker.highest_bid) || 0,
+                ask: parseFloat(ticker.lowest_ask) || 0,
+                last: parseFloat(ticker.last) || 0
+            };
+        });
+
+        // Scan each path for arbitrage opportunities
+        const opportunities = [];
+
+        for (const pathDef of pathsToScan) {
+            try {
+                const { path, pairs, id, description } = pathDef;
+                let currentAmount = maxTradeAmount;
+                let prices = [];
+                let valid = true;
+
+                // Calculate through each leg
+                for (let i = 0; i < pairs.length; i++) {
+                    const pair = pairs[i];
+                    const priceData = priceMap[pair];
+
+                    if (!priceData || priceData.bid === 0 || priceData.ask === 0) {
+                        valid = false;
+                        break;
+                    }
+
+                    const fromCurrency = path[i];
+                    const toCurrency = path[i + 1];
+
+                    // Determine if we're buying or selling the pair
+                    const [base, quote] = pair.split('_');
+
+                    if (fromCurrency === quote && toCurrency === base) {
+                        // Buying base with quote (use ask price)
+                        const price = priceData.ask;
+                        currentAmount = currentAmount / price;
+                        prices.push({ pair, side: 'buy', price, amount: currentAmount });
+                    } else if (fromCurrency === base && toCurrency === quote) {
+                        // Selling base for quote (use bid price)
+                        const price = priceData.bid;
+                        currentAmount = currentAmount * price;
+                        prices.push({ pair, side: 'sell', price, amount: currentAmount });
+                    } else {
+                        valid = false;
+                        break;
+                    }
+                }
+
+                if (valid) {
+                    const finalAmount = currentAmount;
+                    const profit = finalAmount - maxTradeAmount;
+                    const profitPercent = (profit / maxTradeAmount) * 100;
+
+                    if (profitPercent >= profitThreshold) {
+                        opportunities.push({
+                            pathId: id,
+                            path: path.join(' → '),
+                            pairs: pairs,
+                            description: description,
+                            initialAmount: maxTradeAmount,
+                            finalAmount: finalAmount.toFixed(2),
+                            profit: profit.toFixed(2),
+                            profitPercent: profitPercent.toFixed(4),
+                            legs: prices,
+                            timestamp: new Date().toISOString()
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error(`Error scanning path ${pathDef.id}:`, error);
+            }
+        }
+
+        // Sort by profit percentage descending
+        opportunities.sort((a, b) => parseFloat(b.profitPercent) - parseFloat(a.profitPercent));
+
+        res.json({
+            success: true,
+            scanned: pathsToScan.length,
+            opportunities: opportunities,
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        console.error('Gate.io scan error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to scan Gate.io triangular paths'
+        });
+    }
+}));
+
+// ROUTE 3: Get All Gate.io Triangular Paths
+router.get('/gateio/triangular/paths', asyncHandler(async (req, res) => {
+    const allPaths = {
+        SET_1_ESSENTIAL_ETH_BRIDGE: [
+            { id: 'GT_ETH_1', path: ['USDT', 'ETH', 'BTC', 'USDT'], pairs: ['ETH_USDT', 'BTC_ETH', 'BTC_USDT'], description: 'ETH → BTC Bridge' },
+            { id: 'GT_ETH_2', path: ['USDT', 'ETH', 'SOL', 'USDT'], pairs: ['ETH_USDT', 'SOL_ETH', 'SOL_USDT'], description: 'ETH → SOL Bridge' },
+            { id: 'GT_ETH_3', path: ['USDT', 'ETH', 'XRP', 'USDT'], pairs: ['ETH_USDT', 'XRP_ETH', 'XRP_USDT'], description: 'ETH → XRP Bridge' },
+            { id: 'GT_ETH_4', path: ['USDT', 'ETH', 'ADA', 'USDT'], pairs: ['ETH_USDT', 'ADA_ETH', 'ADA_USDT'], description: 'ETH → ADA Bridge' },
+            { id: 'GT_ETH_5', path: ['USDT', 'ETH', 'MATIC', 'USDT'], pairs: ['ETH_USDT', 'MATIC_ETH', 'MATIC_USDT'], description: 'ETH → MATIC Bridge' },
+            { id: 'GT_ETH_6', path: ['USDT', 'ETH', 'LINK', 'USDT'], pairs: ['ETH_USDT', 'LINK_ETH', 'LINK_USDT'], description: 'ETH → LINK Bridge' },
+            { id: 'GT_ETH_7', path: ['USDT', 'ETH', 'AVAX', 'USDT'], pairs: ['ETH_USDT', 'AVAX_ETH', 'AVAX_USDT'], description: 'ETH → AVAX Bridge' }
+        ],
+        SET_2_MIDCAP_BTC_BRIDGE: [
+            { id: 'GT_BTC_1', path: ['USDT', 'BTC', 'ETH', 'USDT'], pairs: ['BTC_USDT', 'ETH_BTC', 'ETH_USDT'], description: 'BTC → ETH Bridge' },
+            { id: 'GT_BTC_2', path: ['USDT', 'BTC', 'SOL', 'USDT'], pairs: ['BTC_USDT', 'SOL_BTC', 'SOL_USDT'], description: 'BTC → SOL Bridge' },
+            { id: 'GT_BTC_3', path: ['USDT', 'BTC', 'LTC', 'USDT'], pairs: ['BTC_USDT', 'LTC_BTC', 'LTC_USDT'], description: 'BTC → LTC Bridge' },
+            { id: 'GT_BTC_4', path: ['USDT', 'BTC', 'DOT', 'USDT'], pairs: ['BTC_USDT', 'DOT_BTC', 'DOT_USDT'], description: 'BTC → DOT Bridge' },
+            { id: 'GT_BTC_5', path: ['USDT', 'BTC', 'ATOM', 'USDT'], pairs: ['BTC_USDT', 'ATOM_BTC', 'ATOM_USDT'], description: 'BTC → ATOM Bridge' },
+            { id: 'GT_BTC_6', path: ['USDT', 'BTC', 'UNI', 'USDT'], pairs: ['BTC_USDT', 'UNI_BTC', 'UNI_USDT'], description: 'BTC → UNI Bridge' },
+            { id: 'GT_BTC_7', path: ['USDT', 'BTC', 'BCH', 'USDT'], pairs: ['BTC_USDT', 'BCH_BTC', 'BCH_USDT'], description: 'BTC → BCH Bridge' }
+        ],
+        SET_3_GT_NATIVE_BRIDGE: [
+            { id: 'GT_GT_1', path: ['USDT', 'GT', 'BTC', 'USDT'], pairs: ['GT_USDT', 'BTC_GT', 'BTC_USDT'], description: 'GT → BTC Native' },
+            { id: 'GT_GT_2', path: ['USDT', 'GT', 'ETH', 'USDT'], pairs: ['GT_USDT', 'ETH_GT', 'ETH_USDT'], description: 'GT → ETH Native' },
+            { id: 'GT_GT_3', path: ['USDT', 'GT', 'SOL', 'USDT'], pairs: ['GT_USDT', 'SOL_GT', 'SOL_USDT'], description: 'GT → SOL Native' },
+            { id: 'GT_GT_4', path: ['USDT', 'BTC', 'GT', 'USDT'], pairs: ['BTC_USDT', 'GT_BTC', 'GT_USDT'], description: 'BTC → GT Reverse' },
+            { id: 'GT_GT_5', path: ['USDT', 'ETH', 'GT', 'USDT'], pairs: ['ETH_USDT', 'GT_ETH', 'GT_USDT'], description: 'ETH → GT Reverse' },
+            { id: 'GT_GT_6', path: ['USDT', 'GT', 'TRX', 'USDT'], pairs: ['GT_USDT', 'TRX_GT', 'TRX_USDT'], description: 'GT → TRX Native' }
+        ],
+        SET_4_HIGH_VOLATILITY: [
+            { id: 'GT_VOL_1', path: ['USDT', 'DOGE', 'BTC', 'USDT'], pairs: ['DOGE_USDT', 'BTC_DOGE', 'BTC_USDT'], description: 'DOGE → BTC Volatility' },
+            { id: 'GT_VOL_2', path: ['USDT', 'SHIB', 'ETH', 'USDT'], pairs: ['SHIB_USDT', 'ETH_SHIB', 'ETH_USDT'], description: 'SHIB → ETH Volatility' },
+            { id: 'GT_VOL_3', path: ['USDT', 'FTM', 'BTC', 'USDT'], pairs: ['FTM_USDT', 'BTC_FTM', 'BTC_USDT'], description: 'FTM → BTC Volatility' },
+            { id: 'GT_VOL_4', path: ['USDT', 'SAND', 'ETH', 'USDT'], pairs: ['SAND_USDT', 'ETH_SAND', 'ETH_USDT'], description: 'SAND → ETH Volatility' },
+            { id: 'GT_VOL_5', path: ['USDT', 'MANA', 'BTC', 'USDT'], pairs: ['MANA_USDT', 'BTC_MANA', 'BTC_USDT'], description: 'MANA → BTC Volatility' },
+            { id: 'GT_VOL_6', path: ['USDT', 'APE', 'ETH', 'USDT'], pairs: ['APE_USDT', 'ETH_APE', 'ETH_USDT'], description: 'APE → ETH Volatility' }
+        ],
+        SET_5_EXTENDED_MULTIBRIDGE: [
+            { id: 'GT_EXT_1', path: ['USDT', 'SOL', 'ETH', 'USDT'], pairs: ['SOL_USDT', 'ETH_SOL', 'ETH_USDT'], description: 'SOL → ETH Multi-Bridge' },
+            { id: 'GT_EXT_2', path: ['USDT', 'XRP', 'BTC', 'USDT'], pairs: ['XRP_USDT', 'BTC_XRP', 'BTC_USDT'], description: 'XRP → BTC Multi-Bridge' },
+            { id: 'GT_EXT_3', path: ['USDT', 'TRX', 'BTC', 'USDT'], pairs: ['TRX_USDT', 'BTC_TRX', 'BTC_USDT'], description: 'TRX → BTC Multi-Bridge' },
+            { id: 'GT_EXT_4', path: ['USDT', 'ADA', 'BTC', 'USDT'], pairs: ['ADA_USDT', 'BTC_ADA', 'BTC_USDT'], description: 'ADA → BTC Multi-Bridge' },
+            { id: 'GT_EXT_5', path: ['USDT', 'BTC', 'ETH', 'SOL', 'USDT'], pairs: ['BTC_USDT', 'ETH_BTC', 'SOL_ETH', 'SOL_USDT'], description: '4-Leg BTC-ETH-SOL' },
+            { id: 'GT_EXT_6', path: ['USDT', 'ETH', 'BTC', 'XRP', 'USDT'], pairs: ['ETH_USDT', 'BTC_ETH', 'XRP_BTC', 'XRP_USDT'], description: '4-Leg ETH-BTC-XRP' }
+        ]
+    };
+
+    res.json({
+        success: true,
+        totalPaths: 32,
+        sets: allPaths
+    });
+}));
+
+// ROUTE 4: Execute Gate.io Triangular Trade
+router.post('/gateio/triangular/execute', asyncHandler(async (req, res) => {
+    try {
+        const { apiKey, apiSecret, opportunity, dryRun } = req.body;
+
+        if (!apiKey || !apiSecret) {
+            return res.status(400).json({
+                success: false,
+                message: 'API credentials required'
+            });
+        }
+
+        if (dryRun) {
+            return res.json({
+                success: true,
+                message: 'DRY RUN - Trade would execute with following parameters',
+                opportunity: opportunity,
+                execution: {
+                    leg1: { status: 'simulated', pair: opportunity.legs[0].pair },
+                    leg2: { status: 'simulated', pair: opportunity.legs[1].pair },
+                    leg3: { status: 'simulated', pair: opportunity.legs[2].pair }
+                }
+            });
+        }
+
+        // Real execution would go here
+        res.json({
+            success: true,
+            message: 'Gate.io triangular trade execution endpoint ready',
+            note: 'Full execution logic to be implemented after testing phase'
+        });
+
+    } catch (error) {
+        console.error('Gate.io execute error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to execute Gate.io triangular trade'
+        });
+    }
+}));
+
+// ROUTE 5: Get Gate.io Trade History
+router.post('/gateio/triangular/history', asyncHandler(async (req, res) => {
+    try {
+        const { userId, limit = 50 } = req.body;
+
+        const result = await pool.query(
+            `SELECT * FROM triangular_trades
+             WHERE user_id = $1 AND exchange = 'GATEIO'
+             ORDER BY created_at DESC
+             LIMIT $2`,
+            [userId, limit]
+        );
+
+        res.json({
+            success: true,
+            trades: result.rows
+        });
+
+    } catch (error) {
+        console.error('Gate.io history error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to retrieve Gate.io trade history'
+        });
+    }
+}));
+
+// ROUTE 6: Get Recent Gate.io Trades (All Users)
+router.get('/gateio/triangular/recent-trades', asyncHandler(async (req, res) => {
+    try {
+        const result = await pool.query(
+            `SELECT * FROM triangular_recent_trades
+             WHERE exchange = 'GATEIO'
+             ORDER BY created_at DESC
+             LIMIT 20`
+        );
+
+        res.json({
+            success: true,
+            trades: result.rows
+        });
+
+    } catch (error) {
+        console.error('Gate.io recent trades error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to retrieve recent Gate.io trades'
+        });
+    }
+}));
+
+// ============================================================================
 // VALR EXCHANGE API PROXY ENDPOINTS
 // ============================================================================
 
