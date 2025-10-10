@@ -7118,6 +7118,469 @@ router.get('/bitget/triangular/recent-trades', asyncHandler(async (req, res) => 
 }));
 
 // ============================================================================
+// BITMART TRIANGULAR ARBITRAGE ROUTES
+// ============================================================================
+
+// Bitmart Triangular Arbitrage API Configuration
+const BITMART_TRIANGULAR_CONFIG = {
+    baseUrl: 'https://api-cloud.bitmart.com',
+    endpoints: {
+        ticker: '/spot/v2/ticker',
+        balance: '/account/v1/wallet',
+        placeOrder: '/spot/v1/submit_order',
+        symbols: '/spot/v1/symbols'
+    }
+};
+
+// Bitmart HMAC-SHA256 Authentication Helper
+function createBitmartTriangularSignature(timestamp, memo, queryString, apiSecret) {
+    const message = timestamp + '#' + memo + '#' + queryString;
+    return crypto.createHmac('sha256', apiSecret).update(message).digest('hex');
+}
+
+// Bitmart Triangular Arbitrage Paths (32 paths - includes BMX native token)
+const BITMART_TRIANGULAR_PATHS = {
+    SET_1_ESSENTIAL_ETH_BRIDGE: [
+        { id: 'BITMART_ETH_1', path: ['USDT', 'ETH', 'BTC', 'USDT'], pairs: ['ETH_USDT', 'BTC_ETH', 'BTC_USDT'], description: 'ETH → BTC Bridge' },
+        { id: 'BITMART_ETH_2', path: ['USDT', 'ETH', 'SOL', 'USDT'], pairs: ['ETH_USDT', 'SOL_ETH', 'SOL_USDT'], description: 'ETH → SOL Bridge' },
+        { id: 'BITMART_ETH_3', path: ['USDT', 'ETH', 'LINK', 'USDT'], pairs: ['ETH_USDT', 'LINK_ETH', 'LINK_USDT'], description: 'ETH → LINK Bridge' },
+        { id: 'BITMART_ETH_4', path: ['USDT', 'ETH', 'AVAX', 'USDT'], pairs: ['ETH_USDT', 'AVAX_ETH', 'AVAX_USDT'], description: 'ETH → AVAX Bridge' },
+        { id: 'BITMART_ETH_5', path: ['USDT', 'ETH', 'MATIC', 'USDT'], pairs: ['ETH_USDT', 'MATIC_ETH', 'MATIC_USDT'], description: 'ETH → MATIC Bridge' },
+        { id: 'BITMART_ETH_6', path: ['USDT', 'ETH', 'UNI', 'USDT'], pairs: ['ETH_USDT', 'UNI_ETH', 'UNI_USDT'], description: 'ETH → UNI Bridge' },
+        { id: 'BITMART_ETH_7', path: ['USDT', 'ETH', 'AAVE', 'USDT'], pairs: ['ETH_USDT', 'AAVE_ETH', 'AAVE_USDT'], description: 'ETH → AAVE Bridge' }
+    ],
+    SET_2_MIDCAP_BTC_BRIDGE: [
+        { id: 'BITMART_BTC_1', path: ['USDT', 'BTC', 'DOGE', 'USDT'], pairs: ['BTC_USDT', 'DOGE_BTC', 'DOGE_USDT'], description: 'BTC → DOGE Bridge' },
+        { id: 'BITMART_BTC_2', path: ['USDT', 'BTC', 'LTC', 'USDT'], pairs: ['BTC_USDT', 'LTC_BTC', 'LTC_USDT'], description: 'BTC → LTC Bridge' },
+        { id: 'BITMART_BTC_3', path: ['USDT', 'BTC', 'XRP', 'USDT'], pairs: ['BTC_USDT', 'XRP_BTC', 'XRP_USDT'], description: 'BTC → XRP Bridge' },
+        { id: 'BITMART_BTC_4', path: ['USDT', 'BTC', 'ADA', 'USDT'], pairs: ['BTC_USDT', 'ADA_BTC', 'ADA_USDT'], description: 'BTC → ADA Bridge' },
+        { id: 'BITMART_BTC_5', path: ['USDT', 'BTC', 'DOT', 'USDT'], pairs: ['BTC_USDT', 'DOT_BTC', 'DOT_USDT'], description: 'BTC → DOT Bridge' },
+        { id: 'BITMART_BTC_6', path: ['USDT', 'BTC', 'BCH', 'USDT'], pairs: ['BTC_USDT', 'BCH_BTC', 'BCH_USDT'], description: 'BTC → BCH Bridge' },
+        { id: 'BITMART_BTC_7', path: ['USDT', 'BTC', 'TRX', 'USDT'], pairs: ['BTC_USDT', 'TRX_BTC', 'TRX_USDT'], description: 'BTC → TRX Bridge' }
+    ],
+    SET_3_BMX_NATIVE_TOKEN: [
+        { id: 'BITMART_BMX_1', path: ['USDT', 'BMX', 'BTC', 'USDT'], pairs: ['BMX_USDT', 'BTC_BMX', 'BTC_USDT'], description: 'BMX → BTC Native Bridge' },
+        { id: 'BITMART_BMX_2', path: ['USDT', 'BMX', 'ETH', 'USDT'], pairs: ['BMX_USDT', 'ETH_BMX', 'ETH_USDT'], description: 'BMX → ETH Native Bridge' },
+        { id: 'BITMART_BMX_3', path: ['USDT', 'BTC', 'BMX', 'USDT'], pairs: ['BTC_USDT', 'BMX_BTC', 'BMX_USDT'], description: 'BTC → BMX Native' },
+        { id: 'BITMART_BMX_4', path: ['USDT', 'ETH', 'BMX', 'USDT'], pairs: ['ETH_USDT', 'BMX_ETH', 'BMX_USDT'], description: 'ETH → BMX Native' },
+        { id: 'BITMART_BMX_5', path: ['USDT', 'BMX', 'SOL', 'USDT'], pairs: ['BMX_USDT', 'SOL_BMX', 'SOL_USDT'], description: 'BMX → SOL Native Bridge' },
+        { id: 'BITMART_BMX_6', path: ['USDT', 'SOL', 'BMX', 'USDT'], pairs: ['SOL_USDT', 'BMX_SOL', 'BMX_USDT'], description: 'SOL → BMX Native' }
+    ],
+    SET_4_HIGH_VOLATILITY: [
+        { id: 'BITMART_VOL_1', path: ['USDT', 'SOL', 'LINK', 'USDT'], pairs: ['SOL_USDT', 'LINK_SOL', 'LINK_USDT'], description: 'SOL → LINK Volatility' },
+        { id: 'BITMART_VOL_2', path: ['USDT', 'SOL', 'MATIC', 'USDT'], pairs: ['SOL_USDT', 'MATIC_SOL', 'MATIC_USDT'], description: 'SOL → MATIC Volatility' },
+        { id: 'BITMART_VOL_3', path: ['USDT', 'LINK', 'BTC', 'USDT'], pairs: ['LINK_USDT', 'BTC_LINK', 'BTC_USDT'], description: 'LINK → BTC Volatility' },
+        { id: 'BITMART_VOL_4', path: ['USDT', 'AVAX', 'SOL', 'USDT'], pairs: ['AVAX_USDT', 'SOL_AVAX', 'SOL_USDT'], description: 'AVAX → SOL Volatility' },
+        { id: 'BITMART_VOL_5', path: ['USDT', 'MATIC', 'BTC', 'USDT'], pairs: ['MATIC_USDT', 'BTC_MATIC', 'BTC_USDT'], description: 'MATIC → BTC Volatility' },
+        { id: 'BITMART_VOL_6', path: ['USDT', 'UNI', 'ETH', 'USDT'], pairs: ['UNI_USDT', 'ETH_UNI', 'ETH_USDT'], description: 'UNI → ETH Volatility' }
+    ],
+    SET_5_EXTENDED_MULTIBRIDGE: [
+        { id: 'BITMART_EXT_1', path: ['USDT', 'ATOM', 'BTC', 'USDT'], pairs: ['ATOM_USDT', 'BTC_ATOM', 'BTC_USDT'], description: 'ATOM → BTC Extended' },
+        { id: 'BITMART_EXT_2', path: ['USDT', 'FIL', 'ETH', 'USDT'], pairs: ['FIL_USDT', 'ETH_FIL', 'ETH_USDT'], description: 'FIL → ETH Extended' },
+        { id: 'BITMART_EXT_3', path: ['USDT', 'XLM', 'BTC', 'USDT'], pairs: ['XLM_USDT', 'BTC_XLM', 'BTC_USDT'], description: 'XLM → BTC Extended' },
+        { id: 'BITMART_EXT_4', path: ['USDT', 'ALGO', 'ETH', 'USDT'], pairs: ['ALGO_USDT', 'ETH_ALGO', 'ETH_USDT'], description: 'ALGO → ETH Extended' },
+        { id: 'BITMART_EXT_5', path: ['USDT', 'ETH', 'BTC', 'SOL', 'USDT'], pairs: ['ETH_USDT', 'BTC_ETH', 'SOL_BTC', 'SOL_USDT'], description: 'Four-Leg: ETH→BTC→SOL' },
+        { id: 'BITMART_EXT_6', path: ['USDT', 'BTC', 'ETH', 'LINK', 'USDT'], pairs: ['BTC_USDT', 'ETH_BTC', 'LINK_ETH', 'LINK_USDT'], description: 'Four-Leg: BTC→ETH→LINK' }
+    ]
+};
+
+// ROUTE 1: Test Bitmart Connection
+router.post('/bitmart/triangular/test-connection', asyncHandler(async (req, res) => {
+    try {
+        const { apiKey, apiSecret, memo } = req.body;
+
+        if (!apiKey || !apiSecret || !memo) {
+            return res.status(400).json({
+                success: false,
+                message: 'API credentials (key, secret, and memo) are required'
+            });
+        }
+
+        const timestamp = Date.now().toString();
+        const queryString = '';
+        const signature = createBitmartTriangularSignature(timestamp, memo, queryString, apiSecret);
+
+        const response = await axios.get(
+            `${BITMART_TRIANGULAR_CONFIG.baseUrl}${BITMART_TRIANGULAR_CONFIG.endpoints.balance}`,
+            {
+                headers: {
+                    'X-BM-KEY': apiKey,
+                    'X-BM-SIGN': signature,
+                    'X-BM-TIMESTAMP': timestamp,
+                    'Content-Type': 'application/json'
+                }
+            }
+        );
+
+        if (response.data.code === 1000) {
+            res.json({
+                success: true,
+                message: 'Bitmart connection successful',
+                data: {
+                    balances: response.data.data?.wallet || [],
+                    timestamp: new Date().toISOString()
+                }
+            });
+        } else {
+            res.status(400).json({
+                success: false,
+                message: `Bitmart API error: ${response.data.message || 'Unknown error'}`
+            });
+        }
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.response?.data?.message || 'Failed to connect to Bitmart'
+        });
+    }
+}));
+
+// ROUTE 2: Scan Bitmart Triangular Opportunities
+router.post('/bitmart/triangular/scan', asyncHandler(async (req, res) => {
+    try {
+        const { apiKey, apiSecret, memo, minProfitPercent = 0.3, enabledSets = ['SET_1', 'SET_2', 'SET_3', 'SET_4', 'SET_5'] } = req.body;
+
+        if (!apiKey || !apiSecret || !memo) {
+            return res.status(400).json({
+                success: false,
+                message: 'API credentials required'
+            });
+        }
+
+        // Fetch all tickers
+        const tickerResponse = await axios.get(
+            `${BITMART_TRIANGULAR_CONFIG.baseUrl}${BITMART_TRIANGULAR_CONFIG.endpoints.ticker}`
+        );
+
+        if (tickerResponse.data.code !== 1000) {
+            return res.status(400).json({
+                success: false,
+                message: 'Failed to fetch Bitmart market data'
+            });
+        }
+
+        const tickers = tickerResponse.data.data || [];
+        const priceMap = {};
+
+        tickers.forEach(ticker => {
+            if (ticker.symbol) {
+                priceMap[ticker.symbol] = {
+                    bid: parseFloat(ticker.best_bid || ticker.buy_1_price || 0),
+                    ask: parseFloat(ticker.best_ask || ticker.sell_1_price || 0),
+                    last: parseFloat(ticker.last_price || ticker.close || 0)
+                };
+            }
+        });
+
+        // Filter enabled paths
+        let allPaths = [];
+        if (enabledSets.includes('SET_1')) allPaths = allPaths.concat(BITMART_TRIANGULAR_PATHS.SET_1_ESSENTIAL_ETH_BRIDGE);
+        if (enabledSets.includes('SET_2')) allPaths = allPaths.concat(BITMART_TRIANGULAR_PATHS.SET_2_MIDCAP_BTC_BRIDGE);
+        if (enabledSets.includes('SET_3')) allPaths = allPaths.concat(BITMART_TRIANGULAR_PATHS.SET_3_BMX_NATIVE_TOKEN);
+        if (enabledSets.includes('SET_4')) allPaths = allPaths.concat(BITMART_TRIANGULAR_PATHS.SET_4_HIGH_VOLATILITY);
+        if (enabledSets.includes('SET_5')) allPaths = allPaths.concat(BITMART_TRIANGULAR_PATHS.SET_5_EXTENDED_MULTIBRIDGE);
+
+        const opportunities = [];
+        const feePercent = 0.25; // Bitmart 0.25% maker/taker fee (0.1% with BMX)
+
+        allPaths.forEach(pathConfig => {
+            const pairs = pathConfig.pairs;
+            let isValid = true;
+            let prices = [];
+
+            // Get prices for each pair
+            for (const pair of pairs) {
+                if (!priceMap[pair]) {
+                    isValid = false;
+                    break;
+                }
+                prices.push(priceMap[pair]);
+            }
+
+            if (!isValid) return;
+
+            // Calculate profit for triangular path
+            let amount = 100; // Start with 100 USDT
+
+            // Execute each leg
+            for (let i = 0; i < pairs.length; i++) {
+                const price = prices[i];
+                const avgPrice = (price.bid + price.ask) / 2;
+
+                // Apply fee
+                amount = amount * (1 - feePercent / 100);
+
+                // Execute trade
+                if (i === 0 || i === pairs.length - 1) {
+                    // First and last leg: buying/selling against USDT
+                    amount = amount / avgPrice;
+                } else {
+                    // Middle legs: cross pairs
+                    amount = amount * avgPrice;
+                }
+            }
+
+            const profitPercent = ((amount - 100) / 100) * 100;
+
+            if (profitPercent >= minProfitPercent) {
+                opportunities.push({
+                    id: pathConfig.id,
+                    path: pathConfig.path,
+                    pairs: pathConfig.pairs,
+                    description: pathConfig.description,
+                    profitPercent: profitPercent.toFixed(3),
+                    estimatedProfit: (amount - 100).toFixed(2),
+                    prices: prices.map(p => ({
+                        bid: p.bid,
+                        ask: p.ask,
+                        spread: ((p.ask - p.bid) / p.bid * 100).toFixed(3)
+                    }))
+                });
+            }
+        });
+
+        // Sort by profit
+        opportunities.sort((a, b) => parseFloat(b.profitPercent) - parseFloat(a.profitPercent));
+
+        res.json({
+            success: true,
+            opportunities,
+            scannedPaths: allPaths.length,
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Failed to scan Bitmart opportunities'
+        });
+    }
+}));
+
+// ROUTE 3: Get Bitmart Triangular Paths
+router.get('/bitmart/triangular/paths', asyncHandler(async (req, res) => {
+    const allPaths = [
+        ...BITMART_TRIANGULAR_PATHS.SET_1_ESSENTIAL_ETH_BRIDGE,
+        ...BITMART_TRIANGULAR_PATHS.SET_2_MIDCAP_BTC_BRIDGE,
+        ...BITMART_TRIANGULAR_PATHS.SET_3_BMX_NATIVE_TOKEN,
+        ...BITMART_TRIANGULAR_PATHS.SET_4_HIGH_VOLATILITY,
+        ...BITMART_TRIANGULAR_PATHS.SET_5_EXTENDED_MULTIBRIDGE
+    ];
+
+    res.json({
+        success: true,
+        exchange: 'Bitmart',
+        totalPaths: allPaths.length,
+        sets: {
+            SET_1_ESSENTIAL_ETH_BRIDGE: {
+                name: 'Essential ETH Bridge',
+                count: BITMART_TRIANGULAR_PATHS.SET_1_ESSENTIAL_ETH_BRIDGE.length,
+                paths: BITMART_TRIANGULAR_PATHS.SET_1_ESSENTIAL_ETH_BRIDGE
+            },
+            SET_2_MIDCAP_BTC_BRIDGE: {
+                name: 'Midcap BTC Bridge',
+                count: BITMART_TRIANGULAR_PATHS.SET_2_MIDCAP_BTC_BRIDGE.length,
+                paths: BITMART_TRIANGULAR_PATHS.SET_2_MIDCAP_BTC_BRIDGE
+            },
+            SET_3_BMX_NATIVE_TOKEN: {
+                name: 'BMX Native Token',
+                count: BITMART_TRIANGULAR_PATHS.SET_3_BMX_NATIVE_TOKEN.length,
+                paths: BITMART_TRIANGULAR_PATHS.SET_3_BMX_NATIVE_TOKEN
+            },
+            SET_4_HIGH_VOLATILITY: {
+                name: 'High Volatility',
+                count: BITMART_TRIANGULAR_PATHS.SET_4_HIGH_VOLATILITY.length,
+                paths: BITMART_TRIANGULAR_PATHS.SET_4_HIGH_VOLATILITY
+            },
+            SET_5_EXTENDED_MULTIBRIDGE: {
+                name: 'Extended Multi-Bridge',
+                count: BITMART_TRIANGULAR_PATHS.SET_5_EXTENDED_MULTIBRIDGE.length,
+                paths: BITMART_TRIANGULAR_PATHS.SET_5_EXTENDED_MULTIBRIDGE
+            }
+        }
+    });
+}));
+
+// ROUTE 4: Execute Bitmart Triangular Trade
+router.post('/bitmart/triangular/execute', asyncHandler(async (req, res) => {
+    try {
+        const { apiKey, apiSecret, memo, pathId, amount, userId } = req.body;
+
+        if (!apiKey || !apiSecret || !memo) {
+            return res.status(400).json({
+                success: false,
+                message: 'API credentials required'
+            });
+        }
+
+        // Find the path configuration
+        const allPaths = [
+            ...BITMART_TRIANGULAR_PATHS.SET_1_ESSENTIAL_ETH_BRIDGE,
+            ...BITMART_TRIANGULAR_PATHS.SET_2_MIDCAP_BTC_BRIDGE,
+            ...BITMART_TRIANGULAR_PATHS.SET_3_BMX_NATIVE_TOKEN,
+            ...BITMART_TRIANGULAR_PATHS.SET_4_HIGH_VOLATILITY,
+            ...BITMART_TRIANGULAR_PATHS.SET_5_EXTENDED_MULTIBRIDGE
+        ];
+
+        const pathConfig = allPaths.find(p => p.id === pathId);
+        if (!pathConfig) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid path ID'
+            });
+        }
+
+        const executionResults = [];
+        let currentAmount = parseFloat(amount);
+
+        // Execute each leg sequentially
+        for (let i = 0; i < pathConfig.pairs.length; i++) {
+            const symbol = pathConfig.pairs[i];
+            const timestamp = Date.now().toString();
+            const orderData = {
+                symbol: symbol,
+                side: i % 2 === 0 ? 'buy' : 'sell',
+                type: 'market',
+                size: currentAmount.toString()
+            };
+
+            const queryString = Object.keys(orderData)
+                .sort()
+                .map(key => `${key}=${orderData[key]}`)
+                .join('&');
+
+            const signature = createBitmartTriangularSignature(timestamp, memo, queryString, apiSecret);
+
+            const response = await axios.post(
+                `${BITMART_TRIANGULAR_CONFIG.baseUrl}${BITMART_TRIANGULAR_CONFIG.endpoints.placeOrder}`,
+                orderData,
+                {
+                    headers: {
+                        'X-BM-KEY': apiKey,
+                        'X-BM-SIGN': signature,
+                        'X-BM-TIMESTAMP': timestamp,
+                        'Content-Type': 'application/json'
+                    }
+                }
+            );
+
+            if (response.data.code !== 1000) {
+                throw new Error(`Order failed at leg ${i + 1}: ${response.data.message}`);
+            }
+
+            executionResults.push({
+                leg: i + 1,
+                symbol: symbol,
+                orderId: response.data.data?.order_id,
+                status: 'filled'
+            });
+
+            // Update amount for next leg (simplified)
+            currentAmount = response.data.data?.filled_size || currentAmount;
+        }
+
+        // Store trade in database
+        if (userId) {
+            await pool.query(
+                `INSERT INTO triangular_trades
+                (user_id, exchange, path_id, path_description, initial_amount, final_amount, profit, profit_percent, status, execution_details, created_at)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())`,
+                [
+                    userId,
+                    'Bitmart',
+                    pathConfig.id,
+                    pathConfig.description,
+                    parseFloat(amount),
+                    currentAmount,
+                    currentAmount - parseFloat(amount),
+                    ((currentAmount - parseFloat(amount)) / parseFloat(amount)) * 100,
+                    'completed',
+                    JSON.stringify(executionResults)
+                ]
+            );
+        }
+
+        res.json({
+            success: true,
+            message: 'Triangular arbitrage executed successfully',
+            execution: {
+                pathId: pathConfig.id,
+                initialAmount: parseFloat(amount),
+                finalAmount: currentAmount,
+                profit: currentAmount - parseFloat(amount),
+                profitPercent: ((currentAmount - parseFloat(amount)) / parseFloat(amount)) * 100,
+                legs: executionResults
+            }
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Failed to execute Bitmart triangular trade'
+        });
+    }
+}));
+
+// ROUTE 5: Get Bitmart Trade History (User-Specific)
+router.post('/bitmart/triangular/history', asyncHandler(async (req, res) => {
+    try {
+        const { userId } = req.body;
+        const limit = req.body.limit || 20;
+
+        if (!userId) {
+            return res.status(400).json({
+                success: false,
+                message: 'User ID required'
+            });
+        }
+
+        const result = await pool.query(
+            `SELECT * FROM triangular_trades
+             WHERE user_id = $1 AND exchange = 'Bitmart'
+             ORDER BY created_at DESC
+             LIMIT $2`,
+            [userId, limit]
+        );
+
+        res.json({
+            success: true,
+            trades: result.rows
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Failed to retrieve Bitmart trade history'
+        });
+    }
+}));
+
+// ROUTE 6: Get Recent Bitmart Trades (All Users)
+router.get('/bitmart/triangular/recent-trades', asyncHandler(async (req, res) => {
+    try {
+        const result = await pool.query(
+            `SELECT * FROM triangular_recent_trades
+             WHERE exchange = 'Bitmart'
+             ORDER BY created_at DESC
+             LIMIT 20`
+        );
+
+        res.json({
+            success: true,
+            trades: result.rows
+        });
+
+    } catch (error) {
+        console.error('Bitmart recent trades error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to retrieve recent Bitmart trades'
+        });
+    }
+}));
+
+// ============================================================================
 // VALR TRIANGULAR ARBITRAGE ENDPOINTS
 // ============================================
 // Specific endpoints for triangular arbitrage functionality
