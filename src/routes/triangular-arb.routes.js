@@ -947,7 +947,7 @@ router.post('/chainex/triangular/execute', authenticatedRateLimit, authenticateU
 
         const tradeRecord = {
             userId: req.user.id,
-            exchange: 'CHAINEX',
+            exchange: 'chainex',
             pathId: pathId,
             initialAmount: initialAmount,
             executionStatus: dryRun ? 'test' : 'pending',
@@ -1233,7 +1233,7 @@ router.get('/kraken/triangular/paths', authenticatedRateLimit, authenticateUser,
             data: {
                 totalPaths: 32,
                 pathSets: pathSets,
-                exchange: 'KRAKEN'
+                exchange: 'kraken'
             }
         });
     } catch (error) {
@@ -1732,7 +1732,7 @@ router.get('/bybit/triangular/paths', authenticatedRateLimit, authenticateUser, 
             data: {
                 totalPaths: 30,
                 pathSets: pathSets,
-                exchange: 'BYBIT'
+                exchange: 'bybit'
             }
         });
     } catch (error) {
@@ -2353,7 +2353,7 @@ router.get('/binance/triangular/paths', authenticatedRateLimit, authenticateUser
                     { id: 4, name: 'High Volatility', paths: 6, liquidity: 'Medium' },
                     { id: 5, name: 'Extended Multi-Bridge', paths: 7, liquidity: 'High' }
                 ],
-                exchange: 'Binance',
+                exchange: 'binance',
                 fundingCurrency: 'USDT',
                 bridgeCurrencies: ['BNB', 'ETH', 'BTC'],
                 note: 'Binance offers 1500+ trading pairs with deep liquidity on USDT pairs. BNB cross-pairs are highly liquid.'
@@ -2960,7 +2960,7 @@ router.get('/okx/triangular/paths', authenticatedRateLimit, authenticateUser, as
                     { id: 4, name: 'High Volatility', paths: 6, liquidity: 'Medium' },
                     { id: 5, name: 'Extended Multi-Bridge', paths: 6, liquidity: 'High' }
                 ],
-                exchange: 'OKX',
+                exchange: 'okx',
                 fundingCurrency: 'USDT',
                 bridgeCurrencies: ['ETH', 'BTC', 'OKB'],
                 note: 'OKX offers 673 trading pairs with deep liquidity. OKB (native token) provides unique arbitrage paths.'
@@ -3353,7 +3353,7 @@ router.post('/kucoin/triangular/scan', authenticatedRateLimit, authenticateUser,
 
         res.json({
             success: true,
-            exchange: 'KUCOIN',
+            exchange: 'kucoin',
             opportunities: opportunities,
             totalScanned: enabledPaths.length,
             profitableCount: opportunities.length,
@@ -3384,7 +3384,7 @@ router.get('/kucoin/triangular/paths', authenticatedRateLimit, authenticateUser,
 
     res.json({
         success: true,
-        exchange: 'KUCOIN',
+        exchange: 'kucoin',
         totalPaths: 32,
         pathSets: paths,
         timestamp: new Date().toISOString()
@@ -3451,7 +3451,7 @@ router.get('/kucoin/triangular/recent-trades', authenticatedRateLimit, authentic
 
         res.json({
             success: true,
-            exchange: 'KUCOIN',
+            exchange: 'kucoin',
             trades: result.rows,
             count: result.rows.length
         });
@@ -3761,7 +3761,7 @@ router.post('/coinbase/triangular/scan', authenticatedRateLimit, authenticateUse
 
         res.json({
             success: true,
-            exchange: 'COINBASE',
+            exchange: 'coinbase',
             opportunities: opportunities,
             totalScanned: enabledPaths.length,
             profitableCount: opportunities.length,
@@ -3792,7 +3792,7 @@ router.get('/coinbase/triangular/paths', authenticatedRateLimit, authenticateUse
 
     res.json({
         success: true,
-        exchange: 'COINBASE',
+        exchange: 'coinbase',
         totalPaths: 32,
         fundingCurrency: 'USDC',
         pathSets: paths,
@@ -3860,7 +3860,7 @@ router.get('/coinbase/triangular/recent-trades', authenticatedRateLimit, authent
 
         res.json({
             success: true,
-            exchange: 'COINBASE',
+            exchange: 'coinbase',
             trades: result.rows,
             count: result.rows.length
         });
@@ -4170,7 +4170,7 @@ router.post('/huobi/triangular/scan', authenticatedRateLimit, authenticateUser, 
 
         res.json({
             success: true,
-            exchange: 'HUOBI',
+            exchange: 'huobi',
             opportunities: opportunities,
             totalScanned: enabledPaths.length,
             profitableCount: opportunities.length,
@@ -4201,7 +4201,7 @@ router.get('/huobi/triangular/paths', authenticatedRateLimit, authenticateUser, 
 
     res.json({
         success: true,
-        exchange: 'HUOBI',
+        exchange: 'huobi',
         totalPaths: 32,
         pathSets: paths,
         timestamp: new Date().toISOString()
@@ -4268,7 +4268,7 @@ router.get('/huobi/triangular/recent-trades', authenticatedRateLimit, authentica
 
         res.json({
             success: true,
-            exchange: 'HUOBI',
+            exchange: 'huobi',
             trades: result.rows,
             count: result.rows.length
         });
@@ -5810,7 +5810,7 @@ router.post('/xt/triangular/scan', authenticate, asyncHandler(async (req, res) =
 router.get('/xt/triangular/paths', authenticate, asyncHandler(async (req, res) => {
     res.json({
         success: true,
-        exchange: 'XT',
+        exchange: 'xt',
         totalPaths: 32,
         paths: XT_TRIANGULAR_PATHS
     });
@@ -6198,7 +6198,7 @@ router.post('/ascendex/triangular/scan', authenticate, asyncHandler(async (req, 
 router.get('/ascendex/triangular/paths', authenticate, asyncHandler(async (req, res) => {
     res.json({
         success: true,
-        exchange: 'AscendEX',
+        exchange: 'ascendex',
         totalPaths: 32,
         paths: ASCENDEX_TRIANGULAR_PATHS
     });
@@ -6906,7 +6906,7 @@ router.get('/bitget/triangular/paths', asyncHandler(async (req, res) => {
 
     res.json({
         success: true,
-        exchange: 'Bitget',
+        exchange: 'bitget',
         totalPaths: allPaths.length,
         sets: {
             SET_1_ESSENTIAL_ETH_BRIDGE: {
@@ -7025,7 +7025,7 @@ router.post('/bitget/triangular/execute', asyncHandler(async (req, res) => {
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())`,
                 [
                     userId,
-                    'Bitget',
+                    'bitget',
                     pathConfig.id,
                     pathConfig.description,
                     parseFloat(amount),
@@ -7370,7 +7370,7 @@ router.get('/bitmart/triangular/paths', asyncHandler(async (req, res) => {
 
     res.json({
         success: true,
-        exchange: 'Bitmart',
+        exchange: 'bitmart',
         totalPaths: allPaths.length,
         sets: {
             SET_1_ESSENTIAL_ETH_BRIDGE: {
@@ -7488,7 +7488,7 @@ router.post('/bitmart/triangular/execute', asyncHandler(async (req, res) => {
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())`,
                 [
                     userId,
-                    'Bitmart',
+                    'bitmart',
                     pathConfig.id,
                     pathConfig.description,
                     parseFloat(amount),
@@ -7829,7 +7829,7 @@ router.get('/bitrue/triangular/paths', asyncHandler(async (req, res) => {
 
     res.json({
         success: true,
-        exchange: 'Bitrue',
+        exchange: 'bitrue',
         totalPaths: allPaths.length,
         sets: {
             SET_1_ESSENTIAL_ETH_BRIDGE: {
@@ -7945,7 +7945,7 @@ router.post('/bitrue/triangular/execute', asyncHandler(async (req, res) => {
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())`,
                 [
                     userId,
-                    'Bitrue',
+                    'bitrue',
                     pathConfig.id,
                     pathConfig.description,
                     parseFloat(amount),
