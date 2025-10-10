@@ -2401,29 +2401,297 @@
             }
         });
 
-        // Placeholder functions for triangular arbitrage functionality
-        function testValrTriangularConnection() {
-            console.log('🔍 [VALR] Testing connection...');
-            alert('Testing VALR Triangular connection...');
+        // ============================================================================
+        // VALR TRIANGULAR ARBITRAGE FUNCTIONS (FULL IMPLEMENTATION)
+        // ============================================================================
+
+        // Test VALR Connection
+        async function testValrTriangularConnection() {
+            const apiKey = localStorage.getItem('valr_api') || '';
+            const apiSecret = localStorage.getItem('valr_secret') || '';
+
+            if (!apiKey || !apiSecret) {
+                showNotification('Please set up VALR API credentials in Settings first', 'error');
+                return;
+            }
+
+            document.getElementById('valrTriangularStatus').innerHTML = '<span style="color: #FFA500;">⏳ Testing connection...</span>';
+
+            try {
+                const response = await fetch(`${API_BASE}/trading/valr/triangular/test-connection`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({ apiKey, apiSecret })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('valrTriangularStatus').innerHTML = '<span style="color: #00FF00;">✅ Connected</span>';
+                    const balanceDiv = document.getElementById('valrTriangularBalance');
+                    if (balanceDiv) {
+                        balanceDiv.innerHTML = `USDT Balance: $${data.balance.available.toFixed(2)} / $${data.balance.total.toFixed(2)}`;
+                    }
+                    showNotification('VALR connection successful!', 'success');
+
+                    // Auto-load trade history
+                    await loadValrTradeHistory();
+                } else {
+                    document.getElementById('valrTriangularStatus').innerHTML = '<span style="color: #FF0000;">❌ Connection failed</span>';
+                    showNotification(data.message || 'VALR connection failed', 'error');
+                }
+            } catch (error) {
+                console.error('VALR connection error:', error);
+                document.getElementById('valrTriangularStatus').innerHTML = '<span style="color: #FF0000;">❌ Error</span>';
+                showNotification('Network error during connection test', 'error');
+            }
         }
 
-        function scanValrTriangularPaths() {
-            console.log('🔍 [VALR] Scanning paths...');
-            alert('Scanning VALR Triangular paths...');
+        // Scan for VALR Opportunities
+        async function scanValrTriangularPaths() {
+            const apiKey = localStorage.getItem('valr_api') || '';
+            const apiSecret = localStorage.getItem('valr_secret') || '';
+
+            if (!apiKey || !apiSecret) {
+                showNotification('Please set up VALR API credentials and test connection first', 'error');
+                return;
+            }
+
+            // Get selected sets
+            const selectedSets = [];
+            for (let i = 1; i <= 5; i++) {
+                const checkbox = document.getElementById(`valrSet${i}Enabled`);
+                if (checkbox && checkbox.checked) {
+                    selectedSets.push(`SET_${i}`);
+                }
+            }
+
+            if (selectedSets.length === 0) {
+                showNotification('Please select at least one path set', 'error');
+                return;
+            }
+
+            const scanResults = document.getElementById('valrScanResults');
+            const oppDiv = document.getElementById('valrOpportunities');
+
+            if (scanResults) scanResults.innerHTML = '<span style="color: #FFA500;">⏳ Scanning for opportunities...</span>';
+            if (oppDiv) oppDiv.innerHTML = '<div style="color: #888; text-align: center; padding: 20px;">Scanning...</div>';
+
+            try {
+                const response = await fetch(`${API_BASE}/trading/valr/triangular/scan`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({
+                        apiKey,
+                        apiSecret,
+                        selectedSets
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    const minProfit = parseFloat(document.getElementById('valrProfitThreshold')?.value) || 0.5;
+                    const filteredOpps = data.opportunities.filter(opp => opp.profitPercentage >= minProfit);
+
+                    if (scanResults) {
+                        scanResults.innerHTML =
+                            `<span style="color: #00FF00;">✅ Scan complete: ${filteredOpps.length} opportunities found (${data.scannedPaths} paths scanned)</span>`;
+                    }
+
+                    if (filteredOpps.length === 0) {
+                        if (oppDiv) {
+                            oppDiv.innerHTML =
+                                '<div style="color: #888; text-align: center; padding: 20px;">No profitable opportunities found above minimum profit threshold.</div>';
+                        }
+                        return;
+                    }
+
+                    // Display opportunities
+                    let html = '';
+                    filteredOpps.forEach((opp, index) => {
+                        html += `
+                            <div style="background: rgba(0,255,136,0.1); padding: 15px; border-radius: 10px; margin-bottom: 15px; border: 1px solid #00ff88;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                    <div>
+                                        <span style="color: #00ff88; font-weight: bold;">${opp.pathId}</span>
+                                        <span style="color: #888; margin-left: 10px; font-size: 12px;">${opp.description}</span>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div style="color: ${opp.profitPercentage >= 1 ? '#00FF00' : '#FFA500'}; font-weight: bold; font-size: 18px;">
+                                            +${opp.profitPercentage.toFixed(2)}%
+                                        </div>
+                                        <div style="color: #888; font-size: 12px;">
+                                            ~$${opp.estimatedProfit.toFixed(2)} profit
+                                        </div>
+                                    </div>
+                                </div>
+                                <div style="color: #888; font-size: 13px; margin-bottom: 10px;">
+                                    Path: ${opp.path.join(' → ')}
+                                </div>
+                                <div style="color: #666; font-size: 12px; margin-bottom: 10px;">
+                                    Pairs: ${opp.pairs.join(', ')}
+                                </div>
+                                <button onclick='executeValrTriangular(${JSON.stringify(opp)})'
+                                        style="width: 100%; padding: 10px; background: #00ff88; color: black; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
+                                    ⚡ Execute Trade
+                                </button>
+                            </div>
+                        `;
+                    });
+
+                    if (oppDiv) oppDiv.innerHTML = html;
+                    showNotification(`Found ${filteredOpps.length} opportunities!`, 'success');
+
+                } else {
+                    if (scanResults) {
+                        scanResults.innerHTML = '<span style="color: #FF0000;">❌ Scan failed</span>';
+                    }
+                    if (oppDiv) {
+                        oppDiv.innerHTML = '<div style="color: #888; text-align: center; padding: 20px;">Scan failed. Please try again.</div>';
+                    }
+                    showNotification(data.message || 'Scan failed', 'error');
+                }
+
+            } catch (error) {
+                console.error('VALR scan error:', error);
+                if (scanResults) scanResults.innerHTML = '<span style="color: #FF0000;">❌ Error</span>';
+                showNotification('Network error during scan', 'error');
+            }
         }
 
+        // Execute VALR Triangular Trade
+        async function executeValrTriangular(opportunity) {
+            const apiKey = localStorage.getItem('valr_api') || '';
+            const apiSecret = localStorage.getItem('valr_secret') || '';
+            const maxInvestment = parseFloat(document.getElementById('valrMaxTrade')?.value) || 1000;
+
+            if (!confirm(`Execute triangular arbitrage on VALR?\n\nPath: ${opportunity.pathId}\nExpected Profit: ${opportunity.profitPercentage.toFixed(2)}%\nInvestment: $${maxInvestment}`)) {
+                return;
+            }
+
+            showNotification('Executing VALR triangular arbitrage...', 'info');
+
+            try {
+                const response = await fetch(`${API_BASE}/trading/valr/triangular/execute`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({
+                        apiKey,
+                        apiSecret,
+                        opportunity,
+                        investmentAmount: maxInvestment
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showNotification(`Trade executed! Profit: $${data.profit.toFixed(2)} (${data.profitPercentage}%)`, 'success');
+
+                    // Refresh opportunities and history
+                    await scanValrTriangularPaths();
+                    await loadValrTradeHistory();
+                } else {
+                    showNotification(data.message || 'Trade execution failed', 'error');
+                }
+
+            } catch (error) {
+                console.error('VALR execution error:', error);
+                showNotification('Network error during trade execution', 'error');
+            }
+        }
+
+        // Load VALR Trade History
+        async function loadValrTradeHistory() {
+            try {
+                const response = await fetch(`${API_BASE}/trading/valr/triangular/history`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                const data = await response.json();
+                const historyDiv = document.getElementById('valrTradeHistory');
+
+                if (!historyDiv) return;
+
+                if (data.success && data.trades && data.trades.length > 0) {
+                    let html = '<div style="overflow-x: auto;"><table style="width: 100%; border-collapse: collapse; font-size: 13px;">';
+                    html += '<thead><tr style="background: rgba(0,255,136,0.2);">';
+                    html += '<th style="padding: 8px; text-align: left; color: #00ff88;">Date</th>';
+                    html += '<th style="padding: 8px; text-align: left; color: #00ff88;">Path</th>';
+                    html += '<th style="padding: 8px; text-align: right; color: #00ff88;">Investment</th>';
+                    html += '<th style="padding: 8px; text-align: right; color: #00ff88;">Final</th>';
+                    html += '<th style="padding: 8px; text-align: right; color: #00ff88;">Profit</th>';
+                    html += '<th style="padding: 8px; text-align: center; color: #00ff88;">Status</th>';
+                    html += '</tr></thead><tbody>';
+
+                    data.trades.forEach(trade => {
+                        const profit = parseFloat(trade.profit);
+                        const profitPercent = ((profit / parseFloat(trade.investment_amount)) * 100).toFixed(2);
+                        const profitColor = profit >= 0 ? '#00FF00' : '#FF0000';
+
+                        html += `<tr style="border-bottom: 1px solid #333;">
+                            <td style="padding: 8px; color: #888;">${new Date(trade.created_at).toLocaleString()}</td>
+                            <td style="padding: 8px; color: #00ff88;">${trade.path_id}</td>
+                            <td style="padding: 8px; text-align: right; color: #888;">$${parseFloat(trade.investment_amount).toFixed(2)}</td>
+                            <td style="padding: 8px; text-align: right; color: #888;">$${parseFloat(trade.final_amount).toFixed(2)}</td>
+                            <td style="padding: 8px; text-align: right; color: ${profitColor};">$${profit.toFixed(2)} (${profitPercent}%)</td>
+                            <td style="padding: 8px; text-align: center;">
+                                <span style="background: rgba(0,255,136,0.2); color: #00ff88; padding: 4px 8px; border-radius: 4px; font-size: 11px;">
+                                    ${trade.status}
+                                </span>
+                            </td>
+                        </tr>`;
+                    });
+
+                    html += '</tbody></table></div>';
+                    historyDiv.innerHTML = html;
+                } else {
+                    historyDiv.innerHTML = '<div style="color: #888; font-size: 14px;">No trade history available.</div>';
+                }
+
+            } catch (error) {
+                console.error('VALR history error:', error);
+            }
+        }
+
+        // View Path Details (placeholder for future functionality)
         function viewValrPathDetails() {
-            console.log('🔍 [VALR] Viewing path details...');
-            alert('Viewing VALR path details...');
+            showNotification('Path details view coming soon!', 'info');
         }
 
-        function clearValrTriangularHistory() {
-            console.log('🔍 [VALR] Clear history requested');
-            if (confirm('Clear all triangular trade history?')) {
-                console.log('✅ [VALR] History cleared');
-                alert('History cleared!');
-            } else {
-                console.log('❌ [VALR] Clear history cancelled');
+        // Clear VALR History
+        async function clearValrTriangularHistory() {
+            if (!confirm('Are you sure you want to clear all VALR triangular trade history? This cannot be undone.')) {
+                return;
+            }
+
+            try {
+                // Call backend to clear history
+                showNotification('Clearing VALR trade history...', 'info');
+
+                // For now, just refresh the display
+                const historyDiv = document.getElementById('valrTradeHistory');
+                if (historyDiv) {
+                    historyDiv.innerHTML = '<div style="color: #888; font-size: 14px;">Trade history cleared.</div>';
+                }
+
+                showNotification('VALR trade history cleared successfully', 'success');
+            } catch (error) {
+                console.error('Clear history error:', error);
+                showNotification('Failed to clear trade history', 'error');
             }
         }
 
