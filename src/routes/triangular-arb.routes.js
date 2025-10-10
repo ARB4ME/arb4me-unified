@@ -7581,6 +7581,463 @@ router.get('/bitmart/triangular/recent-trades', asyncHandler(async (req, res) =>
 }));
 
 // ============================================================================
+// BITRUE TRIANGULAR ARBITRAGE ROUTES
+// ============================================================================
+
+// Bitrue Triangular Arbitrage API Configuration
+const BITRUE_TRIANGULAR_CONFIG = {
+    baseUrl: 'https://openapi.bitrue.com',
+    endpoints: {
+        ticker: '/api/v1/ticker/24hr',
+        balance: '/api/v1/account',
+        placeOrder: '/api/v1/order',
+        symbols: '/api/v1/exchangeInfo'
+    }
+};
+
+// Bitrue HMAC-SHA256 Authentication Helper (Binance-compatible)
+function createBitrueTriangularSignature(queryString, apiSecret) {
+    return crypto.createHmac('sha256', apiSecret).update(queryString).digest('hex');
+}
+
+// Bitrue Triangular Arbitrage Paths (32 paths - includes BTR native token)
+const BITRUE_TRIANGULAR_PATHS = {
+    SET_1_ESSENTIAL_ETH_BRIDGE: [
+        { id: 'BITRUE_ETH_1', path: ['USDT', 'ETH', 'BTC', 'USDT'], pairs: ['ETHUSDT', 'ETHBTC', 'BTCUSDT'], description: 'ETH → BTC Bridge' },
+        { id: 'BITRUE_ETH_2', path: ['USDT', 'ETH', 'SOL', 'USDT'], pairs: ['ETHUSDT', 'SOLETH', 'SOLUSDT'], description: 'ETH → SOL Bridge' },
+        { id: 'BITRUE_ETH_3', path: ['USDT', 'ETH', 'LINK', 'USDT'], pairs: ['ETHUSDT', 'LINKETH', 'LINKUSDT'], description: 'ETH → LINK Bridge' },
+        { id: 'BITRUE_ETH_4', path: ['USDT', 'ETH', 'AVAX', 'USDT'], pairs: ['ETHUSDT', 'AVAXETH', 'AVAXUSDT'], description: 'ETH → AVAX Bridge' },
+        { id: 'BITRUE_ETH_5', path: ['USDT', 'ETH', 'MATIC', 'USDT'], pairs: ['ETHUSDT', 'MATICETH', 'MATICUSDT'], description: 'ETH → MATIC Bridge' },
+        { id: 'BITRUE_ETH_6', path: ['USDT', 'ETH', 'UNI', 'USDT'], pairs: ['ETHUSDT', 'UNIETH', 'UNIUSDT'], description: 'ETH → UNI Bridge' },
+        { id: 'BITRUE_ETH_7', path: ['USDT', 'ETH', 'AAVE', 'USDT'], pairs: ['ETHUSDT', 'AAVEETH', 'AAVEUSDT'], description: 'ETH → AAVE Bridge' }
+    ],
+    SET_2_MIDCAP_BTC_BRIDGE: [
+        { id: 'BITRUE_BTC_1', path: ['USDT', 'BTC', 'DOGE', 'USDT'], pairs: ['BTCUSDT', 'DOGEBTC', 'DOGEUSDT'], description: 'BTC → DOGE Bridge' },
+        { id: 'BITRUE_BTC_2', path: ['USDT', 'BTC', 'LTC', 'USDT'], pairs: ['BTCUSDT', 'LTCBTC', 'LTCUSDT'], description: 'BTC → LTC Bridge' },
+        { id: 'BITRUE_BTC_3', path: ['USDT', 'BTC', 'XRP', 'USDT'], pairs: ['BTCUSDT', 'XRPBTC', 'XRPUSDT'], description: 'BTC → XRP Bridge' },
+        { id: 'BITRUE_BTC_4', path: ['USDT', 'BTC', 'ADA', 'USDT'], pairs: ['BTCUSDT', 'ADABTC', 'ADAUSDT'], description: 'BTC → ADA Bridge' },
+        { id: 'BITRUE_BTC_5', path: ['USDT', 'BTC', 'DOT', 'USDT'], pairs: ['BTCUSDT', 'DOTBTC', 'DOTUSDT'], description: 'BTC → DOT Bridge' },
+        { id: 'BITRUE_BTC_6', path: ['USDT', 'BTC', 'BCH', 'USDT'], pairs: ['BTCUSDT', 'BCHBTC', 'BCHUSDT'], description: 'BTC → BCH Bridge' },
+        { id: 'BITRUE_BTC_7', path: ['USDT', 'BTC', 'TRX', 'USDT'], pairs: ['BTCUSDT', 'TRXBTC', 'TRXUSDT'], description: 'BTC → TRX Bridge' }
+    ],
+    SET_3_BTR_NATIVE_TOKEN: [
+        { id: 'BITRUE_BTR_1', path: ['USDT', 'BTR', 'BTC', 'USDT'], pairs: ['BTRUSDT', 'BTRBTC', 'BTCUSDT'], description: 'BTR → BTC Native Bridge' },
+        { id: 'BITRUE_BTR_2', path: ['USDT', 'BTR', 'ETH', 'USDT'], pairs: ['BTRUSDT', 'BTRETH', 'ETHUSDT'], description: 'BTR → ETH Native Bridge' },
+        { id: 'BITRUE_BTR_3', path: ['USDT', 'BTC', 'BTR', 'USDT'], pairs: ['BTCUSDT', 'BTRBTC', 'BTRUSDT'], description: 'BTC → BTR Native' },
+        { id: 'BITRUE_BTR_4', path: ['USDT', 'ETH', 'BTR', 'USDT'], pairs: ['ETHUSDT', 'BTRETH', 'BTRUSDT'], description: 'ETH → BTR Native' },
+        { id: 'BITRUE_BTR_5', path: ['USDT', 'BTR', 'SOL', 'USDT'], pairs: ['BTRUSDT', 'BTRSOL', 'SOLUSDT'], description: 'BTR → SOL Native Bridge' },
+        { id: 'BITRUE_BTR_6', path: ['USDT', 'SOL', 'BTR', 'USDT'], pairs: ['SOLUSDT', 'BTRSOL', 'BTRUSDT'], description: 'SOL → BTR Native' }
+    ],
+    SET_4_HIGH_VOLATILITY: [
+        { id: 'BITRUE_VOL_1', path: ['USDT', 'SOL', 'LINK', 'USDT'], pairs: ['SOLUSDT', 'LINKSOL', 'LINKUSDT'], description: 'SOL → LINK Volatility' },
+        { id: 'BITRUE_VOL_2', path: ['USDT', 'SOL', 'MATIC', 'USDT'], pairs: ['SOLUSDT', 'MATICSOL', 'MATICUSDT'], description: 'SOL → MATIC Volatility' },
+        { id: 'BITRUE_VOL_3', path: ['USDT', 'LINK', 'BTC', 'USDT'], pairs: ['LINKUSDT', 'LINKBTC', 'BTCUSDT'], description: 'LINK → BTC Volatility' },
+        { id: 'BITRUE_VOL_4', path: ['USDT', 'AVAX', 'SOL', 'USDT'], pairs: ['AVAXUSDT', 'SOLAVAX', 'SOLUSDT'], description: 'AVAX → SOL Volatility' },
+        { id: 'BITRUE_VOL_5', path: ['USDT', 'MATIC', 'BTC', 'USDT'], pairs: ['MATICUSDT', 'MATICBTC', 'BTCUSDT'], description: 'MATIC → BTC Volatility' },
+        { id: 'BITRUE_VOL_6', path: ['USDT', 'UNI', 'ETH', 'USDT'], pairs: ['UNIUSDT', 'UNIETH', 'ETHUSDT'], description: 'UNI → ETH Volatility' }
+    ],
+    SET_5_EXTENDED_MULTIBRIDGE: [
+        { id: 'BITRUE_EXT_1', path: ['USDT', 'ATOM', 'BTC', 'USDT'], pairs: ['ATOMUSDT', 'ATOMBTC', 'BTCUSDT'], description: 'ATOM → BTC Extended' },
+        { id: 'BITRUE_EXT_2', path: ['USDT', 'FIL', 'ETH', 'USDT'], pairs: ['FILUSDT', 'FILETH', 'ETHUSDT'], description: 'FIL → ETH Extended' },
+        { id: 'BITRUE_EXT_3', path: ['USDT', 'XLM', 'BTC', 'USDT'], pairs: ['XLMUSDT', 'XLMBTC', 'BTCUSDT'], description: 'XLM → BTC Extended' },
+        { id: 'BITRUE_EXT_4', path: ['USDT', 'ALGO', 'ETH', 'USDT'], pairs: ['ALGOUSDT', 'ALGOETH', 'ETHUSDT'], description: 'ALGO → ETH Extended' },
+        { id: 'BITRUE_EXT_5', path: ['USDT', 'ETH', 'BTC', 'SOL', 'USDT'], pairs: ['ETHUSDT', 'ETHBTC', 'SOLBTC', 'SOLUSDT'], description: 'Four-Leg: ETH→BTC→SOL' },
+        { id: 'BITRUE_EXT_6', path: ['USDT', 'BTC', 'ETH', 'LINK', 'USDT'], pairs: ['BTCUSDT', 'ETHBTC', 'LINKETH', 'LINKUSDT'], description: 'Four-Leg: BTC→ETH→LINK' }
+    ]
+};
+
+// ROUTE 1: Test Bitrue Connection
+router.post('/bitrue/triangular/test-connection', asyncHandler(async (req, res) => {
+    try {
+        const { apiKey, apiSecret } = req.body;
+
+        if (!apiKey || !apiSecret) {
+            return res.status(400).json({
+                success: false,
+                message: 'API credentials (key and secret) are required'
+            });
+        }
+
+        const timestamp = Date.now();
+        const queryString = `timestamp=${timestamp}`;
+        const signature = createBitrueTriangularSignature(queryString, apiSecret);
+
+        const response = await axios.get(
+            `${BITRUE_TRIANGULAR_CONFIG.baseUrl}${BITRUE_TRIANGULAR_CONFIG.endpoints.balance}?${queryString}&signature=${signature}`,
+            {
+                headers: {
+                    'X-MBX-APIKEY': apiKey
+                }
+            }
+        );
+
+        if (response.data) {
+            res.json({
+                success: true,
+                message: 'Bitrue connection successful',
+                data: {
+                    balances: response.data.balances || [],
+                    timestamp: new Date().toISOString()
+                }
+            });
+        } else {
+            res.status(400).json({
+                success: false,
+                message: 'Bitrue API error: Invalid response'
+            });
+        }
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.response?.data?.msg || 'Failed to connect to Bitrue'
+        });
+    }
+}));
+
+// ROUTE 2: Scan Bitrue Triangular Opportunities
+router.post('/bitrue/triangular/scan', asyncHandler(async (req, res) => {
+    try {
+        const { apiKey, apiSecret, minProfitPercent = 0.3, enabledSets = ['SET_1', 'SET_2', 'SET_3', 'SET_4', 'SET_5'] } = req.body;
+
+        if (!apiKey || !apiSecret) {
+            return res.status(400).json({
+                success: false,
+                message: 'API credentials required'
+            });
+        }
+
+        // Fetch all tickers
+        const tickerResponse = await axios.get(
+            `${BITRUE_TRIANGULAR_CONFIG.baseUrl}${BITRUE_TRIANGULAR_CONFIG.endpoints.ticker}`
+        );
+
+        if (!Array.isArray(tickerResponse.data)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Failed to fetch Bitrue market data'
+            });
+        }
+
+        const tickers = tickerResponse.data;
+        const priceMap = {};
+
+        tickers.forEach(ticker => {
+            if (ticker.symbol) {
+                priceMap[ticker.symbol] = {
+                    bid: parseFloat(ticker.bidPrice || 0),
+                    ask: parseFloat(ticker.askPrice || 0),
+                    last: parseFloat(ticker.lastPrice || 0)
+                };
+            }
+        });
+
+        // Filter enabled paths
+        let allPaths = [];
+        if (enabledSets.includes('SET_1')) allPaths = allPaths.concat(BITRUE_TRIANGULAR_PATHS.SET_1_ESSENTIAL_ETH_BRIDGE);
+        if (enabledSets.includes('SET_2')) allPaths = allPaths.concat(BITRUE_TRIANGULAR_PATHS.SET_2_MIDCAP_BTC_BRIDGE);
+        if (enabledSets.includes('SET_3')) allPaths = allPaths.concat(BITRUE_TRIANGULAR_PATHS.SET_3_BTR_NATIVE_TOKEN);
+        if (enabledSets.includes('SET_4')) allPaths = allPaths.concat(BITRUE_TRIANGULAR_PATHS.SET_4_HIGH_VOLATILITY);
+        if (enabledSets.includes('SET_5')) allPaths = allPaths.concat(BITRUE_TRIANGULAR_PATHS.SET_5_EXTENDED_MULTIBRIDGE);
+
+        const opportunities = [];
+        const feePercent = 0.10; // Bitrue ~0.10% fee (0.07% with BTR)
+
+        allPaths.forEach(pathConfig => {
+            const pairs = pathConfig.pairs;
+            let isValid = true;
+            let prices = [];
+
+            // Get prices for each pair
+            for (const pair of pairs) {
+                if (!priceMap[pair]) {
+                    isValid = false;
+                    break;
+                }
+                prices.push(priceMap[pair]);
+            }
+
+            if (!isValid) return;
+
+            // Calculate profit for triangular path
+            let amount = 100; // Start with 100 USDT
+
+            // Execute each leg
+            for (let i = 0; i < pairs.length; i++) {
+                const price = prices[i];
+                const avgPrice = (price.bid + price.ask) / 2;
+
+                // Apply fee
+                amount = amount * (1 - feePercent / 100);
+
+                // Execute trade
+                if (i === 0 || i === pairs.length - 1) {
+                    // First and last leg: buying/selling against USDT
+                    amount = amount / avgPrice;
+                } else {
+                    // Middle legs: cross pairs
+                    amount = amount * avgPrice;
+                }
+            }
+
+            const profitPercent = ((amount - 100) / 100) * 100;
+
+            if (profitPercent >= minProfitPercent) {
+                opportunities.push({
+                    id: pathConfig.id,
+                    path: pathConfig.path,
+                    pairs: pathConfig.pairs,
+                    description: pathConfig.description,
+                    profitPercent: profitPercent.toFixed(3),
+                    estimatedProfit: (amount - 100).toFixed(2),
+                    prices: prices.map(p => ({
+                        bid: p.bid,
+                        ask: p.ask,
+                        spread: ((p.ask - p.bid) / p.bid * 100).toFixed(3)
+                    }))
+                });
+            }
+        });
+
+        // Sort by profit
+        opportunities.sort((a, b) => parseFloat(b.profitPercent) - parseFloat(a.profitPercent));
+
+        res.json({
+            success: true,
+            opportunities,
+            scannedPaths: allPaths.length,
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Failed to scan Bitrue opportunities'
+        });
+    }
+}));
+
+// ROUTE 3: Get Bitrue Triangular Paths
+router.get('/bitrue/triangular/paths', asyncHandler(async (req, res) => {
+    const allPaths = [
+        ...BITRUE_TRIANGULAR_PATHS.SET_1_ESSENTIAL_ETH_BRIDGE,
+        ...BITRUE_TRIANGULAR_PATHS.SET_2_MIDCAP_BTC_BRIDGE,
+        ...BITRUE_TRIANGULAR_PATHS.SET_3_BTR_NATIVE_TOKEN,
+        ...BITRUE_TRIANGULAR_PATHS.SET_4_HIGH_VOLATILITY,
+        ...BITRUE_TRIANGULAR_PATHS.SET_5_EXTENDED_MULTIBRIDGE
+    ];
+
+    res.json({
+        success: true,
+        exchange: 'Bitrue',
+        totalPaths: allPaths.length,
+        sets: {
+            SET_1_ESSENTIAL_ETH_BRIDGE: {
+                name: 'Essential ETH Bridge',
+                count: BITRUE_TRIANGULAR_PATHS.SET_1_ESSENTIAL_ETH_BRIDGE.length,
+                paths: BITRUE_TRIANGULAR_PATHS.SET_1_ESSENTIAL_ETH_BRIDGE
+            },
+            SET_2_MIDCAP_BTC_BRIDGE: {
+                name: 'Midcap BTC Bridge',
+                count: BITRUE_TRIANGULAR_PATHS.SET_2_MIDCAP_BTC_BRIDGE.length,
+                paths: BITRUE_TRIANGULAR_PATHS.SET_2_MIDCAP_BTC_BRIDGE
+            },
+            SET_3_BTR_NATIVE_TOKEN: {
+                name: 'BTR Native Token',
+                count: BITRUE_TRIANGULAR_PATHS.SET_3_BTR_NATIVE_TOKEN.length,
+                paths: BITRUE_TRIANGULAR_PATHS.SET_3_BTR_NATIVE_TOKEN
+            },
+            SET_4_HIGH_VOLATILITY: {
+                name: 'High Volatility',
+                count: BITRUE_TRIANGULAR_PATHS.SET_4_HIGH_VOLATILITY.length,
+                paths: BITRUE_TRIANGULAR_PATHS.SET_4_HIGH_VOLATILITY
+            },
+            SET_5_EXTENDED_MULTIBRIDGE: {
+                name: 'Extended Multi-Bridge',
+                count: BITRUE_TRIANGULAR_PATHS.SET_5_EXTENDED_MULTIBRIDGE.length,
+                paths: BITRUE_TRIANGULAR_PATHS.SET_5_EXTENDED_MULTIBRIDGE
+            }
+        }
+    });
+}));
+
+// ROUTE 4: Execute Bitrue Triangular Trade
+router.post('/bitrue/triangular/execute', asyncHandler(async (req, res) => {
+    try {
+        const { apiKey, apiSecret, pathId, amount, userId } = req.body;
+
+        if (!apiKey || !apiSecret) {
+            return res.status(400).json({
+                success: false,
+                message: 'API credentials required'
+            });
+        }
+
+        // Find the path configuration
+        const allPaths = [
+            ...BITRUE_TRIANGULAR_PATHS.SET_1_ESSENTIAL_ETH_BRIDGE,
+            ...BITRUE_TRIANGULAR_PATHS.SET_2_MIDCAP_BTC_BRIDGE,
+            ...BITRUE_TRIANGULAR_PATHS.SET_3_BTR_NATIVE_TOKEN,
+            ...BITRUE_TRIANGULAR_PATHS.SET_4_HIGH_VOLATILITY,
+            ...BITRUE_TRIANGULAR_PATHS.SET_5_EXTENDED_MULTIBRIDGE
+        ];
+
+        const pathConfig = allPaths.find(p => p.id === pathId);
+        if (!pathConfig) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid path ID'
+            });
+        }
+
+        const executionResults = [];
+        let currentAmount = parseFloat(amount);
+
+        // Execute each leg sequentially
+        for (let i = 0; i < pathConfig.pairs.length; i++) {
+            const symbol = pathConfig.pairs[i];
+            const timestamp = Date.now();
+
+            const orderParams = {
+                symbol: symbol,
+                side: i % 2 === 0 ? 'BUY' : 'SELL',
+                type: 'MARKET',
+                quantity: currentAmount,
+                timestamp: timestamp
+            };
+
+            const queryString = Object.keys(orderParams)
+                .map(key => `${key}=${orderParams[key]}`)
+                .join('&');
+
+            const signature = createBitrueTriangularSignature(queryString, apiSecret);
+
+            const response = await axios.post(
+                `${BITRUE_TRIANGULAR_CONFIG.baseUrl}${BITRUE_TRIANGULAR_CONFIG.endpoints.placeOrder}?${queryString}&signature=${signature}`,
+                {},
+                {
+                    headers: {
+                        'X-MBX-APIKEY': apiKey
+                    }
+                }
+            );
+
+            if (!response.data || response.data.status !== 'FILLED') {
+                throw new Error(`Order failed at leg ${i + 1}: ${response.data?.msg || 'Unknown error'}`);
+            }
+
+            executionResults.push({
+                leg: i + 1,
+                symbol: symbol,
+                orderId: response.data.orderId,
+                status: 'filled'
+            });
+
+            // Update amount for next leg
+            currentAmount = parseFloat(response.data.executedQty || currentAmount);
+        }
+
+        // Store trade in database
+        if (userId) {
+            await pool.query(
+                `INSERT INTO triangular_trades
+                (user_id, exchange, path_id, path_description, initial_amount, final_amount, profit, profit_percent, status, execution_details, created_at)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())`,
+                [
+                    userId,
+                    'Bitrue',
+                    pathConfig.id,
+                    pathConfig.description,
+                    parseFloat(amount),
+                    currentAmount,
+                    currentAmount - parseFloat(amount),
+                    ((currentAmount - parseFloat(amount)) / parseFloat(amount)) * 100,
+                    'completed',
+                    JSON.stringify(executionResults)
+                ]
+            );
+        }
+
+        res.json({
+            success: true,
+            message: 'Triangular arbitrage executed successfully',
+            execution: {
+                pathId: pathConfig.id,
+                initialAmount: parseFloat(amount),
+                finalAmount: currentAmount,
+                profit: currentAmount - parseFloat(amount),
+                profitPercent: ((currentAmount - parseFloat(amount)) / parseFloat(amount)) * 100,
+                legs: executionResults
+            }
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Failed to execute Bitrue triangular trade'
+        });
+    }
+}));
+
+// ROUTE 5: Get Bitrue Trade History (User-Specific)
+router.post('/bitrue/triangular/history', asyncHandler(async (req, res) => {
+    try {
+        const { userId } = req.body;
+        const limit = req.body.limit || 20;
+
+        if (!userId) {
+            return res.status(400).json({
+                success: false,
+                message: 'User ID required'
+            });
+        }
+
+        const result = await pool.query(
+            `SELECT * FROM triangular_trades
+             WHERE user_id = $1 AND exchange = 'Bitrue'
+             ORDER BY created_at DESC
+             LIMIT $2`,
+            [userId, limit]
+        );
+
+        res.json({
+            success: true,
+            trades: result.rows
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Failed to retrieve Bitrue trade history'
+        });
+    }
+}));
+
+// ROUTE 6: Get Recent Bitrue Trades (All Users)
+router.get('/bitrue/triangular/recent-trades', asyncHandler(async (req, res) => {
+    try {
+        const result = await pool.query(
+            `SELECT * FROM triangular_recent_trades
+             WHERE exchange = 'Bitrue'
+             ORDER BY created_at DESC
+             LIMIT 20`
+        );
+
+        res.json({
+            success: true,
+            trades: result.rows
+        });
+
+    } catch (error) {
+        console.error('Bitrue recent trades error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to retrieve recent Bitrue trades'
+        });
+    }
+}));
+
+// ============================================================================
 // VALR TRIANGULAR ARBITRAGE ENDPOINTS
 // ============================================
 // Specific endpoints for triangular arbitrage functionality
