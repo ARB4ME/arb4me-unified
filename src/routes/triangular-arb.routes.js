@@ -18,6 +18,54 @@ const router = express.Router();
 const authenticate = authenticateUser;
 
 // ============================================================================
+// EXCHANGE CONFIGURATION - Basic Trading Configs
+// ============================================================================
+
+const LUNO_CONFIG = {
+    baseUrl: 'https://api.luno.com',
+    endpoints: {
+        balance: '/api/1/balance',
+        ticker: '/api/1/ticker',
+        tickers: '/api/1/tickers',
+        order: '/api/1/marketorder'
+    }
+};
+
+const VALR_CONFIG = {
+    baseUrl: 'https://api.valr.com',
+    endpoints: {
+        balance: '/v1/account/balances',
+        ticker: '/v1/public/marketsummary',
+        simpleBuyOrder: '/v1/orders/market',  // Use working market order endpoint
+        simpleSellOrder: '/v1/orders/market', // Same endpoint for both buy and sell
+        pairs: '/v1/public/pairs',
+        orderStatus: '/v1/orders/:orderId',
+        orderBook: '/v1/public/:pair/orderbook'
+    }
+};
+
+const CHAINEX_CONFIG = {
+    baseUrl: 'https://api.chainex.io',
+    endpoints: {
+        balance: '/wallet/balances',
+        ticker: '/market/summary',
+        markets: '/market/summary',
+        order: '/trading/order',
+        orderBook: '/market/orderbook',  // Added for triangular arbitrage
+        pairs: '/market/pairs'            // Added for triangular arbitrage
+    }
+};
+
+const BYBIT_PROXY_CONFIG = {
+    baseUrl: 'https://api.bybit.com',
+    endpoints: {
+        balance: '/v5/account/wallet-balance',
+        ticker: '/v5/market/tickers',
+        test: '/v5/account/wallet-balance'
+    }
+};
+
+// ============================================================================
 // AUTHENTICATION HELPER FUNCTIONS
 // ============================================================================
 
