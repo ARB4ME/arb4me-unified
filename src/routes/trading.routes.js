@@ -10,6 +10,7 @@ const { broadcastToAdmins } = require('../websocket/socketManager');
 // Additional dependencies for exchange API integration
 const crypto = require('crypto');
 const https = require('https');
+const jwt = require('jsonwebtoken');
 
 const router = express.Router();
 
@@ -5352,6 +5353,415 @@ router.get('/kucoin/triangular/recent-trades', authenticatedRateLimit, authentic
         res.status(500).json({
             success: false,
             message: 'Failed to retrieve recent KuCoin trades'
+        });
+    }
+}));
+
+// ============================================================================
+// COINBASE TRIANGULAR ARBITRAGE ROUTES
+// ============================================================================
+
+// Coinbase API Configuration (Triangular Routes)
+const COINBASE_CONFIG = {
+    baseUrl: 'https://api.coinbase.com',
+    endpoints: {
+        accounts: '/api/v3/brokerage/accounts',
+        products: '/api/v3/brokerage/products',
+        ticker: '/api/v3/brokerage/best_bid_ask',
+        orderBook: '/api/v3/brokerage/product_book',
+        placeOrder: '/api/v3/brokerage/orders'
+    }
+};
+
+// Coinbase JWT Authentication Helper (ES256 with Elliptic Curve)
+function createCoinbaseJWT(apiKey, apiSecret, method, path) {
+    const uri = method + ' api.coinbase.com' + path;
+
+    const token = jwt.sign(
+        {
+            iss: 'coinbase-cloud',
+            nbf: Math.floor(Date.now() / 1000),
+            exp: Math.floor(Date.now() / 1000) + 120, // 2 minute expiry
+            sub: apiKey,
+            uri: uri
+        },
+        apiSecret,
+        {
+            algorithm: 'ES256',
+            header: {
+                kid: apiKey,
+                nonce: crypto.randomBytes(16).toString('hex')
+            }
+        }
+    );
+
+    return token;
+}
+
+// POST /api/v1/trading/coinbase/triangular/test-connection - Test Coinbase API connection for triangular arbitrage
+router.post('/coinbase/triangular/test-connection', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    const { apiKey, apiSecret } = req.body;
+
+    if (!apiKey || !apiSecret) {
+        return res.status(400).json({
+            success: false,
+            message: 'API Key and Secret are required'
+        });
+    }
+
+    try {
+        console.log('🔍 [COINBASE] Testing connection for triangular arbitrage...');
+
+        const endpoint = COINBASE_CONFIG.endpoints.accounts;
+        const jwtToken = createCoinbaseJWT(apiKey, apiSecret, 'GET', endpoint);
+
+        const accountsResponse = await fetch(`${COINBASE_CONFIG.baseUrl}${endpoint}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${jwtToken}`
+            }
+        });
+
+        const accountsData = await accountsResponse.json();
+
+        if (accountsResponse.ok && accountsData.accounts) {
+            console.log('✅ [COINBASE] Connection successful');
+            res.json({
+                success: true,
+                message: 'Coinbase connection successful',
+                accountsCount: accountsData.accounts.length,
+                timestamp: new Date().toISOString()
+            });
+        } else {
+            console.error('❌ [COINBASE] Connection failed:', accountsData.message);
+            res.status(401).json({
+                success: false,
+                message: accountsData.message || 'Invalid API credentials'
+            });
+        }
+    } catch (error) {
+        console.error('❌ [COINBASE] Connection test error:', error.message);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to test Coinbase connection',
+            error: error.message
+        });
+    }
+}));
+
+// POST /api/v1/trading/coinbase/triangular/scan - Scan for triangular arbitrage opportunities
+router.post('/coinbase/triangular/scan', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    const { apiKey, apiSecret, maxTradeAmount, profitThreshold, enabledSets } = req.body;
+
+    if (!apiKey || !apiSecret) {
+        return res.status(400).json({
+            success: false,
+            message: 'API credentials are required'
+        });
+    }
+
+    try {
+        console.log('🔍 [COINBASE] Scanning for triangular arbitrage opportunities...');
+
+        // Get all products
+        const endpoint = COINBASE_CONFIG.endpoints.products;
+        const jwtToken = createCoinbaseJWT(apiKey, apiSecret, 'GET', endpoint);
+
+        const productsResponse = await fetch(`${COINBASE_CONFIG.baseUrl}${endpoint}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${jwtToken}`
+            }
+        });
+
+        const productsData = await productsResponse.json();
+
+        if (!productsResponse.ok || !productsData.products) {
+            throw new Error(productsData.message || 'Failed to fetch products');
+        }
+
+        const priceMap = {};
+
+        // Build price map from products
+        productsData.products.forEach(product => {
+            if (product.product_id && product.price) {
+                priceMap[product.product_id] = parseFloat(product.price);
+            }
+        });
+
+        console.log(`📊 [COINBASE] Loaded ${Object.keys(priceMap).length} trading pairs`);
+
+        // Define triangular arbitrage paths (32 paths across 5 sets) - ALL USDC-BASED
+        const allPaths = {
+            SET_1_ESSENTIAL_ETH_BRIDGE: [
+                { id: 'CB_ETH_1', path: ['USDC', 'ETH', 'BTC', 'USDC'], pairs: ['ETH-USDC', 'BTC-ETH', 'BTC-USDC'], description: 'ETH → BTC Bridge' },
+                { id: 'CB_ETH_2', path: ['USDC', 'ETH', 'SOL', 'USDC'], pairs: ['ETH-USDC', 'SOL-ETH', 'SOL-USDC'], description: 'ETH → SOL Bridge' },
+                { id: 'CB_ETH_3', path: ['USDC', 'ETH', 'XRP', 'USDC'], pairs: ['ETH-USDC', 'XRP-ETH', 'XRP-USDC'], description: 'ETH → XRP Bridge' },
+                { id: 'CB_ETH_4', path: ['USDC', 'ETH', 'ADA', 'USDC'], pairs: ['ETH-USDC', 'ADA-ETH', 'ADA-USDC'], description: 'ETH → ADA Bridge' },
+                { id: 'CB_ETH_5', path: ['USDC', 'ETH', 'DOT', 'USDC'], pairs: ['ETH-USDC', 'DOT-ETH', 'DOT-USDC'], description: 'ETH → DOT Bridge' },
+                { id: 'CB_ETH_6', path: ['USDC', 'ETH', 'MATIC', 'USDC'], pairs: ['ETH-USDC', 'MATIC-ETH', 'MATIC-USDC'], description: 'ETH → MATIC Bridge' },
+                { id: 'CB_ETH_7', path: ['USDC', 'ETH', 'LINK', 'USDC'], pairs: ['ETH-USDC', 'LINK-ETH', 'LINK-USDC'], description: 'ETH → LINK Bridge' }
+            ],
+            SET_2_MIDCAP_BTC_BRIDGE: [
+                { id: 'CB_BTC_1', path: ['USDC', 'BTC', 'ETH', 'USDC'], pairs: ['BTC-USDC', 'ETH-BTC', 'ETH-USDC'], description: 'BTC → ETH Bridge' },
+                { id: 'CB_BTC_2', path: ['USDC', 'BTC', 'SOL', 'USDC'], pairs: ['BTC-USDC', 'SOL-BTC', 'SOL-USDC'], description: 'BTC → SOL Bridge' },
+                { id: 'CB_BTC_3', path: ['USDC', 'BTC', 'AVAX', 'USDC'], pairs: ['BTC-USDC', 'AVAX-BTC', 'AVAX-USDC'], description: 'BTC → AVAX Bridge' },
+                { id: 'CB_BTC_4', path: ['USDC', 'BTC', 'ATOM', 'USDC'], pairs: ['BTC-USDC', 'ATOM-BTC', 'ATOM-USDC'], description: 'BTC → ATOM Bridge' },
+                { id: 'CB_BTC_5', path: ['USDC', 'BTC', 'LTC', 'USDC'], pairs: ['BTC-USDC', 'LTC-BTC', 'LTC-USDC'], description: 'BTC → LTC Bridge' },
+                { id: 'CB_BTC_6', path: ['USDC', 'BTC', 'UNI', 'USDC'], pairs: ['BTC-USDC', 'UNI-BTC', 'UNI-USDC'], description: 'BTC → UNI Bridge' },
+                { id: 'CB_BTC_7', path: ['USDC', 'BTC', 'ALGO', 'USDC'], pairs: ['BTC-USDC', 'ALGO-BTC', 'ALGO-USDC'], description: 'BTC → ALGO Bridge' }
+            ],
+            SET_3_DEFI_NATIVE: [
+                { id: 'CB_DEFI_1', path: ['USDC', 'AAVE', 'ETH', 'USDC'], pairs: ['AAVE-USDC', 'ETH-AAVE', 'ETH-USDC'], description: 'AAVE → ETH DeFi' },
+                { id: 'CB_DEFI_2', path: ['USDC', 'COMP', 'ETH', 'USDC'], pairs: ['COMP-USDC', 'ETH-COMP', 'ETH-USDC'], description: 'COMP → ETH DeFi' },
+                { id: 'CB_DEFI_3', path: ['USDC', 'MKR', 'ETH', 'USDC'], pairs: ['MKR-USDC', 'ETH-MKR', 'ETH-USDC'], description: 'MKR → ETH DeFi' },
+                { id: 'CB_DEFI_4', path: ['USDC', 'SNX', 'ETH', 'USDC'], pairs: ['SNX-USDC', 'ETH-SNX', 'ETH-USDC'], description: 'SNX → ETH DeFi' },
+                { id: 'CB_DEFI_5', path: ['USDC', 'CRV', 'ETH', 'USDC'], pairs: ['CRV-USDC', 'ETH-CRV', 'ETH-USDC'], description: 'CRV → ETH DeFi' },
+                { id: 'CB_DEFI_6', path: ['USDC', 'SUSHI', 'ETH', 'USDC'], pairs: ['SUSHI-USDC', 'ETH-SUSHI', 'ETH-USDC'], description: 'SUSHI → ETH DeFi' }
+            ],
+            SET_4_HIGH_VOLATILITY: [
+                { id: 'CB_VOL_1', path: ['USDC', 'DOGE', 'BTC', 'USDC'], pairs: ['DOGE-USDC', 'BTC-DOGE', 'BTC-USDC'], description: 'DOGE → BTC Meme' },
+                { id: 'CB_VOL_2', path: ['USDC', 'SHIB', 'ETH', 'USDC'], pairs: ['SHIB-USDC', 'ETH-SHIB', 'ETH-USDC'], description: 'SHIB → ETH Meme' },
+                { id: 'CB_VOL_3', path: ['USDC', 'APE', 'ETH', 'USDC'], pairs: ['APE-USDC', 'ETH-APE', 'ETH-USDC'], description: 'APE → ETH Gaming' },
+                { id: 'CB_VOL_4', path: ['USDC', 'GALA', 'BTC', 'USDC'], pairs: ['GALA-USDC', 'BTC-GALA', 'BTC-USDC'], description: 'GALA → BTC Gaming' },
+                { id: 'CB_VOL_5', path: ['USDC', 'SAND', 'ETH', 'USDC'], pairs: ['SAND-USDC', 'ETH-SAND', 'ETH-USDC'], description: 'SAND → ETH Gaming' },
+                { id: 'CB_VOL_6', path: ['USDC', 'MANA', 'ETH', 'USDC'], pairs: ['MANA-USDC', 'ETH-MANA', 'ETH-USDC'], description: 'MANA → ETH Gaming' }
+            ],
+            SET_5_EXTENDED_MULTIBRIDGE: [
+                { id: 'CB_EXT_1', path: ['USDC', 'FIL', 'BTC', 'USDC'], pairs: ['FIL-USDC', 'BTC-FIL', 'BTC-USDC'], description: 'FIL → BTC Bridge' },
+                { id: 'CB_EXT_2', path: ['USDC', 'GRT', 'ETH', 'USDC'], pairs: ['GRT-USDC', 'ETH-GRT', 'ETH-USDC'], description: 'GRT → ETH Bridge' },
+                { id: 'CB_EXT_3', path: ['USDC', 'ICP', 'BTC', 'USDC'], pairs: ['ICP-USDC', 'BTC-ICP', 'BTC-USDC'], description: 'ICP → BTC Bridge' },
+                { id: 'CB_EXT_4', path: ['USDC', 'CHZ', 'ETH', 'USDC'], pairs: ['CHZ-USDC', 'ETH-CHZ', 'ETH-USDC'], description: 'CHZ → ETH Bridge' },
+                { id: 'CB_EXT_5', path: ['USDC', 'ENJ', 'BTC', 'USDC'], pairs: ['ENJ-USDC', 'BTC-ENJ', 'BTC-USDC'], description: 'ENJ → BTC Bridge' },
+                { id: 'CB_EXT_6', path: ['USDC', 'BTC', 'ETH', 'SOL', 'USDC'], pairs: ['BTC-USDC', 'ETH-BTC', 'SOL-ETH', 'SOL-USDC'], description: 'Multi-Bridge 4-Leg' }
+            ]
+        };
+
+        // Filter paths based on enabled sets
+        const enabledPaths = [];
+        Object.keys(allPaths).forEach(setKey => {
+            if (enabledSets && enabledSets[setKey]) {
+                enabledPaths.push(...allPaths[setKey]);
+            }
+        });
+
+        console.log(`🎯 [COINBASE] Scanning ${enabledPaths.length} enabled paths...`);
+
+        // Calculate arbitrage for each path
+        const opportunities = [];
+        const threshold = profitThreshold || 0.5;
+
+        enabledPaths.forEach(pathConfig => {
+            try {
+                // Check if all required pairs exist
+                const allPairsExist = pathConfig.pairs.every(pair => priceMap[pair]);
+
+                if (!allPairsExist) {
+                    return; // Skip if any pair is missing
+                }
+
+                // Calculate path profit
+                let amount = maxTradeAmount || 100;
+                const executionSteps = [];
+
+                // For standard 3-leg paths
+                if (pathConfig.path.length === 4) {
+                    // Leg 1: USDC → Asset1
+                    const price1 = priceMap[pathConfig.pairs[0]];
+                    const amount1 = amount / price1;
+                    executionSteps.push({ pair: pathConfig.pairs[0], side: 'BUY', amount: amount, price: price1, result: amount1 });
+
+                    // Leg 2: Asset1 → Asset2
+                    const price2 = priceMap[pathConfig.pairs[1]];
+                    const amount2 = amount1 / price2;
+                    executionSteps.push({ pair: pathConfig.pairs[1], side: 'BUY', amount: amount1, price: price2, result: amount2 });
+
+                    // Leg 3: Asset2 → USDC
+                    const price3 = priceMap[pathConfig.pairs[2]];
+                    const finalAmount = amount2 * price3;
+                    executionSteps.push({ pair: pathConfig.pairs[2], side: 'SELL', amount: amount2, price: price3, result: finalAmount });
+
+                    const profitAmount = finalAmount - amount;
+                    const profitPercent = (profitAmount / amount) * 100;
+
+                    if (profitPercent >= threshold) {
+                        opportunities.push({
+                            pathId: pathConfig.id,
+                            path: pathConfig.path,
+                            pairs: pathConfig.pairs,
+                            description: pathConfig.description,
+                            initialAmount: amount,
+                            finalAmount: finalAmount,
+                            profitAmount: profitAmount,
+                            profitPercent: profitPercent.toFixed(4),
+                            executionSteps: executionSteps,
+                            timestamp: new Date().toISOString()
+                        });
+                    }
+                }
+
+                // For 4-leg multi-bridge path
+                if (pathConfig.path.length === 5) {
+                    // Leg 1: USDC → BTC
+                    const price1 = priceMap[pathConfig.pairs[0]];
+                    const amount1 = amount / price1;
+                    executionSteps.push({ pair: pathConfig.pairs[0], side: 'BUY', amount: amount, price: price1, result: amount1 });
+
+                    // Leg 2: BTC → ETH
+                    const price2 = priceMap[pathConfig.pairs[1]];
+                    const amount2 = amount1 / price2;
+                    executionSteps.push({ pair: pathConfig.pairs[1], side: 'BUY', amount: amount1, price: price2, result: amount2 });
+
+                    // Leg 3: ETH → SOL
+                    const price3 = priceMap[pathConfig.pairs[2]];
+                    const amount3 = amount2 / price3;
+                    executionSteps.push({ pair: pathConfig.pairs[2], side: 'BUY', amount: amount2, price: price3, result: amount3 });
+
+                    // Leg 4: SOL → USDC
+                    const price4 = priceMap[pathConfig.pairs[3]];
+                    const finalAmount = amount3 * price4;
+                    executionSteps.push({ pair: pathConfig.pairs[3], side: 'SELL', amount: amount3, price: price4, result: finalAmount });
+
+                    const profitAmount = finalAmount - amount;
+                    const profitPercent = (profitAmount / amount) * 100;
+
+                    if (profitPercent >= threshold) {
+                        opportunities.push({
+                            pathId: pathConfig.id,
+                            path: pathConfig.path,
+                            pairs: pathConfig.pairs,
+                            description: pathConfig.description,
+                            initialAmount: amount,
+                            finalAmount: finalAmount,
+                            profitAmount: profitAmount,
+                            profitPercent: profitPercent.toFixed(4),
+                            executionSteps: executionSteps,
+                            timestamp: new Date().toISOString()
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error(`⚠️ [COINBASE] Error calculating path ${pathConfig.id}:`, error.message);
+            }
+        });
+
+        // Sort by profit percentage
+        opportunities.sort((a, b) => parseFloat(b.profitPercent) - parseFloat(a.profitPercent));
+
+        console.log(`✅ [COINBASE] Found ${opportunities.length} opportunities above ${threshold}% profit threshold`);
+
+        res.json({
+            success: true,
+            exchange: 'COINBASE',
+            opportunities: opportunities,
+            totalScanned: enabledPaths.length,
+            profitableCount: opportunities.length,
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        console.error('❌ [COINBASE] Scan error:', error.message);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to scan Coinbase triangular opportunities',
+            error: error.message
+        });
+    }
+}));
+
+// GET /api/v1/trading/coinbase/triangular/paths - Get all available triangular paths
+router.get('/coinbase/triangular/paths', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    console.log('📋 [COINBASE] Retrieving available triangular paths...');
+
+    const paths = {
+        SET_1_ESSENTIAL_ETH_BRIDGE: { count: 7, description: 'Major coins via ETH bridge', enabled: true },
+        SET_2_MIDCAP_BTC_BRIDGE: { count: 7, description: 'Mid-cap coins via BTC bridge', enabled: true },
+        SET_3_DEFI_NATIVE: { count: 6, description: 'DeFi tokens via ETH', enabled: false },
+        SET_4_HIGH_VOLATILITY: { count: 6, description: 'High volatility meme/gaming coins', enabled: false },
+        SET_5_EXTENDED_MULTIBRIDGE: { count: 6, description: 'Extended paths including 4-leg', enabled: false }
+    };
+
+    res.json({
+        success: true,
+        exchange: 'COINBASE',
+        totalPaths: 32,
+        fundingCurrency: 'USDC',
+        pathSets: paths,
+        timestamp: new Date().toISOString()
+    });
+}));
+
+// POST /api/v1/trading/coinbase/triangular/execute - Execute a triangular arbitrage trade (placeholder)
+router.post('/coinbase/triangular/execute', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    const { apiKey, apiSecret, opportunity } = req.body;
+
+    console.log('⚠️ [COINBASE] Execute endpoint called - NOT IMPLEMENTED YET');
+    console.log('🎯 [COINBASE] Opportunity:', opportunity?.pathId);
+
+    res.status(501).json({
+        success: false,
+        message: 'Execution not yet implemented - scan mode only',
+        notice: 'This endpoint will be implemented after initial testing phase'
+    });
+}));
+
+// DELETE /api/v1/trading/coinbase/triangular/history - Clear Coinbase triangular trade history
+router.delete('/coinbase/triangular/history', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+
+    try {
+        console.log('🗑️ [COINBASE] Clearing triangular trade history for user:', userId);
+
+        const result = await db.query(
+            'DELETE FROM triangular_trades WHERE user_id = $1 AND exchange = $2',
+            [userId, 'COINBASE']
+        );
+
+        console.log(`✅ [COINBASE] Cleared ${result.rowCount} trade records`);
+
+        res.json({
+            success: true,
+            message: `Cleared ${result.rowCount} Coinbase triangular trade records`,
+            deletedCount: result.rowCount
+        });
+    } catch (error) {
+        console.error('❌ [COINBASE] History clear error:', error.message);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to clear Coinbase trade history'
+        });
+    }
+}));
+
+// GET /api/v1/trading/coinbase/triangular/recent-trades - Get recent Coinbase triangular trades
+router.get('/coinbase/triangular/recent-trades', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+    const limit = parseInt(req.query.limit) || 50;
+
+    try {
+        console.log('📜 [COINBASE] Retrieving recent triangular trades for user:', userId);
+
+        const result = await db.query(
+            `SELECT * FROM triangular_trades
+             WHERE user_id = $1 AND exchange = $2
+             ORDER BY created_at DESC
+             LIMIT $3`,
+            [userId, 'COINBASE', limit]
+        );
+
+        res.json({
+            success: true,
+            exchange: 'COINBASE',
+            trades: result.rows,
+            count: result.rows.length
+        });
+    } catch (error) {
+        console.error('Coinbase triangular recent trades error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to retrieve recent Coinbase trades'
         });
     }
 }));

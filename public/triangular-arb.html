@@ -1128,6 +1128,98 @@
             </div>
         </div>
 
+        <!-- Coinbase Exchange -->
+        <div style="background: rgba(0,82,255,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 2px solid #0052FF;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="color: #0052FF; margin: 0;">🔵 COINBASE Triangular Arbitrage (USDC)</h3>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <div class="toggle-switch" id="coinbaseTriangularEnabled" onclick="toggleCoinbaseTriangular()">
+                        <div class="toggle-knob"></div>
+                    </div>
+                    <span id="coinbaseTriangularStatus" style="color: #ff6b6b; font-weight: 600;">OFF</span>
+                </div>
+            </div>
+
+            <div class="stat-grid">
+                <!-- Risk Management -->
+                <div class="stat-card">
+                    <h4 style="color: #0052FF; margin-bottom: 15px;">⚖️ Risk Management</h4>
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 500;">Max Trade (USDC)</label>
+                        <input type="number" id="coinbaseMaxTrade" value="100" min="10" max="10000" step="10"
+                               style="width: 100%; padding: 8px; border: 1px solid #0052FF; border-radius: 5px; background: rgba(0,82,255,0.05);">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 500;">Portfolio % per Trade</label>
+                        <input type="number" id="coinbasePortfolioPercent" value="10" min="1" max="50" step="1"
+                               style="width: 100%; padding: 8px; border: 1px solid #0052FF; border-radius: 5px; background: rgba(0,82,255,0.05);">
+                    </div>
+                    <div class="form-group">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 500;">Min Profit % Threshold</label>
+                        <input type="number" id="coinbaseProfitThreshold" value="0.5" min="0.1" max="5" step="0.1"
+                               style="width: 100%; padding: 8px; border: 1px solid #0052FF; border-radius: 5px; background: rgba(0,82,255,0.05);">
+                    </div>
+                </div>
+
+                <!-- Path Sets Configuration -->
+                <div class="stat-card">
+                    <h4 style="color: #0052FF; margin-bottom: 15px;">🎯 Triangular Path Sets (32 Paths)</h4>
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" id="coinbaseSet1Enabled" checked style="margin-right: 10px; width: 18px; height: 18px;">
+                            <span><strong>SET 1:</strong> Essential ETH Bridge (7 paths) - BTC, SOL, XRP, ADA, DOT, MATIC, LINK</span>
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" id="coinbaseSet2Enabled" checked style="margin-right: 10px; width: 18px; height: 18px;">
+                            <span><strong>SET 2:</strong> Mid-Cap BTC Bridge (7 paths) - ETH, SOL, AVAX, ATOM, LTC, UNI, ALGO</span>
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" id="coinbaseSet3Enabled" style="margin-right: 10px; width: 18px; height: 18px;">
+                            <span><strong>SET 3:</strong> DeFi Native (6 paths) - AAVE, COMP, MKR, SNX, CRV, SUSHI</span>
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" id="coinbaseSet4Enabled" style="margin-right: 10px; width: 18px; height: 18px;">
+                            <span><strong>SET 4:</strong> High Volatility (6 paths) - DOGE, SHIB, APE, GALA, SAND, MANA</span>
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" id="coinbaseSet5Enabled" style="margin-right: 10px; width: 18px; height: 18px;">
+                            <span><strong>SET 5:</strong> Extended Multi-Bridge (6 paths) - FIL, GRT, ICP, CHZ, ENJ + 4-leg path</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="stat-card">
+                    <h4 style="color: #0052FF; margin-bottom: 15px;">🔧 Actions</h4>
+                    <button onclick="testCoinbaseTriangularConnection()" class="btn" style="background: #0052FF; width: 100%; margin-bottom: 10px;">
+                        🔌 Test Connection
+                    </button>
+                    <button onclick="scanCoinbaseTriangularPaths()" class="btn" style="background: #0052FF; width: 100%; margin-bottom: 10px;">
+                        🔍 Scan Opportunities
+                    </button>
+                    <button onclick="viewCoinbasePathDetails()" class="btn" style="background: #666; width: 100%; margin-bottom: 10px;">
+                        📋 View All Paths
+                    </button>
+                    <button onclick="clearCoinbaseTriangularHistory()" class="btn" style="background: #ff6b6b; width: 100%; margin-bottom: 10px;">
+                        🗑️ Clear History
+                    </button>
+                    <button onclick="saveCoinbaseTriangularSettings()" class="btn" style="background: #4CAF50; width: 100%;">
+                        💾 Save Settings
+                    </button>
+                </div>
+
+                <!-- Current Opportunities -->
+                <div class="stat-card" style="grid-column: span 2;">
+                    <h4 style="color: #0052FF; margin-bottom: 15px;">💰 Current Opportunities</h4>
+                    <div id="coinbaseOpportunities" style="max-height: 400px; overflow-y: auto;">
+                        <p style="color: #888; text-align: center; padding: 20px;">
+                            Click "Scan Opportunities" to find triangular arbitrage paths
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Future Exchanges Placeholder -->
         <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 15px; border: 2px dashed #666;">
             <div style="text-align: center; color: #888;">
@@ -3467,6 +3559,337 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
                 const checkbox = document.getElementById(`kucoinSet${i}Enabled`);
                 if (checkbox) {
                     checkbox.addEventListener('change', saveKuCoinTriangularSettings);
+                }
+            }
+        });
+
+        // ============================================================================
+        // COINBASE TRIANGULAR ARBITRAGE FUNCTIONS
+        // ============================================================================
+
+        function toggleCoinbaseTriangular() {
+            const toggle = document.getElementById('coinbaseTriangularEnabled');
+            const status = document.getElementById('coinbaseTriangularStatus');
+            const isActive = toggle.classList.toggle('active');
+
+            if (isActive) {
+                status.textContent = 'ON';
+                status.style.color = '#0052FF';
+                localStorage.setItem('coinbaseTriangularEnabled', 'true');
+                console.log('✅ [COINBASE] Live triangular trading enabled');
+            } else {
+                status.textContent = 'OFF';
+                status.style.color = '#ff6b6b';
+                localStorage.setItem('coinbaseTriangularEnabled', 'false');
+                console.log('⏸️ [COINBASE] Live triangular trading disabled');
+            }
+        }
+
+        async function testCoinbaseTriangularConnection() {
+            console.log('🔍 [COINBASE] Testing connection...');
+
+            const apiKey = localStorage.getItem('coinbase_triangular_api');
+            const apiSecret = localStorage.getItem('coinbase_triangular_secret');
+
+            if (!apiKey || !apiSecret) {
+                alert('❌ Please configure your Coinbase API credentials (EC Private Key) in platform settings first.');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/v1/trading/coinbase/triangular/test-connection', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    },
+                    body: JSON.stringify({ apiKey, apiSecret })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert(`✅ Coinbase Connection Successful!\n\nAccounts: ${data.accountsCount}\nTimestamp: ${new Date(data.timestamp).toLocaleString()}`);
+                    console.log('✅ [COINBASE] Connection test passed:', data);
+                } else {
+                    alert(`❌ Connection Failed: ${data.message}`);
+                    console.error('❌ [COINBASE] Connection test failed:', data);
+                }
+            } catch (error) {
+                console.error('❌ [COINBASE] Connection test error:', error);
+                alert('❌ Connection test failed. Check console for details.');
+            }
+        }
+
+        async function scanCoinbaseTriangularPaths() {
+            console.log('🔍 [COINBASE] Starting scan for triangular arbitrage opportunities...');
+
+            const apiKey = localStorage.getItem('coinbase_triangular_api');
+            const apiSecret = localStorage.getItem('coinbase_triangular_secret');
+
+            if (!apiKey || !apiSecret) {
+                alert('❌ Please configure your Coinbase API credentials in platform settings first.');
+                return;
+            }
+
+            const maxTradeAmount = parseFloat(document.getElementById('coinbaseMaxTrade').value);
+            const profitThreshold = parseFloat(document.getElementById('coinbaseProfitThreshold').value);
+
+            const enabledSets = {
+                SET_1_ESSENTIAL_ETH_BRIDGE: document.getElementById('coinbaseSet1Enabled').checked,
+                SET_2_MIDCAP_BTC_BRIDGE: document.getElementById('coinbaseSet2Enabled').checked,
+                SET_3_DEFI_NATIVE: document.getElementById('coinbaseSet3Enabled').checked,
+                SET_4_HIGH_VOLATILITY: document.getElementById('coinbaseSet4Enabled').checked,
+                SET_5_EXTENDED_MULTIBRIDGE: document.getElementById('coinbaseSet5Enabled').checked
+            };
+
+            try {
+                const response = await fetch('/api/v1/trading/coinbase/triangular/scan', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    },
+                    body: JSON.stringify({
+                        apiKey,
+                        apiSecret,
+                        maxTradeAmount,
+                        profitThreshold,
+                        enabledSets
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    console.log(`✅ [COINBASE] Scan complete: ${data.profitableCount} opportunities found`);
+
+                    const container = document.getElementById('coinbaseOpportunities');
+
+                    if (data.opportunities.length === 0) {
+                        container.innerHTML = `
+                            <p style="color: #888; text-align: center; padding: 20px;">
+                                No profitable opportunities found above ${profitThreshold}% threshold.<br>
+                                Try lowering the profit threshold or enabling more path sets.
+                            </p>
+                        `;
+                    } else {
+                        let html = '<div style="display: flex; flex-direction: column; gap: 15px;">';
+
+                        data.opportunities.slice(0, 10).forEach((opp, index) => {
+                            html += `
+                                <div style="background: rgba(0,82,255,0.1); padding: 15px; border-radius: 8px; border-left: 4px solid #0052FF;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                        <strong style="color: #0052FF;">${opp.description}</strong>
+                                        <span style="background: #0052FF; color: white; padding: 4px 12px; border-radius: 12px; font-weight: 600;">
+                                            +${opp.profitPercent}%
+                                        </span>
+                                    </div>
+                                    <div style="font-size: 0.9rem; color: #b8c6db;">
+                                        <div>Path: ${opp.path.join(' → ')}</div>
+                                        <div>Initial: $${opp.initialAmount} USDC → Final: $${opp.finalAmount.toFixed(2)} USDC</div>
+                                        <div>Profit: $${opp.profitAmount.toFixed(2)} USDC</div>
+                                        <div style="font-size: 0.8rem; color: #888; margin-top: 5px;">${opp.pathId}</div>
+                                    </div>
+                                </div>
+                            `;
+                        });
+
+                        if (data.opportunities.length > 10) {
+                            html += `<p style="text-align: center; color: #888; font-size: 0.9rem;">Showing top 10 of ${data.opportunities.length} opportunities</p>`;
+                        }
+
+                        html += '</div>';
+                        container.innerHTML = html;
+                    }
+
+                    alert(`✅ Scan Complete!\n\nTotal Scanned: ${data.totalScanned} paths\nProfitable: ${data.profitableCount} opportunities\nBest: ${data.opportunities[0]?.profitPercent || 0}%\n\nFunding: USDC`);
+                } else {
+                    alert(`❌ Scan Failed: ${data.message}`);
+                    console.error('❌ [COINBASE] Scan failed:', data);
+                }
+            } catch (error) {
+                console.error('❌ [COINBASE] Scan error:', error);
+                alert('❌ Scan failed. Check console for details.');
+            }
+        }
+
+        function viewCoinbasePathDetails() {
+            console.log('📋 [COINBASE] Viewing all triangular path details...');
+
+            const pathDetails = `
+📋 COINBASE Triangular Arbitrage Paths (32 Total) - USDC BRIDGE
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 1: ESSENTIAL ETH BRIDGE (7 paths) ✓
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDC → ETH → BTC → USDC
+2. USDC → ETH → SOL → USDC
+3. USDC → ETH → XRP → USDC
+4. USDC → ETH → ADA → USDC
+5. USDC → ETH → DOT → USDC
+6. USDC → ETH → MATIC → USDC
+7. USDC → ETH → LINK → USDC
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 2: MIDCAP BTC BRIDGE (7 paths) ✓
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDC → BTC → ETH → USDC
+2. USDC → BTC → SOL → USDC
+3. USDC → BTC → AVAX → USDC
+4. USDC → BTC → ATOM → USDC
+5. USDC → BTC → LTC → USDC
+6. USDC → BTC → UNI → USDC
+7. USDC → BTC → ALGO → USDC
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 3: DEFI NATIVE (6 paths)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDC → AAVE → ETH → USDC (DeFi)
+2. USDC → COMP → ETH → USDC (DeFi)
+3. USDC → MKR → ETH → USDC (DeFi)
+4. USDC → SNX → ETH → USDC (DeFi)
+5. USDC → CRV → ETH → USDC (DeFi)
+6. USDC → SUSHI → ETH → USDC (DeFi)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 4: HIGH VOLATILITY (6 paths)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDC → DOGE → BTC → USDC (Meme)
+2. USDC → SHIB → ETH → USDC (Meme)
+3. USDC → APE → ETH → USDC (Gaming)
+4. USDC → GALA → BTC → USDC (Gaming)
+5. USDC → SAND → ETH → USDC (Gaming)
+6. USDC → MANA → ETH → USDC (Gaming)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 5: EXTENDED MULTIBRIDGE (6 paths)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDC → FIL → BTC → USDC
+2. USDC → GRT → ETH → USDC
+3. USDC → ICP → BTC → USDC
+4. USDC → CHZ → ETH → USDC
+5. USDC → ENJ → BTC → USDC
+6. USDC → BTC → ETH → SOL → USDC (4-leg)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💡 TIP: Sets 1-2 are enabled by default (14 paths)
+⚡ Enable Sets 3-5 for more opportunities (18 additional paths)
+💵 FUNDING: USDC (237 USDC pairs available)
+            `.trim();
+
+            alert(pathDetails);
+            console.log(pathDetails);
+        }
+
+        async function clearCoinbaseTriangularHistory() {
+            if (!confirm('⚠️ Are you sure you want to clear ALL Coinbase triangular trade history? This cannot be undone.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/v1/trading/coinbase/triangular/history', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert(`✅ ${data.message}`);
+                    console.log('✅ [COINBASE] History cleared:', data);
+                } else {
+                    alert(`❌ Failed to clear history: ${data.message}`);
+                }
+            } catch (error) {
+                console.error('❌ [COINBASE] Clear history error:', error);
+                alert('❌ Failed to clear history. Check console for details.');
+            }
+        }
+
+        function saveCoinbaseTriangularSettings() {
+            console.log('💾 [COINBASE] Saving settings to localStorage...');
+
+            const maxTrade = document.getElementById('coinbaseMaxTrade').value;
+            const portfolioPercent = document.getElementById('coinbasePortfolioPercent').value;
+            const profitThreshold = document.getElementById('coinbaseProfitThreshold').value;
+
+            const settings = {
+                maxTrade: maxTrade,
+                portfolioPercent: portfolioPercent,
+                profitThreshold: profitThreshold,
+                set1Enabled: document.getElementById('coinbaseSet1Enabled').checked,
+                set2Enabled: document.getElementById('coinbaseSet2Enabled').checked,
+                set3Enabled: document.getElementById('coinbaseSet3Enabled').checked,
+                set4Enabled: document.getElementById('coinbaseSet4Enabled').checked,
+                set5Enabled: document.getElementById('coinbaseSet5Enabled').checked
+            };
+
+            localStorage.setItem('coinbaseTriangularSettings', JSON.stringify(settings));
+            console.log('✅ [COINBASE] Settings saved:', settings);
+        }
+
+        function loadCoinbaseTriangularSettings() {
+            console.log('📥 [COINBASE] Loading settings from localStorage...');
+
+            // Load settings
+            const settingsJson = localStorage.getItem('coinbaseTriangularSettings');
+            if (settingsJson) {
+                try {
+                    const settings = JSON.parse(settingsJson);
+                    console.log('✅ [COINBASE] Settings loaded:', settings);
+
+                    if (settings.maxTrade) document.getElementById('coinbaseMaxTrade').value = settings.maxTrade;
+                    if (settings.portfolioPercent) document.getElementById('coinbasePortfolioPercent').value = settings.portfolioPercent;
+                    if (settings.profitThreshold) document.getElementById('coinbaseProfitThreshold').value = settings.profitThreshold;
+
+                    // Load path set preferences
+                    for (let i = 1; i <= 5; i++) {
+                        const checkbox = document.getElementById(`coinbaseSet${i}Enabled`);
+                        if (checkbox && settings.hasOwnProperty(`set${i}Enabled`)) {
+                            checkbox.checked = settings[`set${i}Enabled`];
+                        }
+                    }
+                } catch (error) {
+                    console.error('❌ [COINBASE] Failed to parse settings:', error);
+                }
+            }
+
+            // Load toggle state
+            const toggleEnabled = localStorage.getItem('coinbaseTriangularEnabled') === 'true';
+            const toggle = document.getElementById('coinbaseTriangularEnabled');
+            const status = document.getElementById('coinbaseTriangularStatus');
+
+            if (toggleEnabled) {
+                toggle.classList.add('active');
+                status.textContent = 'ON';
+                status.style.color = '#0052FF';
+                console.log('✅ [COINBASE] Live trading enabled (from localStorage)');
+            } else {
+                console.log('ℹ️ [COINBASE] Live trading disabled (from localStorage)');
+            }
+        }
+
+        // Initialize Coinbase settings on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 [COINBASE] Initializing triangular arbitrage settings...');
+            loadCoinbaseTriangularSettings();
+
+            // Add event listeners for Coinbase inputs (auto-save)
+            const coinbaseInputs = document.querySelectorAll('#coinbaseMaxTrade, #coinbasePortfolioPercent, #coinbaseProfitThreshold');
+            coinbaseInputs.forEach(input => {
+                input.addEventListener('change', saveCoinbaseTriangularSettings);
+            });
+
+            // Add event listeners for Coinbase checkboxes (5 sets)
+            for (let i = 1; i <= 5; i++) {
+                const checkbox = document.getElementById(`coinbaseSet${i}Enabled`);
+                if (checkbox) {
+                    checkbox.addEventListener('change', saveCoinbaseTriangularSettings);
                 }
             }
         });
