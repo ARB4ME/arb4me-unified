@@ -8038,6 +8038,479 @@ router.get('/bitrue/triangular/recent-trades', asyncHandler(async (req, res) => 
 }));
 
 // ============================================================================
+// GEMINI TRIANGULAR ARBITRAGE ENDPOINTS
+// ============================================================================
+// Gemini Exchange - Founded by Winklevoss twins, regulated US exchange
+// Limited USDT pairs (btcusdt, ethusdt only) - 10 paths instead of 32
+
+// Gemini Triangular Arbitrage API Configuration
+const GEMINI_TRIANGULAR_CONFIG = {
+    baseUrl: 'https://api.gemini.com',
+    endpoints: {
+        ticker: '/v2/ticker',
+        balance: '/v1/balances',
+        placeOrder: '/v1/order/new',
+        symbols: '/v1/symbols'
+    }
+};
+
+// Gemini HMAC-SHA384 Authentication Helper (NOTE: SHA384, not SHA256!)
+function createGeminiTriangularSignature(base64Payload, apiSecret) {
+    return crypto.createHmac('sha384', apiSecret).update(base64Payload).digest('hex');
+}
+
+// Gemini Triangular Arbitrage Paths (10 paths - limited by USDT availability)
+// NOTE: Gemini only has 2 USDT pairs: btcusdt, ethusdt
+const GEMINI_TRIANGULAR_PATHS = {
+    SET_1_BTC_ETH_DIRECT: [
+        { id: 'GEMINI_BTCETH_1', path: ['USDT', 'BTC', 'ETH', 'USDT'], pairs: ['btcusdt', 'ethbtc', 'ethusdt'], description: 'Direct BTC-ETH bridge (forward)' },
+        { id: 'GEMINI_ETHBTC_1', path: ['USDT', 'ETH', 'BTC', 'USDT'], pairs: ['ethusdt', 'ethbtc', 'btcusdt'], description: 'Direct ETH-BTC bridge (reverse)' }
+    ],
+    SET_2_DOGE_BRIDGE: [
+        { id: 'GEMINI_DOGE_1', path: ['USDT', 'BTC', 'DOGE', 'ETH', 'USDT'], pairs: ['btcusdt', 'dogebtc', 'dogeeth', 'ethusdt'], description: 'BTC → DOGE → ETH bridge' },
+        { id: 'GEMINI_DOGE_2', path: ['USDT', 'ETH', 'DOGE', 'BTC', 'USDT'], pairs: ['ethusdt', 'dogeeth', 'dogebtc', 'btcusdt'], description: 'ETH → DOGE → BTC bridge' }
+    ],
+    SET_3_LINK_BRIDGE: [
+        { id: 'GEMINI_LINK_1', path: ['USDT', 'BTC', 'LINK', 'ETH', 'USDT'], pairs: ['btcusdt', 'linkbtc', 'linketh', 'ethusdt'], description: 'BTC → LINK → ETH bridge' },
+        { id: 'GEMINI_LINK_2', path: ['USDT', 'ETH', 'LINK', 'BTC', 'USDT'], pairs: ['ethusdt', 'linketh', 'linkbtc', 'btcusdt'], description: 'ETH → LINK → BTC bridge' }
+    ],
+    SET_4_LTC_BRIDGE: [
+        { id: 'GEMINI_LTC_1', path: ['USDT', 'BTC', 'LTC', 'ETH', 'USDT'], pairs: ['btcusdt', 'ltcbtc', 'ltceth', 'ethusdt'], description: 'BTC → LTC → ETH bridge' },
+        { id: 'GEMINI_LTC_2', path: ['USDT', 'ETH', 'LTC', 'BTC', 'USDT'], pairs: ['ethusdt', 'ltceth', 'ltcbtc', 'btcusdt'], description: 'ETH → LTC → BTC bridge' }
+    ],
+    SET_5_SOL_BRIDGE: [
+        { id: 'GEMINI_SOL_1', path: ['USDT', 'BTC', 'SOL', 'ETH', 'USDT'], pairs: ['btcusdt', 'solbtc', 'soleth', 'ethusdt'], description: 'BTC → SOL → ETH bridge' },
+        { id: 'GEMINI_SOL_2', path: ['USDT', 'ETH', 'SOL', 'BTC', 'USDT'], pairs: ['ethusdt', 'soleth', 'solbtc', 'btcusdt'], description: 'ETH → SOL → BTC bridge' }
+    ]
+};
+
+// POST /api/v1/trading/gemini/triangular/test-connection
+// Test Gemini API connection for triangular trading
+router.post('/gemini/triangular/test-connection', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    try {
+        const { apiKey, apiSecret } = req.body;
+
+        systemLogger.trading('Gemini triangular connection test initiated', {
+            userId: req.user.id,
+            timestamp: new Date().toISOString()
+        });
+
+        // Validate Gemini API credentials
+        if (!apiKey || !apiSecret) {
+            throw new APIError('Gemini API credentials required', 400, 'GEMINI_CREDENTIALS_REQUIRED');
+        }
+
+        // Test connection with account balance request
+        const timestamp = Date.now();
+        const payload = {
+            request: '/v1/balances',
+            nonce: timestamp
+        };
+        const base64Payload = Buffer.from(JSON.stringify(payload)).toString('base64');
+        const signature = createGeminiTriangularSignature(base64Payload, apiSecret);
+
+        const balanceResponse = await axios.post(`${GEMINI_TRIANGULAR_CONFIG.baseUrl}/v1/balances`, {}, {
+            headers: {
+                'Content-Type': 'text/plain',
+                'X-GEMINI-APIKEY': apiKey,
+                'X-GEMINI-PAYLOAD': base64Payload,
+                'X-GEMINI-SIGNATURE': signature,
+                'Cache-Control': 'no-cache'
+            }
+        });
+
+        if (!Array.isArray(balanceResponse.data)) {
+            throw new APIError('Invalid response from Gemini API', 500, 'GEMINI_INVALID_RESPONSE');
+        }
+
+        // Find USDT balance
+        const usdtBalance = balanceResponse.data.find(b => b.currency.toUpperCase() === 'USDT');
+        const balance = usdtBalance ? {
+            available: parseFloat(usdtBalance.available),
+            total: parseFloat(usdtBalance.amount)
+        } : { available: 0, total: 0 };
+
+        systemLogger.trading('Gemini triangular connection successful', {
+            userId: req.user.id,
+            balance: balance.available
+        });
+
+        res.json({
+            success: true,
+            message: 'Gemini connection successful',
+            balance
+        });
+
+    } catch (error) {
+        systemLogger.trading('Gemini triangular connection failed', {
+            userId: req.user.id,
+            error: error.message
+        });
+
+        if (error.response?.data) {
+            throw new APIError(`Gemini API error: ${JSON.stringify(error.response.data)}`, 400, 'GEMINI_API_ERROR');
+        }
+
+        throw error;
+    }
+}));
+
+// POST /api/v1/trading/gemini/triangular/scan
+// Scan for Gemini triangular arbitrage opportunities
+router.post('/gemini/triangular/scan', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    try {
+        const { apiKey, apiSecret, selectedSets } = req.body;
+
+        systemLogger.trading('Gemini triangular scan initiated', {
+            userId: req.user.id,
+            selectedSets
+        });
+
+        // Validate inputs
+        if (!apiKey || !apiSecret) {
+            throw new APIError('Gemini API credentials required', 400, 'GEMINI_CREDENTIALS_REQUIRED');
+        }
+
+        if (!selectedSets || selectedSets.length === 0) {
+            throw new APIError('At least one path set must be selected', 400, 'NO_PATHS_SELECTED');
+        }
+
+        // Collect all paths from selected sets
+        let allPaths = [];
+        selectedSets.forEach(setName => {
+            if (GEMINI_TRIANGULAR_PATHS[setName]) {
+                allPaths = allPaths.concat(GEMINI_TRIANGULAR_PATHS[setName]);
+            }
+        });
+
+        if (allPaths.length === 0) {
+            throw new APIError('No valid paths found in selected sets', 400, 'NO_VALID_PATHS');
+        }
+
+        // Fetch all unique symbols (no authentication needed for ticker data)
+        const uniqueSymbols = [...new Set(allPaths.flatMap(p => p.pairs))];
+
+        const tickerPromises = uniqueSymbols.map(async symbol => {
+            try {
+                const response = await axios.get(`${GEMINI_TRIANGULAR_CONFIG.baseUrl}${GEMINI_TRIANGULAR_CONFIG.endpoints.ticker}/${symbol}`);
+                return {
+                    symbol,
+                    bid: parseFloat(response.data.bid),
+                    ask: parseFloat(response.data.ask)
+                };
+            } catch (error) {
+                systemLogger.trading(`Gemini ticker fetch failed for ${symbol}`, { error: error.message });
+                return null;
+            }
+        });
+
+        const tickers = (await Promise.all(tickerPromises)).filter(t => t !== null);
+
+        // Create ticker map
+        const tickerMap = {};
+        tickers.forEach(t => {
+            tickerMap[t.symbol] = t;
+        });
+
+        // Calculate arbitrage opportunities
+        const opportunities = [];
+        for (const pathConfig of allPaths) {
+            try {
+                // Check if all required tickers are available
+                const missingTickers = pathConfig.pairs.filter(pair => !tickerMap[pair]);
+                if (missingTickers.length > 0) {
+                    continue;
+                }
+
+                let simulatedAmount = 1000; // Start with $1000 USDT
+                const trades = [];
+
+                // Execute simulated trades
+                for (let i = 0; i < pathConfig.pairs.length; i++) {
+                    const pair = pathConfig.pairs[i];
+                    const ticker = tickerMap[pair];
+                    const fromCurrency = pathConfig.path[i];
+                    const toCurrency = pathConfig.path[i + 1];
+
+                    // Determine if we're buying or selling
+                    const pairBase = pair.replace('usdt', '').replace('btc', '').replace('eth', '');
+                    let price, side;
+
+                    if (pair === `${toCurrency.toLowerCase()}usdt` || pair === `${toCurrency.toLowerCase()}btc` || pair === `${toCurrency.toLowerCase()}eth`) {
+                        // Buying the quote currency
+                        side = 'buy';
+                        price = ticker.ask;
+                    } else {
+                        // Selling to get the quote currency
+                        side = 'sell';
+                        price = ticker.bid;
+                    }
+
+                    const newAmount = side === 'buy' ? simulatedAmount / price : simulatedAmount * price;
+
+                    trades.push({
+                        pair,
+                        side,
+                        price,
+                        fromAmount: simulatedAmount,
+                        toAmount: newAmount,
+                        fromCurrency,
+                        toCurrency
+                    });
+
+                    simulatedAmount = newAmount;
+                }
+
+                const profit = simulatedAmount - 1000;
+                const profitPercentage = (profit / 1000) * 100;
+
+                // Consider 0.35% trading fee (maker/taker average on Gemini)
+                const feePercentage = 0.35 * pathConfig.pairs.length;
+                const netProfitPercentage = profitPercentage - feePercentage;
+
+                if (netProfitPercentage > 0.1) { // Minimum 0.1% profit after fees
+                    opportunities.push({
+                        pathId: pathConfig.id,
+                        path: pathConfig.path,
+                        pairs: pathConfig.pairs,
+                        description: pathConfig.description,
+                        profitPercentage: netProfitPercentage,
+                        estimatedProfit: (netProfitPercentage / 100) * 1000,
+                        trades
+                    });
+                }
+
+            } catch (error) {
+                systemLogger.trading(`Error calculating path ${pathConfig.id}`, { error: error.message });
+            }
+        }
+
+        // Sort by profit percentage
+        opportunities.sort((a, b) => b.profitPercentage - a.profitPercentage);
+
+        systemLogger.trading('Gemini triangular scan completed', {
+            userId: req.user.id,
+            pathsScanned: allPaths.length,
+            opportunitiesFound: opportunities.length
+        });
+
+        res.json({
+            success: true,
+            opportunities,
+            scannedPaths: allPaths.length,
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        console.error('Gemini scan error:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Failed to scan Gemini triangular opportunities'
+        });
+    }
+}));
+
+// GET /api/v1/trading/gemini/triangular/paths
+// Get available Gemini triangular arbitrage paths
+router.get('/gemini/triangular/paths', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    res.json({
+        success: true,
+        paths: GEMINI_TRIANGULAR_PATHS,
+        note: 'Gemini has limited USDT pairs (btcusdt, ethusdt only) - 10 paths available instead of standard 32'
+    });
+}));
+
+// POST /api/v1/trading/gemini/triangular/execute
+// Execute a Gemini triangular arbitrage trade
+router.post('/gemini/triangular/execute', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    try {
+        const { apiKey, apiSecret, opportunity, investmentAmount } = req.body;
+
+        systemLogger.trading('Gemini triangular execution initiated', {
+            userId: req.user.id,
+            pathId: opportunity.pathId,
+            investmentAmount
+        });
+
+        // Validate inputs
+        if (!apiKey || !apiSecret) {
+            throw new APIError('Gemini API credentials required', 400, 'GEMINI_CREDENTIALS_REQUIRED');
+        }
+
+        if (!opportunity || !investmentAmount) {
+            throw new APIError('Opportunity and investment amount required', 400, 'MISSING_PARAMETERS');
+        }
+
+        const executedTrades = [];
+        let currentAmount = investmentAmount;
+
+        // Execute each leg of the triangular arbitrage
+        for (let i = 0; i < opportunity.trades.length; i++) {
+            const trade = opportunity.trades[i];
+
+            const timestamp = Date.now() + i; // Increment nonce for each request
+            const orderPayload = {
+                request: '/v1/order/new',
+                nonce: timestamp,
+                symbol: trade.pair,
+                amount: (currentAmount / trade.price).toFixed(8),
+                price: trade.price.toFixed(8),
+                side: trade.side,
+                type: 'exchange limit',
+                options: ['immediate-or-cancel'] // IOC for quick execution
+            };
+
+            const base64Payload = Buffer.from(JSON.stringify(orderPayload)).toString('base64');
+            const signature = createGeminiTriangularSignature(base64Payload, apiSecret);
+
+            const orderResponse = await axios.post(`${GEMINI_TRIANGULAR_CONFIG.baseUrl}/v1/order/new`, {}, {
+                headers: {
+                    'Content-Type': 'text/plain',
+                    'X-GEMINI-APIKEY': apiKey,
+                    'X-GEMINI-PAYLOAD': base64Payload,
+                    'X-GEMINI-SIGNATURE': signature,
+                    'Cache-Control': 'no-cache'
+                }
+            });
+
+            executedTrades.push({
+                pair: trade.pair,
+                side: trade.side,
+                price: trade.price,
+                amount: parseFloat(orderPayload.amount),
+                orderId: orderResponse.data.order_id
+            });
+
+            currentAmount = trade.toAmount;
+
+            // Small delay between trades
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+
+        const finalProfit = currentAmount - investmentAmount;
+
+        // Save to database
+        if (req.db) {
+            await req.db.query(
+                `INSERT INTO triangular_trades
+                (user_id, exchange, path_id, investment_amount, final_amount, profit, status, trades_data, created_at)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())`,
+                [
+                    req.user.id,
+                    'gemini',
+                    opportunity.pathId,
+                    investmentAmount,
+                    currentAmount,
+                    finalProfit,
+                    'completed',
+                    JSON.stringify(executedTrades)
+                ]
+            );
+        }
+
+        systemLogger.trading('Gemini triangular execution completed', {
+            userId: req.user.id,
+            pathId: opportunity.pathId,
+            profit: finalProfit
+        });
+
+        res.json({
+            success: true,
+            message: 'Triangular arbitrage executed successfully',
+            executedTrades,
+            finalAmount: currentAmount,
+            profit: finalProfit,
+            profitPercentage: ((finalProfit / investmentAmount) * 100).toFixed(2)
+        });
+
+    } catch (error) {
+        console.error('Gemini execution error:', error);
+
+        systemLogger.trading('Gemini triangular execution failed', {
+            userId: req.user.id,
+            error: error.message
+        });
+
+        res.status(500).json({
+            success: false,
+            message: error.response?.data?.message || error.message || 'Execution failed'
+        });
+    }
+}));
+
+// GET /api/v1/trading/gemini/triangular/history
+// Get Gemini triangular arbitrage trade history
+router.get('/gemini/triangular/history', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    try {
+        if (!req.db) {
+            return res.json({
+                success: true,
+                trades: [],
+                message: 'Database not connected'
+            });
+        }
+
+        const result = await req.db.query(
+            `SELECT * FROM triangular_trades
+            WHERE user_id = $1 AND exchange = $2
+            ORDER BY created_at DESC
+            LIMIT 50`,
+            [req.user.id, 'gemini']
+        );
+
+        res.json({
+            success: true,
+            trades: result.rows
+        });
+
+    } catch (error) {
+        console.error('Gemini history error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to retrieve Gemini trade history'
+        });
+    }
+}));
+
+// GET /api/v1/trading/gemini/triangular/recent-trades
+// Get recent Gemini triangular arbitrage trades (last 24 hours, all users)
+router.get('/gemini/triangular/recent-trades', generalRateLimit, asyncHandler(async (req, res) => {
+    try {
+        if (!req.db) {
+            return res.json({
+                success: true,
+                trades: []
+            });
+        }
+
+        const result = await req.db.query(
+            `SELECT path_id, investment_amount, profit,
+                    (profit / investment_amount * 100) as profit_percentage,
+                    created_at
+            FROM triangular_trades
+            WHERE exchange = $1
+            AND created_at > NOW() - INTERVAL '24 hours'
+            AND status = 'completed'
+            ORDER BY created_at DESC
+            LIMIT 20`,
+            ['gemini']
+        );
+
+        res.json({
+            success: true,
+            trades: result.rows
+        });
+
+    } catch (error) {
+        console.error('Gemini recent trades error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to retrieve recent Gemini trades'
+        });
+    }
+}));
+
+// ============================================================================
 // VALR TRIANGULAR ARBITRAGE ENDPOINTS
 // ============================================
 // Specific endpoints for triangular arbitrage functionality
