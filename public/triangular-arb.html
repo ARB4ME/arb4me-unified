@@ -1588,6 +1588,98 @@
             </div>
         </div>
 
+        <!-- XT Exchange -->
+        <div style="background: rgba(0,150,255,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 2px solid #0096FF;">
+            <h3 style="color: #0096FF; margin: 0;">🚀 XT.COM Triangular Arbitrage</h3>
+            <p style="color: #888; margin: 10px 0 0 0; font-size: 14px;">
+                1,000+ USDT pairs | XT native token | HMAC-SHA256 authentication | 7.8M users
+            </p>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 20px;">
+                <!-- Status Card -->
+                <div class="stat-card">
+                    <h4 style="color: #0096FF; margin-bottom: 15px;">📊 Status</h4>
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                        <div id="xtStatusIndicator" style="width: 12px; height: 12px; border-radius: 50%; background: #666;"></div>
+                        <span id="xtStatusText" style="color: #888;">Not Connected</span>
+                    </div>
+                    <div style="margin-top: 15px; display: flex; gap: 10px;">
+                        <button onclick="testXtTriangularConnection()" style="flex: 1; padding: 10px; background: #0096FF; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                            Test Connection
+                        </button>
+                        <button onclick="viewXtPathDetails()" style="flex: 1; padding: 10px; background: rgba(0,150,255,0.2); color: #0096FF; border: 1px solid #0096FF; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                            View Paths
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Risk Management -->
+                <div class="stat-card">
+                    <h4 style="color: #0096FF; margin-bottom: 15px;">⚖️ Risk Management</h4>
+                    <label style="display: block; color: #888; margin-bottom: 5px; font-size: 14px;">Max Trade Amount (USDT)</label>
+                    <input type="number" id="xtMaxTrade" value="100" min="10" max="10000" step="10" style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid #444; border-radius: 8px; color: white; margin-bottom: 15px;">
+
+                    <label style="display: block; color: #888; margin-bottom: 5px; font-size: 14px;">Portfolio % Risk</label>
+                    <input type="number" id="xtPortfolioPercent" value="5" min="1" max="20" step="1" style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid #444; border-radius: 8px; color: white; margin-bottom: 15px;">
+
+                    <label style="display: block; color: #888; margin-bottom: 5px; font-size: 14px;">Min Profit Threshold (%)</label>
+                    <input type="number" id="xtProfitThreshold" value="0.3" min="0.1" max="5" step="0.1" style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid #444; border-radius: 8px; color: white;">
+                </div>
+
+                <!-- Path Sets -->
+                <div class="stat-card">
+                    <h4 style="color: #0096FF; margin-bottom: 15px;">🔀 Path Selection (32 Total)</h4>
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                            <input type="checkbox" id="xtSet1Enabled" checked style="width: 18px; height: 18px; cursor: pointer;">
+                            <span style="color: #ddd;">✅ SET 1: Essential ETH Bridge (7 paths)</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                            <input type="checkbox" id="xtSet2Enabled" checked style="width: 18px; height: 18px; cursor: pointer;">
+                            <span style="color: #ddd;">✅ SET 2: Mid-Cap BTC Bridge (7 paths)</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                            <input type="checkbox" id="xtSet3Enabled" style="width: 18px; height: 18px; cursor: pointer;">
+                            <span style="color: #ddd;">🚀 SET 3: XT Native Bridge (6 paths)</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                            <input type="checkbox" id="xtSet4Enabled" style="width: 18px; height: 18px; cursor: pointer;">
+                            <span style="color: #ddd;">⚡ SET 4: High Volatility (6 paths)</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                            <input type="checkbox" id="xtSet5Enabled" style="width: 18px; height: 18px; cursor: pointer;">
+                            <span style="color: #ddd;">🔁 SET 5: Extended Multi-Bridge (6 paths)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Scanner Controls -->
+                <div class="stat-card">
+                    <h4 style="color: #0096FF; margin-bottom: 15px;">🔍 Scanner</h4>
+                    <button onclick="scanXtTriangularPaths()" style="width: 100%; padding: 12px; background: #0096FF; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 16px; margin-bottom: 15px;">
+                        🚀 SCAN FOR OPPORTUNITIES
+                    </button>
+                    <div id="xtScanStatus" style="color: #888; font-size: 14px; text-align: center; min-height: 20px;"></div>
+                </div>
+
+                <!-- Opportunities Display -->
+                <div class="stat-card" style="grid-column: 1 / -1;">
+                    <h4 style="color: #0096FF; margin-bottom: 15px;">💎 Active Opportunities</h4>
+                    <div id="xtOpportunities" style="color: #888; font-size: 14px;">
+                        No scan results yet. Click "SCAN FOR OPPORTUNITIES" to begin.
+                    </div>
+                </div>
+
+                <!-- Trade History -->
+                <div class="stat-card" style="grid-column: 1 / -1;">
+                    <h4 style="color: #0096FF; margin-bottom: 15px;">📜 Recent Trades</h4>
+                    <div id="xtTradeHistory" style="color: #888; font-size: 14px;">
+                        No trade history available.
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Future Exchanges Placeholder -->
         <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 15px; border: 2px dashed #666;">
             <div style="text-align: center; color: #888;">
@@ -5620,6 +5712,330 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
                 const checkbox = document.getElementById(`mexcSet${i}Enabled`);
                 if (checkbox) {
                     checkbox.addEventListener('change', saveMexcTriangularSettings);
+                }
+            }
+        });
+
+        // ═══════════════════════════════════════════════════════════
+        // XT TRIANGULAR ARBITRAGE FUNCTIONS
+        // ═══════════════════════════════════════════════════════════
+
+        // 1. Test XT Connection
+        async function testXtTriangularConnection() {
+            try {
+                const apiKey = localStorage.getItem('xt_triangular_api');
+                const apiSecret = localStorage.getItem('xt_triangular_secret');
+
+                if (!apiKey || !apiSecret) {
+                    alert('❌ XT API credentials not found!\n\nPlease set your API credentials on the SETUP page first.');
+                    return;
+                }
+
+                document.getElementById('xtStatusText').textContent = 'Testing connection...';
+                document.getElementById('xtStatusIndicator').style.background = '#0096FF';
+
+                const response = await fetch('/api/v1/trading/xt/triangular/test-connection', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    },
+                    body: JSON.stringify({ apiKey, apiSecret })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    document.getElementById('xtStatusIndicator').style.background = '#0096FF';
+                    document.getElementById('xtStatusText').textContent = `Connected | ${result.balances.USDT} USDT`;
+                    alert(`✅ XT Connection Successful!\n\nUSDT Balance: ${result.balances.USDT}\nBTC Balance: ${result.balances.BTC}\n🚀 XT Balance: ${result.balances.XT}\n\n✨ 7.8M Global Users`);
+                } else {
+                    throw new Error(result.message);
+                }
+            } catch (error) {
+                console.error('XT connection error:', error);
+                document.getElementById('xtStatusIndicator').style.background = '#FF4444';
+                document.getElementById('xtStatusText').textContent = 'Connection Failed';
+                alert(`❌ XT Connection Failed\n\n${error.message}`);
+            }
+        }
+
+        // 2. View XT Path Details
+        function viewXtPathDetails() {
+            const pathDetails = `
+📋 XT.COM Triangular Arbitrage Paths (32 Total)
+
+✨ SET 1: Essential ETH Bridge (7 paths) ✅ ENABLED BY DEFAULT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → ETH → BTC → USDT (eth_usdt, btc_eth, btc_usdt)
+2. USDT → ETH → SOL → USDT (eth_usdt, sol_eth, sol_usdt)
+3. USDT → ETH → XRP → USDT (eth_usdt, xrp_eth, xrp_usdt)
+4. USDT → ETH → ADA → USDT (eth_usdt, ada_eth, ada_usdt)
+5. USDT → ETH → MATIC → USDT (eth_usdt, matic_eth, matic_usdt)
+6. USDT → ETH → DOT → USDT (eth_usdt, dot_eth, dot_usdt)
+7. USDT → ETH → AVAX → USDT (eth_usdt, avax_eth, avax_usdt)
+
+🔷 SET 2: Mid-Cap BTC Bridge (7 paths) ✅ ENABLED BY DEFAULT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → BTC → ETH → USDT (btc_usdt, eth_btc, eth_usdt)
+2. USDT → BTC → SOL → USDT (btc_usdt, sol_btc, sol_usdt)
+3. USDT → BTC → ADA → USDT (btc_usdt, ada_btc, ada_usdt)
+4. USDT → BTC → DOT → USDT (btc_usdt, dot_btc, dot_usdt)
+5. USDT → BTC → ATOM → USDT (btc_usdt, atom_btc, atom_usdt)
+6. USDT → BTC → LTC → USDT (btc_usdt, ltc_btc, ltc_usdt)
+7. USDT → BTC → XRP → USDT (btc_usdt, xrp_btc, xrp_usdt)
+
+🚀 SET 3: XT Native Bridge (6 paths) - XT Token
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → XT → BTC → USDT (xt_usdt, btc_xt, btc_usdt)
+2. USDT → XT → ETH → USDT (xt_usdt, eth_xt, eth_usdt)
+3. USDT → XT → SOL → USDT (xt_usdt, sol_xt, sol_usdt)
+4. USDT → BTC → XT → USDT (btc_usdt, xt_btc, xt_usdt)
+5. USDT → ETH → XT → USDT (eth_usdt, xt_eth, xt_usdt)
+6. USDT → XT → MATIC → USDT (xt_usdt, matic_xt, matic_usdt)
+
+⚡ SET 4: High Volatility (6 paths)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → DOGE → BTC → USDT (doge_usdt, btc_doge, btc_usdt)
+2. USDT → SHIB → ETH → USDT (shib_usdt, eth_shib, eth_usdt)
+3. USDT → MATIC → BTC → USDT (matic_usdt, btc_matic, btc_usdt)
+4. USDT → SOL → ETH → USDT (sol_usdt, eth_sol, eth_usdt)
+5. USDT → ADA → BTC → USDT (ada_usdt, btc_ada, btc_usdt)
+6. USDT → DOT → ETH → USDT (dot_usdt, eth_dot, eth_usdt)
+
+🔁 SET 5: Extended Multi-Bridge (6 paths)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → SOL → BTC → USDT (sol_usdt, btc_sol, btc_usdt)
+2. USDT → XRP → ETH → USDT (xrp_usdt, eth_xrp, eth_usdt)
+3. USDT → AVAX → BTC → USDT (avax_usdt, btc_avax, btc_usdt)
+4. USDT → ATOM → ETH → USDT (atom_usdt, eth_atom, eth_usdt)
+5. USDT → BTC → ETH → SOL → USDT ⭐ 4-LEG (btc_usdt, eth_btc, sol_eth, sol_usdt)
+6. USDT → ETH → BTC → ADA → USDT ⭐ 4-LEG (eth_usdt, btc_eth, ada_btc, ada_usdt)
+
+💡 TOTAL: 32 paths (30 three-leg + 2 four-leg)
+🌉 BRIDGE: USDT (1,000+ trading pairs)
+🚀 NATIVE: XT token for fee optimization
+🔐 AUTH: HMAC-SHA256 signature with custom headers
+📊 EXCHANGE: XT.COM (7.8M users globally)
+            `.trim();
+
+            alert(pathDetails);
+        }
+
+        // 3. Save XT Settings
+        function saveXtTriangularSettings() {
+            const settings = {
+                maxTrade: document.getElementById('xtMaxTrade').value,
+                portfolioPercent: document.getElementById('xtPortfolioPercent').value,
+                profitThreshold: document.getElementById('xtProfitThreshold').value,
+                set1Enabled: document.getElementById('xtSet1Enabled').checked,
+                set2Enabled: document.getElementById('xtSet2Enabled').checked,
+                set3Enabled: document.getElementById('xtSet3Enabled').checked,
+                set4Enabled: document.getElementById('xtSet4Enabled').checked,
+                set5Enabled: document.getElementById('xtSet5Enabled').checked
+            };
+
+            localStorage.setItem('xt_triangular_settings', JSON.stringify(settings));
+            console.log('✅ [XT] Settings saved:', settings);
+        }
+
+        // 4. Load XT Settings
+        function loadXtTriangularSettings() {
+            const saved = localStorage.getItem('xt_triangular_settings');
+            if (saved) {
+                const settings = JSON.parse(saved);
+                document.getElementById('xtMaxTrade').value = settings.maxTrade || 100;
+                document.getElementById('xtPortfolioPercent').value = settings.portfolioPercent || 5;
+                document.getElementById('xtProfitThreshold').value = settings.profitThreshold || 0.3;
+                document.getElementById('xtSet1Enabled').checked = settings.set1Enabled !== false;
+                document.getElementById('xtSet2Enabled').checked = settings.set2Enabled !== false;
+                document.getElementById('xtSet3Enabled').checked = settings.set3Enabled === true;
+                document.getElementById('xtSet4Enabled').checked = settings.set4Enabled === true;
+                document.getElementById('xtSet5Enabled').checked = settings.set5Enabled === true;
+                console.log('✅ [XT] Settings loaded:', settings);
+            }
+        }
+
+        // 5. Scan XT Triangular Paths
+        async function scanXtTriangularPaths() {
+            try {
+                const apiKey = localStorage.getItem('xt_triangular_api');
+                const apiSecret = localStorage.getItem('xt_triangular_secret');
+
+                if (!apiKey || !apiSecret) {
+                    alert('❌ XT API credentials not found!\n\nPlease set your API credentials on the SETUP page first.');
+                    return;
+                }
+
+                const maxTradeAmount = parseFloat(document.getElementById('xtMaxTrade').value);
+                const profitThreshold = parseFloat(document.getElementById('xtProfitThreshold').value);
+
+                const enabledSets = {
+                    SET_1_ESSENTIAL_ETH_BRIDGE: document.getElementById('xtSet1Enabled').checked,
+                    SET_2_MIDCAP_BTC_BRIDGE: document.getElementById('xtSet2Enabled').checked,
+                    SET_3_XT_NATIVE_BRIDGE: document.getElementById('xtSet3Enabled').checked,
+                    SET_4_HIGH_VOLATILITY: document.getElementById('xtSet4Enabled').checked,
+                    SET_5_EXTENDED_MULTIBRIDGE: document.getElementById('xtSet5Enabled').checked
+                };
+
+                document.getElementById('xtScanStatus').textContent = '🔍 Scanning XT paths...';
+                document.getElementById('xtOpportunities').innerHTML = '<div style="text-align: center; padding: 20px; color: #0096FF;">⏳ Analyzing 1,000+ pairs...</div>';
+
+                const response = await fetch('/api/v1/trading/xt/triangular/scan', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    },
+                    body: JSON.stringify({ apiKey, apiSecret, maxTradeAmount, profitThreshold, enabledSets })
+                });
+
+                const result = await response.json();
+
+                if (result.success && result.opportunities.length > 0) {
+                    document.getElementById('xtScanStatus').textContent = `✅ Found ${result.opportunities.length} opportunities`;
+
+                    let oppsHtml = '<div style="display: grid; gap: 15px;">';
+                    result.opportunities.forEach(opp => {
+                        const profitColor = parseFloat(opp.profitPercent) >= 1 ? '#00ff88' : '#0096FF';
+                        const riskColor = opp.risk === 'EXECUTE' ? '#00ff88' : opp.risk === 'CAUTIOUS' ? '#0096FF' : '#FF4444';
+
+                        oppsHtml += `
+                            <div style="background: rgba(0,150,255,0.1); padding: 15px; border-radius: 10px; border-left: 4px solid ${profitColor};">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                    <span style="color: white; font-weight: 600; font-size: 15px;">${opp.path.join(' → ')}</span>
+                                    <span style="color: ${profitColor}; font-weight: 700; font-size: 16px;">+${opp.profitPercent}%</span>
+                                </div>
+                                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; font-size: 13px;">
+                                    <div><span style="color: #888;">Expected:</span> <span style="color: white;">${opp.expectedProfitZAR} USDT</span></div>
+                                    <div><span style="color: #888;">Risk:</span> <span style="color: ${riskColor};">${opp.risk}</span></div>
+                                    <div><span style="color: #888;">Slippage:</span> <span style="color: white;">${opp.estimatedSlippage}%</span></div>
+                                </div>
+                                <div style="margin-top: 12px; display: flex; gap: 8px;">
+                                    <button onclick='executeXtTriangularTrade(${JSON.stringify(opp)})' style="flex: 1; padding: 8px; background: #0096FF; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px;">
+                                        ⚡ EXECUTE
+                                    </button>
+                                    <button onclick='alert("Path: ${opp.pairs.join(" → ")}")' style="flex: 1; padding: 8px; background: rgba(0,150,255,0.2); color: #0096FF; border: 1px solid #0096FF; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px;">
+                                        📊 Details
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    oppsHtml += '</div>';
+
+                    document.getElementById('xtOpportunities').innerHTML = oppsHtml;
+                } else {
+                    document.getElementById('xtScanStatus').textContent = '❌ No profitable opportunities found';
+                    document.getElementById('xtOpportunities').innerHTML = '<div style="text-align: center; padding: 20px; color: #888;">No opportunities above profit threshold. Try lowering threshold or enabling more path sets.</div>';
+                }
+            } catch (error) {
+                console.error('XT scan error:', error);
+                document.getElementById('xtScanStatus').textContent = '❌ Scan failed';
+                document.getElementById('xtOpportunities').innerHTML = `<div style="color: #FF4444; padding: 20px; text-align: center;">Error: ${error.message}</div>`;
+            }
+        }
+
+        // 6. Execute XT Triangular Trade
+        async function executeXtTriangularTrade(opportunity) {
+            try {
+                const confirmation = confirm(`🚀 EXECUTE XT TRIANGULAR TRADE\n\nPath: ${opportunity.path.join(' → ')}\nExpected Profit: ${opportunity.profitPercent}% (+${opportunity.expectedProfitZAR} USDT)\nRisk: ${opportunity.risk}\n\n⚠️ This will execute a real trade on XT.\nContinue?`);
+
+                if (!confirmation) {
+                    return;
+                }
+
+                const apiKey = localStorage.getItem('xt_triangular_api');
+                const apiSecret = localStorage.getItem('xt_triangular_secret');
+                const userId = localStorage.getItem('userId');
+
+                const response = await fetch('/api/v1/trading/xt/triangular/execute', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    },
+                    body: JSON.stringify({
+                        apiKey,
+                        apiSecret,
+                        userId,
+                        opportunity,
+                        dryRun: false
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(`✅ XT Trade Executed!\n\nPath: ${opportunity.path.join(' → ')}\nActual Profit: ${result.actualProfitZAR} USDT (${result.actualProfitPercent}%)\nExecution Time: ${result.executionTime}ms\n\nTrade ID: ${result.tradeId}`);
+                    loadXtTradeHistory();
+                    scanXtTriangularPaths(); // Refresh opportunities
+                } else {
+                    throw new Error(result.message);
+                }
+            } catch (error) {
+                console.error('XT execution error:', error);
+                alert(`❌ XT Trade Failed\n\n${error.message}`);
+            }
+        }
+
+        // 7. Load XT Trade History
+        async function loadXtTradeHistory() {
+            try {
+                const userId = localStorage.getItem('userId');
+                if (!userId) return;
+
+                const response = await fetch('/api/v1/trading/xt/triangular/history', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    },
+                    body: JSON.stringify({ userId, limit: 10 })
+                });
+
+                const result = await response.json();
+
+                if (result.success && result.trades.length > 0) {
+                    let historyHtml = '<div style="display: grid; gap: 10px;">';
+
+                    result.trades.forEach(trade => {
+                        const statusColor = trade.execution_status === 'completed' ? '#0096FF' : '#FF4444';
+                        const profitColor = parseFloat(trade.actual_profit_zar || 0) > 0 ? '#00ff88' : '#FF4444';
+
+                        historyHtml += `
+                            <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; border-left: 3px solid ${statusColor};">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                                    <span style="color: white; font-weight: 600; font-size: 13px;">${trade.path_sequence}</span>
+                                    <span style="color: ${profitColor}; font-weight: 600;">${trade.actual_profit_zar ? '+' + trade.actual_profit_zar : '—'} USDT</span>
+                                </div>
+                                <div style="color: #888; font-size: 12px;">${new Date(trade.created_at).toLocaleString()}</div>
+                            </div>
+                        `;
+                    });
+
+                    historyHtml += '</div>';
+                    document.getElementById('xtTradeHistory').innerHTML = historyHtml;
+                }
+            } catch (error) {
+                console.error('XT history error:', error);
+            }
+        }
+
+        // Initialize XT settings on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 [XT] Initializing triangular arbitrage settings...');
+            loadXtTriangularSettings();
+
+            const xtInputs = document.querySelectorAll('#xtMaxTrade, #xtPortfolioPercent, #xtProfitThreshold');
+            xtInputs.forEach(input => {
+                input.addEventListener('change', saveXtTriangularSettings);
+            });
+
+            for (let i = 1; i <= 5; i++) {
+                const checkbox = document.getElementById(`xtSet${i}Enabled`);
+                if (checkbox) {
+                    checkbox.addEventListener('change', saveXtTriangularSettings);
                 }
             }
         });

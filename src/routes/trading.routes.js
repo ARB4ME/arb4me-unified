@@ -7452,6 +7452,370 @@ router.get('/mexc/triangular/recent-trades', asyncHandler(async (req, res) => {
 }));
 
 // ============================================================================
+// XT TRIANGULAR ARBITRAGE ROUTES
+// ============================================================================
+
+// XT Triangular Arbitrage API Configuration
+const XT_TRIANGULAR_CONFIG = {
+    baseUrl: 'https://sapi.xt.com',
+    endpoints: {
+        ticker: '/v4/public/ticker',
+        orderBook: '/v4/public/depth',
+        balance: '/v4/balances',
+        placeOrder: '/v4/order'
+    }
+};
+
+// XT HMAC-SHA256 Authentication Helper
+function createXtSignature(apiKey, apiSecret, timestamp, method, endpoint, params = '') {
+    // XT signature format: path + query/body params
+    const signatureString = endpoint + params;
+    // Generate HMAC-SHA256 signature
+    const signature = crypto.createHmac('sha256', apiSecret).update(signatureString).digest('hex');
+    return signature;
+}
+
+// XT 32 TRIANGULAR ARBITRAGE PATHS
+const XT_TRIANGULAR_PATHS = {
+    SET_1_ESSENTIAL_ETH_BRIDGE: [
+        { id: 'XT_ETH_1', path: ['USDT', 'ETH', 'BTC', 'USDT'], pairs: ['eth_usdt', 'btc_eth', 'btc_usdt'], description: 'ETH → BTC Essential' },
+        { id: 'XT_ETH_2', path: ['USDT', 'ETH', 'SOL', 'USDT'], pairs: ['eth_usdt', 'sol_eth', 'sol_usdt'], description: 'ETH → SOL Essential' },
+        { id: 'XT_ETH_3', path: ['USDT', 'ETH', 'XRP', 'USDT'], pairs: ['eth_usdt', 'xrp_eth', 'xrp_usdt'], description: 'ETH → XRP Essential' },
+        { id: 'XT_ETH_4', path: ['USDT', 'ETH', 'ADA', 'USDT'], pairs: ['eth_usdt', 'ada_eth', 'ada_usdt'], description: 'ETH → ADA Essential' },
+        { id: 'XT_ETH_5', path: ['USDT', 'ETH', 'MATIC', 'USDT'], pairs: ['eth_usdt', 'matic_eth', 'matic_usdt'], description: 'ETH → MATIC Essential' },
+        { id: 'XT_ETH_6', path: ['USDT', 'ETH', 'DOT', 'USDT'], pairs: ['eth_usdt', 'dot_eth', 'dot_usdt'], description: 'ETH → DOT Essential' },
+        { id: 'XT_ETH_7', path: ['USDT', 'ETH', 'AVAX', 'USDT'], pairs: ['eth_usdt', 'avax_eth', 'avax_usdt'], description: 'ETH → AVAX Essential' }
+    ],
+    SET_2_MIDCAP_BTC_BRIDGE: [
+        { id: 'XT_BTC_1', path: ['USDT', 'BTC', 'ETH', 'USDT'], pairs: ['btc_usdt', 'eth_btc', 'eth_usdt'], description: 'BTC → ETH Mid-Cap' },
+        { id: 'XT_BTC_2', path: ['USDT', 'BTC', 'SOL', 'USDT'], pairs: ['btc_usdt', 'sol_btc', 'sol_usdt'], description: 'BTC → SOL Mid-Cap' },
+        { id: 'XT_BTC_3', path: ['USDT', 'BTC', 'ADA', 'USDT'], pairs: ['btc_usdt', 'ada_btc', 'ada_usdt'], description: 'BTC → ADA Mid-Cap' },
+        { id: 'XT_BTC_4', path: ['USDT', 'BTC', 'DOT', 'USDT'], pairs: ['btc_usdt', 'dot_btc', 'dot_usdt'], description: 'BTC → DOT Mid-Cap' },
+        { id: 'XT_BTC_5', path: ['USDT', 'BTC', 'ATOM', 'USDT'], pairs: ['btc_usdt', 'atom_btc', 'atom_usdt'], description: 'BTC → ATOM Mid-Cap' },
+        { id: 'XT_BTC_6', path: ['USDT', 'BTC', 'LTC', 'USDT'], pairs: ['btc_usdt', 'ltc_btc', 'ltc_usdt'], description: 'BTC → LTC Mid-Cap' },
+        { id: 'XT_BTC_7', path: ['USDT', 'BTC', 'XRP', 'USDT'], pairs: ['btc_usdt', 'xrp_btc', 'xrp_usdt'], description: 'BTC → XRP Mid-Cap' }
+    ],
+    SET_3_XT_NATIVE_BRIDGE: [
+        { id: 'XT_XT_1', path: ['USDT', 'XT', 'BTC', 'USDT'], pairs: ['xt_usdt', 'btc_xt', 'btc_usdt'], description: 'XT → BTC Native' },
+        { id: 'XT_XT_2', path: ['USDT', 'XT', 'ETH', 'USDT'], pairs: ['xt_usdt', 'eth_xt', 'eth_usdt'], description: 'XT → ETH Native' },
+        { id: 'XT_XT_3', path: ['USDT', 'XT', 'SOL', 'USDT'], pairs: ['xt_usdt', 'sol_xt', 'sol_usdt'], description: 'XT → SOL Native' },
+        { id: 'XT_XT_4', path: ['USDT', 'BTC', 'XT', 'USDT'], pairs: ['btc_usdt', 'xt_btc', 'xt_usdt'], description: 'BTC → XT Native' },
+        { id: 'XT_XT_5', path: ['USDT', 'ETH', 'XT', 'USDT'], pairs: ['eth_usdt', 'xt_eth', 'xt_usdt'], description: 'ETH → XT Native' },
+        { id: 'XT_XT_6', path: ['USDT', 'XT', 'MATIC', 'USDT'], pairs: ['xt_usdt', 'matic_xt', 'matic_usdt'], description: 'XT → MATIC Native' }
+    ],
+    SET_4_HIGH_VOLATILITY: [
+        { id: 'XT_VOL_1', path: ['USDT', 'DOGE', 'BTC', 'USDT'], pairs: ['doge_usdt', 'btc_doge', 'btc_usdt'], description: 'DOGE High Vol' },
+        { id: 'XT_VOL_2', path: ['USDT', 'SHIB', 'ETH', 'USDT'], pairs: ['shib_usdt', 'eth_shib', 'eth_usdt'], description: 'SHIB High Vol' },
+        { id: 'XT_VOL_3', path: ['USDT', 'MATIC', 'BTC', 'USDT'], pairs: ['matic_usdt', 'btc_matic', 'btc_usdt'], description: 'MATIC High Vol' },
+        { id: 'XT_VOL_4', path: ['USDT', 'SOL', 'ETH', 'USDT'], pairs: ['sol_usdt', 'eth_sol', 'eth_usdt'], description: 'SOL High Vol' },
+        { id: 'XT_VOL_5', path: ['USDT', 'ADA', 'BTC', 'USDT'], pairs: ['ada_usdt', 'btc_ada', 'btc_usdt'], description: 'ADA High Vol' },
+        { id: 'XT_VOL_6', path: ['USDT', 'DOT', 'ETH', 'USDT'], pairs: ['dot_usdt', 'eth_dot', 'eth_usdt'], description: 'DOT High Vol' }
+    ],
+    SET_5_EXTENDED_MULTIBRIDGE: [
+        { id: 'XT_EXT_1', path: ['USDT', 'SOL', 'BTC', 'USDT'], pairs: ['sol_usdt', 'btc_sol', 'btc_usdt'], description: 'SOL Multi-Bridge' },
+        { id: 'XT_EXT_2', path: ['USDT', 'XRP', 'ETH', 'USDT'], pairs: ['xrp_usdt', 'eth_xrp', 'eth_usdt'], description: 'XRP Multi-Bridge' },
+        { id: 'XT_EXT_3', path: ['USDT', 'AVAX', 'BTC', 'USDT'], pairs: ['avax_usdt', 'btc_avax', 'btc_usdt'], description: 'AVAX Multi-Bridge' },
+        { id: 'XT_EXT_4', path: ['USDT', 'ATOM', 'ETH', 'USDT'], pairs: ['atom_usdt', 'eth_atom', 'eth_usdt'], description: 'ATOM Multi-Bridge' },
+        { id: 'XT_EXT_5', path: ['USDT', 'BTC', 'ETH', 'SOL', 'USDT'], pairs: ['btc_usdt', 'eth_btc', 'sol_eth', 'sol_usdt'], description: 'BTC-ETH-SOL 4-Leg' },
+        { id: 'XT_EXT_6', path: ['USDT', 'ETH', 'BTC', 'ADA', 'USDT'], pairs: ['eth_usdt', 'btc_eth', 'ada_btc', 'ada_usdt'], description: 'ETH-BTC-ADA 4-Leg' }
+    ]
+};
+
+// 1. XT Test Connection Route
+router.post('/xt/triangular/test-connection', authenticate, asyncHandler(async (req, res) => {
+    try {
+        const { apiKey, apiSecret } = req.body;
+
+        if (!apiKey || !apiSecret) {
+            return res.status(400).json({
+                success: false,
+                message: 'Missing XT API credentials'
+            });
+        }
+
+        const timestamp = Date.now().toString();
+        const endpoint = XT_TRIANGULAR_CONFIG.endpoints.balance;
+        const signature = createXtSignature(apiKey, apiSecret, timestamp, 'GET', endpoint, '');
+
+        const response = await fetch(`${XT_TRIANGULAR_CONFIG.baseUrl}${endpoint}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'xt-validate-appkey': apiKey,
+                'xt-validate-timestamp': timestamp,
+                'xt-validate-signature': signature,
+                'xt-validate-algorithms': 'HmacSHA256'
+            }
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.returnCode === 0) {
+            const balances = {};
+            result.result.forEach(asset => {
+                balances[asset.currency.toUpperCase()] = parseFloat(asset.free || 0).toFixed(2);
+            });
+
+            res.json({
+                success: true,
+                message: 'XT connection successful',
+                balances: {
+                    USDT: balances.USDT || '0.00',
+                    BTC: balances.BTC || '0.00',
+                    ETH: balances.ETH || '0.00',
+                    XT: balances.XT || '0.00'
+                }
+            });
+        } else {
+            throw new Error(result.message || 'XT API connection failed');
+        }
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Failed to connect to XT'
+        });
+    }
+}));
+
+// 2. XT Scan Triangular Paths Route
+router.post('/xt/triangular/scan', authenticate, asyncHandler(async (req, res) => {
+    try {
+        const { apiKey, apiSecret, maxTradeAmount, profitThreshold, enabledSets } = req.body;
+
+        if (!apiKey || !apiSecret) {
+            return res.status(400).json({
+                success: false,
+                message: 'Missing XT API credentials'
+            });
+        }
+
+        // Fetch all tickers from XT
+        const tickersResponse = await fetch(`${XT_TRIANGULAR_CONFIG.baseUrl}${XT_TRIANGULAR_CONFIG.endpoints.ticker}`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        const tickersData = await tickersResponse.json();
+
+        if (!tickersResponse.ok || tickersData.returnCode !== 0) {
+            throw new Error('Failed to fetch XT tickers');
+        }
+
+        // Parse ticker data into price map
+        const priceMap = {};
+        tickersData.result.forEach(ticker => {
+            const symbol = ticker.s.toLowerCase(); // XT returns uppercase, convert to lowercase
+            priceMap[symbol] = {
+                bid: parseFloat(ticker.b || 0),
+                ask: parseFloat(ticker.a || 0),
+                last: parseFloat(ticker.c || 0)
+            };
+        });
+
+        // Collect enabled paths
+        const enabledPaths = [];
+        Object.keys(XT_TRIANGULAR_PATHS).forEach(setKey => {
+            if (enabledSets[setKey]) {
+                enabledPaths.push(...XT_TRIANGULAR_PATHS[setKey]);
+            }
+        });
+
+        // Scan each enabled path
+        const opportunities = [];
+        for (const pathConfig of enabledPaths) {
+            try {
+                const { path, pairs } = pathConfig;
+
+                // Get prices for all pairs in the path
+                const prices = pairs.map(pair => priceMap[pair]);
+
+                // Skip if any price is missing
+                if (prices.some(p => !p || p.ask === 0 || p.bid === 0)) continue;
+
+                // Calculate triangular arbitrage profit
+                let currentAmount = maxTradeAmount || 100;
+                const legs = [];
+
+                // Leg 1: USDT → Asset1
+                currentAmount = currentAmount / prices[0].ask;
+                legs.push({ pair: pairs[0], side: 'BUY', price: prices[0].ask, amount: currentAmount });
+
+                // Leg 2: Asset1 → Asset2
+                if (pairs.length >= 2) {
+                    currentAmount = currentAmount / prices[1].ask;
+                    legs.push({ pair: pairs[1], side: 'BUY', price: prices[1].ask, amount: currentAmount });
+                }
+
+                // Leg 3: Asset2 → USDT (or Asset3)
+                if (pairs.length >= 3) {
+                    currentAmount = currentAmount * prices[2].bid;
+                    legs.push({ pair: pairs[2], side: 'SELL', price: prices[2].bid, amount: currentAmount });
+                }
+
+                // Leg 4 (if 4-leg path): Asset3 → USDT
+                if (pairs.length === 4) {
+                    currentAmount = currentAmount * prices[3].bid;
+                    legs.push({ pair: pairs[3], side: 'SELL', price: prices[3].bid, amount: currentAmount });
+                }
+
+                const finalAmount = currentAmount;
+                const profit = finalAmount - (maxTradeAmount || 100);
+                const profitPercent = ((profit / (maxTradeAmount || 100)) * 100).toFixed(4);
+
+                // Check if profit exceeds threshold
+                if (parseFloat(profitPercent) >= profitThreshold) {
+                    opportunities.push({
+                        pathId: pathConfig.id,
+                        path: pathConfig.path,
+                        pairs: pathConfig.pairs,
+                        description: pathConfig.description,
+                        profitPercent: profitPercent,
+                        expectedProfitZAR: profit.toFixed(2),
+                        estimatedSlippage: '0.2',
+                        risk: parseFloat(profitPercent) >= 1 ? 'EXECUTE' : 'CAUTIOUS',
+                        legs: legs
+                    });
+                }
+            } catch (err) {
+                console.error(`Error scanning XT path ${pathConfig.id}:`, err);
+            }
+        }
+
+        // Sort by profit descending
+        opportunities.sort((a, b) => parseFloat(b.profitPercent) - parseFloat(a.profitPercent));
+
+        res.json({
+            success: true,
+            opportunities: opportunities.slice(0, 20), // Return top 20
+            scannedPaths: enabledPaths.length,
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message || 'XT scan failed'
+        });
+    }
+}));
+
+// 3. XT Get Available Paths Route
+router.get('/xt/triangular/paths', authenticate, asyncHandler(async (req, res) => {
+    res.json({
+        success: true,
+        exchange: 'XT',
+        totalPaths: 32,
+        paths: XT_TRIANGULAR_PATHS
+    });
+}));
+
+// 4. XT Execute Triangular Trade Route
+router.post('/xt/triangular/execute', authenticate, asyncHandler(async (req, res) => {
+    try {
+        const { apiKey, apiSecret, userId, opportunity, dryRun } = req.body;
+
+        if (!apiKey || !apiSecret) {
+            return res.status(400).json({
+                success: false,
+                message: 'Missing XT API credentials'
+            });
+        }
+
+        const executionStartTime = Date.now();
+
+        // Simulate execution (real execution would place orders via XT API)
+        if (dryRun) {
+            const tradeId = `TRI_XT_${Date.now()}_${Math.floor(Math.random() * 999999)}`;
+
+            res.json({
+                success: true,
+                message: 'XT dry run execution successful',
+                tradeId: tradeId,
+                actualProfitZAR: opportunity.expectedProfitZAR,
+                actualProfitPercent: opportunity.profitPercent,
+                executionTime: Date.now() - executionStartTime,
+                dryRun: true
+            });
+        } else {
+            // Real execution logic would go here
+            res.status(501).json({
+                success: false,
+                message: 'Real XT execution not implemented yet. Use dryRun mode.'
+            });
+        }
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message || 'XT execution failed'
+        });
+    }
+}));
+
+// 5. XT Trade History Route
+router.post('/xt/triangular/history', authenticate, asyncHandler(async (req, res) => {
+    try {
+        const { userId, limit } = req.body;
+
+        const query = `
+            SELECT * FROM triangular_trades
+            WHERE user_id = $1 AND exchange = 'XT'
+            ORDER BY created_at DESC
+            LIMIT $2
+        `;
+
+        const result = await pool.query(query, [userId, limit || 10]);
+
+        res.json({
+            success: true,
+            trades: result.rows
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Failed to fetch XT trade history'
+        });
+    }
+}));
+
+// 6. XT Recent Trades Route (Public Feed)
+router.get('/xt/triangular/recent-trades', asyncHandler(async (req, res) => {
+    try {
+        const query = `
+            SELECT
+                t.trade_id,
+                t.path_sequence,
+                t.actual_profit_zar,
+                t.actual_profit_percent,
+                t.execution_status,
+                t.created_at,
+                u.first_name
+            FROM triangular_trades t
+            JOIN users u ON t.user_id = u.id
+            WHERE t.exchange = 'XT'
+                AND t.execution_status = 'completed'
+                AND t.created_at >= NOW() - INTERVAL '24 hours'
+            ORDER BY t.created_at DESC
+            LIMIT 50
+        `;
+
+        const result = await pool.query(query);
+
+        res.json({
+            success: true,
+            trades: result.rows
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Failed to fetch XT recent trades'
+        });
+    }
+}));
+
+// ============================================================================
 // VALR EXCHANGE API PROXY ENDPOINTS
 // ============================================================================
 
