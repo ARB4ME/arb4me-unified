@@ -28,7 +28,6 @@ const authenticate = authenticateUser;
 // - Coinbase, Huobi, Gate.io, Crypto.com, MEXC, XT, AscendEX
 // ============================================================================
 
-module.exports = router;
 // LUNO TRIANGULAR ARBITRAGE ROUTES
 // ============================================================================
 
