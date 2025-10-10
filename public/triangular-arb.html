@@ -1036,6 +1036,98 @@
             </div>
         </div>
 
+        <!-- KuCoin Exchange -->
+        <div style="background: rgba(0,208,146,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 2px solid #00D092;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="color: #00D092; margin: 0;">🟢 KUCOIN Triangular Arbitrage</h3>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <div class="toggle-switch" id="kucoinTriangularEnabled" onclick="toggleKuCoinTriangular()">
+                        <div class="toggle-knob"></div>
+                    </div>
+                    <span id="kucoinTriangularStatus" style="color: #ff6b6b; font-weight: 600;">OFF</span>
+                </div>
+            </div>
+
+            <div class="stat-grid">
+                <!-- Risk Management -->
+                <div class="stat-card">
+                    <h4 style="color: #00D092; margin-bottom: 15px;">⚖️ Risk Management</h4>
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 500;">Max Trade (USDT)</label>
+                        <input type="number" id="kucoinMaxTrade" value="100" min="10" max="10000" step="10"
+                               style="width: 100%; padding: 8px; border: 1px solid #00D092; border-radius: 5px; background: rgba(0,208,146,0.05);">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 500;">Portfolio % per Trade</label>
+                        <input type="number" id="kucoinPortfolioPercent" value="10" min="1" max="50" step="1"
+                               style="width: 100%; padding: 8px; border: 1px solid #00D092; border-radius: 5px; background: rgba(0,208,146,0.05);">
+                    </div>
+                    <div class="form-group">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 500;">Min Profit % Threshold</label>
+                        <input type="number" id="kucoinProfitThreshold" value="0.5" min="0.1" max="5" step="0.1"
+                               style="width: 100%; padding: 8px; border: 1px solid #00D092; border-radius: 5px; background: rgba(0,208,146,0.05);">
+                    </div>
+                </div>
+
+                <!-- Path Sets Configuration -->
+                <div class="stat-card">
+                    <h4 style="color: #00D092; margin-bottom: 15px;">🎯 Triangular Path Sets (32 Paths)</h4>
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" id="kucoinSet1Enabled" checked style="margin-right: 10px; width: 18px; height: 18px;">
+                            <span><strong>SET 1:</strong> Essential ETH Bridge (7 paths) - BTC, SOL, XRP, ADA, DOT, MATIC, LINK</span>
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" id="kucoinSet2Enabled" checked style="margin-right: 10px; width: 18px; height: 18px;">
+                            <span><strong>SET 2:</strong> Mid-Cap BTC Bridge (7 paths) - ETH, SOL, AVAX, ATOM, LTC, UNI, FIL</span>
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" id="kucoinSet3Enabled" style="margin-right: 10px; width: 18px; height: 18px;">
+                            <span><strong>SET 3:</strong> KCS Native Bridge (6 paths) - Using KuCoin's KCS token</span>
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" id="kucoinSet4Enabled" style="margin-right: 10px; width: 18px; height: 18px;">
+                            <span><strong>SET 4:</strong> High Volatility (6 paths) - DOGE, SHIB, PEPE, NEAR, APT, FTM</span>
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" id="kucoinSet5Enabled" style="margin-right: 10px; width: 18px; height: 18px;">
+                            <span><strong>SET 5:</strong> Extended Multi-Bridge (6 paths) - BNB, TRX, ALGO, VET, HBAR + 4-leg path</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="stat-card">
+                    <h4 style="color: #00D092; margin-bottom: 15px;">🔧 Actions</h4>
+                    <button onclick="testKuCoinTriangularConnection()" class="btn" style="background: #00D092; width: 100%; margin-bottom: 10px;">
+                        🔌 Test Connection
+                    </button>
+                    <button onclick="scanKuCoinTriangularPaths()" class="btn" style="background: #00D092; width: 100%; margin-bottom: 10px;">
+                        🔍 Scan Opportunities
+                    </button>
+                    <button onclick="viewKuCoinPathDetails()" class="btn" style="background: #666; width: 100%; margin-bottom: 10px;">
+                        📋 View All Paths
+                    </button>
+                    <button onclick="clearKuCoinTriangularHistory()" class="btn" style="background: #ff6b6b; width: 100%; margin-bottom: 10px;">
+                        🗑️ Clear History
+                    </button>
+                    <button onclick="saveKuCoinTriangularSettings()" class="btn" style="background: #4CAF50; width: 100%;">
+                        💾 Save Settings
+                    </button>
+                </div>
+
+                <!-- Current Opportunities -->
+                <div class="stat-card" style="grid-column: span 2;">
+                    <h4 style="color: #00D092; margin-bottom: 15px;">💰 Current Opportunities</h4>
+                    <div id="kucoinOpportunities" style="max-height: 400px; overflow-y: auto;">
+                        <p style="color: #888; text-align: center; padding: 20px;">
+                            Click "Scan Opportunities" to find triangular arbitrage paths
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Future Exchanges Placeholder -->
         <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 15px; border: 2px dashed #666;">
             <div style="text-align: center; color: #888;">
@@ -3026,6 +3118,319 @@
             }
         }
 
+        // ============================================================================
+        // KUCOIN TRIANGULAR ARBITRAGE FUNCTIONS
+        // ============================================================================
+
+        function toggleKuCoinTriangular() {
+            const toggle = document.getElementById('kucoinTriangularEnabled');
+            const status = document.getElementById('kucoinTriangularStatus');
+            const isActive = toggle.classList.toggle('active');
+
+            if (isActive) {
+                status.textContent = 'ON';
+                status.style.color = '#00D092';
+                localStorage.setItem('kucoinTriangularEnabled', 'true');
+                console.log('✅ [KUCOIN] Live triangular trading enabled');
+            } else {
+                status.textContent = 'OFF';
+                status.style.color = '#ff6b6b';
+                localStorage.setItem('kucoinTriangularEnabled', 'false');
+                console.log('⏸️ [KUCOIN] Live triangular trading disabled');
+            }
+        }
+
+        async function testKuCoinTriangularConnection() {
+            console.log('🔍 [KUCOIN] Testing connection...');
+
+            const apiKey = localStorage.getItem('kucoin_triangular_api');
+            const apiSecret = localStorage.getItem('kucoin_triangular_secret');
+            const passphrase = localStorage.getItem('kucoin_triangular_passphrase');
+
+            if (!apiKey || !apiSecret || !passphrase) {
+                alert('❌ Please configure your KuCoin API credentials in platform settings first.');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/v1/trading/kucoin/triangular/test-connection', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    },
+                    body: JSON.stringify({ apiKey, apiSecret, passphrase })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert(`✅ KuCoin Connection Successful!\n\nAccount Type: ${data.accountType}\nTimestamp: ${new Date(data.timestamp).toLocaleString()}`);
+                    console.log('✅ [KUCOIN] Connection test passed:', data);
+                } else {
+                    alert(`❌ Connection Failed: ${data.message}`);
+                    console.error('❌ [KUCOIN] Connection test failed:', data);
+                }
+            } catch (error) {
+                console.error('❌ [KUCOIN] Connection test error:', error);
+                alert('❌ Connection test failed. Check console for details.');
+            }
+        }
+
+        async function scanKuCoinTriangularPaths() {
+            console.log('🔍 [KUCOIN] Starting scan for triangular arbitrage opportunities...');
+
+            const apiKey = localStorage.getItem('kucoin_triangular_api');
+            const apiSecret = localStorage.getItem('kucoin_triangular_secret');
+            const passphrase = localStorage.getItem('kucoin_triangular_passphrase');
+
+            if (!apiKey || !apiSecret || !passphrase) {
+                alert('❌ Please configure your KuCoin API credentials in platform settings first.');
+                return;
+            }
+
+            const maxTradeAmount = parseFloat(document.getElementById('kucoinMaxTrade').value);
+            const profitThreshold = parseFloat(document.getElementById('kucoinProfitThreshold').value);
+
+            const enabledSets = {
+                SET_1_ESSENTIAL_ETH_BRIDGE: document.getElementById('kucoinSet1Enabled').checked,
+                SET_2_MIDCAP_BTC_BRIDGE: document.getElementById('kucoinSet2Enabled').checked,
+                SET_3_KCS_NATIVE_BRIDGE: document.getElementById('kucoinSet3Enabled').checked,
+                SET_4_HIGH_VOLATILITY: document.getElementById('kucoinSet4Enabled').checked,
+                SET_5_EXTENDED_MULTIBRIDGE: document.getElementById('kucoinSet5Enabled').checked
+            };
+
+            try {
+                const response = await fetch('/api/v1/trading/kucoin/triangular/scan', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    },
+                    body: JSON.stringify({
+                        apiKey,
+                        apiSecret,
+                        passphrase,
+                        maxTradeAmount,
+                        profitThreshold,
+                        enabledSets
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    console.log(`✅ [KUCOIN] Scan complete: ${data.profitableCount} opportunities found`);
+
+                    const container = document.getElementById('kucoinOpportunities');
+
+                    if (data.opportunities.length === 0) {
+                        container.innerHTML = `
+                            <p style="color: #888; text-align: center; padding: 20px;">
+                                No profitable opportunities found above ${profitThreshold}% threshold.<br>
+                                Try lowering the profit threshold or enabling more path sets.
+                            </p>
+                        `;
+                    } else {
+                        let html = '<div style="display: flex; flex-direction: column; gap: 15px;">';
+
+                        data.opportunities.slice(0, 10).forEach((opp, index) => {
+                            html += `
+                                <div style="background: rgba(0,208,146,0.1); padding: 15px; border-radius: 8px; border-left: 4px solid #00D092;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                        <strong style="color: #00D092;">${opp.description}</strong>
+                                        <span style="background: #00D092; color: white; padding: 4px 12px; border-radius: 12px; font-weight: 600;">
+                                            +${opp.profitPercent}%
+                                        </span>
+                                    </div>
+                                    <div style="font-size: 0.9rem; color: #b8c6db;">
+                                        <div>Path: ${opp.path.join(' → ')}</div>
+                                        <div>Initial: $${opp.initialAmount} USDT → Final: $${opp.finalAmount.toFixed(2)} USDT</div>
+                                        <div>Profit: $${opp.profitAmount.toFixed(2)} USDT</div>
+                                        <div style="font-size: 0.8rem; color: #888; margin-top: 5px;">${opp.pathId}</div>
+                                    </div>
+                                </div>
+                            `;
+                        });
+
+                        if (data.opportunities.length > 10) {
+                            html += `<p style="text-align: center; color: #888; font-size: 0.9rem;">Showing top 10 of ${data.opportunities.length} opportunities</p>`;
+                        }
+
+                        html += '</div>';
+                        container.innerHTML = html;
+                    }
+
+                    alert(`✅ Scan Complete!\n\nTotal Scanned: ${data.totalScanned} paths\nProfitable: ${data.profitableCount} opportunities\nBest: ${data.opportunities[0]?.profitPercent || 0}%`);
+                } else {
+                    alert(`❌ Scan Failed: ${data.message}`);
+                    console.error('❌ [KUCOIN] Scan failed:', data);
+                }
+            } catch (error) {
+                console.error('❌ [KUCOIN] Scan error:', error);
+                alert('❌ Scan failed. Check console for details.');
+            }
+        }
+
+        function viewKuCoinPathDetails() {
+            console.log('📋 [KUCOIN] Viewing all triangular path details...');
+
+            const pathDetails = `
+📋 KUCOIN Triangular Arbitrage Paths (32 Total)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 1: ESSENTIAL ETH BRIDGE (7 paths) ✓
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → ETH → BTC → USDT
+2. USDT → ETH → SOL → USDT
+3. USDT → ETH → XRP → USDT
+4. USDT → ETH → ADA → USDT
+5. USDT → ETH → DOT → USDT
+6. USDT → ETH → MATIC → USDT
+7. USDT → ETH → LINK → USDT
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 2: MIDCAP BTC BRIDGE (7 paths) ✓
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → BTC → ETH → USDT
+2. USDT → BTC → SOL → USDT
+3. USDT → BTC → AVAX → USDT
+4. USDT → BTC → ATOM → USDT
+5. USDT → BTC → LTC → USDT
+6. USDT → BTC → UNI → USDT
+7. USDT → BTC → FIL → USDT
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 3: KCS NATIVE BRIDGE (6 paths)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → KCS → BTC → USDT
+2. USDT → KCS → ETH → USDT
+3. USDT → KCS → SOL → USDT
+4. USDT → KCS → XRP → USDT
+5. USDT → KCS → ADA → USDT
+6. USDT → KCS → DOT → USDT
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 4: HIGH VOLATILITY (6 paths)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → DOGE → BTC → USDT (Meme)
+2. USDT → SHIB → ETH → USDT (Meme)
+3. USDT → PEPE → ETH → USDT (Meme)
+4. USDT → NEAR → BTC → USDT (Layer1)
+5. USDT → APT → ETH → USDT (Layer1)
+6. USDT → FTM → BTC → USDT (DeFi)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 5: EXTENDED MULTIBRIDGE (6 paths)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → BNB → ETH → USDT
+2. USDT → TRX → BTC → USDT
+3. USDT → ALGO → ETH → USDT
+4. USDT → VET → BTC → USDT
+5. USDT → HBAR → ETH → USDT
+6. USDT → BTC → ETH → SOL → USDT (4-leg)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💡 TIP: Sets 1-2 are enabled by default (14 paths)
+⚡ Enable Sets 3-5 for more opportunities (18 additional paths)
+            `.trim();
+
+            alert(pathDetails);
+            console.log(pathDetails);
+        }
+
+        async function clearKuCoinTriangularHistory() {
+            if (!confirm('⚠️ Are you sure you want to clear ALL KuCoin triangular trade history? This cannot be undone.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/v1/trading/kucoin/triangular/history', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert(`✅ ${data.message}`);
+                    console.log('✅ [KUCOIN] History cleared:', data);
+                } else {
+                    alert(`❌ Failed to clear history: ${data.message}`);
+                }
+            } catch (error) {
+                console.error('❌ [KUCOIN] Clear history error:', error);
+                alert('❌ Failed to clear history. Check console for details.');
+            }
+        }
+
+        function saveKuCoinTriangularSettings() {
+            console.log('💾 [KUCOIN] Saving settings to localStorage...');
+
+            const maxTrade = document.getElementById('kucoinMaxTrade').value;
+            const portfolioPercent = document.getElementById('kucoinPortfolioPercent').value;
+            const profitThreshold = document.getElementById('kucoinProfitThreshold').value;
+
+            const settings = {
+                maxTrade: maxTrade,
+                portfolioPercent: portfolioPercent,
+                profitThreshold: profitThreshold,
+                set1Enabled: document.getElementById('kucoinSet1Enabled').checked,
+                set2Enabled: document.getElementById('kucoinSet2Enabled').checked,
+                set3Enabled: document.getElementById('kucoinSet3Enabled').checked,
+                set4Enabled: document.getElementById('kucoinSet4Enabled').checked,
+                set5Enabled: document.getElementById('kucoinSet5Enabled').checked
+            };
+
+            localStorage.setItem('kucoinTriangularSettings', JSON.stringify(settings));
+            console.log('✅ [KUCOIN] Settings saved:', settings);
+        }
+
+        function loadKuCoinTriangularSettings() {
+            console.log('📥 [KUCOIN] Loading settings from localStorage...');
+
+            // Load settings
+            const settingsJson = localStorage.getItem('kucoinTriangularSettings');
+            if (settingsJson) {
+                try {
+                    const settings = JSON.parse(settingsJson);
+                    console.log('✅ [KUCOIN] Settings loaded:', settings);
+
+                    if (settings.maxTrade) document.getElementById('kucoinMaxTrade').value = settings.maxTrade;
+                    if (settings.portfolioPercent) document.getElementById('kucoinPortfolioPercent').value = settings.portfolioPercent;
+                    if (settings.profitThreshold) document.getElementById('kucoinProfitThreshold').value = settings.profitThreshold;
+
+                    // Load path set preferences
+                    for (let i = 1; i <= 5; i++) {
+                        const checkbox = document.getElementById(`kucoinSet${i}Enabled`);
+                        if (checkbox && settings.hasOwnProperty(`set${i}Enabled`)) {
+                            checkbox.checked = settings[`set${i}Enabled`];
+                        }
+                    }
+                } catch (error) {
+                    console.error('❌ [KUCOIN] Failed to parse settings:', error);
+                }
+            }
+
+            // Load toggle state
+            const toggleEnabled = localStorage.getItem('kucoinTriangularEnabled') === 'true';
+            const toggle = document.getElementById('kucoinTriangularEnabled');
+            const status = document.getElementById('kucoinTriangularStatus');
+
+            if (toggleEnabled) {
+                toggle.classList.add('active');
+                status.textContent = 'ON';
+                status.style.color = '#00D092';
+                console.log('✅ [KUCOIN] Live trading enabled (from localStorage)');
+            } else {
+                console.log('ℹ️ [KUCOIN] Live trading disabled (from localStorage)');
+            }
+        }
+
         // Initialize OKX settings on page load
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 [OKX] Initializing triangular arbitrage settings...');
@@ -3042,6 +3447,26 @@
                 const checkbox = document.getElementById(`okxSet${i}Enabled`);
                 if (checkbox) {
                     checkbox.addEventListener('change', saveOKXTriangularSettings);
+                }
+            }
+        });
+
+        // Initialize KuCoin settings on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 [KUCOIN] Initializing triangular arbitrage settings...');
+            loadKuCoinTriangularSettings();
+
+            // Add event listeners for KuCoin inputs (auto-save)
+            const kucoinInputs = document.querySelectorAll('#kucoinMaxTrade, #kucoinPortfolioPercent, #kucoinProfitThreshold');
+            kucoinInputs.forEach(input => {
+                input.addEventListener('change', saveKuCoinTriangularSettings);
+            });
+
+            // Add event listeners for KuCoin checkboxes (5 sets)
+            for (let i = 1; i <= 5; i++) {
+                const checkbox = document.getElementById(`kucoinSet${i}Enabled`);
+                if (checkbox) {
+                    checkbox.addEventListener('change', saveKuCoinTriangularSettings);
                 }
             }
         });
