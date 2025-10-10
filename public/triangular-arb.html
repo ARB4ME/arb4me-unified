@@ -1404,15 +1404,107 @@
             </div>
         </div>
 
+        <!-- Crypto.com Exchange -->
+        <div style="background: rgba(0,45,116,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 2px solid #002D74;">
+            <h3 style="color: #0066FF; margin: 0;">💎 CRYPTO.COM Triangular Arbitrage</h3>
+            <p style="color: #888; margin: 10px 0 0 0; font-size: 14px;">
+                250+ digital assets | USDT bridge | CRO native token | HMAC-SHA256 authentication
+            </p>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 20px;">
+                <!-- Status Card -->
+                <div class="stat-card">
+                    <h4 style="color: #0066FF; margin-bottom: 15px;">📊 Status</h4>
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                        <div id="cryptocomStatusIndicator" style="width: 12px; height: 12px; border-radius: 50%; background: #666;"></div>
+                        <span id="cryptocomStatusText" style="color: #888;">Not Connected</span>
+                    </div>
+                    <div style="margin-top: 15px; display: flex; gap: 10px;">
+                        <button onclick="testCryptocomTriangularConnection()" style="flex: 1; padding: 10px; background: #0066FF; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                            Test Connection
+                        </button>
+                        <button onclick="viewCryptocomPathDetails()" style="flex: 1; padding: 10px; background: rgba(0,102,255,0.2); color: #0066FF; border: 1px solid #0066FF; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                            View Paths
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Risk Management -->
+                <div class="stat-card">
+                    <h4 style="color: #0066FF; margin-bottom: 15px;">⚖️ Risk Management</h4>
+                    <label style="display: block; color: #888; margin-bottom: 5px; font-size: 14px;">Max Trade Amount (USDT)</label>
+                    <input type="number" id="cryptocomMaxTrade" value="100" min="10" max="10000" step="10" style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid #444; border-radius: 8px; color: white; margin-bottom: 15px;">
+
+                    <label style="display: block; color: #888; margin-bottom: 5px; font-size: 14px;">Portfolio % Risk</label>
+                    <input type="number" id="cryptocomPortfolioPercent" value="5" min="1" max="20" step="1" style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid #444; border-radius: 8px; color: white; margin-bottom: 15px;">
+
+                    <label style="display: block; color: #888; margin-bottom: 5px; font-size: 14px;">Min Profit Threshold (%)</label>
+                    <input type="number" id="cryptocomProfitThreshold" value="0.3" min="0.1" max="5" step="0.1" style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid #444; border-radius: 8px; color: white;">
+                </div>
+
+                <!-- Path Sets -->
+                <div class="stat-card">
+                    <h4 style="color: #0066FF; margin-bottom: 15px;">🔀 Path Selection (32 Total)</h4>
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                            <input type="checkbox" id="cryptocomSet1Enabled" checked style="width: 18px; height: 18px; cursor: pointer;">
+                            <span style="color: #ddd;">✅ SET 1: Essential ETH Bridge (7 paths)</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                            <input type="checkbox" id="cryptocomSet2Enabled" checked style="width: 18px; height: 18px; cursor: pointer;">
+                            <span style="color: #ddd;">✅ SET 2: Mid-Cap BTC Bridge (7 paths)</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                            <input type="checkbox" id="cryptocomSet3Enabled" style="width: 18px; height: 18px; cursor: pointer;">
+                            <span style="color: #ddd;">💎 SET 3: CRO Native Bridge (6 paths)</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                            <input type="checkbox" id="cryptocomSet4Enabled" style="width: 18px; height: 18px; cursor: pointer;">
+                            <span style="color: #ddd;">⚡ SET 4: High Volatility (6 paths)</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                            <input type="checkbox" id="cryptocomSet5Enabled" style="width: 18px; height: 18px; cursor: pointer;">
+                            <span style="color: #ddd;">🔁 SET 5: Extended Multi-Bridge (6 paths)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Scanner Controls -->
+                <div class="stat-card">
+                    <h4 style="color: #0066FF; margin-bottom: 15px;">🔍 Scanner</h4>
+                    <button onclick="scanCryptocomTriangularPaths()" style="width: 100%; padding: 12px; background: #0066FF; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 16px; margin-bottom: 15px;">
+                        🚀 SCAN FOR OPPORTUNITIES
+                    </button>
+                    <div id="cryptocomScanStatus" style="color: #888; font-size: 14px; text-align: center; min-height: 20px;"></div>
+                </div>
+
+                <!-- Opportunities Display -->
+                <div class="stat-card" style="grid-column: 1 / -1;">
+                    <h4 style="color: #0066FF; margin-bottom: 15px;">💎 Active Opportunities</h4>
+                    <div id="cryptocomOpportunities" style="color: #888; font-size: 14px;">
+                        No scan results yet. Click "SCAN FOR OPPORTUNITIES" to begin.
+                    </div>
+                </div>
+
+                <!-- Trade History -->
+                <div class="stat-card" style="grid-column: 1 / -1;">
+                    <h4 style="color: #0066FF; margin-bottom: 15px;">📜 Recent Trades</h4>
+                    <div id="cryptocomTradeHistory" style="color: #888; font-size: 14px;">
+                        No trade history available.
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Future Exchanges Placeholder -->
         <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 15px; border: 2px dashed #666;">
             <div style="text-align: center; color: #888;">
                 <h3 style="color: #666; margin-bottom: 15px;">🔮 Future Exchanges</h3>
                 <p style="margin-bottom: 15px;">Additional exchanges will be added here as they're implemented:</p>
                 <div style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;">
-                    <span style="color: #666; padding: 8px 16px; border: 1px solid #555; border-radius: 20px;">Crypto.com</span>
                     <span style="color: #666; padding: 8px 16px; border: 1px solid #555; border-radius: 20px;">Bitfinex</span>
-                    <span style="color: #666; padding: 8px 16px; border: 1px solid #555; border-radius: 20px;">+ 5 more</span>
+                    <span style="color: #666; padding: 8px 16px; border: 1px solid #555; border-radius: 20px;">Gemini</span>
+                    <span style="color: #666; padding: 8px 16px; border: 1px solid #555; border-radius: 20px;">+ 4 more</span>
                 </div>
             </div>
         </div>
@@ -4755,6 +4847,362 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
                 const checkbox = document.getElementById(`gateioSet${i}Enabled`);
                 if (checkbox) {
                     checkbox.addEventListener('change', saveGateioTriangularSettings);
+                }
+            }
+        });
+
+        // ============================================================================
+        // CRYPTO.COM TRIANGULAR ARBITRAGE JAVASCRIPT FUNCTIONS
+        // ============================================================================
+
+        // 1. Test Crypto.com Connection
+        async function testCryptocomTriangularConnection() {
+            try {
+                const apiKey = localStorage.getItem('cryptocom_triangular_api');
+                const apiSecret = localStorage.getItem('cryptocom_triangular_secret');
+
+                if (!apiKey || !apiSecret) {
+                    alert('❌ Crypto.com API credentials not found!\n\nPlease set your API credentials on the SETUP page first.');
+                    return;
+                }
+
+                document.getElementById('cryptocomStatusText').textContent = 'Testing connection...';
+                document.getElementById('cryptocomStatusIndicator').style.background = '#FFA500';
+
+                const response = await fetch('/api/v1/trading/cryptocom/triangular/test-connection', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    },
+                    body: JSON.stringify({ apiKey, apiSecret })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    document.getElementById('cryptocomStatusIndicator').style.background = '#0066FF';
+                    document.getElementById('cryptocomStatusText').textContent = `Connected | ${result.balances.USDT} USDT`;
+                    alert(`✅ Crypto.com Connection Successful!\n\nUSDT Balance: ${result.balances.USDT}`);
+                } else {
+                    throw new Error(result.message);
+                }
+            } catch (error) {
+                console.error('Crypto.com connection error:', error);
+                document.getElementById('cryptocomStatusIndicator').style.background = '#FF4444';
+                document.getElementById('cryptocomStatusText').textContent = 'Connection Failed';
+                alert(`❌ Crypto.com Connection Failed\n\n${error.message}`);
+            }
+        }
+
+        // 2. View Crypto.com Path Details
+        function viewCryptocomPathDetails() {
+            const pathDetails = `
+📋 CRYPTO.COM Triangular Arbitrage Paths (32 Total)
+
+✨ SET 1: Essential ETH Bridge (7 paths) ✅ ENABLED BY DEFAULT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → ETH → BTC → USDT (ETH_USDT, BTC_ETH, BTC_USDT)
+2. USDT → ETH → SOL → USDT (ETH_USDT, SOL_ETH, SOL_USDT)
+3. USDT → ETH → XRP → USDT (ETH_USDT, XRP_ETH, XRP_USDT)
+4. USDT → ETH → ADA → USDT (ETH_USDT, ADA_ETH, ADA_USDT)
+5. USDT → ETH → MATIC → USDT (ETH_USDT, MATIC_ETH, MATIC_USDT)
+6. USDT → ETH → DOT → USDT (ETH_USDT, DOT_ETH, DOT_USDT)
+7. USDT → ETH → AVAX → USDT (ETH_USDT, AVAX_ETH, AVAX_USDT)
+
+🔷 SET 2: Mid-Cap BTC Bridge (7 paths) ✅ ENABLED BY DEFAULT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → BTC → ETH → USDT (BTC_USDT, ETH_BTC, ETH_USDT)
+2. USDT → BTC → SOL → USDT (BTC_USDT, SOL_BTC, SOL_USDT)
+3. USDT → BTC → ADA → USDT (BTC_USDT, ADA_BTC, ADA_USDT)
+4. USDT → BTC → DOT → USDT (BTC_USDT, DOT_BTC, DOT_USDT)
+5. USDT → BTC → ATOM → USDT (BTC_USDT, ATOM_BTC, ATOM_USDT)
+6. USDT → BTC → LTC → USDT (BTC_USDT, LTC_BTC, LTC_USDT)
+7. USDT → BTC → XRP → USDT (BTC_USDT, XRP_BTC, XRP_USDT)
+
+💎 SET 3: CRO Native Bridge (6 paths) - Cronos Token
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → CRO → BTC → USDT (CRO_USDT, BTC_CRO, BTC_USDT)
+2. USDT → CRO → ETH → USDT (CRO_USDT, ETH_CRO, ETH_USDT)
+3. USDT → CRO → SOL → USDT (CRO_USDT, SOL_CRO, SOL_USDT)
+4. USDT → BTC → CRO → USDT (BTC_USDT, CRO_BTC, CRO_USDT)
+5. USDT → ETH → CRO → USDT (ETH_USDT, CRO_ETH, CRO_USDT)
+6. USDT → CRO → MATIC → USDT (CRO_USDT, MATIC_CRO, MATIC_USDT)
+
+⚡ SET 4: High Volatility (6 paths)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → DOGE → BTC → USDT (DOGE_USDT, BTC_DOGE, BTC_USDT)
+2. USDT → SHIB → ETH → USDT (SHIB_USDT, ETH_SHIB, ETH_USDT)
+3. USDT → MATIC → BTC → USDT (MATIC_USDT, BTC_MATIC, BTC_USDT)
+4. USDT → SOL → ETH → USDT (SOL_USDT, ETH_SOL, ETH_USDT)
+5. USDT → ADA → BTC → USDT (ADA_USDT, BTC_ADA, BTC_USDT)
+6. USDT → DOT → ETH → USDT (DOT_USDT, ETH_DOT, ETH_USDT)
+
+🔁 SET 5: Extended Multi-Bridge (6 paths)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → SOL → BTC → USDT (SOL_USDT, BTC_SOL, BTC_USDT)
+2. USDT → XRP → ETH → USDT (XRP_USDT, ETH_XRP, ETH_USDT)
+3. USDT → AVAX → BTC → USDT (AVAX_USDT, BTC_AVAX, BTC_USDT)
+4. USDT → ATOM → ETH → USDT (ATOM_USDT, ETH_ATOM, ETH_USDT)
+5. USDT → BTC → ETH → SOL → USDT ⭐ 4-LEG (BTC_USDT, ETH_BTC, SOL_ETH, SOL_USDT)
+6. USDT → ETH → BTC → ADA → USDT ⭐ 4-LEG (ETH_USDT, BTC_ETH, ADA_BTC, ADA_USDT)
+
+💡 TOTAL: 32 paths (30 three-leg + 2 four-leg)
+🌉 BRIDGE: USDT (250+ digital assets)
+💎 NATIVE: CRO (Cronos) for reduced fees
+🔐 AUTH: HMAC-SHA256 signature
+📊 EXCHANGE: API v1 (v2.1 deprecated July 2024)
+            `.trim();
+
+            alert(pathDetails);
+        }
+
+        // 3. Save Crypto.com Settings
+        function saveCryptocomTriangularSettings() {
+            const settings = {
+                maxTrade: document.getElementById('cryptocomMaxTrade').value,
+                portfolioPercent: document.getElementById('cryptocomPortfolioPercent').value,
+                profitThreshold: document.getElementById('cryptocomProfitThreshold').value,
+                set1Enabled: document.getElementById('cryptocomSet1Enabled').checked,
+                set2Enabled: document.getElementById('cryptocomSet2Enabled').checked,
+                set3Enabled: document.getElementById('cryptocomSet3Enabled').checked,
+                set4Enabled: document.getElementById('cryptocomSet4Enabled').checked,
+                set5Enabled: document.getElementById('cryptocomSet5Enabled').checked
+            };
+
+            localStorage.setItem('cryptocom_triangular_settings', JSON.stringify(settings));
+            console.log('✅ [CRYPTO.COM] Settings saved:', settings);
+        }
+
+        // 4. Load Crypto.com Settings
+        function loadCryptocomTriangularSettings() {
+            const saved = localStorage.getItem('cryptocom_triangular_settings');
+            if (saved) {
+                const settings = JSON.parse(saved);
+                document.getElementById('cryptocomMaxTrade').value = settings.maxTrade || 100;
+                document.getElementById('cryptocomPortfolioPercent').value = settings.portfolioPercent || 5;
+                document.getElementById('cryptocomProfitThreshold').value = settings.profitThreshold || 0.3;
+                document.getElementById('cryptocomSet1Enabled').checked = settings.set1Enabled !== false;
+                document.getElementById('cryptocomSet2Enabled').checked = settings.set2Enabled !== false;
+                document.getElementById('cryptocomSet3Enabled').checked = settings.set3Enabled === true;
+                document.getElementById('cryptocomSet4Enabled').checked = settings.set4Enabled === true;
+                document.getElementById('cryptocomSet5Enabled').checked = settings.set5Enabled === true;
+                console.log('✅ [CRYPTO.COM] Settings loaded:', settings);
+            }
+        }
+
+        // 5. Scan Crypto.com Triangular Paths
+        async function scanCryptocomTriangularPaths() {
+            try {
+                const apiKey = localStorage.getItem('cryptocom_triangular_api');
+                const apiSecret = localStorage.getItem('cryptocom_triangular_secret');
+
+                if (!apiKey || !apiSecret) {
+                    alert('❌ Crypto.com API credentials not found!\n\nPlease set your API credentials on the SETUP page first.');
+                    return;
+                }
+
+                const maxTradeAmount = parseFloat(document.getElementById('cryptocomMaxTrade').value);
+                const profitThreshold = parseFloat(document.getElementById('cryptocomProfitThreshold').value);
+
+                const enabledSets = {
+                    SET_1_ESSENTIAL_ETH_BRIDGE: document.getElementById('cryptocomSet1Enabled').checked,
+                    SET_2_MIDCAP_BTC_BRIDGE: document.getElementById('cryptocomSet2Enabled').checked,
+                    SET_3_CRO_NATIVE_BRIDGE: document.getElementById('cryptocomSet3Enabled').checked,
+                    SET_4_HIGH_VOLATILITY: document.getElementById('cryptocomSet4Enabled').checked,
+                    SET_5_EXTENDED_MULTIBRIDGE: document.getElementById('cryptocomSet5Enabled').checked
+                };
+
+                document.getElementById('cryptocomScanStatus').innerHTML = '🔍 Scanning Crypto.com triangular paths...';
+                document.getElementById('cryptocomOpportunities').innerHTML = '<div style="text-align: center; padding: 20px;">⏳ Analyzing market data...</div>';
+
+                const response = await fetch('/api/v1/trading/cryptocom/triangular/scan', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    },
+                    body: JSON.stringify({
+                        apiKey,
+                        apiSecret,
+                        maxTradeAmount,
+                        profitThreshold,
+                        enabledSets
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    document.getElementById('cryptocomScanStatus').innerHTML = `✅ Scanned ${result.scanned} paths | Found ${result.opportunities.length} opportunities`;
+
+                    if (result.opportunities.length === 0) {
+                        document.getElementById('cryptocomOpportunities').innerHTML = `
+                            <div style="text-align: center; padding: 30px; color: #888;">
+                                <div style="font-size: 48px; margin-bottom: 15px;">📊</div>
+                                <div style="font-size: 16px; font-weight: 600; margin-bottom: 10px;">No Opportunities Found</div>
+                                <div style="font-size: 14px;">Try lowering the profit threshold or enabling more path sets</div>
+                            </div>
+                        `;
+                    } else {
+                        let opportunitiesHtml = '<div style="display: grid; gap: 15px;">';
+
+                        result.opportunities.forEach((opp, index) => {
+                            const profitClass = parseFloat(opp.profitPercent) >= 1.0 ? '#0066FF' : '#FFA500';
+
+                            opportunitiesHtml += `
+                                <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 10px; border-left: 4px solid ${profitClass};">
+                                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                                        <div>
+                                            <div style="color: ${profitClass}; font-weight: 600; font-size: 16px; margin-bottom: 5px;">
+                                                ${opp.path}
+                                            </div>
+                                            <div style="color: #888; font-size: 13px;">${opp.description}</div>
+                                        </div>
+                                        <div style="text-align: right;">
+                                            <div style="color: ${profitClass}; font-weight: 700; font-size: 20px;">+${opp.profitPercent}%</div>
+                                            <div style="color: #888; font-size: 13px;">$${opp.profit} USDT</div>
+                                        </div>
+                                    </div>
+                                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1);">
+                                        <div>
+                                            <div style="color: #888; font-size: 11px;">Initial</div>
+                                            <div style="color: white; font-weight: 600;">${opp.initialAmount} USDT</div>
+                                        </div>
+                                        <div>
+                                            <div style="color: #888; font-size: 11px;">Final</div>
+                                            <div style="color: white; font-weight: 600;">${opp.finalAmount} USDT</div>
+                                        </div>
+                                        <div>
+                                            <div style="color: #888; font-size: 11px;">Pairs</div>
+                                            <div style="color: white; font-size: 12px;">${opp.pairs.join(' → ')}</div>
+                                        </div>
+                                    </div>
+                                    <button onclick="executeCryptocomTriangularTrade('${opp.pathId}', true)" style="width: 100%; margin-top: 12px; padding: 8px; background: rgba(0,102,255,0.2); color: #0066FF; border: 1px solid #0066FF; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px;">
+                                        🧪 DRY RUN TEST
+                                    </button>
+                                </div>
+                            `;
+                        });
+
+                        opportunitiesHtml += '</div>';
+                        document.getElementById('cryptocomOpportunities').innerHTML = opportunitiesHtml;
+                    }
+                } else {
+                    throw new Error(result.message);
+                }
+
+            } catch (error) {
+                console.error('Crypto.com scan error:', error);
+                document.getElementById('cryptocomScanStatus').innerHTML = '❌ Scan failed';
+                document.getElementById('cryptocomOpportunities').innerHTML = `
+                    <div style="text-align: center; padding: 20px; color: #FF4444;">
+                        ❌ Error: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // 6. Execute Crypto.com Triangular Trade
+        async function executeCryptocomTriangularTrade(pathId, dryRun = true) {
+            try {
+                const apiKey = localStorage.getItem('cryptocom_triangular_api');
+                const apiSecret = localStorage.getItem('cryptocom_triangular_secret');
+
+                if (!apiKey || !apiSecret) {
+                    alert('❌ API credentials not found');
+                    return;
+                }
+
+                const confirmed = confirm(`${dryRun ? '🧪 DRY RUN' : '⚠️ LIVE EXECUTION'}\n\nExecute triangular arbitrage trade?\n\nPath ID: ${pathId}\n\nThis will ${dryRun ? 'simulate' : 'execute'} the trade.`);
+
+                if (!confirmed) return;
+
+                const response = await fetch('/api/v1/trading/cryptocom/triangular/execute', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    },
+                    body: JSON.stringify({
+                        apiKey,
+                        apiSecret,
+                        pathId,
+                        dryRun
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(`✅ ${dryRun ? 'DRY RUN' : 'EXECUTION'} Successful!\n\n${result.message}`);
+                } else {
+                    throw new Error(result.message);
+                }
+
+            } catch (error) {
+                console.error('Crypto.com execution error:', error);
+                alert(`❌ Execution Failed\n\n${error.message}`);
+            }
+        }
+
+        // 7. Load Crypto.com Trade History
+        async function loadCryptocomTradeHistory() {
+            try {
+                const userId = localStorage.getItem('userId');
+                if (!userId) return;
+
+                const response = await fetch('/api/v1/trading/cryptocom/triangular/history', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    },
+                    body: JSON.stringify({ userId, limit: 10 })
+                });
+
+                const result = await response.json();
+
+                if (result.success && result.trades.length > 0) {
+                    let historyHtml = '<div style="display: grid; gap: 10px;">';
+
+                    result.trades.forEach(trade => {
+                        const statusColor = trade.execution_status === 'completed' ? '#0066FF' : '#FF4444';
+                        const profitColor = parseFloat(trade.actual_profit_zar || 0) > 0 ? '#0066FF' : '#FF4444';
+
+                        historyHtml += `
+                            <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; border-left: 3px solid ${statusColor};">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                                    <span style="color: white; font-weight: 600; font-size: 13px;">${trade.path_sequence}</span>
+                                    <span style="color: ${profitColor}; font-weight: 600;">${trade.actual_profit_zar ? '+' + trade.actual_profit_zar : '—'} USDT</span>
+                                </div>
+                                <div style="color: #888; font-size: 12px;">${new Date(trade.created_at).toLocaleString()}</div>
+                            </div>
+                        `;
+                    });
+
+                    historyHtml += '</div>';
+                    document.getElementById('cryptocomTradeHistory').innerHTML = historyHtml;
+                }
+            } catch (error) {
+                console.error('Crypto.com history error:', error);
+            }
+        }
+
+        // Initialize Crypto.com settings on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 [CRYPTO.COM] Initializing triangular arbitrage settings...');
+            loadCryptocomTriangularSettings();
+
+            const cryptocomInputs = document.querySelectorAll('#cryptocomMaxTrade, #cryptocomPortfolioPercent, #cryptocomProfitThreshold');
+            cryptocomInputs.forEach(input => {
+                input.addEventListener('change', saveCryptocomTriangularSettings);
+            });
+
+            for (let i = 1; i <= 5; i++) {
+                const checkbox = document.getElementById(`cryptocomSet${i}Enabled`);
+                if (checkbox) {
+                    checkbox.addEventListener('change', saveCryptocomTriangularSettings);
                 }
             }
         });

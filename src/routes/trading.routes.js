@@ -6591,6 +6591,447 @@ router.get('/gateio/triangular/recent-trades', asyncHandler(async (req, res) => 
 }));
 
 // ============================================================================
+// CRYPTO.COM EXCHANGE - TRIANGULAR ARBITRAGE
+// ============================================================================
+
+// Crypto.com Triangular Arbitrage API Configuration
+const CRYPTOCOM_TRIANGULAR_CONFIG = {
+    baseUrl: 'https://api.crypto.com/v1',
+    endpoints: {
+        tickers: '/public/get-tickers',
+        orderBook: '/public/get-book',
+        instruments: '/public/get-instruments',
+        balance: '/private/get-account-summary',
+        placeOrder: '/private/create-order'
+    }
+};
+
+// Crypto.com HMAC-SHA256 Authentication Helper
+function createCryptocomSignature(apiKey, apiSecret, method, endpoint, params = {}, nonce = Date.now()) {
+    // Add required fields
+    params.api_key = apiKey;
+    params.nonce = nonce;
+    params.method = method;
+
+    // Sort params alphabetically by key
+    const sortedKeys = Object.keys(params).sort();
+
+    // Concatenate key+value pairs (no spaces, no delimiters)
+    let signatureString = '';
+    sortedKeys.forEach(key => {
+        signatureString += key + params[key];
+    });
+
+    // Generate HMAC-SHA256 signature and hex encode
+    const signature = crypto.createHmac('sha256', apiSecret).update(signatureString).digest('hex');
+
+    return {
+        params: params,
+        signature: signature,
+        nonce: nonce
+    };
+}
+
+// ROUTE 1: Test Crypto.com Connection
+router.post('/cryptocom/triangular/test-connection', asyncHandler(async (req, res) => {
+    try {
+        const { apiKey, apiSecret } = req.body;
+
+        if (!apiKey || !apiSecret) {
+            return res.status(400).json({
+                success: false,
+                message: 'API key and secret are required'
+            });
+        }
+
+        // Test connection by fetching account summary
+        const method = 'private/get-account-summary';
+        const nonce = Date.now();
+        const params = {};
+        const auth = createCryptocomSignature(apiKey, apiSecret, method, '', params, nonce);
+
+        const response = await fetch(`${CRYPTOCOM_TRIANGULAR_CONFIG.baseUrl}${CRYPTOCOM_TRIANGULAR_CONFIG.endpoints.balance}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                id: nonce,
+                method: method,
+                api_key: apiKey,
+                sig: auth.signature,
+                nonce: nonce,
+                params: {}
+            })
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            return res.status(401).json({
+                success: false,
+                message: 'Crypto.com API authentication failed',
+                error: errorText
+            });
+        }
+
+        const result = await response.json();
+
+        if (result.code !== 0) {
+            throw new Error(result.message || 'Authentication failed');
+        }
+
+        // Find USDT balance
+        const accounts = result.result.accounts || [];
+        const usdtAccount = accounts.find(acc => acc.currency === 'USDT');
+        const usdtAvailable = usdtAccount ? parseFloat(usdtAccount.available) : 0;
+
+        res.json({
+            success: true,
+            message: 'Crypto.com connection successful',
+            balances: {
+                USDT: usdtAvailable.toFixed(2)
+            }
+        });
+
+    } catch (error) {
+        console.error('Crypto.com connection test error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to connect to Crypto.com'
+        });
+    }
+}));
+
+// ROUTE 2: Scan Crypto.com Triangular Arbitrage Opportunities
+router.post('/cryptocom/triangular/scan', asyncHandler(async (req, res) => {
+    try {
+        const { apiKey, apiSecret, maxTradeAmount, profitThreshold, enabledSets } = req.body;
+
+        if (!apiKey || !apiSecret) {
+            return res.status(400).json({
+                success: false,
+                message: 'API credentials required'
+            });
+        }
+
+        // Define all 32 triangular arbitrage paths
+        const allPaths = {
+            SET_1_ESSENTIAL_ETH_BRIDGE: [
+                { id: 'CDC_ETH_1', path: ['USDT', 'ETH', 'BTC', 'USDT'], pairs: ['ETH_USDT', 'BTC_ETH', 'BTC_USDT'], description: 'ETH → BTC Bridge' },
+                { id: 'CDC_ETH_2', path: ['USDT', 'ETH', 'SOL', 'USDT'], pairs: ['ETH_USDT', 'SOL_ETH', 'SOL_USDT'], description: 'ETH → SOL Bridge' },
+                { id: 'CDC_ETH_3', path: ['USDT', 'ETH', 'XRP', 'USDT'], pairs: ['ETH_USDT', 'XRP_ETH', 'XRP_USDT'], description: 'ETH → XRP Bridge' },
+                { id: 'CDC_ETH_4', path: ['USDT', 'ETH', 'ADA', 'USDT'], pairs: ['ETH_USDT', 'ADA_ETH', 'ADA_USDT'], description: 'ETH → ADA Bridge' },
+                { id: 'CDC_ETH_5', path: ['USDT', 'ETH', 'MATIC', 'USDT'], pairs: ['ETH_USDT', 'MATIC_ETH', 'MATIC_USDT'], description: 'ETH → MATIC Bridge' },
+                { id: 'CDC_ETH_6', path: ['USDT', 'ETH', 'DOT', 'USDT'], pairs: ['ETH_USDT', 'DOT_ETH', 'DOT_USDT'], description: 'ETH → DOT Bridge' },
+                { id: 'CDC_ETH_7', path: ['USDT', 'ETH', 'AVAX', 'USDT'], pairs: ['ETH_USDT', 'AVAX_ETH', 'AVAX_USDT'], description: 'ETH → AVAX Bridge' }
+            ],
+            SET_2_MIDCAP_BTC_BRIDGE: [
+                { id: 'CDC_BTC_1', path: ['USDT', 'BTC', 'ETH', 'USDT'], pairs: ['BTC_USDT', 'ETH_BTC', 'ETH_USDT'], description: 'BTC → ETH Bridge' },
+                { id: 'CDC_BTC_2', path: ['USDT', 'BTC', 'SOL', 'USDT'], pairs: ['BTC_USDT', 'SOL_BTC', 'SOL_USDT'], description: 'BTC → SOL Bridge' },
+                { id: 'CDC_BTC_3', path: ['USDT', 'BTC', 'ADA', 'USDT'], pairs: ['BTC_USDT', 'ADA_BTC', 'ADA_USDT'], description: 'BTC → ADA Bridge' },
+                { id: 'CDC_BTC_4', path: ['USDT', 'BTC', 'DOT', 'USDT'], pairs: ['BTC_USDT', 'DOT_BTC', 'DOT_USDT'], description: 'BTC → DOT Bridge' },
+                { id: 'CDC_BTC_5', path: ['USDT', 'BTC', 'ATOM', 'USDT'], pairs: ['BTC_USDT', 'ATOM_BTC', 'ATOM_USDT'], description: 'BTC → ATOM Bridge' },
+                { id: 'CDC_BTC_6', path: ['USDT', 'BTC', 'LTC', 'USDT'], pairs: ['BTC_USDT', 'LTC_BTC', 'LTC_USDT'], description: 'BTC → LTC Bridge' },
+                { id: 'CDC_BTC_7', path: ['USDT', 'BTC', 'XRP', 'USDT'], pairs: ['BTC_USDT', 'XRP_BTC', 'XRP_USDT'], description: 'BTC → XRP Bridge' }
+            ],
+            SET_3_CRO_NATIVE_BRIDGE: [
+                { id: 'CDC_CRO_1', path: ['USDT', 'CRO', 'BTC', 'USDT'], pairs: ['CRO_USDT', 'BTC_CRO', 'BTC_USDT'], description: 'CRO → BTC Native' },
+                { id: 'CDC_CRO_2', path: ['USDT', 'CRO', 'ETH', 'USDT'], pairs: ['CRO_USDT', 'ETH_CRO', 'ETH_USDT'], description: 'CRO → ETH Native' },
+                { id: 'CDC_CRO_3', path: ['USDT', 'CRO', 'SOL', 'USDT'], pairs: ['CRO_USDT', 'SOL_CRO', 'SOL_USDT'], description: 'CRO → SOL Native' },
+                { id: 'CDC_CRO_4', path: ['USDT', 'BTC', 'CRO', 'USDT'], pairs: ['BTC_USDT', 'CRO_BTC', 'CRO_USDT'], description: 'BTC → CRO Reverse' },
+                { id: 'CDC_CRO_5', path: ['USDT', 'ETH', 'CRO', 'USDT'], pairs: ['ETH_USDT', 'CRO_ETH', 'CRO_USDT'], description: 'ETH → CRO Reverse' },
+                { id: 'CDC_CRO_6', path: ['USDT', 'CRO', 'MATIC', 'USDT'], pairs: ['CRO_USDT', 'MATIC_CRO', 'MATIC_USDT'], description: 'CRO → MATIC Native' }
+            ],
+            SET_4_HIGH_VOLATILITY: [
+                { id: 'CDC_VOL_1', path: ['USDT', 'DOGE', 'BTC', 'USDT'], pairs: ['DOGE_USDT', 'BTC_DOGE', 'BTC_USDT'], description: 'DOGE → BTC Volatility' },
+                { id: 'CDC_VOL_2', path: ['USDT', 'SHIB', 'ETH', 'USDT'], pairs: ['SHIB_USDT', 'ETH_SHIB', 'ETH_USDT'], description: 'SHIB → ETH Volatility' },
+                { id: 'CDC_VOL_3', path: ['USDT', 'MATIC', 'BTC', 'USDT'], pairs: ['MATIC_USDT', 'BTC_MATIC', 'BTC_USDT'], description: 'MATIC → BTC Volatility' },
+                { id: 'CDC_VOL_4', path: ['USDT', 'SOL', 'ETH', 'USDT'], pairs: ['SOL_USDT', 'ETH_SOL', 'ETH_USDT'], description: 'SOL → ETH Volatility' },
+                { id: 'CDC_VOL_5', path: ['USDT', 'ADA', 'BTC', 'USDT'], pairs: ['ADA_USDT', 'BTC_ADA', 'BTC_USDT'], description: 'ADA → BTC Volatility' },
+                { id: 'CDC_VOL_6', path: ['USDT', 'DOT', 'ETH', 'USDT'], pairs: ['DOT_USDT', 'ETH_DOT', 'ETH_USDT'], description: 'DOT → ETH Volatility' }
+            ],
+            SET_5_EXTENDED_MULTIBRIDGE: [
+                { id: 'CDC_EXT_1', path: ['USDT', 'SOL', 'BTC', 'USDT'], pairs: ['SOL_USDT', 'BTC_SOL', 'BTC_USDT'], description: 'SOL → BTC Multi-Bridge' },
+                { id: 'CDC_EXT_2', path: ['USDT', 'XRP', 'ETH', 'USDT'], pairs: ['XRP_USDT', 'ETH_XRP', 'ETH_USDT'], description: 'XRP → ETH Multi-Bridge' },
+                { id: 'CDC_EXT_3', path: ['USDT', 'AVAX', 'BTC', 'USDT'], pairs: ['AVAX_USDT', 'BTC_AVAX', 'BTC_USDT'], description: 'AVAX → BTC Multi-Bridge' },
+                { id: 'CDC_EXT_4', path: ['USDT', 'ATOM', 'ETH', 'USDT'], pairs: ['ATOM_USDT', 'ETH_ATOM', 'ETH_USDT'], description: 'ATOM → ETH Multi-Bridge' },
+                { id: 'CDC_EXT_5', path: ['USDT', 'BTC', 'ETH', 'SOL', 'USDT'], pairs: ['BTC_USDT', 'ETH_BTC', 'SOL_ETH', 'SOL_USDT'], description: '4-Leg BTC-ETH-SOL' },
+                { id: 'CDC_EXT_6', path: ['USDT', 'ETH', 'BTC', 'ADA', 'USDT'], pairs: ['ETH_USDT', 'BTC_ETH', 'ADA_BTC', 'ADA_USDT'], description: '4-Leg ETH-BTC-ADA' }
+            ]
+        };
+
+        // Filter paths based on enabled sets
+        let pathsToScan = [];
+        Object.keys(allPaths).forEach(setKey => {
+            if (enabledSets[setKey]) {
+                pathsToScan = pathsToScan.concat(allPaths[setKey]);
+            }
+        });
+
+        // Fetch all tickers (public endpoint, no auth needed)
+        const tickersResponse = await fetch(`${CRYPTOCOM_TRIANGULAR_CONFIG.baseUrl}${CRYPTOCOM_TRIANGULAR_CONFIG.endpoints.tickers}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!tickersResponse.ok) {
+            throw new Error('Failed to fetch Crypto.com tickers');
+        }
+
+        const tickersResult = await tickersResponse.json();
+
+        if (tickersResult.code !== 0) {
+            throw new Error(tickersResult.message || 'Failed to fetch tickers');
+        }
+
+        const tickers = tickersResult.result.data || [];
+
+        // Build price map
+        const priceMap = {};
+        tickers.forEach(ticker => {
+            const symbol = ticker.i; // instrument_name like BTC_USDT
+            priceMap[symbol] = {
+                bid: parseFloat(ticker.b) || 0,  // best bid
+                ask: parseFloat(ticker.k) || 0,  // best ask
+                last: parseFloat(ticker.a) || 0  // latest price
+            };
+        });
+
+        // Scan each path for arbitrage opportunities
+        const opportunities = [];
+
+        for (const pathDef of pathsToScan) {
+            try {
+                const { path, pairs, id, description } = pathDef;
+                let currentAmount = maxTradeAmount;
+                let prices = [];
+                let valid = true;
+
+                // Calculate through each leg
+                for (let i = 0; i < pairs.length; i++) {
+                    const pair = pairs[i];
+                    const priceData = priceMap[pair];
+
+                    if (!priceData || priceData.bid === 0 || priceData.ask === 0) {
+                        valid = false;
+                        break;
+                    }
+
+                    const fromCurrency = path[i];
+                    const toCurrency = path[i + 1];
+
+                    // Determine if we're buying or selling the pair
+                    const [base, quote] = pair.split('_');
+
+                    if (fromCurrency === quote && toCurrency === base) {
+                        // Buying base with quote (use ask price)
+                        const price = priceData.ask;
+                        currentAmount = currentAmount / price;
+                        prices.push({ pair, side: 'buy', price, amount: currentAmount });
+                    } else if (fromCurrency === base && toCurrency === quote) {
+                        // Selling base for quote (use bid price)
+                        const price = priceData.bid;
+                        currentAmount = currentAmount * price;
+                        prices.push({ pair, side: 'sell', price, amount: currentAmount });
+                    } else {
+                        valid = false;
+                        break;
+                    }
+                }
+
+                if (valid) {
+                    const finalAmount = currentAmount;
+                    const profit = finalAmount - maxTradeAmount;
+                    const profitPercent = (profit / maxTradeAmount) * 100;
+
+                    if (profitPercent >= profitThreshold) {
+                        opportunities.push({
+                            pathId: id,
+                            path: path.join(' → '),
+                            pairs: pairs,
+                            description: description,
+                            initialAmount: maxTradeAmount,
+                            finalAmount: finalAmount.toFixed(2),
+                            profit: profit.toFixed(2),
+                            profitPercent: profitPercent.toFixed(4),
+                            legs: prices,
+                            timestamp: new Date().toISOString()
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error(`Error scanning path ${pathDef.id}:`, error);
+            }
+        }
+
+        // Sort by profit percentage descending
+        opportunities.sort((a, b) => parseFloat(b.profitPercent) - parseFloat(a.profitPercent));
+
+        res.json({
+            success: true,
+            scanned: pathsToScan.length,
+            opportunities: opportunities,
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        console.error('Crypto.com scan error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to scan Crypto.com triangular paths'
+        });
+    }
+}));
+
+// ROUTE 3: Get All Crypto.com Triangular Paths
+router.get('/cryptocom/triangular/paths', asyncHandler(async (req, res) => {
+    const allPaths = {
+        SET_1_ESSENTIAL_ETH_BRIDGE: [
+            { id: 'CDC_ETH_1', path: ['USDT', 'ETH', 'BTC', 'USDT'], pairs: ['ETH_USDT', 'BTC_ETH', 'BTC_USDT'], description: 'ETH → BTC Bridge' },
+            { id: 'CDC_ETH_2', path: ['USDT', 'ETH', 'SOL', 'USDT'], pairs: ['ETH_USDT', 'SOL_ETH', 'SOL_USDT'], description: 'ETH → SOL Bridge' },
+            { id: 'CDC_ETH_3', path: ['USDT', 'ETH', 'XRP', 'USDT'], pairs: ['ETH_USDT', 'XRP_ETH', 'XRP_USDT'], description: 'ETH → XRP Bridge' },
+            { id: 'CDC_ETH_4', path: ['USDT', 'ETH', 'ADA', 'USDT'], pairs: ['ETH_USDT', 'ADA_ETH', 'ADA_USDT'], description: 'ETH → ADA Bridge' },
+            { id: 'CDC_ETH_5', path: ['USDT', 'ETH', 'MATIC', 'USDT'], pairs: ['ETH_USDT', 'MATIC_ETH', 'MATIC_USDT'], description: 'ETH → MATIC Bridge' },
+            { id: 'CDC_ETH_6', path: ['USDT', 'ETH', 'DOT', 'USDT'], pairs: ['ETH_USDT', 'DOT_ETH', 'DOT_USDT'], description: 'ETH → DOT Bridge' },
+            { id: 'CDC_ETH_7', path: ['USDT', 'ETH', 'AVAX', 'USDT'], pairs: ['ETH_USDT', 'AVAX_ETH', 'AVAX_USDT'], description: 'ETH → AVAX Bridge' }
+        ],
+        SET_2_MIDCAP_BTC_BRIDGE: [
+            { id: 'CDC_BTC_1', path: ['USDT', 'BTC', 'ETH', 'USDT'], pairs: ['BTC_USDT', 'ETH_BTC', 'ETH_USDT'], description: 'BTC → ETH Bridge' },
+            { id: 'CDC_BTC_2', path: ['USDT', 'BTC', 'SOL', 'USDT'], pairs: ['BTC_USDT', 'SOL_BTC', 'SOL_USDT'], description: 'BTC → SOL Bridge' },
+            { id: 'CDC_BTC_3', path: ['USDT', 'BTC', 'ADA', 'USDT'], pairs: ['BTC_USDT', 'ADA_BTC', 'ADA_USDT'], description: 'BTC → ADA Bridge' },
+            { id: 'CDC_BTC_4', path: ['USDT', 'BTC', 'DOT', 'USDT'], pairs: ['BTC_USDT', 'DOT_BTC', 'DOT_USDT'], description: 'BTC → DOT Bridge' },
+            { id: 'CDC_BTC_5', path: ['USDT', 'BTC', 'ATOM', 'USDT'], pairs: ['BTC_USDT', 'ATOM_BTC', 'ATOM_USDT'], description: 'BTC → ATOM Bridge' },
+            { id: 'CDC_BTC_6', path: ['USDT', 'BTC', 'LTC', 'USDT'], pairs: ['BTC_USDT', 'LTC_BTC', 'LTC_USDT'], description: 'BTC → LTC Bridge' },
+            { id: 'CDC_BTC_7', path: ['USDT', 'BTC', 'XRP', 'USDT'], pairs: ['BTC_USDT', 'XRP_BTC', 'XRP_USDT'], description: 'BTC → XRP Bridge' }
+        ],
+        SET_3_CRO_NATIVE_BRIDGE: [
+            { id: 'CDC_CRO_1', path: ['USDT', 'CRO', 'BTC', 'USDT'], pairs: ['CRO_USDT', 'BTC_CRO', 'BTC_USDT'], description: 'CRO → BTC Native' },
+            { id: 'CDC_CRO_2', path: ['USDT', 'CRO', 'ETH', 'USDT'], pairs: ['CRO_USDT', 'ETH_CRO', 'ETH_USDT'], description: 'CRO → ETH Native' },
+            { id: 'CDC_CRO_3', path: ['USDT', 'CRO', 'SOL', 'USDT'], pairs: ['CRO_USDT', 'SOL_CRO', 'SOL_USDT'], description: 'CRO → SOL Native' },
+            { id: 'CDC_CRO_4', path: ['USDT', 'BTC', 'CRO', 'USDT'], pairs: ['BTC_USDT', 'CRO_BTC', 'CRO_USDT'], description: 'BTC → CRO Reverse' },
+            { id: 'CDC_CRO_5', path: ['USDT', 'ETH', 'CRO', 'USDT'], pairs: ['ETH_USDT', 'CRO_ETH', 'CRO_USDT'], description: 'ETH → CRO Reverse' },
+            { id: 'CDC_CRO_6', path: ['USDT', 'CRO', 'MATIC', 'USDT'], pairs: ['CRO_USDT', 'MATIC_CRO', 'MATIC_USDT'], description: 'CRO → MATIC Native' }
+        ],
+        SET_4_HIGH_VOLATILITY: [
+            { id: 'CDC_VOL_1', path: ['USDT', 'DOGE', 'BTC', 'USDT'], pairs: ['DOGE_USDT', 'BTC_DOGE', 'BTC_USDT'], description: 'DOGE → BTC Volatility' },
+            { id: 'CDC_VOL_2', path: ['USDT', 'SHIB', 'ETH', 'USDT'], pairs: ['SHIB_USDT', 'ETH_SHIB', 'ETH_USDT'], description: 'SHIB → ETH Volatility' },
+            { id: 'CDC_VOL_3', path: ['USDT', 'MATIC', 'BTC', 'USDT'], pairs: ['MATIC_USDT', 'BTC_MATIC', 'BTC_USDT'], description: 'MATIC → BTC Volatility' },
+            { id: 'CDC_VOL_4', path: ['USDT', 'SOL', 'ETH', 'USDT'], pairs: ['SOL_USDT', 'ETH_SOL', 'ETH_USDT'], description: 'SOL → ETH Volatility' },
+            { id: 'CDC_VOL_5', path: ['USDT', 'ADA', 'BTC', 'USDT'], pairs: ['ADA_USDT', 'BTC_ADA', 'BTC_USDT'], description: 'ADA → BTC Volatility' },
+            { id: 'CDC_VOL_6', path: ['USDT', 'DOT', 'ETH', 'USDT'], pairs: ['DOT_USDT', 'ETH_DOT', 'ETH_USDT'], description: 'DOT → ETH Volatility' }
+        ],
+        SET_5_EXTENDED_MULTIBRIDGE: [
+            { id: 'CDC_EXT_1', path: ['USDT', 'SOL', 'BTC', 'USDT'], pairs: ['SOL_USDT', 'BTC_SOL', 'BTC_USDT'], description: 'SOL → BTC Multi-Bridge' },
+            { id: 'CDC_EXT_2', path: ['USDT', 'XRP', 'ETH', 'USDT'], pairs: ['XRP_USDT', 'ETH_XRP', 'ETH_USDT'], description: 'XRP → ETH Multi-Bridge' },
+            { id: 'CDC_EXT_3', path: ['USDT', 'AVAX', 'BTC', 'USDT'], pairs: ['AVAX_USDT', 'BTC_AVAX', 'BTC_USDT'], description: 'AVAX → BTC Multi-Bridge' },
+            { id: 'CDC_EXT_4', path: ['USDT', 'ATOM', 'ETH', 'USDT'], pairs: ['ATOM_USDT', 'ETH_ATOM', 'ETH_USDT'], description: 'ATOM → ETH Multi-Bridge' },
+            { id: 'CDC_EXT_5', path: ['USDT', 'BTC', 'ETH', 'SOL', 'USDT'], pairs: ['BTC_USDT', 'ETH_BTC', 'SOL_ETH', 'SOL_USDT'], description: '4-Leg BTC-ETH-SOL' },
+            { id: 'CDC_EXT_6', path: ['USDT', 'ETH', 'BTC', 'ADA', 'USDT'], pairs: ['ETH_USDT', 'BTC_ETH', 'ADA_BTC', 'ADA_USDT'], description: '4-Leg ETH-BTC-ADA' }
+        ]
+    };
+
+    res.json({
+        success: true,
+        totalPaths: 32,
+        sets: allPaths
+    });
+}));
+
+// ROUTE 4: Execute Crypto.com Triangular Trade
+router.post('/cryptocom/triangular/execute', asyncHandler(async (req, res) => {
+    try {
+        const { apiKey, apiSecret, opportunity, dryRun } = req.body;
+
+        if (!apiKey || !apiSecret) {
+            return res.status(400).json({
+                success: false,
+                message: 'API credentials required'
+            });
+        }
+
+        if (dryRun) {
+            return res.json({
+                success: true,
+                message: 'DRY RUN - Trade would execute with following parameters',
+                opportunity: opportunity,
+                execution: {
+                    leg1: { status: 'simulated', pair: opportunity.legs[0].pair },
+                    leg2: { status: 'simulated', pair: opportunity.legs[1].pair },
+                    leg3: { status: 'simulated', pair: opportunity.legs[2].pair }
+                }
+            });
+        }
+
+        // Real execution would go here
+        res.json({
+            success: true,
+            message: 'Crypto.com triangular trade execution endpoint ready',
+            note: 'Full execution logic to be implemented after testing phase'
+        });
+
+    } catch (error) {
+        console.error('Crypto.com execute error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to execute Crypto.com triangular trade'
+        });
+    }
+}));
+
+// ROUTE 5: Get Crypto.com Trade History
+router.post('/cryptocom/triangular/history', asyncHandler(async (req, res) => {
+    try {
+        const { userId, limit = 50 } = req.body;
+
+        const result = await pool.query(
+            `SELECT * FROM triangular_trades
+             WHERE user_id = $1 AND exchange = 'CRYPTOCOM'
+             ORDER BY created_at DESC
+             LIMIT $2`,
+            [userId, limit]
+        );
+
+        res.json({
+            success: true,
+            trades: result.rows
+        });
+
+    } catch (error) {
+        console.error('Crypto.com history error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to retrieve Crypto.com trade history'
+        });
+    }
+}));
+
+// ROUTE 6: Get Recent Crypto.com Trades (All Users)
+router.get('/cryptocom/triangular/recent-trades', asyncHandler(async (req, res) => {
+    try {
+        const result = await pool.query(
+            `SELECT * FROM triangular_recent_trades
+             WHERE exchange = 'CRYPTOCOM'
+             ORDER BY created_at DESC
+             LIMIT 20`
+        );
+
+        res.json({
+            success: true,
+            trades: result.rows
+        });
+
+    } catch (error) {
+        console.error('Crypto.com recent trades error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to retrieve recent Crypto.com trades'
+        });
+    }
+}));
+
+// ============================================================================
 // VALR EXCHANGE API PROXY ENDPOINTS
 // ============================================================================
 
