@@ -1220,6 +1220,98 @@
             </div>
         </div>
 
+        <!-- Huobi (HTX) Exchange -->
+        <div style="background: rgba(45,108,248,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 2px solid #2D6CF8;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="color: #2D6CF8; margin: 0;">🔷 HUOBI (HTX) Triangular Arbitrage</h3>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <div class="toggle-switch" id="huobiTriangularEnabled" onclick="toggleHuobiTriangular()">
+                        <div class="toggle-knob"></div>
+                    </div>
+                    <span id="huobiTriangularStatus" style="color: #ff6b6b; font-weight: 600;">OFF</span>
+                </div>
+            </div>
+
+            <div class="stat-grid">
+                <!-- Risk Management -->
+                <div class="stat-card">
+                    <h4 style="color: #2D6CF8; margin-bottom: 15px;">⚖️ Risk Management</h4>
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 500;">Max Trade (USDT)</label>
+                        <input type="number" id="huobiMaxTrade" value="100" min="10" max="10000" step="10"
+                               style="width: 100%; padding: 8px; border: 1px solid #2D6CF8; border-radius: 5px; background: rgba(45,108,248,0.05);">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 500;">Portfolio % per Trade</label>
+                        <input type="number" id="huobiPortfolioPercent" value="10" min="1" max="50" step="1"
+                               style="width: 100%; padding: 8px; border: 1px solid #2D6CF8; border-radius: 5px; background: rgba(45,108,248,0.05);">
+                    </div>
+                    <div class="form-group">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 500;">Min Profit % Threshold</label>
+                        <input type="number" id="huobiProfitThreshold" value="0.5" min="0.1" max="5" step="0.1"
+                               style="width: 100%; padding: 8px; border: 1px solid #2D6CF8; border-radius: 5px; background: rgba(45,108,248,0.05);">
+                    </div>
+                </div>
+
+                <!-- Path Sets Configuration -->
+                <div class="stat-card">
+                    <h4 style="color: #2D6CF8; margin-bottom: 15px;">🎯 Triangular Path Sets (32 Paths)</h4>
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" id="huobiSet1Enabled" checked style="margin-right: 10px; width: 18px; height: 18px;">
+                            <span><strong>SET 1:</strong> Essential ETH Bridge (7 paths) - BTC, SOL, XRP, TRX, DOT, MATIC, LINK</span>
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" id="huobiSet2Enabled" checked style="margin-right: 10px; width: 18px; height: 18px;">
+                            <span><strong>SET 2:</strong> Mid-Cap BTC Bridge (7 paths) - ETH, XRP, LTC, BCH, ADA, AVAX, UNI</span>
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" id="huobiSet3Enabled" style="margin-right: 10px; width: 18px; height: 18px;">
+                            <span><strong>SET 3:</strong> HT Native Bridge (6 paths) - Using Huobi Token (HT)</span>
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" id="huobiSet4Enabled" style="margin-right: 10px; width: 18px; height: 18px;">
+                            <span><strong>SET 4:</strong> High Volatility (6 paths) - DOGE, SHIB, APE, NEAR, APT, FTM</span>
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" id="huobiSet5Enabled" style="margin-right: 10px; width: 18px; height: 18px;">
+                            <span><strong>SET 5:</strong> Extended Multi-Bridge (6 paths) - FIL, ATOM, ICP, ALGO, ETC + 4-leg path</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="stat-card">
+                    <h4 style="color: #2D6CF8; margin-bottom: 15px;">🔧 Actions</h4>
+                    <button onclick="testHuobiTriangularConnection()" class="btn" style="background: #2D6CF8; width: 100%; margin-bottom: 10px;">
+                        🔌 Test Connection
+                    </button>
+                    <button onclick="scanHuobiTriangularPaths()" class="btn" style="background: #2D6CF8; width: 100%; margin-bottom: 10px;">
+                        🔍 Scan Opportunities
+                    </button>
+                    <button onclick="viewHuobiPathDetails()" class="btn" style="background: #666; width: 100%; margin-bottom: 10px;">
+                        📋 View All Paths
+                    </button>
+                    <button onclick="clearHuobiTriangularHistory()" class="btn" style="background: #ff6b6b; width: 100%; margin-bottom: 10px;">
+                        🗑️ Clear History
+                    </button>
+                    <button onclick="saveHuobiTriangularSettings()" class="btn" style="background: #4CAF50; width: 100%;">
+                        💾 Save Settings
+                    </button>
+                </div>
+
+                <!-- Current Opportunities -->
+                <div class="stat-card" style="grid-column: span 2;">
+                    <h4 style="color: #2D6CF8; margin-bottom: 15px;">💰 Current Opportunities</h4>
+                    <div id="huobiOpportunities" style="max-height: 400px; overflow-y: auto;">
+                        <p style="color: #888; text-align: center; padding: 20px;">
+                            Click "Scan Opportunities" to find triangular arbitrage paths
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Future Exchanges Placeholder -->
         <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 15px; border: 2px dashed #666;">
             <div style="text-align: center; color: #888;">
@@ -3890,6 +3982,331 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
                 const checkbox = document.getElementById(`coinbaseSet${i}Enabled`);
                 if (checkbox) {
                     checkbox.addEventListener('change', saveCoinbaseTriangularSettings);
+                }
+            }
+        });
+
+        // ============================================================================
+        // HUOBI (HTX) TRIANGULAR ARBITRAGE FUNCTIONS
+        // ============================================================================
+
+        function toggleHuobiTriangular() {
+            const toggle = document.getElementById('huobiTriangularEnabled');
+            const status = document.getElementById('huobiTriangularStatus');
+            const isActive = toggle.classList.toggle('active');
+
+            if (isActive) {
+                status.textContent = 'ON';
+                status.style.color = '#2D6CF8';
+                localStorage.setItem('huobiTriangularEnabled', 'true');
+                console.log('✅ [HUOBI] Live triangular trading enabled');
+            } else {
+                status.textContent = 'OFF';
+                status.style.color = '#ff6b6b';
+                localStorage.setItem('huobiTriangularEnabled', 'false');
+                console.log('⏸️ [HUOBI] Live triangular trading disabled');
+            }
+        }
+
+        async function testHuobiTriangularConnection() {
+            console.log('🔍 [HUOBI] Testing connection...');
+
+            const apiKey = localStorage.getItem('huobi_triangular_api');
+            const apiSecret = localStorage.getItem('huobi_triangular_secret');
+
+            if (!apiKey || !apiSecret) {
+                alert('❌ Please configure your Huobi API credentials in platform settings first.');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/v1/trading/huobi/triangular/test-connection', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    },
+                    body: JSON.stringify({ apiKey, apiSecret })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert(`✅ Huobi Connection Successful!\n\nAccounts: ${data.accountsCount}\nTimestamp: ${new Date(data.timestamp).toLocaleString()}`);
+                    console.log('✅ [HUOBI] Connection test passed:', data);
+                } else {
+                    alert(`❌ Connection Failed: ${data.message}`);
+                    console.error('❌ [HUOBI] Connection test failed:', data);
+                }
+            } catch (error) {
+                console.error('❌ [HUOBI] Connection test error:', error);
+                alert('❌ Connection test failed. Check console for details.');
+            }
+        }
+
+        async function scanHuobiTriangularPaths() {
+            console.log('🔍 [HUOBI] Starting scan for triangular arbitrage opportunities...');
+
+            const apiKey = localStorage.getItem('huobi_triangular_api');
+            const apiSecret = localStorage.getItem('huobi_triangular_secret');
+
+            if (!apiKey || !apiSecret) {
+                alert('❌ Please configure your Huobi API credentials in platform settings first.');
+                return;
+            }
+
+            const maxTradeAmount = parseFloat(document.getElementById('huobiMaxTrade').value);
+            const profitThreshold = parseFloat(document.getElementById('huobiProfitThreshold').value);
+
+            const enabledSets = {
+                SET_1_ESSENTIAL_ETH_BRIDGE: document.getElementById('huobiSet1Enabled').checked,
+                SET_2_MIDCAP_BTC_BRIDGE: document.getElementById('huobiSet2Enabled').checked,
+                SET_3_HT_NATIVE_BRIDGE: document.getElementById('huobiSet3Enabled').checked,
+                SET_4_HIGH_VOLATILITY: document.getElementById('huobiSet4Enabled').checked,
+                SET_5_EXTENDED_MULTIBRIDGE: document.getElementById('huobiSet5Enabled').checked
+            };
+
+            try {
+                const response = await fetch('/api/v1/trading/huobi/triangular/scan', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    },
+                    body: JSON.stringify({
+                        apiKey,
+                        apiSecret,
+                        maxTradeAmount,
+                        profitThreshold,
+                        enabledSets
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    console.log(`✅ [HUOBI] Scan complete: ${data.profitableCount} opportunities found`);
+
+                    const container = document.getElementById('huobiOpportunities');
+
+                    if (data.opportunities.length === 0) {
+                        container.innerHTML = `
+                            <p style="color: #888; text-align: center; padding: 20px;">
+                                No profitable opportunities found above ${profitThreshold}% threshold.<br>
+                                Try lowering the profit threshold or enabling more path sets.
+                            </p>
+                        `;
+                    } else {
+                        let html = '<div style="display: flex; flex-direction: column; gap: 15px;">';
+
+                        data.opportunities.slice(0, 10).forEach((opp, index) => {
+                            html += `
+                                <div style="background: rgba(45,108,248,0.1); padding: 15px; border-radius: 8px; border-left: 4px solid #2D6CF8;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                        <strong style="color: #2D6CF8;">${opp.description}</strong>
+                                        <span style="background: #2D6CF8; color: white; padding: 4px 12px; border-radius: 12px; font-weight: 600;">
+                                            +${opp.profitPercent}%
+                                        </span>
+                                    </div>
+                                    <div style="font-size: 0.9rem; color: #b8c6db;">
+                                        <div>Path: ${opp.path.join(' → ')}</div>
+                                        <div>Initial: $${opp.initialAmount} USDT → Final: $${opp.finalAmount.toFixed(2)} USDT</div>
+                                        <div>Profit: $${opp.profitAmount.toFixed(2)} USDT</div>
+                                        <div style="font-size: 0.8rem; color: #888; margin-top: 5px;">${opp.pathId}</div>
+                                    </div>
+                                </div>
+                            `;
+                        });
+
+                        if (data.opportunities.length > 10) {
+                            html += `<p style="text-align: center; color: #888; font-size: 0.9rem;">Showing top 10 of ${data.opportunities.length} opportunities</p>`;
+                        }
+
+                        html += '</div>';
+                        container.innerHTML = html;
+                    }
+
+                    alert(`✅ Scan Complete!\n\nTotal Scanned: ${data.totalScanned} paths\nProfitable: ${data.profitableCount} opportunities\nBest: ${data.opportunities[0]?.profitPercent || 0}%`);
+                } else {
+                    alert(`❌ Scan Failed: ${data.message}`);
+                    console.error('❌ [HUOBI] Scan failed:', data);
+                }
+            } catch (error) {
+                console.error('❌ [HUOBI] Scan error:', error);
+                alert('❌ Scan failed. Check console for details.');
+            }
+        }
+
+        function viewHuobiPathDetails() {
+            console.log('📋 [HUOBI] Viewing all triangular path details...');
+
+            const pathDetails = `
+📋 HUOBI (HTX) Triangular Arbitrage Paths (32 Total)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 1: ESSENTIAL ETH BRIDGE (7 paths) ✓
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → ETH → BTC → USDT
+2. USDT → ETH → SOL → USDT
+3. USDT → ETH → XRP → USDT
+4. USDT → ETH → TRX → USDT
+5. USDT → ETH → DOT → USDT
+6. USDT → ETH → MATIC → USDT
+7. USDT → ETH → LINK → USDT
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 2: MIDCAP BTC BRIDGE (7 paths) ✓
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → BTC → ETH → USDT
+2. USDT → BTC → XRP → USDT
+3. USDT → BTC → LTC → USDT
+4. USDT → BTC → BCH → USDT
+5. USDT → BTC → ADA → USDT
+6. USDT → BTC → AVAX → USDT
+7. USDT → BTC → UNI → USDT
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 3: HT NATIVE BRIDGE (6 paths)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → HT → BTC → USDT (Native)
+2. USDT → HT → ETH → USDT (Native)
+3. USDT → HT → XRP → USDT (Native)
+4. USDT → HT → TRX → USDT (Native)
+5. USDT → HT → DOT → USDT (Native)
+6. USDT → HT → SOL → USDT (Native)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 4: HIGH VOLATILITY (6 paths)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → DOGE → BTC → USDT (Meme)
+2. USDT → SHIB → ETH → USDT (Meme)
+3. USDT → APE → ETH → USDT (NFT)
+4. USDT → NEAR → BTC → USDT (Layer1)
+5. USDT → APT → ETH → USDT (Layer1)
+6. USDT → FTM → BTC → USDT (DeFi)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 5: EXTENDED MULTIBRIDGE (6 paths)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → FIL → BTC → USDT
+2. USDT → ATOM → ETH → USDT
+3. USDT → ICP → BTC → USDT
+4. USDT → ALGO → ETH → USDT
+5. USDT → ETC → BTC → USDT
+6. USDT → BTC → ETH → XRP → USDT (4-leg)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💡 TIP: Sets 1-2 are enabled by default (14 paths)
+⚡ Enable Sets 3-5 for more opportunities (18 additional paths)
+            `.trim();
+
+            alert(pathDetails);
+            console.log(pathDetails);
+        }
+
+        async function clearHuobiTriangularHistory() {
+            if (!confirm('⚠️ Are you sure you want to clear ALL Huobi triangular trade history? This cannot be undone.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/v1/trading/huobi/triangular/history', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert(`✅ ${data.message}`);
+                    console.log('✅ [HUOBI] History cleared:', data);
+                } else {
+                    alert(`❌ Failed to clear history: ${data.message}`);
+                }
+            } catch (error) {
+                console.error('❌ [HUOBI] Clear history error:', error);
+                alert('❌ Failed to clear history. Check console for details.');
+            }
+        }
+
+        function saveHuobiTriangularSettings() {
+            console.log('💾 [HUOBI] Saving settings to localStorage...');
+
+            const maxTrade = document.getElementById('huobiMaxTrade').value;
+            const portfolioPercent = document.getElementById('huobiPortfolioPercent').value;
+            const profitThreshold = document.getElementById('huobiProfitThreshold').value;
+
+            const settings = {
+                maxTrade: maxTrade,
+                portfolioPercent: portfolioPercent,
+                profitThreshold: profitThreshold,
+                set1Enabled: document.getElementById('huobiSet1Enabled').checked,
+                set2Enabled: document.getElementById('huobiSet2Enabled').checked,
+                set3Enabled: document.getElementById('huobiSet3Enabled').checked,
+                set4Enabled: document.getElementById('huobiSet4Enabled').checked,
+                set5Enabled: document.getElementById('huobiSet5Enabled').checked
+            };
+
+            localStorage.setItem('huobiTriangularSettings', JSON.stringify(settings));
+            console.log('✅ [HUOBI] Settings saved:', settings);
+        }
+
+        function loadHuobiTriangularSettings() {
+            console.log('📥 [HUOBI] Loading settings from localStorage...');
+
+            const settingsJson = localStorage.getItem('huobiTriangularSettings');
+            if (settingsJson) {
+                try {
+                    const settings = JSON.parse(settingsJson);
+                    console.log('✅ [HUOBI] Settings loaded:', settings);
+
+                    if (settings.maxTrade) document.getElementById('huobiMaxTrade').value = settings.maxTrade;
+                    if (settings.portfolioPercent) document.getElementById('huobiPortfolioPercent').value = settings.portfolioPercent;
+                    if (settings.profitThreshold) document.getElementById('huobiProfitThreshold').value = settings.profitThreshold;
+
+                    for (let i = 1; i <= 5; i++) {
+                        const checkbox = document.getElementById(`huobiSet${i}Enabled`);
+                        if (checkbox && settings.hasOwnProperty(`set${i}Enabled`)) {
+                            checkbox.checked = settings[`set${i}Enabled`];
+                        }
+                    }
+                } catch (error) {
+                    console.error('❌ [HUOBI] Failed to parse settings:', error);
+                }
+            }
+
+            const toggleEnabled = localStorage.getItem('huobiTriangularEnabled') === 'true';
+            const toggle = document.getElementById('huobiTriangularEnabled');
+            const status = document.getElementById('huobiTriangularStatus');
+
+            if (toggleEnabled) {
+                toggle.classList.add('active');
+                status.textContent = 'ON';
+                status.style.color = '#2D6CF8';
+                console.log('✅ [HUOBI] Live trading enabled (from localStorage)');
+            } else {
+                console.log('ℹ️ [HUOBI] Live trading disabled (from localStorage)');
+            }
+        }
+
+        // Initialize Huobi settings on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 [HUOBI] Initializing triangular arbitrage settings...');
+            loadHuobiTriangularSettings();
+
+            const huobiInputs = document.querySelectorAll('#huobiMaxTrade, #huobiPortfolioPercent, #huobiProfitThreshold');
+            huobiInputs.forEach(input => {
+                input.addEventListener('change', saveHuobiTriangularSettings);
+            });
+
+            for (let i = 1; i <= 5; i++) {
+                const checkbox = document.getElementById(`huobiSet${i}Enabled`);
+                if (checkbox) {
+                    checkbox.addEventListener('change', saveHuobiTriangularSettings);
                 }
             }
         });

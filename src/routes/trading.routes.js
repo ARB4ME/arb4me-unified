@@ -5767,6 +5767,414 @@ router.get('/coinbase/triangular/recent-trades', authenticatedRateLimit, authent
 }));
 
 // ============================================================================
+// HUOBI (HTX) TRIANGULAR ARBITRAGE ROUTES
+// ============================================================================
+
+// Huobi API Configuration (Triangular Routes)
+const HUOBI_CONFIG = {
+    baseUrl: 'https://api.huobi.pro',
+    endpoints: {
+        accounts: '/v1/account/accounts',
+        symbols: '/v1/common/symbols',
+        ticker: '/market/tickers',
+        orderBook: '/market/depth',
+        placeOrder: '/v1/order/orders/place'
+    }
+};
+
+// Huobi HMAC-SHA256 Authentication Helper
+function createHuobiSignature(apiKey, apiSecret, method, endpoint, params = {}) {
+    const timestamp = new Date().toISOString().replace(/\.\d{3}Z$/, '');
+
+    // Add required signature parameters
+    params.AccessKeyId = apiKey;
+    params.SignatureMethod = 'HmacSHA256';
+    params.SignatureVersion = '2';
+    params.Timestamp = timestamp;
+
+    // Sort parameters alphabetically
+    const sortedParams = Object.keys(params).sort().map(key => {
+        return `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`;
+    }).join('&');
+
+    // Create pre-signed text: method + '\n' + host + '\n' + endpoint + '\n' + params
+    const preSignedText = `${method.toUpperCase()}\napi.huobi.pro\n${endpoint}\n${sortedParams}`;
+
+    // Generate signature
+    const signature = crypto.createHmac('sha256', apiSecret).update(preSignedText).digest('base64');
+
+    return {
+        params: params,
+        signature: signature,
+        queryString: sortedParams + '&Signature=' + encodeURIComponent(signature)
+    };
+}
+
+// POST /api/v1/trading/huobi/triangular/test-connection - Test Huobi API connection for triangular arbitrage
+router.post('/huobi/triangular/test-connection', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    const { apiKey, apiSecret } = req.body;
+
+    if (!apiKey || !apiSecret) {
+        return res.status(400).json({
+            success: false,
+            message: 'API Key and Secret are required'
+        });
+    }
+
+    try {
+        console.log('🔍 [HUOBI] Testing connection for triangular arbitrage...');
+
+        const endpoint = HUOBI_CONFIG.endpoints.accounts;
+        const authData = createHuobiSignature(apiKey, apiSecret, 'GET', endpoint);
+
+        const accountsResponse = await fetch(`${HUOBI_CONFIG.baseUrl}${endpoint}?${authData.queryString}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const accountsData = await accountsResponse.json();
+
+        if (accountsData.status === 'ok' && accountsData.data) {
+            console.log('✅ [HUOBI] Connection successful');
+            res.json({
+                success: true,
+                message: 'Huobi connection successful',
+                accountsCount: accountsData.data.length,
+                timestamp: new Date().toISOString()
+            });
+        } else {
+            console.error('❌ [HUOBI] Connection failed:', accountsData['err-msg']);
+            res.status(401).json({
+                success: false,
+                message: accountsData['err-msg'] || 'Invalid API credentials'
+            });
+        }
+    } catch (error) {
+        console.error('❌ [HUOBI] Connection test error:', error.message);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to test Huobi connection',
+            error: error.message
+        });
+    }
+}));
+
+// POST /api/v1/trading/huobi/triangular/scan - Scan for triangular arbitrage opportunities
+router.post('/huobi/triangular/scan', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    const { apiKey, apiSecret, maxTradeAmount, profitThreshold, enabledSets } = req.body;
+
+    if (!apiKey || !apiSecret) {
+        return res.status(400).json({
+            success: false,
+            message: 'API credentials are required'
+        });
+    }
+
+    try {
+        console.log('🔍 [HUOBI] Scanning for triangular arbitrage opportunities...');
+
+        // Get all market tickers (no auth required for public endpoint)
+        const tickerResponse = await fetch(`${HUOBI_CONFIG.baseUrl}${HUOBI_CONFIG.endpoints.ticker}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const tickerData = await tickerResponse.json();
+
+        if (tickerData.status !== 'ok' || !tickerData.data) {
+            throw new Error(tickerData['err-msg'] || 'Failed to fetch market data');
+        }
+
+        const priceMap = {};
+
+        // Build price map
+        tickerData.data.forEach(ticker => {
+            if (ticker.symbol && ticker.close) {
+                // Convert Huobi symbol format (btcusdt) to standard (BTC-USDT)
+                const symbol = ticker.symbol.toUpperCase();
+                priceMap[symbol] = parseFloat(ticker.close);
+            }
+        });
+
+        console.log(`📊 [HUOBI] Loaded ${Object.keys(priceMap).length} trading pairs`);
+
+        // Define triangular arbitrage paths (32 paths across 5 sets)
+        const allPaths = {
+            SET_1_ESSENTIAL_ETH_BRIDGE: [
+                { id: 'HB_ETH_1', path: ['USDT', 'ETH', 'BTC', 'USDT'], pairs: ['ETHUSDT', 'BTCETH', 'BTCUSDT'], description: 'ETH → BTC Bridge' },
+                { id: 'HB_ETH_2', path: ['USDT', 'ETH', 'SOL', 'USDT'], pairs: ['ETHUSDT', 'SOLETH', 'SOLUSDT'], description: 'ETH → SOL Bridge' },
+                { id: 'HB_ETH_3', path: ['USDT', 'ETH', 'XRP', 'USDT'], pairs: ['ETHUSDT', 'XRPETH', 'XRPUSDT'], description: 'ETH → XRP Bridge' },
+                { id: 'HB_ETH_4', path: ['USDT', 'ETH', 'TRX', 'USDT'], pairs: ['ETHUSDT', 'TRXETH', 'TRXUSDT'], description: 'ETH → TRX Bridge' },
+                { id: 'HB_ETH_5', path: ['USDT', 'ETH', 'DOT', 'USDT'], pairs: ['ETHUSDT', 'DOTETH', 'DOTUSDT'], description: 'ETH → DOT Bridge' },
+                { id: 'HB_ETH_6', path: ['USDT', 'ETH', 'MATIC', 'USDT'], pairs: ['ETHUSDT', 'MATICETH', 'MATICUSDT'], description: 'ETH → MATIC Bridge' },
+                { id: 'HB_ETH_7', path: ['USDT', 'ETH', 'LINK', 'USDT'], pairs: ['ETHUSDT', 'LINKETH', 'LINKUSDT'], description: 'ETH → LINK Bridge' }
+            ],
+            SET_2_MIDCAP_BTC_BRIDGE: [
+                { id: 'HB_BTC_1', path: ['USDT', 'BTC', 'ETH', 'USDT'], pairs: ['BTCUSDT', 'ETHBTC', 'ETHUSDT'], description: 'BTC → ETH Bridge' },
+                { id: 'HB_BTC_2', path: ['USDT', 'BTC', 'XRP', 'USDT'], pairs: ['BTCUSDT', 'XRPBTC', 'XRPUSDT'], description: 'BTC → XRP Bridge' },
+                { id: 'HB_BTC_3', path: ['USDT', 'BTC', 'LTC', 'USDT'], pairs: ['BTCUSDT', 'LTCBTC', 'LTCUSDT'], description: 'BTC → LTC Bridge' },
+                { id: 'HB_BTC_4', path: ['USDT', 'BTC', 'BCH', 'USDT'], pairs: ['BTCUSDT', 'BCHBTC', 'BCHUSDT'], description: 'BTC → BCH Bridge' },
+                { id: 'HB_BTC_5', path: ['USDT', 'BTC', 'ADA', 'USDT'], pairs: ['BTCUSDT', 'ADABTC', 'ADAUSDT'], description: 'BTC → ADA Bridge' },
+                { id: 'HB_BTC_6', path: ['USDT', 'BTC', 'AVAX', 'USDT'], pairs: ['BTCUSDT', 'AVAXBTC', 'AVAXUSDT'], description: 'BTC → AVAX Bridge' },
+                { id: 'HB_BTC_7', path: ['USDT', 'BTC', 'UNI', 'USDT'], pairs: ['BTCUSDT', 'UNIBTC', 'UNIUSDT'], description: 'BTC → UNI Bridge' }
+            ],
+            SET_3_HT_NATIVE_BRIDGE: [
+                { id: 'HB_HT_1', path: ['USDT', 'HT', 'BTC', 'USDT'], pairs: ['HTUSDT', 'BTCHT', 'BTCUSDT'], description: 'HT → BTC Native' },
+                { id: 'HB_HT_2', path: ['USDT', 'HT', 'ETH', 'USDT'], pairs: ['HTUSDT', 'ETHHT', 'ETHUSDT'], description: 'HT → ETH Native' },
+                { id: 'HB_HT_3', path: ['USDT', 'HT', 'XRP', 'USDT'], pairs: ['HTUSDT', 'XRPHT', 'XRPUSDT'], description: 'HT → XRP Native' },
+                { id: 'HB_HT_4', path: ['USDT', 'HT', 'TRX', 'USDT'], pairs: ['HTUSDT', 'TRXHT', 'TRXUSDT'], description: 'HT → TRX Native' },
+                { id: 'HB_HT_5', path: ['USDT', 'HT', 'DOT', 'USDT'], pairs: ['HTUSDT', 'DOTHT', 'DOTUSDT'], description: 'HT → DOT Native' },
+                { id: 'HB_HT_6', path: ['USDT', 'HT', 'SOL', 'USDT'], pairs: ['HTUSDT', 'SOLHT', 'SOLUSDT'], description: 'HT → SOL Native' }
+            ],
+            SET_4_HIGH_VOLATILITY: [
+                { id: 'HB_VOL_1', path: ['USDT', 'DOGE', 'BTC', 'USDT'], pairs: ['DOGEUSDT', 'BTCDOGE', 'BTCUSDT'], description: 'DOGE → BTC Meme' },
+                { id: 'HB_VOL_2', path: ['USDT', 'SHIB', 'ETH', 'USDT'], pairs: ['SHIBUSDT', 'ETHSHIB', 'ETHUSDT'], description: 'SHIB → ETH Meme' },
+                { id: 'HB_VOL_3', path: ['USDT', 'APE', 'ETH', 'USDT'], pairs: ['APEUSDT', 'ETHAPE', 'ETHUSDT'], description: 'APE → ETH NFT' },
+                { id: 'HB_VOL_4', path: ['USDT', 'NEAR', 'BTC', 'USDT'], pairs: ['NEARUSDT', 'BTCNEAR', 'BTCUSDT'], description: 'NEAR → BTC Layer1' },
+                { id: 'HB_VOL_5', path: ['USDT', 'APT', 'ETH', 'USDT'], pairs: ['APTUSDT', 'ETHAPT', 'ETHUSDT'], description: 'APT → ETH Layer1' },
+                { id: 'HB_VOL_6', path: ['USDT', 'FTM', 'BTC', 'USDT'], pairs: ['FTMUSDT', 'BTCFTM', 'BTCUSDT'], description: 'FTM → BTC DeFi' }
+            ],
+            SET_5_EXTENDED_MULTIBRIDGE: [
+                { id: 'HB_EXT_1', path: ['USDT', 'FIL', 'BTC', 'USDT'], pairs: ['FILUSDT', 'BTCFIL', 'BTCUSDT'], description: 'FIL → BTC Bridge' },
+                { id: 'HB_EXT_2', path: ['USDT', 'ATOM', 'ETH', 'USDT'], pairs: ['ATOMUSDT', 'ETHATOM', 'ETHUSDT'], description: 'ATOM → ETH Bridge' },
+                { id: 'HB_EXT_3', path: ['USDT', 'ICP', 'BTC', 'USDT'], pairs: ['ICPUSDT', 'BTCICP', 'BTCUSDT'], description: 'ICP → BTC Bridge' },
+                { id: 'HB_EXT_4', path: ['USDT', 'ALGO', 'ETH', 'USDT'], pairs: ['ALGOUSDT', 'ETHALGO', 'ETHUSDT'], description: 'ALGO → ETH Bridge' },
+                { id: 'HB_EXT_5', path: ['USDT', 'ETC', 'BTC', 'USDT'], pairs: ['ETCUSDT', 'BTCETC', 'BTCUSDT'], description: 'ETC → BTC Bridge' },
+                { id: 'HB_EXT_6', path: ['USDT', 'BTC', 'ETH', 'XRP', 'USDT'], pairs: ['BTCUSDT', 'ETHBTC', 'XRPETH', 'XRPUSDT'], description: 'Multi-Bridge 4-Leg' }
+            ]
+        };
+
+        // Filter paths based on enabled sets
+        const enabledPaths = [];
+        Object.keys(allPaths).forEach(setKey => {
+            if (enabledSets && enabledSets[setKey]) {
+                enabledPaths.push(...allPaths[setKey]);
+            }
+        });
+
+        console.log(`🎯 [HUOBI] Scanning ${enabledPaths.length} enabled paths...`);
+
+        // Calculate arbitrage for each path
+        const opportunities = [];
+        const threshold = profitThreshold || 0.5;
+
+        enabledPaths.forEach(pathConfig => {
+            try {
+                // Check if all required pairs exist
+                const allPairsExist = pathConfig.pairs.every(pair => priceMap[pair]);
+
+                if (!allPairsExist) {
+                    return; // Skip if any pair is missing
+                }
+
+                // Calculate path profit
+                let amount = maxTradeAmount || 100;
+                const executionSteps = [];
+
+                // For standard 3-leg paths
+                if (pathConfig.path.length === 4) {
+                    // Leg 1: USDT → Asset1
+                    const price1 = priceMap[pathConfig.pairs[0]];
+                    const amount1 = amount / price1;
+                    executionSteps.push({ pair: pathConfig.pairs[0], side: 'BUY', amount: amount, price: price1, result: amount1 });
+
+                    // Leg 2: Asset1 → Asset2
+                    const price2 = priceMap[pathConfig.pairs[1]];
+                    const amount2 = amount1 / price2;
+                    executionSteps.push({ pair: pathConfig.pairs[1], side: 'BUY', amount: amount1, price: price2, result: amount2 });
+
+                    // Leg 3: Asset2 → USDT
+                    const price3 = priceMap[pathConfig.pairs[2]];
+                    const finalAmount = amount2 * price3;
+                    executionSteps.push({ pair: pathConfig.pairs[2], side: 'SELL', amount: amount2, price: price3, result: finalAmount });
+
+                    const profitAmount = finalAmount - amount;
+                    const profitPercent = (profitAmount / amount) * 100;
+
+                    if (profitPercent >= threshold) {
+                        opportunities.push({
+                            pathId: pathConfig.id,
+                            path: pathConfig.path,
+                            pairs: pathConfig.pairs,
+                            description: pathConfig.description,
+                            initialAmount: amount,
+                            finalAmount: finalAmount,
+                            profitAmount: profitAmount,
+                            profitPercent: profitPercent.toFixed(4),
+                            executionSteps: executionSteps,
+                            timestamp: new Date().toISOString()
+                        });
+                    }
+                }
+
+                // For 4-leg multi-bridge path
+                if (pathConfig.path.length === 5) {
+                    // Leg 1: USDT → BTC
+                    const price1 = priceMap[pathConfig.pairs[0]];
+                    const amount1 = amount / price1;
+                    executionSteps.push({ pair: pathConfig.pairs[0], side: 'BUY', amount: amount, price: price1, result: amount1 });
+
+                    // Leg 2: BTC → ETH
+                    const price2 = priceMap[pathConfig.pairs[1]];
+                    const amount2 = amount1 / price2;
+                    executionSteps.push({ pair: pathConfig.pairs[1], side: 'BUY', amount: amount1, price: price2, result: amount2 });
+
+                    // Leg 3: ETH → XRP
+                    const price3 = priceMap[pathConfig.pairs[2]];
+                    const amount3 = amount2 / price3;
+                    executionSteps.push({ pair: pathConfig.pairs[2], side: 'BUY', amount: amount2, price: price3, result: amount3 });
+
+                    // Leg 4: XRP → USDT
+                    const price4 = priceMap[pathConfig.pairs[3]];
+                    const finalAmount = amount3 * price4;
+                    executionSteps.push({ pair: pathConfig.pairs[3], side: 'SELL', amount: amount3, price: price4, result: finalAmount });
+
+                    const profitAmount = finalAmount - amount;
+                    const profitPercent = (profitAmount / amount) * 100;
+
+                    if (profitPercent >= threshold) {
+                        opportunities.push({
+                            pathId: pathConfig.id,
+                            path: pathConfig.path,
+                            pairs: pathConfig.pairs,
+                            description: pathConfig.description,
+                            initialAmount: amount,
+                            finalAmount: finalAmount,
+                            profitAmount: profitAmount,
+                            profitPercent: profitPercent.toFixed(4),
+                            executionSteps: executionSteps,
+                            timestamp: new Date().toISOString()
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error(`⚠️ [HUOBI] Error calculating path ${pathConfig.id}:`, error.message);
+            }
+        });
+
+        // Sort by profit percentage
+        opportunities.sort((a, b) => parseFloat(b.profitPercent) - parseFloat(a.profitPercent));
+
+        console.log(`✅ [HUOBI] Found ${opportunities.length} opportunities above ${threshold}% profit threshold`);
+
+        res.json({
+            success: true,
+            exchange: 'HUOBI',
+            opportunities: opportunities,
+            totalScanned: enabledPaths.length,
+            profitableCount: opportunities.length,
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        console.error('❌ [HUOBI] Scan error:', error.message);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to scan Huobi triangular opportunities',
+            error: error.message
+        });
+    }
+}));
+
+// GET /api/v1/trading/huobi/triangular/paths - Get all available triangular paths
+router.get('/huobi/triangular/paths', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    console.log('📋 [HUOBI] Retrieving available triangular paths...');
+
+    const paths = {
+        SET_1_ESSENTIAL_ETH_BRIDGE: { count: 7, description: 'Major coins via ETH bridge', enabled: true },
+        SET_2_MIDCAP_BTC_BRIDGE: { count: 7, description: 'Mid-cap coins via BTC bridge', enabled: true },
+        SET_3_HT_NATIVE_BRIDGE: { count: 6, description: 'Using Huobi Token (HT)', enabled: false },
+        SET_4_HIGH_VOLATILITY: { count: 6, description: 'High volatility meme/DeFi coins', enabled: false },
+        SET_5_EXTENDED_MULTIBRIDGE: { count: 6, description: 'Extended paths including 4-leg', enabled: false }
+    };
+
+    res.json({
+        success: true,
+        exchange: 'HUOBI',
+        totalPaths: 32,
+        pathSets: paths,
+        timestamp: new Date().toISOString()
+    });
+}));
+
+// POST /api/v1/trading/huobi/triangular/execute - Execute a triangular arbitrage trade (placeholder)
+router.post('/huobi/triangular/execute', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    const { apiKey, apiSecret, opportunity } = req.body;
+
+    console.log('⚠️ [HUOBI] Execute endpoint called - NOT IMPLEMENTED YET');
+    console.log('🎯 [HUOBI] Opportunity:', opportunity?.pathId);
+
+    res.status(501).json({
+        success: false,
+        message: 'Execution not yet implemented - scan mode only',
+        notice: 'This endpoint will be implemented after initial testing phase'
+    });
+}));
+
+// DELETE /api/v1/trading/huobi/triangular/history - Clear Huobi triangular trade history
+router.delete('/huobi/triangular/history', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+
+    try {
+        console.log('🗑️ [HUOBI] Clearing triangular trade history for user:', userId);
+
+        const result = await db.query(
+            'DELETE FROM triangular_trades WHERE user_id = $1 AND exchange = $2',
+            [userId, 'HUOBI']
+        );
+
+        console.log(`✅ [HUOBI] Cleared ${result.rowCount} trade records`);
+
+        res.json({
+            success: true,
+            message: `Cleared ${result.rowCount} Huobi triangular trade records`,
+            deletedCount: result.rowCount
+        });
+    } catch (error) {
+        console.error('❌ [HUOBI] History clear error:', error.message);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to clear Huobi trade history'
+        });
+    }
+}));
+
+// GET /api/v1/trading/huobi/triangular/recent-trades - Get recent Huobi triangular trades
+router.get('/huobi/triangular/recent-trades', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+    const limit = parseInt(req.query.limit) || 50;
+
+    try {
+        console.log('📜 [HUOBI] Retrieving recent triangular trades for user:', userId);
+
+        const result = await db.query(
+            `SELECT * FROM triangular_trades
+             WHERE user_id = $1 AND exchange = $2
+             ORDER BY created_at DESC
+             LIMIT $3`,
+            [userId, 'HUOBI', limit]
+        );
+
+        res.json({
+            success: true,
+            exchange: 'HUOBI',
+            trades: result.rows,
+            count: result.rows.length
+        });
+    } catch (error) {
+        console.error('Huobi triangular recent trades error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to retrieve recent Huobi trades'
+        });
+    }
+}));
+
+// ============================================================================
 // VALR EXCHANGE API PROXY ENDPOINTS
 // ============================================================================
 
