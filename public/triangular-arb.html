@@ -1152,7 +1152,15 @@
         </div>
 
         <!-- Coinbase Exchange -->
-        <div style="background: rgba(0,82,255,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 2px solid #0052FF;">
+        <div style="background: rgba(0,82,255,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 2px solid #0052FF; position: relative; opacity: 0.5; pointer-events: none;">
+            <!-- Coming Soon Overlay -->
+            <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.7); border-radius: 15px; display: flex; align-items: center; justify-content: center; z-index: 10; pointer-events: none;">
+                <div style="text-align: center; color: white;">
+                    <h2 style="font-size: 2.5rem; margin: 0 0 10px 0; color: #FFD700;">🚧 COMING SOON 🚧</h2>
+                    <p style="font-size: 1.2rem; margin: 0; color: #b8c6db;">Coinbase integration in development</p>
+                </div>
+            </div>
+
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <h3 style="color: #0052FF; margin: 0;">🔵 COINBASE Triangular Arbitrage (USDC)</h3>
                 <div style="display: flex; align-items: center; gap: 15px;">
