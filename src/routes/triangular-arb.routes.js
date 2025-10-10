@@ -6311,6 +6311,347 @@ router.get('/ascendex/triangular/recent-trades', asyncHandler(async (req, res) =
 }));
 
 // ============================================================================
+// BINGX TRIANGULAR ARBITRAGE ROUTES
+// ============================================================================
+
+// BingX Triangular Arbitrage API Configuration
+const BINGX_TRIANGULAR_CONFIG = {
+    baseUrl: 'https://open-api.bingx.com',
+    endpoints: {
+        ticker: '/openApi/spot/v1/ticker/24hr',
+        balance: '/openApi/spot/v1/account/balance',
+        placeOrder: '/openApi/spot/v1/trade/order',
+        symbols: '/openApi/spot/v1/common/symbols'
+    }
+};
+
+// BingX HMAC-SHA256 Authentication Helper
+function createBingXTriangularSignature(queryString, apiSecret) {
+    return crypto.createHmac('sha256', apiSecret).update(queryString).digest('hex');
+}
+
+// BingX Triangular Arbitrage Paths (32 paths - no native token, using SOL as high-liquidity alternative)
+const BINGX_TRIANGULAR_PATHS = {
+    SET_1_ESSENTIAL_ETH_BRIDGE: [
+        { id: 'BINGX_ETH_1', path: ['USDT', 'ETH', 'BTC', 'USDT'], pairs: ['ETH-USDT', 'BTC-ETH', 'BTC-USDT'], description: 'ETH → BTC Bridge' },
+        { id: 'BINGX_ETH_2', path: ['USDT', 'ETH', 'SOL', 'USDT'], pairs: ['ETH-USDT', 'SOL-ETH', 'SOL-USDT'], description: 'ETH → SOL Bridge' },
+        { id: 'BINGX_ETH_3', path: ['USDT', 'ETH', 'XRP', 'USDT'], pairs: ['ETH-USDT', 'XRP-ETH', 'XRP-USDT'], description: 'ETH → XRP Bridge' },
+        { id: 'BINGX_ETH_4', path: ['USDT', 'ETH', 'ADA', 'USDT'], pairs: ['ETH-USDT', 'ADA-ETH', 'ADA-USDT'], description: 'ETH → ADA Bridge' },
+        { id: 'BINGX_ETH_5', path: ['USDT', 'ETH', 'MATIC', 'USDT'], pairs: ['ETH-USDT', 'MATIC-ETH', 'MATIC-USDT'], description: 'ETH → MATIC Bridge' },
+        { id: 'BINGX_ETH_6', path: ['USDT', 'ETH', 'DOT', 'USDT'], pairs: ['ETH-USDT', 'DOT-ETH', 'DOT-USDT'], description: 'ETH → DOT Bridge' },
+        { id: 'BINGX_ETH_7', path: ['USDT', 'ETH', 'AVAX', 'USDT'], pairs: ['ETH-USDT', 'AVAX-ETH', 'AVAX-USDT'], description: 'ETH → AVAX Bridge' }
+    ],
+    SET_2_MIDCAP_BTC_BRIDGE: [
+        { id: 'BINGX_BTC_1', path: ['USDT', 'BTC', 'ETH', 'USDT'], pairs: ['BTC-USDT', 'ETH-BTC', 'ETH-USDT'], description: 'BTC → ETH Bridge' },
+        { id: 'BINGX_BTC_2', path: ['USDT', 'BTC', 'SOL', 'USDT'], pairs: ['BTC-USDT', 'SOL-BTC', 'SOL-USDT'], description: 'BTC → SOL Bridge' },
+        { id: 'BINGX_BTC_3', path: ['USDT', 'BTC', 'XRP', 'USDT'], pairs: ['BTC-USDT', 'XRP-BTC', 'XRP-USDT'], description: 'BTC → XRP Bridge' },
+        { id: 'BINGX_BTC_4', path: ['USDT', 'BTC', 'LTC', 'USDT'], pairs: ['BTC-USDT', 'LTC-BTC', 'LTC-USDT'], description: 'BTC → LTC Bridge' },
+        { id: 'BINGX_BTC_5', path: ['USDT', 'BTC', 'LINK', 'USDT'], pairs: ['BTC-USDT', 'LINK-BTC', 'LINK-USDT'], description: 'BTC → LINK Bridge' },
+        { id: 'BINGX_BTC_6', path: ['USDT', 'BTC', 'ATOM', 'USDT'], pairs: ['BTC-USDT', 'ATOM-BTC', 'ATOM-USDT'], description: 'BTC → ATOM Bridge' },
+        { id: 'BINGX_BTC_7', path: ['USDT', 'BTC', 'UNI', 'USDT'], pairs: ['BTC-USDT', 'UNI-BTC', 'UNI-USDT'], description: 'BTC → UNI Bridge' }
+    ],
+    SET_3_SOL_HIGH_LIQUIDITY: [
+        { id: 'BINGX_SOL_1', path: ['USDT', 'SOL', 'BTC', 'USDT'], pairs: ['SOL-USDT', 'BTC-SOL', 'BTC-USDT'], description: 'SOL → BTC High-Liq' },
+        { id: 'BINGX_SOL_2', path: ['USDT', 'SOL', 'ETH', 'USDT'], pairs: ['SOL-USDT', 'ETH-SOL', 'ETH-USDT'], description: 'SOL → ETH High-Liq' },
+        { id: 'BINGX_SOL_3', path: ['USDT', 'SOL', 'BNB', 'USDT'], pairs: ['SOL-USDT', 'BNB-SOL', 'BNB-USDT'], description: 'SOL → BNB High-Liq' },
+        { id: 'BINGX_SOL_4', path: ['USDT', 'BTC', 'SOL', 'USDT'], pairs: ['BTC-USDT', 'SOL-BTC', 'SOL-USDT'], description: 'BTC → SOL Reverse' },
+        { id: 'BINGX_SOL_5', path: ['USDT', 'ETH', 'SOL', 'USDT'], pairs: ['ETH-USDT', 'SOL-ETH', 'SOL-USDT'], description: 'ETH → SOL Reverse' },
+        { id: 'BINGX_SOL_6', path: ['USDT', 'SOL', 'AVAX', 'USDT'], pairs: ['SOL-USDT', 'AVAX-SOL', 'AVAX-USDT'], description: 'SOL → AVAX High-Liq' }
+    ],
+    SET_4_HIGH_VOLATILITY: [
+        { id: 'BINGX_VOL_1', path: ['USDT', 'DOGE', 'BTC', 'USDT'], pairs: ['DOGE-USDT', 'BTC-DOGE', 'BTC-USDT'], description: 'DOGE → BTC Volatility' },
+        { id: 'BINGX_VOL_2', path: ['USDT', 'SHIB', 'ETH', 'USDT'], pairs: ['SHIB-USDT', 'ETH-SHIB', 'ETH-USDT'], description: 'SHIB → ETH Volatility' },
+        { id: 'BINGX_VOL_3', path: ['USDT', 'PEPE', 'ETH', 'USDT'], pairs: ['PEPE-USDT', 'ETH-PEPE', 'ETH-USDT'], description: 'PEPE → ETH Volatility' },
+        { id: 'BINGX_VOL_4', path: ['USDT', 'FLOKI', 'BTC', 'USDT'], pairs: ['FLOKI-USDT', 'BTC-FLOKI', 'BTC-USDT'], description: 'FLOKI → BTC Volatility' },
+        { id: 'BINGX_VOL_5', path: ['USDT', 'TON', 'ETH', 'USDT'], pairs: ['TON-USDT', 'ETH-TON', 'ETH-USDT'], description: 'TON → ETH Volatility' },
+        { id: 'BINGX_VOL_6', path: ['USDT', 'SUI', 'BTC', 'USDT'], pairs: ['SUI-USDT', 'BTC-SUI', 'BTC-USDT'], description: 'SUI → BTC Volatility' }
+    ],
+    SET_5_EXTENDED_MULTIBRIDGE: [
+        { id: 'BINGX_EXT_1', path: ['USDT', 'SOL', 'BTC', 'USDT'], pairs: ['SOL-USDT', 'BTC-SOL', 'BTC-USDT'], description: 'SOL → BTC Multi-Bridge' },
+        { id: 'BINGX_EXT_2', path: ['USDT', 'ADA', 'BTC', 'USDT'], pairs: ['ADA-USDT', 'BTC-ADA', 'BTC-USDT'], description: 'ADA → BTC Multi-Bridge' },
+        { id: 'BINGX_EXT_3', path: ['USDT', 'AVAX', 'BTC', 'USDT'], pairs: ['AVAX-USDT', 'BTC-AVAX', 'BTC-USDT'], description: 'AVAX → BTC Multi-Bridge' },
+        { id: 'BINGX_EXT_4', path: ['USDT', 'MATIC', 'ETH', 'USDT'], pairs: ['MATIC-USDT', 'ETH-MATIC', 'ETH-USDT'], description: 'MATIC → ETH Multi-Bridge' },
+        { id: 'BINGX_EXT_5', path: ['USDT', 'BTC', 'ETH', 'SOL', 'USDT'], pairs: ['BTC-USDT', 'ETH-BTC', 'SOL-ETH', 'SOL-USDT'], description: '4-Leg BTC-ETH-SOL' },
+        { id: 'BINGX_EXT_6', path: ['USDT', 'ETH', 'BTC', 'XRP', 'USDT'], pairs: ['ETH-USDT', 'BTC-ETH', 'XRP-BTC', 'XRP-USDT'], description: '4-Leg ETH-BTC-XRP' }
+    ]
+};
+
+// ROUTE 1: Test BingX Connection
+router.post('/bingx/triangular/test-connection', asyncHandler(async (req, res) => {
+    try {
+        const { apiKey, apiSecret } = req.body;
+
+        if (!apiKey || !apiSecret) {
+            return res.status(400).json({
+                success: false,
+                message: 'API Key and Secret are required'
+            });
+        }
+
+        const timestamp = Date.now();
+        const queryString = `timestamp=${timestamp}`;
+        const signature = createBingXTriangularSignature(queryString, apiSecret);
+
+        const response = await fetch(`${BINGX_TRIANGULAR_CONFIG.baseUrl}${BINGX_TRIANGULAR_CONFIG.endpoints.balance}?${queryString}&signature=${signature}`, {
+            method: 'GET',
+            headers: {
+                'X-BX-APIKEY': apiKey,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+
+        if (data.code === 0) {
+            res.json({
+                success: true,
+                message: 'BingX API connection successful',
+                data: {
+                    balances: data.data?.balances || []
+                }
+            });
+        } else {
+            res.json({
+                success: false,
+                message: data.msg || 'BingX API connection failed'
+            });
+        }
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Failed to test BingX connection'
+        });
+    }
+}));
+
+// ROUTE 2: Scan BingX Triangular Opportunities
+router.post('/bingx/triangular/scan', asyncHandler(async (req, res) => {
+    try {
+        const { apiKey, apiSecret, minProfitPercent = 0.5 } = req.body;
+
+        if (!apiKey || !apiSecret) {
+            return res.status(400).json({
+                success: false,
+                message: 'API Key and Secret are required'
+            });
+        }
+
+        const opportunities = [];
+
+        // Fetch all tickers
+        const tickerResponse = await fetch(`${BINGX_TRIANGULAR_CONFIG.baseUrl}${BINGX_TRIANGULAR_CONFIG.endpoints.ticker}`);
+        const tickerData = await tickerResponse.json();
+
+        if (tickerData.code !== 0) {
+            throw new Error(tickerData.msg || 'Failed to fetch BingX tickers');
+        }
+
+        const tickers = {};
+        tickerData.data.forEach(ticker => {
+            tickers[ticker.symbol] = {
+                bid: parseFloat(ticker.bidPrice),
+                ask: parseFloat(ticker.askPrice),
+                volume: parseFloat(ticker.volume)
+            };
+        });
+
+        // Scan all path sets
+        Object.values(BINGX_TRIANGULAR_PATHS).forEach(pathSet => {
+            pathSet.forEach(pathConfig => {
+                try {
+                    const prices = pathConfig.pairs.map(pair => {
+                        const normalizedPair = pair.replace('-', '');
+                        return tickers[normalizedPair];
+                    });
+
+                    if (prices.every(p => p && p.bid && p.ask)) {
+                        const leg1 = prices[0].ask;
+                        const leg2 = prices[1].ask;
+                        const leg3 = prices[2].bid;
+
+                        const finalAmount = (1 / leg1) * (1 / leg2) * leg3;
+                        const profitPercent = (finalAmount - 1) * 100;
+
+                        if (profitPercent >= minProfitPercent) {
+                            opportunities.push({
+                                id: pathConfig.id,
+                                path: pathConfig.path,
+                                pairs: pathConfig.pairs,
+                                description: pathConfig.description,
+                                profitPercent: profitPercent.toFixed(4),
+                                estimatedProfit: (1000 * (finalAmount - 1)).toFixed(2),
+                                leg1Price: leg1,
+                                leg2Price: leg2,
+                                leg3Price: leg3,
+                                timestamp: new Date().toISOString()
+                            });
+                        }
+                    }
+                } catch (err) {
+                    // Skip invalid paths
+                }
+            });
+        });
+
+        res.json({
+            success: true,
+            opportunities: opportunities.sort((a, b) => b.profitPercent - a.profitPercent),
+            scannedPaths: Object.values(BINGX_TRIANGULAR_PATHS).reduce((sum, set) => sum + set.length, 0),
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Failed to scan BingX opportunities'
+        });
+    }
+}));
+
+// ROUTE 3: Get BingX Triangular Paths
+router.get('/bingx/triangular/paths', asyncHandler(async (req, res) => {
+    const totalPaths = Object.values(BINGX_TRIANGULAR_PATHS).reduce((sum, set) => sum + set.length, 0);
+
+    res.json({
+        success: true,
+        totalPaths,
+        sets: BINGX_TRIANGULAR_PATHS
+    });
+}));
+
+// ROUTE 4: Execute BingX Triangular Trade
+router.post('/bingx/triangular/execute', asyncHandler(async (req, res) => {
+    try {
+        const { apiKey, apiSecret, opportunity, investmentAmount = 1000 } = req.body;
+
+        if (!apiKey || !apiSecret || !opportunity) {
+            return res.status(400).json({
+                success: false,
+                message: 'API credentials and opportunity required'
+            });
+        }
+
+        const executionSteps = [];
+        let currentAmount = investmentAmount;
+
+        // Execute each leg sequentially
+        for (let i = 0; i < opportunity.pairs.length; i++) {
+            const pair = opportunity.pairs[i].replace('-', '');
+            const side = i === opportunity.pairs.length - 1 ? 'SELL' : 'BUY';
+
+            const timestamp = Date.now();
+            const orderParams = `symbol=${pair}&side=${side}&type=MARKET&quoteOrderQty=${currentAmount}&timestamp=${timestamp}`;
+            const signature = createBingXTriangularSignature(orderParams, apiSecret);
+
+            const orderResponse = await fetch(`${BINGX_TRIANGULAR_CONFIG.baseUrl}${BINGX_TRIANGULAR_CONFIG.endpoints.placeOrder}?${orderParams}&signature=${signature}`, {
+                method: 'POST',
+                headers: {
+                    'X-BX-APIKEY': apiKey,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const orderData = await orderResponse.json();
+
+            if (orderData.code !== 0) {
+                throw new Error(`Leg ${i + 1} failed: ${orderData.msg}`);
+            }
+
+            executionSteps.push({
+                leg: i + 1,
+                pair: pair,
+                side: side,
+                orderId: orderData.data?.orderId,
+                status: 'completed'
+            });
+
+            currentAmount = parseFloat(orderData.data?.executedQty || currentAmount);
+        }
+
+        const finalProfit = currentAmount - investmentAmount;
+        const profitPercent = (finalProfit / investmentAmount) * 100;
+
+        res.json({
+            success: true,
+            execution: {
+                pathId: opportunity.id,
+                investmentAmount,
+                finalAmount: currentAmount,
+                profit: finalProfit,
+                profitPercent: profitPercent.toFixed(4),
+                steps: executionSteps,
+                timestamp: new Date().toISOString()
+            }
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Failed to execute BingX triangular trade'
+        });
+    }
+}));
+
+// ROUTE 5: Get BingX Trade History
+router.post('/bingx/triangular/history', asyncHandler(async (req, res) => {
+    try {
+        const userId = req.body.userId || req.user?.id;
+        const limit = req.body.limit || 20;
+
+        if (!userId) {
+            return res.status(400).json({
+                success: false,
+                message: 'User ID required'
+            });
+        }
+
+        const result = await pool.query(
+            `SELECT * FROM triangular_trades
+             WHERE user_id = $1 AND exchange = 'BingX'
+             ORDER BY created_at DESC
+             LIMIT $2`,
+            [userId, limit]
+        );
+
+        res.json({
+            success: true,
+            trades: result.rows
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Failed to retrieve BingX trade history'
+        });
+    }
+}));
+
+// ROUTE 6: Get Recent BingX Trades (All Users)
+router.get('/bingx/triangular/recent-trades', asyncHandler(async (req, res) => {
+    try {
+        const result = await pool.query(
+            `SELECT * FROM triangular_recent_trades
+             WHERE exchange = 'BingX'
+             ORDER BY created_at DESC
+             LIMIT 20`
+        );
+
+        res.json({
+            success: true,
+            trades: result.rows
+        });
+
+    } catch (error) {
+        console.error('BingX recent trades error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to retrieve recent BingX trades'
+        });
+    }
+}));
+
+// ============================================================================
 // VALR TRIANGULAR ARBITRAGE ENDPOINTS
 // ============================================
 // Specific endpoints for triangular arbitrage functionality

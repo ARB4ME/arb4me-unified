@@ -1772,6 +1772,72 @@
             </div>
         </div>
 
+        <!-- BingX Triangular Arbitrage Card -->
+        <div style="background: rgba(0,191,255,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 2px solid #00BFFF;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div style="flex: 1;">
+                    <h3 style="color: #00BFFF; margin: 0;">🌊 BingX Triangular Arbitrage</h3>
+                    <p style="color: #888; margin: 10px 0 0 0; font-size: 14px;">
+                        700+ USDT pairs | No native token | SOL high-liquidity bridge | 0.10% fees | HMAC-SHA256
+                    </p>
+                </div>
+                <button onclick="viewBingXPathDetails()" style="background: linear-gradient(135deg, #00BFFF 0%, #1E90FF 100%); color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; box-shadow: 0 4px 12px rgba(0,191,255,0.3); transition: all 0.3s;">
+                    📋 View 32 Paths
+                </button>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px;">
+                <!-- API Credentials -->
+                <div>
+                    <label style="display: block; color: #aaa; margin-bottom: 8px; font-size: 13px;">BingX API Key:</label>
+                    <input type="text" id="bingxTriangularApiKey" placeholder="Enter BingX API Key" style="width: 100%; padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid #444; border-radius: 8px; color: white; font-size: 14px;">
+                </div>
+                <div>
+                    <label style="display: block; color: #aaa; margin-bottom: 8px; font-size: 13px;">BingX API Secret:</label>
+                    <input type="password" id="bingxTriangularApiSecret" placeholder="Enter BingX API Secret" style="width: 100%; padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid #444; border-radius: 8px; color: white; font-size: 14px;">
+                </div>
+            </div>
+
+            <!-- Trading Parameters -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-top: 15px;">
+                <div>
+                    <label style="display: block; color: #aaa; margin-bottom: 8px; font-size: 13px;">Min Profit %:</label>
+                    <input type="number" id="bingxMinProfit" value="0.5" step="0.1" style="width: 100%; padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid #444; border-radius: 8px; color: white; font-size: 14px;">
+                </div>
+                <div>
+                    <label style="display: block; color: #aaa; margin-bottom: 8px; font-size: 13px;">Investment (USDT):</label>
+                    <input type="number" id="bingxInvestment" value="1000" step="100" style="width: 100%; padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid #444; border-radius: 8px; color: white; font-size: 14px;">
+                </div>
+                <div>
+                    <label style="display: block; color: #aaa; margin-bottom: 8px; font-size: 13px;">Auto-Save:</label>
+                    <label style="display: inline-flex; align-items: center; cursor: pointer; margin-top: 8px;">
+                        <input type="checkbox" id="bingxAutoSave" checked style="margin-right: 8px; width: 18px; height: 18px; cursor: pointer;">
+                        <span style="color: #aaa; font-size: 13px;">Save settings</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button onclick="testBingXTriangularConnection()" style="flex: 1; padding: 14px; background: linear-gradient(135deg, #00BFFF 0%, #1E90FF 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; transition: all 0.3s;">
+                    🔌 Test Connection
+                </button>
+                <button onclick="scanBingXTriangularPaths()" style="flex: 1; padding: 14px; background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); color: #1a1a2e; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; transition: all 0.3s;">
+                    🔍 Scan Opportunities
+                </button>
+                <button onclick="saveBingXTriangularSettings()" style="flex: 1; padding: 14px; background: linear-gradient(135deg, #00D084 0%, #00A66C 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; transition: all 0.3s;">
+                    💾 Save Settings
+                </button>
+            </div>
+
+            <!-- Results Area -->
+            <div id="bingxTriangularResults" style="margin-top: 20px; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 8px; min-height: 60px;">
+                <div style="text-align: center; color: #666; padding: 20px;">
+                    Configure API credentials and scan for triangular arbitrage opportunities
+                </div>
+            </div>
+        </div>
+
         <!-- Future Exchanges Placeholder -->
         <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 15px; border: 2px dashed #666;">
             <div style="text-align: center; color: #888;">
@@ -6454,6 +6520,260 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
                     checkbox.addEventListener('change', saveAscendexTriangularSettings);
                 }
             }
+        });
+
+        // ============================================================================
+        // BINGX TRIANGULAR ARBITRAGE FUNCTIONS
+        // ============================================================================
+
+        // Test BingX Connection
+        async function testBingXTriangularConnection() {
+            const apiKey = document.getElementById('bingxTriangularApiKey').value;
+            const apiSecret = document.getElementById('bingxTriangularApiSecret').value;
+            const resultsDiv = document.getElementById('bingxTriangularResults');
+
+            if (!apiKey || !apiSecret) {
+                resultsDiv.innerHTML = '<div style="color: #FF4444; padding: 15px; text-align: center;">⚠️ Please enter both API Key and Secret</div>';
+                return;
+            }
+
+            resultsDiv.innerHTML = '<div style="color: #00BFFF; padding: 15px; text-align: center;">🔄 Testing BingX connection...</div>';
+
+            try {
+                const response = await fetch('/api/v1/trading/bingx/triangular/test-connection', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ apiKey, apiSecret })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    resultsDiv.innerHTML = `
+                        <div style="color: #00ff88; padding: 15px;">
+                            <div style="font-size: 18px; margin-bottom: 10px;">✅ BingX Connection Successful!</div>
+                            <div style="color: #aaa; font-size: 14px;">Balances: ${result.data.balances.length} assets</div>
+                        </div>
+                    `;
+                    if (document.getElementById('bingxAutoSave').checked) {
+                        saveBingXTriangularSettings();
+                    }
+                } else {
+                    resultsDiv.innerHTML = `<div style="color: #FF4444; padding: 15px; text-align: center;">❌ ${result.message}</div>`;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `<div style="color: #FF4444; padding: 15px; text-align: center;">❌ Connection failed: ${error.message}</div>`;
+            }
+        }
+
+        // View BingX Path Details
+        function viewBingXPathDetails() {
+            fetch('/api/v1/trading/bingx/triangular/paths')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        let pathsHtml = `
+                            <div style="background: rgba(0,0,0,0.5); padding: 30px; border-radius: 15px; max-height: 80vh; overflow-y: auto;">
+                                <h2 style="color: #00BFFF; margin-bottom: 20px; text-align: center;">
+                                    🌊 BingX Triangular Arbitrage Paths (${data.totalPaths} Total)
+                                </h2>
+                        `;
+
+                        const setNames = {
+                            'SET_1_ESSENTIAL_ETH_BRIDGE': '⚡ Essential ETH Bridge (7 paths)',
+                            'SET_2_MIDCAP_BTC_BRIDGE': '🔷 Mid-Cap BTC Bridge (7 paths)',
+                            'SET_3_SOL_HIGH_LIQUIDITY': '💎 SOL High-Liquidity (6 paths)',
+                            'SET_4_HIGH_VOLATILITY': '🔥 High Volatility (6 paths)',
+                            'SET_5_EXTENDED_MULTIBRIDGE': '🌐 Extended Multi-Bridge (6 paths)'
+                        };
+
+                        Object.entries(data.sets).forEach(([setKey, paths]) => {
+                            pathsHtml += `
+                                <div style="margin-bottom: 25px; padding: 20px; background: rgba(0,191,255,0.1); border-radius: 10px; border-left: 4px solid #00BFFF;">
+                                    <h3 style="color: #00BFFF; margin-bottom: 15px;">${setNames[setKey]}</h3>
+                                    <div style="display: grid; gap: 10px;">
+                            `;
+
+                            paths.forEach(path => {
+                                pathsHtml += `
+                                    <div style="background: rgba(255,255,255,0.05); padding: 12px; border-radius: 8px;">
+                                        <div style="color: white; font-weight: 600; margin-bottom: 5px;">${path.description}</div>
+                                        <div style="color: #aaa; font-size: 13px;">${path.path.join(' → ')}</div>
+                                        <div style="color: #00BFFF; font-size: 12px; margin-top: 5px;">Pairs: ${path.pairs.join(', ')}</div>
+                                    </div>
+                                `;
+                            });
+
+                            pathsHtml += '</div></div>';
+                        });
+
+                        pathsHtml += '<button onclick="this.parentElement.parentElement.remove()" style="width: 100%; padding: 12px; background: #00BFFF; color: white; border: none; border-radius: 8px; cursor: pointer; margin-top: 20px; font-weight: 600;">Close</button></div>';
+
+                        const overlay = document.createElement('div');
+                        overlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 10000; display: flex; justify-content: center; align-items: center; padding: 20px;';
+                        overlay.innerHTML = pathsHtml;
+                        document.body.appendChild(overlay);
+                    }
+                });
+        }
+
+        // Save BingX Settings
+        function saveBingXTriangularSettings() {
+            const settings = {
+                apiKey: document.getElementById('bingxTriangularApiKey').value,
+                apiSecret: document.getElementById('bingxTriangularApiSecret').value,
+                minProfit: document.getElementById('bingxMinProfit').value,
+                investment: document.getElementById('bingxInvestment').value,
+                autoSave: document.getElementById('bingxAutoSave').checked
+            };
+
+            localStorage.setItem('bingx_triangular_api', settings.apiKey);
+            localStorage.setItem('bingx_triangular_secret', settings.apiSecret);
+            localStorage.setItem('bingx_triangular_settings', JSON.stringify(settings));
+
+            document.getElementById('bingxTriangularResults').innerHTML = '<div style="color: #00ff88; padding: 15px; text-align: center;">✅ BingX settings saved successfully!</div>';
+            setTimeout(() => {
+                document.getElementById('bingxTriangularResults').innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">Configure API credentials and scan for triangular arbitrage opportunities</div>';
+            }, 2000);
+        }
+
+        // Load BingX Settings
+        function loadBingXTriangularSettings() {
+            const savedSettings = localStorage.getItem('bingx_triangular_settings');
+            if (savedSettings) {
+                const settings = JSON.parse(savedSettings);
+                document.getElementById('bingxTriangularApiKey').value = settings.apiKey || '';
+                document.getElementById('bingxTriangularApiSecret').value = settings.apiSecret || '';
+                document.getElementById('bingxMinProfit').value = settings.minProfit || 0.5;
+                document.getElementById('bingxInvestment').value = settings.investment || 1000;
+                document.getElementById('bingxAutoSave').checked = settings.autoSave !== false;
+            }
+        }
+
+        // Scan BingX Triangular Opportunities
+        async function scanBingXTriangularPaths() {
+            const apiKey = document.getElementById('bingxTriangularApiKey').value;
+            const apiSecret = document.getElementById('bingxTriangularApiSecret').value;
+            const minProfitPercent = parseFloat(document.getElementById('bingxMinProfit').value);
+            const resultsDiv = document.getElementById('bingxTriangularResults');
+
+            if (!apiKey || !apiSecret) {
+                resultsDiv.innerHTML = '<div style="color: #FF4444; padding: 15px; text-align: center;">⚠️ Please enter API credentials first</div>';
+                return;
+            }
+
+            resultsDiv.innerHTML = '<div style="color: #FFD700; padding: 15px; text-align: center;">🔍 Scanning 32 BingX triangular paths...</div>';
+
+            try {
+                const response = await fetch('/api/v1/trading/bingx/triangular/scan', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ apiKey, apiSecret, minProfitPercent })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    if (result.opportunities.length > 0) {
+                        let oppHtml = `<div style="color: #00ff88; font-size: 16px; margin-bottom: 15px;">✅ Found ${result.opportunities.length} opportunities!</div><div style="display: grid; gap: 10px; max-height: 400px; overflow-y: auto;">`;
+
+                        result.opportunities.forEach(opp => {
+                            oppHtml += `
+                                <div style="background: rgba(0,191,255,0.1); padding: 15px; border-radius: 8px; border-left: 3px solid #00BFFF;">
+                                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                        <span style="color: white; font-weight: 600;">${opp.description}</span>
+                                        <span style="color: #00ff88; font-weight: 600;">+${opp.profitPercent}%</span>
+                                    </div>
+                                    <div style="color: #aaa; font-size: 13px; margin-bottom: 5px;">${opp.path.join(' → ')}</div>
+                                    <div style="color: #00BFFF; font-size: 12px;">Estimated Profit: $${opp.estimatedProfit} USDT</div>
+                                    <button onclick='executeBingXTriangularTrade(${JSON.stringify(opp)})' style="margin-top: 10px; padding: 8px 16px; background: #00BFFF; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px;">Execute Trade</button>
+                                </div>
+                            `;
+                        });
+
+                        oppHtml += '</div>';
+                        resultsDiv.innerHTML = oppHtml;
+                    } else {
+                        resultsDiv.innerHTML = '<div style="color: #FFD700; padding: 15px; text-align: center;">📊 No profitable opportunities found at current thresholds</div>';
+                    }
+                } else {
+                    resultsDiv.innerHTML = `<div style="color: #FF4444; padding: 15px; text-align: center;">❌ ${result.message}</div>`;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `<div style="color: #FF4444; padding: 15px; text-align: center;">❌ Scan failed: ${error.message}</div>`;
+            }
+        }
+
+        // Execute BingX Triangular Trade
+        async function executeBingXTriangularTrade(opportunity) {
+            const apiKey = document.getElementById('bingxTriangularApiKey').value;
+            const apiSecret = document.getElementById('bingxTriangularApiSecret').value;
+            const investment = parseFloat(document.getElementById('bingxInvestment').value);
+            const resultsDiv = document.getElementById('bingxTriangularResults');
+
+            if (!confirm(`Execute BingX triangular trade?\nPath: ${opportunity.path.join(' → ')}\nEstimated Profit: +${opportunity.profitPercent}%`)) {
+                return;
+            }
+
+            resultsDiv.innerHTML = '<div style="color: #00BFFF; padding: 15px; text-align: center;">⚡ Executing BingX triangular trade...</div>';
+
+            try {
+                const response = await fetch('/api/v1/trading/bingx/triangular/execute', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ apiKey, apiSecret, opportunity, investmentAmount: investment })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    resultsDiv.innerHTML = `
+                        <div style="color: #00ff88; padding: 20px;">
+                            <div style="font-size: 18px; margin-bottom: 15px;">✅ Trade Executed Successfully!</div>
+                            <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px;">
+                                <div style="color: #aaa; margin-bottom: 8px;">Investment: $${result.execution.investmentAmount} USDT</div>
+                                <div style="color: #aaa; margin-bottom: 8px;">Final Amount: $${result.execution.finalAmount.toFixed(2)} USDT</div>
+                                <div style="color: #00ff88; font-size: 16px; font-weight: 600;">Profit: +$${result.execution.profit.toFixed(2)} (+${result.execution.profitPercent}%)</div>
+                            </div>
+                        </div>
+                    `;
+                    loadBingXTradeHistory();
+                } else {
+                    resultsDiv.innerHTML = `<div style="color: #FF4444; padding: 15px; text-align: center;">❌ ${result.message}</div>`;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `<div style="color: #FF4444; padding: 15px; text-align: center;">❌ Execution failed: ${error.message}</div>`;
+            }
+        }
+
+        // Load BingX Trade History
+        async function loadBingXTradeHistory() {
+            try {
+                const userId = localStorage.getItem('userId');
+                if (!userId) return;
+
+                const response = await fetch('/api/v1/trading/bingx/triangular/history', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    },
+                    body: JSON.stringify({ userId, limit: 10 })
+                });
+
+                const result = await response.json();
+
+                if (result.success && result.trades.length > 0) {
+                    console.log('BingX trade history loaded:', result.trades.length);
+                }
+            } catch (error) {
+                console.error('BingX history error:', error);
+            }
+        }
+
+        // Initialize BingX settings on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadBingXTriangularSettings();
         });
     </script>
 </body>
