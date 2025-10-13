@@ -2174,6 +2174,9 @@
                         <button onclick="loadGeminiSettings()" style="flex: 1; padding: 10px; background: rgba(0,170,221,0.2); color: #00AADD; border: 1px solid #00AADD; border-radius: 5px; cursor: pointer;">
                             📥 Load Settings
                         </button>
+                        <button onclick="viewGeminiPathDetails()" style="flex: 1; padding: 10px; background: rgba(0,170,221,0.2); color: #00AADD; border: 1px solid #00AADD; border-radius: 5px; cursor: pointer;">
+                            📊 View Paths
+                        </button>
                     </div>
                 </div>
 
@@ -2283,6 +2286,9 @@
                         </button>
                         <button onclick="loadCoincatchSettings()" style="flex: 1; padding: 10px; background: rgba(255,87,34,0.2); color: #FF5722; border: 1px solid #FF5722; border-radius: 5px; cursor: pointer;">
                             📥 Load Settings
+                        </button>
+                        <button onclick="viewCoincatchPathDetails()" style="flex: 1; padding: 10px; background: rgba(255,87,34,0.2); color: #FF5722; border: 1px solid #FF5722; border-radius: 5px; cursor: pointer;">
+                            📊 View Paths
                         </button>
                     </div>
                 </div>
@@ -2787,7 +2793,57 @@
 
         // View Path Details (placeholder for future functionality)
         function viewValrPathDetails() {
-            showNotification('Path details view coming soon!', 'info');
+            const pathDetails = `
+📋 VALR Triangular Arbitrage Paths (20 Total)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 1: Essential BTC Bridge (6 paths) ✅ DEFAULT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. ZAR → BTC → ETH → ZAR
+2. ZAR → BTC → XRP → ZAR
+3. ZAR → BTC → SOL → ZAR
+4. ZAR → BTC → LTC → ZAR
+5. ZAR → BTC → DOGE → ZAR
+6. ZAR → BTC → ADA → ZAR
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 2: ETH Secondary Bridge (5 paths) ✅ DEFAULT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. ZAR → ETH → BTC → ZAR
+2. ZAR → ETH → SOL → ZAR
+3. ZAR → ETH → ADA → ZAR
+4. ZAR → ETH → DOT → ZAR
+5. ZAR → ETH → LINK → ZAR
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 3: SOL Bridge (4 paths)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. ZAR → SOL → BTC → ZAR
+2. ZAR → SOL → ETH → ZAR
+3. ZAR → SOL → XRP → ZAR
+4. ZAR → SOL → ADA → ZAR
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 4: XRP Bridge (3 paths)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. ZAR → XRP → BTC → ZAR
+2. ZAR → XRP → ETH → ZAR
+3. ZAR → XRP → SOL → ZAR
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 5: Extended Routes (2 paths)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. ZAR → ADA → BTC → ZAR
+2. ZAR → DOGE → BTC → ZAR
+
+💡 TOTAL: 20 paths (all 3-leg)
+🌉 BRIDGE: ZAR (South African Rand)
+🇿🇦 REGIONAL: Optimized for South African market
+🔐 AUTH: API Key + Secret
+            `.trim();
+
+            alert(pathDetails);
+            console.log(pathDetails);
         }
 
         // Clear VALR History
@@ -3039,39 +3095,63 @@
         }
 
         // View Luno Path Details
-        async function viewLunoPathDetails() {
-            console.log('🔍 [LUNO] Viewing path details...');
-            try {
-                console.log('📡 [LUNO] Fetching path details from backend...');
-                const response = await fetch('/api/v1/trading/luno/triangular/paths', {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
+        function viewLunoPathDetails() {
+            const pathDetails = `
+📋 LUNO Triangular Arbitrage Paths (25 Total)
 
-                const result = await response.json();
-                console.log('✅ [LUNO] Path details received:', result);
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 1: Essential BTC Bridge (7 paths) ✅ DEFAULT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. ZAR → BTC → ETH → ZAR
+2. ZAR → BTC → XRP → ZAR
+3. ZAR → BTC → LTC → ZAR
+4. ZAR → BTC → BCH → ZAR
+5. ZAR → BTC → DOGE → ZAR
+6. ZAR → BTC → ADA → ZAR
+7. ZAR → BTC → SOL → ZAR
 
-                if (result.success) {
-                    let message = '📊 Luno Triangular Paths\n\n';
-                    message += `Total Paths: ${result.data.totalPaths}\n\n`;
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 2: ETH Secondary Bridge (6 paths) ✅ DEFAULT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. ZAR → ETH → BTC → ZAR
+2. ZAR → ETH → XRP → ZAR
+3. ZAR → ETH → SOL → ZAR
+4. ZAR → ETH → ADA → ZAR
+5. ZAR → ETH → DOT → ZAR
+6. ZAR → ETH → LINK → ZAR
 
-                    for (const [key, value] of Object.entries(result.data.pathSets)) {
-                        message += `${value.name}: ${value.pathCount} paths\n`;
-                        message += `${value.description}\n\n`;
-                    }
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 3: XRP Fast Transfers (4 paths)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. ZAR → XRP → BTC → ZAR
+2. ZAR → XRP → ETH → ZAR
+3. ZAR → XRP → SOL → ZAR
+4. ZAR → XRP → ADA → ZAR
 
-                    console.log('✅ [LUNO] Displaying path details to user');
-                    alert(message);
-                } else {
-                    console.error('❌ [LUNO] Failed to fetch paths:', result.message);
-                    alert(`❌ Failed to fetch paths: ${result.message || 'Unknown error'}`);
-                }
-            } catch (error) {
-                console.error('❌ [LUNO] Path details error:', error);
-                alert(`❌ Error: ${error.message}`);
-            }
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 4: SOL Bridge (4 paths)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. ZAR → SOL → BTC → ZAR
+2. ZAR → SOL → ETH → ZAR
+3. ZAR → SOL → XRP → ZAR
+4. ZAR → SOL → ADA → ZAR
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 5: Altcoin Extended (4 paths)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. ZAR → ADA → BTC → ZAR
+2. ZAR → DOGE → BTC → ZAR
+3. ZAR → DOT → ETH → ZAR
+4. ZAR → LINK → ETH → ZAR
+
+💡 TOTAL: 25 paths (all 3-leg)
+🌉 BRIDGE: ZAR (South African Rand)
+🇿🇦 REGIONAL: Optimized for South African market
+🔐 AUTH: API Key + Secret
+            `.trim();
+
+            alert(pathDetails);
+            console.log('📋 [LUNO] Path details displayed:', pathDetails);
         }
 
         // Clear Luno Triangular History
@@ -3355,40 +3435,60 @@
         }
 
         // View ChainEX Path Details
-        async function viewChainExPathDetails() {
-            console.log('🔍 [CHAINEX] Viewing path details...');
-            try {
-                console.log('📡 [CHAINEX] Fetching path details from backend...');
-                const response = await fetch('/api/v1/trading/chainex/triangular/paths', {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
+        function viewChainExPathDetails() {
+            const pathDetails = `
+📋 CHAINEX Triangular Arbitrage Paths (22 Total)
 
-                const result = await response.json();
-                console.log('✅ [CHAINEX] Path details received:', result);
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 1: Essential BTC Bridge (6 paths) ✅ DEFAULT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. ZAR → BTC → ETH → ZAR
+2. ZAR → BTC → XRP → ZAR
+3. ZAR → BTC → LTC → ZAR
+4. ZAR → BTC → DOGE → ZAR
+5. ZAR → BTC → ADA → ZAR
+6. ZAR → BTC → SOL → ZAR
 
-                if (result.success) {
-                    let message = '📊 ChainEX Triangular Paths\n\n';
-                    message += `Total Paths: ${result.data.totalPaths}\n\n`;
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 2: ETH Secondary Bridge (5 paths) ✅ DEFAULT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. ZAR → ETH → BTC → ZAR
+2. ZAR → ETH → SOL → ZAR
+3. ZAR → ETH → ADA → ZAR
+4. ZAR → ETH → DOT → ZAR
+5. ZAR → ETH → LINK → ZAR
 
-                    for (const [key, value] of Object.entries(result.data.pathSets)) {
-                        const setNumber = key.replace('SET_', '').split('_')[0];
-                        message += `SET ${setNumber}: ${value.description}\n`;
-                        message += `  Paths: ${value.count} | Enabled: ${value.enabled ? 'Yes' : 'No'}\n\n`;
-                    }
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 3: USDT Bridge (5 paths)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. ZAR → USDT → BTC → ZAR
+2. ZAR → USDT → ETH → ZAR
+3. ZAR → USDT → XRP → ZAR
+4. ZAR → USDT → SOL → ZAR
+5. ZAR → USDT → ADA → ZAR
 
-                    console.log('✅ [CHAINEX] Displaying path details to user');
-                    alert(message);
-                } else {
-                    console.error('❌ [CHAINEX] Failed to fetch paths:', result.message);
-                    alert(`❌ Failed to fetch paths: ${result.message || 'Unknown error'}`);
-                }
-            } catch (error) {
-                console.error('❌ [CHAINEX] Path details error:', error);
-                alert(`❌ Error: ${error.message}`);
-            }
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 4: SOL Bridge (3 paths)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. ZAR → SOL → BTC → ZAR
+2. ZAR → SOL → ETH → ZAR
+3. ZAR → SOL → XRP → ZAR
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 5: Altcoin Extended (3 paths)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. ZAR → ADA → BTC → ZAR
+2. ZAR → DOGE → BTC → ZAR
+3. ZAR → DOT → ETH → ZAR
+
+💡 TOTAL: 22 paths (all 3-leg)
+🌉 BRIDGE: ZAR (South African Rand)
+🇿🇦 REGIONAL: South African crypto exchange
+🔐 AUTH: API Key + Secret
+            `.trim();
+
+            alert(pathDetails);
+            console.log('📋 [CHAINEX] Path details displayed:', pathDetails);
         }
 
         // Clear ChainEX Triangular History
@@ -3664,40 +3764,68 @@
         }
 
         // View Kraken Path Details
-        async function viewKrakenPathDetails() {
-            console.log('🔍 [KRAKEN] Viewing path details...');
-            try {
-                console.log('📡 [KRAKEN] Fetching path details from backend...');
-                const response = await fetch('/api/v1/trading/kraken/triangular/paths', {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
+        function viewKrakenPathDetails() {
+            const pathDetails = `
+📋 KRAKEN Triangular Arbitrage Paths (30 Total)
 
-                const result = await response.json();
-                console.log('✅ [KRAKEN] Path details received:', result);
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 1: Essential BTC Bridge (8 paths) ✅ DEFAULT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USD → BTC → ETH → USD
+2. USD → BTC → XRP → USD
+3. USD → BTC → SOL → USD
+4. USD → BTC → ADA → USD
+5. USD → BTC → DOT → USD
+6. USD → BTC → MATIC → USD
+7. USD → BTC → LINK → USD
+8. USD → BTC → LTC → USD
 
-                if (result.success) {
-                    let message = '📊 Kraken Triangular Paths\n\n';
-                    message += `Total Paths: ${result.data.totalPaths}\n\n`;
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 2: ETH Secondary Bridge (7 paths) ✅ DEFAULT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USD → ETH → BTC → USD
+2. USD → ETH → SOL → USD
+3. USD → ETH → ADA → USD
+4. USD → ETH → DOT → USD
+5. USD → ETH → MATIC → USD
+6. USD → ETH → LINK → USD
+7. USD → ETH → ATOM → USD
 
-                    for (const [key, value] of Object.entries(result.data.pathSets)) {
-                        const setNumber = key.replace('SET_', '').split('_')[0];
-                        message += `SET ${setNumber}: ${value.description}\n`;
-                        message += `  Paths: ${value.count} | Enabled: ${value.enabled ? 'Yes' : 'No'}\n\n`;
-                    }
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 3: SOL High-Liquidity (5 paths)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USD → SOL → BTC → USD
+2. USD → SOL → ETH → USD
+3. USD → SOL → XRP → USD
+4. USD → SOL → ADA → USD
+5. USD → SOL → DOT → USD
 
-                    console.log('✅ [KRAKEN] Displaying path details to user');
-                    alert(message);
-                } else {
-                    console.error('❌ [KRAKEN] Failed to fetch paths:', result.message);
-                    alert(`❌ Failed to fetch paths: ${result.message || 'Unknown error'}`);
-                }
-            } catch (error) {
-                console.error('❌ [KRAKEN] Path details error:', error);
-                alert(`❌ Error: ${error.message}`);
-            }
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 4: Stablecoin Bridge (5 paths)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USD → USDT → BTC → USD
+2. USD → USDT → ETH → USD
+3. USD → USDT → SOL → USD
+4. USD → USDC → BTC → USD
+5. USD → USDC → ETH → USD
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 5: Extended Multi-Bridge (5 paths)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USD → DOGE → BTC → USD
+2. USD → AVAX → BTC → USD
+3. USD → ATOM → ETH → USD
+4. USD → UNI → ETH → USD
+5. USD → XRP → BTC → USD
+
+💡 TOTAL: 30 paths (all 3-leg)
+🌉 BRIDGE: USD (US Dollar)
+🌍 GLOBAL: Major international crypto exchange
+🔐 AUTH: API Key + Secret
+            `.trim();
+
+            alert(pathDetails);
+            console.log('📋 [KRAKEN] Path details displayed:', pathDetails);
         }
 
         // Clear Kraken Triangular History
@@ -3973,40 +4101,70 @@
         }
 
         // View ByBit Path Details
-        async function viewByBitPathDetails() {
-            console.log('🔍 [BYBIT] Viewing path details...');
-            try {
-                console.log('📡 [BYBIT] Fetching path details from backend...');
-                const response = await fetch('/api/v1/trading/bybit/triangular/paths', {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
+        function viewByBitPathDetails() {
+            const pathDetails = `
+📋 BYBIT Triangular Arbitrage Paths (32 Total)
 
-                const result = await response.json();
-                console.log('✅ [BYBIT] Path details received:', result);
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 1: Essential ETH Bridge (7 paths) ✅ DEFAULT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → ETH → BTC → USDT
+2. USDT → ETH → SOL → USDT
+3. USDT → ETH → XRP → USDT
+4. USDT → ETH → ADA → USDT
+5. USDT → ETH → DOT → USDT
+6. USDT → ETH → MATIC → USDT
+7. USDT → ETH → LINK → USDT
 
-                if (result.success) {
-                    let message = '📊 ByBit Triangular Paths\n\n';
-                    message += `Total Paths: ${result.data.totalPaths}\n\n`;
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 2: Mid-Cap BTC Bridge (7 paths) ✅ DEFAULT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → BTC → ETH → USDT
+2. USDT → BTC → SOL → USDT
+3. USDT → BTC → AVAX → USDT
+4. USDT → BTC → ATOM → USDT
+5. USDT → BTC → LTC → USDT
+6. USDT → BTC → UNI → USDT
+7. USDT → BTC → FIL → USDT
 
-                    for (const [key, value] of Object.entries(result.data.pathSets)) {
-                        const setNumber = key.replace('SET_', '').split('_')[0];
-                        message += `SET ${setNumber}: ${value.description}\n`;
-                        message += `  Paths: ${value.count} | Enabled: ${value.enabled ? 'Yes' : 'No'}\n\n`;
-                    }
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 3: SOL High-Liquidity (6 paths)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → SOL → BTC → USDT
+2. USDT → SOL → ETH → USDT
+3. USDT → SOL → XRP → USDT
+4. USDT → SOL → ADA → USDT
+5. USDT → SOL → DOT → USDT
+6. USDT → SOL → AVAX → USDT
 
-                    console.log('✅ [BYBIT] Displaying path details to user');
-                    alert(message);
-                } else {
-                    console.error('❌ [BYBIT] Failed to fetch paths:', result.message);
-                    alert(`❌ Failed to fetch paths: ${result.message || 'Unknown error'}`);
-                }
-            } catch (error) {
-                console.error('❌ [BYBIT] Path details error:', error);
-                alert(`❌ Error: ${error.message}`);
-            }
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 4: High Volatility (6 paths)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → DOGE → BTC → USDT
+2. USDT → SHIB → ETH → USDT
+3. USDT → PEPE → ETH → USDT
+4. USDT → NEAR → BTC → USDT
+5. USDT → APT → ETH → USDT
+6. USDT → FTM → BTC → USDT
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 5: Extended Multi-Bridge (6 paths)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → BNB → ETH → USDT
+2. USDT → TRX → BTC → USDT
+3. USDT → ALGO → ETH → USDT
+4. USDT → VET → BTC → USDT
+5. USDT → HBAR → ETH → USDT
+6. USDT → BTC → ETH → SOL → USDT (4-leg)
+
+💡 TOTAL: 32 paths (31 three-leg + 1 four-leg)
+🌉 BRIDGE: USDT (Tether)
+🌍 GLOBAL: Major derivatives exchange
+🔐 AUTH: API Key + Secret
+            `.trim();
+
+            alert(pathDetails);
+            console.log('📋 [BYBIT] Path details displayed:', pathDetails);
         }
 
         // Clear ByBit Triangular History
@@ -4258,47 +4416,73 @@
         }
 
         // View Binance Path Details
-        async function viewBinancePathDetails() {
-            console.log('📊 [BINANCE] Fetching path details...');
+        function viewBinancePathDetails() {
+            const pathDetails = `
+📋 BINANCE Triangular Arbitrage Paths (35 Total)
 
-            try {
-                console.log('📡 [BINANCE] Sending paths request to backend...');
-                const response = await fetch('/api/v1/trading/binance/triangular/paths', {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-                    }
-                });
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 1: Essential ETH Bridge (8 paths) ✅ DEFAULT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → ETH → BTC → USDT
+2. USDT → ETH → BNB → USDT
+3. USDT → ETH → SOL → USDT
+4. USDT → ETH → XRP → USDT
+5. USDT → ETH → ADA → USDT
+6. USDT → ETH → DOT → USDT
+7. USDT → ETH → MATIC → USDT
+8. USDT → ETH → LINK → USDT
 
-                const result = await response.json();
-                console.log('✅ [BINANCE] Path details received:', result);
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 2: Mid-Cap BTC Bridge (8 paths) ✅ DEFAULT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → BTC → ETH → USDT
+2. USDT → BTC → BNB → USDT
+3. USDT → BTC → SOL → USDT
+4. USDT → BTC → AVAX → USDT
+5. USDT → BTC → ATOM → USDT
+6. USDT → BTC → LTC → USDT
+7. USDT → BTC → UNI → USDT
+8. USDT → BTC → FIL → USDT
 
-                if (result.success) {
-                    let message = `📊 Binance Triangular Arbitrage Paths\n\n`;
-                    message += `Total Paths: ${result.data.totalPaths}\n`;
-                    message += `Total Sets: ${result.data.totalSets}\n`;
-                    message += `Funding: ${result.data.fundingCurrency}\n`;
-                    message += `Bridge Currencies: ${result.data.bridgeCurrencies.join(', ')}\n\n`;
-                    message += `Path Sets:\n`;
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 3: BNB Native Bridge (7 paths)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → BNB → BTC → USDT
+2. USDT → BNB → ETH → USDT
+3. USDT → BNB → SOL → USDT
+4. USDT → BNB → XRP → USDT
+5. USDT → BNB → ADA → USDT
+6. USDT → BNB → DOT → USDT
+7. USDT → BNB → AVAX → USDT
 
-                    result.data.sets.forEach(set => {
-                        message += `\nSET ${set.id}: ${set.name}\n`;
-                        message += `  • Paths: ${set.paths}\n`;
-                        message += `  • Liquidity: ${set.liquidity}\n`;
-                    });
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 4: High Volatility (6 paths)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → DOGE → BTC → USDT
+2. USDT → SHIB → ETH → USDT
+3. USDT → PEPE → ETH → USDT
+4. USDT → NEAR → BTC → USDT
+5. USDT → APT → ETH → USDT
+6. USDT → FTM → BTC → USDT
 
-                    message += `\n${result.data.note}`;
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 5: Extended Multi-Bridge (6 paths)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → TRX → BTC → USDT
+2. USDT → ALGO → ETH → USDT
+3. USDT → VET → BTC → USDT
+4. USDT → HBAR → ETH → USDT
+5. USDT → SAND → ETH → USDT
+6. USDT → BTC → ETH → SOL → USDT (4-leg)
 
-                    alert(message);
-                } else {
-                    alert(`❌ Failed to retrieve path details\n\n${result.message}`);
-                    console.error('❌ [BINANCE] Path details failed:', result);
-                }
-            } catch (error) {
-                console.error('❌ [BINANCE] Path details error:', error);
-                alert(`❌ Error: ${error.message}`);
-            }
+💡 TOTAL: 35 paths (34 three-leg + 1 four-leg)
+🌉 BRIDGE: USDT (Tether)
+🌍 GLOBAL: World's largest crypto exchange
+🔐 AUTH: API Key + Secret
+            `.trim();
+
+            alert(pathDetails);
+            console.log('📋 [BINANCE] Path details displayed:', pathDetails);
         }
 
         // Clear Binance Trade History
@@ -4571,47 +4755,70 @@
         }
 
         // View OKX Path Details
-        async function viewOKXPathDetails() {
-            console.log('📊 [OKX] Fetching path details...');
+        function viewOKXPathDetails() {
+            const pathDetails = `
+📋 OKX Triangular Arbitrage Paths (32 Total)
 
-            try {
-                console.log('📡 [OKX] Sending paths request to backend...');
-                const response = await fetch('/api/v1/trading/okx/triangular/paths', {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-                    }
-                });
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 1: Essential ETH Bridge (7 paths) ✅ DEFAULT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → ETH → BTC → USDT
+2. USDT → ETH → SOL → USDT
+3. USDT → ETH → XRP → USDT
+4. USDT → ETH → ADA → USDT
+5. USDT → ETH → DOT → USDT
+6. USDT → ETH → MATIC → USDT
+7. USDT → ETH → LINK → USDT
 
-                const result = await response.json();
-                console.log('✅ [OKX] Path details received:', result);
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 2: Mid-Cap BTC Bridge (7 paths) ✅ DEFAULT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → BTC → ETH → USDT
+2. USDT → BTC → SOL → USDT
+3. USDT → BTC → AVAX → USDT
+4. USDT → BTC → ATOM → USDT
+5. USDT → BTC → LTC → USDT
+6. USDT → BTC → UNI → USDT
+7. USDT → BTC → FIL → USDT
 
-                if (result.success) {
-                    let message = `📊 OKX Triangular Arbitrage Paths\n\n`;
-                    message += `Total Paths: ${result.data.totalPaths}\n`;
-                    message += `Total Sets: ${result.data.totalSets}\n`;
-                    message += `Funding: ${result.data.fundingCurrency}\n`;
-                    message += `Bridge Currencies: ${result.data.bridgeCurrencies.join(', ')}\n\n`;
-                    message += `Path Sets:\n`;
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 3: SOL High-Liquidity (6 paths)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → SOL → BTC → USDT
+2. USDT → SOL → ETH → USDT
+3. USDT → SOL → XRP → USDT
+4. USDT → SOL → ADA → USDT
+5. USDT → SOL → DOT → USDT
+6. USDT → SOL → AVAX → USDT
 
-                    result.data.sets.forEach(set => {
-                        message += `\nSET ${set.id}: ${set.name}\n`;
-                        message += `  • Paths: ${set.paths}\n`;
-                        message += `  • Liquidity: ${set.liquidity}\n`;
-                    });
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 4: High Volatility (6 paths)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → DOGE → BTC → USDT
+2. USDT → SHIB → ETH → USDT
+3. USDT → PEPE → ETH → USDT
+4. USDT → NEAR → BTC → USDT
+5. USDT → APT → ETH → USDT
+6. USDT → FTM → BTC → USDT
 
-                    message += `\n${result.data.note}`;
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 5: Extended Multi-Bridge (6 paths)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → TRX → BTC → USDT
+2. USDT → ALGO → ETH → USDT
+3. USDT → VET → BTC → USDT
+4. USDT → HBAR → ETH → USDT
+5. USDT → OKB → BTC → USDT (Native token)
+6. USDT → BTC → ETH → SOL → USDT (4-leg)
 
-                    alert(message);
-                } else {
-                    alert(`❌ Failed to retrieve path details\n\n${result.message}`);
-                    console.error('❌ [OKX] Path details failed:', result);
-                }
-            } catch (error) {
-                console.error('❌ [OKX] Path details error:', error);
-                alert(`❌ Error: ${error.message}`);
-            }
+💡 TOTAL: 32 paths (31 three-leg + 1 four-leg)
+🌉 BRIDGE: USDT (Tether)
+🌍 GLOBAL: Major derivatives exchange
+🔐 AUTH: API Key + Secret + Passphrase
+            `.trim();
+
+            alert(pathDetails);
+            console.log('📋 [OKX] Path details displayed:', pathDetails);
         }
 
         // Clear OKX Trade History
@@ -7462,53 +7669,69 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
 
         // View BingX Path Details
         function viewBingXPathDetails() {
-            fetch('/api/v1/trading/bingx/triangular/paths')
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success) {
-                        let pathsHtml = `
-                            <div style="background: rgba(0,0,0,0.5); padding: 30px; border-radius: 15px; max-height: 80vh; overflow-y: auto;">
-                                <h2 style="color: #00BFFF; margin-bottom: 20px; text-align: center;">
-                                    🌊 BingX Triangular Arbitrage Paths (${data.totalPaths} Total)
-                                </h2>
-                        `;
+            const pathDetails = `
+📋 BINGX Triangular Arbitrage Paths (32 Total)
 
-                        const setNames = {
-                            'SET_1_ESSENTIAL_ETH_BRIDGE': '⚡ Essential ETH Bridge (7 paths)',
-                            'SET_2_MIDCAP_BTC_BRIDGE': '🔷 Mid-Cap BTC Bridge (7 paths)',
-                            'SET_3_SOL_HIGH_LIQUIDITY': '💎 SOL High-Liquidity (6 paths)',
-                            'SET_4_HIGH_VOLATILITY': '🔥 High Volatility (6 paths)',
-                            'SET_5_EXTENDED_MULTIBRIDGE': '🌐 Extended Multi-Bridge (6 paths)'
-                        };
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 1: Essential ETH Bridge (7 paths) ✅ DEFAULT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → ETH → BTC → USDT
+2. USDT → ETH → SOL → USDT
+3. USDT → ETH → XRP → USDT
+4. USDT → ETH → ADA → USDT
+5. USDT → ETH → DOT → USDT
+6. USDT → ETH → MATIC → USDT
+7. USDT → ETH → LINK → USDT
 
-                        Object.entries(data.sets).forEach(([setKey, paths]) => {
-                            pathsHtml += `
-                                <div style="margin-bottom: 25px; padding: 20px; background: rgba(0,191,255,0.1); border-radius: 10px; border-left: 4px solid #00BFFF;">
-                                    <h3 style="color: #00BFFF; margin-bottom: 15px;">${setNames[setKey]}</h3>
-                                    <div style="display: grid; gap: 10px;">
-                            `;
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 2: Mid-Cap BTC Bridge (7 paths) ✅ DEFAULT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → BTC → ETH → USDT
+2. USDT → BTC → SOL → USDT
+3. USDT → BTC → AVAX → USDT
+4. USDT → BTC → ATOM → USDT
+5. USDT → BTC → LTC → USDT
+6. USDT → BTC → UNI → USDT
+7. USDT → BTC → FIL → USDT
 
-                            paths.forEach(path => {
-                                pathsHtml += `
-                                    <div style="background: rgba(255,255,255,0.05); padding: 12px; border-radius: 8px;">
-                                        <div style="color: white; font-weight: 600; margin-bottom: 5px;">${path.description}</div>
-                                        <div style="color: #aaa; font-size: 13px;">${path.path.join(' → ')}</div>
-                                        <div style="color: #00BFFF; font-size: 12px; margin-top: 5px;">Pairs: ${path.pairs.join(', ')}</div>
-                                    </div>
-                                `;
-                            });
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 3: SOL High-Liquidity (6 paths)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → SOL → BTC → USDT
+2. USDT → SOL → ETH → USDT
+3. USDT → SOL → XRP → USDT
+4. USDT → SOL → ADA → USDT
+5. USDT → SOL → DOT → USDT
+6. USDT → SOL → AVAX → USDT
 
-                            pathsHtml += '</div></div>';
-                        });
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 4: High Volatility (6 paths)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → DOGE → BTC → USDT
+2. USDT → SHIB → ETH → USDT
+3. USDT → PEPE → ETH → USDT
+4. USDT → NEAR → BTC → USDT
+5. USDT → APT → ETH → USDT
+6. USDT → FTM → BTC → USDT
 
-                        pathsHtml += '<button onclick="this.parentElement.parentElement.remove()" style="width: 100%; padding: 12px; background: #00BFFF; color: white; border: none; border-radius: 8px; cursor: pointer; margin-top: 20px; font-weight: 600;">Close</button></div>';
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 5: Extended Multi-Bridge (6 paths)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → TRX → BTC → USDT
+2. USDT → ALGO → ETH → USDT
+3. USDT → VET → BTC → USDT
+4. USDT → HBAR → ETH → USDT
+5. USDT → SAND → ETH → USDT
+6. USDT → BTC → ETH → SOL → USDT (4-leg)
 
-                        const overlay = document.createElement('div');
-                        overlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 10000; display: flex; justify-content: center; align-items: center; padding: 20px;';
-                        overlay.innerHTML = pathsHtml;
-                        document.body.appendChild(overlay);
-                    }
-                });
+💡 TOTAL: 32 paths (31 three-leg + 1 four-leg)
+🌉 BRIDGE: USDT (Tether)
+🌍 GLOBAL: Derivatives and spot exchange
+🔐 AUTH: API Key + Secret
+            `.trim();
+
+            alert(pathDetails);
+            console.log('📋 [BINGX] Path details displayed:', pathDetails);
         }
 
         // Save BingX Settings
@@ -7752,53 +7975,70 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
         }
 
         // View Bitget Path Details
-        async function viewBitgetPathDetails() {
-            try {
-                const response = await fetch('/api/v1/trading/bitget/triangular/paths');
-                const data = await response.json();
+        function viewBitgetPathDetails() {
+            const pathDetails = `
+📋 BITGET Triangular Arbitrage Paths (32 Total)
 
-                if (data.success) {
-                    let pathsHtml = '<div style="max-height: 600px; overflow-y: auto;">';
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 1: Essential ETH Bridge (7 paths) ✅ DEFAULT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → ETH → BTC → USDT
+2. USDT → ETH → SOL → USDT
+3. USDT → ETH → XRP → USDT
+4. USDT → ETH → ADA → USDT
+5. USDT → ETH → DOT → USDT
+6. USDT → ETH → MATIC → USDT
+7. USDT → ETH → LINK → USDT
 
-                    Object.entries(data.sets).forEach(([setKey, setData]) => {
-                        pathsHtml += `
-                            <div style="margin-bottom: 20px; padding: 15px; background: rgba(138,43,226,0.1); border-radius: 10px; border: 1px solid #8A2BE2;">
-                                <h4 style="color: #8A2BE2; margin-bottom: 10px;">${setData.name} (${setData.count} paths)</h4>
-                                <div style="display: grid; gap: 10px;">
-                        `;
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 2: Mid-Cap BTC Bridge (7 paths) ✅ DEFAULT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → BTC → ETH → USDT
+2. USDT → BTC → SOL → USDT
+3. USDT → BTC → AVAX → USDT
+4. USDT → BTC → ATOM → USDT
+5. USDT → BTC → LTC → USDT
+6. USDT → BTC → UNI → USDT
+7. USDT → BTC → FIL → USDT
 
-                        setData.paths.forEach(path => {
-                            pathsHtml += `
-                                <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 8px; border-left: 3px solid #8A2BE2;">
-                                    <div style="color: #8A2BE2; font-weight: 600; margin-bottom: 5px;">${path.id}</div>
-                                    <div style="color: #ddd; margin-bottom: 5px;">${path.description}</div>
-                                    <div style="color: #888; font-size: 14px;">Path: ${path.path.join(' → ')}</div>
-                                    <div style="color: #666; font-size: 12px; margin-top: 5px;">Pairs: ${path.pairs.join(', ')}</div>
-                                </div>
-                            `;
-                        });
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 3: SOL High-Liquidity (6 paths)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → SOL → BTC → USDT
+2. USDT → SOL → ETH → USDT
+3. USDT → SOL → XRP → USDT
+4. USDT → SOL → ADA → USDT
+5. USDT → SOL → DOT → USDT
+6. USDT → SOL → AVAX → USDT
 
-                        pathsHtml += '</div></div>';
-                    });
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 4: High Volatility (6 paths)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → DOGE → BTC → USDT
+2. USDT → SHIB → ETH → USDT
+3. USDT → PEPE → ETH → USDT
+4. USDT → NEAR → BTC → USDT
+5. USDT → APT → ETH → USDT
+6. USDT → FTM → BTC → USDT
 
-                    pathsHtml += '</div>';
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 5: Extended Multi-Bridge (6 paths)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → TRX → BTC → USDT
+2. USDT → ALGO → ETH → USDT
+3. USDT → VET → BTC → USDT
+4. USDT → HBAR → ETH → USDT
+5. USDT → BGB → BTC → USDT (Native token)
+6. USDT → BTC → ETH → SOL → USDT (4-leg)
 
-                    const modal = document.createElement('div');
-                    modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px;';
-                    modal.innerHTML = `
-                        <div style="background: #1a1a1a; padding: 30px; border-radius: 15px; max-width: 900px; width: 100%; max-height: 90vh; overflow-y: auto; border: 2px solid #8A2BE2;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                                <h3 style="color: #8A2BE2; margin: 0;">💜 Bitget Triangular Paths (${data.totalPaths} Total)</h3>
-                                <button onclick="this.closest('[style*=fixed]').remove()" style="background: #FF4444; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 600;">Close</button>
-                            </div>
-                            ${pathsHtml}
-                        </div>
-                    `;
-                    document.body.appendChild(modal);
-                }
-            } catch (error) {
-                alert(`Error loading paths: ${error.message}`);
-            }
+💡 TOTAL: 32 paths (31 three-leg + 1 four-leg)
+🌉 BRIDGE: USDT (Tether)
+🌍 GLOBAL: Multi-asset derivatives platform
+🔐 AUTH: API Key + Secret + Passphrase
+            `.trim();
+
+            alert(pathDetails);
+            console.log('📋 [BITGET] Path details displayed:', pathDetails);
         }
 
         // Scan Bitget Triangular Paths
@@ -8079,53 +8319,68 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
         }
 
         // View Bitmart Path Details
-        async function viewBitmartPathDetails() {
-            try {
-                const response = await fetch('/api/v1/trading/bitmart/triangular/paths');
-                const data = await response.json();
+        function viewBitmartPathDetails() {
+            const pathDetails = `
+📋 BITMART Triangular Arbitrage Paths (30 Total)
 
-                if (data.success) {
-                    let pathsHtml = '<div style="max-height: 600px; overflow-y: auto;">';
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 1: Essential ETH Bridge (7 paths) ✅ DEFAULT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → ETH → BTC → USDT
+2. USDT → ETH → SOL → USDT
+3. USDT → ETH → XRP → USDT
+4. USDT → ETH → ADA → USDT
+5. USDT → ETH → DOT → USDT
+6. USDT → ETH → MATIC → USDT
+7. USDT → ETH → LINK → USDT
 
-                    Object.entries(data.sets).forEach(([setKey, setData]) => {
-                        pathsHtml += `
-                            <div style="margin-bottom: 20px; padding: 15px; background: rgba(255,140,0,0.1); border-radius: 10px; border: 1px solid #FF8C00;">
-                                <h4 style="color: #FF8C00; margin-bottom: 10px;">${setData.name} (${setData.count} paths)</h4>
-                                <div style="display: grid; gap: 10px;">
-                        `;
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 2: Mid-Cap BTC Bridge (7 paths) ✅ DEFAULT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → BTC → ETH → USDT
+2. USDT → BTC → SOL → USDT
+3. USDT → BTC → AVAX → USDT
+4. USDT → BTC → ATOM → USDT
+5. USDT → BTC → LTC → USDT
+6. USDT → BTC → UNI → USDT
+7. USDT → BTC → FIL → USDT
 
-                        setData.paths.forEach(path => {
-                            pathsHtml += `
-                                <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 8px; border-left: 3px solid #FF8C00;">
-                                    <div style="color: #FF8C00; font-weight: 600; margin-bottom: 5px;">${path.id}</div>
-                                    <div style="color: #ddd; margin-bottom: 5px;">${path.description}</div>
-                                    <div style="color: #888; font-size: 14px;">Path: ${path.path.join(' → ')}</div>
-                                    <div style="color: #666; font-size: 12px; margin-top: 5px;">Pairs: ${path.pairs.join(', ')}</div>
-                                </div>
-                            `;
-                        });
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 3: SOL High-Liquidity (6 paths)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → SOL → BTC → USDT
+2. USDT → SOL → ETH → USDT
+3. USDT → SOL → XRP → USDT
+4. USDT → SOL → ADA → USDT
+5. USDT → SOL → DOT → USDT
+6. USDT → SOL → AVAX → USDT
 
-                        pathsHtml += '</div></div>';
-                    });
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 4: High Volatility (5 paths)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → DOGE → BTC → USDT
+2. USDT → SHIB → ETH → USDT
+3. USDT → NEAR → BTC → USDT
+4. USDT → APT → ETH → USDT
+5. USDT → FTM → BTC → USDT
 
-                    pathsHtml += '</div>';
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 5: Extended Multi-Bridge (5 paths)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → TRX → BTC → USDT
+2. USDT → ALGO → ETH → USDT
+3. USDT → VET → BTC → USDT
+4. USDT → HBAR → ETH → USDT
+5. USDT → BMX → BTC → USDT (Native token)
 
-                    const modal = document.createElement('div');
-                    modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px;';
-                    modal.innerHTML = `
-                        <div style="background: #1a1a1a; padding: 30px; border-radius: 15px; max-width: 900px; width: 100%; max-height: 90vh; overflow-y: auto; border: 2px solid #FF8C00;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                                <h3 style="color: #FF8C00; margin: 0;">🧡 Bitmart Triangular Paths (${data.totalPaths} Total)</h3>
-                                <button onclick="this.closest('[style*=fixed]').remove()" style="background: #FF4444; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 600;">Close</button>
-                            </div>
-                            ${pathsHtml}
-                        </div>
-                    `;
-                    document.body.appendChild(modal);
-                }
-            } catch (error) {
-                alert(`Error loading paths: ${error.message}`);
-            }
+💡 TOTAL: 30 paths (all 3-leg)
+🌉 BRIDGE: USDT (Tether)
+🌍 GLOBAL: Spot trading platform
+🔐 AUTH: API Key + Secret + Memo
+            `.trim();
+
+            alert(pathDetails);
+            console.log('📋 [BITMART] Path details displayed:', pathDetails);
         }
 
         // Scan Bitmart Triangular Paths
@@ -8405,53 +8660,66 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
         }
 
         // View Bitrue Path Details
-        async function viewBitruePathDetails() {
-            try {
-                const response = await fetch('/api/v1/trading/bitrue/triangular/paths');
-                const data = await response.json();
+        function viewBitruePathDetails() {
+            const pathDetails = `
+📋 BITRUE Triangular Arbitrage Paths (28 Total)
 
-                if (data.success) {
-                    let pathsHtml = '<div style="max-height: 600px; overflow-y: auto;">';
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 1: Essential ETH Bridge (7 paths) ✅ DEFAULT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → ETH → BTC → USDT
+2. USDT → ETH → SOL → USDT
+3. USDT → ETH → XRP → USDT
+4. USDT → ETH → ADA → USDT
+5. USDT → ETH → DOT → USDT
+6. USDT → ETH → MATIC → USDT
+7. USDT → ETH → LINK → USDT
 
-                    Object.entries(data.sets).forEach(([setKey, setData]) => {
-                        pathsHtml += `
-                            <div style="margin-bottom: 20px; padding: 15px; background: rgba(34,197,94,0.1); border-radius: 10px; border: 1px solid #22C55E;">
-                                <h4 style="color: #22C55E; margin-bottom: 10px;">${setData.name} (${setData.count} paths)</h4>
-                                <div style="display: grid; gap: 10px;">
-                        `;
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 2: Mid-Cap BTC Bridge (7 paths) ✅ DEFAULT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → BTC → ETH → USDT
+2. USDT → BTC → SOL → USDT
+3. USDT → BTC → AVAX → USDT
+4. USDT → BTC → ATOM → USDT
+5. USDT → BTC → LTC → USDT
+6. USDT → BTC → UNI → USDT
+7. USDT → BTC → XRP → USDT
 
-                        setData.paths.forEach(path => {
-                            pathsHtml += `
-                                <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 8px; border-left: 3px solid #22C55E;">
-                                    <div style="color: #22C55E; font-weight: 600; margin-bottom: 5px;">${path.id}</div>
-                                    <div style="color: #ddd; margin-bottom: 5px;">${path.description}</div>
-                                    <div style="color: #888; font-size: 14px;">Path: ${path.path.join(' → ')}</div>
-                                    <div style="color: #666; font-size: 12px; margin-top: 5px;">Pairs: ${path.pairs.join(', ')}</div>
-                                </div>
-                            `;
-                        });
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 3: SOL High-Liquidity (5 paths)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → SOL → BTC → USDT
+2. USDT → SOL → ETH → USDT
+3. USDT → SOL → XRP → USDT
+4. USDT → SOL → ADA → USDT
+5. USDT → SOL → DOT → USDT
 
-                        pathsHtml += '</div></div>';
-                    });
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 4: High Volatility (5 paths)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → DOGE → BTC → USDT
+2. USDT → SHIB → ETH → USDT
+3. USDT → NEAR → BTC → USDT
+4. USDT → APT → ETH → USDT
+5. USDT → FTM → BTC → USDT
 
-                    pathsHtml += '</div>';
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 5: Extended Multi-Bridge (4 paths)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → TRX → BTC → USDT
+2. USDT → ALGO → ETH → USDT
+3. USDT → VET → BTC → USDT
+4. USDT → BTR → BTC → USDT (Native token)
 
-                    const modal = document.createElement('div');
-                    modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px;';
-                    modal.innerHTML = `
-                        <div style="background: #1a1a1a; padding: 30px; border-radius: 15px; max-width: 900px; width: 100%; max-height: 90vh; overflow-y: auto; border: 2px solid #22C55E;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                                <h3 style="color: #22C55E; margin: 0;">💚 Bitrue Triangular Paths (${data.totalPaths} Total)</h3>
-                                <button onclick="this.closest('[style*=fixed]').remove()" style="background: #FF4444; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 600;">Close</button>
-                            </div>
-                            ${pathsHtml}
-                        </div>
-                    `;
-                    document.body.appendChild(modal);
-                }
-            } catch (error) {
-                alert(`Error loading paths: ${error.message}`);
-            }
+💡 TOTAL: 28 paths (all 3-leg)
+🌉 BRIDGE: USDT (Tether)
+🌍 GLOBAL: Spot and staking platform
+🔐 AUTH: API Key + Secret
+            `.trim();
+
+            alert(pathDetails);
+            console.log('📋 [BITRUE] Path details displayed:', pathDetails);
         }
 
         // Scan Bitrue Triangular Paths
@@ -8876,6 +9144,51 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
             }
         }
 
+        // View Gemini Path Details
+        function viewGeminiPathDetails() {
+            const pathDetails = `
+📋 GEMINI Triangular Arbitrage Paths (10 Total)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 1: BTC-ETH Direct (2 paths) ✅ DEFAULT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USD → BTC → ETH → USD
+2. USD → ETH → BTC → USD
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 2: DOGE Bridge (2 paths) ✅ DEFAULT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USD → DOGE → BTC → USD
+2. USD → DOGE → ETH → USD
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 3: LINK Bridge (2 paths) ✅ DEFAULT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USD → LINK → BTC → USD
+2. USD → LINK → ETH → USD
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 4: LTC Bridge (2 paths) ✅ DEFAULT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USD → LTC → BTC → USD
+2. USD → LTC → ETH → USD
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 5: SOL Bridge (2 paths) ✅ DEFAULT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USD → SOL → BTC → USD
+2. USD → SOL → ETH → USD
+
+💡 TOTAL: 10 paths (all 3-leg)
+🌉 BRIDGE: USD (US Dollar)
+🇺🇸 REGIONAL: US-regulated exchange
+🔐 AUTH: API Key + Secret (institutional-grade)
+            `.trim();
+
+            alert(pathDetails);
+            console.log('📋 [GEMINI] Path details displayed:', pathDetails);
+        }
+
         // Save Gemini Settings
         function saveGeminiSettings() {
             const settings = {
@@ -9182,6 +9495,89 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
                 console.error('Coincatch execution error:', error);
                 showNotification('Network error during trade execution', 'error');
             }
+        }
+
+        // View Coincatch Path Details
+        function viewCoincatchPathDetails() {
+            const pathDetails = `
+📋 COINCATCH Triangular Arbitrage Paths (48 Total)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 1: Essential 3-Leg (10 paths) ✅ DEFAULT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → BTC → ETH → USDT
+2. USDT → ETH → SOL → USDT
+3. USDT → BTC → SOL → USDT
+4. USDT → ETH → XRP → USDT
+5. USDT → BTC → XRP → USDT
+6. USDT → ETH → ADA → USDT
+7. USDT → BTC → ADA → USDT
+8. USDT → SOL → XRP → USDT
+9. USDT → SOL → ADA → USDT
+10. USDT → XRP → ADA → USDT
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 2: Mid-Cap 3-Leg (10 paths) ✅ DEFAULT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → DOT → MATIC → USDT
+2. USDT → LINK → AVAX → USDT
+3. USDT → ATOM → UNI → USDT
+4. USDT → LTC → BCH → USDT
+5. USDT → NEAR → APT → USDT
+6. USDT → DOT → LINK → USDT
+7. USDT → MATIC → AVAX → USDT
+8. USDT → ATOM → DOT → USDT
+9. USDT → UNI → LINK → USDT
+10. USDT → APT → NEAR → USDT
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 3: Major 4-Leg (8 paths)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → BTC → ETH → SOL → USDT
+2. USDT → BTC → ETH → XRP → USDT
+3. USDT → BTC → SOL → XRP → USDT
+4. USDT → ETH → SOL → ADA → USDT
+5. USDT → BTC → ETH → ADA → USDT
+6. USDT → ETH → XRP → ADA → USDT
+7. USDT → BTC → SOL → ADA → USDT
+8. USDT → SOL → XRP → ADA → USDT
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 4: Altcoin 4-Leg (10 paths)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → DOT → MATIC → LINK → USDT
+2. USDT → LINK → AVAX → ATOM → USDT
+3. USDT → ATOM → UNI → DOT → USDT
+4. USDT → MATIC → AVAX → LINK → USDT
+5. USDT → DOT → LINK → ATOM → USDT
+6. USDT → AVAX → UNI → MATIC → USDT
+7. USDT → LINK → ATOM → DOT → USDT
+8. USDT → UNI → MATIC → AVAX → USDT
+9. USDT → NEAR → APT → FTM → USDT
+10. USDT → APT → NEAR → LTC → USDT
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 5: Extended 4-Leg (10 paths)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. USDT → BTC → ETH → SOL → XRP → USDT (5-leg)
+2. USDT → DOGE → SHIB → PEPE → USDT
+3. USDT → TRX → ALGO → VET → USDT
+4. USDT → FTM → SAND → MANA → USDT
+5. USDT → BTC → DOT → LINK → USDT
+6. USDT → ETH → MATIC → AVAX → USDT
+7. USDT → SOL → ATOM → UNI → USDT
+8. USDT → XRP → LTC → BCH → USDT
+9. USDT → ADA → NEAR → APT → USDT
+10. USDT → BNB → TRX → ALGO → USDT
+
+💡 TOTAL: 48 paths (20 three-leg + 27 four-leg + 1 five-leg)
+🌉 BRIDGE: USDT (Tether)
+🌍 GLOBAL: Advanced multi-leg arbitrage specialist
+🔐 AUTH: API Key + Secret
+            `.trim();
+
+            alert(pathDetails);
+            console.log('📋 [COINCATCH] Path details displayed:', pathDetails);
         }
 
         // Save Coincatch Settings
