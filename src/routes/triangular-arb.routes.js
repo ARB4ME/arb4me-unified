@@ -9027,12 +9027,12 @@ router.get('/coincatch/triangular/recent-trades', authenticatedRateLimit, authen
 
 // POST /api/v1/trading/valr/triangular/test-connection
 // Test VALR API connection for triangular trading
-router.post('/valr/triangular/test-connection', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+// NOTE: No platform authentication required - validates exchange credentials only
+router.post('/valr/triangular/test-connection', asyncHandler(async (req, res) => {
     try {
         const { apiKey, apiSecret } = req.body;
 
         systemLogger.trading('VALR triangular connection test initiated', {
-            userId: req.user.id,
             timestamp: new Date().toISOString()
         });
 
@@ -9067,7 +9067,6 @@ router.post('/valr/triangular/test-connection', authenticatedRateLimit, authenti
         const triangularPairsAvailable = requiredPairs.every(pair => availablePairs.includes(pair));
 
         systemLogger.trading('VALR triangular connection test successful', {
-            userId: req.user.id,
             balanceCount: balanceData.length,
             triangularPairsAvailable
         });
@@ -9802,12 +9801,12 @@ async function rollbackCompletedLegs(completedLegs, apiKey, apiSecret) {
 
 // POST /api/v1/trading/valr/triangular/scan
 // Scan for triangular arbitrage opportunities with live prices
-router.post('/valr/triangular/scan', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+// NOTE: No platform authentication required - validates exchange credentials only
+router.post('/valr/triangular/scan', asyncHandler(async (req, res) => {
     try {
         const { paths = 'all', apiKey, apiSecret } = req.body; // Can specify which path sets to scan
-        
+
         systemLogger.trading('VALR triangular scan initiated', {
-            userId: req.user.id,
             paths,
             timestamp: new Date().toISOString()
         });
@@ -10296,34 +10295,29 @@ router.get('/valr/triangular/paths', authenticatedRateLimit, authenticateUser, a
 
 // POST /api/v1/trading/valr/triangular/execute
 // Execute a triangular arbitrage trade (3-leg atomic transaction)
-router.post('/valr/triangular/execute', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+// NOTE: No platform authentication required - validates exchange credentials only
+router.post('/valr/triangular/execute', asyncHandler(async (req, res) => {
     try {
-        const { pathId, amount, simulate = true } = req.body;
-        
+        const { pathId, amount, simulate = true, apiKey, apiSecret } = req.body;
+
         if (!pathId || !amount) {
             throw new APIError('Path ID and amount are required', 400, 'MISSING_PARAMETERS');
         }
 
+        if (!apiKey || !apiSecret) {
+            throw new APIError('VALR API credentials required', 400, 'VALR_CREDENTIALS_REQUIRED');
+        }
+
         systemLogger.trading('VALR triangular execution initiated', {
-            userId: req.user.id,
             pathId,
             amount,
             simulate,
             timestamp: new Date().toISOString()
         });
 
-        // Get user's VALR API credentials
-        const keysResult = await query(`
-            SELECT exchange_api_key, exchange_api_secret 
-            FROM user_api_keys 
-            WHERE user_id = $1 AND exchange = 'VALR'
-        `, [req.user.id]);
-
-        if (keysResult.rows.length === 0) {
-            throw new APIError('VALR API keys not found', 404, 'VALR_KEYS_NOT_FOUND');
-        }
-
-        const { exchange_api_key, exchange_api_secret } = keysResult.rows[0];
+        // Use provided API credentials directly
+        const exchange_api_key = apiKey;
+        const exchange_api_secret = apiSecret;
 
         // Find the triangular path configuration
         const triangularPaths = [
@@ -10393,7 +10387,6 @@ router.post('/valr/triangular/execute', authenticatedRateLimit, authenticateUser
         // Prepare response based on execution result
         if (executionResult.success) {
             systemLogger.trading('VALR triangular execution completed', {
-                userId: req.user.id,
                 executionId: executionResult.executionId,
                 pathId: executionResult.pathId,
                 startAmount: executionResult.startAmount,
@@ -10404,26 +10397,8 @@ router.post('/valr/triangular/execute', authenticatedRateLimit, authenticateUser
                 simulate
             });
 
-            // Log trade to database
-            const logResult = await logTriangularTrade(req.user.id, {
-                opportunity: currentOpportunity,
-                executionResult: executionResult,
-                dryRun: simulate,
-                maxSlippage: maxSlippage,
-                scanStartedAt: req.body.scanStartedAt ? new Date(req.body.scanStartedAt) : new Date(),
-                executionStartedAt: new Date(),
-                executionTimeMs: executionResult.performance?.totalTime,
-                userAgent: req.headers['user-agent'],
-                ipAddress: req.ip
-            });
-
-            if (logResult.success) {
-                systemLogger.info('Trade logged to database', {
-                    userId: req.user.id,
-                    tradeId: logResult.tradeId,
-                    dbId: logResult.dbId
-                });
-            }
+            // NOTE: Database logging skipped (requires user authentication)
+            // Trades are logged to system logger above
 
             res.json({
                 success: true,
