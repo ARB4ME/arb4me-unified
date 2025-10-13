@@ -2442,6 +2442,9 @@
     </div>
 
     <script>
+        // API Base URL Configuration
+        const API_BASE = '/api/v1';
+
         // Return to Platform Function
         function returnToPlatform() {
             // Set triangular toggle state to OFF
@@ -2493,22 +2496,50 @@
         // Triangular Arbitrage JavaScript Functions
 
         // Toggle for VALR Triangular trading
-        document.getElementById('valrTriangularEnabled').addEventListener('click', function() {
+        document.getElementById('valrTriangularEnabled').addEventListener('click', async function() {
             console.log('🔄 [VALR] Toggle clicked');
-            this.classList.toggle('active');
+
+            const willBeActive = !this.classList.contains('active');
             const status = document.getElementById('valrTriangularStatus');
 
-            if (this.classList.contains('active')) {
+            if (willBeActive) {
+                // Check if credentials are configured before enabling
+                const apiKey = localStorage.getItem('valr_api') || '';
+                const apiSecret = localStorage.getItem('valr_secret') || '';
+
+                if (!apiKey || !apiSecret) {
+                    showNotification('⚠️ Please configure VALR API credentials in Strategic API Configuration first!', 'warning');
+                    return; // Don't toggle
+                }
+
+                // Check if at least one path set is selected
+                let hasSelectedPaths = false;
+                for (let i = 1; i <= 5; i++) {
+                    const checkbox = document.getElementById(`valrSet${i}Enabled`);
+                    if (checkbox && checkbox.checked) {
+                        hasSelectedPaths = true;
+                        break;
+                    }
+                }
+
+                if (!hasSelectedPaths) {
+                    showNotification('⚠️ Please select at least one path set before enabling live trading!', 'warning');
+                    return; // Don't toggle
+                }
+
                 console.log('✅ [VALR] Live trading enabled');
+                this.classList.add('active');
                 status.textContent = 'ON';
                 status.style.color = '#00ff88';
-                // Save state to localStorage
                 localStorage.setItem('valrTriangularEnabled', 'true');
+                showNotification('✅ VALR live trading enabled! Manual scans will now use these settings.', 'success');
             } else {
                 console.log('❌ [VALR] Live trading disabled');
+                this.classList.remove('active');
                 status.textContent = 'OFF';
                 status.style.color = '#ff6b6b';
                 localStorage.setItem('valrTriangularEnabled', 'false');
+                showNotification('VALR live trading disabled', 'info');
             }
         });
 
