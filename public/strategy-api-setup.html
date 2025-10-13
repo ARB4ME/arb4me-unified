@@ -3284,6 +3284,55 @@
                         }
                     }
 
+                    // CRITICAL FIX: Save credentials to localStorage so triangular-arb page can find them
+                    // Each exchange's triangular-arb card expects specific localStorage keys
+                    const storageKeyMap = {
+                        'valr': { api: 'valr_api', secret: 'valr_secret' },
+                        'luno': { api: 'luno_triangular_api', secret: 'luno_triangular_secret' },
+                        'chainex': { api: 'chainex_triangular_api', secret: 'chainex_triangular_secret' },
+                        'kraken': { api: 'kraken_triangular_api', secret: 'kraken_triangular_secret' },
+                        'bybit': { api: 'bybit_triangular_api', secret: 'bybit_triangular_secret' },
+                        'binance': { api: 'binance_triangular_api', secret: 'binance_triangular_secret' },
+                        'okx': { api: 'okx_triangular_api', secret: 'okx_triangular_secret' },
+                        'kucoin': { api: 'kucoin_triangular_api', secret: 'kucoin_triangular_secret' },
+                        'coinbase': { api: 'coinbase_triangular_api', secret: 'coinbase_triangular_secret' },
+                        'htx': { api: 'htx_triangular_api', secret: 'htx_triangular_secret' },
+                        'gateio': { api: 'gateio_triangular_api', secret: 'gateio_triangular_secret' },
+                        'cryptocom': { api: 'cryptocom_triangular_api', secret: 'cryptocom_triangular_secret' },
+                        'mexc': { api: 'mexc_triangular_api', secret: 'mexc_triangular_secret' },
+                        'xt': { api: 'xt_triangular_api', secret: 'xt_triangular_secret' },
+                        'ascendex': { api: 'ascendex_triangular_api', secret: 'ascendex_triangular_secret' },
+                        'bingx': { api: 'bingx_triangular_api', secret: 'bingx_triangular_secret' },
+                        'bitget': { api: 'bitget_triangular_api', secret: 'bitget_triangular_secret' },
+                        'bitmart': { api: 'bitmart_triangular_api', secret: 'bitmart_triangular_secret' },
+                        'bitrue': { api: 'bitrue_triangular_api', secret: 'bitrue_triangular_secret' },
+                        'gemini': { api: 'gemini_triangular_api', secret: 'gemini_triangular_secret' },
+                        'coincatch': { api: 'coincatch_triangular_api', secret: 'coincatch_triangular_secret' }
+                    };
+
+                    // Save credentials for triangular arbitrage strategy
+                    if (strategy === 'triangular' && storageKeyMap[exchange]) {
+                        localStorage.setItem(storageKeyMap[exchange].api, apiKey);
+                        localStorage.setItem(storageKeyMap[exchange].secret, secretKey);
+                        localStorage.setItem(`${exchange}_triangular_connected`, 'true');
+                        console.log(`✅ Saved ${exchange} triangular credentials to localStorage:`, {
+                            apiKey: storageKeyMap[exchange].api,
+                            secretKey: storageKeyMap[exchange].secret
+                        });
+                    }
+
+                    // Also save with generic strategy pattern for other strategies
+                    localStorage.setItem(`${exchange}_${strategy}_api`, apiKey);
+                    localStorage.setItem(`${exchange}_${strategy}_secret`, secretKey);
+                    if (passphrase) {
+                        localStorage.setItem(`${exchange}_${strategy}_passphrase`, passphrase);
+                    }
+                    if (memo) {
+                        localStorage.setItem(`${exchange}_${strategy}_memo`, memo);
+                    }
+                    localStorage.setItem(`${exchange}_${strategy}_connected`, 'true');
+                    console.log(`✅ Saved ${exchange} ${strategy} credentials to localStorage`);
+
                     alert(`${exchange.toUpperCase()} ${strategy} strategy connected successfully!`);
                     } else {
                         throw new Error('No balances returned from API');

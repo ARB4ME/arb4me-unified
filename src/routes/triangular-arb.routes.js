@@ -9045,7 +9045,7 @@ router.post('/valr/triangular/test-connection', authenticatedRateLimit, authenti
         const exchange_api_secret = apiSecret;
 
         // Test API connection by fetching balance
-        const balanceData = await makeVALRRequest(
+        const balanceData = await makeValrRequest(
             VALR_CONFIG.endpoints.balance,
             'GET',
             null,
@@ -9055,7 +9055,7 @@ router.post('/valr/triangular/test-connection', authenticatedRateLimit, authenti
 
         // Check if we have access to triangular pairs
         const requiredPairs = ['LINKZAR', 'LINKUSDT', 'USDTZAR', 'ETHZAR', 'ETHUSDT'];
-        const pairsData = await makeVALRRequest(
+        const pairsData = await makeValrRequest(
             VALR_CONFIG.endpoints.pairs,
             'GET',
             null,
@@ -9597,7 +9597,7 @@ async function executeTradeLeg(step, inputAmount, inputCurrency, apiKey, apiSecr
     // Real trade execution
     try {
         // Get fresh order book to check for slippage
-        const orderBook = await makeVALRRequest(
+        const orderBook = await makeValrRequest(
             `/v1/marketdata/${step.pair}/orderbook`,
             'GET',
             null,
@@ -9640,7 +9640,7 @@ async function executeTradeLeg(step, inputAmount, inputCurrency, apiKey, apiSecr
         console.log(`📝 Placing ${step.side} order:`, orderParams);
         
         // Place the order
-        const orderResponse = await makeVALRRequest(
+        const orderResponse = await makeValrRequest(
             '/v1/orders/market',
             'POST',
             orderParams,
@@ -9676,7 +9676,7 @@ async function executeTradeLeg(step, inputAmount, inputCurrency, apiKey, apiSecr
  */
 async function validateBalancesForExecution(opportunity, apiKey, apiSecret) {
     try {
-        const balances = await makeVALRRequest('/v1/account/balances', 'GET', null, apiKey, apiSecret);
+        const balances = await makeValrRequest('/v1/account/balances', 'GET', null, apiKey, apiSecret);
         
         // Check ZAR balance for starting amount
         const zarBalance = balances.find(b => b.currency === 'ZAR');
@@ -9721,7 +9721,7 @@ async function waitForOrderCompletion(orderId, apiKey, apiSecret, timeoutMs) {
     
     while (Date.now() - startTime < timeoutMs) {
         try {
-            const orderStatus = await makeVALRRequest(
+            const orderStatus = await makeValrRequest(
                 `/v1/orders/${orderId}`,
                 'GET',
                 null,
@@ -9771,7 +9771,7 @@ async function rollbackCompletedLegs(completedLegs, apiKey, apiSecret) {
                 type: 'MARKET'
             };
             
-            const rollbackOrder = await makeVALRRequest(
+            const rollbackOrder = await makeValrRequest(
                 '/v1/orders/market',
                 'POST',
                 reverseOrderParams,
@@ -10073,12 +10073,12 @@ router.post('/valr/triangular/scan', authenticatedRateLimit, authenticateUser, a
         const uniquePairs = [...new Set(triangularPaths.flatMap(p => p.pairs))];
         
         for (const pair of uniquePairs) {
-            const orderBook = await makeVALRRequest(
+            const orderBook = await makeValrRequest(
                 `/v1/marketdata/${pair}/orderbook`,
                 'GET',
-                null,
                 apiKey,
-                apiSecret
+                apiSecret,
+                null
             );
             orderBooks[pair] = orderBook;
         }
@@ -10358,7 +10358,7 @@ router.post('/valr/triangular/execute', authenticatedRateLimit, authenticateUser
         // Get current market prices for the path to create opportunity object
         const orderBooks = {};
         for (const pair of selectedPath.pairs) {
-            const orderBook = await makeVALRRequest(
+            const orderBook = await makeValrRequest(
                 `/v1/marketdata/${pair}/orderbook`,
                 'GET',
                 null,
@@ -10692,7 +10692,7 @@ async function startPriceUpdatesForConnection(connectionId) {
         // Fetch latest prices for all subscribed pairs
         for (const pair of subscribedPairs) {
             try {
-                const orderBook = await makeVALRRequest(
+                const orderBook = await makeValrRequest(
                     `/v1/marketdata/${pair}/orderbook`,
                     'GET',
                     null,
@@ -10763,7 +10763,7 @@ async function broadcastTriangularPriceUpdates() {
     const priceData = {};
     for (const pair of allSubscribedPairs) {
         try {
-            const orderBook = await makeVALRRequest(
+            const orderBook = await makeValrRequest(
                 `/v1/marketdata/${pair}/orderbook`,
                 'GET',
                 null,
