@@ -158,76 +158,24 @@
         <div id="triangularTab" class="tab-content active">
             <h3 style="color: #00d4ff; margin-bottom: 15px;">🔺 Triangular Arbitrage Management</h3>
 
-            <div style="margin-bottom: 20px; padding: 15px; background: rgba(0,255,136,0.1); border: 2px solid #00ff88; border-radius: 10px;">
-                <div style="font-size: 1.2rem; color: #00ff88; margin-bottom: 15px; font-weight: bold; text-align: center;">
-                    ✅ TRIANGULAR TAB IS NOW WORKING!
+            <!-- Statistics Grid for Triangular Arbitrage -->
+            <div class="stats-grid" style="margin-bottom: 30px;">
+                <div class="stat-card">
+                    <div class="stat-value" style="color: #00ff88;" id="triangularActiveExchanges">21</div>
+                    <div class="stat-label">Active Exchanges</div>
                 </div>
-                <div style="color: #b8c6db; text-align: center;">
-                    This page contains the VALR triangular arbitrage management interface with 32 production paths ready for trading.
+                <div class="stat-card">
+                    <div class="stat-value" style="color: #ffb347;" id="triangularTotalPaths">600+</div>
+                    <div class="stat-label">Total Paths</div>
                 </div>
-            </div>
-
-            <div style="margin-bottom: 20px; padding: 15px; background: rgba(0,212,255,0.1); border-radius: 10px;">
-                <h4 style="color: #00d4ff; margin-bottom: 10px;">📊 System Overview</h4>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
-                    <div style="padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; text-align: center;">
-                        <div style="font-size: 1.5rem; color: #00ff88; font-weight: bold;">1</div>
-                        <div style="font-size: 0.9rem; color: #b8c6db;">Active Exchanges</div>
-                    </div>
-                    <div style="padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; text-align: center;">
-                        <div style="font-size: 1.5rem; color: #ffb347; font-weight: bold;">32</div>
-                        <div style="font-size: 0.9rem; color: #b8c6db;">Total Paths</div>
-                    </div>
-                    <div style="padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; text-align: center;">
-                        <div style="font-size: 1.5rem; color: #ff6b6b; font-weight: bold;">0</div>
-                        <div style="font-size: 0.9rem; color: #b8c6db;">Profitable Today</div>
-                    </div>
-                    <div style="padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; text-align: center;">
-                        <div style="font-size: 1.5rem; color: #00d4ff; font-weight: bold;">R 0.00</div>
-                        <div style="font-size: 0.9rem; color: #b8c6db;">Today's Profit</div>
-                    </div>
+                <div class="stat-card">
+                    <div class="stat-value" style="color: #ff6b6b;" id="triangularProfitableToday">0</div>
+                    <div class="stat-label">Profitable Today</div>
                 </div>
-            </div>
-
-            <div style="margin-bottom: 20px; padding: 15px; background: rgba(255,107,107,0.1); border: 2px solid #ff6b6b; border-radius: 10px;">
-                <h4 style="color: #ff6b6b; margin-bottom: 10px;">💚 VALR Triangular Arbitrage</h4>
-                <div style="color: #b8c6db; margin-bottom: 15px;">
-                    VALR exchange integration with 32 production triangular arbitrage paths including:
+                <div class="stat-card">
+                    <div class="stat-value" style="color: #00d4ff;" id="triangularProfitToday">$0.00</div>
+                    <div class="stat-label">Today's Profit</div>
                 </div>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 10px;">
-                    <div style="padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px;">
-                        <div style="font-weight: bold; color: #00ff88;">High Volume Majors (4 paths)</div>
-                        <div style="font-size: 0.85rem; color: #b8c6db;">ZAR → LINK → USDT → ZAR (proven)</div>
-                    </div>
-                    <div style="padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px;">
-                        <div style="font-weight: bold; color: #ffb347;">Popular Altcoins (4 paths)</div>
-                        <div style="font-size: 0.85rem; color: #b8c6db;">ADA, DOT, MATIC, SOL paths</div>
-                    </div>
-                    <div style="padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px;">
-                        <div style="font-weight: bold; color: #00d4ff;">Layer 1 & Ecosystem (2 paths)</div>
-                        <div style="font-size: 0.85rem; color: #b8c6db;">AVAX, ATOM ecosystem tokens</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Statistics Grid for Triangular Arbitrage -->
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-value" style="color: #00ff88;" id="triangularActiveExchanges">1</div>
-                <div class="stat-label">Active Exchanges</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" style="color: #ffb347;" id="triangularTotalPaths">32</div>
-                <div class="stat-label">Total Paths</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" style="color: #ff6b6b;" id="triangularProfitableToday">0</div>
-                <div class="stat-label">Profitable Today</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" style="color: #00d4ff;" id="triangularProfitToday">R 0.00</div>
-                <div class="stat-label">Today's Profit</div>
             </div>
         </div>
 
