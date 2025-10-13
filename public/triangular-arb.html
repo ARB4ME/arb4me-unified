@@ -1193,8 +1193,17 @@
 
         <!-- Gate.io Exchange -->
         <div style="background: rgba(23,199,132,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 2px solid #17C784;">
-            <h3 style="color: #17C784; margin: 0;">🌿 GATE.IO Triangular Arbitrage</h3>
-            <p style="color: #888; margin: 10px 0 0 0; font-size: 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h3 style="color: #17C784; margin: 0;">🌿 GATE.IO Triangular Arbitrage</h3>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <span style="color: #b8c6db; font-size: 0.9rem;">Live Trading:</span>
+                    <div class="toggle-switch" id="gateioTriangularEnabled">
+                        <div class="toggle-knob"></div>
+                    </div>
+                    <span id="gateioTriangularStatus" style="color: #ff6b6b; font-weight: 600; font-size: 0.9rem;">OFF</span>
+                </div>
+            </div>
+            <p style="color: #888; margin: 0 0 10px 0; font-size: 14px;">
                 3,800+ trading pairs | USDT bridge | GT native token | HMAC-SHA512 authentication
             </p>
 
@@ -1285,8 +1294,17 @@
 
         <!-- Crypto.com Exchange -->
         <div style="background: rgba(0,45,116,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 2px solid #002D74;">
-            <h3 style="color: #0066FF; margin: 0;">💎 CRYPTO.COM Triangular Arbitrage</h3>
-            <p style="color: #888; margin: 10px 0 0 0; font-size: 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h3 style="color: #0066FF; margin: 0;">💎 CRYPTO.COM Triangular Arbitrage</h3>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <span style="color: #b8c6db; font-size: 0.9rem;">Live Trading:</span>
+                    <div class="toggle-switch" id="cryptocomTriangularEnabled">
+                        <div class="toggle-knob"></div>
+                    </div>
+                    <span id="cryptocomTriangularStatus" style="color: #ff6b6b; font-weight: 600; font-size: 0.9rem;">OFF</span>
+                </div>
+            </div>
+            <p style="color: #888; margin: 0 0 10px 0; font-size: 14px;">
                 250+ digital assets | USDT bridge | CRO native token | HMAC-SHA256 authentication
             </p>
 
@@ -1377,8 +1395,17 @@
 
         <!-- MEXC Exchange -->
         <div style="background: rgba(255,165,0,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 2px solid #FFA500;">
-            <h3 style="color: #FFA500; margin: 0;">🟠 MEXC Triangular Arbitrage</h3>
-            <p style="color: #888; margin: 10px 0 0 0; font-size: 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h3 style="color: #FFA500; margin: 0;">🟠 MEXC Triangular Arbitrage</h3>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <span style="color: #b8c6db; font-size: 0.9rem;">Live Trading:</span>
+                    <div class="toggle-switch" id="mexcTriangularEnabled">
+                        <div class="toggle-knob"></div>
+                    </div>
+                    <span id="mexcTriangularStatus" style="color: #ff6b6b; font-weight: 600; font-size: 0.9rem;">OFF</span>
+                </div>
+            </div>
+            <p style="color: #888; margin: 0 0 10px 0; font-size: 14px;">
                 2,908+ USDT pairs | MX native token | 0% trading fees | HMAC-SHA256 authentication
             </p>
 
@@ -1469,8 +1496,17 @@
 
         <!-- XT Exchange -->
         <div style="background: rgba(0,150,255,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 2px solid #0096FF;">
-            <h3 style="color: #0096FF; margin: 0;">🚀 XT.COM Triangular Arbitrage</h3>
-            <p style="color: #888; margin: 10px 0 0 0; font-size: 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h3 style="color: #0096FF; margin: 0;">🚀 XT.COM Triangular Arbitrage</h3>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <span style="color: #b8c6db; font-size: 0.9rem;">Live Trading:</span>
+                    <div class="toggle-switch" id="xtTriangularEnabled">
+                        <div class="toggle-knob"></div>
+                    </div>
+                    <span id="xtTriangularStatus" style="color: #ff6b6b; font-weight: 600; font-size: 0.9rem;">OFF</span>
+                </div>
+            </div>
+            <p style="color: #888; margin: 0 0 10px 0; font-size: 14px;">
                 1,000+ USDT pairs | XT native token | HMAC-SHA256 authentication | 7.8M users
             </p>
 
@@ -1561,8 +1597,17 @@
 
         <!-- AscendEX Exchange -->
         <div style="background: rgba(138,43,226,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 2px solid #8A2BE2;">
-            <h3 style="color: #8A2BE2; margin: 0;">💎 AscendEX Triangular Arbitrage</h3>
-            <p style="color: #888; margin: 10px 0 0 0; font-size: 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h3 style="color: #8A2BE2; margin: 0;">💎 AscendEX Triangular Arbitrage</h3>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <span style="color: #b8c6db; font-size: 0.9rem;">Live Trading:</span>
+                    <div class="toggle-switch" id="ascendexTriangularEnabled">
+                        <div class="toggle-knob"></div>
+                    </div>
+                    <span id="ascendexTriangularStatus" style="color: #ff6b6b; font-weight: 600; font-size: 0.9rem;">OFF</span>
+                </div>
+            </div>
+            <p style="color: #888; margin: 0 0 10px 0; font-size: 14px;">
                 450+ USDT pairs | ASD native token | HMAC-SHA256 | Account-group routing
             </p>
 
@@ -1653,8 +1698,17 @@
 
         <!-- BingX Exchange -->
         <div style="background: rgba(0,191,255,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 2px solid #00BFFF;">
-            <h3 style="color: #00BFFF; margin: 0;">🌊 BingX Triangular Arbitrage</h3>
-            <p style="color: #888; margin: 10px 0 0 0; font-size: 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h3 style="color: #00BFFF; margin: 0;">🌊 BingX Triangular Arbitrage</h3>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <span style="color: #b8c6db; font-size: 0.9rem;">Live Trading:</span>
+                    <div class="toggle-switch" id="bingxTriangularEnabled">
+                        <div class="toggle-knob"></div>
+                    </div>
+                    <span id="bingxTriangularStatus" style="color: #ff6b6b; font-weight: 600; font-size: 0.9rem;">OFF</span>
+                </div>
+            </div>
+            <p style="color: #888; margin: 0 0 10px 0; font-size: 14px;">
                 700+ USDT pairs | No native token | SOL high-liquidity bridge | 0.10% fees | HMAC-SHA256
             </p>
 
@@ -1745,8 +1799,17 @@
 
         <!-- Bitget Exchange -->
         <div style="background: rgba(138,43,226,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 2px solid #8A2BE2;">
-            <h3 style="color: #8A2BE2; margin: 0;">💜 Bitget Triangular Arbitrage</h3>
-            <p style="color: #888; margin: 10px 0 0 0; font-size: 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h3 style="color: #8A2BE2; margin: 0;">💜 Bitget Triangular Arbitrage</h3>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <span style="color: #b8c6db; font-size: 0.9rem;">Live Trading:</span>
+                    <div class="toggle-switch" id="bitgetTriangularEnabled">
+                        <div class="toggle-knob"></div>
+                    </div>
+                    <span id="bitgetTriangularStatus" style="color: #ff6b6b; font-weight: 600; font-size: 0.9rem;">OFF</span>
+                </div>
+            </div>
+            <p style="color: #888; margin: 0 0 10px 0; font-size: 14px;">
                 700+ USDT pairs | BGB native token | 0.10% fees | Passphrase required | HMAC-SHA256 Base64
             </p>
 
@@ -1837,8 +1900,17 @@
 
         <!-- Bitmart Exchange -->
         <div style="background: rgba(255,140,0,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 2px solid #FF8C00;">
-            <h3 style="color: #FF8C00; margin: 0;">🧡 Bitmart Triangular Arbitrage</h3>
-            <p style="color: #888; margin: 10px 0 0 0; font-size: 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h3 style="color: #FF8C00; margin: 0;">🧡 Bitmart Triangular Arbitrage</h3>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <span style="color: #b8c6db; font-size: 0.9rem;">Live Trading:</span>
+                    <div class="toggle-switch" id="bitmartTriangularEnabled">
+                        <div class="toggle-knob"></div>
+                    </div>
+                    <span id="bitmartTriangularStatus" style="color: #ff6b6b; font-weight: 600; font-size: 0.9rem;">OFF</span>
+                </div>
+            </div>
+            <p style="color: #888; margin: 0 0 10px 0; font-size: 14px;">
                 1,400+ cryptocurrencies | BMX native token | 0.25% fees (0.1% with BMX) | Memo required | HMAC-SHA256
             </p>
 
@@ -1929,8 +2001,17 @@
 
         <!-- Bitrue Exchange -->
         <div style="background: rgba(34,197,94,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 2px solid #22C55E;">
-            <h3 style="color: #22C55E; margin: 0;">💚 Bitrue Triangular Arbitrage</h3>
-            <p style="color: #888; margin: 10px 0 0 0; font-size: 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h3 style="color: #22C55E; margin: 0;">💚 Bitrue Triangular Arbitrage</h3>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <span style="color: #b8c6db; font-size: 0.9rem;">Live Trading:</span>
+                    <div class="toggle-switch" id="bitrueTriangularEnabled">
+                        <div class="toggle-knob"></div>
+                    </div>
+                    <span id="bitrueTriangularStatus" style="color: #ff6b6b; font-weight: 600; font-size: 0.9rem;">OFF</span>
+                </div>
+            </div>
+            <p style="color: #888; margin: 0 0 10px 0; font-size: 14px;">
                 700+ altcoins | 1,100+ pairs | BTR native token | 30% fee discount with BTR | Binance-compatible API
             </p>
 
@@ -2021,8 +2102,17 @@
 
         <!-- Gemini Exchange -->
         <div style="background: rgba(0,170,221,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 2px solid #00AADD;">
-            <h3 style="color: #00AADD; margin: 0;">💎 Gemini Triangular Arbitrage</h3>
-            <p style="color: #888; margin: 10px 0 0 0; font-size: 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h3 style="color: #00AADD; margin: 0;">💎 Gemini Triangular Arbitrage</h3>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <span style="color: #b8c6db; font-size: 0.9rem;">Live Trading:</span>
+                    <div class="toggle-switch" id="geminiTriangularEnabled">
+                        <div class="toggle-knob"></div>
+                    </div>
+                    <span id="geminiTriangularStatus" style="color: #ff6b6b; font-weight: 600; font-size: 0.9rem;">OFF</span>
+                </div>
+            </div>
+            <p style="color: #888; margin: 0 0 10px 0; font-size: 14px;">
                 Regulated US exchange | Limited USDT pairs | 10 paths available | HMAC-SHA384 | Winklevoss-founded | Secure custody
             </p>
 
@@ -2122,8 +2212,17 @@
 
         <!-- Coincatch Exchange (FINAL EXCHANGE - 21/21) -->
         <div style="background: rgba(255,87,34,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 2px solid #FF5722;">
-            <h3 style="color: #FF5722; margin: 0;">🎯 Coincatch Triangular Arbitrage</h3>
-            <p style="color: #888; margin: 10px 0 0 0; font-size: 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h3 style="color: #FF5722; margin: 0;">🎯 Coincatch Triangular Arbitrage</h3>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <span style="color: #b8c6db; font-size: 0.9rem;">Live Trading:</span>
+                    <div class="toggle-switch" id="coincatchTriangularEnabled">
+                        <div class="toggle-knob"></div>
+                    </div>
+                    <span id="coincatchTriangularStatus" style="color: #ff6b6b; font-weight: 600; font-size: 0.9rem;">OFF</span>
+                </div>
+            </div>
+            <p style="color: #888; margin: 0 0 10px 0; font-size: 14px;">
                 129 spot pairs | Limited cross pairs | 32 paths (mixed 3-leg & 4-leg) | HMAC-SHA256 + Passphrase | 0.1% fees
             </p>
 
