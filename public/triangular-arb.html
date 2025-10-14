@@ -2495,6 +2495,204 @@
 
         // Triangular Arbitrage JavaScript Functions
 
+        // ============================================================================
+        // VALR AUTOMATED WORKER
+        // ============================================================================
+
+        let valrWorkerInterval = null;
+        let valrWorkerStats = {
+            totalScans: 0,
+            totalOpportunities: 0,
+            totalTrades: 0,
+            successfulTrades: 0,
+            totalProfit: 0,
+            bestPath: null,
+            bestProfit: 0
+        };
+
+        async function startValrWorker() {
+            console.log('🚀 [VALR Worker] Starting automated trading...');
+
+            // Read settings from card
+            const apiKey = localStorage.getItem('valr_api');
+            const apiSecret = localStorage.getItem('valr_secret');
+            const profitThreshold = parseFloat(document.getElementById('valrProfitThreshold')?.value) || 0.8;
+            const maxTradeAmount = parseFloat(document.getElementById('valrMaxTrade')?.value) || 500;
+
+            // Get selected path sets
+            const selectedSets = [];
+            for (let i = 1; i <= 39; i++) {
+                const checkbox = document.getElementById(`valrSet${i}Enabled`);
+                if (checkbox && checkbox.checked) {
+                    selectedSets.push(`SET_${i}`);
+                }
+            }
+
+            console.log(`📊 [VALR Worker] Configuration:`, {
+                profitThreshold: `${profitThreshold}%`,
+                maxTradeAmount: `R ${maxTradeAmount}`,
+                selectedSets: selectedSets.length
+            });
+
+            // Worker loop function
+            async function scanAndExecute() {
+                try {
+                    valrWorkerStats.totalScans++;
+                    console.log(`\n🔍 [VALR Worker] Scan #${valrWorkerStats.totalScans} starting...`);
+
+                    // 1. Scan for opportunities
+                    const scanResponse = await fetch(`${API_BASE}/trading/valr/triangular/scan`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            apiKey,
+                            apiSecret,
+                            selectedSets,
+                            amount: maxTradeAmount
+                        })
+                    });
+
+                    const scanResult = await scanResponse.json();
+
+                    if (scanResult.success && scanResult.data && scanResult.data.opportunities) {
+                        const opportunities = scanResult.data.opportunities;
+                        console.log(`✅ [VALR Worker] Found ${opportunities.length} opportunities`);
+
+                        // 2. Filter by profit threshold
+                        const profitable = opportunities.filter(
+                            opp => opp.netProfitPercent >= profitThreshold
+                        );
+
+                        valrWorkerStats.totalOpportunities += profitable.length;
+                        console.log(`💰 [VALR Worker] ${profitable.length} opportunities above ${profitThreshold}% threshold`);
+
+                        // 3. Execute each profitable opportunity
+                        for (const opportunity of profitable) {
+                            console.log(`⚡ [VALR Worker] Executing: ${opportunity.pathId} (${opportunity.netProfitPercent.toFixed(2)}% profit)`);
+
+                            try {
+                                const execResponse = await fetch(`${API_BASE}/trading/valr/triangular/execute`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        apiKey,
+                                        apiSecret,
+                                        pathId: opportunity.pathId,
+                                        amount: maxTradeAmount,
+                                        simulate: false  // LIVE TRADING
+                                    })
+                                });
+
+                                const execResult = await execResponse.json();
+
+                                if (execResult.success && execResult.data) {
+                                    valrWorkerStats.totalTrades++;
+                                    valrWorkerStats.successfulTrades++;
+
+                                    const profit = execResult.data.execution?.netProfit || 0;
+                                    valrWorkerStats.totalProfit += profit;
+
+                                    // Track best path
+                                    if (profit > valrWorkerStats.bestProfit) {
+                                        valrWorkerStats.bestProfit = profit;
+                                        valrWorkerStats.bestPath = opportunity.pathId;
+                                    }
+
+                                    console.log(`✅ [VALR Worker] Trade executed successfully! Profit: R ${profit.toFixed(2)}`);
+
+                                    // Add to recent trades display
+                                    addValrTradeToHistory({
+                                        pathId: opportunity.pathId,
+                                        profit: profit,
+                                        profitPercent: opportunity.netProfitPercent,
+                                        timestamp: new Date(),
+                                        success: true
+                                    });
+                                } else {
+                                    console.error(`❌ [VALR Worker] Trade execution failed:`, execResult.message);
+                                    valrWorkerStats.totalTrades++;
+                                }
+                            } catch (execError) {
+                                console.error('❌ [VALR Worker] Execute error:', execError);
+                                valrWorkerStats.totalTrades++;
+                            }
+
+                            // Brief delay between executions (respect rate limits)
+                            await new Promise(resolve => setTimeout(resolve, 300));
+                        }
+                    } else {
+                        console.log(`ℹ️ [VALR Worker] No opportunities found in scan #${valrWorkerStats.totalScans}`);
+                    }
+
+                    // Update display
+                    updateValrStatsDisplay();
+
+                } catch (error) {
+                    console.error('❌ [VALR Worker] Scan error:', error);
+                }
+            }
+
+            // Run immediately, then every 20 seconds
+            await scanAndExecute();
+            valrWorkerInterval = setInterval(scanAndExecute, 20000);
+
+            console.log('✅ [VALR Worker] Automated trading started (20s scan interval)');
+        }
+
+        function stopValrWorker() {
+            if (valrWorkerInterval) {
+                clearInterval(valrWorkerInterval);
+                valrWorkerInterval = null;
+                console.log('⏹️ [VALR Worker] Automated trading stopped');
+                console.log('📊 [VALR Worker] Final stats:', valrWorkerStats);
+            }
+        }
+
+        function updateValrStatsDisplay() {
+            // Update Performance Stats
+            document.getElementById('valrTotalTrades').textContent = valrWorkerStats.totalTrades;
+            document.getElementById('valrSuccessfulTrades').textContent = valrWorkerStats.successfulTrades;
+
+            const successRate = valrWorkerStats.totalTrades > 0
+                ? ((valrWorkerStats.successfulTrades / valrWorkerStats.totalTrades) * 100).toFixed(1)
+                : '0';
+            document.getElementById('valrSuccessRate').textContent = `${successRate}%`;
+
+            document.getElementById('valrTotalProfit').textContent = `R ${valrWorkerStats.totalProfit.toFixed(2)}`;
+            document.getElementById('valrBestPath').textContent = valrWorkerStats.bestPath || '-';
+            document.getElementById('valrLastScan').textContent = new Date().toLocaleTimeString();
+        }
+
+        function addValrTradeToHistory(trade) {
+            const tradesDiv = document.getElementById('valrRecentTrades');
+
+            // Remove "no trades" message if it exists
+            if (tradesDiv.querySelector('[style*="text-align: center"]')) {
+                tradesDiv.innerHTML = '';
+            }
+
+            const tradeDiv = document.createElement('div');
+            tradeDiv.style.cssText = 'padding: 10px; margin-bottom: 8px; background: rgba(0,255,136,0.05); border-left: 3px solid #00ff88; border-radius: 5px; font-size: 0.85rem;';
+            tradeDiv.innerHTML = `
+                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                    <span style="color: #00ff88; font-weight: bold;">${trade.pathId}</span>
+                    <span style="color: ${trade.success ? '#00ff88' : '#ff6b6b'};">${trade.success ? '✅' : '❌'}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; color: #b8c6db;">
+                    <span>Profit: <strong style="color: #00ff88;">R ${trade.profit.toFixed(2)}</strong> (${trade.profitPercent.toFixed(2)}%)</span>
+                    <span>${trade.timestamp.toLocaleTimeString()}</span>
+                </div>
+            `;
+
+            // Add at the top
+            tradesDiv.insertBefore(tradeDiv, tradesDiv.firstChild);
+
+            // Keep only last 10 trades
+            while (tradesDiv.children.length > 10) {
+                tradesDiv.removeChild(tradesDiv.lastChild);
+            }
+        }
+
         // Toggle for VALR Triangular trading
         document.getElementById('valrTriangularEnabled').addEventListener('click', async function() {
             console.log('🔄 [VALR] Toggle clicked');
@@ -2514,7 +2712,7 @@
 
                 // Check if at least one path set is selected
                 let hasSelectedPaths = false;
-                for (let i = 1; i <= 5; i++) {
+                for (let i = 1; i <= 39; i++) {
                     const checkbox = document.getElementById(`valrSet${i}Enabled`);
                     if (checkbox && checkbox.checked) {
                         hasSelectedPaths = true;
@@ -2532,19 +2730,27 @@
                 status.textContent = 'ON';
                 status.style.color = '#00ff88';
                 localStorage.setItem('valrTriangularEnabled', 'true');
-                showNotification('✅ VALR live trading enabled! Manual scans will now use these settings.', 'success');
+
+                // Start automated worker
+                await startValrWorker();
+
+                showNotification('✅ VALR automated trading started! Worker scanning every 20 seconds.', 'success');
             } else {
                 console.log('❌ [VALR] Live trading disabled');
+
+                // Stop automated worker
+                stopValrWorker();
+
                 this.classList.remove('active');
                 status.textContent = 'OFF';
                 status.style.color = '#ff6b6b';
                 localStorage.setItem('valrTriangularEnabled', 'false');
-                showNotification('VALR live trading disabled', 'info');
+                showNotification('VALR automated trading stopped', 'info');
             }
         });
 
-        // Load saved toggle state
-        document.addEventListener('DOMContentLoaded', function() {
+        // Load saved toggle state and auto-start worker if enabled
+        document.addEventListener('DOMContentLoaded', async function() {
             const valrEnabled = localStorage.getItem('valrTriangularEnabled') === 'true';
             const toggle = document.getElementById('valrTriangularEnabled');
             const status = document.getElementById('valrTriangularStatus');
@@ -2553,6 +2759,15 @@
                 toggle.classList.add('active');
                 status.textContent = 'ON';
                 status.style.color = '#00ff88';
+
+                // Auto-start worker if toggle was left ON
+                const apiKey = localStorage.getItem('valr_api');
+                const apiSecret = localStorage.getItem('valr_secret');
+
+                if (apiKey && apiSecret) {
+                    console.log('🔄 [VALR] Auto-starting worker from saved state...');
+                    await startValrWorker();
+                }
             }
         });
 
