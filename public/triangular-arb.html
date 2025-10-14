@@ -4059,6 +4059,153 @@
             console.log('🔄 [LUNO Balance] Reset starting balance:', lunoBalanceTracking);
         }
 
+        // ========== LUNO ERROR HANDLING & ALERTS ==========
+
+        // Categorize error type
+        function categorizeLunoError(errorMessage) {
+            if (!errorMessage) return 'other';
+            const msg = errorMessage.toLowerCase();
+
+            if (msg.includes('insufficient') && (msg.includes('balance') || msg.includes('zar') || msg.includes('usdt') || msg.includes('xbt'))) {
+                return 'balance';
+            } else if (msg.includes('slippage')) {
+                return 'slippage';
+            } else if (msg.includes('execution') || msg.includes('order') || msg.includes('trade')) {
+                return 'execution';
+            } else {
+                return 'other';
+            }
+        }
+
+        // Handle execution errors
+        function handleLunoExecutionError(error, opportunity) {
+            const errorType = categorizeLunoError(error.message);
+
+            if (errorType === 'balance') {
+                // Parse balance info from error message
+                const match = error.message.match(/need [R$]([\d,.]+).*have [R$]([\d,.]+)/i);
+                const currency = error.message.includes('ZAR') ? 'ZAR' :
+                                error.message.includes('XBT') ? 'XBT' : 'USDT';
+
+                let required = 0, available = 0, shortfall = 0;
+                if (match) {
+                    required = parseFloat(match[1].replace(/,/g, ''));
+                    available = parseFloat(match[2].replace(/,/g, ''));
+                    shortfall = required - available;
+                }
+
+                addLunoAlert('balance', `Insufficient ${currency} Balance`, {
+                    path: opportunity.pathId,
+                    required: required,
+                    available: available,
+                    shortfall: shortfall,
+                    suggestion: `Top up ${currency} balance or reduce "Max Single Trade" amount`
+                });
+
+                showNotification(`⚠️ Insufficient ${currency} - Opportunity skipped`, 'warning', 8000);
+
+            } else if (errorType === 'slippage') {
+                addLunoAlert('slippage', 'Price Slippage Detected', {
+                    path: opportunity.pathId,
+                    error: error.message,
+                    suggestion: 'Market moved too quickly. Increase slippage tolerance or reduce trade size.'
+                });
+
+                showNotification('⚠️ Slippage - Opportunity skipped', 'warning', 6000);
+
+            } else if (errorType === 'execution') {
+                addLunoAlert('execution', 'Trade Execution Failed', {
+                    path: opportunity.pathId,
+                    error: error.message,
+                    suggestion: 'Check API permissions and exchange status'
+                });
+
+                showNotification('⚠️ Execution failed - Check alerts', 'error', 6000);
+
+            } else {
+                addLunoAlert('other', 'Unknown Error', {
+                    path: opportunity.pathId,
+                    error: error.message,
+                    suggestion: 'Check console logs for details'
+                });
+
+                showNotification('⚠️ Error occurred - Check alerts', 'error', 6000);
+            }
+        }
+
+        // Add alert to alerts tab
+        function addLunoAlert(type, title, details) {
+            const alert = {
+                type: type,
+                title: title,
+                details: details,
+                timestamp: new Date().toISOString()
+            };
+
+            lunoAlerts.unshift(alert); // Add to beginning
+
+            if (lunoAlerts.length > MAX_LUNO_ALERTS) {
+                lunoAlerts.pop(); // Remove oldest
+            }
+
+            updateLunoAlertsDisplay();
+            updateLunoAlertBadge();
+        }
+
+        // Update alerts display
+        function updateLunoAlertsDisplay() {
+            const alertsList = document.getElementById('lunoAlertsList');
+
+            if (lunoAlerts.length === 0) {
+                alertsList.innerHTML = '<div style="text-align: center; color: #888; padding: 20px;">No alerts yet. Alerts will appear here when errors occur.</div>';
+                return;
+            }
+
+            alertsList.innerHTML = lunoAlerts.map(alert => {
+                const icon = alert.type === 'balance' ? '💰' :
+                            alert.type === 'slippage' ? '📉' :
+                            alert.type === 'execution' ? '⚠️' : '❌';
+                const color = alert.type === 'balance' ? '#ffa500' :
+                             alert.type === 'slippage' ? '#ff6b6b' :
+                             alert.type === 'execution' ? '#ff4444' : '#888';
+                const time = new Date(alert.timestamp).toLocaleTimeString();
+
+                let detailsHtml = '';
+                if (alert.details) {
+                    if (alert.details.path) {
+                        detailsHtml += `<div style="color: #888; font-size: 0.85rem; margin-top: 5px;">Path: ${alert.details.path}</div>`;
+                    }
+                    if (alert.details.required) {
+                        detailsHtml += `<div style="color: #888; font-size: 0.85rem;">Required: R ${alert.details.required.toFixed(2)} | Available: R ${alert.details.available.toFixed(2)} | Shortfall: R ${alert.details.shortfall.toFixed(2)}</div>`;
+                    }
+                    if (alert.details.suggestion) {
+                        detailsHtml += `<div style="color: #00d4ff; font-size: 0.85rem; margin-top: 5px;">💡 ${alert.details.suggestion}</div>`;
+                    }
+                }
+
+                return `
+                    <div style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; margin-bottom: 10px; border-left: 3px solid ${color};">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <div style="color: ${color}; font-weight: bold;">${icon} ${alert.title}</div>
+                            <div style="color: #888; font-size: 0.85rem;">${time}</div>
+                        </div>
+                        ${detailsHtml}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Update alert badge counter
+        function updateLunoAlertBadge() {
+            const badge = document.getElementById('lunoAlertBadge');
+            if (lunoAlerts.length > 0) {
+                badge.textContent = lunoAlerts.length;
+                badge.style.display = 'inline';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+
         // Test Luno Triangular Connection
         async function testLunoTriangularConnection() {
             console.log('🔍 [LUNO] Testing connection...');
