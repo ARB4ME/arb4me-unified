@@ -2588,21 +2588,32 @@
         // ========== BALANCE TRACKING ==========
         async function initializeValrBalance(apiKey, apiSecret) {
             try {
-                // Fetch current balance from VALR
-                const response = await fetch(`${API_BASE}/trading/valr/triangular/test-connection`, {
+                // Fetch current balance from VALR (same endpoint as Strategy API Setup page)
+                const response = await fetch(`${API_BASE}/trading/valr/balance`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ apiKey, apiSecret })
                 });
 
                 const result = await response.json();
+                console.log('💰 [VALR Balance] API Response:', result);
 
-                if (result.success && result.data && result.data.balances) {
-                    const zarBalance = result.data.balances.find(b => b.currency === 'ZAR');
-                    const usdtBalance = result.data.balances.find(b => b.currency === 'USDT');
+                // Handle different response formats
+                let balances = null;
+                if (result.success && result.data) {
+                    balances = result.data.balances || result.data;
+                } else if (result.success && result.balances) {
+                    balances = result.balances;
+                } else if (result.balances) {
+                    balances = result.balances;
+                }
 
-                    const currentZAR = zarBalance ? parseFloat(zarBalance.available) : 0;
-                    const currentUSDT = usdtBalance ? parseFloat(usdtBalance.available) : 0;
+                console.log('💰 [VALR Balance] Parsed balances:', balances);
+
+                if (balances) {
+                    // Balances is an object like { ZAR: "5000.50", USDT: "123.45", ... }
+                    const currentZAR = balances.ZAR ? parseFloat(balances.ZAR) : 0;
+                    const currentUSDT = balances.USDT ? parseFloat(balances.USDT) : 0;
 
                     // Check if starting balance is already set (from localStorage)
                     const stored = localStorage.getItem('valrStartingBalance');
@@ -2633,7 +2644,7 @@
 
         async function updateValrBalance(apiKey, apiSecret) {
             try {
-                const response = await fetch(`${API_BASE}/trading/valr/triangular/test-connection`, {
+                const response = await fetch(`${API_BASE}/trading/valr/balance`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ apiKey, apiSecret })
@@ -2641,12 +2652,19 @@
 
                 const result = await response.json();
 
-                if (result.success && result.data && result.data.balances) {
-                    const zarBalance = result.data.balances.find(b => b.currency === 'ZAR');
-                    const usdtBalance = result.data.balances.find(b => b.currency === 'USDT');
+                // Handle different response formats
+                let balances = null;
+                if (result.success && result.data) {
+                    balances = result.data.balances || result.data;
+                } else if (result.success && result.balances) {
+                    balances = result.balances;
+                } else if (result.balances) {
+                    balances = result.balances;
+                }
 
-                    valrBalanceTracking.currentZAR = zarBalance ? parseFloat(zarBalance.available) : 0;
-                    valrBalanceTracking.currentUSDT = usdtBalance ? parseFloat(usdtBalance.available) : 0;
+                if (balances) {
+                    valrBalanceTracking.currentZAR = balances.ZAR ? parseFloat(balances.ZAR) : 0;
+                    valrBalanceTracking.currentUSDT = balances.USDT ? parseFloat(balances.USDT) : 0;
 
                     updateValrBalanceDisplay();
                 }
@@ -2876,8 +2894,8 @@
             console.log('🚀 [VALR Worker] Starting automated trading (sequential mode)...');
 
             // Read settings from card
-            const apiKey = localStorage.getItem('valr_api');
-            const apiSecret = localStorage.getItem('valr_secret');
+            const apiKey = localStorage.getItem('valr_triangular_api');
+            const apiSecret = localStorage.getItem('valr_triangular_secret');
             const profitThreshold = parseFloat(document.getElementById('valrProfitThreshold')?.value) || 0.8;
             const maxTradeAmount = parseFloat(document.getElementById('valrMaxTrade')?.value) || 500;
 
@@ -3135,8 +3153,8 @@
 
             if (willBeActive) {
                 // Check if credentials are configured before enabling
-                const apiKey = localStorage.getItem('valr_api') || '';
-                const apiSecret = localStorage.getItem('valr_secret') || '';
+                const apiKey = localStorage.getItem('valr_triangular_api') || '';
+                const apiSecret = localStorage.getItem('valr_triangular_secret') || '';
 
                 if (!apiKey || !apiSecret) {
                     showNotification('⚠️ Please configure VALR API credentials in Strategic API Configuration first!', 'warning');
@@ -3189,8 +3207,8 @@
             const status = document.getElementById('valrTriangularStatus');
 
             // Initialize balance display if credentials exist (regardless of worker state)
-            const apiKey = localStorage.getItem('valr_api');
-            const apiSecret = localStorage.getItem('valr_secret');
+            const apiKey = localStorage.getItem('valr_triangular_api');
+            const apiSecret = localStorage.getItem('valr_triangular_secret');
 
             if (apiKey && apiSecret) {
                 console.log('💰 [VALR Balance] Fetching balance on page load...');
@@ -3216,8 +3234,8 @@
 
         // Test VALR Connection
         async function testValrTriangularConnection() {
-            const apiKey = localStorage.getItem('valr_api') || '';
-            const apiSecret = localStorage.getItem('valr_secret') || '';
+            const apiKey = localStorage.getItem('valr_triangular_api') || '';
+            const apiSecret = localStorage.getItem('valr_triangular_secret') || '';
 
             if (!apiKey || !apiSecret) {
                 showNotification('Please set up VALR API credentials in Settings first', 'error');
@@ -3261,8 +3279,8 @@
 
         // Scan for VALR Opportunities
         async function scanValrTriangularPaths() {
-            const apiKey = localStorage.getItem('valr_api') || '';
-            const apiSecret = localStorage.getItem('valr_secret') || '';
+            const apiKey = localStorage.getItem('valr_triangular_api') || '';
+            const apiSecret = localStorage.getItem('valr_triangular_secret') || '';
 
             if (!apiKey || !apiSecret) {
                 showNotification('Please set up VALR API credentials and test connection first', 'error');
@@ -3377,8 +3395,8 @@
 
         // Execute VALR Triangular Trade
         async function executeValrTriangular(opportunity) {
-            const apiKey = localStorage.getItem('valr_api') || '';
-            const apiSecret = localStorage.getItem('valr_secret') || '';
+            const apiKey = localStorage.getItem('valr_triangular_api') || '';
+            const apiSecret = localStorage.getItem('valr_triangular_secret') || '';
             const maxInvestment = parseFloat(document.getElementById('valrMaxTrade')?.value) || 1000;
 
             if (!confirm(`Execute triangular arbitrage on VALR?\n\nPath: ${opportunity.pathId}\nExpected Profit: ${opportunity.profitPercentage.toFixed(2)}%\nInvestment: $${maxInvestment}`)) {
