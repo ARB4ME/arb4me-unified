@@ -273,7 +273,6 @@ router.post('/luno/triangular/test-connection', asyncHandler(async (req, res) =>
         const { apiKey, apiSecret } = req.body;
 
         systemLogger.trading('Luno triangular connection test initiated', {
-            userId: req.user.id,
             timestamp: new Date().toISOString()
         });
 
@@ -317,7 +316,6 @@ router.post('/luno/triangular/test-connection', asyncHandler(async (req, res) =>
         const triangularPairsAvailable = requiredPairs.every(pair => availablePairs.includes(pair));
 
         systemLogger.trading('Luno triangular connection test successful', {
-            userId: req.user.id,
             balanceCount: balanceData.balance?.length || 0,
             triangularPairsAvailable
         });
@@ -335,7 +333,6 @@ router.post('/luno/triangular/test-connection', asyncHandler(async (req, res) =>
         });
     } catch (error) {
         systemLogger.error('Luno triangular connection test failed', {
-            userId: req.user.id,
             error: error.message
         });
         throw error;
@@ -350,7 +347,6 @@ router.post('/luno/triangular/scan', asyncHandler(async (req, res) => {
         const { paths = 'all', apiKey, apiSecret } = req.body;
 
         systemLogger.trading('Luno triangular scan initiated', {
-            userId: req.user.id,
             paths,
             timestamp: new Date().toISOString()
         });
@@ -423,7 +419,6 @@ router.post('/luno/triangular/scan', asyncHandler(async (req, res) => {
 
         // Return basic scan structure (full implementation would fetch order books and calculate profits)
         systemLogger.trading('Luno triangular scan completed (placeholder)', {
-            userId: req.user.id,
             pathSetsCount: Object.keys(allPathSets).length
         });
 
@@ -440,7 +435,6 @@ router.post('/luno/triangular/scan', asyncHandler(async (req, res) => {
 
     } catch (error) {
         systemLogger.error('Luno triangular scan failed', {
-            userId: req.user.id,
             error: error.message
         });
         throw error;
@@ -519,7 +513,6 @@ router.post('/luno/triangular/execute', asyncHandler(async (req, res) => {
         }
 
         systemLogger.trading('Luno triangular execution initiated', {
-            userId: req.user.id,
             pathId,
             amount,
             simulate,
@@ -541,7 +534,6 @@ router.post('/luno/triangular/execute', asyncHandler(async (req, res) => {
 
     } catch (error) {
         systemLogger.error('Luno triangular execution failed', {
-            userId: req.user.id,
             error: error.message
         });
         throw error;
