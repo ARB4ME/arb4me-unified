@@ -3039,117 +3039,171 @@
             }
         }
 
-        // View Path Details (placeholder for future functionality)
+        // View Path Details - Create custom modal to show all paths
         function viewValrPathDetails() {
-            const pathDetails = `
-📋 VALR Triangular Arbitrage Paths (48 Total)
+            // Create modal overlay
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.8);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 10000;
+                backdrop-filter: blur(5px);
+            `;
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 1: ETH Focus (4 paths) ✅ DEFAULT
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. ZAR → ETH → USDT → ZAR
-2. ZAR → USDT → ETH → ZAR
-3. USDT → ETH → ZAR → USDT
-4. USDT → ZAR → ETH → USDT
+            // Create modal content
+            const modalContent = document.createElement('div');
+            modalContent.style.cssText = `
+                background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+                border: 2px solid #00ff88;
+                border-radius: 15px;
+                padding: 30px;
+                max-width: 800px;
+                max-height: 85vh;
+                overflow-y: auto;
+                box-shadow: 0 10px 50px rgba(0, 255, 136, 0.3);
+                color: #fff;
+                font-family: 'Courier New', monospace;
+            `;
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 2: XRP Focus (4 paths) ✅ DEFAULT
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. ZAR → XRP → USDT → ZAR
-2. ZAR → USDT → XRP → ZAR
-3. USDT → XRP → ZAR → USDT
-4. USDT → ZAR → XRP → USDT
+            modalContent.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #00ff88; padding-bottom: 15px;">
+                    <h2 style="margin: 0; color: #00ff88; font-size: 24px;">📋 VALR Triangular Arbitrage Paths</h2>
+                    <button id="closeModal" style="background: #ff4444; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 18px;">✕</button>
+                </div>
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 3: SOL Focus (4 paths)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. ZAR → SOL → USDT → ZAR
-2. ZAR → USDT → SOL → ZAR
-3. USDT → SOL → ZAR → USDT
-4. USDT → ZAR → SOL → USDT
+                <div style="line-height: 1.8; font-size: 14px;">
+                    <div style="background: rgba(0, 255, 136, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <strong style="color: #00ff88;">📊 SET 1: ETH Focus (4 paths) ✅ DEFAULT</strong><br>
+                        1. ZAR → ETH → USDT → ZAR<br>
+                        2. ZAR → USDT → ETH → ZAR<br>
+                        3. USDT → ETH → ZAR → USDT<br>
+                        4. USDT → ZAR → ETH → USDT
+                    </div>
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 4: BNB Focus (4 paths)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. ZAR → BNB → USDT → ZAR
-2. ZAR → USDT → BNB → ZAR
-3. USDT → BNB → ZAR → USDT
-4. USDT → ZAR → BNB → USDT
+                    <div style="background: rgba(0, 255, 136, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <strong style="color: #00ff88;">📊 SET 2: XRP Focus (4 paths) ✅ DEFAULT</strong><br>
+                        1. ZAR → XRP → USDT → ZAR<br>
+                        2. ZAR → USDT → XRP → ZAR<br>
+                        3. USDT → XRP → ZAR → USDT<br>
+                        4. USDT → ZAR → XRP → USDT
+                    </div>
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 5: SHIB Focus (4 paths)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. ZAR → SHIB → USDT → ZAR
-2. ZAR → USDT → SHIB → ZAR
-3. USDT → SHIB → ZAR → USDT
-4. USDT → ZAR → SHIB → USDT
+                    <div style="background: rgba(0, 255, 136, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <strong style="color: #00ff88;">📊 SET 3: SOL Focus (4 paths)</strong><br>
+                        1. ZAR → SOL → USDT → ZAR<br>
+                        2. ZAR → USDT → SOL → ZAR<br>
+                        3. USDT → SOL → ZAR → USDT<br>
+                        4. USDT → ZAR → SOL → USDT
+                    </div>
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 6: AVAX Focus (4 paths)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. ZAR → AVAX → USDT → ZAR
-2. ZAR → USDT → AVAX → ZAR
-3. USDT → AVAX → ZAR → USDT
-4. USDT → ZAR → AVAX → USDT
+                    <div style="background: rgba(0, 255, 136, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <strong style="color: #00ff88;">📊 SET 4: BNB Focus (4 paths)</strong><br>
+                        1. ZAR → BNB → USDT → ZAR<br>
+                        2. ZAR → USDT → BNB → ZAR<br>
+                        3. USDT → BNB → ZAR → USDT<br>
+                        4. USDT → ZAR → BNB → USDT
+                    </div>
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 7: DOGE Focus (4 paths)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. ZAR → DOGE → USDT → ZAR
-2. ZAR → USDT → DOGE → ZAR
-3. USDT → DOGE → ZAR → USDT
-4. USDT → ZAR → DOGE → USDT
+                    <div style="background: rgba(0, 255, 136, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <strong style="color: #00ff88;">📊 SET 5: SHIB Focus (4 paths)</strong><br>
+                        1. ZAR → SHIB → USDT → ZAR<br>
+                        2. ZAR → USDT → SHIB → ZAR<br>
+                        3. USDT → SHIB → ZAR → USDT<br>
+                        4. USDT → ZAR → SHIB → USDT
+                    </div>
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 8: TRX Focus (4 paths)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. ZAR → TRX → USDT → ZAR
-2. ZAR → USDT → TRX → ZAR
-3. USDT → TRX → ZAR → USDT
-4. USDT → ZAR → TRX → USDT
+                    <div style="background: rgba(0, 255, 136, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <strong style="color: #00ff88;">📊 SET 6: AVAX Focus (4 paths)</strong><br>
+                        1. ZAR → AVAX → USDT → ZAR<br>
+                        2. ZAR → USDT → AVAX → ZAR<br>
+                        3. USDT → AVAX → ZAR → USDT<br>
+                        4. USDT → ZAR → AVAX → USDT
+                    </div>
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 9: LTC Focus (4 paths)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. ZAR → LTC → USDT → ZAR
-2. ZAR → USDT → LTC → ZAR
-3. USDT → LTC → ZAR → USDT
-4. USDT → ZAR → LTC → USDT
+                    <div style="background: rgba(0, 255, 136, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <strong style="color: #00ff88;">📊 SET 7: DOGE Focus (4 paths)</strong><br>
+                        1. ZAR → DOGE → USDT → ZAR<br>
+                        2. ZAR → USDT → DOGE → ZAR<br>
+                        3. USDT → DOGE → ZAR → USDT<br>
+                        4. USDT → ZAR → DOGE → USDT
+                    </div>
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 10: RLUSD Focus (4 paths)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. ZAR → RLUSD → USDT → ZAR
-2. ZAR → USDT → RLUSD → ZAR
-3. USDT → RLUSD → ZAR → USDT
-4. USDT → ZAR → RLUSD → USDT
+                    <div style="background: rgba(0, 255, 136, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <strong style="color: #00ff88;">📊 SET 8: TRX Focus (4 paths)</strong><br>
+                        1. ZAR → TRX → USDT → ZAR<br>
+                        2. ZAR → USDT → TRX → ZAR<br>
+                        3. USDT → TRX → ZAR → USDT<br>
+                        4. USDT → ZAR → TRX → USDT
+                    </div>
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 11: LINK Focus (4 paths)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. ZAR → LINK → USDT → ZAR
-2. ZAR → USDT → LINK → ZAR
-3. USDT → LINK → ZAR → USDT
-4. USDT → ZAR → LINK → USDT
+                    <div style="background: rgba(0, 255, 136, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <strong style="color: #00ff88;">📊 SET 9: LTC Focus (4 paths)</strong><br>
+                        1. ZAR → LTC → USDT → ZAR<br>
+                        2. ZAR → USDT → LTC → ZAR<br>
+                        3. USDT → LTC → ZAR → USDT<br>
+                        4. USDT → ZAR → LTC → USDT
+                    </div>
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 12: XLM Focus (4 paths)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. ZAR → XLM → USDT → ZAR
-2. ZAR → USDT → XLM → ZAR
-3. USDT → XLM → ZAR → USDT
-4. USDT → ZAR → XLM → USDT
+                    <div style="background: rgba(0, 255, 136, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <strong style="color: #00ff88;">📊 SET 10: RLUSD Focus (4 paths)</strong><br>
+                        1. ZAR → RLUSD → USDT → ZAR<br>
+                        2. ZAR → USDT → RLUSD → ZAR<br>
+                        3. USDT → RLUSD → ZAR → USDT<br>
+                        4. USDT → ZAR → RLUSD → USDT
+                    </div>
 
-💡 TOTAL: 48 paths (12 sets × 4 paths each)
-🌉 BRIDGE: USDT (Tether)
-🔄 PATTERN: All paths use ZAR ↔ CRYPTO ↔ USDT triangular arbitrage
-🇿🇦 REGIONAL: Optimized for South African market (VALR exchange)
-✅ VERIFIED: Only coins with both ZAR and USDT pairs on VALR
-🔐 AUTH: API Key + Secret
-            `.trim();
+                    <div style="background: rgba(0, 255, 136, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <strong style="color: #00ff88;">📊 SET 11: LINK Focus (4 paths)</strong><br>
+                        1. ZAR → LINK → USDT → ZAR<br>
+                        2. ZAR → USDT → LINK → ZAR<br>
+                        3. USDT → LINK → ZAR → USDT<br>
+                        4. USDT → ZAR → LINK → USDT
+                    </div>
 
-            alert(pathDetails);
-            console.log(pathDetails);
+                    <div style="background: rgba(0, 255, 136, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <strong style="color: #00ff88;">📊 SET 12: XLM Focus (4 paths)</strong><br>
+                        1. ZAR → XLM → USDT → ZAR<br>
+                        2. ZAR → USDT → XLM → ZAR<br>
+                        3. USDT → XLM → ZAR → USDT<br>
+                        4. USDT → ZAR → XLM → USDT
+                    </div>
+
+                    <div style="background: rgba(0, 136, 255, 0.1); padding: 20px; border-radius: 8px; border-left: 4px solid #0088ff; margin-top: 20px;">
+                        <strong style="color: #0088ff;">📌 Summary</strong><br>
+                        💡 TOTAL: 48 paths (12 sets × 4 paths each)<br>
+                        🌉 BRIDGE: USDT (Tether)<br>
+                        🔄 PATTERN: All paths use ZAR ↔ CRYPTO ↔ USDT triangular arbitrage<br>
+                        🇿🇦 REGIONAL: Optimized for South African market (VALR exchange)<br>
+                        ✅ VERIFIED: Only coins with both ZAR and USDT pairs on VALR<br>
+                        🔐 AUTH: API Key + Secret
+                    </div>
+                </div>
+            `;
+
+            modal.appendChild(modalContent);
+            document.body.appendChild(modal);
+
+            // Close modal on click outside or close button
+            const closeBtn = document.getElementById('closeModal');
+            closeBtn.onclick = () => modal.remove();
+            modal.onclick = (e) => {
+                if (e.target === modal) modal.remove();
+            };
+
+            // Close on ESC key
+            document.addEventListener('keydown', function escClose(e) {
+                if (e.key === 'Escape') {
+                    modal.remove();
+                    document.removeEventListener('keydown', escClose);
+                }
+            });
         }
 
         // Clear VALR History
