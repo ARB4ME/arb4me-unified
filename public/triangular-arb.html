@@ -3188,15 +3188,21 @@
             const toggle = document.getElementById('valrTriangularEnabled');
             const status = document.getElementById('valrTriangularStatus');
 
+            // Initialize balance display if credentials exist (regardless of worker state)
+            const apiKey = localStorage.getItem('valr_api');
+            const apiSecret = localStorage.getItem('valr_secret');
+
+            if (apiKey && apiSecret) {
+                console.log('💰 [VALR Balance] Fetching balance on page load...');
+                await initializeValrBalance(apiKey, apiSecret);
+            }
+
             if (valrEnabled) {
                 toggle.classList.add('active');
                 status.textContent = 'ON';
                 status.style.color = '#00ff88';
 
                 // Auto-start worker if toggle was left ON
-                const apiKey = localStorage.getItem('valr_api');
-                const apiSecret = localStorage.getItem('valr_secret');
-
                 if (apiKey && apiSecret) {
                     console.log('🔄 [VALR] Auto-starting worker from saved state...');
                     await startValrWorker();
