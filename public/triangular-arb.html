@@ -2511,7 +2511,7 @@
         };
 
         async function startValrWorker() {
-            console.log('🚀 [VALR Worker] Starting automated trading...');
+            console.log('🚀 [VALR Worker] Starting automated trading (sequential mode)...');
 
             // Read settings from card
             const apiKey = localStorage.getItem('valr_api');
@@ -2528,26 +2528,37 @@
                 }
             }
 
+            if (selectedSets.length === 0) {
+                console.error('❌ [VALR Worker] No sets selected!');
+                return;
+            }
+
             console.log(`📊 [VALR Worker] Configuration:`, {
                 profitThreshold: `${profitThreshold}%`,
                 maxTradeAmount: `R ${maxTradeAmount}`,
-                selectedSets: selectedSets.length
+                selectedSets: selectedSets.length,
+                scanMode: 'Sequential (one set at a time)'
             });
 
-            // Worker loop function
-            async function scanAndExecute() {
-                try {
-                    valrWorkerStats.totalScans++;
-                    console.log(`\n🔍 [VALR Worker] Scan #${valrWorkerStats.totalScans} starting...`);
+            let currentSetIndex = 0;
 
-                    // 1. Scan for opportunities
+            // Sequential scan-and-execute function (one set per call)
+            async function scanAndExecuteSequential() {
+                try {
+                    // Get current set to scan
+                    const currentSet = selectedSets[currentSetIndex];
+                    valrWorkerStats.totalScans++;
+
+                    console.log(`\n🔍 [VALR Worker] Scan #${valrWorkerStats.totalScans}: ${currentSet} (${currentSetIndex + 1}/${selectedSets.length})`);
+
+                    // 1. Scan ONE set only
                     const scanResponse = await fetch(`${API_BASE}/trading/valr/triangular/scan`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             apiKey,
                             apiSecret,
-                            selectedSets,
+                            selectedSets: [currentSet],  // Only scan this one set
                             amount: maxTradeAmount
                         })
                     });
@@ -2556,7 +2567,7 @@
 
                     if (scanResult.success && scanResult.data && scanResult.data.opportunities) {
                         const opportunities = scanResult.data.opportunities;
-                        console.log(`✅ [VALR Worker] Found ${opportunities.length} opportunities`);
+                        console.log(`✅ [VALR Worker] ${currentSet}: Found ${opportunities.length} opportunities`);
 
                         // 2. Filter by profit threshold
                         const profitable = opportunities.filter(
@@ -2564,79 +2575,104 @@
                         );
 
                         valrWorkerStats.totalOpportunities += profitable.length;
-                        console.log(`💰 [VALR Worker] ${profitable.length} opportunities above ${profitThreshold}% threshold`);
 
-                        // 3. Execute each profitable opportunity
-                        for (const opportunity of profitable) {
-                            console.log(`⚡ [VALR Worker] Executing: ${opportunity.pathId} (${opportunity.netProfitPercent.toFixed(2)}% profit)`);
+                        if (profitable.length > 0) {
+                            console.log(`💰 [VALR Worker] ${currentSet}: ${profitable.length} opportunities above ${profitThreshold}% threshold`);
 
-                            try {
-                                const execResponse = await fetch(`${API_BASE}/trading/valr/triangular/execute`, {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({
-                                        apiKey,
-                                        apiSecret,
-                                        pathId: opportunity.pathId,
-                                        amount: maxTradeAmount,
-                                        simulate: false  // LIVE TRADING
-                                    })
-                                });
+                            // 3. Execute each profitable opportunity immediately
+                            for (const opportunity of profitable) {
+                                console.log(`⚡ [VALR Worker] Executing: ${opportunity.pathId} (${opportunity.netProfitPercent.toFixed(2)}% profit)`);
 
-                                const execResult = await execResponse.json();
-
-                                if (execResult.success && execResult.data) {
-                                    valrWorkerStats.totalTrades++;
-                                    valrWorkerStats.successfulTrades++;
-
-                                    const profit = execResult.data.execution?.netProfit || 0;
-                                    valrWorkerStats.totalProfit += profit;
-
-                                    // Track best path
-                                    if (profit > valrWorkerStats.bestProfit) {
-                                        valrWorkerStats.bestProfit = profit;
-                                        valrWorkerStats.bestPath = opportunity.pathId;
-                                    }
-
-                                    console.log(`✅ [VALR Worker] Trade executed successfully! Profit: R ${profit.toFixed(2)}`);
-
-                                    // Add to recent trades display
-                                    addValrTradeToHistory({
-                                        pathId: opportunity.pathId,
-                                        profit: profit,
-                                        profitPercent: opportunity.netProfitPercent,
-                                        timestamp: new Date(),
-                                        success: true
+                                try {
+                                    const execResponse = await fetch(`${API_BASE}/trading/valr/triangular/execute`, {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({
+                                            apiKey,
+                                            apiSecret,
+                                            pathId: opportunity.pathId,
+                                            amount: maxTradeAmount,
+                                            simulate: false  // LIVE TRADING
+                                        })
                                     });
-                                } else {
-                                    console.error(`❌ [VALR Worker] Trade execution failed:`, execResult.message);
+
+                                    const execResult = await execResponse.json();
+
+                                    if (execResult.success && execResult.data) {
+                                        valrWorkerStats.totalTrades++;
+                                        valrWorkerStats.successfulTrades++;
+
+                                        const profit = execResult.data.execution?.netProfit || 0;
+                                        valrWorkerStats.totalProfit += profit;
+
+                                        // Track best path
+                                        if (profit > valrWorkerStats.bestProfit) {
+                                            valrWorkerStats.bestProfit = profit;
+                                            valrWorkerStats.bestPath = opportunity.pathId;
+                                        }
+
+                                        console.log(`✅ [VALR Worker] Trade executed successfully! Profit: R ${profit.toFixed(2)}`);
+
+                                        // Add to recent trades display
+                                        addValrTradeToHistory({
+                                            pathId: opportunity.pathId,
+                                            profit: profit,
+                                            profitPercent: opportunity.netProfitPercent,
+                                            timestamp: new Date(),
+                                            success: true
+                                        });
+                                    } else {
+                                        // Execution failed (backend already rolled back if needed)
+                                        console.error(`❌ [VALR Worker] Trade execution failed:`, execResult.message);
+                                        valrWorkerStats.totalTrades++;
+
+                                        // Log failed trade
+                                        addValrTradeToHistory({
+                                            pathId: opportunity.pathId,
+                                            profit: 0,
+                                            profitPercent: 0,
+                                            timestamp: new Date(),
+                                            success: false,
+                                            error: execResult.message
+                                        });
+                                    }
+                                } catch (execError) {
+                                    console.error('❌ [VALR Worker] Execute error:', execError);
                                     valrWorkerStats.totalTrades++;
                                 }
-                            } catch (execError) {
-                                console.error('❌ [VALR Worker] Execute error:', execError);
-                                valrWorkerStats.totalTrades++;
-                            }
 
-                            // Brief delay between executions (respect rate limits)
-                            await new Promise(resolve => setTimeout(resolve, 300));
+                                // Brief delay between executions (respect rate limits)
+                                await new Promise(resolve => setTimeout(resolve, 300));
+                            }
+                        } else {
+                            console.log(`ℹ️ [VALR Worker] ${currentSet}: No profitable opportunities (${opportunities.length} below threshold)`);
                         }
                     } else {
-                        console.log(`ℹ️ [VALR Worker] No opportunities found in scan #${valrWorkerStats.totalScans}`);
+                        console.log(`ℹ️ [VALR Worker] ${currentSet}: No opportunities found`);
                     }
 
                     // Update display
                     updateValrStatsDisplay();
 
+                    // Move to next set (rotate through all selected sets)
+                    currentSetIndex = (currentSetIndex + 1) % selectedSets.length;
+
+                    if (currentSetIndex === 0) {
+                        console.log(`🔄 [VALR Worker] Completed full cycle of ${selectedSets.length} sets. Restarting...`);
+                    }
+
                 } catch (error) {
                     console.error('❌ [VALR Worker] Scan error:', error);
+                    // Still move to next set even on error
+                    currentSetIndex = (currentSetIndex + 1) % selectedSets.length;
                 }
             }
 
-            // Run immediately, then every 20 seconds
-            await scanAndExecute();
-            valrWorkerInterval = setInterval(scanAndExecute, 20000);
+            // Run immediately, then every 8 seconds
+            await scanAndExecuteSequential();
+            valrWorkerInterval = setInterval(scanAndExecuteSequential, 8000);
 
-            console.log('✅ [VALR Worker] Automated trading started (20s scan interval)');
+            console.log('✅ [VALR Worker] Automated trading started (8s between sets, sequential scanning)');
         }
 
         function stopValrWorker() {
@@ -2671,18 +2707,38 @@
                 tradesDiv.innerHTML = '';
             }
 
+            const borderColor = trade.success ? '#00ff88' : '#ff6b6b';
+            const bgColor = trade.success ? 'rgba(0,255,136,0.05)' : 'rgba(255,107,107,0.05)';
+            const profitColor = trade.success ? '#00ff88' : '#ff6b6b';
+
             const tradeDiv = document.createElement('div');
-            tradeDiv.style.cssText = 'padding: 10px; margin-bottom: 8px; background: rgba(0,255,136,0.05); border-left: 3px solid #00ff88; border-radius: 5px; font-size: 0.85rem;';
-            tradeDiv.innerHTML = `
+            tradeDiv.style.cssText = `padding: 10px; margin-bottom: 8px; background: ${bgColor}; border-left: 3px solid ${borderColor}; border-radius: 5px; font-size: 0.85rem;`;
+
+            let content = `
                 <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                    <span style="color: #00ff88; font-weight: bold;">${trade.pathId}</span>
-                    <span style="color: ${trade.success ? '#00ff88' : '#ff6b6b'};">${trade.success ? '✅' : '❌'}</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; color: #b8c6db;">
-                    <span>Profit: <strong style="color: #00ff88;">R ${trade.profit.toFixed(2)}</strong> (${trade.profitPercent.toFixed(2)}%)</span>
-                    <span>${trade.timestamp.toLocaleTimeString()}</span>
+                    <span style="color: ${profitColor}; font-weight: bold;">${trade.pathId}</span>
+                    <span style="color: ${profitColor};">${trade.success ? '✅' : '❌ FAILED'}</span>
                 </div>
             `;
+
+            if (trade.success) {
+                content += `
+                    <div style="display: flex; justify-content: space-between; color: #b8c6db;">
+                        <span>Profit: <strong style="color: ${profitColor};">R ${trade.profit.toFixed(2)}</strong> (${trade.profitPercent.toFixed(2)}%)</span>
+                        <span>${trade.timestamp.toLocaleTimeString()}</span>
+                    </div>
+                `;
+            } else {
+                content += `
+                    <div style="display: flex; justify-content: space-between; color: #b8c6db;">
+                        <span style="color: #ff6b6b;">Execution failed - Rolled back</span>
+                        <span>${trade.timestamp.toLocaleTimeString()}</span>
+                    </div>
+                    ${trade.error ? `<div style="color: #888; font-size: 0.75rem; margin-top: 5px;">Error: ${trade.error}</div>` : ''}
+                `;
+            }
+
+            tradeDiv.innerHTML = content;
 
             // Add at the top
             tradesDiv.insertBefore(tradeDiv, tradesDiv.firstChild);
