@@ -267,7 +267,8 @@ function makeValrRequestSingle(endpoint, method, apiKey, apiSecret, body = null)
 
 // POST /api/v1/trading/luno/triangular/test-connection
 // Test Luno API connection for triangular trading
-router.post('/luno/triangular/test-connection', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+// NOTE: No platform authentication required - validates exchange credentials only
+router.post('/luno/triangular/test-connection', asyncHandler(async (req, res) => {
     try {
         const { apiKey, apiSecret } = req.body;
 
@@ -343,7 +344,8 @@ router.post('/luno/triangular/test-connection', authenticatedRateLimit, authenti
 
 // POST /api/v1/trading/luno/triangular/scan
 // Scan for Luno triangular arbitrage opportunities with live prices
-router.post('/luno/triangular/scan', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+// NOTE: No platform authentication required - validates exchange credentials only
+router.post('/luno/triangular/scan', asyncHandler(async (req, res) => {
     try {
         const { paths = 'all', apiKey, apiSecret } = req.body;
 
@@ -507,7 +509,8 @@ router.get('/luno/triangular/paths', authenticatedRateLimit, authenticateUser, a
 
 // POST /api/v1/trading/luno/triangular/execute
 // Execute a Luno triangular arbitrage trade (3-leg atomic transaction)
-router.post('/luno/triangular/execute', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+// NOTE: No platform authentication required - validates exchange credentials only
+router.post('/luno/triangular/execute', asyncHandler(async (req, res) => {
     try {
         const { pathId, amount, simulate = true } = req.body;
 
