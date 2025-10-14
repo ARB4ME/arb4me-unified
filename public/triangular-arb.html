@@ -3042,51 +3042,109 @@
         // View Path Details (placeholder for future functionality)
         function viewValrPathDetails() {
             const pathDetails = `
-📋 VALR Triangular Arbitrage Paths (20 Total)
+📋 VALR Triangular Arbitrage Paths (48 Total)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 1: Essential BTC Bridge (6 paths) ✅ DEFAULT
+SET 1: ETH Focus (4 paths) ✅ DEFAULT
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. ZAR → BTC → ETH → ZAR
-2. ZAR → BTC → XRP → ZAR
-3. ZAR → BTC → SOL → ZAR
-4. ZAR → BTC → LTC → ZAR
-5. ZAR → BTC → DOGE → ZAR
-6. ZAR → BTC → ADA → ZAR
+1. ZAR → ETH → USDT → ZAR
+2. ZAR → USDT → ETH → ZAR
+3. USDT → ETH → ZAR → USDT
+4. USDT → ZAR → ETH → USDT
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 2: ETH Secondary Bridge (5 paths) ✅ DEFAULT
+SET 2: XRP Focus (4 paths) ✅ DEFAULT
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. ZAR → ETH → BTC → ZAR
-2. ZAR → ETH → SOL → ZAR
-3. ZAR → ETH → ADA → ZAR
-4. ZAR → ETH → DOT → ZAR
-5. ZAR → ETH → LINK → ZAR
+1. ZAR → XRP → USDT → ZAR
+2. ZAR → USDT → XRP → ZAR
+3. USDT → XRP → ZAR → USDT
+4. USDT → ZAR → XRP → USDT
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 3: SOL Bridge (4 paths)
+SET 3: SOL Focus (4 paths)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. ZAR → SOL → BTC → ZAR
-2. ZAR → SOL → ETH → ZAR
-3. ZAR → SOL → XRP → ZAR
-4. ZAR → SOL → ADA → ZAR
+1. ZAR → SOL → USDT → ZAR
+2. ZAR → USDT → SOL → ZAR
+3. USDT → SOL → ZAR → USDT
+4. USDT → ZAR → SOL → USDT
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 4: XRP Bridge (3 paths)
+SET 4: BNB Focus (4 paths)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. ZAR → XRP → BTC → ZAR
-2. ZAR → XRP → ETH → ZAR
-3. ZAR → XRP → SOL → ZAR
+1. ZAR → BNB → USDT → ZAR
+2. ZAR → USDT → BNB → ZAR
+3. USDT → BNB → ZAR → USDT
+4. USDT → ZAR → BNB → USDT
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 5: Extended Routes (2 paths)
+SET 5: SHIB Focus (4 paths)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. ZAR → ADA → BTC → ZAR
-2. ZAR → DOGE → BTC → ZAR
+1. ZAR → SHIB → USDT → ZAR
+2. ZAR → USDT → SHIB → ZAR
+3. USDT → SHIB → ZAR → USDT
+4. USDT → ZAR → SHIB → USDT
 
-💡 TOTAL: 20 paths (all 3-leg)
-🌉 BRIDGE: ZAR (South African Rand)
-🇿🇦 REGIONAL: Optimized for South African market
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 6: AVAX Focus (4 paths)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. ZAR → AVAX → USDT → ZAR
+2. ZAR → USDT → AVAX → ZAR
+3. USDT → AVAX → ZAR → USDT
+4. USDT → ZAR → AVAX → USDT
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 7: DOGE Focus (4 paths)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. ZAR → DOGE → USDT → ZAR
+2. ZAR → USDT → DOGE → ZAR
+3. USDT → DOGE → ZAR → USDT
+4. USDT → ZAR → DOGE → USDT
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 8: TRX Focus (4 paths)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. ZAR → TRX → USDT → ZAR
+2. ZAR → USDT → TRX → ZAR
+3. USDT → TRX → ZAR → USDT
+4. USDT → ZAR → TRX → USDT
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 9: LTC Focus (4 paths)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. ZAR → LTC → USDT → ZAR
+2. ZAR → USDT → LTC → ZAR
+3. USDT → LTC → ZAR → USDT
+4. USDT → ZAR → LTC → USDT
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 10: RLUSD Focus (4 paths)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. ZAR → RLUSD → USDT → ZAR
+2. ZAR → USDT → RLUSD → ZAR
+3. USDT → RLUSD → ZAR → USDT
+4. USDT → ZAR → RLUSD → USDT
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 11: LINK Focus (4 paths)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. ZAR → LINK → USDT → ZAR
+2. ZAR → USDT → LINK → ZAR
+3. USDT → LINK → ZAR → USDT
+4. USDT → ZAR → LINK → USDT
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SET 12: XLM Focus (4 paths)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. ZAR → XLM → USDT → ZAR
+2. ZAR → USDT → XLM → ZAR
+3. USDT → XLM → ZAR → USDT
+4. USDT → ZAR → XLM → USDT
+
+💡 TOTAL: 48 paths (12 sets × 4 paths each)
+🌉 BRIDGE: USDT (Tether)
+🔄 PATTERN: All paths use ZAR ↔ CRYPTO ↔ USDT triangular arbitrage
+🇿🇦 REGIONAL: Optimized for South African market (VALR exchange)
+✅ VERIFIED: Only coins with both ZAR and USDT pairs on VALR
 🔐 AUTH: API Key + Secret
             `.trim();
 
