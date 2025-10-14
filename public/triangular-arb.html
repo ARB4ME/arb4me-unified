@@ -3851,10 +3851,19 @@
         });
 
         // Load saved Luno toggle state on page load
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
             const lunoEnabled = localStorage.getItem('lunoTriangularEnabled') === 'true';
             const toggle = document.getElementById('lunoTriangularEnabled');
             const status = document.getElementById('lunoTriangularStatus');
+
+            // Initialize balance display if credentials exist (regardless of worker state)
+            const apiKey = localStorage.getItem('luno_triangular_api');
+            const apiSecret = localStorage.getItem('luno_triangular_secret');
+
+            if (apiKey && apiSecret) {
+                console.log('💰 [LUNO Balance] Fetching balance on page load...');
+                await initializeLunoBalance(apiKey, apiSecret);
+            }
 
             if (lunoEnabled) {
                 toggle.classList.add('active');
@@ -3900,7 +3909,7 @@
             }
         }
 
-        // ========== LUNO BALANCE TRACKING (PLACEHOLDER) ==========
+        // ========== LUNO BALANCE TRACKING ==========
         // Balance tracking variables
         let lunoBalanceTracking = {
             startingZAR: null,
@@ -3913,6 +3922,128 @@
         let lunoAlerts = [];
         const MAX_LUNO_ALERTS = 20;
 
+        // Initialize LUNO balance on page load
+        async function initializeLunoBalance(apiKey, apiSecret) {
+            try {
+                console.log('💰 [LUNO Balance] Initializing balance...');
+
+                // Fetch current balance from LUNO (same endpoint as Strategy API Setup page)
+                const response = await fetch(`${API_BASE}/trading/luno/balance`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ apiKey, apiSecret })
+                });
+
+                const result = await response.json();
+                console.log('💰 [LUNO Balance] API Response:', result);
+
+                // Handle different response formats
+                let balances = null;
+                if (result.success && result.data) {
+                    balances = result.data.balances || result.data;
+                } else if (result.success && result.balances) {
+                    balances = result.balances;
+                } else if (result.balances) {
+                    balances = result.balances;
+                }
+
+                console.log('💰 [LUNO Balance] Parsed balances:', balances);
+
+                if (balances) {
+                    // Balances is an object like { ZAR: "5000.50", XBT: "0.05", ... }
+                    const currentZAR = balances.ZAR ? parseFloat(balances.ZAR) : 0;
+                    const currentUSDT = balances.USDT ? parseFloat(balances.USDT) : 0;
+
+                    // Check if starting balance is already set (from localStorage)
+                    const stored = localStorage.getItem('lunoStartingBalance');
+                    if (stored) {
+                        const parsed = JSON.parse(stored);
+                        lunoBalanceTracking.startingZAR = parsed.zar;
+                        lunoBalanceTracking.startingUSDT = parsed.usdt;
+                    } else {
+                        // First time - set current as starting
+                        lunoBalanceTracking.startingZAR = currentZAR;
+                        lunoBalanceTracking.startingUSDT = currentUSDT;
+                        localStorage.setItem('lunoStartingBalance', JSON.stringify({
+                            zar: currentZAR,
+                            usdt: currentUSDT
+                        }));
+                    }
+
+                    lunoBalanceTracking.currentZAR = currentZAR;
+                    lunoBalanceTracking.currentUSDT = currentUSDT;
+
+                    updateLunoBalanceDisplay();
+                    console.log('✅ [LUNO Balance] Initialized:', lunoBalanceTracking);
+                }
+            } catch (error) {
+                console.error('❌ [LUNO Balance] Failed to initialize:', error);
+            }
+        }
+
+        // Update LUNO balance (called during worker scanning)
+        async function updateLunoBalance(apiKey, apiSecret) {
+            try {
+                const response = await fetch(`${API_BASE}/trading/luno/balance`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ apiKey, apiSecret })
+                });
+
+                const result = await response.json();
+
+                // Handle different response formats
+                let balances = null;
+                if (result.success && result.data) {
+                    balances = result.data.balances || result.data;
+                } else if (result.success && result.balances) {
+                    balances = result.balances;
+                } else if (result.balances) {
+                    balances = result.balances;
+                }
+
+                if (balances) {
+                    lunoBalanceTracking.currentZAR = balances.ZAR ? parseFloat(balances.ZAR) : 0;
+                    lunoBalanceTracking.currentUSDT = balances.USDT ? parseFloat(balances.USDT) : 0;
+
+                    updateLunoBalanceDisplay();
+                }
+            } catch (error) {
+                console.error('❌ [LUNO Balance] Update failed:', error);
+            }
+        }
+
+        // Update balance display
+        function updateLunoBalanceDisplay() {
+            // Update starting balances
+            document.getElementById('lunoStartingZAR').textContent = `R ${lunoBalanceTracking.startingZAR?.toFixed(2) || '0.00'}`;
+            document.getElementById('lunoStartingUSDT').textContent = `$${lunoBalanceTracking.startingUSDT?.toFixed(2) || '0.00'}`;
+
+            // Update current balances
+            document.getElementById('lunoCurrentZAR').textContent = `R ${lunoBalanceTracking.currentZAR.toFixed(2)}`;
+            document.getElementById('lunoCurrentUSDT').textContent = `$${lunoBalanceTracking.currentUSDT.toFixed(2)}`;
+
+            // Calculate and display changes with color coding
+            if (lunoBalanceTracking.startingZAR) {
+                const zarChange = lunoBalanceTracking.currentZAR - lunoBalanceTracking.startingZAR;
+                const zarChangePercent = (zarChange / lunoBalanceTracking.startingZAR * 100).toFixed(2);
+                const zarColor = zarChange >= 0 ? '#00ff00' : '#ff4444';
+                const zarSign = zarChange >= 0 ? '+' : '';
+                document.getElementById('lunoChangeZAR').innerHTML = `<span style="color: ${zarColor}">${zarSign}R ${zarChange.toFixed(2)} (${zarSign}${zarChangePercent}%)</span>`;
+            }
+
+            if (lunoBalanceTracking.startingUSDT) {
+                const usdtChange = lunoBalanceTracking.currentUSDT - lunoBalanceTracking.startingUSDT;
+                const usdtChangePercent = (usdtChange / lunoBalanceTracking.startingUSDT * 100).toFixed(2);
+                const usdtColor = usdtChange >= 0 ? '#00ff00' : '#ff4444';
+                const usdtSign = usdtChange >= 0 ? '+' : '';
+                document.getElementById('lunoChangeUSDT').innerHTML = `<span style="color: ${usdtColor}">${usdtSign}$${usdtChange.toFixed(2)} (${usdtSign}${usdtChangePercent}%)</span>`;
+            }
+
+            // Update last updated time
+            document.getElementById('lunoBalanceLastUpdate').textContent = new Date().toLocaleTimeString();
+        }
+
         // Reset starting balance
         function resetLunoStartingBalance() {
             lunoBalanceTracking.startingZAR = lunoBalanceTracking.currentZAR;
@@ -3923,6 +4054,7 @@
                 usdt: lunoBalanceTracking.startingUSDT
             }));
 
+            updateLunoBalanceDisplay();
             alert('✅ Starting balance reset to current values');
             console.log('🔄 [LUNO Balance] Reset starting balance:', lunoBalanceTracking);
         }
