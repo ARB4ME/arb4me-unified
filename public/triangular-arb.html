@@ -480,16 +480,16 @@
 
             <!-- LUNO Control Buttons -->
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
-                <button onclick="testLunoTriangularConnection()" class="btn">
+                <button onclick="testLunoTriangularConnection()" class="btn" disabled style="opacity: 0.4; cursor: not-allowed;" title="Disabled: Automated worker handles connections">
                     🔍 Test Connection
                 </button>
-                <button onclick="scanLunoTriangularPaths()" class="btn">
+                <button onclick="scanLunoTriangularPaths()" class="btn" disabled style="opacity: 0.4; cursor: not-allowed;" title="Disabled: Automated worker scans continuously">
                     🔍 Scan Opportunities
                 </button>
                 <button onclick="viewLunoPathDetails()" class="btn">
                     📊 View Paths
                 </button>
-                <button onclick="clearLunoTriangularHistory()" class="btn">
+                <button onclick="clearLunoTriangularHistory()" class="btn" disabled style="opacity: 0.4; cursor: not-allowed;" title="Disabled: Backend integration pending">
                     🗑️ Clear History
                 </button>
             </div>
