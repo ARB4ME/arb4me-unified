@@ -297,12 +297,95 @@
                 </button>
             </div>
 
-            <!-- Recent VALR Trades -->
+            <!-- Tabbed Section: Recent Trades | Balance Tracker | Alerts -->
             <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px;">
-                <h4 style="color: #ffb347; margin-bottom: 15px;">🕒 Recent Triangular Trades</h4>
-                <div id="valrRecentTrades" style="max-height: 200px; overflow-y: auto;">
-                    <div style="text-align: center; color: #888; padding: 20px;">
-                        No triangular trades yet. Enable live trading to start.
+                <!-- Tab Headers -->
+                <div style="display: flex; gap: 10px; border-bottom: 2px solid rgba(255,255,255,0.1); margin-bottom: 15px;">
+                    <button class="valr-tab-btn active" data-tab="trades" style="flex: 1; padding: 10px; background: none; border: none; border-bottom: 3px solid #00ff88; color: #00ff88; cursor: pointer; font-weight: bold; font-size: 0.95rem;">
+                        📜 Recent Trades
+                    </button>
+                    <button class="valr-tab-btn" data-tab="balance" style="flex: 1; padding: 10px; background: none; border: none; border-bottom: 3px solid transparent; color: #888; cursor: pointer; font-weight: bold; font-size: 0.95rem;">
+                        💰 Balance Tracker
+                    </button>
+                    <button class="valr-tab-btn" data-tab="alerts" style="flex: 1; padding: 10px; background: none; border: none; border-bottom: 3px solid transparent; color: #888; cursor: pointer; font-weight: bold; font-size: 0.95rem;">
+                        ⚠️ Alerts <span id="valrAlertBadge" style="display: none; background: #ff4444; color: white; padding: 2px 6px; border-radius: 10px; font-size: 0.75rem; margin-left: 5px;">0</span>
+                    </button>
+                </div>
+
+                <!-- Tab Content Panels -->
+
+                <!-- Tab 1: Recent Trades (existing code preserved) -->
+                <div id="valrTabTrades" class="valr-tab-content" style="display: block;">
+                    <div id="valrRecentTrades" style="max-height: 200px; overflow-y: auto;">
+                        <div style="text-align: center; color: #888; padding: 20px;">
+                            No triangular trades yet. Enable live trading to start.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 2: Balance Tracker (NEW) -->
+                <div id="valrTabBalance" class="valr-tab-content" style="display: none;">
+                    <div style="margin-bottom: 20px;">
+                        <h5 style="color: #00ff88; margin-bottom: 10px;">💵 ZAR Balance</h5>
+                        <div style="background: rgba(0,255,136,0.1); padding: 15px; border-radius: 8px; border-left: 4px solid #00ff88;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; font-size: 0.9rem;">
+                                <div>
+                                    <div style="color: #888; margin-bottom: 5px;">Starting</div>
+                                    <div style="color: #00ff88; font-weight: bold; font-size: 1.1rem;" id="valrStartingZAR">R 0.00</div>
+                                </div>
+                                <div>
+                                    <div style="color: #888; margin-bottom: 5px;">Current</div>
+                                    <div style="color: #00ff88; font-weight: bold; font-size: 1.1rem;" id="valrCurrentZAR">R 0.00</div>
+                                </div>
+                                <div>
+                                    <div style="color: #888; margin-bottom: 5px;">Change</div>
+                                    <div style="font-weight: bold; font-size: 1.1rem;" id="valrChangeZAR">+R 0.00 (+0%)</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <h5 style="color: #00ff88; margin-bottom: 10px;">💵 USDT Balance</h5>
+                        <div style="background: rgba(0,255,136,0.1); padding: 15px; border-radius: 8px; border-left: 4px solid #00ff88;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; font-size: 0.9rem;">
+                                <div>
+                                    <div style="color: #888; margin-bottom: 5px;">Starting</div>
+                                    <div style="color: #00ff88; font-weight: bold; font-size: 1.1rem;" id="valrStartingUSDT">$0.00</div>
+                                </div>
+                                <div>
+                                    <div style="color: #888; margin-bottom: 5px;">Current</div>
+                                    <div style="color: #00ff88; font-weight: bold; font-size: 1.1rem;" id="valrCurrentUSDT">$0.00</div>
+                                </div>
+                                <div>
+                                    <div style="color: #888; margin-bottom: 5px;">Change</div>
+                                    <div style="font-weight: bold; font-size: 1.1rem;" id="valrChangeUSDT">+$0.00 (+0%)</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 10px; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1);">
+                        <div style="color: #888; font-size: 0.85rem;">
+                            Last Updated: <span id="valrBalanceLastUpdate">Never</span>
+                        </div>
+                        <button onclick="resetValrStartingBalance()" style="padding: 6px 12px; background: rgba(255,255,255,0.1); color: #00ff88; border: 1px solid #00ff88; border-radius: 5px; cursor: pointer; font-size: 0.85rem;">
+                            🔄 Reset Starting Balance
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tab 3: Alerts (NEW) -->
+                <div id="valrTabAlerts" class="valr-tab-content" style="display: none;">
+                    <div id="valrAlertsList" style="max-height: 200px; overflow-y: auto;">
+                        <div style="text-align: center; color: #888; padding: 20px;">
+                            No alerts. Worker running smoothly. ✅
+                        </div>
+                    </div>
+                    <div style="padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); text-align: right;">
+                        <button onclick="clearValrAlerts()" style="padding: 6px 12px; background: rgba(255,255,255,0.1); color: #888; border: 1px solid #555; border-radius: 5px; cursor: pointer; font-size: 0.85rem;">
+                            Clear All Alerts
+                        </button>
                     </div>
                 </div>
             </div>
@@ -2445,6 +2528,348 @@
             bestProfit: 0
         };
 
+        // Balance tracking
+        let valrBalanceTracking = {
+            startingZAR: null,
+            startingUSDT: null,
+            currentZAR: 0,
+            currentUSDT: 0
+        };
+
+        // Alerts tracking
+        let valrAlerts = [];
+        const MAX_ALERTS = 20; // Keep last 20 alerts
+
+        // ========== TAB SWITCHING ==========
+        // Handle tab switching
+        document.addEventListener('DOMContentLoaded', function() {
+            const tabButtons = document.querySelectorAll('.valr-tab-btn');
+            tabButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const tabName = this.getAttribute('data-tab');
+                    switchValrTab(tabName);
+                });
+            });
+        });
+
+        function switchValrTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.valr-tab-content').forEach(content => {
+                content.style.display = 'none';
+            });
+
+            // Remove active class from all buttons
+            document.querySelectorAll('.valr-tab-btn').forEach(btn => {
+                btn.style.borderBottomColor = 'transparent';
+                btn.style.color = '#888';
+                btn.classList.remove('active');
+            });
+
+            // Show selected tab content
+            if (tabName === 'trades') {
+                document.getElementById('valrTabTrades').style.display = 'block';
+            } else if (tabName === 'balance') {
+                document.getElementById('valrTabBalance').style.display = 'block';
+            } else if (tabName === 'alerts') {
+                document.getElementById('valrTabAlerts').style.display = 'block';
+            }
+
+            // Highlight active button
+            const activeButton = document.querySelector(`.valr-tab-btn[data-tab="${tabName}"]`);
+            if (activeButton) {
+                activeButton.style.borderBottomColor = '#00ff88';
+                activeButton.style.color = '#00ff88';
+                activeButton.classList.add('active');
+            }
+        }
+
+        // ========== BALANCE TRACKING ==========
+        async function initializeValrBalance(apiKey, apiSecret) {
+            try {
+                // Fetch current balance from VALR
+                const response = await fetch(`${API_BASE}/trading/valr/triangular/test-connection`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ apiKey, apiSecret })
+                });
+
+                const result = await response.json();
+
+                if (result.success && result.data && result.data.balances) {
+                    const zarBalance = result.data.balances.find(b => b.currency === 'ZAR');
+                    const usdtBalance = result.data.balances.find(b => b.currency === 'USDT');
+
+                    const currentZAR = zarBalance ? parseFloat(zarBalance.available) : 0;
+                    const currentUSDT = usdtBalance ? parseFloat(usdtBalance.available) : 0;
+
+                    // Check if starting balance is already set (from localStorage)
+                    const stored = localStorage.getItem('valrStartingBalance');
+                    if (stored) {
+                        const parsed = JSON.parse(stored);
+                        valrBalanceTracking.startingZAR = parsed.zar;
+                        valrBalanceTracking.startingUSDT = parsed.usdt;
+                    } else {
+                        // First time - set current as starting
+                        valrBalanceTracking.startingZAR = currentZAR;
+                        valrBalanceTracking.startingUSDT = currentUSDT;
+                        localStorage.setItem('valrStartingBalance', JSON.stringify({
+                            zar: currentZAR,
+                            usdt: currentUSDT
+                        }));
+                    }
+
+                    valrBalanceTracking.currentZAR = currentZAR;
+                    valrBalanceTracking.currentUSDT = currentUSDT;
+
+                    updateValrBalanceDisplay();
+                    console.log('✅ [VALR Balance] Initialized:', valrBalanceTracking);
+                }
+            } catch (error) {
+                console.error('❌ [VALR Balance] Failed to initialize:', error);
+            }
+        }
+
+        async function updateValrBalance(apiKey, apiSecret) {
+            try {
+                const response = await fetch(`${API_BASE}/trading/valr/triangular/test-connection`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ apiKey, apiSecret })
+                });
+
+                const result = await response.json();
+
+                if (result.success && result.data && result.data.balances) {
+                    const zarBalance = result.data.balances.find(b => b.currency === 'ZAR');
+                    const usdtBalance = result.data.balances.find(b => b.currency === 'USDT');
+
+                    valrBalanceTracking.currentZAR = zarBalance ? parseFloat(zarBalance.available) : 0;
+                    valrBalanceTracking.currentUSDT = usdtBalance ? parseFloat(usdtBalance.available) : 0;
+
+                    updateValrBalanceDisplay();
+                }
+            } catch (error) {
+                console.error('❌ [VALR Balance] Update failed:', error);
+            }
+        }
+
+        function updateValrBalanceDisplay() {
+            // Update starting balances
+            document.getElementById('valrStartingZAR').textContent = `R ${valrBalanceTracking.startingZAR?.toFixed(2) || '0.00'}`;
+            document.getElementById('valrStartingUSDT').textContent = `$${valrBalanceTracking.startingUSDT?.toFixed(2) || '0.00'}`;
+
+            // Update current balances
+            document.getElementById('valrCurrentZAR').textContent = `R ${valrBalanceTracking.currentZAR.toFixed(2)}`;
+            document.getElementById('valrCurrentUSDT').textContent = `$${valrBalanceTracking.currentUSDT.toFixed(2)}`;
+
+            // Calculate and display changes
+            if (valrBalanceTracking.startingZAR) {
+                const zarChange = valrBalanceTracking.currentZAR - valrBalanceTracking.startingZAR;
+                const zarChangePercent = (zarChange / valrBalanceTracking.startingZAR * 100).toFixed(2);
+                const zarColor = zarChange >= 0 ? '#00ff00' : '#ff4444';
+                const zarSign = zarChange >= 0 ? '+' : '';
+                document.getElementById('valrChangeZAR').innerHTML = `<span style="color: ${zarColor}">${zarSign}R ${zarChange.toFixed(2)} (${zarSign}${zarChangePercent}%)</span>`;
+            }
+
+            if (valrBalanceTracking.startingUSDT) {
+                const usdtChange = valrBalanceTracking.currentUSDT - valrBalanceTracking.startingUSDT;
+                const usdtChangePercent = (usdtChange / valrBalanceTracking.startingUSDT * 100).toFixed(2);
+                const usdtColor = usdtChange >= 0 ? '#00ff00' : '#ff4444';
+                const usdtSign = usdtChange >= 0 ? '+' : '';
+                document.getElementById('valrChangeUSDT').innerHTML = `<span style="color: ${usdtColor}">${usdtSign}$${usdtChange.toFixed(2)} (${usdtSign}${usdtChangePercent}%)</span>`;
+            }
+
+            // Update last updated time
+            document.getElementById('valrBalanceLastUpdate').textContent = new Date().toLocaleTimeString();
+        }
+
+        function resetValrStartingBalance() {
+            if (confirm('Reset starting balance to current balance? This will set your profit/loss tracking to zero.')) {
+                valrBalanceTracking.startingZAR = valrBalanceTracking.currentZAR;
+                valrBalanceTracking.startingUSDT = valrBalanceTracking.currentUSDT;
+                localStorage.setItem('valrStartingBalance', JSON.stringify({
+                    zar: valrBalanceTracking.startingZAR,
+                    usdt: valrBalanceTracking.startingUSDT
+                }));
+                updateValrBalanceDisplay();
+                showNotification('✅ Starting balance reset successfully', 'success');
+            }
+        }
+
+        // ========== ALERTS MANAGEMENT ==========
+        function addValrAlert(type, message, details = {}) {
+            const alert = {
+                id: Date.now(),
+                type: type, // 'balance', 'slippage', 'execution', 'other'
+                message: message,
+                details: details,
+                timestamp: new Date()
+            };
+
+            valrAlerts.unshift(alert); // Add to beginning
+
+            // Keep only last MAX_ALERTS
+            if (valrAlerts.length > MAX_ALERTS) {
+                valrAlerts = valrAlerts.slice(0, MAX_ALERTS);
+            }
+
+            updateValrAlertsDisplay();
+        }
+
+        function updateValrAlertsDisplay() {
+            const alertsList = document.getElementById('valrAlertsList');
+            const badge = document.getElementById('valrAlertBadge');
+
+            // Update badge count
+            if (valrAlerts.length > 0) {
+                badge.textContent = valrAlerts.length;
+                badge.style.display = 'inline-block';
+            } else {
+                badge.style.display = 'none';
+            }
+
+            // Display alerts
+            if (valrAlerts.length === 0) {
+                alertsList.innerHTML = '<div style="text-align: center; color: #888; padding: 20px;">No alerts. Worker running smoothly. ✅</div>';
+                return;
+            }
+
+            let html = '';
+            valrAlerts.forEach(alert => {
+                const icon = alert.type === 'balance' ? '⚠️' :
+                            alert.type === 'slippage' ? '📊' :
+                            alert.type === 'execution' ? '❌' : '⚡';
+                const color = alert.type === 'balance' ? '#ff9800' : '#ff4444';
+
+                html += `
+                    <div style="background: rgba(255,255,255,0.05); padding: 12px; border-radius: 8px; border-left: 4px solid ${color}; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                            <div style="color: ${color}; font-weight: bold; font-size: 0.9rem;">
+                                ${icon} ${alert.message}
+                            </div>
+                            <button onclick="dismissValrAlert(${alert.id})" style="background: none; border: none; color: #888; cursor: pointer; font-size: 1.2rem; padding: 0; line-height: 1;">×</button>
+                        </div>
+                        <div style="color: #888; font-size: 0.85rem; margin-bottom: 5px;">
+                            ${alert.timestamp.toLocaleTimeString()}
+                        </div>
+                        ${alert.details.path ? `<div style="color: #00ff88; font-size: 0.85rem;">Path: ${alert.details.path}</div>` : ''}
+                        ${alert.details.required ? `<div style="color: #888; font-size: 0.85rem;">Required: ${alert.details.required} | Available: ${alert.details.available}</div>` : ''}
+                        ${alert.details.shortfall ? `<div style="color: #ff4444; font-size: 0.85rem;">Shortfall: ${alert.details.shortfall}</div>` : ''}
+                        ${alert.details.suggestion ? `<div style="color: #888; font-size: 0.85rem; margin-top: 5px;">💡 ${alert.details.suggestion}</div>` : ''}
+                    </div>
+                `;
+            });
+
+            alertsList.innerHTML = html;
+        }
+
+        function dismissValrAlert(alertId) {
+            valrAlerts = valrAlerts.filter(a => a.id !== alertId);
+            updateValrAlertsDisplay();
+        }
+
+        function clearValrAlerts() {
+            if (valrAlerts.length === 0) return;
+            if (confirm('Clear all alerts?')) {
+                valrAlerts = [];
+                updateValrAlertsDisplay();
+            }
+        }
+
+        // ========== ERROR CATEGORIZATION ==========
+        function categorizeValrError(errorMessage) {
+            if (!errorMessage) return 'other';
+
+            const msg = errorMessage.toLowerCase();
+
+            if (msg.includes('insufficient') && (msg.includes('balance') || msg.includes('zar') || msg.includes('usdt'))) {
+                return 'balance';
+            } else if (msg.includes('slippage')) {
+                return 'slippage';
+            } else if (msg.includes('execution') || msg.includes('order') || msg.includes('trade')) {
+                return 'execution';
+            } else {
+                return 'other';
+            }
+        }
+
+        function handleValrExecutionError(error, opportunity) {
+            const errorType = categorizeValrError(error.message);
+
+            console.error(`❌ [VALR Worker] Execution failed (${errorType}):`, error.message);
+
+            if (errorType === 'balance') {
+                // Parse balance info from error message
+                const match = error.message.match(/need [R$]([\d,.]+).*have [R$]([\d,.]+)/i);
+                const currency = error.message.includes('ZAR') ? 'ZAR' : 'USDT';
+
+                let required = 'Unknown';
+                let available = 'Unknown';
+                let shortfall = 'Unknown';
+
+                if (match) {
+                    required = currency === 'ZAR' ? `R ${match[1]}` : `$${match[1]}`;
+                    available = currency === 'ZAR' ? `R ${match[2]}` : `$${match[2]}`;
+                    const reqNum = parseFloat(match[1].replace(',', ''));
+                    const availNum = parseFloat(match[2].replace(',', ''));
+                    const shortfallNum = reqNum - availNum;
+                    shortfall = currency === 'ZAR' ? `R ${shortfallNum.toFixed(2)}` : `$${shortfallNum.toFixed(2)}`;
+                }
+
+                addValrAlert(
+                    'balance',
+                    `Insufficient ${currency} Balance`,
+                    {
+                        path: opportunity.pathId,
+                        profitPercent: opportunity.netProfitPercent?.toFixed(2) + '%',
+                        required: required,
+                        available: available,
+                        shortfall: shortfall,
+                        suggestion: `Top up ${currency} balance or reduce "Max Single Trade" amount`
+                    }
+                );
+
+                showNotification(
+                    `⚠️ Insufficient ${currency} - Opportunity skipped\nShortfall: ${shortfall}\nWorker continues scanning...`,
+                    'warning',
+                    8000
+                );
+
+            } else if (errorType === 'slippage') {
+                addValrAlert(
+                    'slippage',
+                    'High Slippage Detected',
+                    {
+                        path: opportunity.pathId,
+                        suggestion: 'Market moved too quickly. Worker continues scanning...'
+                    }
+                );
+
+                showNotification(
+                    '📊 Slippage too high - Opportunity skipped\nWorker continues scanning...',
+                    'warning',
+                    5000
+                );
+
+            } else {
+                addValrAlert(
+                    'execution',
+                    'Execution Failed',
+                    {
+                        path: opportunity.pathId,
+                        error: error.message,
+                        suggestion: 'Check exchange API status or reduce trade size'
+                    }
+                );
+
+                showNotification(
+                    `❌ Trade execution failed\n${error.message}\nWorker continues scanning...`,
+                    'error',
+                    8000
+                );
+            }
+        }
+
         async function startValrWorker() {
             console.log('🚀 [VALR Worker] Starting automated trading (sequential mode)...');
 
@@ -2474,6 +2899,9 @@
                 selectedSets: selectedSets.length,
                 scanMode: 'Sequential (one set at a time)'
             });
+
+            // Initialize balance tracking
+            await initializeValrBalance(apiKey, apiSecret);
 
             let currentSetIndex = 0;
 
@@ -2568,9 +2996,9 @@
                                             success: true
                                         });
                                     } else {
-                                        // Execution failed (backend already rolled back if needed)
-                                        console.error(`❌ [VALR Worker] Trade execution failed:`, execResult.message);
+                                        // Execution failed - use new error handler
                                         valrWorkerStats.totalTrades++;
+                                        handleValrExecutionError({ message: execResult.message || 'Unknown error' }, opportunity);
 
                                         // Log failed trade
                                         addValrTradeToHistory({
@@ -2583,8 +3011,8 @@
                                         });
                                     }
                                 } catch (execError) {
-                                    console.error('❌ [VALR Worker] Execute error:', execError);
                                     valrWorkerStats.totalTrades++;
+                                    handleValrExecutionError(execError, opportunity);
                                 }
 
                                 // Brief delay between executions (respect rate limits)
@@ -2597,8 +3025,9 @@
                         console.log(`ℹ️ [VALR Worker] ${currentSet}: No paths found`);
                     }
 
-                    // Update display
+                    // Update displays
                     updateValrStatsDisplay();
+                    await updateValrBalance(apiKey, apiSecret);
 
                     // Move to next set (rotate through all selected sets)
                     currentSetIndex = (currentSetIndex + 1) % selectedSets.length;
