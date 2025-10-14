@@ -2499,6 +2499,49 @@
         // VALR AUTOMATED WORKER
         // ============================================================================
 
+        // Map SET_1, SET_2, etc. to backend set names
+        const setNameMapping = {
+            'SET_1': 'SET_1_ETH_FOCUS',
+            'SET_2': 'SET_2_XRP_FOCUS',
+            'SET_3': 'SET_3_SOL_FOCUS',
+            'SET_4': 'SET_4_BNB_FOCUS',
+            'SET_5': 'SET_5_SHIB_FOCUS',
+            'SET_6': 'SET_6_AVAX_FOCUS',
+            'SET_7': 'SET_7_DOGE_FOCUS',
+            'SET_8': 'SET_8_TRX_FOCUS',
+            'SET_9': 'SET_9_LTC_FOCUS',
+            'SET_10': 'SET_10_RLUSD_FOCUS',
+            'SET_11': 'SET_11_LINK_FOCUS',
+            'SET_12': 'SET_12_XLM_FOCUS',
+            'SET_13': 'SET_13_MATIC_FOCUS',
+            'SET_14': 'SET_14_LTC_FOCUS',
+            'SET_15': 'SET_15_ADA_FOCUS',
+            'SET_16': 'SET_16_DOT_FOCUS',
+            'SET_17': 'SET_17_ALGO_FOCUS',
+            'SET_18': 'SET_18_UNI_FOCUS',
+            'SET_19': 'SET_19_SAND_FOCUS',
+            'SET_20': 'SET_20_NEAR_FOCUS',
+            'SET_21': 'SET_21_ATOM_FOCUS',
+            'SET_22': 'SET_22_FTM_FOCUS',
+            'SET_23': 'SET_23_AAVE_FOCUS',
+            'SET_24': 'SET_24_1INCH_FOCUS',
+            'SET_25': 'SET_25_CRV_FOCUS',
+            'SET_26': 'SET_26_COMP_FOCUS',
+            'SET_27': 'SET_27_MKR_FOCUS',
+            'SET_28': 'SET_28_SNX_FOCUS',
+            'SET_29': 'SET_29_SUSHI_FOCUS',
+            'SET_30': 'SET_30_YFI_FOCUS',
+            'SET_31': 'SET_31_ZRX_FOCUS',
+            'SET_32': 'SET_32_BAL_FOCUS',
+            'SET_33': 'SET_33_MANA_FOCUS',
+            'SET_34': 'SET_34_AXS_FOCUS',
+            'SET_35': 'SET_35_GRT_FOCUS',
+            'SET_36': 'SET_36_ENJ_FOCUS',
+            'SET_37': 'SET_37_BAT_FOCUS',
+            'SET_38': 'SET_38_ZEC_FOCUS',
+            'SET_39': 'SET_39_DASH_FOCUS'
+        };
+
         let valrWorkerInterval = null;
         let valrWorkerStats = {
             totalScans: 0,
@@ -2547,6 +2590,7 @@
                 try {
                     // Get current set to scan
                     const currentSet = selectedSets[currentSetIndex];
+                    const backendSetName = setNameMapping[currentSet] || currentSet;
                     valrWorkerStats.totalScans++;
 
                     console.log(`\n🔍 [VALR Worker] Scan #${valrWorkerStats.totalScans}: ${currentSet} (${currentSetIndex + 1}/${selectedSets.length})`);
@@ -2558,7 +2602,7 @@
                         body: JSON.stringify({
                             apiKey,
                             apiSecret,
-                            selectedSets: [currentSet],  // Only scan this one set
+                            scanSet: backendSetName,  // Backend expects scanSet with full name
                             amount: maxTradeAmount
                         })
                     });
