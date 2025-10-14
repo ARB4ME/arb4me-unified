@@ -3909,64 +3909,258 @@
             }
         }
 
-        // View Luno Path Details
+        // View Luno Path Details - Custom Modal
         function viewLunoPathDetails() {
-            const pathDetails = `
-📋 LUNO Triangular Arbitrage Paths (25 Total)
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.8);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 10000;
+                backdrop-filter: blur(5px);
+            `;
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 1: Essential BTC Bridge (7 paths) ✅ DEFAULT
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. ZAR → BTC → ETH → ZAR
-2. ZAR → BTC → XRP → ZAR
-3. ZAR → BTC → LTC → ZAR
-4. ZAR → BTC → BCH → ZAR
-5. ZAR → BTC → DOGE → ZAR
-6. ZAR → BTC → ADA → ZAR
-7. ZAR → BTC → SOL → ZAR
+            const modalContent = document.createElement('div');
+            modalContent.style.cssText = `
+                background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+                padding: 30px;
+                border-radius: 15px;
+                max-width: 900px;
+                max-height: 80vh;
+                overflow-y: auto;
+                box-shadow: 0 20px 60px rgba(0, 212, 255, 0.3);
+                border: 2px solid #00d4ff;
+            `;
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 2: ETH Secondary Bridge (6 paths) ✅ DEFAULT
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. ZAR → ETH → BTC → ZAR
-2. ZAR → ETH → XRP → ZAR
-3. ZAR → ETH → SOL → ZAR
-4. ZAR → ETH → ADA → ZAR
-5. ZAR → ETH → DOT → ZAR
-6. ZAR → ETH → LINK → ZAR
+            modalContent.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                    <h2 style="color: #00d4ff; margin: 0; font-size: 1.8rem;">
+                        📋 LUNO Triangular Arbitrage Paths
+                    </h2>
+                    <button onclick="this.closest('[style*=\\'position: fixed\\']').remove()"
+                            style="background: rgba(255,0,0,0.2); border: 1px solid #ff4444; color: #ff4444;
+                                   padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 1.2rem;">
+                        ✕
+                    </button>
+                </div>
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 3: XRP Fast Transfers (4 paths)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. ZAR → XRP → BTC → ZAR
-2. ZAR → XRP → ETH → ZAR
-3. ZAR → XRP → SOL → ZAR
-4. ZAR → XRP → ADA → ZAR
+                <div style="background: rgba(0,212,255,0.1); padding: 15px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #00d4ff;">
+                    <p style="margin: 0; color: #b8c6db; font-size: 0.95rem;">
+                        💡 <strong style="color: #00d4ff;">42 Total Paths</strong> across 7 sets.
+                        USDT, ZAR, and XBT bridge paths. Select path sets in settings above.
+                    </p>
+                </div>
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 4: SOL Bridge (4 paths)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. ZAR → SOL → BTC → ZAR
-2. ZAR → SOL → ETH → ZAR
-3. ZAR → SOL → XRP → ZAR
-4. ZAR → SOL → ADA → ZAR
+                <!-- SET 1: USDT FOCUS (7 paths) -->
+                <div style="background: rgba(0,212,255,0.05); padding: 20px; border-radius: 12px; margin-bottom: 15px; border: 1px solid rgba(0,212,255,0.3);">
+                    <h3 style="color: #00d4ff; margin-top: 0; font-size: 1.3rem;">
+                        🔷 SET 1: USDT Focus (7 paths)
+                    </h3>
+                    <p style="color: #b8c6db; font-size: 0.9rem; margin-bottom: 15px;">Paths starting/ending with USDT</p>
+                    <div style="display: grid; gap: 8px; font-family: monospace; font-size: 0.9rem;">
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            1. <span style="color: #00ff88;">USDT → XBT → ETH → USDT</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            2. <span style="color: #00ff88;">USDT → XBT → XRP → USDT</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            3. <span style="color: #00ff88;">USDT → XBT → SOL → USDT</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            4. <span style="color: #00ff88;">USDT → ETH → XBT → USDT</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            5. <span style="color: #00ff88;">USDT → XRP → XBT → USDT</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            6. <span style="color: #00ff88;">USDT → SOL → XBT → USDT</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            7. <span style="color: #00ff88;">USDT → USDC → ETH → USDT</span>
+                        </div>
+                    </div>
+                </div>
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 5: Altcoin Extended (4 paths)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. ZAR → ADA → BTC → ZAR
-2. ZAR → DOGE → BTC → ZAR
-3. ZAR → DOT → ETH → ZAR
-4. ZAR → LINK → ETH → ZAR
+                <!-- SET 2: XBT FOCUS (12 paths) -->
+                <div style="background: rgba(0,212,255,0.05); padding: 20px; border-radius: 12px; margin-bottom: 15px; border: 1px solid rgba(0,212,255,0.3);">
+                    <h3 style="color: #00d4ff; margin-top: 0; font-size: 1.3rem;">
+                        🔷 SET 2: XBT Focus (12 paths)
+                    </h3>
+                    <p style="color: #b8c6db; font-size: 0.9rem; margin-bottom: 15px;">Bitcoin as primary intermediary - High volume</p>
+                    <div style="display: grid; gap: 8px; font-family: monospace; font-size: 0.9rem;">
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            1. <span style="color: #00ff88;">XBT → ETH → USDT → XBT</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            2. <span style="color: #00ff88;">XBT → ETH → ZAR → XBT</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            3. <span style="color: #00ff88;">XBT → SOL → USDT → XBT</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            4. <span style="color: #00ff88;">XBT → SOL → XRP → XBT</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            5. <span style="color: #00ff88;">XBT → XRP → USDT → XBT</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            6. <span style="color: #00ff88;">XBT → XRP → ZAR → XBT</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            7. <span style="color: #00ff88;">XBT → ADA → ZAR → XBT</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            8. <span style="color: #00ff88;">XBT → DOT → ZAR → XBT</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            9. <span style="color: #00ff88;">XBT → AVAX → ZAR → XBT</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            10. <span style="color: #00ff88;">XBT → LINK → ZAR → XBT</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            11. <span style="color: #00ff88;">XBT → UNI → ZAR → XBT</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            12. <span style="color: #00ff88;">XBT → LTC → ZAR → XBT</span>
+                        </div>
+                    </div>
+                </div>
 
-💡 TOTAL: 25 paths (all 3-leg)
-🌉 BRIDGE: ZAR (South African Rand)
-🇿🇦 REGIONAL: Optimized for South African market
-🔐 AUTH: API Key + Secret
-            `.trim();
+                <!-- SET 3: ZAR FOCUS (8 paths) -->
+                <div style="background: rgba(0,212,255,0.05); padding: 20px; border-radius: 12px; margin-bottom: 15px; border: 1px solid rgba(0,212,255,0.3);">
+                    <h3 style="color: #00d4ff; margin-top: 0; font-size: 1.3rem;">
+                        🔷 SET 3: ZAR Focus (8 paths)
+                    </h3>
+                    <p style="color: #b8c6db; font-size: 0.9rem; margin-bottom: 15px;">South African Rand market opportunities</p>
+                    <div style="display: grid; gap: 8px; font-family: monospace; font-size: 0.9rem;">
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            1. <span style="color: #00ff88;">ZAR → XBT → ETH → ZAR</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            2. <span style="color: #00ff88;">ZAR → XBT → SOL → ZAR</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            3. <span style="color: #00ff88;">ZAR → XBT → XRP → ZAR</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            4. <span style="color: #00ff88;">ZAR → ETH → XBT → ZAR</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            5. <span style="color: #00ff88;">ZAR → SOL → XBT → ZAR</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            6. <span style="color: #00ff88;">ZAR → XRP → XBT → ZAR</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            7. <span style="color: #00ff88;">ZAR → USDT → XBT → ZAR</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            8. <span style="color: #00ff88;">ZAR → USDC → ETH → ZAR</span>
+                        </div>
+                    </div>
+                </div>
 
-            alert(pathDetails);
-            console.log('📋 [LUNO] Path details displayed:', pathDetails);
+                <!-- SET 4: ETH FOCUS (6 paths) -->
+                <div style="background: rgba(0,212,255,0.05); padding: 20px; border-radius: 12px; margin-bottom: 15px; border: 1px solid rgba(0,212,255,0.3);">
+                    <h3 style="color: #00d4ff; margin-top: 0; font-size: 1.3rem;">
+                        🔷 SET 4: ETH Focus (6 paths)
+                    </h3>
+                    <p style="color: #b8c6db; font-size: 0.9rem; margin-bottom: 15px;">Ethereum-based DeFi opportunities</p>
+                    <div style="display: grid; gap: 8px; font-family: monospace; font-size: 0.9rem;">
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            1. <span style="color: #00ff88;">ETH → XBT → USDT → ETH</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            2. <span style="color: #00ff88;">ETH → XBT → ZAR → ETH</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            3. <span style="color: #00ff88;">ETH → USDT → XBT → ETH</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            4. <span style="color: #00ff88;">ETH → USDC → USDT → ETH</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            5. <span style="color: #00ff88;">ETH → ZAR → XBT → ETH</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            6. <span style="color: #00ff88;">ETH → XBT → SOL → ETH</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SET 5: SOL UNIQUE (5 paths) -->
+                <div style="background: rgba(0,212,255,0.05); padding: 20px; border-radius: 12px; margin-bottom: 15px; border: 1px solid rgba(0,212,255,0.3);">
+                    <h3 style="color: #00d4ff; margin-top: 0; font-size: 1.3rem;">
+                        🔷 SET 5: SOL Unique Paths (5 paths) ⭐
+                    </h3>
+                    <p style="color: #b8c6db; font-size: 0.9rem; margin-bottom: 15px;">Unique SOL/ADA and SOL/XRP pairs exclusive to Luno</p>
+                    <div style="display: grid; gap: 8px; font-family: monospace; font-size: 0.9rem;">
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            1. <span style="color: #00ff88;">SOL → ADA → ZAR → SOL</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            2. <span style="color: #00ff88;">SOL → XRP → XBT → SOL</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            3. <span style="color: #00ff88;">SOL → XBT → USDT → SOL</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            4. <span style="color: #00ff88;">SOL → USDT → XBT → SOL</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            5. <span style="color: #00ff88;">SOL → ZAR → XBT → SOL</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SET 6: STABLECOIN ARB (4 paths) -->
+                <div style="background: rgba(0,212,255,0.05); padding: 20px; border-radius: 12px; margin-bottom: 15px; border: 1px solid rgba(0,212,255,0.3);">
+                    <h3 style="color: #00d4ff; margin-top: 0; font-size: 1.3rem;">
+                        🔷 SET 6: Stablecoin Arbitrage (4 paths)
+                    </h3>
+                    <p style="color: #b8c6db; font-size: 0.9rem; margin-bottom: 15px;">USDC/USDT and cross-altcoin opportunities</p>
+                    <div style="display: grid; gap: 8px; font-family: monospace; font-size: 0.9rem;">
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            1. <span style="color: #00ff88;">USDC → ETH → XBT → USDC</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            2. <span style="color: #00ff88;">USDC → USDT → ETH → USDC</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            3. <span style="color: #00ff88;">XRP → SOL → XBT → XRP</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            4. <span style="color: #00ff88;">ADA → SOL → ZAR → ADA</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SET 7: EXTENDED ALTCOINS (0 paths) -->
+                <div style="background: rgba(128,128,128,0.1); padding: 20px; border-radius: 12px; border: 1px solid rgba(128,128,128,0.3);">
+                    <h3 style="color: #888; margin-top: 0; font-size: 1.3rem;">
+                        🔷 SET 7: Extended Altcoins (0 paths)
+                    </h3>
+                    <p style="color: #888; font-size: 0.9rem; margin-bottom: 0;">Reserved for future expansion with ALGO, ATOM, BCH, CRV, GRT, HBAR, NEAR, POL, SAND, SNX, TRX, XLM</p>
+                </div>
+            `;
+
+            modal.appendChild(modalContent);
+            document.body.appendChild(modal);
+
+            // Close on background click
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.remove();
+                }
+            });
         }
 
         // Clear Luno Triangular History
