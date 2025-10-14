@@ -2502,18 +2502,28 @@
                     const scanResult = await scanResponse.json();
 
                     if (scanResult.success && scanResult.data && scanResult.data.opportunities) {
-                        const opportunities = scanResult.data.opportunities;
-                        console.log(`✅ [VALR Worker] ${currentSet}: Found ${opportunities.length} opportunities`);
+                        const paths = scanResult.data.opportunities;
+                        console.log(`✅ [VALR Worker] ${currentSet}: Analyzed ${paths.length} paths`);
+
+                        // Log detailed profit for each path
+                        paths.forEach((path, index) => {
+                            const profitSign = path.netProfitPercent >= 0 ? '+' : '';
+                            const profitColor = path.netProfitPercent >= profitThreshold ? '💚' :
+                                              path.netProfitPercent >= 0 ? '💛' : '❌';
+                            const status = path.netProfitPercent >= profitThreshold ? 'OPPORTUNITY' :
+                                         path.netProfitPercent >= 0 ? 'below threshold' : 'unprofitable';
+                            console.log(`   ${profitColor} Path ${index + 1}: ${profitSign}${path.netProfitPercent.toFixed(2)}% (${status})`);
+                        });
 
                         // 2. Filter by profit threshold
-                        const profitable = opportunities.filter(
+                        const profitable = paths.filter(
                             opp => opp.netProfitPercent >= profitThreshold
                         );
 
                         valrWorkerStats.totalOpportunities += profitable.length;
 
                         if (profitable.length > 0) {
-                            console.log(`💰 [VALR Worker] ${currentSet}: ${profitable.length} opportunities above ${profitThreshold}% threshold`);
+                            console.log(`💰 [VALR Worker] ${currentSet}: ${profitable.length} OPPORTUNITIES above ${profitThreshold}% threshold`);
 
                             // 3. Execute each profitable opportunity immediately
                             for (const opportunity of profitable) {
@@ -2581,10 +2591,10 @@
                                 await new Promise(resolve => setTimeout(resolve, 300));
                             }
                         } else {
-                            console.log(`ℹ️ [VALR Worker] ${currentSet}: No profitable opportunities (${opportunities.length} below threshold)`);
+                            console.log(`ℹ️ [VALR Worker] ${currentSet}: No opportunities (all ${paths.length} paths below ${profitThreshold}% threshold)`);
                         }
                     } else {
-                        console.log(`ℹ️ [VALR Worker] ${currentSet}: No opportunities found`);
+                        console.log(`ℹ️ [VALR Worker] ${currentSet}: No paths found`);
                     }
 
                     // Update display
