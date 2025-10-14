@@ -3879,7 +3879,8 @@
 
                 try {
                     const currentSet = selectedSets[currentSetIndex];
-                    console.log(`🔍 [LUNO Worker] Scanning SET ${currentSet}...`);
+                    lunoWorkerStats.totalScans++;
+                    console.log(`\n🔍 [LUNO Worker] Scan #${lunoWorkerStats.totalScans}: SET ${currentSet} (${currentSetIndex + 1}/${selectedSets.length})`);
 
                     // Scan current set
                     const scanResponse = await fetch(`${API_BASE}/trading/luno/triangular/scan`, {
@@ -3897,17 +3898,30 @@
                     });
 
                     const scanResult = await scanResponse.json();
-                    lunoWorkerStats.totalScans++;
 
-                    if (scanResult.success && scanResult.data.opportunities && scanResult.data.opportunities.length > 0) {
-                        const opportunities = scanResult.data.opportunities.filter(opp => opp.profitPercentage >= profitThreshold);
+                    if (scanResult.success && scanResult.data && scanResult.data.opportunities) {
+                        const paths = scanResult.data.opportunities;
+                        console.log(`✅ [LUNO Worker] SET ${currentSet}: Analyzed ${paths.length} paths`);
+
+                        // Log detailed profit for each path
+                        paths.forEach((path, index) => {
+                            const profitSign = path.profitPercentage >= 0 ? '+' : '';
+                            const profitColor = path.profitPercentage >= profitThreshold ? '💚' :
+                                              path.profitPercentage >= 0 ? '💛' : '❌';
+                            const status = path.profitPercentage >= profitThreshold ? 'OPPORTUNITY' :
+                                         path.profitPercentage >= 0 ? 'below threshold' : 'unprofitable';
+                            console.log(`   ${profitColor} Path ${index + 1}: ${profitSign}${path.profitPercentage.toFixed(2)}% (${status})`);
+                        });
+
+                        // Filter by profit threshold
+                        const opportunities = paths.filter(opp => opp.profitPercentage >= profitThreshold);
 
                         if (opportunities.length > 0) {
-                            console.log(`✅ [LUNO Worker] Found ${opportunities.length} opportunities above ${profitThreshold}% threshold`);
+                            console.log(`💰 [LUNO Worker] SET ${currentSet}: ${opportunities.length} OPPORTUNITIES above ${profitThreshold}% threshold`);
 
                             // Execute best opportunity
                             const bestOpp = opportunities[0];
-                            console.log(`💰 [LUNO Worker] Executing: ${bestOpp.pathId} - ${bestOpp.profitPercentage.toFixed(2)}%`);
+                            console.log(`⚡ [LUNO Worker] Executing: ${bestOpp.pathId} (${bestOpp.profitPercentage.toFixed(2)}% profit)`);
 
                             const execResponse = await fetch(`${API_BASE}/trading/luno/triangular/execute`, {
                                 method: 'POST',
@@ -3928,19 +3942,22 @@
                             if (execResult.success && execResult.data) {
                                 lunoWorkerStats.totalTrades++;
                                 lunoWorkerStats.successfulTrades++;
-                                lunoWorkerStats.totalProfit += execResult.data.actualProfit || 0;
-                                console.log(`✅ [LUNO Worker] Trade executed successfully!`);
-                                showNotification(`✅ LUNO Trade: ${bestOpp.pathId} +${execResult.data.actualProfit?.toFixed(2)}%`, 'success', 5000);
+
+                                const profit = execResult.data.actualProfit || 0;
+                                lunoWorkerStats.totalProfit += profit;
+
+                                console.log(`✅ [LUNO Worker] Trade executed successfully! Profit: R ${profit.toFixed(2)}`);
+                                showNotification(`✅ LUNO Trade: ${bestOpp.pathId} +R${profit.toFixed(2)}`, 'success', 5000);
                             } else {
                                 // Use error handler
                                 lunoWorkerStats.totalTrades++;
                                 handleLunoExecutionError({ message: execResult.message || 'Unknown error' }, bestOpp);
                             }
                         } else {
-                            console.log(`📊 [LUNO Worker] ${scanResult.data.opportunities.length} opportunities found but below ${profitThreshold}% threshold`);
+                            console.log(`📊 [LUNO Worker] SET ${currentSet}: All paths below ${profitThreshold}% threshold`);
                         }
                     } else {
-                        console.log(`📊 [LUNO Worker] No opportunities found in SET ${currentSet}`);
+                        console.log(`📊 [LUNO Worker] SET ${currentSet}: No paths returned from backend`);
                     }
 
                     // Update displays
