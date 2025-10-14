@@ -3831,22 +3831,187 @@
         // LUNO TRIANGULAR ARBITRAGE JAVASCRIPT
         // ============================================================================
 
+        // ========== LUNO AUTOMATED WORKER ==========
+        let lunoWorkerRunning = false;
+        let lunoWorkerStats = {
+            totalScans: 0,
+            totalTrades: 0,
+            successfulTrades: 0,
+            totalProfit: 0
+        };
+
+        async function startLunoWorker() {
+            console.log('🚀 [LUNO Worker] Starting automated trading (sequential mode)...');
+
+            // Read settings from card
+            const apiKey = localStorage.getItem('luno_triangular_api');
+            const apiSecret = localStorage.getItem('luno_triangular_secret');
+            const profitThreshold = parseFloat(document.getElementById('lunoProfitThreshold')?.value) || 0.5;
+            const maxTradeAmount = parseFloat(document.getElementById('lunoMaxTrade')?.value) || 500;
+
+            // Get selected path sets (7 sets available)
+            const selectedSets = [];
+            for (let i = 1; i <= 7; i++) {
+                const checkbox = document.getElementById(`lunoSet${i}Enabled`);
+                if (checkbox && checkbox.checked) {
+                    selectedSets.push(i);
+                }
+            }
+
+            if (selectedSets.length === 0) {
+                alert('⚠️ Please select at least one path set to scan');
+                return;
+            }
+
+            console.log(`📊 [LUNO Worker] Settings: Threshold=${profitThreshold}%, Max Trade=R${maxTradeAmount}, Sets=${selectedSets.join(',')}`);
+
+            // Initialize balance tracking
+            await initializeLunoBalance(apiKey, apiSecret);
+
+            lunoWorkerRunning = true;
+            let currentSetIndex = 0;
+
+            async function scanAndExecuteSequential() {
+                if (!lunoWorkerRunning) {
+                    console.log('🛑 [LUNO Worker] Stopped');
+                    return;
+                }
+
+                try {
+                    const currentSet = selectedSets[currentSetIndex];
+                    console.log(`🔍 [LUNO Worker] Scanning SET ${currentSet}...`);
+
+                    // Scan current set
+                    const scanResponse = await fetch(`${API_BASE}/trading/luno/triangular/scan`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            apiKey,
+                            apiSecret,
+                            paths: [currentSet],
+                            profitThreshold
+                        })
+                    });
+
+                    const scanResult = await scanResponse.json();
+                    lunoWorkerStats.totalScans++;
+
+                    if (scanResult.success && scanResult.data.opportunities && scanResult.data.opportunities.length > 0) {
+                        const opportunities = scanResult.data.opportunities.filter(opp => opp.profitPercentage >= profitThreshold);
+
+                        if (opportunities.length > 0) {
+                            console.log(`✅ [LUNO Worker] Found ${opportunities.length} opportunities above ${profitThreshold}% threshold`);
+
+                            // Execute best opportunity
+                            const bestOpp = opportunities[0];
+                            console.log(`💰 [LUNO Worker] Executing: ${bestOpp.pathId} - ${bestOpp.profitPercentage.toFixed(2)}%`);
+
+                            const execResponse = await fetch(`${API_BASE}/trading/luno/triangular/execute`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    apiKey,
+                                    apiSecret,
+                                    pathId: bestOpp.pathId,
+                                    maxInvestment: maxTradeAmount
+                                })
+                            });
+
+                            const execResult = await execResponse.json();
+
+                            if (execResult.success && execResult.data) {
+                                lunoWorkerStats.totalTrades++;
+                                lunoWorkerStats.successfulTrades++;
+                                lunoWorkerStats.totalProfit += execResult.data.actualProfit || 0;
+                                console.log(`✅ [LUNO Worker] Trade executed successfully!`);
+                                showNotification(`✅ LUNO Trade: ${bestOpp.pathId} +${execResult.data.actualProfit?.toFixed(2)}%`, 'success', 5000);
+                            } else {
+                                // Use error handler
+                                lunoWorkerStats.totalTrades++;
+                                handleLunoExecutionError({ message: execResult.message || 'Unknown error' }, bestOpp);
+                            }
+                        } else {
+                            console.log(`📊 [LUNO Worker] ${scanResult.data.opportunities.length} opportunities found but below ${profitThreshold}% threshold`);
+                        }
+                    } else {
+                        console.log(`📊 [LUNO Worker] No opportunities found in SET ${currentSet}`);
+                    }
+
+                    // Update displays
+                    updateLunoStatsDisplay();
+                    await updateLunoBalance(apiKey, apiSecret);
+                    document.getElementById('lunoLastScan').textContent = new Date().toLocaleTimeString();
+
+                    // Move to next set (sequential)
+                    currentSetIndex = (currentSetIndex + 1) % selectedSets.length;
+
+                    // Continue scanning after delay
+                    setTimeout(scanAndExecuteSequential, 8000); // 8 second delay
+
+                } catch (error) {
+                    console.error('❌ [LUNO Worker] Error:', error);
+                    // Continue even on error
+                    setTimeout(scanAndExecuteSequential, 8000);
+                }
+            }
+
+            // Start the scanning loop
+            scanAndExecuteSequential();
+        }
+
+        function stopLunoWorker() {
+            console.log('🛑 [LUNO Worker] Stopping...');
+            lunoWorkerRunning = false;
+        }
+
+        function updateLunoStatsDisplay() {
+            document.getElementById('lunoTotalTrades').textContent = lunoWorkerStats.totalTrades;
+            document.getElementById('lunoSuccessfulTrades').textContent = lunoWorkerStats.successfulTrades;
+
+            const successRate = lunoWorkerStats.totalTrades > 0
+                ? ((lunoWorkerStats.successfulTrades / lunoWorkerStats.totalTrades) * 100).toFixed(1)
+                : 0;
+            document.getElementById('lunoSuccessRate').textContent = `${successRate}%`;
+
+            document.getElementById('lunoTotalProfit').textContent = `R ${lunoWorkerStats.totalProfit.toFixed(2)}`;
+        }
+
         // Toggle for Luno Triangular trading
-        document.getElementById('lunoTriangularEnabled').addEventListener('click', function() {
+        document.getElementById('lunoTriangularEnabled').addEventListener('click', async function() {
             console.log('🔄 [LUNO] Toggle clicked');
-            this.classList.toggle('active');
+
+            const willBeActive = !this.classList.contains('active');
             const status = document.getElementById('lunoTriangularStatus');
 
-            if (this.classList.contains('active')) {
-                console.log('✅ [LUNO] Live trading enabled');
+            if (willBeActive) {
+                // Check if credentials are configured before enabling
+                const apiKey = localStorage.getItem('luno_triangular_api') || '';
+                const apiSecret = localStorage.getItem('luno_triangular_secret') || '';
+
+                if (!apiKey || !apiSecret) {
+                    showNotification('⚠️ Please configure LUNO API credentials in Strategic API Configuration first!', 'warning');
+                    return; // Don't toggle
+                }
+
+                this.classList.add('active');
                 status.textContent = 'ON';
                 status.style.color = '#00d4ff';
                 localStorage.setItem('lunoTriangularEnabled', 'true');
+
+                // Start automated worker
+                await startLunoWorker();
+
+                showNotification('✅ LUNO automated trading started! Worker scanning every 8 seconds.', 'success');
             } else {
-                console.log('❌ [LUNO] Live trading disabled');
+                this.classList.remove('active');
                 status.textContent = 'OFF';
                 status.style.color = '#ff6b6b';
                 localStorage.setItem('lunoTriangularEnabled', 'false');
+
+                // Stop worker
+                stopLunoWorker();
+
+                showNotification('LUNO automated trading stopped', 'info');
             }
         });
 
