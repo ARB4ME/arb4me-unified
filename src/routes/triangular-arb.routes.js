@@ -9084,7 +9084,7 @@ router.post('/valr/triangular/test-connection', asyncHandler(async (req, res) =>
         });
     } catch (error) {
         systemLogger.error('VALR triangular connection test failed', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             error: error.message
         });
         throw error;
@@ -10211,7 +10211,7 @@ router.post('/valr/triangular/scan', asyncHandler(async (req, res) => {
             : 0;
 
         systemLogger.trading('VALR triangular scan completed', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',  // Make optional since no auth required
             opportunitiesFound: opportunities.length,
             profitableCount: profitableOpportunities.length,
             executeRecommendations: executeRecommendations.length,
@@ -10242,7 +10242,7 @@ router.post('/valr/triangular/scan', asyncHandler(async (req, res) => {
         });
     } catch (error) {
         systemLogger.error('VALR triangular scan failed', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             error: error.message
         });
         throw error;
@@ -10428,7 +10428,7 @@ router.post('/valr/triangular/execute', asyncHandler(async (req, res) => {
         } else {
             // Execution failed
             systemLogger.error('VALR triangular execution failed', {
-                userId: req.user.id,
+                userId: req.user?.id || 'anonymous',
                 executionId: executionResult.executionId,
                 pathId: executionResult.pathId,
                 error: executionResult.error,
@@ -10437,8 +10437,9 @@ router.post('/valr/triangular/execute', asyncHandler(async (req, res) => {
                 simulate
             });
 
-            // Log failed trade to database
-            const logResult = await logTriangularTrade(req.user.id, {
+            // Log failed trade to database (skip if no user)
+            const userId = req.user?.id || null;
+            const logResult = userId ? await logTriangularTrade(userId, {
                 opportunity: currentOpportunity,
                 executionResult: executionResult,
                 dryRun: simulate,
@@ -10448,11 +10449,11 @@ router.post('/valr/triangular/execute', asyncHandler(async (req, res) => {
                 executionTimeMs: executionResult.performance?.totalTime,
                 userAgent: req.headers['user-agent'],
                 ipAddress: req.ip
-            });
+            }) : { success: false };
 
             if (logResult.success) {
                 systemLogger.info('Failed trade logged to database', {
-                    userId: req.user.id,
+                    userId: userId,
                     tradeId: logResult.tradeId,
                     dbId: logResult.dbId
                 });
@@ -10479,7 +10480,7 @@ router.post('/valr/triangular/execute', asyncHandler(async (req, res) => {
         }
     } catch (error) {
         systemLogger.error('VALR triangular execution failed', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             error: error.message
         });
         throw error;
