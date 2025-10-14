@@ -3884,7 +3884,10 @@
                     // Scan current set
                     const scanResponse = await fetch(`${API_BASE}/trading/luno/triangular/scan`, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        },
                         body: JSON.stringify({
                             apiKey,
                             apiSecret,
@@ -3908,7 +3911,10 @@
 
                             const execResponse = await fetch(`${API_BASE}/trading/luno/triangular/execute`, {
                                 method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                                },
                                 body: JSON.stringify({
                                     apiKey,
                                     apiSecret,
@@ -4095,7 +4101,10 @@
                 // Fetch current balance from LUNO (same endpoint as Strategy API Setup page)
                 const response = await fetch(`${API_BASE}/trading/luno/balance`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
                     body: JSON.stringify({ apiKey, apiSecret })
                 });
 
@@ -4151,7 +4160,10 @@
             try {
                 const response = await fetch(`${API_BASE}/trading/luno/balance`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
                     body: JSON.stringify({ apiKey, apiSecret })
                 });
 
