@@ -1525,7 +1525,8 @@ const LUNO_CONFIG = {
         balance: '/api/1/balance',
         ticker: '/api/1/ticker',
         tickers: '/api/1/tickers',
-        order: '/api/1/marketorder'
+        order: '/api/1/marketorder',
+        orderbook: '/api/1/orderbook_top'
     }
 };
 
