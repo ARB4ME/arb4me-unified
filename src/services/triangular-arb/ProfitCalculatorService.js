@@ -159,9 +159,10 @@ class ProfitCalculatorService {
                     }
 
                     price = parseFloat(asks[0].price || asks[0][0]);
-                    const quantity = currentAmount / price;
+                    // Deduct fee from input (quote currency), then convert to base
+                    const amountAfterFee = currentAmount * (1 - feeRate);
+                    outputAmount = amountAfterFee / price;
                     fee = currentAmount * feeRate;
-                    outputAmount = quantity * (1 - feeRate);
 
                 } else {
                     // Selling: use bid price (we receive the bid)
