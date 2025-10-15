@@ -425,19 +425,28 @@
 
                 <!-- Path Categories -->
                 <div class="stat-card">
-                    <h4 style="color: #ffb347; margin-bottom: 15px;">📊 Path Sets (52 Paths in 3 Sets)</h4>
+                    <h4 style="color: #ffb347; margin-bottom: 15px;">📊 Path Sets (24 Paths in 6 Sets)</h4>
                     <div style="display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; max-height: 200px; overflow-y: auto;">
-                        <span style="color: #ffd700; font-size: 0.85rem;">SET 1: USDT Focus (12 paths)</span>
+                        <span style="color: #ffd700; font-size: 0.85rem;">SET 1: ETH Focus (4 paths)</span>
                         <input type="checkbox" id="lunoSet1Enabled" checked>
 
-                        <span style="color: #ffb347; font-size: 0.85rem;">SET 2: ZAR Major (13 paths)</span>
+                        <span style="color: #ffb347; font-size: 0.85rem;">SET 2: SOL Focus (4 paths)</span>
                         <input type="checkbox" id="lunoSet2Enabled" checked>
 
-                        <span style="color: #32cd32; font-size: 0.85rem;">SET 3: ZAR Altcoins (27 paths)</span>
+                        <span style="color: #32cd32; font-size: 0.85rem;">SET 3: XRP Focus (4 paths)</span>
                         <input type="checkbox" id="lunoSet3Enabled" checked>
+
+                        <span style="color: #00d4ff; font-size: 0.85rem;">SET 4: USDT Bridge (4 paths)</span>
+                        <input type="checkbox" id="lunoSet4Enabled" checked>
+
+                        <span style="color: #9370db; font-size: 0.85rem;">SET 5: Altcoins 1 - ADA/DOT (4 paths)</span>
+                        <input type="checkbox" id="lunoSet5Enabled" checked>
+
+                        <span style="color: #ff69b4; font-size: 0.85rem;">SET 6: Altcoins 2 - AVAX/LTC (4 paths)</span>
+                        <input type="checkbox" id="lunoSet6Enabled" checked>
                     </div>
                     <div style="margin-top: 10px; padding: 8px; background: rgba(0,212,255,0.1); border-radius: 6px; font-size: 0.8rem; color: #b8c6db;">
-                        💡 All 3 sets use only ZAR and USDT as start/end currencies (fundable). SET 3 covers 15 altcoins via XBT bridge.
+                        💡 Simple 4-paths-per-set structure matching VALR. All paths use ZAR or USDT (fundable currencies).
                     </div>
                 </div>
 
@@ -4465,7 +4474,7 @@
 
                 // Get enabled path sets
                 const enabledSets = [];
-                for (let i = 1; i <= 3; i++) {
+                for (let i = 1; i <= 6; i++) {
                     const checkbox = document.getElementById(`lunoSet${i}Enabled`);
                     if (checkbox && checkbox.checked) {
                         enabledSets.push(i);
@@ -4553,79 +4562,140 @@
 
                 <div style="background: rgba(0,212,255,0.1); padding: 15px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #00d4ff;">
                     <p style="margin: 0; color: #b8c6db; font-size: 0.95rem;">
-                        💡 <strong style="color: #00d4ff;">52 Total Paths</strong> across 3 sets.
-                        All paths start and end with ZAR or USDT (fundable currencies). XBT, USDT, and USDC used as bridges.
+                        💡 <strong style="color: #00d4ff;">24 Total Paths</strong> across 6 sets (4 paths per set - matching VALR structure).
+                        All paths start and end with ZAR or USDT (fundable currencies).
                     </p>
                 </div>
 
-                <!-- SET 1: USDT FOCUS (12 paths) -->
+                <!-- SET 1: ETH FOCUS (4 paths) -->
                 <div style="background: rgba(0,212,255,0.05); padding: 20px; border-radius: 12px; margin-bottom: 15px; border: 1px solid rgba(0,212,255,0.3);">
                     <h3 style="color: #00d4ff; margin-top: 0; font-size: 1.3rem;">
-                        🔷 SET 1: USDT Focus (12 paths)
+                        🔷 SET 1: ETH Focus (4 paths)
                     </h3>
-                    <p style="color: #b8c6db; font-size: 0.9rem; margin-bottom: 15px;">USDT circular paths via XBT, USDC, and ZAR bridges</p>
-                    <div style="display: grid; gap: 6px; font-family: monospace; font-size: 0.85rem;">
-                        <div style="padding: 8px; background: rgba(0,0,0,0.3); border-radius: 6px;">
-                            <span style="color: #00ff88;">USDT → XBT → ETH/SOL/XRP → USDT</span> <span style="color: #888;">(6 paths)</span>
+                    <p style="color: #b8c6db; font-size: 0.9rem; margin-bottom: 15px;">Ethereum-focused triangular paths</p>
+                    <div style="display: grid; gap: 8px; font-family: monospace; font-size: 0.9rem;">
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            1. <span style="color: #00ff88;">ZAR → XBT → ETH → ZAR</span>
                         </div>
-                        <div style="padding: 8px; background: rgba(0,0,0,0.3); border-radius: 6px;">
-                            <span style="color: #00ff88;">USDT → ZAR → ETH/SOL/XRP/XBT → USDT</span> <span style="color: #888;">(4 paths)</span>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            2. <span style="color: #00ff88;">ZAR → ETH → XBT → ZAR</span>
                         </div>
-                        <div style="padding: 8px; background: rgba(0,0,0,0.3); border-radius: 6px;">
-                            <span style="color: #00ff88;">USDT → USDC → ETH → USDT</span> <span style="color: #888;">(1 path)</span>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            3. <span style="color: #00ff88;">USDT → XBT → ETH → USDT</span>
                         </div>
-                        <div style="padding: 8px; background: rgba(0,0,0,0.3); border-radius: 6px;">
-                            <span style="color: #00ff88;">USDT → INJ → ZAR → USDT</span> <span style="color: #888;">(1 path)</span>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            4. <span style="color: #00ff88;">USDT → ETH → XBT → USDT</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- SET 2: ZAR MAJOR (13 paths) -->
+                <!-- SET 2: SOL FOCUS (4 paths) -->
                 <div style="background: rgba(0,212,255,0.05); padding: 20px; border-radius: 12px; margin-bottom: 15px; border: 1px solid rgba(0,212,255,0.3);">
                     <h3 style="color: #00d4ff; margin-top: 0; font-size: 1.3rem;">
-                        🔷 SET 2: ZAR Major Coins (13 paths)
+                        🔷 SET 2: SOL Focus (4 paths)
                     </h3>
-                    <p style="color: #b8c6db; font-size: 0.9rem; margin-bottom: 15px;">ZAR circular paths with ETH, SOL, XRP, INJ via XBT, USDT, USDC bridges</p>
-                    <div style="display: grid; gap: 6px; font-family: monospace; font-size: 0.85rem;">
-                        <div style="padding: 8px; background: rgba(0,0,0,0.3); border-radius: 6px;">
-                            <span style="color: #00ff88;">ZAR → XBT → ETH/SOL/XRP → ZAR</span> <span style="color: #888;">(6 paths)</span>
+                    <p style="color: #b8c6db; font-size: 0.9rem; margin-bottom: 15px;">Solana-focused triangular paths</p>
+                    <div style="display: grid; gap: 8px; font-family: monospace; font-size: 0.9rem;">
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            1. <span style="color: #00ff88;">ZAR → XBT → SOL → ZAR</span>
                         </div>
-                        <div style="padding: 8px; background: rgba(0,0,0,0.3); border-radius: 6px;">
-                            <span style="color: #00ff88;">ZAR → USDT → ETH/SOL/XRP/XBT → ZAR</span> <span style="color: #888;">(4 paths)</span>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            2. <span style="color: #00ff88;">ZAR → SOL → XBT → ZAR</span>
                         </div>
-                        <div style="padding: 8px; background: rgba(0,0,0,0.3); border-radius: 6px;">
-                            <span style="color: #00ff88;">ZAR → INJ → USDT → ZAR</span> <span style="color: #888;">(1 path)</span>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            3. <span style="color: #00ff88;">USDT → XBT → SOL → USDT</span>
                         </div>
-                        <div style="padding: 8px; background: rgba(0,0,0,0.3); border-radius: 6px;">
-                            <span style="color: #00ff88;">ZAR → USDC → ETH → ZAR</span> <span style="color: #888;">(1 path)</span>
-                        </div>
-                        <div style="padding: 8px; background: rgba(0,0,0,0.3); border-radius: 6px;">
-                            <span style="color: #00ff88;">ZAR → ETH/SOL/XRP → XBT → ZAR</span> <span style="color: #888;">(1 reverse path)</span>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            4. <span style="color: #00ff88;">USDT → SOL → XBT → USDT</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- SET 3: ZAR ALTCOINS (27 paths) -->
+                <!-- SET 3: XRP FOCUS (4 paths) -->
                 <div style="background: rgba(0,212,255,0.05); padding: 20px; border-radius: 12px; margin-bottom: 15px; border: 1px solid rgba(0,212,255,0.3);">
                     <h3 style="color: #00d4ff; margin-top: 0; font-size: 1.3rem;">
-                        🔷 SET 3: ZAR Altcoins (27 paths)
+                        🔷 SET 3: XRP Focus (4 paths)
                     </h3>
-                    <p style="color: #b8c6db; font-size: 0.9rem; margin-bottom: 15px;">15 Altcoins via XBT bridge - comprehensive coverage</p>
-                    <div style="display: grid; gap: 6px; font-family: monospace; font-size: 0.85rem;">
-                        <div style="padding: 8px; background: rgba(0,0,0,0.3); border-radius: 6px;">
-                            <span style="color: #00ff88;">ZAR → ADA/DOT/AVAX/LTC/ALGO → XBT → ZAR</span> <span style="color: #888;">(10 paths)</span>
+                    <p style="color: #b8c6db; font-size: 0.9rem; margin-bottom: 15px;">Ripple-focused triangular paths</p>
+                    <div style="display: grid; gap: 8px; font-family: monospace; font-size: 0.9rem;">
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            1. <span style="color: #00ff88;">ZAR → XBT → XRP → ZAR</span>
                         </div>
-                        <div style="padding: 8px; background: rgba(0,0,0,0.3); border-radius: 6px;">
-                            <span style="color: #00ff88;">ZAR → ATOM/CRV/GRT/NEAR/POL → XBT → ZAR</span> <span style="color: #888;">(10 paths)</span>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            2. <span style="color: #00ff88;">ZAR → XRP → XBT → ZAR</span>
                         </div>
-                        <div style="padding: 8px; background: rgba(0,0,0,0.3); border-radius: 6px;">
-                            <span style="color: #00ff88;">ZAR → SAND/SNX/TRX/XLM/SONIC → XBT → ZAR</span> <span style="color: #888;">(7 paths)</span>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            3. <span style="color: #00ff88;">USDT → XBT → XRP → USDT</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            4. <span style="color: #00ff88;">USDT → XRP → XBT → USDT</span>
                         </div>
                     </div>
-                    <div style="margin-top: 15px; padding: 10px; background: rgba(50,205,50,0.1); border-radius: 6px; border-left: 3px solid #32cd32;">
-                        <p style="margin: 0; color: #b8c6db; font-size: 0.85rem;">
-                            ⭐ <strong style="color: #32cd32;">Each altcoin has 2 paths:</strong> Forward (ZAR→ALTCOIN→XBT→ZAR) and Reverse (ZAR→XBT→ALTCOIN→ZAR)
-                        </p>
+                </div>
+
+                <!-- SET 4: USDT BRIDGE (4 paths) -->
+                <div style="background: rgba(0,212,255,0.05); padding: 20px; border-radius: 12px; margin-bottom: 15px; border: 1px solid rgba(0,212,255,0.3);">
+                    <h3 style="color: #00d4ff; margin-top: 0; font-size: 1.3rem;">
+                        🔷 SET 4: USDT Bridge (4 paths)
+                    </h3>
+                    <p style="color: #b8c6db; font-size: 0.9rem; margin-bottom: 15px;">ZAR paths via USDT intermediary</p>
+                    <div style="display: grid; gap: 8px; font-family: monospace; font-size: 0.9rem;">
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            1. <span style="color: #00ff88;">ZAR → USDT → XBT → ZAR</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            2. <span style="color: #00ff88;">ZAR → USDT → ETH → ZAR</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            3. <span style="color: #00ff88;">ZAR → USDT → SOL → ZAR</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            4. <span style="color: #00ff88;">ZAR → USDT → XRP → ZAR</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SET 5: ALTCOINS 1 (4 paths) -->
+                <div style="background: rgba(0,212,255,0.05); padding: 20px; border-radius: 12px; margin-bottom: 15px; border: 1px solid rgba(0,212,255,0.3);">
+                    <h3 style="color: #00d4ff; margin-top: 0; font-size: 1.3rem;">
+                        🔷 SET 5: Altcoins 1 - ADA/DOT (4 paths)
+                    </h3>
+                    <p style="color: #b8c6db; font-size: 0.9rem; margin-bottom: 15px;">Cardano and Polkadot paths</p>
+                    <div style="display: grid; gap: 8px; font-family: monospace; font-size: 0.9rem;">
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            1. <span style="color: #00ff88;">ZAR → XBT → ADA → ZAR</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            2. <span style="color: #00ff88;">ZAR → ADA → XBT → ZAR</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            3. <span style="color: #00ff88;">ZAR → XBT → DOT → ZAR</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            4. <span style="color: #00ff88;">ZAR → DOT → XBT → ZAR</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SET 6: ALTCOINS 2 (4 paths) -->
+                <div style="background: rgba(0,212,255,0.05); padding: 20px; border-radius: 12px; margin-bottom: 15px; border: 1px solid rgba(0,212,255,0.3);">
+                    <h3 style="color: #00d4ff; margin-top: 0; font-size: 1.3rem;">
+                        🔷 SET 6: Altcoins 2 - AVAX/LTC (4 paths)
+                    </h3>
+                    <p style="color: #b8c6db; font-size: 0.9rem; margin-bottom: 15px;">Avalanche and Litecoin paths</p>
+                    <div style="display: grid; gap: 8px; font-family: monospace; font-size: 0.9rem;">
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            1. <span style="color: #00ff88;">ZAR → XBT → AVAX → ZAR</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            2. <span style="color: #00ff88;">ZAR → AVAX → XBT → ZAR</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            3. <span style="color: #00ff88;">ZAR → XBT → LTC → ZAR</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            4. <span style="color: #00ff88;">ZAR → LTC → XBT → ZAR</span>
+                        </div>
                     </div>
                 </div>
             `;
@@ -4695,8 +4765,8 @@
                 profitThreshold: document.getElementById('lunoProfitThreshold').value
             };
 
-            // Save path set states (3 sets for Luno)
-            for (let i = 1; i <= 3; i++) {
+            // Save path set states (6 sets for Luno)
+            for (let i = 1; i <= 6; i++) {
                 const checkbox = document.getElementById(`lunoSet${i}Enabled`);
                 if (checkbox) {
                     settings[`set${i}Enabled`] = checkbox.checked;
@@ -4739,8 +4809,8 @@
                 input.addEventListener('change', saveLunoTriangularSettings);
             });
 
-            // Add event listeners for Luno checkboxes (3 sets)
-            for (let i = 1; i <= 3; i++) {
+            // Add event listeners for Luno checkboxes (6 sets)
+            for (let i = 1; i <= 6; i++) {
                 const checkbox = document.getElementById(`lunoSet${i}Enabled`);
                 if (checkbox) {
                     checkbox.addEventListener('change', saveLunoTriangularSettings);
