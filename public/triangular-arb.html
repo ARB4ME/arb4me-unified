@@ -6857,6 +6857,73 @@
             `;
         }
 
+        // Perform a single ByBit scan
+        async function performBybitScan(apiKey, apiSecret) {
+            try {
+                bybitWorkerStats.totalScans++;
+                console.log(`🔍 [BYBIT Worker] Scan #${bybitWorkerStats.totalScans} starting...`);
+
+                // Get enabled path sets
+                const enabledSets = [];
+                for (let i = 1; i <= 5; i++) {
+                    const checkbox = document.getElementById(`bybitSet${i}Enabled`);
+                    if (checkbox && checkbox.checked) {
+                        enabledSets.push(i);
+                    }
+                }
+
+                if (enabledSets.length === 0) {
+                    console.warn('⚠️ [BYBIT Worker] No path sets enabled');
+                    return;
+                }
+
+                console.log(`📋 [BYBIT Worker] Scanning with enabled sets: [${enabledSets.join(', ')}]`);
+
+                // Scan for opportunities
+                const response = await fetch('/api/v1/trading/bybit/triangular/scan', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        apiKey,
+                        apiSecret,
+                        paths: enabledSets
+                    })
+                });
+
+                console.log(`📡 [BYBIT Worker] Response status: ${response.status} ${response.statusText}`);
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error(`❌ [BYBIT Worker] API error (${response.status}):`, errorText);
+                    return;
+                }
+
+                const result = await response.json();
+                console.log(`📦 [BYBIT Worker] Response data:`, result);
+
+                if (result.success) {
+                    const oppCount = result.data?.opportunities?.length || 0;
+                    bybitWorkerStats.totalOpportunities += oppCount;
+
+                    console.log(`✅ [BYBIT Worker] Scan complete: ${oppCount} opportunities found`);
+                    document.getElementById('bybitLastScan').textContent = new Date().toLocaleTimeString();
+
+                    if (oppCount > 0) {
+                        console.log(`💰 [BYBIT Worker] Opportunities:`, result.data.opportunities);
+                    }
+                } else {
+                    console.warn(`⚠️ [BYBIT Worker] Scan unsuccessful:`, result.message || 'Unknown error');
+                }
+
+                // Update balance after scan
+                await updateBybitBalance(apiKey, apiSecret);
+
+            } catch (error) {
+                console.error('❌ [BYBIT Worker] Scan error:', error);
+                console.error('❌ [BYBIT Worker] Error stack:', error.stack);
+            }
+        }
+
         // Start ByBit automated worker
         async function startBybitWorker() {
             console.log('🔄 [BYBIT Worker] Starting automated scanning...');
@@ -6872,53 +6939,13 @@
             // Initialize balance tracking
             await initializeBybitBalance(apiKey, apiSecret);
 
+            // Perform immediate first scan
+            console.log('🚀 [BYBIT Worker] Performing immediate first scan...');
+            await performBybitScan(apiKey, apiSecret);
+
             // Start scanning every 30 seconds
             bybitWorkerInterval = setInterval(async () => {
-                try {
-                    bybitWorkerStats.totalScans++;
-                    console.log(`🔍 [BYBIT Worker] Scan #${bybitWorkerStats.totalScans} starting...`);
-
-                    // Get enabled path sets
-                    const enabledSets = [];
-                    for (let i = 1; i <= 5; i++) {
-                        const checkbox = document.getElementById(`bybitSet${i}Enabled`);
-                        if (checkbox && checkbox.checked) {
-                            enabledSets.push(i);
-                        }
-                    }
-
-                    if (enabledSets.length === 0) {
-                        console.warn('⚠️ [BYBIT Worker] No path sets enabled');
-                        return;
-                    }
-
-                    // Scan for opportunities
-                    const response = await fetch('/api/v1/trading/bybit/triangular/scan', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            apiKey,
-                            apiSecret,
-                            paths: enabledSets
-                        })
-                    });
-
-                    const result = await response.json();
-
-                    if (result.success) {
-                        const oppCount = result.data.opportunities?.length || 0;
-                        bybitWorkerStats.totalOpportunities += oppCount;
-
-                        console.log(`✅ [BYBIT Worker] Scan complete: ${oppCount} opportunities found`);
-                        document.getElementById('bybitLastScan').textContent = new Date().toLocaleTimeString();
-                    }
-
-                    // Update balance after scan
-                    await updateBybitBalance(apiKey, apiSecret);
-
-                } catch (error) {
-                    console.error('❌ [BYBIT Worker] Scan error:', error);
-                }
+                await performBybitScan(apiKey, apiSecret);
             }, 30000); // 30 seconds
 
             console.log('✅ [BYBIT Worker] Automated scanning started (30s interval)');
