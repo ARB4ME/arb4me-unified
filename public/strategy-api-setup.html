@@ -3010,9 +3010,9 @@
                 }
 
                 try {
-                    // For Binance, Bitget, BitMart, and Bitrue: Use direct API calls (same as Currency Swap and original setup)
+                    // For Binance, Bitget, BitMart, Bitrue, and Kraken: Use direct API calls (same as Currency Swap and original setup)
                     // For other exchanges: Try parent window getRealBalances first
-                    const useDirectAPI = ['binance', 'bitget', 'bitmart', 'bitrue'].includes(exchange);
+                    const useDirectAPI = ['binance', 'bitget', 'bitmart', 'bitrue', 'kraken'].includes(exchange);
 
                     let balances;
 
