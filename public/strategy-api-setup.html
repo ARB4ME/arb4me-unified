@@ -3287,7 +3287,7 @@
                     // CRITICAL FIX: Save credentials to localStorage so triangular-arb page can find them
                     // Each exchange's triangular-arb card expects specific localStorage keys
                     const storageKeyMap = {
-                        'valr': { api: 'valr_api', secret: 'valr_secret' },
+                        'valr': { api: 'valr_triangular_api', secret: 'valr_triangular_secret' },
                         'luno': { api: 'luno_triangular_api', secret: 'luno_triangular_secret' },
                         'chainex': { api: 'chainex_triangular_api', secret: 'chainex_triangular_secret' },
                         'kraken': { api: 'kraken_triangular_api', secret: 'kraken_triangular_secret' },
