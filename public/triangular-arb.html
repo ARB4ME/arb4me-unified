@@ -5730,35 +5730,305 @@
         // KRAKEN TRIANGULAR ARBITRAGE JAVASCRIPT
         // ============================================================================
 
+        // Worker stats tracking
+        let krakenWorkerStats = {
+            totalScans: 0,
+            totalOpportunities: 0,
+            totalTrades: 0,
+            successfulTrades: 0,
+            totalProfit: 0,
+            bestPath: null,
+            bestProfit: 0
+        };
+
+        // Balance tracking (USD, USDT, USDC)
+        let krakenBalanceTracking = {
+            startingUSD: null,
+            startingUSDT: null,
+            startingUSDC: null,
+            currentUSD: 0,
+            currentUSDT: 0,
+            currentUSDC: 0
+        };
+
+        // Alerts tracking
+        let krakenAlerts = [];
+        let krakenWorkerInterval = null;
+
+        // Initialize Kraken balance on page load
+        async function initializeKrakenBalance(apiKey, apiSecret) {
+            try {
+                // Fetch current balance from Kraken
+                const response = await fetch('/api/v1/trading/kraken/balance', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ apiKey, apiSecret })
+                });
+
+                const result = await response.json();
+                console.log('💰 [KRAKEN Balance] API Response:', result);
+
+                if (result.success && result.data && result.data.balances) {
+                    const balances = result.data.balances;
+                    const currentUSD = balances.USD ? parseFloat(balances.USD) : 0;
+                    const currentUSDT = balances.USDT ? parseFloat(balances.USDT) : 0;
+                    const currentUSDC = balances.USDC ? parseFloat(balances.USDC) : 0;
+
+                    // Check if starting balance is already set
+                    const stored = localStorage.getItem('krakenStartingBalance');
+                    if (stored) {
+                        const parsed = JSON.parse(stored);
+                        krakenBalanceTracking.startingUSD = parsed.usd;
+                        krakenBalanceTracking.startingUSDT = parsed.usdt;
+                        krakenBalanceTracking.startingUSDC = parsed.usdc;
+                    } else {
+                        // First time - set current as starting
+                        krakenBalanceTracking.startingUSD = currentUSD;
+                        krakenBalanceTracking.startingUSDT = currentUSDT;
+                        krakenBalanceTracking.startingUSDC = currentUSDC;
+                        localStorage.setItem('krakenStartingBalance', JSON.stringify({
+                            usd: currentUSD,
+                            usdt: currentUSDT,
+                            usdc: currentUSDC
+                        }));
+                    }
+
+                    krakenBalanceTracking.currentUSD = currentUSD;
+                    krakenBalanceTracking.currentUSDT = currentUSDT;
+                    krakenBalanceTracking.currentUSDC = currentUSDC;
+
+                    updateKrakenBalanceDisplay();
+                    console.log('✅ [KRAKEN Balance] Initialized:', krakenBalanceTracking);
+                }
+            } catch (error) {
+                console.error('❌ [KRAKEN Balance] Failed to initialize:', error);
+            }
+        }
+
+        // Update Kraken balance
+        async function updateKrakenBalance(apiKey, apiSecret) {
+            try {
+                const response = await fetch('/api/v1/trading/kraken/balance', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ apiKey, apiSecret })
+                });
+
+                const result = await response.json();
+
+                if (result.success && result.data && result.data.balances) {
+                    const balances = result.data.balances;
+                    krakenBalanceTracking.currentUSD = balances.USD ? parseFloat(balances.USD) : 0;
+                    krakenBalanceTracking.currentUSDT = balances.USDT ? parseFloat(balances.USDT) : 0;
+                    krakenBalanceTracking.currentUSDC = balances.USDC ? parseFloat(balances.USDC) : 0;
+
+                    updateKrakenBalanceDisplay();
+                }
+            } catch (error) {
+                console.error('❌ [KRAKEN Balance] Update failed:', error);
+            }
+        }
+
+        // Update Kraken balance display
+        function updateKrakenBalanceDisplay() {
+            // Update starting balances
+            document.getElementById('krakenStartingUSD').textContent = `$${krakenBalanceTracking.startingUSD?.toFixed(2) || '0.00'}`;
+            document.getElementById('krakenStartingUSDT').textContent = `$${krakenBalanceTracking.startingUSDT?.toFixed(2) || '0.00'}`;
+            document.getElementById('krakenStartingUSDC').textContent = `$${krakenBalanceTracking.startingUSDC?.toFixed(2) || '0.00'}`;
+
+            // Update current balances
+            document.getElementById('krakenCurrentUSD').textContent = `$${krakenBalanceTracking.currentUSD.toFixed(2)}`;
+            document.getElementById('krakenCurrentUSDT').textContent = `$${krakenBalanceTracking.currentUSDT.toFixed(2)}`;
+            document.getElementById('krakenCurrentUSDC').textContent = `$${krakenBalanceTracking.currentUSDC.toFixed(2)}`;
+
+            // Calculate and display changes for USD
+            if (krakenBalanceTracking.startingUSD) {
+                const usdChange = krakenBalanceTracking.currentUSD - krakenBalanceTracking.startingUSD;
+                const usdChangePercent = (usdChange / krakenBalanceTracking.startingUSD * 100).toFixed(2);
+                const usdColor = usdChange >= 0 ? '#00ff00' : '#ff4444';
+                const usdSign = usdChange >= 0 ? '+' : '';
+                document.getElementById('krakenChangeUSD').innerHTML = `<span style="color: ${usdColor}">${usdSign}$${usdChange.toFixed(2)} (${usdSign}${usdChangePercent}%)</span>`;
+            }
+
+            // Calculate and display changes for USDT
+            if (krakenBalanceTracking.startingUSDT) {
+                const usdtChange = krakenBalanceTracking.currentUSDT - krakenBalanceTracking.startingUSDT;
+                const usdtChangePercent = (usdtChange / krakenBalanceTracking.startingUSDT * 100).toFixed(2);
+                const usdtColor = usdtChange >= 0 ? '#00ff00' : '#ff4444';
+                const usdtSign = usdtChange >= 0 ? '+' : '';
+                document.getElementById('krakenChangeUSDT').innerHTML = `<span style="color: ${usdtColor}">${usdtSign}$${usdtChange.toFixed(2)} (${usdtSign}${usdtChangePercent}%)</span>`;
+            }
+
+            // Calculate and display changes for USDC
+            if (krakenBalanceTracking.startingUSDC) {
+                const usdcChange = krakenBalanceTracking.currentUSDC - krakenBalanceTracking.startingUSDC;
+                const usdcChangePercent = (usdcChange / krakenBalanceTracking.startingUSDC * 100).toFixed(2);
+                const usdcColor = usdcChange >= 0 ? '#00ff00' : '#ff4444';
+                const usdcSign = usdcChange >= 0 ? '+' : '';
+                document.getElementById('krakenChangeUSDC').innerHTML = `<span style="color: ${usdcColor}">${usdcSign}$${usdcChange.toFixed(2)} (${usdcSign}${usdcChangePercent}%)</span>`;
+            }
+
+            // Update last updated time
+            document.getElementById('krakenBalanceLastUpdate').textContent = new Date().toLocaleTimeString();
+        }
+
+        // Start Kraken automated worker
+        async function startKrakenWorker() {
+            console.log('🚀 [KRAKEN Worker] Starting automated scanning...');
+
+            const apiKey = localStorage.getItem('kraken_triangular_api');
+            const apiSecret = localStorage.getItem('kraken_triangular_secret');
+
+            if (!apiKey || !apiSecret) {
+                console.error('❌ [KRAKEN Worker] Missing credentials');
+                return;
+            }
+
+            // Initialize balance tracking
+            await initializeKrakenBalance(apiKey, apiSecret);
+
+            // Scan every 30 seconds (Kraken has stricter rate limits)
+            krakenWorkerInterval = setInterval(async () => {
+                try {
+                    console.log('🔍 [KRAKEN Worker] Scanning for opportunities...');
+
+                    // Get enabled sets
+                    const enabledSets = [];
+                    for (let i = 1; i <= 10; i++) {
+                        const checkbox = document.getElementById(`krakenSet${i}Enabled`);
+                        if (checkbox && checkbox.checked) {
+                            enabledSets.push(i);
+                        }
+                    }
+
+                    if (enabledSets.length === 0) {
+                        console.warn('⚠️ [KRAKEN Worker] No path sets enabled');
+                        return;
+                    }
+
+                    // Scan for opportunities
+                    const response = await fetch('/api/v1/trading/kraken/triangular/scan', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            apiKey,
+                            apiSecret,
+                            enabledSets,
+                            minProfitPercent: parseFloat(document.getElementById('krakenProfitThreshold')?.value) || 0.5,
+                            startAmount: parseFloat(document.getElementById('krakenMaxTrade')?.value) || 1000
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success && result.data) {
+                        krakenWorkerStats.totalScans++;
+                        const opps = result.data.opportunities || [];
+                        krakenWorkerStats.totalOpportunities += opps.length;
+
+                        console.log(`✅ [KRAKEN Worker] Scan complete: ${opps.length} opportunities found`);
+
+                        // Update balance
+                        await updateKrakenBalance(apiKey, apiSecret);
+                    }
+                } catch (error) {
+                    console.error('❌ [KRAKEN Worker] Scan error:', error);
+                }
+            }, 30000); // 30 seconds
+
+            console.log('✅ [KRAKEN Worker] Started (scanning every 30 seconds)');
+        }
+
+        // Stop Kraken automated worker
+        function stopKrakenWorker() {
+            if (krakenWorkerInterval) {
+                clearInterval(krakenWorkerInterval);
+                krakenWorkerInterval = null;
+                console.log('🛑 [KRAKEN Worker] Stopped');
+            }
+        }
+
         // Toggle for Kraken Triangular trading
-        document.getElementById('krakenTriangularEnabled').addEventListener('click', function() {
+        document.getElementById('krakenTriangularEnabled').addEventListener('click', async function() {
             console.log('🔄 [KRAKEN] Toggle clicked');
-            this.classList.toggle('active');
+
+            const willBeActive = !this.classList.contains('active');
             const status = document.getElementById('krakenTriangularStatus');
 
-            if (this.classList.contains('active')) {
+            if (willBeActive) {
+                // Check if credentials are configured before enabling
+                const apiKey = localStorage.getItem('kraken_triangular_api');
+                const apiSecret = localStorage.getItem('kraken_triangular_secret');
+
+                if (!apiKey || !apiSecret) {
+                    alert('⚠️ Please configure Kraken API credentials in Strategic API Configuration first!');
+                    return; // Don't toggle
+                }
+
+                // Check if at least one path set is selected
+                let hasSelectedPaths = false;
+                for (let i = 1; i <= 10; i++) {
+                    const checkbox = document.getElementById(`krakenSet${i}Enabled`);
+                    if (checkbox && checkbox.checked) {
+                        hasSelectedPaths = true;
+                        break;
+                    }
+                }
+
+                if (!hasSelectedPaths) {
+                    alert('⚠️ Please select at least one path set before enabling live trading!');
+                    return; // Don't toggle
+                }
+
                 console.log('✅ [KRAKEN] Live trading enabled');
+                this.classList.add('active');
                 status.textContent = 'ON';
                 status.style.color = '#9966ff';
                 localStorage.setItem('krakenTriangularEnabled', 'true');
+
+                // Start automated worker
+                await startKrakenWorker();
+
+                console.log('✅ KRAKEN automated trading started! Worker scanning every 30 seconds.');
             } else {
                 console.log('❌ [KRAKEN] Live trading disabled');
+
+                // Stop automated worker
+                stopKrakenWorker();
+
+                this.classList.remove('active');
                 status.textContent = 'OFF';
                 status.style.color = '#ff6b6b';
                 localStorage.setItem('krakenTriangularEnabled', 'false');
+                console.log('KRAKEN automated trading stopped');
             }
         });
 
         // Load saved Kraken toggle state on page load
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
             const krakenEnabled = localStorage.getItem('krakenTriangularEnabled') === 'true';
             const toggle = document.getElementById('krakenTriangularEnabled');
             const status = document.getElementById('krakenTriangularStatus');
+
+            // Initialize balance display if credentials exist (regardless of worker state)
+            const apiKey = localStorage.getItem('kraken_triangular_api');
+            const apiSecret = localStorage.getItem('kraken_triangular_secret');
+
+            if (apiKey && apiSecret) {
+                console.log('💰 [KRAKEN Balance] Fetching balance on page load...');
+                await initializeKrakenBalance(apiKey, apiSecret);
+            }
 
             if (krakenEnabled) {
                 toggle.classList.add('active');
                 status.textContent = 'ON';
                 status.style.color = '#9966ff';
+
+                // Auto-start worker if toggle was left ON
+                if (apiKey && apiSecret) {
+                    console.log('🔄 [KRAKEN] Auto-starting worker from saved state...');
+                    await startKrakenWorker();
+                }
             }
 
             // Load Kraken settings
