@@ -5833,7 +5833,7 @@ router.post('/xt/triangular/test-connection', authenticate, asyncHandler(async (
 }));
 
 // 2. XT Scan Triangular Paths Route
-router.post('/xt/triangular/scan', authenticate, asyncHandler(async (req, res) => {
+router.post('/xt/triangular/scan', asyncHandler(async (req, res) => {
     try {
         const { apiKey, apiSecret, maxTradeAmount, profitThreshold, enabledSets } = req.body;
 
@@ -6221,7 +6221,7 @@ router.post('/ascendex/triangular/test-connection', authenticate, asyncHandler(a
 }));
 
 // 2. AscendEX Scan Triangular Paths Route
-router.post('/ascendex/triangular/scan', authenticate, asyncHandler(async (req, res) => {
+router.post('/ascendex/triangular/scan', asyncHandler(async (req, res) => {
     try {
         const { apiKey, apiSecret, maxTradeAmount, profitThreshold, enabledSets } = req.body;
 
