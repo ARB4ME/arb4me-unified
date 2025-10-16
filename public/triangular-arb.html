@@ -4991,61 +4991,189 @@
             }
         }
 
-        // View ChainEX Path Details
+        // View ChainEX Path Details - Custom Modal
         function viewChainExPathDetails() {
-            const pathDetails = `
-📋 CHAINEX Triangular Arbitrage Paths (22 Total)
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.8);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 10000;
+                backdrop-filter: blur(5px);
+            `;
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 1: Essential BTC Bridge (6 paths) ✅ DEFAULT
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. ZAR → BTC → ETH → ZAR
-2. ZAR → BTC → XRP → ZAR
-3. ZAR → BTC → LTC → ZAR
-4. ZAR → BTC → DOGE → ZAR
-5. ZAR → BTC → ADA → ZAR
-6. ZAR → BTC → SOL → ZAR
+            const modalContent = document.createElement('div');
+            modalContent.style.cssText = `
+                background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+                padding: 30px;
+                border-radius: 15px;
+                max-width: 900px;
+                max-height: 80vh;
+                overflow-y: auto;
+                box-shadow: 0 20px 60px rgba(0, 212, 255, 0.3);
+                border: 2px solid #00d4ff;
+            `;
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 2: ETH Secondary Bridge (5 paths) ✅ DEFAULT
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. ZAR → ETH → BTC → ZAR
-2. ZAR → ETH → SOL → ZAR
-3. ZAR → ETH → ADA → ZAR
-4. ZAR → ETH → DOT → ZAR
-5. ZAR → ETH → LINK → ZAR
+            modalContent.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                    <h2 style="color: #00d4ff; margin: 0; font-size: 1.8rem;">
+                        📋 CHAINEX Triangular Arbitrage Paths
+                    </h2>
+                    <button onclick="this.closest('[style*=\\'position: fixed\\']').remove()"
+                            style="background: rgba(255,0,0,0.2); border: 1px solid #ff4444; color: #ff4444;
+                                   padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 1.2rem;">
+                        ✕
+                    </button>
+                </div>
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 3: USDT Bridge (5 paths)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. ZAR → USDT → BTC → ZAR
-2. ZAR → USDT → ETH → ZAR
-3. ZAR → USDT → XRP → ZAR
-4. ZAR → USDT → SOL → ZAR
-5. ZAR → USDT → ADA → ZAR
+                <div style="background: rgba(0,212,255,0.1); padding: 15px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #00d4ff;">
+                    <p style="margin: 0; color: #b8c6db; font-size: 0.95rem;">
+                        💡 <strong style="color: #00d4ff;">22 Total Paths</strong> across 5 sets.
+                        🇿🇦 South African exchange - ZAR based paths.
+                    </p>
+                </div>
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 4: SOL Bridge (3 paths)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. ZAR → SOL → BTC → ZAR
-2. ZAR → SOL → ETH → ZAR
-3. ZAR → SOL → XRP → ZAR
+                <!-- SET 1: Essential BTC Bridge (6 paths) -->
+                <div style="background: rgba(0,212,255,0.05); padding: 20px; border-radius: 12px; margin-bottom: 15px; border: 1px solid rgba(0,212,255,0.3);">
+                    <h3 style="color: #00d4ff; margin-top: 0; font-size: 1.3rem;">
+                        🔷 SET 1: Essential BTC Bridge (6 paths) ✅ DEFAULT
+                    </h3>
+                    <p style="color: #b8c6db; font-size: 0.9rem; margin-bottom: 15px;">Bitcoin-focused triangular paths</p>
+                    <div style="display: grid; gap: 8px; font-family: monospace; font-size: 0.9rem;">
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            1. <span style="color: #00ff88;">ZAR → BTC → ETH → ZAR</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            2. <span style="color: #00ff88;">ZAR → BTC → XRP → ZAR</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            3. <span style="color: #00ff88;">ZAR → BTC → LTC → ZAR</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            4. <span style="color: #00ff88;">ZAR → BTC → DOGE → ZAR</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            5. <span style="color: #00ff88;">ZAR → BTC → ADA → ZAR</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            6. <span style="color: #00ff88;">ZAR → BTC → SOL → ZAR</span>
+                        </div>
+                    </div>
+                </div>
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 5: Altcoin Extended (3 paths)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. ZAR → ADA → BTC → ZAR
-2. ZAR → DOGE → BTC → ZAR
-3. ZAR → DOT → ETH → ZAR
+                <!-- SET 2: ETH Secondary Bridge (5 paths) -->
+                <div style="background: rgba(0,212,255,0.05); padding: 20px; border-radius: 12px; margin-bottom: 15px; border: 1px solid rgba(0,212,255,0.3);">
+                    <h3 style="color: #00d4ff; margin-top: 0; font-size: 1.3rem;">
+                        🔷 SET 2: ETH Secondary Bridge (5 paths) ✅ DEFAULT
+                    </h3>
+                    <p style="color: #b8c6db; font-size: 0.9rem; margin-bottom: 15px;">Ethereum-focused triangular paths</p>
+                    <div style="display: grid; gap: 8px; font-family: monospace; font-size: 0.9rem;">
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            1. <span style="color: #00ff88;">ZAR → ETH → BTC → ZAR</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            2. <span style="color: #00ff88;">ZAR → ETH → SOL → ZAR</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            3. <span style="color: #00ff88;">ZAR → ETH → ADA → ZAR</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            4. <span style="color: #00ff88;">ZAR → ETH → DOT → ZAR</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            5. <span style="color: #00ff88;">ZAR → ETH → LINK → ZAR</span>
+                        </div>
+                    </div>
+                </div>
 
-💡 TOTAL: 22 paths (all 3-leg)
-🌉 BRIDGE: ZAR (South African Rand)
-🇿🇦 REGIONAL: South African crypto exchange
-🔐 AUTH: API Key + Secret
-            `.trim();
+                <!-- SET 3: USDT Bridge (5 paths) -->
+                <div style="background: rgba(0,212,255,0.05); padding: 20px; border-radius: 12px; margin-bottom: 15px; border: 1px solid rgba(0,212,255,0.3);">
+                    <h3 style="color: #00d4ff; margin-top: 0; font-size: 1.3rem;">
+                        🔷 SET 3: USDT Bridge (5 paths)
+                    </h3>
+                    <p style="color: #b8c6db; font-size: 0.9rem; margin-bottom: 15px;">ZAR paths via USDT intermediary</p>
+                    <div style="display: grid; gap: 8px; font-family: monospace; font-size: 0.9rem;">
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            1. <span style="color: #00ff88;">ZAR → USDT → BTC → ZAR</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            2. <span style="color: #00ff88;">ZAR → USDT → ETH → ZAR</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            3. <span style="color: #00ff88;">ZAR → USDT → XRP → ZAR</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            4. <span style="color: #00ff88;">ZAR → USDT → SOL → ZAR</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            5. <span style="color: #00ff88;">ZAR → USDT → ADA → ZAR</span>
+                        </div>
+                    </div>
+                </div>
 
-            alert(pathDetails);
-            console.log('📋 [CHAINEX] Path details displayed:', pathDetails);
+                <!-- SET 4: SOL Bridge (3 paths) -->
+                <div style="background: rgba(0,212,255,0.05); padding: 20px; border-radius: 12px; margin-bottom: 15px; border: 1px solid rgba(0,212,255,0.3);">
+                    <h3 style="color: #00d4ff; margin-top: 0; font-size: 1.3rem;">
+                        🔷 SET 4: SOL Bridge (3 paths)
+                    </h3>
+                    <p style="color: #b8c6db; font-size: 0.9rem; margin-bottom: 15px;">Solana-focused triangular paths</p>
+                    <div style="display: grid; gap: 8px; font-family: monospace; font-size: 0.9rem;">
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            1. <span style="color: #00ff88;">ZAR → SOL → BTC → ZAR</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            2. <span style="color: #00ff88;">ZAR → SOL → ETH → ZAR</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            3. <span style="color: #00ff88;">ZAR → SOL → XRP → ZAR</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SET 5: Altcoin Extended (3 paths) -->
+                <div style="background: rgba(0,212,255,0.05); padding: 20px; border-radius: 12px; margin-bottom: 15px; border: 1px solid rgba(0,212,255,0.3);">
+                    <h3 style="color: #00d4ff; margin-top: 0; font-size: 1.3rem;">
+                        🔷 SET 5: Altcoin Extended (3 paths)
+                    </h3>
+                    <p style="color: #b8c6db; font-size: 0.9rem; margin-bottom: 15px;">Additional altcoin paths</p>
+                    <div style="display: grid; gap: 8px; font-family: monospace; font-size: 0.9rem;">
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            1. <span style="color: #00ff88;">ZAR → ADA → BTC → ZAR</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            2. <span style="color: #00ff88;">ZAR → DOGE → BTC → ZAR</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            3. <span style="color: #00ff88;">ZAR → DOT → ETH → ZAR</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="background: rgba(255,152,0,0.1); padding: 15px; border-radius: 10px; margin-top: 20px; border-left: 4px solid #ff9800;">
+                    <p style="margin: 0; color: #b8c6db; font-size: 0.9rem;">
+                        📝 <strong style="color: #ff9800;">Note:</strong> These paths are currently ZAR-only.
+                        ChainEX should also support USDT as a fundable currency (matching VALR/Luno pattern of 6 sets × 4 paths = 24 total).
+                    </p>
+                </div>
+            `;
+
+            modal.appendChild(modalContent);
+            document.body.appendChild(modal);
+
+            // Close on background click
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.remove();
+                }
+            });
+
+            console.log('📋 [CHAINEX] Path details modal displayed');
         }
 
         // Clear ChainEX Triangular History
