@@ -5706,69 +5706,201 @@
             }
         }
 
-        // View Kraken Path Details
+        // View Kraken Path Details - Custom Modal
         function viewKrakenPathDetails() {
-            const pathDetails = `
-📋 KRAKEN Triangular Arbitrage Paths (30 Total)
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.8);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 10000;
+                backdrop-filter: blur(5px);
+            `;
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 1: Essential BTC Bridge (8 paths) ✅ DEFAULT
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. USD → BTC → ETH → USD
-2. USD → BTC → XRP → USD
-3. USD → BTC → SOL → USD
-4. USD → BTC → ADA → USD
-5. USD → BTC → DOT → USD
-6. USD → BTC → MATIC → USD
-7. USD → BTC → LINK → USD
-8. USD → BTC → LTC → USD
+            const modalContent = document.createElement('div');
+            modalContent.style.cssText = `
+                background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+                padding: 30px;
+                border-radius: 15px;
+                max-width: 900px;
+                max-height: 80vh;
+                overflow-y: auto;
+                box-shadow: 0 20px 60px rgba(153,102,255, 0.3);
+                border: 2px solid #9966ff;
+            `;
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 2: ETH Secondary Bridge (7 paths) ✅ DEFAULT
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. USD → ETH → BTC → USD
-2. USD → ETH → SOL → USD
-3. USD → ETH → ADA → USD
-4. USD → ETH → DOT → USD
-5. USD → ETH → MATIC → USD
-6. USD → ETH → LINK → USD
-7. USD → ETH → ATOM → USD
+            modalContent.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                    <h2 style="color: #9966ff; margin: 0; font-size: 1.8rem;">
+                        📋 KRAKEN Triangular Arbitrage Paths
+                    </h2>
+                    <button onclick="this.closest('[style*=\\'position: fixed\\']').remove()"
+                            style="background: rgba(255,0,0,0.2); border: 1px solid #ff4444; color: #ff4444;
+                                   padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 1.2rem;">
+                        ✕
+                    </button>
+                </div>
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 3: SOL High-Liquidity (5 paths)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. USD → SOL → BTC → USD
-2. USD → SOL → ETH → USD
-3. USD → SOL → XRP → USD
-4. USD → SOL → ADA → USD
-5. USD → SOL → DOT → USD
+                <div style="background: rgba(153,102,255,0.1); padding: 15px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #9966ff;">
+                    <p style="margin: 0; color: #b8c6db; font-size: 0.95rem;">
+                        💡 <strong style="color: #9966ff;">114 Total Paths</strong> across 10 sets.
+                        🌍 International exchange with USD/USDT/USDC support. Each altcoin has BTC+ETH bridges with forward/reverse paths.
+                    </p>
+                </div>
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 4: Stablecoin Bridge (5 paths)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. USD → USDT → BTC → USD
-2. USD → USDT → ETH → USD
-3. USD → USDT → SOL → USD
-4. USD → USDC → BTC → USD
-5. USD → USDC → ETH → USD
+                <!-- SET 1: ETH Focus (6 paths) -->
+                <div style="background: rgba(153,102,255,0.05); padding: 20px; border-radius: 12px; margin-bottom: 15px; border: 1px solid rgba(153,102,255,0.3);">
+                    <h3 style="color: #9966ff; margin-top: 0; font-size: 1.3rem;">
+                        🔷 SET 1: ETH Focus (6 paths) ✅ DEFAULT
+                    </h3>
+                    <p style="color: #b8c6db; font-size: 0.9rem; margin-bottom: 15px;">BTC bridge only (ETH is target)</p>
+                    <div style="display: grid; gap: 8px; font-family: monospace; font-size: 0.9rem;">
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            1. <span style="color: #00ff88;">USD → BTC → ETH → USD</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            2. <span style="color: #00ff88;">USD → ETH → BTC → USD</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            3. <span style="color: #00ff88;">USDT → BTC → ETH → USDT</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            4. <span style="color: #00ff88;">USDT → ETH → BTC → USDT</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            5. <span style="color: #00ff88;">USDC → BTC → ETH → USDC</span>
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            6. <span style="color: #00ff88;">USDC → ETH → BTC → USDC</span>
+                        </div>
+                    </div>
+                </div>
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 5: Extended Multi-Bridge (5 paths)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. USD → DOGE → BTC → USD
-2. USD → AVAX → BTC → USD
-3. USD → ATOM → ETH → USD
-4. USD → UNI → ETH → USD
-5. USD → XRP → BTC → USD
+                <!-- SET 2: XRP Focus (12 paths) -->
+                <div style="background: rgba(153,102,255,0.05); padding: 20px; border-radius: 12px; margin-bottom: 15px; border: 1px solid rgba(153,102,255,0.3);">
+                    <h3 style="color: #9966ff; margin-top: 0; font-size: 1.3rem;">
+                        🔷 SET 2: XRP Focus (12 paths) ✅ DEFAULT
+                    </h3>
+                    <p style="color: #b8c6db; font-size: 0.9rem; margin-bottom: 15px;">Ripple paths via BTC+ETH bridges</p>
+                    <div style="display: grid; gap: 8px; font-family: monospace; font-size: 0.85rem;">
+                        <div style="padding: 8px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            <strong style="color: #ffd700;">BTC Bridge:</strong>
+                        </div>
+                        <div style="padding: 8px; background: rgba(0,0,0,0.3); border-radius: 6px; margin-left: 15px;">
+                            1. USD → BTC → XRP → USD &nbsp;|&nbsp; 2. USD → XRP → BTC → USD
+                        </div>
+                        <div style="padding: 8px; background: rgba(0,0,0,0.3); border-radius: 6px; margin-left: 15px;">
+                            3. USDT → BTC → XRP → USDT &nbsp;|&nbsp; 4. USDT → XRP → BTC → USDT
+                        </div>
+                        <div style="padding: 8px; background: rgba(0,0,0,0.3); border-radius: 6px; margin-left: 15px;">
+                            5. USDC → BTC → XRP → USDC &nbsp;|&nbsp; 6. USDC → XRP → BTC → USDC
+                        </div>
+                        <div style="padding: 8px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            <strong style="color: #ffd700;">ETH Bridge:</strong>
+                        </div>
+                        <div style="padding: 8px; background: rgba(0,0,0,0.3); border-radius: 6px; margin-left: 15px;">
+                            7. USD → ETH → XRP → USD &nbsp;|&nbsp; 8. USD → XRP → ETH → USD
+                        </div>
+                        <div style="padding: 8px; background: rgba(0,0,0,0.3); border-radius: 6px; margin-left: 15px;">
+                            9. USDT → ETH → XRP → USDT &nbsp;|&nbsp; 10. USDT → XRP → ETH → USDT
+                        </div>
+                        <div style="padding: 8px; background: rgba(0,0,0,0.3); border-radius: 6px; margin-left: 15px;">
+                            11. USDC → ETH → XRP → USDC &nbsp;|&nbsp; 12. USDC → XRP → ETH → USDC
+                        </div>
+                    </div>
+                </div>
 
-💡 TOTAL: 30 paths (all 3-leg)
-🌉 BRIDGE: USD (US Dollar)
-🌍 GLOBAL: Major international crypto exchange
-🔐 AUTH: API Key + Secret
-            `.trim();
+                <!-- SET 3: SOL Focus (12 paths) -->
+                <div style="background: rgba(153,102,255,0.05); padding: 20px; border-radius: 12px; margin-bottom: 15px; border: 1px solid rgba(153,102,255,0.3);">
+                    <h3 style="color: #9966ff; margin-top: 0; font-size: 1.3rem;">
+                        🔷 SET 3: SOL Focus (12 paths) ✅ DEFAULT
+                    </h3>
+                    <p style="color: #b8c6db; font-size: 0.9rem; margin-bottom: 15px;">Solana paths via BTC+ETH bridges (USD/USDT/USDC × forward/reverse)</p>
+                </div>
 
-            alert(pathDetails);
-            console.log('📋 [KRAKEN] Path details displayed:', pathDetails);
+                <!-- SET 4: ADA Focus (12 paths) -->
+                <div style="background: rgba(153,102,255,0.05); padding: 20px; border-radius: 12px; margin-bottom: 15px; border: 1px solid rgba(153,102,255,0.3);">
+                    <h3 style="color: #9966ff; margin-top: 0; font-size: 1.3rem;">
+                        🔷 SET 4: ADA Focus (12 paths)
+                    </h3>
+                    <p style="color: #b8c6db; font-size: 0.9rem; margin-bottom: 15px;">Cardano paths via BTC+ETH bridges (USD/USDT/USDC × forward/reverse)</p>
+                </div>
+
+                <!-- SET 5: DOT Focus (12 paths) -->
+                <div style="background: rgba(153,102,255,0.05); padding: 20px; border-radius: 12px; margin-bottom: 15px; border: 1px solid rgba(153,102,255,0.3);">
+                    <h3 style="color: #9966ff; margin-top: 0; font-size: 1.3rem;">
+                        🔷 SET 5: DOT Focus (12 paths)
+                    </h3>
+                    <p style="color: #b8c6db; font-size: 0.9rem; margin-bottom: 15px;">Polkadot paths via BTC+ETH bridges (USD/USDT/USDC × forward/reverse)</p>
+                </div>
+
+                <!-- SET 6: MATIC Focus (12 paths) -->
+                <div style="background: rgba(153,102,255,0.05); padding: 20px; border-radius: 12px; margin-bottom: 15px; border: 1px solid rgba(153,102,255,0.3);">
+                    <h3 style="color: #9966ff; margin-top: 0; font-size: 1.3rem;">
+                        🔷 SET 6: MATIC Focus (12 paths)
+                    </h3>
+                    <p style="color: #b8c6db; font-size: 0.9rem; margin-bottom: 15px;">Polygon paths via BTC+ETH bridges (USD/USDT/USDC × forward/reverse)</p>
+                </div>
+
+                <!-- SET 7: LINK Focus (12 paths) -->
+                <div style="background: rgba(153,102,255,0.05); padding: 20px; border-radius: 12px; margin-bottom: 15px; border: 1px solid rgba(153,102,255,0.3);">
+                    <h3 style="color: #9966ff; margin-top: 0; font-size: 1.3rem;">
+                        🔷 SET 7: LINK Focus (12 paths)
+                    </h3>
+                    <p style="color: #b8c6db; font-size: 0.9rem; margin-bottom: 15px;">Chainlink paths via BTC+ETH bridges (USD/USDT/USDC × forward/reverse)</p>
+                </div>
+
+                <!-- SET 8: LTC Focus (12 paths) -->
+                <div style="background: rgba(153,102,255,0.05); padding: 20px; border-radius: 12px; margin-bottom: 15px; border: 1px solid rgba(153,102,255,0.3);">
+                    <h3 style="color: #9966ff; margin-top: 0; font-size: 1.3rem;">
+                        🔷 SET 8: LTC Focus (12 paths)
+                    </h3>
+                    <p style="color: #b8c6db; font-size: 0.9rem; margin-bottom: 15px;">Litecoin paths via BTC+ETH bridges (USD/USDT/USDC × forward/reverse)</p>
+                </div>
+
+                <!-- SET 9: ATOM Focus (12 paths) -->
+                <div style="background: rgba(153,102,255,0.05); padding: 20px; border-radius: 12px; margin-bottom: 15px; border: 1px solid rgba(153,102,255,0.3);">
+                    <h3 style="color: #9966ff; margin-top: 0; font-size: 1.3rem;">
+                        🔷 SET 9: ATOM Focus (12 paths)
+                    </h3>
+                    <p style="color: #b8c6db; font-size: 0.9rem; margin-bottom: 15px;">Cosmos paths via BTC+ETH bridges (USD/USDT/USDC × forward/reverse)</p>
+                </div>
+
+                <!-- SET 10: AVAX Focus (12 paths) -->
+                <div style="background: rgba(153,102,255,0.05); padding: 20px; border-radius: 12px; margin-bottom: 15px; border: 1px solid rgba(153,102,255,0.3);">
+                    <h3 style="color: #9966ff; margin-top: 0; font-size: 1.3rem;">
+                        🔷 SET 10: AVAX Focus (12 paths)
+                    </h3>
+                    <p style="color: #b8c6db; font-size: 0.9rem; margin-bottom: 15px;">Avalanche paths via BTC+ETH bridges (USD/USDT/USDC × forward/reverse)</p>
+                </div>
+
+                <div style="background: rgba(0,212,255,0.1); padding: 15px; border-radius: 10px; margin-top: 20px; border-left: 4px solid #00d4ff;">
+                    <p style="margin: 0; color: #b8c6db; font-size: 0.9rem;">
+                        <strong style="color: #00d4ff;">💡 Path Pattern:</strong> Each SET (except ETH) has 12 paths:
+                        <br>• 6 via BTC bridge (3 currencies × 2 directions)
+                        <br>• 6 via ETH bridge (3 currencies × 2 directions)
+                        <br>• Covers all funding options: USD, USDT, USDC
+                    </p>
+                </div>
+            `;
+
+            modal.appendChild(modalContent);
+            document.body.appendChild(modal);
+
+            // Close on background click
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.remove();
+                }
+            });
+
+            console.log('📋 [KRAKEN] Path details modal displayed');
         }
 
         // Clear Kraken Triangular History
