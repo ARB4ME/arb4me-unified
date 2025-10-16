@@ -527,7 +527,7 @@ router.get('/luno/triangular/paths', authenticatedRateLimit, authenticateUser, a
         });
     } catch (error) {
         systemLogger.error('Luno triangular paths fetch failed', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             error: error.message
         });
         throw error;
@@ -575,7 +575,7 @@ router.post('/luno/triangular/execute', asyncHandler(async (req, res) => {
 router.delete('/luno/triangular/history', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
     try {
         systemLogger.trading('Luno triangular history clear initiated', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             timestamp: new Date().toISOString()
         });
 
@@ -583,7 +583,7 @@ router.delete('/luno/triangular/history', authenticatedRateLimit, authenticateUs
         await query(`
             DELETE FROM triangular_trades
             WHERE user_id = $1 AND exchange = 'LUNO'
-        `, [req.user.id]);
+        `, [req.user?.id || 'anonymous']);
 
         // Reset stats for Luno
         await query(`
@@ -594,10 +594,10 @@ router.delete('/luno/triangular/history', authenticatedRateLimit, authenticateUs
             ),
             updated_at = CURRENT_TIMESTAMP
             WHERE user_id = $1
-        `, [req.user.id]);
+        `, [req.user?.id || 'anonymous']);
 
         systemLogger.trading('Luno triangular history cleared', {
-            userId: req.user.id
+            userId: req.user?.id || 'anonymous'
         });
 
         res.json({
@@ -607,7 +607,7 @@ router.delete('/luno/triangular/history', authenticatedRateLimit, authenticateUs
         });
     } catch (error) {
         systemLogger.error('Luno triangular history clear failed', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             error: error.message
         });
         throw error;
@@ -633,10 +633,10 @@ router.get('/luno/triangular/recent-trades', authenticatedRateLimit, authenticat
             LIMIT $2
         `;
 
-        const result = await query(tradesQuery, [req.user.id, limit]);
+        const result = await query(tradesQuery, [req.user?.id || 'anonymous', limit]);
 
         systemLogger.info('Recent Luno triangular trades fetched', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             tradesCount: result.rows.length
         });
 
@@ -651,7 +651,7 @@ router.get('/luno/triangular/recent-trades', authenticatedRateLimit, authenticat
 
     } catch (error) {
         systemLogger.error('Failed to fetch recent Luno triangular trades', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             error: error.message
         });
         throw error;
@@ -675,7 +675,7 @@ router.post('/chainex/triangular/test-connection', authenticatedRateLimit, authe
         const { apiKey, apiSecret } = req.body;
 
         systemLogger.trading('Testing ChainEX triangular arbitrage connection', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'chainex',
             strategy: 'triangular'
         });
@@ -721,7 +721,7 @@ router.post('/chainex/triangular/test-connection', authenticatedRateLimit, authe
         const missingPairs = requiredPairs.filter(pair => !availablePairs.includes(pair));
 
         systemLogger.trading('ChainEX triangular connection test successful', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             availablePairs: availablePairs.length,
             missingPairs: missingPairs.length
         });
@@ -741,7 +741,7 @@ router.post('/chainex/triangular/test-connection', authenticatedRateLimit, authe
 
     } catch (error) {
         systemLogger.error('ChainEX triangular connection test failed', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             error: error.message
         });
         throw error;
@@ -755,7 +755,7 @@ router.post('/chainex/triangular/scan', asyncHandler(async (req, res) => {
         const { paths = 'all', apiKey, apiSecret } = req.body;
 
         systemLogger.trading('Starting ChainEX triangular arbitrage scan', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             requestedPaths: paths
         });
 
@@ -896,7 +896,7 @@ router.post('/chainex/triangular/scan', asyncHandler(async (req, res) => {
         opportunities.sort((a, b) => b.profitPercent - a.profitPercent);
 
         systemLogger.trading('ChainEX triangular scan complete', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             pathsScanned: pathsToScan.length,
             opportunitiesFound: opportunities.length
         });
@@ -913,7 +913,7 @@ router.post('/chainex/triangular/scan', asyncHandler(async (req, res) => {
 
     } catch (error) {
         systemLogger.error('Failed ChainEX triangular scan', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             error: error.message
         });
         throw error;
@@ -944,7 +944,7 @@ router.get('/chainex/triangular/paths', authenticatedRateLimit, authenticateUser
 
     } catch (error) {
         systemLogger.error('Failed to get ChainEX triangular paths', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             error: error.message
         });
         throw error;
@@ -958,7 +958,7 @@ router.post('/chainex/triangular/execute', authenticatedRateLimit, authenticateU
         const { pathId, initialAmount, apiKey, apiSecret, dryRun = false } = req.body;
 
         systemLogger.trading('ChainEX triangular execution started', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             pathId: pathId,
             initialAmount: initialAmount,
             dryRun: dryRun
@@ -971,7 +971,7 @@ router.post('/chainex/triangular/execute', authenticatedRateLimit, authenticateU
         const auth = createChainExAuth(apiKey, apiSecret);
 
         const tradeRecord = {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'chainex',
             pathId: pathId,
             initialAmount: initialAmount,
@@ -991,7 +991,7 @@ router.post('/chainex/triangular/execute', authenticatedRateLimit, authenticateU
 
     } catch (error) {
         systemLogger.error('ChainEX triangular execution failed', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             pathId: pathId,
             error: error.message
         });
@@ -1004,12 +1004,12 @@ router.post('/chainex/triangular/execute', authenticatedRateLimit, authenticateU
 router.delete('/chainex/triangular/history', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
     try {
         systemLogger.trading('Clearing ChainEX triangular history', {
-            userId: req.user.id
+            userId: req.user?.id || 'anonymous'
         });
 
         const result = await query(
             'DELETE FROM triangular_trades WHERE user_id = $1 AND exchange = $2',
-            [req.user.id, 'CHAINEX']
+            [req.user?.id || 'anonymous', 'CHAINEX']
         );
 
         res.json({
@@ -1022,7 +1022,7 @@ router.delete('/chainex/triangular/history', authenticatedRateLimit, authenticat
 
     } catch (error) {
         systemLogger.error('Failed to clear ChainEX triangular history', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             error: error.message
         });
         throw error;
@@ -1036,13 +1036,13 @@ router.get('/chainex/triangular/recent-trades', authenticatedRateLimit, authenti
         const limit = parseInt(req.query.limit) || 20;
 
         systemLogger.trading('Fetching recent ChainEX triangular trades', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             limit: limit
         });
 
         const result = await query(
             'SELECT * FROM triangular_trades WHERE user_id = $1 AND exchange = $2 ORDER BY created_at DESC LIMIT $3',
-            [req.user.id, 'CHAINEX', limit]
+            [req.user?.id || 'anonymous', 'CHAINEX', limit]
         );
 
         res.json({
@@ -1056,7 +1056,7 @@ router.get('/chainex/triangular/recent-trades', authenticatedRateLimit, authenti
 
     } catch (error) {
         systemLogger.error('Failed to fetch recent ChainEX triangular trades', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             error: error.message
         });
         throw error;
@@ -1100,7 +1100,7 @@ router.post('/kraken/triangular/test-connection', authenticatedRateLimit, authen
         const { apiKey, apiSecret } = req.body;
 
         systemLogger.trading('Testing Kraken triangular arbitrage connection', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'kraken',
             strategy: 'triangular'
         });
@@ -1137,7 +1137,7 @@ router.post('/kraken/triangular/test-connection', authenticatedRateLimit, authen
         const availablePairs = tickerData.result ? Object.keys(tickerData.result).length : 0;
 
         systemLogger.trading('Kraken triangular connection test successful', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'kraken',
             balanceAccess: true,
             tickerAccess: availablePairs > 0
@@ -1157,7 +1157,7 @@ router.post('/kraken/triangular/test-connection', authenticatedRateLimit, authen
 
     } catch (error) {
         systemLogger.error('Kraken triangular connection test failed', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             error: error.message
         });
         throw error;
@@ -1217,7 +1217,7 @@ router.post('/kraken/triangular/scan', asyncHandler(async (req, res) => {
         };
 
         systemLogger.trading('Kraken triangular path scan initiated', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             pathSetsRequested: paths
         });
 
@@ -1234,7 +1234,7 @@ router.post('/kraken/triangular/scan', asyncHandler(async (req, res) => {
 
     } catch (error) {
         systemLogger.error('Kraken triangular scan failed', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             error: error.message
         });
         throw error;
@@ -1263,7 +1263,7 @@ router.get('/kraken/triangular/paths', authenticatedRateLimit, authenticateUser,
         });
     } catch (error) {
         systemLogger.error('Failed to fetch Kraken triangular paths', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             error: error.message
         });
         throw error;
@@ -1274,7 +1274,7 @@ router.get('/kraken/triangular/paths', authenticatedRateLimit, authenticateUser,
 router.post('/kraken/triangular/execute', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
     try {
         systemLogger.trading('Kraken triangular execution requested (not implemented)', {
-            userId: req.user.id
+            userId: req.user?.id || 'anonymous'
         });
 
         res.json({
@@ -1283,7 +1283,7 @@ router.post('/kraken/triangular/execute', authenticatedRateLimit, authenticateUs
         });
     } catch (error) {
         systemLogger.error('Kraken triangular execution failed', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             error: error.message
         });
         throw error;
@@ -1295,11 +1295,11 @@ router.delete('/kraken/triangular/history', authenticatedRateLimit, authenticate
     try {
         const result = await query(
             'DELETE FROM triangular_trades WHERE user_id = $1 AND exchange = $2',
-            [req.user.id, 'KRAKEN']
+            [req.user?.id || 'anonymous', 'KRAKEN']
         );
 
         systemLogger.trading('Kraken triangular history cleared', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             deletedCount: result.rowCount
         });
 
@@ -1310,7 +1310,7 @@ router.delete('/kraken/triangular/history', authenticatedRateLimit, authenticate
         });
     } catch (error) {
         systemLogger.error('Failed to clear Kraken triangular history', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             error: error.message
         });
         throw error;
@@ -1325,7 +1325,7 @@ router.get('/kraken/triangular/recent-trades', authenticatedRateLimit, authentic
              WHERE user_id = $1 AND exchange = $2
              ORDER BY created_at DESC
              LIMIT 10`,
-            [req.user.id, 'KRAKEN']
+            [req.user?.id || 'anonymous', 'KRAKEN']
         );
 
         res.json({
@@ -1334,7 +1334,7 @@ router.get('/kraken/triangular/recent-trades', authenticatedRateLimit, authentic
         });
     } catch (error) {
         systemLogger.error('Failed to fetch recent Kraken triangular trades', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             error: error.message
         });
         throw error;
@@ -1376,7 +1376,7 @@ router.post('/bybit/triangular/test-connection', authenticatedRateLimit, authent
         const { apiKey, apiSecret } = req.body;
 
         systemLogger.trading('Testing ByBit triangular arbitrage connection', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'bybit',
             strategy: 'triangular'
         });
@@ -1412,7 +1412,7 @@ router.post('/bybit/triangular/test-connection', authenticatedRateLimit, authent
         const availablePairs = tickerData.retCode === 0 ? 1 : 0;
 
         systemLogger.trading('ByBit triangular connection test successful', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'bybit',
             balanceAccess: true,
             tickerAccess: availablePairs > 0
@@ -1432,7 +1432,7 @@ router.post('/bybit/triangular/test-connection', authenticatedRateLimit, authent
 
     } catch (error) {
         systemLogger.error('ByBit triangular connection test failed', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             error: error.message
         });
         throw error;
@@ -1445,7 +1445,7 @@ router.post('/bybit/triangular/scan', asyncHandler(async (req, res) => {
         const { paths = 'all', apiKey, apiSecret } = req.body;
 
         systemLogger.trading('Scanning ByBit triangular paths', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'bybit',
             pathsRequested: paths
         });
@@ -1838,7 +1838,7 @@ router.post('/bybit/triangular/scan', asyncHandler(async (req, res) => {
         }
 
         systemLogger.trading('ByBit triangular scan completed', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             exchange: 'bybit',
             pathSetsScanned: setsToScan.length,
             totalPaths: 40
@@ -1857,7 +1857,7 @@ router.post('/bybit/triangular/scan', asyncHandler(async (req, res) => {
 
     } catch (error) {
         systemLogger.error('ByBit triangular scan failed', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             error: error.message
         });
         throw error;
@@ -1885,7 +1885,7 @@ router.get('/bybit/triangular/paths', authenticatedRateLimit, authenticateUser, 
         });
     } catch (error) {
         systemLogger.error('Failed to fetch ByBit triangular paths', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             error: error.message
         });
         throw error;
@@ -1898,7 +1898,7 @@ router.post('/bybit/triangular/execute', authenticatedRateLimit, authenticateUse
         const { pathId, amount, apiKey, apiSecret } = req.body;
 
         systemLogger.trading('ByBit triangular execution requested', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             pathId: pathId,
             amount: amount
         });
@@ -1914,7 +1914,7 @@ router.post('/bybit/triangular/execute', authenticatedRateLimit, authenticateUse
         });
     } catch (error) {
         systemLogger.error('ByBit triangular execution failed', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             error: error.message
         });
         throw error;
@@ -1926,11 +1926,11 @@ router.delete('/bybit/triangular/history', authenticatedRateLimit, authenticateU
     try {
         const result = await query(
             'DELETE FROM triangular_trades WHERE user_id = $1 AND exchange = $2',
-            [req.user.id, 'BYBIT']
+            [req.user?.id || 'anonymous', 'BYBIT']
         );
 
         systemLogger.trading('ByBit triangular history cleared', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             deletedCount: result.rowCount
         });
 
@@ -1941,7 +1941,7 @@ router.delete('/bybit/triangular/history', authenticatedRateLimit, authenticateU
         });
     } catch (error) {
         systemLogger.error('Failed to clear ByBit triangular history', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             error: error.message
         });
         throw error;
@@ -1959,7 +1959,7 @@ router.get('/bybit/triangular/recent-trades', authenticatedRateLimit, authentica
              WHERE user_id = $1 AND exchange = $2
              ORDER BY created_at DESC
              LIMIT 20`,
-            [req.user.id, 'BYBIT']
+            [req.user?.id || 'anonymous', 'BYBIT']
         );
 
         const trades = result.rows.map(trade => ({
@@ -1980,7 +1980,7 @@ router.get('/bybit/triangular/recent-trades', authenticatedRateLimit, authentica
         });
     } catch (error) {
         systemLogger.error('Failed to fetch recent ByBit triangular trades', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             error: error.message
         });
         throw error;
@@ -2551,7 +2551,7 @@ router.post('/binance/triangular/execute', authenticatedRateLimit, authenticateU
 
 // Delete Binance Triangular Trade History
 router.delete('/binance/triangular/history', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
-    const userId = req.user.id;
+    const userId = req.user?.id || 'anonymous';
 
     try {
         const result = await pool.query(
@@ -2577,7 +2577,7 @@ router.delete('/binance/triangular/history', authenticatedRateLimit, authenticat
 
 // Get Recent Binance Triangular Trades
 router.get('/binance/triangular/recent-trades', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
-    const userId = req.user.id;
+    const userId = req.user?.id || 'anonymous';
     const limit = parseInt(req.query.limit) || 20;
 
     try {
@@ -3156,7 +3156,7 @@ router.post('/okx/triangular/execute', authenticatedRateLimit, authenticateUser,
 
 // Delete OKX Triangular Trade History
 router.delete('/okx/triangular/history', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
-    const userId = req.user.id;
+    const userId = req.user?.id || 'anonymous';
 
     try {
         const result = await pool.query(
@@ -3182,7 +3182,7 @@ router.delete('/okx/triangular/history', authenticatedRateLimit, authenticateUse
 
 // Get Recent OKX Triangular Trades
 router.get('/okx/triangular/recent-trades', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
-    const userId = req.user.id;
+    const userId = req.user?.id || 'anonymous';
     const limit = parseInt(req.query.limit) || 20;
 
     try {
@@ -3555,7 +3555,7 @@ router.post('/kucoin/triangular/execute', authenticatedRateLimit, authenticateUs
 
 // DELETE /api/v1/trading/kucoin/triangular/history - Clear KuCoin triangular trade history
 router.delete('/kucoin/triangular/history', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
-    const userId = req.user.id;
+    const userId = req.user?.id || 'anonymous';
 
     try {
         console.log('🗑️ [KUCOIN] Clearing triangular trade history for user:', userId);
@@ -3583,7 +3583,7 @@ router.delete('/kucoin/triangular/history', authenticatedRateLimit, authenticate
 
 // GET /api/v1/trading/kucoin/triangular/recent-trades - Get recent KuCoin triangular trades
 router.get('/kucoin/triangular/recent-trades', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
-    const userId = req.user.id;
+    const userId = req.user?.id || 'anonymous';
     const limit = parseInt(req.query.limit) || 50;
 
     try {
@@ -3964,7 +3964,7 @@ router.post('/coinbase/triangular/execute', authenticatedRateLimit, authenticate
 
 // DELETE /api/v1/trading/coinbase/triangular/history - Clear Coinbase triangular trade history
 router.delete('/coinbase/triangular/history', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
-    const userId = req.user.id;
+    const userId = req.user?.id || 'anonymous';
 
     try {
         console.log('🗑️ [COINBASE] Clearing triangular trade history for user:', userId);
@@ -3992,7 +3992,7 @@ router.delete('/coinbase/triangular/history', authenticatedRateLimit, authentica
 
 // GET /api/v1/trading/coinbase/triangular/recent-trades - Get recent Coinbase triangular trades
 router.get('/coinbase/triangular/recent-trades', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
-    const userId = req.user.id;
+    const userId = req.user?.id || 'anonymous';
     const limit = parseInt(req.query.limit) || 50;
 
     try {
@@ -4372,7 +4372,7 @@ router.post('/huobi/triangular/execute', authenticatedRateLimit, authenticateUse
 
 // DELETE /api/v1/trading/huobi/triangular/history - Clear Huobi triangular trade history
 router.delete('/huobi/triangular/history', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
-    const userId = req.user.id;
+    const userId = req.user?.id || 'anonymous';
 
     try {
         console.log('🗑️ [HUOBI] Clearing triangular trade history for user:', userId);
@@ -4400,7 +4400,7 @@ router.delete('/huobi/triangular/history', authenticatedRateLimit, authenticateU
 
 // GET /api/v1/trading/huobi/triangular/recent-trades - Get recent Huobi triangular trades
 router.get('/huobi/triangular/recent-trades', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
-    const userId = req.user.id;
+    const userId = req.user?.id || 'anonymous';
     const limit = parseInt(req.query.limit) || 50;
 
     try {
@@ -8239,7 +8239,7 @@ router.post('/gemini/triangular/test-connection', authenticatedRateLimit, authen
         const { apiKey, apiSecret } = req.body;
 
         systemLogger.trading('Gemini triangular connection test initiated', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             timestamp: new Date().toISOString()
         });
 
@@ -8279,7 +8279,7 @@ router.post('/gemini/triangular/test-connection', authenticatedRateLimit, authen
         } : { available: 0, total: 0 };
 
         systemLogger.trading('Gemini triangular connection successful', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             balance: balance.available
         });
 
@@ -8291,7 +8291,7 @@ router.post('/gemini/triangular/test-connection', authenticatedRateLimit, authen
 
     } catch (error) {
         systemLogger.trading('Gemini triangular connection failed', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             error: error.message
         });
 
@@ -8310,7 +8310,7 @@ router.post('/gemini/triangular/scan', asyncHandler(async (req, res) => {
         const { apiKey, apiSecret, selectedSets } = req.body;
 
         systemLogger.trading('Gemini triangular scan initiated', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             selectedSets
         });
 
@@ -8437,7 +8437,7 @@ router.post('/gemini/triangular/scan', asyncHandler(async (req, res) => {
         opportunities.sort((a, b) => b.profitPercentage - a.profitPercentage);
 
         systemLogger.trading('Gemini triangular scan completed', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             pathsScanned: allPaths.length,
             opportunitiesFound: opportunities.length
         });
@@ -8475,7 +8475,7 @@ router.post('/gemini/triangular/execute', authenticatedRateLimit, authenticateUs
         const { apiKey, apiSecret, opportunity, investmentAmount } = req.body;
 
         systemLogger.trading('Gemini triangular execution initiated', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             pathId: opportunity.pathId,
             investmentAmount
         });
@@ -8544,7 +8544,7 @@ router.post('/gemini/triangular/execute', authenticatedRateLimit, authenticateUs
                 (user_id, exchange, path_id, investment_amount, final_amount, profit, status, trades_data, created_at)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())`,
                 [
-                    req.user.id,
+                    req.user?.id || 'anonymous',
                     'gemini',
                     opportunity.pathId,
                     investmentAmount,
@@ -8557,7 +8557,7 @@ router.post('/gemini/triangular/execute', authenticatedRateLimit, authenticateUs
         }
 
         systemLogger.trading('Gemini triangular execution completed', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             pathId: opportunity.pathId,
             profit: finalProfit
         });
@@ -8575,7 +8575,7 @@ router.post('/gemini/triangular/execute', authenticatedRateLimit, authenticateUs
         console.error('Gemini execution error:', error);
 
         systemLogger.trading('Gemini triangular execution failed', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             error: error.message
         });
 
@@ -8603,7 +8603,7 @@ router.get('/gemini/triangular/history', authenticatedRateLimit, authenticateUse
             WHERE user_id = $1 AND exchange = $2
             ORDER BY created_at DESC
             LIMIT 50`,
-            [req.user.id, 'gemini']
+            [req.user?.id || 'anonymous', 'gemini']
         );
 
         res.json({
@@ -8737,7 +8737,7 @@ router.post('/coincatch/triangular/test-connection', authenticatedRateLimit, aut
         const { apiKey, apiSecret, passphrase } = req.body;
 
         systemLogger.trading('Coincatch triangular connection test initiated', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             timestamp: new Date().toISOString()
         });
 
@@ -8775,7 +8775,7 @@ router.post('/coincatch/triangular/test-connection', authenticatedRateLimit, aut
         } : { available: 0, total: 0 };
 
         systemLogger.trading('Coincatch triangular connection successful', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             balance: balance.available
         });
 
@@ -8787,7 +8787,7 @@ router.post('/coincatch/triangular/test-connection', authenticatedRateLimit, aut
 
     } catch (error) {
         systemLogger.trading('Coincatch triangular connection failed', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             error: error.message
         });
 
@@ -8806,7 +8806,7 @@ router.post('/coincatch/triangular/scan', asyncHandler(async (req, res) => {
         const { apiKey, apiSecret, passphrase, selectedSets } = req.body;
 
         systemLogger.trading('Coincatch triangular scan initiated', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             selectedSets
         });
 
@@ -8942,7 +8942,7 @@ router.post('/coincatch/triangular/scan', asyncHandler(async (req, res) => {
         opportunities.sort((a, b) => b.profitPercentage - a.profitPercentage);
 
         systemLogger.trading('Coincatch triangular scan completed', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             pathsScanned: allPaths.length,
             opportunitiesFound: opportunities.length
         });
@@ -8980,7 +8980,7 @@ router.post('/coincatch/triangular/execute', authenticatedRateLimit, authenticat
         const { apiKey, apiSecret, passphrase, opportunity, investmentAmount } = req.body;
 
         systemLogger.trading('Coincatch triangular execution initiated', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             pathId: opportunity.pathId,
             investmentAmount
         });
@@ -9054,7 +9054,7 @@ router.post('/coincatch/triangular/execute', authenticatedRateLimit, authenticat
                 (user_id, exchange, path_id, investment_amount, final_amount, profit, status, trades_data, created_at)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())`,
                 [
-                    req.user.id,
+                    req.user?.id || 'anonymous',
                     'coincatch',
                     opportunity.pathId,
                     investmentAmount,
@@ -9067,7 +9067,7 @@ router.post('/coincatch/triangular/execute', authenticatedRateLimit, authenticat
         }
 
         systemLogger.trading('Coincatch triangular execution completed', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             pathId: opportunity.pathId,
             profit: finalProfit
         });
@@ -9085,7 +9085,7 @@ router.post('/coincatch/triangular/execute', authenticatedRateLimit, authenticat
         console.error('Coincatch execution error:', error);
 
         systemLogger.trading('Coincatch triangular execution failed', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             error: error.message
         });
 
@@ -9113,7 +9113,7 @@ router.get('/coincatch/triangular/history', authenticatedRateLimit, authenticate
             WHERE user_id = $1 AND exchange = $2
             ORDER BY created_at DESC
             LIMIT 50`,
-            [req.user.id, 'coincatch']
+            [req.user?.id || 'anonymous', 'coincatch']
         );
 
         res.json({
@@ -10018,7 +10018,7 @@ router.get('/valr/triangular/paths', authenticatedRateLimit, authenticateUser, a
         });
     } catch (error) {
         systemLogger.error('VALR triangular paths fetch failed', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             error: error.message
         });
         throw error;
@@ -10066,7 +10066,7 @@ router.post('/valr/triangular/execute', asyncHandler(async (req, res) => {
 router.delete('/valr/triangular/history', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
     try {
         systemLogger.trading('VALR triangular history clear initiated', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             timestamp: new Date().toISOString()
         });
 
@@ -10074,7 +10074,7 @@ router.delete('/valr/triangular/history', authenticatedRateLimit, authenticateUs
         await query(`
             DELETE FROM triangular_trades 
             WHERE user_id = $1
-        `, [req.user.id]);
+        `, [req.user?.id || 'anonymous']);
 
         // Reset stats
         await query(`
@@ -10083,10 +10083,10 @@ router.delete('/valr/triangular/history', authenticatedRateLimit, authenticateUs
                 triangular_profit_total = 0,
                 updated_at = CURRENT_TIMESTAMP
             WHERE user_id = $1
-        `, [req.user.id]);
+        `, [req.user?.id || 'anonymous']);
 
         systemLogger.trading('VALR triangular history cleared', {
-            userId: req.user.id
+            userId: req.user?.id || 'anonymous'
         });
 
         res.json({
@@ -10096,7 +10096,7 @@ router.delete('/valr/triangular/history', authenticatedRateLimit, authenticateUs
         });
     } catch (error) {
         systemLogger.error('VALR triangular history clear failed', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             error: error.message
         });
         throw error;
@@ -10387,10 +10387,10 @@ setInterval(() => {
 router.get('/valr/triangular/recent-trades', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
     try {
         const limit = parseInt(req.query.limit) || 20;
-        const trades = await getRecentTriangularTrades(req.user.id, limit);
+        const trades = await getRecentTriangularTrades(req.user?.id || 'anonymous', limit);
         
         systemLogger.info('Recent triangular trades fetched', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             tradesCount: trades.length
         });
 
@@ -10405,7 +10405,7 @@ router.get('/valr/triangular/recent-trades', authenticatedRateLimit, authenticat
 
     } catch (error) {
         systemLogger.error('Failed to fetch recent triangular trades', {
-            userId: req.user.id,
+            userId: req.user?.id || 'anonymous',
             error: error.message
         });
         throw error;
