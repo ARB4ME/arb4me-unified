@@ -2643,8 +2643,8 @@
                 return '$0.00';
             }
 
-            // Get major currencies for display
-            const majorCurrencies = ['USDT', 'BTC', 'ETH', 'BNB', 'ADA', 'DOT', 'SOL'];
+            // Get major currencies for display (added XRP, USD, USDC for Kraken support)
+            const majorCurrencies = ['USDT', 'USD', 'USDC', 'BTC', 'ETH', 'XRP', 'BNB', 'ADA', 'DOT', 'SOL'];
             let displayParts = [];
             let totalUSDValue = 0;
 
@@ -2656,8 +2656,15 @@
                 totalUSDValue += usdtAmount;
             }
 
+            // Show USD if available (for Kraken and other USD-based exchanges)
+            if (balances.USD && parseFloat(balances.USD) > 0) {
+                const usdAmount = parseFloat(balances.USD);
+                displayParts.push(`$${usdAmount.toFixed(2)} USD`);
+                totalUSDValue += usdAmount;
+            }
+
             // Show other major currencies
-            majorCurrencies.slice(1).forEach(currency => {
+            majorCurrencies.slice(2).forEach(currency => {
                 if (balances[currency] && parseFloat(balances[currency]) > 0.001) {
                     const amount = parseFloat(balances[currency]);
                     displayParts.push(`${amount.toFixed(4)} ${currency}`);

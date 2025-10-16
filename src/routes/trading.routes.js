@@ -5025,6 +5025,46 @@ function createKrakenSignature(path, postdata, apiSecret, nonce) {
     return hmac_digest;
 }
 
+// Helper function to normalize Kraken currency codes
+function normalizeKrakenCurrency(krakenCode) {
+    // Kraken uses prefixed currency codes:
+    // - XX prefix for some cryptocurrencies (XXBT, XXRP, XXLM, etc.)
+    // - X prefix for other cryptocurrencies (XETH, XLTC, etc.)
+    // - Z prefix for fiat currencies (ZUSD, ZEUR, etc.)
+
+    // Special case mappings for common currencies
+    const specialMappings = {
+        'XXBT': 'BTC',
+        'XBT': 'BTC',
+        'XXRP': 'XRP',
+        'XXLM': 'XLM',
+        'XETH': 'ETH',
+        'XLTC': 'LTC',
+        'XXDG': 'DOGE',
+        'ZUSD': 'USD',
+        'ZEUR': 'EUR',
+        'ZGBP': 'GBP',
+        'ZJPY': 'JPY',
+        'ZCAD': 'CAD',
+        'ZAUD': 'AUD'
+    };
+
+    // Check special mappings first
+    if (specialMappings[krakenCode]) {
+        return specialMappings[krakenCode];
+    }
+
+    // For other currencies, remove X or Z prefix
+    if (krakenCode.startsWith('XX')) {
+        return krakenCode.substring(2);
+    } else if (krakenCode.startsWith('X') || krakenCode.startsWith('Z')) {
+        return krakenCode.substring(1);
+    }
+
+    // Return as-is if no prefix
+    return krakenCode;
+}
+
 // POST /api/v1/trading/kraken/balance - Get Kraken account balance
 router.post('/kraken/balance', tradingRateLimit, optionalAuth, [
     body('apiKey').notEmpty().withMessage('API key is required'),
@@ -5036,7 +5076,7 @@ router.post('/kraken/balance', tradingRateLimit, optionalAuth, [
     }
 
     const { apiKey, apiSecret } = req.body;
-    
+
     try {
         const nonce = Date.now().toString();
         const postdata = `nonce=${nonce}`;
@@ -5064,7 +5104,7 @@ router.post('/kraken/balance', tradingRateLimit, optionalAuth, [
         }
 
         const data = await response.json();
-        
+
         if (data.error && data.error.length > 0) {
             throw new APIError(`Kraken error: ${data.error.join(', ')}`, 400, 'KRAKEN_ERROR');
         }
@@ -5074,7 +5114,9 @@ router.post('/kraken/balance', tradingRateLimit, optionalAuth, [
             for (const [currency, balance] of Object.entries(data.result)) {
                 const amount = parseFloat(balance);
                 if (amount > 0) {
-                    balances[currency] = amount;
+                    // Normalize Kraken currency codes (XXRP → XRP, ZUSD → USD, etc.)
+                    const normalizedCurrency = normalizeKrakenCurrency(currency);
+                    balances[normalizedCurrency] = amount;
                 }
             }
         }
@@ -5097,7 +5139,7 @@ router.post('/kraken/balance', tradingRateLimit, optionalAuth, [
             userId: req.user?.id,
             error: error.message
         });
-        
+
         if (error instanceof APIError) {
             throw error;
         }
