@@ -815,6 +815,61 @@
                 </div>
             </div>
 
+            <!-- FUNDING REQUIREMENTS Info Banner -->
+            <div style="background: rgba(0,212,255,0.15); border: 2px solid #00d4ff; border-radius: 10px; padding: 20px; margin-bottom: 20px;">
+                <div style="display: flex; align-items: flex-start; gap: 15px;">
+                    <div style="font-size: 2.5rem; flex-shrink: 0;">💰</div>
+                    <div>
+                        <h4 style="color: #00d4ff; margin: 0 0 10px 0; font-size: 1.2rem;">Funding Requirements for Maximum Coverage</h4>
+                        <p style="color: #b8e0ff; margin: 0 0 15px 0; line-height: 1.6; font-size: 0.95rem;">
+                            Kraken supports <strong>114 triangular arbitrage paths</strong> across 3 stablecoin currencies.
+                            Fund your account with the following to maximize opportunities:
+                        </p>
+
+                        <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                            <div style="display: grid; gap: 12px;">
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <span style="color: #00ff88; font-size: 1.3rem;">✓</span>
+                                    <div>
+                                        <strong style="color: #00d4ff;">USD</strong> (US Dollar - Fiat)
+                                        <span style="color: #888; font-size: 0.85rem; margin-left: 10px;">→ 38 paths available</span>
+                                        <div style="color: #888; font-size: 0.85rem; margin-top: 3px;">Deposit via: Bank wire, ACH transfer</div>
+                                    </div>
+                                </div>
+
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <span style="color: #00ff88; font-size: 1.3rem;">✓</span>
+                                    <div>
+                                        <strong style="color: #00d4ff;">USDT</strong> (Tether - Stablecoin)
+                                        <span style="color: #888; font-size: 0.85rem; margin-left: 10px;">→ 38 paths available</span>
+                                        <div style="color: #888; font-size: 0.85rem; margin-top: 3px;">Deposit via: Transfer from another exchange/wallet</div>
+                                    </div>
+                                </div>
+
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <span style="color: #00ff88; font-size: 1.3rem;">✓</span>
+                                    <div>
+                                        <strong style="color: #00d4ff;">USDC</strong> (USD Coin - Stablecoin)
+                                        <span style="color: #888; font-size: 0.85rem; margin-left: 10px;">→ 38 paths available</span>
+                                        <div style="color: #888; font-size: 0.85rem; margin-top: 3px;">Deposit via: Transfer from another exchange/wallet</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="background: rgba(255,152,0,0.15); padding: 12px; border-radius: 6px; border-left: 4px solid #ff9800;">
+                            <p style="margin: 0; color: #ffc266; font-size: 0.9rem; line-height: 1.5;">
+                                <strong>💡 Important:</strong> Each path is a complete cycle (e.g., USD → BTC → ETH → USD).
+                                <br>
+                                • Fund <strong>ONLY USD</strong> = 38 paths | Fund <strong>ONLY USDT</strong> = 38 paths | Fund <strong>ONLY USDC</strong> = 38 paths
+                                <br>
+                                • Fund <strong>ALL 3 currencies</strong> = <strong>114 paths</strong> (maximum opportunity coverage!)
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- KRAKEN Settings Grid -->
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 20px;">
                 <!-- Risk Management -->
@@ -836,28 +891,40 @@
 
                 <!-- Path Categories -->
                 <div class="stat-card">
-                    <h4 style="color: #ffb347; margin-bottom: 15px;">📊 Path Sets (32 Paths in 6 Sets)</h4>
+                    <h4 style="color: #ffb347; margin-bottom: 15px;">📊 Path Sets (114 Paths in 10 Sets)</h4>
                     <div style="display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; max-height: 200px; overflow-y: auto;">
-                        <span style="color: #ffd700; font-size: 0.85rem;">SET 1: BTC Focus (8 paths)</span>
+                        <span style="color: #ffd700; font-size: 0.85rem;">SET 1: ETH Focus (6 paths)</span>
                         <input type="checkbox" id="krakenSet1Enabled" checked>
 
-                        <span style="color: #9966ff; font-size: 0.85rem;">SET 2: ETH Focus (7 paths)</span>
+                        <span style="color: #9966ff; font-size: 0.85rem;">SET 2: XRP Focus (12 paths)</span>
                         <input type="checkbox" id="krakenSet2Enabled" checked>
 
-                        <span style="color: #32cd32; font-size: 0.85rem;">SET 3: Reverse Majors (6 paths)</span>
+                        <span style="color: #32cd32; font-size: 0.85rem;">SET 3: SOL Focus (12 paths)</span>
                         <input type="checkbox" id="krakenSet3Enabled" checked>
 
-                        <span style="color: #00d4ff; font-size: 0.85rem;">SET 4: Legacy Coins (5 paths)</span>
+                        <span style="color: #00d4ff; font-size: 0.85rem;">SET 4: ADA Focus (12 paths)</span>
                         <input type="checkbox" id="krakenSet4Enabled">
 
-                        <span style="color: #ff69b4; font-size: 0.85rem;">SET 5: Cross-Bridge (4 paths)</span>
+                        <span style="color: #ff69b4; font-size: 0.85rem;">SET 5: DOT Focus (12 paths)</span>
                         <input type="checkbox" id="krakenSet5Enabled">
 
-                        <span style="color: #778899; font-size: 0.85rem;">SET 6: Meme & Gaming (2 paths)</span>
+                        <span style="color: #ff9800; font-size: 0.85rem;">SET 6: MATIC Focus (12 paths)</span>
                         <input type="checkbox" id="krakenSet6Enabled">
+
+                        <span style="color: #00ff88; font-size: 0.85rem;">SET 7: LINK Focus (12 paths)</span>
+                        <input type="checkbox" id="krakenSet7Enabled">
+
+                        <span style="color: #ffa500; font-size: 0.85rem;">SET 8: LTC Focus (12 paths)</span>
+                        <input type="checkbox" id="krakenSet8Enabled">
+
+                        <span style="color: #8a2be2; font-size: 0.85rem;">SET 9: ATOM Focus (12 paths)</span>
+                        <input type="checkbox" id="krakenSet9Enabled">
+
+                        <span style="color: #e74c3c; font-size: 0.85rem;">SET 10: AVAX Focus (12 paths)</span>
+                        <input type="checkbox" id="krakenSet10Enabled">
                     </div>
                     <div style="margin-top: 10px; padding: 8px; background: rgba(153,102,255,0.1); border-radius: 6px; font-size: 0.8rem; color: #b8c6db;">
-                        💡 Sets 1-3 are essential (21 paths). Kraken has excellent cross-crypto pair coverage for triangular arbitrage.
+                        💡 Sets 1-3 (30 paths) cover major liquidity. All 10 sets provide comprehensive USD/USDT/USDC coverage with BTC/ETH bridges.
                     </div>
                 </div>
 
@@ -5445,8 +5512,8 @@
                 if (settings.portfolioPercent) document.getElementById('chainexPortfolioPercent').value = settings.portfolioPercent;
                 if (settings.profitThreshold) document.getElementById('chainexProfitThreshold').value = settings.profitThreshold;
 
-                // Load path set states (6 sets)
-                for (let i = 1; i <= 6; i++) {
+                // Load path set states (10 sets)
+                for (let i = 1; i <= 10; i++) {
                     const checkbox = document.getElementById(`chainexSet${i}Enabled`);
                     if (checkbox && settings[`set${i}Enabled`] !== undefined) {
                         checkbox.checked = settings[`set${i}Enabled`];
@@ -5591,7 +5658,7 @@
 
                 // Get enabled path sets
                 const enabledSets = [];
-                for (let i = 1; i <= 6; i++) {
+                for (let i = 1; i <= 10; i++) {
                     const checkbox = document.getElementById(`krakenSet${i}Enabled`);
                     if (checkbox && checkbox.checked) {
                         enabledSets.push(i);
@@ -5758,8 +5825,8 @@ SET 5: Extended Multi-Bridge (5 paths)
                 profitThreshold: document.getElementById('krakenProfitThreshold').value
             };
 
-            // Save path set states (6 sets for Kraken)
-            for (let i = 1; i <= 6; i++) {
+            // Save path set states (10 sets for Kraken)
+            for (let i = 1; i <= 10; i++) {
                 const checkbox = document.getElementById(`krakenSet${i}Enabled`);
                 if (checkbox) {
                     settings[`set${i}Enabled`] = checkbox.checked;
@@ -5782,8 +5849,8 @@ SET 5: Extended Multi-Bridge (5 paths)
                 if (settings.portfolioPercent) document.getElementById('krakenPortfolioPercent').value = settings.portfolioPercent;
                 if (settings.profitThreshold) document.getElementById('krakenProfitThreshold').value = settings.profitThreshold;
 
-                // Load path set states (6 sets)
-                for (let i = 1; i <= 6; i++) {
+                // Load path set states (10 sets)
+                for (let i = 1; i <= 10; i++) {
                     const checkbox = document.getElementById(`krakenSet${i}Enabled`);
                     if (checkbox && settings[`set${i}Enabled`] !== undefined) {
                         checkbox.checked = settings[`set${i}Enabled`];
@@ -5802,8 +5869,8 @@ SET 5: Extended Multi-Bridge (5 paths)
                 input.addEventListener('change', saveKrakenTriangularSettings);
             });
 
-            // Add event listeners for Kraken checkboxes (6 sets)
-            for (let i = 1; i <= 6; i++) {
+            // Add event listeners for Kraken checkboxes (10 sets)
+            for (let i = 1; i <= 10; i++) {
                 const checkbox = document.getElementById(`krakenSet${i}Enabled`);
                 if (checkbox) {
                     checkbox.addEventListener('change', saveKrakenTriangularSettings);
