@@ -1286,16 +1286,16 @@
 
             <!-- BYBIT Control Buttons -->
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
-                <button onclick="testByBitTriangularConnection()" class="btn">
+                <button onclick="testByBitTriangularConnection()" class="btn" disabled style="opacity: 0.4; cursor: not-allowed;">
                     🔍 Test Connection
                 </button>
-                <button onclick="scanByBitTriangularPaths()" class="btn">
+                <button onclick="scanByBitTriangularPaths()" class="btn" disabled style="opacity: 0.4; cursor: not-allowed;">
                     🔍 Scan Opportunities
                 </button>
                 <button onclick="viewByBitPathDetails()" class="btn">
                     📊 View Paths
                 </button>
-                <button onclick="clearByBitTriangularHistory()" class="btn">
+                <button onclick="clearByBitTriangularHistory()" class="btn" disabled style="opacity: 0.4; cursor: not-allowed;">
                     🗑️ Clear History
                 </button>
             </div>
