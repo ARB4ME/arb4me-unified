@@ -281,6 +281,47 @@
                 </div>
             </div>
 
+            <!-- FUNDING REQUIREMENTS Info Banner -->
+            <div style="background: rgba(0,255,136,0.15); border: 2px solid #00ff88; border-radius: 10px; padding: 20px; margin-bottom: 20px;">
+                <div style="display: flex; align-items: flex-start; gap: 15px;">
+                    <div style="font-size: 2.5rem; flex-shrink: 0;">💰</div>
+                    <div>
+                        <h4 style="color: #00ff88; margin: 0 0 10px 0; font-size: 1.2rem;">Funding Requirements for Maximum Coverage</h4>
+                        <p style="color: #b8e0ff; margin: 0 0 15px 0;">
+                            VALR supports <strong>48 triangular arbitrage paths</strong> across 2 fundable currencies.
+                        </p>
+                        <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px;">
+                            <div style="display: grid; gap: 12px;">
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <span style="color: #00ff88; font-size: 1.3rem;">✓</span>
+                                    <div>
+                                        <strong style="color: #00ff88;">ZAR</strong> (South African Rand - Fiat)
+                                        <span style="color: #888; font-size: 0.85rem;">→ 24 paths available</span>
+                                        <div style="color: #888; font-size: 0.85rem;">Deposit via: Bank transfer, EFT, Instant EFT</div>
+                                    </div>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <span style="color: #00ff88; font-size: 1.3rem;">✓</span>
+                                    <div>
+                                        <strong style="color: #00ff88;">USDT</strong> (Tether - Stablecoin)
+                                        <span style="color: #888; font-size: 0.85rem;">→ 24 paths available</span>
+                                        <div style="color: #888; font-size: 0.85rem;">Deposit via: Transfer from another exchange, Crypto wallet</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="background: rgba(255,152,0,0.15); padding: 12px; border-radius: 6px; margin-top: 12px;">
+                            <p style="margin: 0; color: #ffc266; font-size: 0.9rem;">
+                                <strong>💡 Important:</strong> Each path is a complete cycle (e.g., ZAR → ETH → USDT → ZAR).
+                                <br>• Fund <strong>ONLY ZAR</strong> = 24 paths (12 sets × 2 ZAR paths per set)
+                                <br>• Fund <strong>ONLY USDT</strong> = 24 paths (12 sets × 2 USDT paths per set)
+                                <br>• Fund <strong>BOTH ZAR + USDT</strong> = <strong>48 paths</strong> (12 sets × 4 paths per set)
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- VALR Control Buttons -->
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
                 <button onclick="testValrTriangularConnection()" class="btn" disabled style="opacity: 0.4; cursor: not-allowed;" title="Disabled: Automated worker handles connections">
@@ -471,6 +512,47 @@
 
                         <span style="color: #b8c6db;">Last Scan:</span>
                         <span style="color: #b8c6db;" id="lunoLastScan">Never</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FUNDING REQUIREMENTS Info Banner -->
+            <div style="background: rgba(0,212,255,0.15); border: 2px solid #00d4ff; border-radius: 10px; padding: 20px; margin-bottom: 20px;">
+                <div style="display: flex; align-items: flex-start; gap: 15px;">
+                    <div style="font-size: 2.5rem; flex-shrink: 0;">💰</div>
+                    <div>
+                        <h4 style="color: #00d4ff; margin: 0 0 10px 0; font-size: 1.2rem;">Funding Requirements for Maximum Coverage</h4>
+                        <p style="color: #b8e0ff; margin: 0 0 15px 0;">
+                            Luno supports <strong>24 triangular arbitrage paths</strong> across 2 fundable currencies.
+                        </p>
+                        <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px;">
+                            <div style="display: grid; gap: 12px;">
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <span style="color: #00d4ff; font-size: 1.3rem;">✓</span>
+                                    <div>
+                                        <strong style="color: #00d4ff;">ZAR</strong> (South African Rand - Fiat)
+                                        <span style="color: #888; font-size: 0.85rem;">→ 12 paths available</span>
+                                        <div style="color: #888; font-size: 0.85rem;">Deposit via: Bank transfer, EFT, Instant EFT</div>
+                                    </div>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <span style="color: #00d4ff; font-size: 1.3rem;">✓</span>
+                                    <div>
+                                        <strong style="color: #00d4ff;">USDT</strong> (Tether - Stablecoin)
+                                        <span style="color: #888; font-size: 0.85rem;">→ 12 paths available</span>
+                                        <div style="color: #888; font-size: 0.85rem;">Deposit via: Transfer from another exchange, Crypto wallet</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="background: rgba(255,152,0,0.15); padding: 12px; border-radius: 6px; margin-top: 12px;">
+                            <p style="margin: 0; color: #ffc266; font-size: 0.9rem;">
+                                <strong>💡 Important:</strong> Each path is a complete cycle (e.g., ZAR → XBT → ETH → ZAR).
+                                <br>• Fund <strong>ONLY ZAR</strong> = 12 paths (6 sets × 2 ZAR paths per set)
+                                <br>• Fund <strong>ONLY USDT</strong> = 12 paths (6 sets × 2 USDT paths per set)
+                                <br>• Fund <strong>BOTH ZAR + USDT</strong> = <strong>24 paths</strong> (6 sets × 4 paths per set)
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
