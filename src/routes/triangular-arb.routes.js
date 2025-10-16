@@ -750,7 +750,7 @@ router.post('/chainex/triangular/test-connection', authenticatedRateLimit, authe
 
 // POST /api/v1/trading/chainex/triangular/scan
 // Scan for triangular arbitrage opportunities on ChainEX
-router.post('/chainex/triangular/scan', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+router.post('/chainex/triangular/scan', asyncHandler(async (req, res) => {
     try {
         const { paths = 'all', apiKey, apiSecret } = req.body;
 
@@ -1165,7 +1165,7 @@ router.post('/kraken/triangular/test-connection', authenticatedRateLimit, authen
 }));
 
 // Scan Kraken Triangular Paths
-router.post('/kraken/triangular/scan', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+router.post('/kraken/triangular/scan', asyncHandler(async (req, res) => {
     try {
         const { paths = 'all', apiKey, apiSecret } = req.body;
 
@@ -1440,7 +1440,7 @@ router.post('/bybit/triangular/test-connection', authenticatedRateLimit, authent
 }));
 
 // Scan ByBit Triangular Paths
-router.post('/bybit/triangular/scan', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+router.post('/bybit/triangular/scan', asyncHandler(async (req, res) => {
     try {
         const { paths = 'all', apiKey, apiSecret } = req.body;
 
@@ -2083,7 +2083,7 @@ router.post('/binance/triangular/test-connection', authenticatedRateLimit, authe
 }));
 
 // Scan Binance Triangular Arbitrage Paths
-router.post('/binance/triangular/scan', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+router.post('/binance/triangular/scan', asyncHandler(async (req, res) => {
     const { apiKey, apiSecret, enabledSets, profitThreshold = 0.5 } = req.body;
 
     if (!apiKey || !apiSecret) {
@@ -2706,7 +2706,7 @@ router.post('/okx/triangular/test-connection', authenticatedRateLimit, authentic
 }));
 
 // Scan OKX Triangular Arbitrage Paths
-router.post('/okx/triangular/scan', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+router.post('/okx/triangular/scan', asyncHandler(async (req, res) => {
     const { apiKey, apiSecret, passphrase, enabledSets, profitThreshold = 0.5 } = req.body;
 
     if (!apiKey || !apiSecret || !passphrase) {
@@ -3296,7 +3296,7 @@ router.post('/kucoin/triangular/test-connection', authenticatedRateLimit, authen
 }));
 
 // POST /api/v1/trading/kucoin/triangular/scan - Scan for triangular arbitrage opportunities
-router.post('/kucoin/triangular/scan', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+router.post('/kucoin/triangular/scan', asyncHandler(async (req, res) => {
     const { apiKey, apiSecret, passphrase, maxTradeAmount, profitThreshold, enabledSets } = req.body;
 
     if (!apiKey || !apiSecret || !passphrase) {
@@ -3706,7 +3706,7 @@ router.post('/coinbase/triangular/test-connection', authenticatedRateLimit, auth
 }));
 
 // POST /api/v1/trading/coinbase/triangular/scan - Scan for triangular arbitrage opportunities
-router.post('/coinbase/triangular/scan', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+router.post('/coinbase/triangular/scan', asyncHandler(async (req, res) => {
     const { apiKey, apiSecret, maxTradeAmount, profitThreshold, enabledSets } = req.body;
 
     if (!apiKey || !apiSecret) {
@@ -4117,7 +4117,7 @@ router.post('/huobi/triangular/test-connection', authenticatedRateLimit, authent
 }));
 
 // POST /api/v1/trading/huobi/triangular/scan - Scan for triangular arbitrage opportunities
-router.post('/huobi/triangular/scan', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+router.post('/huobi/triangular/scan', asyncHandler(async (req, res) => {
     const { apiKey, apiSecret, maxTradeAmount, profitThreshold, enabledSets } = req.body;
 
     if (!apiKey || !apiSecret) {
@@ -8305,7 +8305,7 @@ router.post('/gemini/triangular/test-connection', authenticatedRateLimit, authen
 
 // POST /api/v1/trading/gemini/triangular/scan
 // Scan for Gemini triangular arbitrage opportunities
-router.post('/gemini/triangular/scan', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+router.post('/gemini/triangular/scan', asyncHandler(async (req, res) => {
     try {
         const { apiKey, apiSecret, selectedSets } = req.body;
 
@@ -8801,7 +8801,7 @@ router.post('/coincatch/triangular/test-connection', authenticatedRateLimit, aut
 
 // POST /api/v1/trading/coincatch/triangular/scan
 // Scan for Coincatch triangular arbitrage opportunities
-router.post('/coincatch/triangular/scan', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+router.post('/coincatch/triangular/scan', asyncHandler(async (req, res) => {
     try {
         const { apiKey, apiSecret, passphrase, selectedSets } = req.body;
 
