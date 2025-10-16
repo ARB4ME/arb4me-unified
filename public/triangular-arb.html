@@ -582,19 +582,46 @@
         </div>
 
         <!-- CHAINEX Exchange Card -->
-        <div style="background: rgba(255,152,0,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 2px solid #ff9800;">
+        <div style="background: rgba(255,152,0,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 2px solid #ff9800; opacity: 0.5; position: relative;">
+            <!-- NOT SUPPORTED Overlay Badge -->
+            <div style="position: absolute; top: 10px; right: 10px; background: rgba(255,68,68,0.9); color: white; padding: 8px 16px; border-radius: 20px; font-weight: bold; font-size: 0.9rem; box-shadow: 0 4px 12px rgba(255,68,68,0.4); z-index: 1;">
+                ⛔ NOT SUPPORTED
+            </div>
+
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <h3 style="color: #ff9800; margin: 0;">🔶 CHAINEX Triangular Arbitrage</h3>
                 <div style="display: flex; gap: 10px; align-items: center;">
                     <span style="color: #b8c6db; font-size: 0.9rem;">CHAINEX Live Trading:</span>
-                    <div class="toggle-switch" id="chainexTriangularEnabled">
+                    <div class="toggle-switch" id="chainexTriangularEnabled" style="pointer-events: none; opacity: 0.5;">
                         <div class="toggle-knob"></div>
                     </div>
-                    <span id="chainexTriangularStatus" style="color: #ff6b6b; font-size: 0.9rem; margin-left: 10px;">OFF</span>
+                    <span id="chainexTriangularStatus" style="color: #ff6b6b; font-size: 0.9rem; margin-left: 10px;">DISABLED</span>
                 </div>
             </div>
 
-            <!-- CHAINEX Settings Grid -->
+            <!-- NOT SUPPORTED Warning Banner -->
+            <div style="background: rgba(255,68,68,0.15); border: 2px solid #ff4444; border-radius: 10px; padding: 20px; margin-bottom: 20px;">
+                <div style="display: flex; align-items: flex-start; gap: 15px;">
+                    <div style="font-size: 2.5rem; flex-shrink: 0;">⚠️</div>
+                    <div>
+                        <h4 style="color: #ff4444; margin: 0 0 10px 0; font-size: 1.2rem;">Triangular Arbitrage Not Supported on ChainEX</h4>
+                        <p style="color: #ffa8a8; margin: 0; line-height: 1.6; font-size: 0.95rem;">
+                            ChainEX does <strong>not support crypto-to-crypto trading pairs</strong> (e.g., BTC/ETH, ETH/XRP).
+                            <br><br>
+                            <strong>Why this matters:</strong> Triangular arbitrage requires 3 different pairs like:<br>
+                            &nbsp;&nbsp;&nbsp;• ZAR → BTC (requires <code style="background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px;">BTC/ZAR</code>)<br>
+                            &nbsp;&nbsp;&nbsp;• BTC → ETH (requires <code style="background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px;">ETH/BTC</code> ❌ not available)<br>
+                            &nbsp;&nbsp;&nbsp;• ETH → ZAR (requires <code style="background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px;">ETH/ZAR</code>)
+                            <br><br>
+                            ChainEX only offers <strong>ZAR pairs</strong> (BTC/ZAR, ETH/ZAR, etc.) and <strong>USDT pairs</strong> (BTC/USDT, ETH/USDT, etc.).
+                            <br><br>
+                            <strong style="color: #00ff88;">✅ Alternative:</strong> Use ChainEX for <strong>Cross-Exchange Arbitrage</strong> instead (buy on ChainEX, sell on another exchange).
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CHAINEX Settings Grid (Greyed Out) -->
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 20px;">
                 <!-- Risk Management -->
                 <div class="stat-card">
@@ -681,12 +708,95 @@
                 </button>
             </div>
 
-            <!-- Recent CHAINEX Trades -->
+            <!-- 3-Tab Interface -->
             <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px;">
-                <h4 style="color: #ffb347; margin-bottom: 15px;">🕒 Recent Triangular Trades</h4>
-                <div id="chainexRecentTrades" style="max-height: 200px; overflow-y: auto;">
-                    <div style="text-align: center; color: #888; padding: 20px;">
-                        No triangular trades yet. Enable live trading to start.
+                <!-- Tab Headers -->
+                <div style="display: flex; gap: 5px; margin-bottom: 15px; background: rgba(0,0,0,0.4); padding: 5px; border-radius: 8px;">
+                    <button class="chainex-tab-btn active" data-tab="trades" onclick="switchChainExTab('trades')" style="flex: 1; padding: 12px 10px; background: rgba(255,152,0,0.15); border: 1px solid #ff9800; border-radius: 6px; color: #ff9800; cursor: pointer; font-weight: bold; font-size: 0.95rem; transition: all 0.3s ease;">
+                        📜 Recent Trades
+                    </button>
+                    <button class="chainex-tab-btn" data-tab="balance" onclick="switchChainExTab('balance')" style="flex: 1; padding: 12px 10px; background: rgba(255,255,255,0.03); border: 1px solid transparent; border-radius: 6px; color: #888; cursor: pointer; font-weight: bold; font-size: 0.95rem; transition: all 0.3s ease;">
+                        💰 Balance Tracker
+                    </button>
+                    <button class="chainex-tab-btn" data-tab="alerts" onclick="switchChainExTab('alerts')" style="flex: 1; padding: 12px 10px; background: rgba(255,255,255,0.03); border: 1px solid transparent; border-radius: 6px; color: #888; cursor: pointer; font-weight: bold; font-size: 0.95rem; transition: all 0.3s ease;">
+                        ⚠️ Alerts <span id="chainexAlertBadge" style="display: none; background: #ff4444; color: white; padding: 2px 6px; border-radius: 10px; font-size: 0.75rem; margin-left: 5px;">0</span>
+                    </button>
+                </div>
+
+                <!-- Tab Content Panels -->
+
+                <!-- Tab 1: Recent Trades -->
+                <div id="chainexTabTrades" class="chainex-tab-content" style="display: block;">
+                    <div id="chainexRecentTrades" style="max-height: 200px; overflow-y: auto;">
+                        <div style="text-align: center; color: #888; padding: 20px;">
+                            No triangular trades yet. Enable live trading to start.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 2: Balance Tracker -->
+                <div id="chainexTabBalance" class="chainex-tab-content" style="display: none;">
+                    <div style="margin-bottom: 20px;">
+                        <h5 style="color: #ff9800; margin-bottom: 10px;">💵 ZAR Balance</h5>
+                        <div style="background: rgba(255,152,0,0.1); padding: 15px; border-radius: 8px; border-left: 4px solid #ff9800;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; font-size: 0.9rem;">
+                                <div>
+                                    <div style="color: #888; margin-bottom: 5px;">Starting</div>
+                                    <div style="color: #ff9800; font-weight: bold; font-size: 1.1rem;" id="chainexStartingZAR">R 0.00</div>
+                                </div>
+                                <div>
+                                    <div style="color: #888; margin-bottom: 5px;">Current</div>
+                                    <div style="color: #ff9800; font-weight: bold; font-size: 1.1rem;" id="chainexCurrentZAR">R 0.00</div>
+                                </div>
+                                <div>
+                                    <div style="color: #888; margin-bottom: 5px;">Change</div>
+                                    <div style="font-weight: bold; font-size: 1.1rem;" id="chainexChangeZAR">+R 0.00 (+0%)</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <h5 style="color: #ff9800; margin-bottom: 10px;">💵 USDT Balance</h5>
+                        <div style="background: rgba(255,152,0,0.1); padding: 15px; border-radius: 8px; border-left: 4px solid #ff9800;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; font-size: 0.9rem;">
+                                <div>
+                                    <div style="color: #888; margin-bottom: 5px;">Starting</div>
+                                    <div style="color: #ff9800; font-weight: bold; font-size: 1.1rem;" id="chainexStartingUSDT">$0.00</div>
+                                </div>
+                                <div>
+                                    <div style="color: #888; margin-bottom: 5px;">Current</div>
+                                    <div style="color: #ff9800; font-weight: bold; font-size: 1.1rem;" id="chainexCurrentUSDT">$0.00</div>
+                                </div>
+                                <div>
+                                    <div style="color: #888; margin-bottom: 5px;">Change</div>
+                                    <div style="font-weight: bold; font-size: 1.1rem;" id="chainexChangeUSDT">+$0.00 (+0%)</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 10px; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1);">
+                        <div style="color: #888; font-size: 0.85rem;">
+                            Last Updated: <span id="chainexBalanceLastUpdate">Never</span>
+                        </div>
+                        <button onclick="resetChainExStartingBalance()" style="padding: 6px 12px; background: rgba(255,255,255,0.1); color: #ff9800; border: 1px solid #ff9800; border-radius: 5px; cursor: pointer; font-size: 0.85rem;">
+                            🔄 Reset Starting Balance
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tab 3: Alerts -->
+                <div id="chainexTabAlerts" class="chainex-tab-content" style="display: none;">
+                    <div id="chainexAlertsList" style="max-height: 200px; overflow-y: auto;">
+                        <div style="text-align: center; color: #888; padding: 20px;">
+                            No alerts. Worker running smoothly. ✅
+                        </div>
+                    </div>
+                    <div style="padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); text-align: right;">
+                        <button onclick="clearChainExAlerts()" style="padding: 6px 12px; background: rgba(255,255,255,0.1); color: #888; border: 1px solid #555; border-radius: 5px; cursor: pointer; font-size: 0.85rem;">
+                            Clear All Alerts
+                        </button>
                     </div>
                 </div>
             </div>
@@ -5219,6 +5329,87 @@
                 console.error('❌ [CHAINEX] Clear history error:', error);
                 alert(`❌ Error: ${error.message}`);
             }
+        }
+
+        // Switch ChainEX tabs
+        function switchChainExTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.chainex-tab-content').forEach(content => {
+                content.style.display = 'none';
+            });
+
+            // Remove active class from all buttons and reset styling
+            document.querySelectorAll('.chainex-tab-btn').forEach(btn => {
+                btn.style.background = 'rgba(255,255,255,0.03)';
+                btn.style.borderColor = 'transparent';
+                btn.style.color = '#888';
+                btn.classList.remove('active');
+            });
+
+            // Show selected tab content
+            if (tabName === 'trades') {
+                document.getElementById('chainexTabTrades').style.display = 'block';
+            } else if (tabName === 'balance') {
+                document.getElementById('chainexTabBalance').style.display = 'block';
+            } else if (tabName === 'alerts') {
+                document.getElementById('chainexTabAlerts').style.display = 'block';
+            }
+
+            // Highlight active button with enhanced styling
+            const activeButton = document.querySelector(`.chainex-tab-btn[data-tab="${tabName}"]`);
+            if (activeButton) {
+                activeButton.style.background = 'rgba(255,152,0,0.15)';
+                activeButton.style.borderColor = '#ff9800';
+                activeButton.style.color = '#ff9800';
+                activeButton.classList.add('active');
+            }
+
+            console.log(`📑 [CHAINEX] Switched to ${tabName} tab`);
+        }
+
+        // Reset ChainEX Starting Balance
+        function resetChainExStartingBalance() {
+            if (!confirm('⚠️ Reset ChainEX starting balance to current balance?\n\nThis will recalculate profit/loss from this point forward.')) {
+                console.log('❌ [CHAINEX] Reset starting balance cancelled');
+                return;
+            }
+
+            // Get current balances
+            const currentZAR = document.getElementById('chainexCurrentZAR').textContent;
+            const currentUSDT = document.getElementById('chainexCurrentUSDT').textContent;
+
+            // Set as starting balances
+            document.getElementById('chainexStartingZAR').textContent = currentZAR;
+            document.getElementById('chainexStartingUSDT').textContent = currentUSDT;
+
+            // Reset change to zero
+            document.getElementById('chainexChangeZAR').textContent = '+R 0.00 (+0%)';
+            document.getElementById('chainexChangeZAR').style.color = '#888';
+            document.getElementById('chainexChangeUSDT').textContent = '+$0.00 (+0%)';
+            document.getElementById('chainexChangeUSDT').style.color = '#888';
+
+            // Save to localStorage
+            localStorage.setItem('chainexStartingZAR', currentZAR);
+            localStorage.setItem('chainexStartingUSDT', currentUSDT);
+
+            // Update timestamp
+            document.getElementById('chainexBalanceLastUpdate').textContent = new Date().toLocaleString();
+
+            console.log('✅ [CHAINEX] Starting balance reset successfully');
+            alert('✅ Starting balance reset successfully!');
+        }
+
+        // Clear ChainEX Alerts
+        function clearChainExAlerts() {
+            const alertsList = document.getElementById('chainexAlertsList');
+            alertsList.innerHTML = '<div style="text-align: center; color: #888; padding: 20px;">No alerts. Worker running smoothly. ✅</div>';
+
+            // Reset badge
+            const badge = document.getElementById('chainexAlertBadge');
+            badge.style.display = 'none';
+            badge.textContent = '0';
+
+            console.log('🗑️ [CHAINEX] Alerts cleared');
         }
 
         // Save ChainEX settings to localStorage
