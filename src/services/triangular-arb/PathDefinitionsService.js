@@ -17,10 +17,10 @@ class PathDefinitionsService {
         this.paths = {
             valr: this._initializeVALRPaths(),
             luno: this._initializeLunoPaths(),
+            kraken: this._initializeKrakenPaths(),
             // Other exchanges will be added as they're implemented
             chainex: [],
             binance: [],
-            kraken: [],
             bybit: [],
             okx: [],
             kucoin: [],
@@ -207,6 +207,188 @@ class PathDefinitionsService {
                 { id: 'ZAR_AVAX_XBT_ZAR', pairs: ['AVAXZAR', 'AVAXXBT', 'XBTZAR'], sequence: 'ZAR → AVAX → XBT → ZAR', steps: [{ pair: 'AVAXZAR', side: 'buy' }, { pair: 'AVAXXBT', side: 'sell' }, { pair: 'XBTZAR', side: 'sell' }] },
                 { id: 'ZAR_XBT_LTC_ZAR', pairs: ['XBTZAR', 'LTCXBT', 'LTCZAR'], sequence: 'ZAR → XBT → LTC → ZAR', steps: [{ pair: 'XBTZAR', side: 'buy' }, { pair: 'LTCXBT', side: 'buy' }, { pair: 'LTCZAR', side: 'sell' }] },
                 { id: 'ZAR_LTC_XBT_ZAR', pairs: ['LTCZAR', 'LTCXBT', 'XBTZAR'], sequence: 'ZAR → LTC → XBT → ZAR', steps: [{ pair: 'LTCZAR', side: 'buy' }, { pair: 'LTCXBT', side: 'sell' }, { pair: 'XBTZAR', side: 'sell' }] }
+            ]
+        };
+    }
+
+    /**
+     * Initialize Kraken paths (114 paths across 10 sets)
+     * Comprehensive coverage with USD/USDT/USDC fundable currencies
+     * BTC and ETH as bridge currencies
+     * @private
+     */
+    _initializeKrakenPaths() {
+        return {
+            // SET 1: ETH Focus (6 paths) - BTC bridge only (ETH is target, so no ETH bridge)
+            SET_1_ETH_FOCUS: [
+                { id: 'USD_BTC_ETH_USD', pairs: ['XBTUSD', 'ETHXBT', 'ETHUSD'], sequence: 'USD → BTC → ETH → USD', steps: [{ pair: 'XBTUSD', side: 'buy' }, { pair: 'ETHXBT', side: 'buy' }, { pair: 'ETHUSD', side: 'sell' }] },
+                { id: 'USD_ETH_BTC_USD', pairs: ['ETHUSD', 'ETHXBT', 'XBTUSD'], sequence: 'USD → ETH → BTC → USD', steps: [{ pair: 'ETHUSD', side: 'buy' }, { pair: 'ETHXBT', side: 'sell' }, { pair: 'XBTUSD', side: 'sell' }] },
+                { id: 'USDT_BTC_ETH_USDT', pairs: ['XBTUSDT', 'ETHXBT', 'ETHUSDT'], sequence: 'USDT → BTC → ETH → USDT', steps: [{ pair: 'XBTUSDT', side: 'buy' }, { pair: 'ETHXBT', side: 'buy' }, { pair: 'ETHUSDT', side: 'sell' }] },
+                { id: 'USDT_ETH_BTC_USDT', pairs: ['ETHUSDT', 'ETHXBT', 'XBTUSDT'], sequence: 'USDT → ETH → BTC → USDT', steps: [{ pair: 'ETHUSDT', side: 'buy' }, { pair: 'ETHXBT', side: 'sell' }, { pair: 'XBTUSDT', side: 'sell' }] },
+                { id: 'USDC_BTC_ETH_USDC', pairs: ['XBTUSDC', 'ETHXBT', 'ETHUSDC'], sequence: 'USDC → BTC → ETH → USDC', steps: [{ pair: 'XBTUSDC', side: 'buy' }, { pair: 'ETHXBT', side: 'buy' }, { pair: 'ETHUSDC', side: 'sell' }] },
+                { id: 'USDC_ETH_BTC_USDC', pairs: ['ETHUSDC', 'ETHXBT', 'XBTUSDC'], sequence: 'USDC → ETH → BTC → USDC', steps: [{ pair: 'ETHUSDC', side: 'buy' }, { pair: 'ETHXBT', side: 'sell' }, { pair: 'XBTUSDC', side: 'sell' }] }
+            ],
+
+            // SET 2: XRP Focus (12 paths) - BTC + ETH bridges
+            SET_2_XRP_FOCUS: [
+                // BTC Bridge (6 paths)
+                { id: 'USD_BTC_XRP_USD', pairs: ['XBTUSD', 'XRPXBT', 'XRPUSD'], sequence: 'USD → BTC → XRP → USD', steps: [{ pair: 'XBTUSD', side: 'buy' }, { pair: 'XRPXBT', side: 'buy' }, { pair: 'XRPUSD', side: 'sell' }] },
+                { id: 'USD_XRP_BTC_USD', pairs: ['XRPUSD', 'XRPXBT', 'XBTUSD'], sequence: 'USD → XRP → BTC → USD', steps: [{ pair: 'XRPUSD', side: 'buy' }, { pair: 'XRPXBT', side: 'sell' }, { pair: 'XBTUSD', side: 'sell' }] },
+                { id: 'USDT_BTC_XRP_USDT', pairs: ['XBTUSDT', 'XRPXBT', 'XRPUSDT'], sequence: 'USDT → BTC → XRP → USDT', steps: [{ pair: 'XBTUSDT', side: 'buy' }, { pair: 'XRPXBT', side: 'buy' }, { pair: 'XRPUSDT', side: 'sell' }] },
+                { id: 'USDT_XRP_BTC_USDT', pairs: ['XRPUSDT', 'XRPXBT', 'XBTUSDT'], sequence: 'USDT → XRP → BTC → USDT', steps: [{ pair: 'XRPUSDT', side: 'buy' }, { pair: 'XRPXBT', side: 'sell' }, { pair: 'XBTUSDT', side: 'sell' }] },
+                { id: 'USDC_BTC_XRP_USDC', pairs: ['XBTUSDC', 'XRPXBT', 'XRPUSDC'], sequence: 'USDC → BTC → XRP → USDC', steps: [{ pair: 'XBTUSDC', side: 'buy' }, { pair: 'XRPXBT', side: 'buy' }, { pair: 'XRPUSDC', side: 'sell' }] },
+                { id: 'USDC_XRP_BTC_USDC', pairs: ['XRPUSDC', 'XRPXBT', 'XBTUSDC'], sequence: 'USDC → XRP → BTC → USDC', steps: [{ pair: 'XRPUSDC', side: 'buy' }, { pair: 'XRPXBT', side: 'sell' }, { pair: 'XBTUSDC', side: 'sell' }] },
+                // ETH Bridge (6 paths)
+                { id: 'USD_ETH_XRP_USD', pairs: ['ETHUSD', 'XRPETH', 'XRPUSD'], sequence: 'USD → ETH → XRP → USD', steps: [{ pair: 'ETHUSD', side: 'buy' }, { pair: 'XRPETH', side: 'buy' }, { pair: 'XRPUSD', side: 'sell' }] },
+                { id: 'USD_XRP_ETH_USD', pairs: ['XRPUSD', 'XRPETH', 'ETHUSD'], sequence: 'USD → XRP → ETH → USD', steps: [{ pair: 'XRPUSD', side: 'buy' }, { pair: 'XRPETH', side: 'sell' }, { pair: 'ETHUSD', side: 'sell' }] },
+                { id: 'USDT_ETH_XRP_USDT', pairs: ['ETHUSDT', 'XRPETH', 'XRPUSDT'], sequence: 'USDT → ETH → XRP → USDT', steps: [{ pair: 'ETHUSDT', side: 'buy' }, { pair: 'XRPETH', side: 'buy' }, { pair: 'XRPUSDT', side: 'sell' }] },
+                { id: 'USDT_XRP_ETH_USDT', pairs: ['XRPUSDT', 'XRPETH', 'ETHUSDT'], sequence: 'USDT → XRP → ETH → USDT', steps: [{ pair: 'XRPUSDT', side: 'buy' }, { pair: 'XRPETH', side: 'sell' }, { pair: 'ETHUSDT', side: 'sell' }] },
+                { id: 'USDC_ETH_XRP_USDC', pairs: ['ETHUSDC', 'XRPETH', 'XRPUSDC'], sequence: 'USDC → ETH → XRP → USDC', steps: [{ pair: 'ETHUSDC', side: 'buy' }, { pair: 'XRPETH', side: 'buy' }, { pair: 'XRPUSDC', side: 'sell' }] },
+                { id: 'USDC_XRP_ETH_USDC', pairs: ['XRPUSDC', 'XRPETH', 'ETHUSDC'], sequence: 'USDC → XRP → ETH → USDC', steps: [{ pair: 'XRPUSDC', side: 'buy' }, { pair: 'XRPETH', side: 'sell' }, { pair: 'ETHUSDC', side: 'sell' }] }
+            ],
+
+            // SET 3: SOL Focus (12 paths) - BTC + ETH bridges
+            SET_3_SOL_FOCUS: [
+                // BTC Bridge
+                { id: 'USD_BTC_SOL_USD', pairs: ['XBTUSD', 'SOLXBT', 'SOLUSD'], sequence: 'USD → BTC → SOL → USD', steps: [{ pair: 'XBTUSD', side: 'buy' }, { pair: 'SOLXBT', side: 'buy' }, { pair: 'SOLUSD', side: 'sell' }] },
+                { id: 'USD_SOL_BTC_USD', pairs: ['SOLUSD', 'SOLXBT', 'XBTUSD'], sequence: 'USD → SOL → BTC → USD', steps: [{ pair: 'SOLUSD', side: 'buy' }, { pair: 'SOLXBT', side: 'sell' }, { pair: 'XBTUSD', side: 'sell' }] },
+                { id: 'USDT_BTC_SOL_USDT', pairs: ['XBTUSDT', 'SOLXBT', 'SOLUSDT'], sequence: 'USDT → BTC → SOL → USDT', steps: [{ pair: 'XBTUSDT', side: 'buy' }, { pair: 'SOLXBT', side: 'buy' }, { pair: 'SOLUSDT', side: 'sell' }] },
+                { id: 'USDT_SOL_BTC_USDT', pairs: ['SOLUSDT', 'SOLXBT', 'XBTUSDT'], sequence: 'USDT → SOL → BTC → USDT', steps: [{ pair: 'SOLUSDT', side: 'buy' }, { pair: 'SOLXBT', side: 'sell' }, { pair: 'XBTUSDT', side: 'sell' }] },
+                { id: 'USDC_BTC_SOL_USDC', pairs: ['XBTUSDC', 'SOLXBT', 'SOLUSDC'], sequence: 'USDC → BTC → SOL → USDC', steps: [{ pair: 'XBTUSDC', side: 'buy' }, { pair: 'SOLXBT', side: 'buy' }, { pair: 'SOLUSDC', side: 'sell' }] },
+                { id: 'USDC_SOL_BTC_USDC', pairs: ['SOLUSDC', 'SOLXBT', 'XBTUSDC'], sequence: 'USDC → SOL → BTC → USDC', steps: [{ pair: 'SOLUSDC', side: 'buy' }, { pair: 'SOLXBT', side: 'sell' }, { pair: 'XBTUSDC', side: 'sell' }] },
+                // ETH Bridge
+                { id: 'USD_ETH_SOL_USD', pairs: ['ETHUSD', 'SOLETH', 'SOLUSD'], sequence: 'USD → ETH → SOL → USD', steps: [{ pair: 'ETHUSD', side: 'buy' }, { pair: 'SOLETH', side: 'buy' }, { pair: 'SOLUSD', side: 'sell' }] },
+                { id: 'USD_SOL_ETH_USD', pairs: ['SOLUSD', 'SOLETH', 'ETHUSD'], sequence: 'USD → SOL → ETH → USD', steps: [{ pair: 'SOLUSD', side: 'buy' }, { pair: 'SOLETH', side: 'sell' }, { pair: 'ETHUSD', side: 'sell' }] },
+                { id: 'USDT_ETH_SOL_USDT', pairs: ['ETHUSDT', 'SOLETH', 'SOLUSDT'], sequence: 'USDT → ETH → SOL → USDT', steps: [{ pair: 'ETHUSDT', side: 'buy' }, { pair: 'SOLETH', side: 'buy' }, { pair: 'SOLUSDT', side: 'sell' }] },
+                { id: 'USDT_SOL_ETH_USDT', pairs: ['SOLUSDT', 'SOLETH', 'ETHUSDT'], sequence: 'USDT → SOL → ETH → USDT', steps: [{ pair: 'SOLUSDT', side: 'buy' }, { pair: 'SOLETH', side: 'sell' }, { pair: 'ETHUSDT', side: 'sell' }] },
+                { id: 'USDC_ETH_SOL_USDC', pairs: ['ETHUSDC', 'SOLETH', 'SOLUSDC'], sequence: 'USDC → ETH → SOL → USDC', steps: [{ pair: 'ETHUSDC', side: 'buy' }, { pair: 'SOLETH', side: 'buy' }, { pair: 'SOLUSDC', side: 'sell' }] },
+                { id: 'USDC_SOL_ETH_USDC', pairs: ['SOLUSDC', 'SOLETH', 'ETHUSDC'], sequence: 'USDC → SOL → ETH → USDC', steps: [{ pair: 'SOLUSDC', side: 'buy' }, { pair: 'SOLETH', side: 'sell' }, { pair: 'ETHUSDC', side: 'sell' }] }
+            ],
+
+            // SET 4: ADA Focus (12 paths) - BTC + ETH bridges
+            SET_4_ADA_FOCUS: [
+                // BTC Bridge
+                { id: 'USD_BTC_ADA_USD', pairs: ['XBTUSD', 'ADAXBT', 'ADAUSD'], sequence: 'USD → BTC → ADA → USD', steps: [{ pair: 'XBTUSD', side: 'buy' }, { pair: 'ADAXBT', side: 'buy' }, { pair: 'ADAUSD', side: 'sell' }] },
+                { id: 'USD_ADA_BTC_USD', pairs: ['ADAUSD', 'ADAXBT', 'XBTUSD'], sequence: 'USD → ADA → BTC → USD', steps: [{ pair: 'ADAUSD', side: 'buy' }, { pair: 'ADAXBT', side: 'sell' }, { pair: 'XBTUSD', side: 'sell' }] },
+                { id: 'USDT_BTC_ADA_USDT', pairs: ['XBTUSDT', 'ADAXBT', 'ADAUSDT'], sequence: 'USDT → BTC → ADA → USDT', steps: [{ pair: 'XBTUSDT', side: 'buy' }, { pair: 'ADAXBT', side: 'buy' }, { pair: 'ADAUSDT', side: 'sell' }] },
+                { id: 'USDT_ADA_BTC_USDT', pairs: ['ADAUSDT', 'ADAXBT', 'XBTUSDT'], sequence: 'USDT → ADA → BTC → USDT', steps: [{ pair: 'ADAUSDT', side: 'buy' }, { pair: 'ADAXBT', side: 'sell' }, { pair: 'XBTUSDT', side: 'sell' }] },
+                { id: 'USDC_BTC_ADA_USDC', pairs: ['XBTUSDC', 'ADAXBT', 'ADAUSDC'], sequence: 'USDC → BTC → ADA → USDC', steps: [{ pair: 'XBTUSDC', side: 'buy' }, { pair: 'ADAXBT', side: 'buy' }, { pair: 'ADAUSDC', side: 'sell' }] },
+                { id: 'USDC_ADA_BTC_USDC', pairs: ['ADAUSDC', 'ADAXBT', 'XBTUSDC'], sequence: 'USDC → ADA → BTC → USDC', steps: [{ pair: 'ADAUSDC', side: 'buy' }, { pair: 'ADAXBT', side: 'sell' }, { pair: 'XBTUSDC', side: 'sell' }] },
+                // ETH Bridge
+                { id: 'USD_ETH_ADA_USD', pairs: ['ETHUSD', 'ADAETH', 'ADAUSD'], sequence: 'USD → ETH → ADA → USD', steps: [{ pair: 'ETHUSD', side: 'buy' }, { pair: 'ADAETH', side: 'buy' }, { pair: 'ADAUSD', side: 'sell' }] },
+                { id: 'USD_ADA_ETH_USD', pairs: ['ADAUSD', 'ADAETH', 'ETHUSD'], sequence: 'USD → ADA → ETH → USD', steps: [{ pair: 'ADAUSD', side: 'buy' }, { pair: 'ADAETH', side: 'sell' }, { pair: 'ETHUSD', side: 'sell' }] },
+                { id: 'USDT_ETH_ADA_USDT', pairs: ['ETHUSDT', 'ADAETH', 'ADAUSDT'], sequence: 'USDT → ETH → ADA → USDT', steps: [{ pair: 'ETHUSDT', side: 'buy' }, { pair: 'ADAETH', side: 'buy' }, { pair: 'ADAUSDT', side: 'sell' }] },
+                { id: 'USDT_ADA_ETH_USDT', pairs: ['ADAUSDT', 'ADAETH', 'ETHUSDT'], sequence: 'USDT → ADA → ETH → USDT', steps: [{ pair: 'ADAUSDT', side: 'buy' }, { pair: 'ADAETH', side: 'sell' }, { pair: 'ETHUSDT', side: 'sell' }] },
+                { id: 'USDC_ETH_ADA_USDC', pairs: ['ETHUSDC', 'ADAETH', 'ADAUSDC'], sequence: 'USDC → ETH → ADA → USDC', steps: [{ pair: 'ETHUSDC', side: 'buy' }, { pair: 'ADAETH', side: 'buy' }, { pair: 'ADAUSDC', side: 'sell' }] },
+                { id: 'USDC_ADA_ETH_USDC', pairs: ['ADAUSDC', 'ADAETH', 'ETHUSDC'], sequence: 'USDC → ADA → ETH → USDC', steps: [{ pair: 'ADAUSDC', side: 'buy' }, { pair: 'ADAETH', side: 'sell' }, { pair: 'ETHUSDC', side: 'sell' }] }
+            ],
+
+            // SET 5: DOT Focus (12 paths) - BTC + ETH bridges
+            SET_5_DOT_FOCUS: [
+                // BTC Bridge
+                { id: 'USD_BTC_DOT_USD', pairs: ['XBTUSD', 'DOTXBT', 'DOTUSD'], sequence: 'USD → BTC → DOT → USD', steps: [{ pair: 'XBTUSD', side: 'buy' }, { pair: 'DOTXBT', side: 'buy' }, { pair: 'DOTUSD', side: 'sell' }] },
+                { id: 'USD_DOT_BTC_USD', pairs: ['DOTUSD', 'DOTXBT', 'XBTUSD'], sequence: 'USD → DOT → BTC → USD', steps: [{ pair: 'DOTUSD', side: 'buy' }, { pair: 'DOTXBT', side: 'sell' }, { pair: 'XBTUSD', side: 'sell' }] },
+                { id: 'USDT_BTC_DOT_USDT', pairs: ['XBTUSDT', 'DOTXBT', 'DOTUSDT'], sequence: 'USDT → BTC → DOT → USDT', steps: [{ pair: 'XBTUSDT', side: 'buy' }, { pair: 'DOTXBT', side: 'buy' }, { pair: 'DOTUSDT', side: 'sell' }] },
+                { id: 'USDT_DOT_BTC_USDT', pairs: ['DOTUSDT', 'DOTXBT', 'XBTUSDT'], sequence: 'USDT → DOT → BTC → USDT', steps: [{ pair: 'DOTUSDT', side: 'buy' }, { pair: 'DOTXBT', side: 'sell' }, { pair: 'XBTUSDT', side: 'sell' }] },
+                { id: 'USDC_BTC_DOT_USDC', pairs: ['XBTUSDC', 'DOTXBT', 'DOTUSDC'], sequence: 'USDC → BTC → DOT → USDC', steps: [{ pair: 'XBTUSDC', side: 'buy' }, { pair: 'DOTXBT', side: 'buy' }, { pair: 'DOTUSDC', side: 'sell' }] },
+                { id: 'USDC_DOT_BTC_USDC', pairs: ['DOTUSDC', 'DOTXBT', 'XBTUSDC'], sequence: 'USDC → DOT → BTC → USDC', steps: [{ pair: 'DOTUSDC', side: 'buy' }, { pair: 'DOTXBT', side: 'sell' }, { pair: 'XBTUSDC', side: 'sell' }] },
+                // ETH Bridge
+                { id: 'USD_ETH_DOT_USD', pairs: ['ETHUSD', 'DOTETH', 'DOTUSD'], sequence: 'USD → ETH → DOT → USD', steps: [{ pair: 'ETHUSD', side: 'buy' }, { pair: 'DOTETH', side: 'buy' }, { pair: 'DOTUSD', side: 'sell' }] },
+                { id: 'USD_DOT_ETH_USD', pairs: ['DOTUSD', 'DOTETH', 'ETHUSD'], sequence: 'USD → DOT → ETH → USD', steps: [{ pair: 'DOTUSD', side: 'buy' }, { pair: 'DOTETH', side: 'sell' }, { pair: 'ETHUSD', side: 'sell' }] },
+                { id: 'USDT_ETH_DOT_USDT', pairs: ['ETHUSDT', 'DOTETH', 'DOTUSDT'], sequence: 'USDT → ETH → DOT → USDT', steps: [{ pair: 'ETHUSDT', side: 'buy' }, { pair: 'DOTETH', side: 'buy' }, { pair: 'DOTUSDT', side: 'sell' }] },
+                { id: 'USDT_DOT_ETH_USDT', pairs: ['DOTUSDT', 'DOTETH', 'ETHUSDT'], sequence: 'USDT → DOT → ETH → USDT', steps: [{ pair: 'DOTUSDT', side: 'buy' }, { pair: 'DOTETH', side: 'sell' }, { pair: 'ETHUSDT', side: 'sell' }] },
+                { id: 'USDC_ETH_DOT_USDC', pairs: ['ETHUSDC', 'DOTETH', 'DOTUSDC'], sequence: 'USDC → ETH → DOT → USDC', steps: [{ pair: 'ETHUSDC', side: 'buy' }, { pair: 'DOTETH', side: 'buy' }, { pair: 'DOTUSDC', side: 'sell' }] },
+                { id: 'USDC_DOT_ETH_USDC', pairs: ['DOTUSDC', 'DOTETH', 'ETHUSDC'], sequence: 'USDC → DOT → ETH → USDC', steps: [{ pair: 'DOTUSDC', side: 'buy' }, { pair: 'DOTETH', side: 'sell' }, { pair: 'ETHUSDC', side: 'sell' }] }
+            ],
+
+            // SET 6: MATIC Focus (12 paths) - BTC + ETH bridges
+            SET_6_MATIC_FOCUS: [
+                // BTC Bridge
+                { id: 'USD_BTC_MATIC_USD', pairs: ['XBTUSD', 'MATICXBT', 'MATICUSD'], sequence: 'USD → BTC → MATIC → USD', steps: [{ pair: 'XBTUSD', side: 'buy' }, { pair: 'MATICXBT', side: 'buy' }, { pair: 'MATICUSD', side: 'sell' }] },
+                { id: 'USD_MATIC_BTC_USD', pairs: ['MATICUSD', 'MATICXBT', 'XBTUSD'], sequence: 'USD → MATIC → BTC → USD', steps: [{ pair: 'MATICUSD', side: 'buy' }, { pair: 'MATICXBT', side: 'sell' }, { pair: 'XBTUSD', side: 'sell' }] },
+                { id: 'USDT_BTC_MATIC_USDT', pairs: ['XBTUSDT', 'MATICXBT', 'MATICUSDT'], sequence: 'USDT → BTC → MATIC → USDT', steps: [{ pair: 'XBTUSDT', side: 'buy' }, { pair: 'MATICXBT', side: 'buy' }, { pair: 'MATICUSDT', side: 'sell' }] },
+                { id: 'USDT_MATIC_BTC_USDT', pairs: ['MATICUSDT', 'MATICXBT', 'XBTUSDT'], sequence: 'USDT → MATIC → BTC → USDT', steps: [{ pair: 'MATICUSDT', side: 'buy' }, { pair: 'MATICXBT', side: 'sell' }, { pair: 'XBTUSDT', side: 'sell' }] },
+                { id: 'USDC_BTC_MATIC_USDC', pairs: ['XBTUSDC', 'MATICXBT', 'MATICUSDC'], sequence: 'USDC → BTC → MATIC → USDC', steps: [{ pair: 'XBTUSDC', side: 'buy' }, { pair: 'MATICXBT', side: 'buy' }, { pair: 'MATICUSDC', side: 'sell' }] },
+                { id: 'USDC_MATIC_BTC_USDC', pairs: ['MATICUSDC', 'MATICXBT', 'XBTUSDC'], sequence: 'USDC → MATIC → BTC → USDC', steps: [{ pair: 'MATICUSDC', side: 'buy' }, { pair: 'MATICXBT', side: 'sell' }, { pair: 'XBTUSDC', side: 'sell' }] },
+                // ETH Bridge
+                { id: 'USD_ETH_MATIC_USD', pairs: ['ETHUSD', 'MATICETH', 'MATICUSD'], sequence: 'USD → ETH → MATIC → USD', steps: [{ pair: 'ETHUSD', side: 'buy' }, { pair: 'MATICETH', side: 'buy' }, { pair: 'MATICUSD', side: 'sell' }] },
+                { id: 'USD_MATIC_ETH_USD', pairs: ['MATICUSD', 'MATICETH', 'ETHUSD'], sequence: 'USD → MATIC → ETH → USD', steps: [{ pair: 'MATICUSD', side: 'buy' }, { pair: 'MATICETH', side: 'sell' }, { pair: 'ETHUSD', side: 'sell' }] },
+                { id: 'USDT_ETH_MATIC_USDT', pairs: ['ETHUSDT', 'MATICETH', 'MATICUSDT'], sequence: 'USDT → ETH → MATIC → USDT', steps: [{ pair: 'ETHUSDT', side: 'buy' }, { pair: 'MATICETH', side: 'buy' }, { pair: 'MATICUSDT', side: 'sell' }] },
+                { id: 'USDT_MATIC_ETH_USDT', pairs: ['MATICUSDT', 'MATICETH', 'ETHUSDT'], sequence: 'USDT → MATIC → ETH → USDT', steps: [{ pair: 'MATICUSDT', side: 'buy' }, { pair: 'MATICETH', side: 'sell' }, { pair: 'ETHUSDT', side: 'sell' }] },
+                { id: 'USDC_ETH_MATIC_USDC', pairs: ['ETHUSDC', 'MATICETH', 'MATICUSDC'], sequence: 'USDC → ETH → MATIC → USDC', steps: [{ pair: 'ETHUSDC', side: 'buy' }, { pair: 'MATICETH', side: 'buy' }, { pair: 'MATICUSDC', side: 'sell' }] },
+                { id: 'USDC_MATIC_ETH_USDC', pairs: ['MATICUSDC', 'MATICETH', 'ETHUSDC'], sequence: 'USDC → MATIC → ETH → USDC', steps: [{ pair: 'MATICUSDC', side: 'buy' }, { pair: 'MATICETH', side: 'sell' }, { pair: 'ETHUSDC', side: 'sell' }] }
+            ],
+
+            // SET 7: LINK Focus (12 paths) - BTC + ETH bridges
+            SET_7_LINK_FOCUS: [
+                // BTC Bridge
+                { id: 'USD_BTC_LINK_USD', pairs: ['XBTUSD', 'LINKXBT', 'LINKUSD'], sequence: 'USD → BTC → LINK → USD', steps: [{ pair: 'XBTUSD', side: 'buy' }, { pair: 'LINKXBT', side: 'buy' }, { pair: 'LINKUSD', side: 'sell' }] },
+                { id: 'USD_LINK_BTC_USD', pairs: ['LINKUSD', 'LINKXBT', 'XBTUSD'], sequence: 'USD → LINK → BTC → USD', steps: [{ pair: 'LINKUSD', side: 'buy' }, { pair: 'LINKXBT', side: 'sell' }, { pair: 'XBTUSD', side: 'sell' }] },
+                { id: 'USDT_BTC_LINK_USDT', pairs: ['XBTUSDT', 'LINKXBT', 'LINKUSDT'], sequence: 'USDT → BTC → LINK → USDT', steps: [{ pair: 'XBTUSDT', side: 'buy' }, { pair: 'LINKXBT', side: 'buy' }, { pair: 'LINKUSDT', side: 'sell' }] },
+                { id: 'USDT_LINK_BTC_USDT', pairs: ['LINKUSDT', 'LINKXBT', 'XBTUSDT'], sequence: 'USDT → LINK → BTC → USDT', steps: [{ pair: 'LINKUSDT', side: 'buy' }, { pair: 'LINKXBT', side: 'sell' }, { pair: 'XBTUSDT', side: 'sell' }] },
+                { id: 'USDC_BTC_LINK_USDC', pairs: ['XBTUSDC', 'LINKXBT', 'LINKUSDC'], sequence: 'USDC → BTC → LINK → USDC', steps: [{ pair: 'XBTUSDC', side: 'buy' }, { pair: 'LINKXBT', side: 'buy' }, { pair: 'LINKUSDC', side: 'sell' }] },
+                { id: 'USDC_LINK_BTC_USDC', pairs: ['LINKUSDC', 'LINKXBT', 'XBTUSDC'], sequence: 'USDC → LINK → BTC → USDC', steps: [{ pair: 'LINKUSDC', side: 'buy' }, { pair: 'LINKXBT', side: 'sell' }, { pair: 'XBTUSDC', side: 'sell' }] },
+                // ETH Bridge
+                { id: 'USD_ETH_LINK_USD', pairs: ['ETHUSD', 'LINKETH', 'LINKUSD'], sequence: 'USD → ETH → LINK → USD', steps: [{ pair: 'ETHUSD', side: 'buy' }, { pair: 'LINKETH', side: 'buy' }, { pair: 'LINKUSD', side: 'sell' }] },
+                { id: 'USD_LINK_ETH_USD', pairs: ['LINKUSD', 'LINKETH', 'ETHUSD'], sequence: 'USD → LINK → ETH → USD', steps: [{ pair: 'LINKUSD', side: 'buy' }, { pair: 'LINKETH', side: 'sell' }, { pair: 'ETHUSD', side: 'sell' }] },
+                { id: 'USDT_ETH_LINK_USDT', pairs: ['ETHUSDT', 'LINKETH', 'LINKUSDT'], sequence: 'USDT → ETH → LINK → USDT', steps: [{ pair: 'ETHUSDT', side: 'buy' }, { pair: 'LINKETH', side: 'buy' }, { pair: 'LINKUSDT', side: 'sell' }] },
+                { id: 'USDT_LINK_ETH_USDT', pairs: ['LINKUSDT', 'LINKETH', 'ETHUSDT'], sequence: 'USDT → LINK → ETH → USDT', steps: [{ pair: 'LINKUSDT', side: 'buy' }, { pair: 'LINKETH', side: 'sell' }, { pair: 'ETHUSDT', side: 'sell' }] },
+                { id: 'USDC_ETH_LINK_USDC', pairs: ['ETHUSDC', 'LINKETH', 'LINKUSDC'], sequence: 'USDC → ETH → LINK → USDC', steps: [{ pair: 'ETHUSDC', side: 'buy' }, { pair: 'LINKETH', side: 'buy' }, { pair: 'LINKUSDC', side: 'sell' }] },
+                { id: 'USDC_LINK_ETH_USDC', pairs: ['LINKUSDC', 'LINKETH', 'ETHUSDC'], sequence: 'USDC → LINK → ETH → USDC', steps: [{ pair: 'LINKUSDC', side: 'buy' }, { pair: 'LINKETH', side: 'sell' }, { pair: 'ETHUSDC', side: 'sell' }] }
+            ],
+
+            // SET 8: LTC Focus (12 paths) - BTC + ETH bridges
+            SET_8_LTC_FOCUS: [
+                // BTC Bridge
+                { id: 'USD_BTC_LTC_USD', pairs: ['XBTUSD', 'LTCXBT', 'LTCUSD'], sequence: 'USD → BTC → LTC → USD', steps: [{ pair: 'XBTUSD', side: 'buy' }, { pair: 'LTCXBT', side: 'buy' }, { pair: 'LTCUSD', side: 'sell' }] },
+                { id: 'USD_LTC_BTC_USD', pairs: ['LTCUSD', 'LTCXBT', 'XBTUSD'], sequence: 'USD → LTC → BTC → USD', steps: [{ pair: 'LTCUSD', side: 'buy' }, { pair: 'LTCXBT', side: 'sell' }, { pair: 'XBTUSD', side: 'sell' }] },
+                { id: 'USDT_BTC_LTC_USDT', pairs: ['XBTUSDT', 'LTCXBT', 'LTCUSDT'], sequence: 'USDT → BTC → LTC → USDT', steps: [{ pair: 'XBTUSDT', side: 'buy' }, { pair: 'LTCXBT', side: 'buy' }, { pair: 'LTCUSDT', side: 'sell' }] },
+                { id: 'USDT_LTC_BTC_USDT', pairs: ['LTCUSDT', 'LTCXBT', 'XBTUSDT'], sequence: 'USDT → LTC → BTC → USDT', steps: [{ pair: 'LTCUSDT', side: 'buy' }, { pair: 'LTCXBT', side: 'sell' }, { pair: 'XBTUSDT', side: 'sell' }] },
+                { id: 'USDC_BTC_LTC_USDC', pairs: ['XBTUSDC', 'LTCXBT', 'LTCUSDC'], sequence: 'USDC → BTC → LTC → USDC', steps: [{ pair: 'XBTUSDC', side: 'buy' }, { pair: 'LTCXBT', side: 'buy' }, { pair: 'LTCUSDC', side: 'sell' }] },
+                { id: 'USDC_LTC_BTC_USDC', pairs: ['LTCUSDC', 'LTCXBT', 'XBTUSDC'], sequence: 'USDC → LTC → BTC → USDC', steps: [{ pair: 'LTCUSDC', side: 'buy' }, { pair: 'LTCXBT', side: 'sell' }, { pair: 'XBTUSDC', side: 'sell' }] },
+                // ETH Bridge
+                { id: 'USD_ETH_LTC_USD', pairs: ['ETHUSD', 'LTCETH', 'LTCUSD'], sequence: 'USD → ETH → LTC → USD', steps: [{ pair: 'ETHUSD', side: 'buy' }, { pair: 'LTCETH', side: 'buy' }, { pair: 'LTCUSD', side: 'sell' }] },
+                { id: 'USD_LTC_ETH_USD', pairs: ['LTCUSD', 'LTCETH', 'ETHUSD'], sequence: 'USD → LTC → ETH → USD', steps: [{ pair: 'LTCUSD', side: 'buy' }, { pair: 'LTCETH', side: 'sell' }, { pair: 'ETHUSD', side: 'sell' }] },
+                { id: 'USDT_ETH_LTC_USDT', pairs: ['ETHUSDT', 'LTCETH', 'LTCUSDT'], sequence: 'USDT → ETH → LTC → USDT', steps: [{ pair: 'ETHUSDT', side: 'buy' }, { pair: 'LTCETH', side: 'buy' }, { pair: 'LTCUSDT', side: 'sell' }] },
+                { id: 'USDT_LTC_ETH_USDT', pairs: ['LTCUSDT', 'LTCETH', 'ETHUSDT'], sequence: 'USDT → LTC → ETH → USDT', steps: [{ pair: 'LTCUSDT', side: 'buy' }, { pair: 'LTCETH', side: 'sell' }, { pair: 'ETHUSDT', side: 'sell' }] },
+                { id: 'USDC_ETH_LTC_USDC', pairs: ['ETHUSDC', 'LTCETH', 'LTCUSDC'], sequence: 'USDC → ETH → LTC → USDC', steps: [{ pair: 'ETHUSDC', side: 'buy' }, { pair: 'LTCETH', side: 'buy' }, { pair: 'LTCUSDC', side: 'sell' }] },
+                { id: 'USDC_LTC_ETH_USDC', pairs: ['LTCUSDC', 'LTCETH', 'ETHUSDC'], sequence: 'USDC → LTC → ETH → USDC', steps: [{ pair: 'LTCUSDC', side: 'buy' }, { pair: 'LTCETH', side: 'sell' }, { pair: 'ETHUSDC', side: 'sell' }] }
+            ],
+
+            // SET 9: ATOM Focus (12 paths) - BTC + ETH bridges
+            SET_9_ATOM_FOCUS: [
+                // BTC Bridge
+                { id: 'USD_BTC_ATOM_USD', pairs: ['XBTUSD', 'ATOMXBT', 'ATOMUSD'], sequence: 'USD → BTC → ATOM → USD', steps: [{ pair: 'XBTUSD', side: 'buy' }, { pair: 'ATOMXBT', side: 'buy' }, { pair: 'ATOMUSD', side: 'sell' }] },
+                { id: 'USD_ATOM_BTC_USD', pairs: ['ATOMUSD', 'ATOMXBT', 'XBTUSD'], sequence: 'USD → ATOM → BTC → USD', steps: [{ pair: 'ATOMUSD', side: 'buy' }, { pair: 'ATOMXBT', side: 'sell' }, { pair: 'XBTUSD', side: 'sell' }] },
+                { id: 'USDT_BTC_ATOM_USDT', pairs: ['XBTUSDT', 'ATOMXBT', 'ATOMUSDT'], sequence: 'USDT → BTC → ATOM → USDT', steps: [{ pair: 'XBTUSDT', side: 'buy' }, { pair: 'ATOMXBT', side: 'buy' }, { pair: 'ATOMUSDT', side: 'sell' }] },
+                { id: 'USDT_ATOM_BTC_USDT', pairs: ['ATOMUSDT', 'ATOMXBT', 'XBTUSDT'], sequence: 'USDT → ATOM → BTC → USDT', steps: [{ pair: 'ATOMUSDT', side: 'buy' }, { pair: 'ATOMXBT', side: 'sell' }, { pair: 'XBTUSDT', side: 'sell' }] },
+                { id: 'USDC_BTC_ATOM_USDC', pairs: ['XBTUSDC', 'ATOMXBT', 'ATOMUSDC'], sequence: 'USDC → BTC → ATOM → USDC', steps: [{ pair: 'XBTUSDC', side: 'buy' }, { pair: 'ATOMXBT', side: 'buy' }, { pair: 'ATOMUSDC', side: 'sell' }] },
+                { id: 'USDC_ATOM_BTC_USDC', pairs: ['ATOMUSDC', 'ATOMXBT', 'XBTUSDC'], sequence: 'USDC → ATOM → BTC → USDC', steps: [{ pair: 'ATOMUSDC', side: 'buy' }, { pair: 'ATOMXBT', side: 'sell' }, { pair: 'XBTUSDC', side: 'sell' }] },
+                // ETH Bridge
+                { id: 'USD_ETH_ATOM_USD', pairs: ['ETHUSD', 'ATOMETH', 'ATOMUSD'], sequence: 'USD → ETH → ATOM → USD', steps: [{ pair: 'ETHUSD', side: 'buy' }, { pair: 'ATOMETH', side: 'buy' }, { pair: 'ATOMUSD', side: 'sell' }] },
+                { id: 'USD_ATOM_ETH_USD', pairs: ['ATOMUSD', 'ATOMETH', 'ETHUSD'], sequence: 'USD → ATOM → ETH → USD', steps: [{ pair: 'ATOMUSD', side: 'buy' }, { pair: 'ATOMETH', side: 'sell' }, { pair: 'ETHUSD', side: 'sell' }] },
+                { id: 'USDT_ETH_ATOM_USDT', pairs: ['ETHUSDT', 'ATOMETH', 'ATOMUSDT'], sequence: 'USDT → ETH → ATOM → USDT', steps: [{ pair: 'ETHUSDT', side: 'buy' }, { pair: 'ATOMETH', side: 'buy' }, { pair: 'ATOMUSDT', side: 'sell' }] },
+                { id: 'USDT_ATOM_ETH_USDT', pairs: ['ATOMUSDT', 'ATOMETH', 'ETHUSDT'], sequence: 'USDT → ATOM → ETH → USDT', steps: [{ pair: 'ATOMUSDT', side: 'buy' }, { pair: 'ATOMETH', side: 'sell' }, { pair: 'ETHUSDT', side: 'sell' }] },
+                { id: 'USDC_ETH_ATOM_USDC', pairs: ['ETHUSDC', 'ATOMETH', 'ATOMUSDC'], sequence: 'USDC → ETH → ATOM → USDC', steps: [{ pair: 'ETHUSDC', side: 'buy' }, { pair: 'ATOMETH', side: 'buy' }, { pair: 'ATOMUSDC', side: 'sell' }] },
+                { id: 'USDC_ATOM_ETH_USDC', pairs: ['ATOMUSDC', 'ATOMETH', 'ETHUSDC'], sequence: 'USDC → ATOM → ETH → USDC', steps: [{ pair: 'ATOMUSDC', side: 'buy' }, { pair: 'ATOMETH', side: 'sell' }, { pair: 'ETHUSDC', side: 'sell' }] }
+            ],
+
+            // SET 10: AVAX Focus (12 paths) - BTC + ETH bridges
+            SET_10_AVAX_FOCUS: [
+                // BTC Bridge
+                { id: 'USD_BTC_AVAX_USD', pairs: ['XBTUSD', 'AVAXXBT', 'AVAXUSD'], sequence: 'USD → BTC → AVAX → USD', steps: [{ pair: 'XBTUSD', side: 'buy' }, { pair: 'AVAXXBT', side: 'buy' }, { pair: 'AVAXUSD', side: 'sell' }] },
+                { id: 'USD_AVAX_BTC_USD', pairs: ['AVAXUSD', 'AVAXXBT', 'XBTUSD'], sequence: 'USD → AVAX → BTC → USD', steps: [{ pair: 'AVAXUSD', side: 'buy' }, { pair: 'AVAXXBT', side: 'sell' }, { pair: 'XBTUSD', side: 'sell' }] },
+                { id: 'USDT_BTC_AVAX_USDT', pairs: ['XBTUSDT', 'AVAXXBT', 'AVAXUSDT'], sequence: 'USDT → BTC → AVAX → USDT', steps: [{ pair: 'XBTUSDT', side: 'buy' }, { pair: 'AVAXXBT', side: 'buy' }, { pair: 'AVAXUSDT', side: 'sell' }] },
+                { id: 'USDT_AVAX_BTC_USDT', pairs: ['AVAXUSDT', 'AVAXXBT', 'XBTUSDT'], sequence: 'USDT → AVAX → BTC → USDT', steps: [{ pair: 'AVAXUSDT', side: 'buy' }, { pair: 'AVAXXBT', side: 'sell' }, { pair: 'XBTUSDT', side: 'sell' }] },
+                { id: 'USDC_BTC_AVAX_USDC', pairs: ['XBTUSDC', 'AVAXXBT', 'AVAXUSDC'], sequence: 'USDC → BTC → AVAX → USDC', steps: [{ pair: 'XBTUSDC', side: 'buy' }, { pair: 'AVAXXBT', side: 'buy' }, { pair: 'AVAXUSDC', side: 'sell' }] },
+                { id: 'USDC_AVAX_BTC_USDC', pairs: ['AVAXUSDC', 'AVAXXBT', 'XBTUSDC'], sequence: 'USDC → AVAX → BTC → USDC', steps: [{ pair: 'AVAXUSDC', side: 'buy' }, { pair: 'AVAXXBT', side: 'sell' }, { pair: 'XBTUSDC', side: 'sell' }] },
+                // ETH Bridge
+                { id: 'USD_ETH_AVAX_USD', pairs: ['ETHUSD', 'AVAXETH', 'AVAXUSD'], sequence: 'USD → ETH → AVAX → USD', steps: [{ pair: 'ETHUSD', side: 'buy' }, { pair: 'AVAXETH', side: 'buy' }, { pair: 'AVAXUSD', side: 'sell' }] },
+                { id: 'USD_AVAX_ETH_USD', pairs: ['AVAXUSD', 'AVAXETH', 'ETHUSD'], sequence: 'USD → AVAX → ETH → USD', steps: [{ pair: 'AVAXUSD', side: 'buy' }, { pair: 'AVAXETH', side: 'sell' }, { pair: 'ETHUSD', side: 'sell' }] },
+                { id: 'USDT_ETH_AVAX_USDT', pairs: ['ETHUSDT', 'AVAXETH', 'AVAXUSDT'], sequence: 'USDT → ETH → AVAX → USDT', steps: [{ pair: 'ETHUSDT', side: 'buy' }, { pair: 'AVAXETH', side: 'buy' }, { pair: 'AVAXUSDT', side: 'sell' }] },
+                { id: 'USDT_AVAX_ETH_USDT', pairs: ['AVAXUSDT', 'AVAXETH', 'ETHUSDT'], sequence: 'USDT → AVAX → ETH → USDT', steps: [{ pair: 'AVAXUSDT', side: 'buy' }, { pair: 'AVAXETH', side: 'sell' }, { pair: 'ETHUSDT', side: 'sell' }] },
+                { id: 'USDC_ETH_AVAX_USDC', pairs: ['ETHUSDC', 'AVAXETH', 'AVAXUSDC'], sequence: 'USDC → ETH → AVAX → USDC', steps: [{ pair: 'ETHUSDC', side: 'buy' }, { pair: 'AVAXETH', side: 'buy' }, { pair: 'AVAXUSDC', side: 'sell' }] },
+                { id: 'USDC_AVAX_ETH_USDC', pairs: ['AVAXUSDC', 'AVAXETH', 'ETHUSDC'], sequence: 'USDC → AVAX → ETH → USDC', steps: [{ pair: 'AVAXUSDC', side: 'buy' }, { pair: 'AVAXETH', side: 'sell' }, { pair: 'ETHUSDC', side: 'sell' }] }
             ]
         };
     }

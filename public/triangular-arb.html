@@ -969,12 +969,115 @@
                 </button>
             </div>
 
-            <!-- Recent KRAKEN Trades -->
+            <!-- 3-Tab Interface -->
             <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px;">
-                <h4 style="color: #ffb347; margin-bottom: 15px;">🕒 Recent Triangular Trades</h4>
-                <div id="krakenRecentTrades" style="max-height: 200px; overflow-y: auto;">
-                    <div style="text-align: center; color: #888; padding: 20px;">
-                        No triangular trades yet. Enable live trading to start.
+                <!-- Tab Headers -->
+                <div style="display: flex; gap: 5px; margin-bottom: 15px; background: rgba(0,0,0,0.4); padding: 5px; border-radius: 8px;">
+                    <button class="kraken-tab-btn active" data-tab="trades" onclick="switchKrakenTab('trades')" style="flex: 1; padding: 12px 10px; background: rgba(153,102,255,0.15); border: 1px solid #9966ff; border-radius: 6px; color: #9966ff; cursor: pointer; font-weight: bold; font-size: 0.95rem; transition: all 0.3s ease;">
+                        📜 Recent Trades
+                    </button>
+                    <button class="kraken-tab-btn" data-tab="balance" onclick="switchKrakenTab('balance')" style="flex: 1; padding: 12px 10px; background: rgba(255,255,255,0.03); border: 1px solid transparent; border-radius: 6px; color: #888; cursor: pointer; font-weight: bold; font-size: 0.95rem; transition: all 0.3s ease;">
+                        💰 Balance Tracker
+                    </button>
+                    <button class="kraken-tab-btn" data-tab="alerts" onclick="switchKrakenTab('alerts')" style="flex: 1; padding: 12px 10px; background: rgba(255,255,255,0.03); border: 1px solid transparent; border-radius: 6px; color: #888; cursor: pointer; font-weight: bold; font-size: 0.95rem; transition: all 0.3s ease;">
+                        ⚠️ Alerts <span id="krakenAlertBadge" style="display: none; background: #ff4444; color: white; padding: 2px 6px; border-radius: 10px; font-size: 0.75rem; margin-left: 5px;">0</span>
+                    </button>
+                </div>
+
+                <!-- Tab Content Panels -->
+
+                <!-- Tab 1: Recent Trades -->
+                <div id="krakenTabTrades" class="kraken-tab-content" style="display: block;">
+                    <div id="krakenRecentTrades" style="max-height: 200px; overflow-y: auto;">
+                        <div style="text-align: center; color: #888; padding: 20px;">
+                            No triangular trades yet. Enable live trading to start.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 2: Balance Tracker -->
+                <div id="krakenTabBalance" class="kraken-tab-content" style="display: none;">
+                    <div style="margin-bottom: 20px;">
+                        <h5 style="color: #9966ff; margin-bottom: 10px;">💵 USD Balance</h5>
+                        <div style="background: rgba(153,102,255,0.1); padding: 15px; border-radius: 8px; border-left: 4px solid #9966ff;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; font-size: 0.9rem;">
+                                <div>
+                                    <div style="color: #888; margin-bottom: 5px;">Starting</div>
+                                    <div style="color: #9966ff; font-weight: bold; font-size: 1.1rem;" id="krakenStartingUSD">$0.00</div>
+                                </div>
+                                <div>
+                                    <div style="color: #888; margin-bottom: 5px;">Current</div>
+                                    <div style="color: #9966ff; font-weight: bold; font-size: 1.1rem;" id="krakenCurrentUSD">$0.00</div>
+                                </div>
+                                <div>
+                                    <div style="color: #888; margin-bottom: 5px;">Change</div>
+                                    <div style="font-weight: bold; font-size: 1.1rem;" id="krakenChangeUSD">+$0.00 (+0%)</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <h5 style="color: #9966ff; margin-bottom: 10px;">💵 USDT Balance</h5>
+                        <div style="background: rgba(153,102,255,0.1); padding: 15px; border-radius: 8px; border-left: 4px solid #9966ff;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; font-size: 0.9rem;">
+                                <div>
+                                    <div style="color: #888; margin-bottom: 5px;">Starting</div>
+                                    <div style="color: #9966ff; font-weight: bold; font-size: 1.1rem;" id="krakenStartingUSDT">$0.00</div>
+                                </div>
+                                <div>
+                                    <div style="color: #888; margin-bottom: 5px;">Current</div>
+                                    <div style="color: #9966ff; font-weight: bold; font-size: 1.1rem;" id="krakenCurrentUSDT">$0.00</div>
+                                </div>
+                                <div>
+                                    <div style="color: #888; margin-bottom: 5px;">Change</div>
+                                    <div style="font-weight: bold; font-size: 1.1rem;" id="krakenChangeUSDT">+$0.00 (+0%)</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <h5 style="color: #9966ff; margin-bottom: 10px;">💵 USDC Balance</h5>
+                        <div style="background: rgba(153,102,255,0.1); padding: 15px; border-radius: 8px; border-left: 4px solid #9966ff;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; font-size: 0.9rem;">
+                                <div>
+                                    <div style="color: #888; margin-bottom: 5px;">Starting</div>
+                                    <div style="color: #9966ff; font-weight: bold; font-size: 1.1rem;" id="krakenStartingUSDC">$0.00</div>
+                                </div>
+                                <div>
+                                    <div style="color: #888; margin-bottom: 5px;">Current</div>
+                                    <div style="color: #9966ff; font-weight: bold; font-size: 1.1rem;" id="krakenCurrentUSDC">$0.00</div>
+                                </div>
+                                <div>
+                                    <div style="color: #888; margin-bottom: 5px;">Change</div>
+                                    <div style="font-weight: bold; font-size: 1.1rem;" id="krakenChangeUSDC">+$0.00 (+0%)</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 10px; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1);">
+                        <div style="color: #888; font-size: 0.85rem;">
+                            Last Updated: <span id="krakenBalanceLastUpdate">Never</span>
+                        </div>
+                        <button onclick="resetKrakenStartingBalance()" style="padding: 6px 12px; background: rgba(255,255,255,0.1); color: #9966ff; border: 1px solid #9966ff; border-radius: 5px; cursor: pointer; font-size: 0.85rem;">
+                            🔄 Reset Starting Balance
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tab 3: Alerts -->
+                <div id="krakenTabAlerts" class="kraken-tab-content" style="display: none;">
+                    <div id="krakenAlertsList" style="max-height: 200px; overflow-y: auto;">
+                        <div style="text-align: center; color: #888; padding: 20px;">
+                            No alerts. Worker running smoothly. ✅
+                        </div>
+                    </div>
+                    <div style="padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); text-align: right;">
+                        <button onclick="clearKrakenAlerts()" style="padding: 6px 12px; background: rgba(255,255,255,0.1); color: #888; border: 1px solid #555; border-radius: 5px; cursor: pointer; font-size: 0.85rem;">
+                            Clear All Alerts
+                        </button>
                     </div>
                 </div>
             </div>
@@ -6073,6 +6176,125 @@
                 }
             }
         });
+
+        // ============================================================================
+        // KRAKEN TAB SWITCHING & HELPER FUNCTIONS
+        // ============================================================================
+
+        /**
+         * Switch between Kraken tabs (Trades, Balance, Alerts)
+         */
+        function switchKrakenTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.kraken-tab-content').forEach(tab => {
+                tab.style.display = 'none';
+            });
+
+            // Remove active state from all buttons
+            document.querySelectorAll('.kraken-tab-btn').forEach(btn => {
+                btn.style.background = 'rgba(255,255,255,0.03)';
+                btn.style.border = '1px solid transparent';
+                btn.style.color = '#888';
+            });
+
+            // Show selected tab content
+            const tabContent = document.getElementById(`krakenTab${tabName.charAt(0).toUpperCase() + tabName.slice(1)}`);
+            if (tabContent) {
+                tabContent.style.display = 'block';
+            }
+
+            // Activate selected button
+            const activeBtn = document.querySelector(`.kraken-tab-btn[data-tab="${tabName}"]`);
+            if (activeBtn) {
+                activeBtn.style.background = 'rgba(153,102,255,0.15)';
+                activeBtn.style.border = '1px solid #9966ff';
+                activeBtn.style.color = '#9966ff';
+            }
+
+            console.log(`🔄 [KRAKEN] Switched to ${tabName} tab`);
+        }
+
+        /**
+         * Reset Kraken starting balance to current balance
+         */
+        function resetKrakenStartingBalance() {
+            const confirm = window.confirm('Reset starting balance to current balance?\n\nThis will use the current balance as the new baseline for profit/loss tracking.');
+
+            if (!confirm) return;
+
+            // Get current balances
+            const currentUSD = document.getElementById('krakenCurrentUSD').textContent;
+            const currentUSDT = document.getElementById('krakenCurrentUSDT').textContent;
+            const currentUSDC = document.getElementById('krakenCurrentUSDC').textContent;
+
+            // Set as starting balances
+            document.getElementById('krakenStartingUSD').textContent = currentUSD;
+            document.getElementById('krakenStartingUSDT').textContent = currentUSDT;
+            document.getElementById('krakenStartingUSDC').textContent = currentUSDC;
+
+            // Reset change indicators
+            document.getElementById('krakenChangeUSD').textContent = '+$0.00 (+0%)';
+            document.getElementById('krakenChangeUSD').style.color = '#888';
+            document.getElementById('krakenChangeUSDT').textContent = '+$0.00 (+0%)';
+            document.getElementById('krakenChangeUSDT').style.color = '#888';
+            document.getElementById('krakenChangeUSDC').textContent = '+$0.00 (+0%)';
+            document.getElementById('krakenChangeUSDC').style.color = '#888';
+
+            // Save to localStorage
+            const balanceData = {
+                startingUSD: currentUSD,
+                startingUSDT: currentUSDT,
+                startingUSDC: currentUSDC,
+                resetTime: new Date().toISOString()
+            };
+            localStorage.setItem('krakenBalanceBaseline', JSON.stringify(balanceData));
+
+            console.log('✅ [KRAKEN] Starting balance reset', balanceData);
+
+            // Show confirmation
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: linear-gradient(135deg, #9966ff 0%, #7744cc 100%);
+                color: white;
+                padding: 15px 20px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                z-index: 10000;
+                font-weight: bold;
+            `;
+            notification.textContent = '✅ Starting balance reset successfully';
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transition = 'opacity 0.5s';
+                setTimeout(() => notification.remove(), 500);
+            }, 2000);
+        }
+
+        /**
+         * Clear all Kraken alerts
+         */
+        function clearKrakenAlerts() {
+            const alertsList = document.getElementById('krakenAlertsList');
+            alertsList.innerHTML = `
+                <div style="text-align: center; color: #888; padding: 20px;">
+                    No alerts. Worker running smoothly. ✅
+                </div>
+            `;
+
+            // Reset badge
+            const badge = document.getElementById('krakenAlertBadge');
+            if (badge) {
+                badge.style.display = 'none';
+                badge.textContent = '0';
+            }
+
+            console.log('🧹 [KRAKEN] Alerts cleared');
+        }
 
         // ============================================================================
         // BYBIT TRIANGULAR ARBITRAGE JAVASCRIPT

@@ -14,6 +14,16 @@ const jwt = require('jsonwebtoken');
 
 const router = express.Router();
 
+// Triangular Arbitrage Services
+const PathDefinitionsService = require('../services/triangular-arb/PathDefinitionsService');
+const ProfitCalculatorService = require('../services/triangular-arb/ProfitCalculatorService');
+const TradeExecutorService = require('../services/triangular-arb/TradeExecutorService');
+
+// Initialize triangular arbitrage services
+const pathDefinitions = new PathDefinitionsService();
+const profitCalculator = new ProfitCalculatorService();
+const tradeExecutor = new TradeExecutorService();
+
 // VALR API Helper Function
 async function makeVALRRequest(endpoint, method = 'GET', data = null, apiKey, apiSecret) {
     const timestamp = new Date().getTime().toString();
@@ -5461,6 +5471,216 @@ router.post('/kraken/sell-order', tradingRateLimit, optionalAuth, [
         });
         
         throw new APIError(`Kraken sell order failed: ${error.message}`, 500, 'KRAKEN_SELL_ORDER_ERROR');
+    }
+}));
+
+// ============================================================================
+// KRAKEN TRIANGULAR ARBITRAGE ENDPOINTS
+// ============================================================================
+
+// POST /api/v1/trading/kraken/triangular/scan - Scan for profitable triangular arbitrage opportunities
+router.post('/kraken/triangular/scan', tradingRateLimit, optionalAuth, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('enabledSets').optional().isArray().withMessage('Enabled sets must be an array'),
+    body('minProfitPercent').optional().isFloat({ min: 0 }).withMessage('Min profit must be positive'),
+    body('startAmount').optional().isFloat({ min: 1 }).withMessage('Start amount must be at least 1')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const { apiKey, apiSecret, enabledSets = [1, 2, 3], minProfitPercent = 0.3, startAmount = 1000 } = req.body;
+
+    try {
+        systemLogger.trading('Kraken triangular scan initiated', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'kraken',
+            enabledSets,
+            minProfitPercent,
+            startAmount
+        });
+
+        // Get paths based on enabled sets
+        const krakenPaths = pathDefinitions.paths.kraken;
+        const filteredPaths = [];
+
+        // Filter paths by enabled sets
+        for (const setKey in krakenPaths) {
+            // Extract set number from key like "SET_1_ETH_FOCUS" -> 1
+            const setMatch = setKey.match(/SET_(\d+)_/);
+            if (setMatch) {
+                const setNum = parseInt(setMatch[1]);
+                if (enabledSets.includes(setNum)) {
+                    filteredPaths.push(...krakenPaths[setKey]);
+                }
+            }
+        }
+
+        const totalPaths = Object.values(krakenPaths).reduce((sum, arr) => sum + arr.length, 0);
+
+        systemLogger.trading('Kraken paths filtered', {
+            totalPaths,
+            filteredPaths: filteredPaths.length,
+            enabledSets
+        });
+
+        // For each path, fetch order books and calculate profit
+        const opportunities = [];
+
+        for (const path of filteredPaths) {
+            try {
+                // Fetch order books for all pairs in the path
+                const orderBooks = {};
+
+                for (const step of path.steps) {
+                    if (!orderBooks[step.pair]) {
+                        // Fetch order book from Kraken (public endpoint, no auth needed)
+                        const response = await fetch(`https://api.kraken.com/0/public/Depth?pair=${step.pair}&count=5`);
+
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data.result) {
+                                // Kraken returns results keyed by pair name
+                                const pairKey = Object.keys(data.result)[0];
+                                orderBooks[step.pair] = {
+                                    asks: data.result[pairKey]?.asks || [],
+                                    bids: data.result[pairKey]?.bids || []
+                                };
+                            }
+                        }
+                    }
+                }
+
+                // Calculate profit for this path
+                const calculation = profitCalculator.calculate('kraken', path, orderBooks, startAmount);
+
+                if (calculation.success && calculation.profitPercentage >= minProfitPercent) {
+                    opportunities.push(calculation);
+                }
+
+            } catch (pathError) {
+                systemLogger.error('Kraken path calculation error', {
+                    pathId: path.id,
+                    error: pathError.message
+                });
+                // Continue with next path
+            }
+        }
+
+        // Sort by profit percentage (highest first)
+        opportunities.sort((a, b) => b.profitPercentage - a.profitPercentage);
+
+        systemLogger.trading('Kraken triangular scan completed', {
+            userId: req.user?.id || 'anonymous',
+            pathsScanned: filteredPaths.length,
+            opportunitiesFound: opportunities.length,
+            topProfit: opportunities[0]?.profitPercentage || 0
+        });
+
+        res.json({
+            success: true,
+            data: {
+                exchange: 'kraken',
+                pathsScanned: filteredPaths.length,
+                opportunitiesFound: opportunities.length,
+                opportunities: opportunities.slice(0, 10), // Return top 10
+                scanTime: new Date().toISOString()
+            }
+        });
+
+    } catch (error) {
+        systemLogger.error('Kraken triangular scan failed', {
+            userId: req.user?.id || 'anonymous',
+            error: error.message,
+            stack: error.stack
+        });
+
+        if (error instanceof APIError) {
+            throw error;
+        }
+        throw new APIError('Kraken triangular scan failed', 500, 'KRAKEN_SCAN_ERROR');
+    }
+}));
+
+// POST /api/v1/trading/kraken/triangular/execute - Execute triangular arbitrage trade
+router.post('/kraken/triangular/execute', tradingRateLimit, optionalAuth, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('opportunity').notEmpty().withMessage('Opportunity data is required'),
+    body('dryRun').optional().isBoolean().withMessage('Dry run must be boolean')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const { apiKey, apiSecret, opportunity, dryRun = true } = req.body;
+
+    try {
+        systemLogger.trading('Kraken triangular execute initiated', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'kraken',
+            pathId: opportunity.pathId,
+            expectedProfit: opportunity.profitPercentage,
+            dryRun
+        });
+
+        if (dryRun) {
+            // Dry run - just validate and return simulation
+            res.json({
+                success: true,
+                dryRun: true,
+                data: {
+                    exchange: 'kraken',
+                    pathId: opportunity.pathId,
+                    sequence: opportunity.sequence,
+                    expectedProfit: opportunity.profitPercentage,
+                    simulation: {
+                        startAmount: opportunity.startAmount,
+                        expectedEndAmount: opportunity.endAmount,
+                        expectedProfit: opportunity.profit,
+                        steps: opportunity.steps
+                    },
+                    message: 'Dry run successful - no trades executed'
+                }
+            });
+            return;
+        }
+
+        // Live execution
+        const credentials = { apiKey, apiSecret };
+        const executionResult = await tradeExecutor.executeAtomic('kraken', opportunity, credentials, {
+            maxSlippage: 0.5,
+            timeoutMs: 30000
+        });
+
+        systemLogger.trading('Kraken triangular execute completed', {
+            userId: req.user?.id || 'anonymous',
+            executionId: executionResult.executionId,
+            status: executionResult.status,
+            actualProfit: executionResult.actualProfitPercentage || 0,
+            completedLegs: executionResult.legs.filter(l => l.status === 'COMPLETED').length
+        });
+
+        res.json({
+            success: executionResult.success,
+            dryRun: false,
+            data: executionResult
+        });
+
+    } catch (error) {
+        systemLogger.error('Kraken triangular execute failed', {
+            userId: req.user?.id || 'anonymous',
+            error: error.message,
+            stack: error.stack
+        });
+
+        if (error instanceof APIError) {
+            throw error;
+        }
+        throw new APIError('Kraken triangular execute failed', 500, 'KRAKEN_EXECUTE_ERROR');
     }
 }));
 
