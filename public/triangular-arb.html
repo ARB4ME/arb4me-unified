@@ -6857,76 +6857,91 @@
             `;
         }
 
-        // Perform a single ByBit scan
-        async function performBybitScan(apiKey, apiSecret) {
+        // Scan a single ByBit set
+        async function scanBybitSet(apiKey, apiSecret, setNumber) {
             try {
-                bybitWorkerStats.totalScans++;
-                console.log(`🔍 [BYBIT Worker] Scan #${bybitWorkerStats.totalScans} starting...`);
+                console.log(`🔍 [BYBIT Worker] Scanning SET_${setNumber}...`);
 
-                // Get enabled path sets
-                const enabledSets = [];
-                for (let i = 1; i <= 5; i++) {
-                    const checkbox = document.getElementById(`bybitSet${i}Enabled`);
-                    if (checkbox && checkbox.checked) {
-                        enabledSets.push(i);
-                    }
-                }
-
-                if (enabledSets.length === 0) {
-                    console.warn('⚠️ [BYBIT Worker] No path sets enabled');
-                    return;
-                }
-
-                console.log(`📋 [BYBIT Worker] Scanning with enabled sets: [${enabledSets.join(', ')}]`);
-
-                // Scan for opportunities
+                // Scan for opportunities for this specific set
                 const response = await fetch('/api/v1/trading/bybit/triangular/scan', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         apiKey,
                         apiSecret,
-                        paths: enabledSets
+                        paths: [setNumber]  // Scan only this set
                     })
                 });
 
-                console.log(`📡 [BYBIT Worker] Response status: ${response.status} ${response.statusText}`);
-
                 if (!response.ok) {
                     const errorText = await response.text();
-                    console.error(`❌ [BYBIT Worker] API error (${response.status}):`, errorText);
+                    console.error(`❌ [BYBIT Worker] SET_${setNumber} API error (${response.status}):`, errorText);
                     return;
                 }
 
                 const result = await response.json();
-                console.log(`📦 [BYBIT Worker] Response data:`, result);
 
                 if (result.success) {
                     const oppCount = result.data?.opportunities?.length || 0;
                     bybitWorkerStats.totalOpportunities += oppCount;
 
-                    console.log(`✅ [BYBIT Worker] Scan complete: ${oppCount} opportunities found`);
-                    document.getElementById('bybitLastScan').textContent = new Date().toLocaleTimeString();
+                    console.log(`✅ [BYBIT Worker] SET_${setNumber} complete: ${oppCount} opportunities found`);
 
                     if (oppCount > 0) {
-                        console.log(`💰 [BYBIT Worker] Opportunities:`, result.data.opportunities);
+                        console.log(`💰 [BYBIT Worker] SET_${setNumber} Opportunities:`, result.data.opportunities);
                     }
                 } else {
-                    console.warn(`⚠️ [BYBIT Worker] Scan unsuccessful:`, result.message || 'Unknown error');
+                    console.warn(`⚠️ [BYBIT Worker] SET_${setNumber} unsuccessful:`, result.message || 'Unknown error');
                 }
 
-                // Update balance after scan
-                await updateBybitBalance(apiKey, apiSecret);
-
             } catch (error) {
-                console.error('❌ [BYBIT Worker] Scan error:', error);
-                console.error('❌ [BYBIT Worker] Error stack:', error.stack);
+                console.error(`❌ [BYBIT Worker] SET_${setNumber} scan error:`, error);
             }
         }
 
-        // Start ByBit automated worker
+        // Sequential scanning cycle through all enabled sets
+        async function performBybitSequentialScan(apiKey, apiSecret) {
+            bybitWorkerStats.totalScans++;
+            console.log(`\n🔄 [BYBIT Worker] ═══ Scan Cycle #${bybitWorkerStats.totalScans} Starting ═══`);
+
+            // Get enabled path sets
+            const enabledSets = [];
+            for (let i = 1; i <= 5; i++) {
+                const checkbox = document.getElementById(`bybitSet${i}Enabled`);
+                if (checkbox && checkbox.checked) {
+                    enabledSets.push(i);
+                }
+            }
+
+            if (enabledSets.length === 0) {
+                console.warn('⚠️ [BYBIT Worker] No path sets enabled');
+                return;
+            }
+
+            console.log(`📋 [BYBIT Worker] Enabled sets: [${enabledSets.join(', ')}] - Scanning sequentially...`);
+
+            // Scan each enabled set with 5-second delay between sets
+            for (let i = 0; i < enabledSets.length; i++) {
+                const setNumber = enabledSets[i];
+                await scanBybitSet(apiKey, apiSecret, setNumber);
+
+                // Wait 5 seconds before next set (except after last set)
+                if (i < enabledSets.length - 1) {
+                    console.log(`⏳ [BYBIT Worker] Waiting 5 seconds before next set...`);
+                    await new Promise(resolve => setTimeout(resolve, 5000));
+                }
+            }
+
+            // Update balance after completing all sets
+            await updateBybitBalance(apiKey, apiSecret);
+
+            document.getElementById('bybitLastScan').textContent = new Date().toLocaleTimeString();
+            console.log(`✅ [BYBIT Worker] ═══ Scan Cycle #${bybitWorkerStats.totalScans} Complete ═══\n`);
+        }
+
+        // Start ByBit automated worker (sequential scanning)
         async function startBybitWorker() {
-            console.log('🔄 [BYBIT Worker] Starting automated scanning...');
+            console.log('🔄 [BYBIT Worker] Starting sequential scanning...');
 
             const apiKey = localStorage.getItem('bybit_triangular_api');
             const apiSecret = localStorage.getItem('bybit_triangular_secret');
@@ -6939,16 +6954,16 @@
             // Initialize balance tracking
             await initializeBybitBalance(apiKey, apiSecret);
 
-            // Perform immediate first scan
-            console.log('🚀 [BYBIT Worker] Performing immediate first scan...');
-            await performBybitScan(apiKey, apiSecret);
+            // Perform immediate first scan cycle
+            console.log('🚀 [BYBIT Worker] Performing immediate first scan cycle...');
+            await performBybitSequentialScan(apiKey, apiSecret);
 
-            // Start scanning every 30 seconds
+            // Continue scanning cycles every 30 seconds
             bybitWorkerInterval = setInterval(async () => {
-                await performBybitScan(apiKey, apiSecret);
-            }, 30000); // 30 seconds
+                await performBybitSequentialScan(apiKey, apiSecret);
+            }, 30000); // 30 seconds between cycles
 
-            console.log('✅ [BYBIT Worker] Automated scanning started (30s interval)');
+            console.log('✅ [BYBIT Worker] Sequential scanning started (cycles every 30s, 5s delay between sets)');
         }
 
         // Stop ByBit automated worker
