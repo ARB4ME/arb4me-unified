@@ -5736,6 +5736,7 @@ const BYBIT_PROXY_CONFIG = {
     endpoints: {
         balance: '/v5/account/wallet-balance',
         ticker: '/v5/market/tickers',
+        orderbook: '/v5/market/orderbook',
         test: '/v5/account/wallet-balance'
     }
 };

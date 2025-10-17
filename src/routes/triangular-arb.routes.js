@@ -1826,32 +1826,88 @@ router.post('/bybit/triangular/scan', asyncHandler(async (req, res) => {
 
         // Calculate which sets to scan
         let setsToScan = [];
+        let pathsToScan = [];
+
         if (paths === 'all') {
             setsToScan = Object.keys(allPathSets);
+            setsToScan.forEach(setKey => {
+                pathsToScan = pathsToScan.concat(allPathSets[setKey]);
+            });
         } else if (Array.isArray(paths)) {
             paths.forEach(setNum => {
-                const setKey = `SET_${setNum}_` + Object.keys(allPathSets)[setNum - 1].split('_').slice(1).join('_');
-                if (allPathSets[setKey]) {
+                const setKeys = Object.keys(allPathSets);
+                if (setNum >= 1 && setNum <= setKeys.length) {
+                    const setKey = setKeys[setNum - 1];
                     setsToScan.push(setKey);
+                    pathsToScan = pathsToScan.concat(allPathSets[setKey]);
                 }
             });
         }
+
+        // Get unique pairs from all paths
+        const uniquePairs = new Set();
+        pathsToScan.forEach(path => {
+            path.pairs.forEach(pair => uniquePairs.add(pair));
+        });
+
+        // Fetch order books for all pairs (public endpoint, no auth needed)
+        const orderBooks = {};
+        const orderBookPromises = Array.from(uniquePairs).map(async (pair) => {
+            try {
+                const response = await fetch(`https://api.bybit.com/v5/market/orderbook?category=spot&symbol=${pair}&limit=20`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.retCode === 0 && data.result) {
+                        // ByBit format: {a: [[price, size]], b: [[price, size]]}
+                        orderBooks[pair] = {
+                            asks: data.result.a || [],
+                            bids: data.result.b || []
+                        };
+                    }
+                }
+            } catch (error) {
+                systemLogger.error(`Failed to fetch orderbook for ${pair}`, { error: error.message });
+            }
+        });
+
+        await Promise.all(orderBookPromises);
+
+        // Calculate profits using ProfitCalculatorService
+        const ProfitCalculatorService = require('../services/triangular-arb/ProfitCalculatorService');
+        const profitCalculator = new ProfitCalculatorService();
+
+        const opportunities = [];
+        const startAmount = 1000; // Default $1000 USDT
+
+        for (const path of pathsToScan) {
+            const result = profitCalculator.calculate('bybit', path, orderBooks, startAmount);
+
+            if (result.success && result.profitPercentage > 0.1) {
+                // Only include opportunities with > 0.1% profit (filter out noise)
+                opportunities.push(result);
+            }
+        }
+
+        // Sort by profit percentage descending
+        opportunities.sort((a, b) => b.profitPercentage - a.profitPercentage);
 
         systemLogger.trading('ByBit triangular scan completed', {
             userId: req.user?.id || 'anonymous',
             exchange: 'bybit',
             pathSetsScanned: setsToScan.length,
-            totalPaths: 40
+            totalPaths: pathsToScan.length,
+            opportunitiesFound: opportunities.length
         });
 
         res.json({
             success: true,
             message: 'ByBit triangular path scan completed',
             data: {
-                scannedPaths: 40,
-                opportunities: [],
+                scannedPaths: pathsToScan.length,
+                opportunities: opportunities,
                 pathSetsScanned: setsToScan.length,
-                message: 'Full scanning implementation coming soon. Backend routes ready.'
+                orderBooksFetched: Object.keys(orderBooks).length,
+                startAmount: startAmount
             }
         });
 
