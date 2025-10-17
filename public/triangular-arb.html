@@ -6779,6 +6779,7 @@
         };
 
         let bybitWorkerInterval = null;
+        let bybitWorkerRunning = false;
 
         // Initialize ByBit balance on page load or worker start
         async function initializeBybitBalance(apiKey, apiSecret) {
@@ -6901,6 +6902,12 @@
 
         // Sequential scanning cycle through all enabled sets
         async function performBybitSequentialScan(apiKey, apiSecret) {
+            // Check if worker was stopped
+            if (!bybitWorkerRunning) {
+                console.log('⏹️ [BYBIT Worker] Scan cycle aborted - worker stopped');
+                return;
+            }
+
             bybitWorkerStats.totalScans++;
             console.log(`\n🔄 [BYBIT Worker] ═══ Scan Cycle #${bybitWorkerStats.totalScans} Starting ═══`);
 
@@ -6922,6 +6929,12 @@
 
             // Scan each enabled set with 5-second delay between sets
             for (let i = 0; i < enabledSets.length; i++) {
+                // Check if worker was stopped before each set
+                if (!bybitWorkerRunning) {
+                    console.log('⏹️ [BYBIT Worker] Scan cycle aborted mid-cycle - worker stopped');
+                    return;
+                }
+
                 const setNumber = enabledSets[i];
                 await scanBybitSet(apiKey, apiSecret, setNumber);
 
@@ -6941,6 +6954,7 @@
 
         // Start ByBit automated worker (sequential scanning)
         async function startBybitWorker() {
+            bybitWorkerRunning = true;  // Enable worker flag
             console.log('🔄 [BYBIT Worker] Starting sequential scanning...');
 
             const apiKey = localStorage.getItem('bybit_triangular_api');
@@ -6968,6 +6982,7 @@
 
         // Stop ByBit automated worker
         function stopBybitWorker() {
+            bybitWorkerRunning = false;  // Disable worker flag to abort any running scan
             if (bybitWorkerInterval) {
                 clearInterval(bybitWorkerInterval);
                 bybitWorkerInterval = null;
