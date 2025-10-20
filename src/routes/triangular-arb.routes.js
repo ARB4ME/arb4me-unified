@@ -1442,12 +1442,14 @@ router.post('/bybit/triangular/test-connection', authenticatedRateLimit, authent
 // Scan ByBit Triangular Paths
 router.post('/bybit/triangular/scan', asyncHandler(async (req, res) => {
     try {
-        const { paths = 'all', apiKey, apiSecret } = req.body;
+        const { paths = 'all', apiKey, apiSecret, maxTradeAmount = 1000, profitThreshold = 0.5 } = req.body;
 
         systemLogger.trading('Scanning ByBit triangular paths', {
             userId: req.user?.id || 'anonymous',
             exchange: 'bybit',
-            pathsRequested: paths
+            pathsRequested: paths,
+            maxTradeAmount: maxTradeAmount,
+            profitThreshold: profitThreshold
         });
 
         // Define all 40 ByBit triangular paths (Option A: Quality Over Quantity)
@@ -1877,13 +1879,13 @@ router.post('/bybit/triangular/scan', asyncHandler(async (req, res) => {
         const profitCalculator = new ProfitCalculatorService();
 
         const opportunities = [];
-        const startAmount = 1000; // Default $1000 USDT
+        const startAmount = maxTradeAmount; // Use configured max trade amount
 
         for (const path of pathsToScan) {
             const result = profitCalculator.calculate('bybit', path, orderBooks, startAmount);
 
-            if (result.success && result.profitPercentage > 0.1) {
-                // Only include opportunities with > 0.1% profit (filter out noise)
+            if (result.success && result.profitPercentage > profitThreshold) {
+                // Filter by configured profit threshold
                 opportunities.push(result);
             }
         }
@@ -1907,7 +1909,8 @@ router.post('/bybit/triangular/scan', asyncHandler(async (req, res) => {
                 opportunities: opportunities,
                 pathSetsScanned: setsToScan.length,
                 orderBooksFetched: Object.keys(orderBooks).length,
-                startAmount: startAmount
+                startAmount: startAmount,
+                profitThreshold: profitThreshold
             }
         });
 
@@ -2141,12 +2144,14 @@ router.post('/binance/triangular/test-connection', authenticatedRateLimit, authe
 // Scan Binance Triangular Arbitrage Paths
 router.post('/binance/triangular/scan', asyncHandler(async (req, res) => {
     try {
-        const { paths = 'all', apiKey, apiSecret } = req.body;
+        const { paths = 'all', apiKey, apiSecret, maxTradeAmount = 1000, profitThreshold = 0.5 } = req.body;
 
         systemLogger.trading('Scanning Binance triangular paths', {
             userId: req.user?.id || 'anonymous',
             exchange: 'binance',
-            pathsRequested: paths
+            pathsRequested: paths,
+            maxTradeAmount: maxTradeAmount,
+            profitThreshold: profitThreshold
         });
 
         // Define all 40 Binance triangular paths (same structure as ByBit)
@@ -2605,13 +2610,13 @@ router.post('/binance/triangular/scan', asyncHandler(async (req, res) => {
         const profitCalculator = new ProfitCalculatorService();
 
         const opportunities = [];
-        const startAmount = 1000; // Default $1000 USDT
+        const startAmount = maxTradeAmount; // Use configured max trade amount
 
         for (const path of pathsToScan) {
             const result = profitCalculator.calculate('binance', path, orderBooks, startAmount);
 
-            if (result.success && result.profitPercentage > 0.1) {
-                // Only include opportunities with > 0.1% profit (filter out noise)
+            if (result.success && result.profitPercentage > profitThreshold) {
+                // Filter by configured profit threshold
                 opportunities.push(result);
             }
         }
@@ -2634,7 +2639,9 @@ router.post('/binance/triangular/scan', asyncHandler(async (req, res) => {
                 pathSetsScanned: setsToScan,
                 totalPaths: pathsToScan.length,
                 opportunities: opportunities,
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
+                startAmount: startAmount,
+                profitThreshold: profitThreshold
             }
         });
 
@@ -2870,7 +2877,7 @@ router.post('/okx/triangular/test-connection', authenticatedRateLimit, authentic
 
 // Scan OKX Triangular Arbitrage Paths
 router.post('/okx/triangular/scan', asyncHandler(async (req, res) => {
-    const { apiKey, apiSecret, passphrase, enabledSets, profitThreshold = 0.5 } = req.body;
+    const { apiKey, apiSecret, passphrase, enabledSets, profitThreshold = 0.5, maxTradeAmount = 1000 } = req.body;
 
     if (!apiKey || !apiSecret || !passphrase) {
         return res.status(400).json({
@@ -3299,7 +3306,7 @@ router.post('/okx/triangular/scan', asyncHandler(async (req, res) => {
         // Calculate profits using ProfitCalculatorService
         const profitCalculator = new ProfitCalculatorService();
         const opportunities = [];
-        const startAmount = 1000; // $1000 USDT starting amount
+        const startAmount = maxTradeAmount; // Use configured max trade amount
 
         for (const path of enabledPaths) {
             try {
@@ -3339,6 +3346,7 @@ router.post('/okx/triangular/scan', asyncHandler(async (req, res) => {
                 totalPaths: 32,
                 pathSetsScanned: setsToScan.length,
                 profitThreshold: profitThreshold,
+                startAmount: startAmount,
                 timestamp: new Date().toISOString()
             }
         });

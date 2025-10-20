@@ -7273,6 +7273,10 @@
             try {
                 console.log(`🔍 [BYBIT Worker] Scanning SET_${setNumber}...`);
 
+                // Get risk settings from UI
+                const maxTradeAmount = parseFloat(document.getElementById('bybitMaxTrade')?.value || 100);
+                const profitThreshold = parseFloat(document.getElementById('bybitProfitThreshold')?.value || 0.5);
+
                 // Scan for opportunities for this specific set
                 const response = await fetch('/api/v1/trading/bybit/triangular/scan', {
                     method: 'POST',
@@ -7280,7 +7284,9 @@
                     body: JSON.stringify({
                         apiKey,
                         apiSecret,
-                        paths: [setNumber]  // Scan only this set
+                        paths: [setNumber],  // Scan only this set
+                        maxTradeAmount: maxTradeAmount,
+                        profitThreshold: profitThreshold
                     })
                 });
 
@@ -7888,6 +7894,10 @@
         async function scanBinanceSet(apiKey, apiSecret, setNumber) {
             console.log(`📊 [BINANCE Worker] Scanning SET ${setNumber}...`);
 
+            // Get risk settings from UI
+            const maxTradeAmount = parseFloat(document.getElementById('binanceMaxTrade')?.value || 100);
+            const profitThreshold = parseFloat(document.getElementById('binanceProfitThreshold')?.value || 0.5);
+
             try {
                 const response = await fetch(`${API_BASE}/trading/binance/triangular/scan`, {
                     method: 'POST',
@@ -7895,7 +7905,9 @@
                     body: JSON.stringify({
                         apiKey,
                         apiSecret,
-                        paths: [setNumber]  // Scan only this set
+                        paths: [setNumber],  // Scan only this set
+                        maxTradeAmount: maxTradeAmount,
+                        profitThreshold: profitThreshold
                     })
                 });
 
@@ -8435,6 +8447,10 @@
             try {
                 console.log(`🔍 [OKX Worker] Scanning SET_${setNumber}...`);
 
+                // Get risk settings from UI
+                const maxTradeAmount = parseFloat(document.getElementById('okxMaxTrade')?.value || 100);
+                const profitThreshold = parseFloat(document.getElementById('okxProfitThreshold')?.value || 0.5);
+
                 // Scan for opportunities for this specific set
                 const response = await fetch('/api/v1/trading/okx/triangular/scan', {
                     method: 'POST',
@@ -8444,7 +8460,8 @@
                         apiSecret,
                         passphrase,
                         enabledSets: [setNumber],  // Scan only this set
-                        profitThreshold: parseFloat(document.getElementById('okxProfitThreshold')?.value || 0.5)
+                        maxTradeAmount: maxTradeAmount,
+                        profitThreshold: profitThreshold
                     })
                 });
 
