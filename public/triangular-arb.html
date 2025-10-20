@@ -1383,21 +1383,21 @@
 
             <!-- Path Sets Section -->
             <div class="stat-card">
-                <h4 style="color: #F0B90B; margin-bottom: 15px;">📊 Path Sets (33 Paths in 5 Sets)</h4>
+                <h4 style="color: #F0B90B; margin-bottom: 15px;">📊 Path Sets (24 Paths in 5 Sets)</h4>
                 <div style="display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center;">
-                    <span style="color: #ffd700; font-size: 0.85rem;">SET 1: Major BNB Bridge (7 paths)</span>
+                    <span style="color: #ffd700; font-size: 0.85rem;">SET 1: Major BTC Bridge (8 paths)</span>
                     <input type="checkbox" id="binanceSet1Enabled" checked>
 
-                    <span style="color: #32cd32; font-size: 0.85rem;">SET 2: Mid-Cap ETH Bridge (7 paths)</span>
+                    <span style="color: #32cd32; font-size: 0.85rem;">SET 2: Altcoins BTC Bridge (8 paths)</span>
                     <input type="checkbox" id="binanceSet2Enabled" checked>
 
-                    <span style="color: #00d4ff; font-size: 0.85rem;">SET 3: DeFi/Gaming (6 paths)</span>
+                    <span style="color: #00d4ff; font-size: 0.85rem;">SET 3: DeFi BTC Bridge (6 paths)</span>
                     <input type="checkbox" id="binanceSet3Enabled">
 
-                    <span style="color: #ff69b4; font-size: 0.85rem;">SET 4: High Volatility (6 paths)</span>
+                    <span style="color: #ff69b4; font-size: 0.85rem;">SET 4: ETH/BNB Bridge (varies)</span>
                     <input type="checkbox" id="binanceSet4Enabled">
 
-                    <span style="color: #ff8c00; font-size: 0.85rem;">SET 5: Extended Multi-Bridge (7 paths)</span>
+                    <span style="color: #ff8c00; font-size: 0.85rem;">SET 5: Multi-Bridge (varies)</span>
                     <input type="checkbox" id="binanceSet5Enabled">
                 </div>
             </div>
@@ -7779,72 +7779,111 @@
 
         // View Binance Path Details
         function viewBinancePathDetails() {
-            const pathDetails = `
-📋 BINANCE Triangular Arbitrage Paths (35 Total)
+            // Create modal overlay
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.8);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 10000;
+                backdrop-filter: blur(5px);
+            `;
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 1: Essential ETH Bridge (8 paths) ✅ DEFAULT
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. USDT → ETH → BTC → USDT
-2. USDT → ETH → BNB → USDT
-3. USDT → ETH → SOL → USDT
-4. USDT → ETH → XRP → USDT
-5. USDT → ETH → ADA → USDT
-6. USDT → ETH → DOT → USDT
-7. USDT → ETH → MATIC → USDT
-8. USDT → ETH → LINK → USDT
+            // Create modal content
+            const modalContent = document.createElement('div');
+            modalContent.style.cssText = `
+                background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+                border: 2px solid #F0B90B;
+                border-radius: 15px;
+                padding: 30px;
+                max-width: 800px;
+                max-height: 85vh;
+                overflow-y: auto;
+                box-shadow: 0 10px 50px rgba(240, 185, 11, 0.3);
+                color: #fff;
+                font-family: 'Courier New', monospace;
+            `;
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 2: Mid-Cap BTC Bridge (8 paths) ✅ DEFAULT
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. USDT → BTC → ETH → USDT
-2. USDT → BTC → BNB → USDT
-3. USDT → BTC → SOL → USDT
-4. USDT → BTC → AVAX → USDT
-5. USDT → BTC → ATOM → USDT
-6. USDT → BTC → LTC → USDT
-7. USDT → BTC → UNI → USDT
-8. USDT → BTC → FIL → USDT
+            modalContent.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #F0B90B; padding-bottom: 15px;">
+                    <h2 style="margin: 0; color: #F0B90B; font-size: 24px;">📋 BINANCE Triangular Arbitrage Paths</h2>
+                    <button id="closeModal" style="background: #ff4444; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 18px;">✕</button>
+                </div>
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 3: BNB Native Bridge (7 paths)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. USDT → BNB → BTC → USDT
-2. USDT → BNB → ETH → USDT
-3. USDT → BNB → SOL → USDT
-4. USDT → BNB → XRP → USDT
-5. USDT → BNB → ADA → USDT
-6. USDT → BNB → DOT → USDT
-7. USDT → BNB → AVAX → USDT
+                <div style="line-height: 1.8; font-size: 14px;">
+                    <div style="background: rgba(240, 185, 11, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <strong style="color: #F0B90B;">📊 SET 1: Major BTC Bridge (8 paths) ✅ DEFAULT</strong><br>
+                        1. USDT → ETH → BTC → USDT<br>
+                        2. USDT → BTC → ETH → USDT (reverse)<br>
+                        3. USDT → SOL → BTC → USDT<br>
+                        4. USDT → BTC → SOL → USDT (reverse)<br>
+                        5. USDT → XRP → BTC → USDT<br>
+                        6. USDT → BTC → XRP → USDT (reverse)<br>
+                        7. USDT → LTC → BTC → USDT<br>
+                        8. USDT → BTC → LTC → USDT (reverse)
+                    </div>
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 4: High Volatility (6 paths)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. USDT → DOGE → BTC → USDT
-2. USDT → SHIB → ETH → USDT
-3. USDT → PEPE → ETH → USDT
-4. USDT → NEAR → BTC → USDT
-5. USDT → APT → ETH → USDT
-6. USDT → FTM → BTC → USDT
+                    <div style="background: rgba(240, 185, 11, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <strong style="color: #F0B90B;">📊 SET 2: Altcoins BTC Bridge (8 paths) ✅ DEFAULT</strong><br>
+                        1. USDT → ADA → BTC → USDT<br>
+                        2. USDT → BTC → ADA → USDT (reverse)<br>
+                        3. USDT → DOT → BTC → USDT<br>
+                        4. USDT → BTC → DOT → USDT (reverse)<br>
+                        5. USDT → MATIC → BTC → USDT<br>
+                        6. USDT → BTC → MATIC → USDT (reverse)<br>
+                        7. USDT → AVAX → BTC → USDT<br>
+                        8. USDT → BTC → AVAX → USDT (reverse)
+                    </div>
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 5: Extended Multi-Bridge (6 paths)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. USDT → TRX → BTC → USDT
-2. USDT → ALGO → ETH → USDT
-3. USDT → VET → BTC → USDT
-4. USDT → HBAR → ETH → USDT
-5. USDT → SAND → ETH → USDT
-6. USDT → BTC → ETH → SOL → USDT (4-leg)
+                    <div style="background: rgba(240, 185, 11, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <strong style="color: #F0B90B;">📊 SET 3: DeFi BTC Bridge (6 paths)</strong><br>
+                        1. USDT → LINK → BTC → USDT<br>
+                        2. USDT → BTC → LINK → USDT (reverse)<br>
+                        3. USDT → UNI → BTC → USDT<br>
+                        4. USDT → BTC → UNI → USDT (reverse)<br>
+                        5. USDT → ATOM → BTC → USDT<br>
+                        6. USDT → BTC → ATOM → USDT (reverse)
+                    </div>
 
-💡 TOTAL: 35 paths (34 three-leg + 1 four-leg)
-🌉 BRIDGE: USDT (Tether)
-🌍 GLOBAL: World's largest crypto exchange
-🔐 AUTH: API Key + Secret
-            `.trim();
+                    <div style="background: rgba(240, 185, 11, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <strong style="color: #F0B90B;">📊 SET 4: ETH/BNB Bridge (varies)</strong><br>
+                        Various paths using ETH and BNB as bridge currencies
+                    </div>
 
-            alert(pathDetails);
-            console.log('📋 [BINANCE] Path details displayed:', pathDetails);
+                    <div style="background: rgba(240, 185, 11, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <strong style="color: #F0B90B;">📊 SET 5: Multi-Bridge (varies)</strong><br>
+                        Extended paths with multiple bridge currencies
+                    </div>
+
+                    <div style="background: rgba(0, 136, 255, 0.1); padding: 20px; border-radius: 8px; border-left: 4px solid #0088ff; margin-top: 20px;">
+                        <strong style="color: #0088ff;">📌 Summary</strong><br>
+                        💡 TOTAL: 24+ paths (simplified USDT-focused)<br>
+                        🌉 BRIDGE: BTC, ETH, BNB<br>
+                        🔄 PATTERN: USDT-only funding, bidirectional paths<br>
+                        🌍 GLOBAL: World's largest crypto exchange<br>
+                        ✅ OPTIMIZED: High liquidity major coins only<br>
+                        🔐 AUTH: API Key + Secret
+                    </div>
+                </div>
+            `;
+
+            modal.appendChild(modalContent);
+            document.body.appendChild(modal);
+
+            // Close modal on click outside or close button
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal || e.target.id === 'closeModal') {
+                    document.body.removeChild(modal);
+                }
+            });
+
+            console.log('📋 [BINANCE] Path details modal displayed');
         }
 
         // Clear Binance Trade History
