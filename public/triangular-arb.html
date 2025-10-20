@@ -6874,6 +6874,19 @@
             currentUSDT: 0
         };
 
+        // OKX Worker Variables
+        let okxWorkerStats = {
+            totalScans: 0,
+            totalOpportunities: 0,
+            lastScanTime: null
+        };
+        let okxWorkerInterval = null;
+        let okxWorkerRunning = false;
+        let okxBalanceTracking = {
+            startingUSDT: null,
+            currentUSDT: 0
+        };
+
         // Initialize ByBit balance on page load or worker start
         async function initializeBybitBalance(apiKey, apiSecret) {
             try {
@@ -8221,22 +8234,207 @@
         // OKX TRIANGULAR ARBITRAGE FUNCTIONS
         // ========================================================================
 
-        // OKX Toggle Event Listener
-        document.getElementById('okxTriangularEnabled').addEventListener('click', function() {
+        // ============================================================
+        // OKX SEQUENTIAL WORKER FUNCTIONS
+        // ============================================================
+
+        // Scan a single OKX set
+        async function scanOKXSet(apiKey, apiSecret, passphrase, setNumber) {
+            try {
+                console.log(`🔍 [OKX Worker] Scanning SET_${setNumber}...`);
+
+                // Scan for opportunities for this specific set
+                const response = await fetch('/api/v1/trading/okx/triangular/scan', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        apiKey,
+                        apiSecret,
+                        passphrase,
+                        enabledSets: [setNumber],  // Scan only this set
+                        profitThreshold: parseFloat(document.getElementById('okxProfitThreshold')?.value || 0.5)
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success && result.data && result.data.opportunities) {
+                    const opportunities = result.data.opportunities;
+                    console.log(`✅ [OKX Worker] SET_${setNumber} scanned: ${opportunities.length} opportunities found`);
+
+                    if (opportunities.length > 0) {
+                        okxWorkerStats.totalOpportunities += opportunities.length;
+
+                        // Display top opportunity in live feed
+                        const liveFeed = document.getElementById('okxLiveFeed');
+                        if (liveFeed && opportunities[0]) {
+                            const opp = opportunities[0];
+                            const oppDiv = document.createElement('div');
+                            oppDiv.style.cssText = 'padding: 8px; background: rgba(0,166,255,0.1); border-left: 3px solid #00ff88; margin-bottom: 8px; border-radius: 4px;';
+                            oppDiv.innerHTML = `
+                                <div style="color: #00ff88; font-weight: bold;">SET ${setNumber}: +${opp.profitPercentage.toFixed(3)}%</div>
+                                <div style="color: #b8c6db; font-size: 0.85rem;">${opp.path.sequence}</div>
+                                <div style="color: #888; font-size: 0.75rem;">${new Date().toLocaleTimeString()}</div>
+                            `;
+                            liveFeed.insertBefore(oppDiv, liveFeed.firstChild);
+
+                            // Keep only last 10 entries
+                            while (liveFeed.children.length > 10) {
+                                liveFeed.removeChild(liveFeed.lastChild);
+                            }
+                        }
+                    }
+                } else {
+                    console.warn(`⚠️ [OKX Worker] SET_${setNumber} scan returned no data`);
+                }
+
+            } catch (error) {
+                console.error(`❌ [OKX Worker] Error scanning SET_${setNumber}:`, error);
+            }
+        }
+
+        // Perform sequential scan of enabled sets with delays
+        async function performOKXSequentialScan(apiKey, apiSecret, passphrase) {
+            // Check if worker was stopped
+            if (!okxWorkerRunning) {
+                console.log('⏹️ [OKX Worker] Scan cycle aborted - worker stopped');
+                return;
+            }
+
+            okxWorkerStats.totalScans++;
+            console.log(`\n🔄 [OKX Worker] ═══ Scan Cycle #${okxWorkerStats.totalScans} Starting ═══`);
+
+            // Get enabled path sets
+            const enabledSets = [];
+            for (let i = 1; i <= 5; i++) {
+                const checkbox = document.getElementById(`okxSet${i}Enabled`);
+                if (checkbox && checkbox.checked) {
+                    enabledSets.push(i);
+                }
+            }
+
+            if (enabledSets.length === 0) {
+                console.warn('⚠️ [OKX Worker] No path sets enabled');
+                return;
+            }
+
+            console.log(`📋 [OKX Worker] Enabled sets: [${enabledSets.join(', ')}] - Scanning sequentially...`);
+
+            // Scan each enabled set with 5-second delay between sets
+            for (let i = 0; i < enabledSets.length; i++) {
+                // Check if worker was stopped before each set
+                if (!okxWorkerRunning) {
+                    console.log('⏹️ [OKX Worker] Scan cycle aborted mid-cycle - worker stopped');
+                    return;
+                }
+
+                const setNumber = enabledSets[i];
+                await scanOKXSet(apiKey, apiSecret, passphrase, setNumber);
+
+                // Wait 5 seconds before next set (except after last set)
+                if (i < enabledSets.length - 1) {
+                    console.log(`⏳ [OKX Worker] Waiting 5 seconds before next set...`);
+                    await new Promise(resolve => setTimeout(resolve, 5000));
+                }
+            }
+
+            okxWorkerStats.lastScanTime = new Date();
+            const lastScanElement = document.getElementById('okxLastScan');
+            if (lastScanElement) {
+                lastScanElement.textContent = okxWorkerStats.lastScanTime.toLocaleTimeString();
+            }
+
+            console.log(`✅ [OKX Worker] ═══ Scan Cycle #${okxWorkerStats.totalScans} Complete ═══\n`);
+        }
+
+        // Start OKX automated worker (sequential scanning)
+        async function startOKXWorker() {
+            okxWorkerRunning = true;  // Enable worker flag
+            console.log('🔄 [OKX Worker] Starting sequential scanning...');
+
+            const apiKey = localStorage.getItem('okx_triangular_api');
+            const apiSecret = localStorage.getItem('okx_triangular_secret');
+            const passphrase = localStorage.getItem('okx_triangular_passphrase');
+
+            if (!apiKey || !apiSecret || !passphrase) {
+                console.error('❌ [OKX Worker] Missing API credentials');
+                return;
+            }
+
+            // Perform immediate first scan cycle
+            console.log('🚀 [OKX Worker] Performing immediate first scan cycle...');
+            await performOKXSequentialScan(apiKey, apiSecret, passphrase);
+
+            // Continue scanning cycles every 30 seconds
+            okxWorkerInterval = setInterval(async () => {
+                await performOKXSequentialScan(apiKey, apiSecret, passphrase);
+            }, 30000); // 30 seconds between cycles
+
+            console.log('✅ [OKX Worker] Sequential scanning started (cycles every 30s, 5s delay between sets)');
+        }
+
+        // Stop OKX automated worker
+        function stopOKXWorker() {
+            okxWorkerRunning = false;  // Disable worker flag to abort any running scan
+            if (okxWorkerInterval) {
+                clearInterval(okxWorkerInterval);
+                okxWorkerInterval = null;
+                console.log('⏹️ [OKX Worker] Automated scanning stopped');
+            }
+        }
+
+        // OKX Toggle Event Listener (Updated with worker)
+        document.getElementById('okxTriangularEnabled').addEventListener('click', async function() {
             console.log('🔄 [OKX] Toggle clicked');
-            this.classList.toggle('active');
+
+            const isCurrentlyActive = this.classList.contains('active');
             const status = document.getElementById('okxTriangularStatus');
 
-            if (this.classList.contains('active')) {
-                console.log('✅ [OKX] Live trading enabled');
+            if (!isCurrentlyActive) {
+                // Enabling - validate credentials first
+                const apiKey = localStorage.getItem('okx_triangular_api');
+                const apiSecret = localStorage.getItem('okx_triangular_secret');
+                const passphrase = localStorage.getItem('okx_triangular_passphrase');
+
+                if (!apiKey || !apiSecret || !passphrase) {
+                    console.warn('⚠️ [OKX] Missing API credentials');
+                    alert('❌ Please set up your OKX API credentials first (API Key, Secret, and Passphrase) in the Strategy API Setup page.');
+                    return;
+                }
+
+                // Validate that at least one path set is enabled
+                const enabledSets = [];
+                for (let i = 1; i <= 5; i++) {
+                    const checkbox = document.getElementById(`okxSet${i}Enabled`);
+                    if (checkbox && checkbox.checked) {
+                        enabledSets.push(i);
+                    }
+                }
+
+                if (enabledSets.length === 0) {
+                    console.warn('⚠️ [OKX] No path sets enabled');
+                    alert('❌ Please enable at least one path set before activating the scanner.');
+                    return;
+                }
+
+                console.log('✅ [OKX] Automated scanning enabled');
+                this.classList.add('active');
                 status.textContent = 'ON';
                 status.style.color = '#00A6FF';
                 localStorage.setItem('okxTriangularEnabled', 'true');
+
+                // Start the worker
+                await startOKXWorker();
             } else {
-                console.log('❌ [OKX] Live trading disabled');
+                // Disabling
+                console.log('❌ [OKX] Automated scanning disabled');
+                this.classList.remove('active');
                 status.textContent = 'OFF';
                 status.style.color = '#ff6b6b';
                 localStorage.setItem('okxTriangularEnabled', 'false');
+
+                // Stop the worker
+                stopOKXWorker();
             }
         });
 

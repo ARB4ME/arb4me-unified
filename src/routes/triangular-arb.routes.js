@@ -3226,22 +3226,120 @@ router.post('/okx/triangular/scan', asyncHandler(async (req, res) => {
             }
         });
 
-        // Placeholder for full scanning logic
+        systemLogger.trading(`Scanning ${enabledPaths.length} OKX paths across ${setsToScan.length} sets`, {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'okx',
+            sets: setsToScan
+        });
+
+        // Get unique pairs from all enabled paths
+        const uniquePairs = new Set();
+        enabledPaths.forEach(path => {
+            path.pairs.forEach(pair => uniquePairs.add(pair));
+        });
+
+        systemLogger.trading(`Fetching order books for ${uniquePairs.size} unique pairs`, {
+            exchange: 'okx',
+            pairs: Array.from(uniquePairs)
+        });
+
+        // Fetch order books for all pairs (OKX public endpoint, no auth needed)
+        const orderBooks = {};
+        const orderBookPromises = Array.from(uniquePairs).map(async (pair) => {
+            try {
+                // OKX uses instId parameter for instrument ID
+                const response = await fetch(`https://www.okx.com/api/v5/market/books?instId=${pair}&sz=20`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    systemLogger.error(`Failed to fetch OKX orderbook for ${pair}`, {
+                        status: response.status,
+                        statusText: response.statusText
+                    });
+                    return;
+                }
+
+                const data = await response.json();
+
+                // OKX returns data in format: { code: "0", msg: "", data: [{ asks: [...], bids: [...] }] }
+                if (data.code === "0" && data.data && data.data[0]) {
+                    orderBooks[pair] = {
+                        bids: data.data[0].bids || [],  // Format: [["price", "quantity", ...], ...]
+                        asks: data.data[0].asks || []
+                    };
+                    systemLogger.trading(`Fetched OKX orderbook for ${pair}`, {
+                        bids: data.data[0].bids.length,
+                        asks: data.data[0].asks.length
+                    });
+                } else {
+                    systemLogger.error(`Invalid OKX orderbook response for ${pair}`, {
+                        code: data.code,
+                        msg: data.msg
+                    });
+                }
+            } catch (error) {
+                systemLogger.error(`Error fetching OKX orderbook for ${pair}`, {
+                    error: error.message
+                });
+            }
+        });
+
+        await Promise.all(orderBookPromises);
+
+        systemLogger.trading(`Order books fetched`, {
+            exchange: 'okx',
+            requested: uniquePairs.size,
+            received: Object.keys(orderBooks).length
+        });
+
+        // Calculate profits using ProfitCalculatorService
+        const profitCalculator = new ProfitCalculatorService();
+        const opportunities = [];
+        const startAmount = 1000; // $1000 USDT starting amount
+
+        for (const path of enabledPaths) {
+            try {
+                const result = profitCalculator.calculate('okx', path, orderBooks, startAmount);
+
+                if (result.success && result.profitPercentage > profitThreshold) {
+                    opportunities.push(result);
+                    systemLogger.trading(`OKX opportunity found`, {
+                        path: path.id,
+                        profit: result.profitPercentage.toFixed(3),
+                        finalAmount: result.finalAmount.toFixed(2)
+                    });
+                }
+            } catch (error) {
+                systemLogger.error(`Error calculating profit for path ${path.id}`, {
+                    error: error.message,
+                    path: path.id
+                });
+            }
+        }
+
+        // Sort opportunities by profit percentage (highest first)
+        opportunities.sort((a, b) => b.profitPercentage - a.profitPercentage);
+
+        systemLogger.trading(`OKX scan complete`, {
+            scannedPaths: enabledPaths.length,
+            opportunities: opportunities.length,
+            topProfit: opportunities.length > 0 ? opportunities[0].profitPercentage.toFixed(3) : 'N/A'
+        });
+
         res.json({
             success: true,
             message: 'OKX triangular path scan completed',
             data: {
+                opportunities: opportunities,
                 scannedPaths: enabledPaths.length,
                 totalPaths: 32,
-                opportunities: [],
                 pathSetsScanned: setsToScan.length,
                 profitThreshold: profitThreshold,
-                message: 'Full scanning implementation coming soon. Backend routes ready.',
-                enabledPathDetails: enabledPaths.map(p => ({
-                    id: p.id,
-                    sequence: p.sequence,
-                    pairs: p.pairs
-                }))
+                timestamp: new Date().toISOString()
             }
         });
 
