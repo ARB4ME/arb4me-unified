@@ -4102,26 +4102,28 @@ router.post('/kucoin/triangular/test-connection', authenticatedRateLimit, authen
     }
 }));
 
-// POST /api/v1/trading/kucoin/triangular/scan - Scan for triangular arbitrage opportunities
-router.post('/kucoin/triangular/scan', asyncHandler(async (req, res) => {
-    const { apiKey, apiSecret, passphrase, maxTradeAmount, profitThreshold, enabledSets } = req.body;
+// POST /api/v1/trading/kucoin/balance - Get KuCoin account balance
+router.post('/kucoin/balance', asyncHandler(async (req, res) => {
+    const { apiKey, apiSecret, passphrase } = req.body;
 
     if (!apiKey || !apiSecret || !passphrase) {
         return res.status(400).json({
             success: false,
-            message: 'API credentials are required'
+            message: 'API Key, Secret, and Passphrase are required'
         });
     }
 
     try {
-        console.log('🔍 [KUCOIN] Scanning for triangular arbitrage opportunities...');
+        systemLogger.trading('Fetching KuCoin account balance', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'kucoin'
+        });
 
-        // Get all market tickers
         const timestamp = Date.now().toString();
-        const endpoint = KUCOIN_CONFIG.endpoints.ticker;
+        const endpoint = KUCOIN_CONFIG.endpoints.balance;
         const authHeaders = createKuCoinAuth(apiKey, apiSecret, passphrase, timestamp, 'GET', endpoint);
 
-        const tickerResponse = await fetch(`${KUCOIN_CONFIG.baseUrl}${endpoint}`, {
+        const response = await fetch(`${KUCOIN_CONFIG.baseUrl}${endpoint}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -4129,199 +4131,313 @@ router.post('/kucoin/triangular/scan', asyncHandler(async (req, res) => {
             }
         });
 
-        const tickerData = await tickerResponse.json();
-
-        if (tickerData.code !== '200000') {
-            throw new Error(tickerData.msg || 'Failed to fetch market data');
+        if (!response.ok) {
+            const errorText = await response.text();
+            systemLogger.error('KuCoin balance fetch failed', {
+                status: response.status,
+                error: errorText
+            });
+            return res.status(response.status).json({
+                success: false,
+                message: 'Failed to fetch balance',
+                error: errorText
+            });
         }
 
-        const tickers = tickerData.data.ticker;
-        const priceMap = {};
+        const data = await response.json();
 
-        // Build price map
-        tickers.forEach(ticker => {
-            if (ticker.symbol && ticker.last) {
-                priceMap[ticker.symbol] = parseFloat(ticker.last);
-            }
+        if (data.code === '200000') {
+            // Parse balances from KuCoin account data
+            // KuCoin returns array of accounts: [{ currency: 'USDT', type: 'trade', balance: '100.50', available: '100.50' }, ...]
+            const accounts = data.data || [];
+
+            // Extract main trading currencies
+            const usdtAccount = accounts.find(acc => acc.currency === 'USDT' && acc.type === 'trade');
+            const btcAccount = accounts.find(acc => acc.currency === 'BTC' && acc.type === 'trade');
+            const ethAccount = accounts.find(acc => acc.currency === 'ETH' && acc.type === 'trade');
+            const kcsAccount = accounts.find(acc => acc.currency === 'KCS' && acc.type === 'trade');
+
+            const balances = {
+                USDT: parseFloat(usdtAccount?.available || 0),
+                BTC: parseFloat(btcAccount?.available || 0),
+                ETH: parseFloat(ethAccount?.available || 0),
+                KCS: parseFloat(kcsAccount?.available || 0)
+            };
+
+            systemLogger.trading('KuCoin balance fetched successfully', {
+                userId: req.user?.id || 'anonymous',
+                exchange: 'kucoin',
+                balances: {
+                    USDT: balances.USDT.toFixed(2),
+                    BTC: balances.BTC.toFixed(8),
+                    ETH: balances.ETH.toFixed(8),
+                    KCS: balances.KCS.toFixed(8)
+                }
+            });
+
+            res.json({
+                success: true,
+                data: {
+                    balances: balances,
+                    totalAccounts: accounts.length,
+                    timestamp: new Date().toISOString()
+                }
+            });
+        } else {
+            systemLogger.error('KuCoin balance API error', {
+                code: data.code,
+                message: data.msg
+            });
+            res.status(401).json({
+                success: false,
+                message: data.msg || 'Failed to fetch balance'
+            });
+        }
+    } catch (error) {
+        systemLogger.error('KuCoin balance fetch error', {
+            userId: req.user?.id || 'anonymous',
+            error: error.message
+        });
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch KuCoin balance',
+            error: error.message
+        });
+    }
+}));
+
+// POST /api/v1/trading/kucoin/triangular/scan - Scan for triangular arbitrage opportunities
+router.post('/kucoin/triangular/scan', asyncHandler(async (req, res) => {
+    try {
+        const {
+            paths = 'all',
+            apiKey,
+            apiSecret,
+            passphrase,
+            maxTradeAmount = 1000,
+            profitThreshold = 0.5,
+            portfolioPercent = 10,
+            currentBalance = 0
+        } = req.body;
+
+        systemLogger.trading('Scanning KuCoin triangular paths', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'kucoin',
+            pathsRequested: paths,
+            maxTradeAmount: maxTradeAmount,
+            profitThreshold: profitThreshold,
+            portfolioPercent: portfolioPercent,
+            currentBalance: currentBalance
         });
 
-        console.log(`📊 [KUCOIN] Loaded ${Object.keys(priceMap).length} trading pairs`);
-
-        // Define triangular arbitrage paths (32 paths across 5 sets)
-        const allPaths = {
+        // Define all 32 KuCoin triangular paths across 5 sets
+        const allPathSets = {
             SET_1_ESSENTIAL_ETH_BRIDGE: [
-                { id: 'KCS_ETH_1', path: ['USDT', 'ETH', 'BTC', 'USDT'], pairs: ['ETH-USDT', 'BTC-ETH', 'BTC-USDT'], description: 'ETH → BTC Bridge' },
-                { id: 'KCS_ETH_2', path: ['USDT', 'ETH', 'SOL', 'USDT'], pairs: ['ETH-USDT', 'SOL-ETH', 'SOL-USDT'], description: 'ETH → SOL Bridge' },
-                { id: 'KCS_ETH_3', path: ['USDT', 'ETH', 'XRP', 'USDT'], pairs: ['ETH-USDT', 'XRP-ETH', 'XRP-USDT'], description: 'ETH → XRP Bridge' },
-                { id: 'KCS_ETH_4', path: ['USDT', 'ETH', 'ADA', 'USDT'], pairs: ['ETH-USDT', 'ADA-ETH', 'ADA-USDT'], description: 'ETH → ADA Bridge' },
-                { id: 'KCS_ETH_5', path: ['USDT', 'ETH', 'DOT', 'USDT'], pairs: ['ETH-USDT', 'DOT-ETH', 'DOT-USDT'], description: 'ETH → DOT Bridge' },
-                { id: 'KCS_ETH_6', path: ['USDT', 'ETH', 'MATIC', 'USDT'], pairs: ['ETH-USDT', 'MATIC-ETH', 'MATIC-USDT'], description: 'ETH → MATIC Bridge' },
-                { id: 'KCS_ETH_7', path: ['USDT', 'ETH', 'LINK', 'USDT'], pairs: ['ETH-USDT', 'LINK-ETH', 'LINK-USDT'], description: 'ETH → LINK Bridge' }
+                { id: 'KCS_ETH_1', pairs: ['ETH-USDT', 'BTC-ETH', 'BTC-USDT'], sequence: 'USDT → ETH → BTC → USDT', steps: [{ pair: 'ETH-USDT', side: 'buy' }, { pair: 'BTC-ETH', side: 'buy' }, { pair: 'BTC-USDT', side: 'sell' }] },
+                { id: 'KCS_ETH_2', pairs: ['ETH-USDT', 'SOL-ETH', 'SOL-USDT'], sequence: 'USDT → ETH → SOL → USDT', steps: [{ pair: 'ETH-USDT', side: 'buy' }, { pair: 'SOL-ETH', side: 'buy' }, { pair: 'SOL-USDT', side: 'sell' }] },
+                { id: 'KCS_ETH_3', pairs: ['ETH-USDT', 'XRP-ETH', 'XRP-USDT'], sequence: 'USDT → ETH → XRP → USDT', steps: [{ pair: 'ETH-USDT', side: 'buy' }, { pair: 'XRP-ETH', side: 'buy' }, { pair: 'XRP-USDT', side: 'sell' }] },
+                { id: 'KCS_ETH_4', pairs: ['ETH-USDT', 'ADA-ETH', 'ADA-USDT'], sequence: 'USDT → ETH → ADA → USDT', steps: [{ pair: 'ETH-USDT', side: 'buy' }, { pair: 'ADA-ETH', side: 'buy' }, { pair: 'ADA-USDT', side: 'sell' }] },
+                { id: 'KCS_ETH_5', pairs: ['ETH-USDT', 'DOT-ETH', 'DOT-USDT'], sequence: 'USDT → ETH → DOT → USDT', steps: [{ pair: 'ETH-USDT', side: 'buy' }, { pair: 'DOT-ETH', side: 'buy' }, { pair: 'DOT-USDT', side: 'sell' }] },
+                { id: 'KCS_ETH_6', pairs: ['ETH-USDT', 'MATIC-ETH', 'MATIC-USDT'], sequence: 'USDT → ETH → MATIC → USDT', steps: [{ pair: 'ETH-USDT', side: 'buy' }, { pair: 'MATIC-ETH', side: 'buy' }, { pair: 'MATIC-USDT', side: 'sell' }] },
+                { id: 'KCS_ETH_7', pairs: ['ETH-USDT', 'LINK-ETH', 'LINK-USDT'], sequence: 'USDT → ETH → LINK → USDT', steps: [{ pair: 'ETH-USDT', side: 'buy' }, { pair: 'LINK-ETH', side: 'buy' }, { pair: 'LINK-USDT', side: 'sell' }] }
             ],
             SET_2_MIDCAP_BTC_BRIDGE: [
-                { id: 'KCS_BTC_1', path: ['USDT', 'BTC', 'ETH', 'USDT'], pairs: ['BTC-USDT', 'ETH-BTC', 'ETH-USDT'], description: 'BTC → ETH Bridge' },
-                { id: 'KCS_BTC_2', path: ['USDT', 'BTC', 'SOL', 'USDT'], pairs: ['BTC-USDT', 'SOL-BTC', 'SOL-USDT'], description: 'BTC → SOL Bridge' },
-                { id: 'KCS_BTC_3', path: ['USDT', 'BTC', 'AVAX', 'USDT'], pairs: ['BTC-USDT', 'AVAX-BTC', 'AVAX-USDT'], description: 'BTC → AVAX Bridge' },
-                { id: 'KCS_BTC_4', path: ['USDT', 'BTC', 'ATOM', 'USDT'], pairs: ['BTC-USDT', 'ATOM-BTC', 'ATOM-USDT'], description: 'BTC → ATOM Bridge' },
-                { id: 'KCS_BTC_5', path: ['USDT', 'BTC', 'LTC', 'USDT'], pairs: ['BTC-USDT', 'LTC-BTC', 'LTC-USDT'], description: 'BTC → LTC Bridge' },
-                { id: 'KCS_BTC_6', path: ['USDT', 'BTC', 'UNI', 'USDT'], pairs: ['BTC-USDT', 'UNI-BTC', 'UNI-USDT'], description: 'BTC → UNI Bridge' },
-                { id: 'KCS_BTC_7', path: ['USDT', 'BTC', 'FIL', 'USDT'], pairs: ['BTC-USDT', 'FIL-BTC', 'FIL-USDT'], description: 'BTC → FIL Bridge' }
+                { id: 'KCS_BTC_1', pairs: ['BTC-USDT', 'ETH-BTC', 'ETH-USDT'], sequence: 'USDT → BTC → ETH → USDT', steps: [{ pair: 'BTC-USDT', side: 'buy' }, { pair: 'ETH-BTC', side: 'buy' }, { pair: 'ETH-USDT', side: 'sell' }] },
+                { id: 'KCS_BTC_2', pairs: ['BTC-USDT', 'SOL-BTC', 'SOL-USDT'], sequence: 'USDT → BTC → SOL → USDT', steps: [{ pair: 'BTC-USDT', side: 'buy' }, { pair: 'SOL-BTC', side: 'buy' }, { pair: 'SOL-USDT', side: 'sell' }] },
+                { id: 'KCS_BTC_3', pairs: ['BTC-USDT', 'AVAX-BTC', 'AVAX-USDT'], sequence: 'USDT → BTC → AVAX → USDT', steps: [{ pair: 'BTC-USDT', side: 'buy' }, { pair: 'AVAX-BTC', side: 'buy' }, { pair: 'AVAX-USDT', side: 'sell' }] },
+                { id: 'KCS_BTC_4', pairs: ['BTC-USDT', 'ATOM-BTC', 'ATOM-USDT'], sequence: 'USDT → BTC → ATOM → USDT', steps: [{ pair: 'BTC-USDT', side: 'buy' }, { pair: 'ATOM-BTC', side: 'buy' }, { pair: 'ATOM-USDT', side: 'sell' }] },
+                { id: 'KCS_BTC_5', pairs: ['BTC-USDT', 'LTC-BTC', 'LTC-USDT'], sequence: 'USDT → BTC → LTC → USDT', steps: [{ pair: 'BTC-USDT', side: 'buy' }, { pair: 'LTC-BTC', side: 'buy' }, { pair: 'LTC-USDT', side: 'sell' }] },
+                { id: 'KCS_BTC_6', pairs: ['BTC-USDT', 'UNI-BTC', 'UNI-USDT'], sequence: 'USDT → BTC → UNI → USDT', steps: [{ pair: 'BTC-USDT', side: 'buy' }, { pair: 'UNI-BTC', side: 'buy' }, { pair: 'UNI-USDT', side: 'sell' }] },
+                { id: 'KCS_BTC_7', pairs: ['BTC-USDT', 'FIL-BTC', 'FIL-USDT'], sequence: 'USDT → BTC → FIL → USDT', steps: [{ pair: 'BTC-USDT', side: 'buy' }, { pair: 'FIL-BTC', side: 'buy' }, { pair: 'FIL-USDT', side: 'sell' }] }
             ],
             SET_3_KCS_NATIVE_BRIDGE: [
-                { id: 'KCS_NATIVE_1', path: ['USDT', 'KCS', 'BTC', 'USDT'], pairs: ['KCS-USDT', 'BTC-KCS', 'BTC-USDT'], description: 'KCS → BTC Bridge' },
-                { id: 'KCS_NATIVE_2', path: ['USDT', 'KCS', 'ETH', 'USDT'], pairs: ['KCS-USDT', 'ETH-KCS', 'ETH-USDT'], description: 'KCS → ETH Bridge' },
-                { id: 'KCS_NATIVE_3', path: ['USDT', 'KCS', 'SOL', 'USDT'], pairs: ['KCS-USDT', 'SOL-KCS', 'SOL-USDT'], description: 'KCS → SOL Bridge' },
-                { id: 'KCS_NATIVE_4', path: ['USDT', 'KCS', 'XRP', 'USDT'], pairs: ['KCS-USDT', 'XRP-KCS', 'XRP-USDT'], description: 'KCS → XRP Bridge' },
-                { id: 'KCS_NATIVE_5', path: ['USDT', 'KCS', 'ADA', 'USDT'], pairs: ['KCS-USDT', 'ADA-KCS', 'ADA-USDT'], description: 'KCS → ADA Bridge' },
-                { id: 'KCS_NATIVE_6', path: ['USDT', 'KCS', 'DOT', 'USDT'], pairs: ['KCS-USDT', 'DOT-KCS', 'DOT-USDT'], description: 'KCS → DOT Bridge' }
+                { id: 'KCS_NATIVE_1', pairs: ['KCS-USDT', 'BTC-KCS', 'BTC-USDT'], sequence: 'USDT → KCS → BTC → USDT', steps: [{ pair: 'KCS-USDT', side: 'buy' }, { pair: 'BTC-KCS', side: 'buy' }, { pair: 'BTC-USDT', side: 'sell' }] },
+                { id: 'KCS_NATIVE_2', pairs: ['KCS-USDT', 'ETH-KCS', 'ETH-USDT'], sequence: 'USDT → KCS → ETH → USDT', steps: [{ pair: 'KCS-USDT', side: 'buy' }, { pair: 'ETH-KCS', side: 'buy' }, { pair: 'ETH-USDT', side: 'sell' }] },
+                { id: 'KCS_NATIVE_3', pairs: ['KCS-USDT', 'SOL-KCS', 'SOL-USDT'], sequence: 'USDT → KCS → SOL → USDT', steps: [{ pair: 'KCS-USDT', side: 'buy' }, { pair: 'SOL-KCS', side: 'buy' }, { pair: 'SOL-USDT', side: 'sell' }] },
+                { id: 'KCS_NATIVE_4', pairs: ['KCS-USDT', 'XRP-KCS', 'XRP-USDT'], sequence: 'USDT → KCS → XRP → USDT', steps: [{ pair: 'KCS-USDT', side: 'buy' }, { pair: 'XRP-KCS', side: 'buy' }, { pair: 'XRP-USDT', side: 'sell' }] },
+                { id: 'KCS_NATIVE_5', pairs: ['KCS-USDT', 'ADA-KCS', 'ADA-USDT'], sequence: 'USDT → KCS → ADA → USDT', steps: [{ pair: 'KCS-USDT', side: 'buy' }, { pair: 'ADA-KCS', side: 'buy' }, { pair: 'ADA-USDT', side: 'sell' }] },
+                { id: 'KCS_NATIVE_6', pairs: ['KCS-USDT', 'DOT-KCS', 'DOT-USDT'], sequence: 'USDT → KCS → DOT → USDT', steps: [{ pair: 'KCS-USDT', side: 'buy' }, { pair: 'DOT-KCS', side: 'buy' }, { pair: 'DOT-USDT', side: 'sell' }] }
             ],
             SET_4_HIGH_VOLATILITY: [
-                { id: 'KCS_VOL_1', path: ['USDT', 'DOGE', 'BTC', 'USDT'], pairs: ['DOGE-USDT', 'BTC-DOGE', 'BTC-USDT'], description: 'DOGE → BTC Meme' },
-                { id: 'KCS_VOL_2', path: ['USDT', 'SHIB', 'ETH', 'USDT'], pairs: ['SHIB-USDT', 'ETH-SHIB', 'ETH-USDT'], description: 'SHIB → ETH Meme' },
-                { id: 'KCS_VOL_3', path: ['USDT', 'PEPE', 'ETH', 'USDT'], pairs: ['PEPE-USDT', 'ETH-PEPE', 'ETH-USDT'], description: 'PEPE → ETH Meme' },
-                { id: 'KCS_VOL_4', path: ['USDT', 'NEAR', 'BTC', 'USDT'], pairs: ['NEAR-USDT', 'BTC-NEAR', 'BTC-USDT'], description: 'NEAR → BTC Layer1' },
-                { id: 'KCS_VOL_5', path: ['USDT', 'APT', 'ETH', 'USDT'], pairs: ['APT-USDT', 'ETH-APT', 'ETH-USDT'], description: 'APT → ETH Layer1' },
-                { id: 'KCS_VOL_6', path: ['USDT', 'FTM', 'BTC', 'USDT'], pairs: ['FTM-USDT', 'BTC-FTM', 'BTC-USDT'], description: 'FTM → BTC DeFi' }
+                { id: 'KCS_VOL_1', pairs: ['DOGE-USDT', 'BTC-DOGE', 'BTC-USDT'], sequence: 'USDT → DOGE → BTC → USDT', steps: [{ pair: 'DOGE-USDT', side: 'buy' }, { pair: 'BTC-DOGE', side: 'buy' }, { pair: 'BTC-USDT', side: 'sell' }] },
+                { id: 'KCS_VOL_2', pairs: ['SHIB-USDT', 'ETH-SHIB', 'ETH-USDT'], sequence: 'USDT → SHIB → ETH → USDT', steps: [{ pair: 'SHIB-USDT', side: 'buy' }, { pair: 'ETH-SHIB', side: 'buy' }, { pair: 'ETH-USDT', side: 'sell' }] },
+                { id: 'KCS_VOL_3', pairs: ['PEPE-USDT', 'ETH-PEPE', 'ETH-USDT'], sequence: 'USDT → PEPE → ETH → USDT', steps: [{ pair: 'PEPE-USDT', side: 'buy' }, { pair: 'ETH-PEPE', side: 'buy' }, { pair: 'ETH-USDT', side: 'sell' }] },
+                { id: 'KCS_VOL_4', pairs: ['NEAR-USDT', 'BTC-NEAR', 'BTC-USDT'], sequence: 'USDT → NEAR → BTC → USDT', steps: [{ pair: 'NEAR-USDT', side: 'buy' }, { pair: 'BTC-NEAR', side: 'buy' }, { pair: 'BTC-USDT', side: 'sell' }] },
+                { id: 'KCS_VOL_5', pairs: ['APT-USDT', 'ETH-APT', 'ETH-USDT'], sequence: 'USDT → APT → ETH → USDT', steps: [{ pair: 'APT-USDT', side: 'buy' }, { pair: 'ETH-APT', side: 'buy' }, { pair: 'ETH-USDT', side: 'sell' }] },
+                { id: 'KCS_VOL_6', pairs: ['FTM-USDT', 'BTC-FTM', 'BTC-USDT'], sequence: 'USDT → FTM → BTC → USDT', steps: [{ pair: 'FTM-USDT', side: 'buy' }, { pair: 'BTC-FTM', side: 'buy' }, { pair: 'BTC-USDT', side: 'sell' }] }
             ],
             SET_5_EXTENDED_MULTIBRIDGE: [
-                { id: 'KCS_EXT_1', path: ['USDT', 'BNB', 'ETH', 'USDT'], pairs: ['BNB-USDT', 'ETH-BNB', 'ETH-USDT'], description: 'BNB → ETH Cross-Exchange' },
-                { id: 'KCS_EXT_2', path: ['USDT', 'TRX', 'BTC', 'USDT'], pairs: ['TRX-USDT', 'BTC-TRX', 'BTC-USDT'], description: 'TRX → BTC Bridge' },
-                { id: 'KCS_EXT_3', path: ['USDT', 'ALGO', 'ETH', 'USDT'], pairs: ['ALGO-USDT', 'ETH-ALGO', 'ETH-USDT'], description: 'ALGO → ETH Bridge' },
-                { id: 'KCS_EXT_4', path: ['USDT', 'VET', 'BTC', 'USDT'], pairs: ['VET-USDT', 'BTC-VET', 'BTC-USDT'], description: 'VET → BTC Bridge' },
-                { id: 'KCS_EXT_5', path: ['USDT', 'HBAR', 'ETH', 'USDT'], pairs: ['HBAR-USDT', 'ETH-HBAR', 'ETH-USDT'], description: 'HBAR → ETH Bridge' },
-                { id: 'KCS_EXT_6', path: ['USDT', 'BTC', 'ETH', 'SOL', 'USDT'], pairs: ['BTC-USDT', 'ETH-BTC', 'SOL-ETH', 'SOL-USDT'], description: 'Multi-Bridge 4-Leg' }
+                { id: 'KCS_EXT_1', pairs: ['BNB-USDT', 'ETH-BNB', 'ETH-USDT'], sequence: 'USDT → BNB → ETH → USDT', steps: [{ pair: 'BNB-USDT', side: 'buy' }, { pair: 'ETH-BNB', side: 'buy' }, { pair: 'ETH-USDT', side: 'sell' }] },
+                { id: 'KCS_EXT_2', pairs: ['TRX-USDT', 'BTC-TRX', 'BTC-USDT'], sequence: 'USDT → TRX → BTC → USDT', steps: [{ pair: 'TRX-USDT', side: 'buy' }, { pair: 'BTC-TRX', side: 'buy' }, { pair: 'BTC-USDT', side: 'sell' }] },
+                { id: 'KCS_EXT_3', pairs: ['ALGO-USDT', 'ETH-ALGO', 'ETH-USDT'], sequence: 'USDT → ALGO → ETH → USDT', steps: [{ pair: 'ALGO-USDT', side: 'buy' }, { pair: 'ETH-ALGO', side: 'buy' }, { pair: 'ETH-USDT', side: 'sell' }] },
+                { id: 'KCS_EXT_4', pairs: ['VET-USDT', 'BTC-VET', 'BTC-USDT'], sequence: 'USDT → VET → BTC → USDT', steps: [{ pair: 'VET-USDT', side: 'buy' }, { pair: 'BTC-VET', side: 'buy' }, { pair: 'BTC-USDT', side: 'sell' }] },
+                { id: 'KCS_EXT_5', pairs: ['HBAR-USDT', 'ETH-HBAR', 'ETH-USDT'], sequence: 'USDT → HBAR → ETH → USDT', steps: [{ pair: 'HBAR-USDT', side: 'buy' }, { pair: 'ETH-HBAR', side: 'buy' }, { pair: 'ETH-USDT', side: 'sell' }] },
+                { id: 'KCS_EXT_6', pairs: ['BTC-USDT', 'ETH-BTC', 'SOL-ETH', 'SOL-USDT'], sequence: 'USDT → BTC → ETH → SOL → USDT', steps: [{ pair: 'BTC-USDT', side: 'buy' }, { pair: 'ETH-BTC', side: 'buy' }, { pair: 'SOL-ETH', side: 'buy' }, { pair: 'SOL-USDT', side: 'sell' }] }
             ]
         };
 
-        // Filter paths based on enabled sets
-        const enabledPaths = [];
-        Object.keys(allPaths).forEach(setKey => {
-            if (enabledSets && enabledSets[setKey]) {
-                enabledPaths.push(...allPaths[setKey]);
-            }
+        // Calculate which sets to scan
+        let setsToScan = [];
+        let pathsToScan = [];
+
+        if (paths === 'all') {
+            setsToScan = Object.keys(allPathSets);
+            setsToScan.forEach(setKey => {
+                pathsToScan = pathsToScan.concat(allPathSets[setKey]);
+            });
+        } else if (Array.isArray(paths)) {
+            paths.forEach(setNum => {
+                const setKeys = Object.keys(allPathSets);
+                if (setNum >= 1 && setNum <= setKeys.length) {
+                    const setKey = setKeys[setNum - 1];
+                    setsToScan.push(setKey);
+                    pathsToScan = pathsToScan.concat(allPathSets[setKey]);
+                }
+            });
+        } else if (typeof paths === 'object') {
+            // Support enabled sets object format from frontend
+            Object.keys(paths).forEach(setKey => {
+                if (paths[setKey] && allPathSets[setKey]) {
+                    setsToScan.push(setKey);
+                    pathsToScan = pathsToScan.concat(allPathSets[setKey]);
+                }
+            });
+        }
+
+        // Get unique pairs from all paths
+        const uniquePairs = new Set();
+        pathsToScan.forEach(path => {
+            path.pairs.forEach(pair => uniquePairs.add(pair));
         });
 
-        console.log(`🎯 [KUCOIN] Scanning ${enabledPaths.length} enabled paths...`);
-
-        // Calculate arbitrage for each path
-        const opportunities = [];
-        const threshold = profitThreshold || 0.5;
-
-        enabledPaths.forEach(pathConfig => {
+        // Fetch order books for all pairs (KuCoin public endpoint)
+        const orderBooks = {};
+        const orderBookPromises = Array.from(uniquePairs).map(async (pair) => {
             try {
-                // Check if all required pairs exist
-                const allPairsExist = pathConfig.pairs.every(pair => priceMap[pair]);
+                // KuCoin public orderbook endpoint: GET /api/v1/market/orderbook/level2_20
+                const response = await fetch(`https://api.kucoin.com/api/v1/market/orderbook/level2_20?symbol=${pair}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
 
-                if (!allPairsExist) {
-                    return; // Skip if any pair is missing
+                if (!response.ok) {
+                    systemLogger.error(`Failed to fetch KuCoin orderbook for ${pair}`, {
+                        status: response.status
+                    });
+                    return;
                 }
 
-                // Calculate path profit
-                let amount = maxTradeAmount || 100;
-                const executionSteps = [];
+                const data = await response.json();
 
-                // For standard 3-leg paths
-                if (pathConfig.path.length === 4) {
-                    // Leg 1: USDT → Asset1
-                    const price1 = priceMap[pathConfig.pairs[0]];
-                    const amount1 = amount / price1;
-                    executionSteps.push({ pair: pathConfig.pairs[0], side: 'BUY', amount: amount, price: price1, result: amount1 });
-
-                    // Leg 2: Asset1 → Asset2
-                    const price2 = priceMap[pathConfig.pairs[1]];
-                    const amount2 = amount1 / price2;
-                    executionSteps.push({ pair: pathConfig.pairs[1], side: 'BUY', amount: amount1, price: price2, result: amount2 });
-
-                    // Leg 3: Asset2 → USDT
-                    const price3 = priceMap[pathConfig.pairs[2]];
-                    const finalAmount = amount2 * price3;
-                    executionSteps.push({ pair: pathConfig.pairs[2], side: 'SELL', amount: amount2, price: price3, result: finalAmount });
-
-                    const profitAmount = finalAmount - amount;
-                    const profitPercent = (profitAmount / amount) * 100;
-
-                    if (profitPercent >= threshold) {
-                        opportunities.push({
-                            pathId: pathConfig.id,
-                            path: pathConfig.path,
-                            pairs: pathConfig.pairs,
-                            description: pathConfig.description,
-                            initialAmount: amount,
-                            finalAmount: finalAmount,
-                            profitAmount: profitAmount,
-                            profitPercent: profitPercent.toFixed(4),
-                            executionSteps: executionSteps,
-                            timestamp: new Date().toISOString()
-                        });
-                    }
-                }
-
-                // For 4-leg multi-bridge path
-                if (pathConfig.path.length === 5) {
-                    // Leg 1: USDT → BTC
-                    const price1 = priceMap[pathConfig.pairs[0]];
-                    const amount1 = amount / price1;
-                    executionSteps.push({ pair: pathConfig.pairs[0], side: 'BUY', amount: amount, price: price1, result: amount1 });
-
-                    // Leg 2: BTC → ETH
-                    const price2 = priceMap[pathConfig.pairs[1]];
-                    const amount2 = amount1 / price2;
-                    executionSteps.push({ pair: pathConfig.pairs[1], side: 'BUY', amount: amount1, price: price2, result: amount2 });
-
-                    // Leg 3: ETH → SOL
-                    const price3 = priceMap[pathConfig.pairs[2]];
-                    const amount3 = amount2 / price3;
-                    executionSteps.push({ pair: pathConfig.pairs[2], side: 'BUY', amount: amount2, price: price3, result: amount3 });
-
-                    // Leg 4: SOL → USDT
-                    const price4 = priceMap[pathConfig.pairs[3]];
-                    const finalAmount = amount3 * price4;
-                    executionSteps.push({ pair: pathConfig.pairs[3], side: 'SELL', amount: amount3, price: price4, result: finalAmount });
-
-                    const profitAmount = finalAmount - amount;
-                    const profitPercent = (profitAmount / amount) * 100;
-
-                    if (profitPercent >= threshold) {
-                        opportunities.push({
-                            pathId: pathConfig.id,
-                            path: pathConfig.path,
-                            pairs: pathConfig.pairs,
-                            description: pathConfig.description,
-                            initialAmount: amount,
-                            finalAmount: finalAmount,
-                            profitAmount: profitAmount,
-                            profitPercent: profitPercent.toFixed(4),
-                            executionSteps: executionSteps,
-                            timestamp: new Date().toISOString()
-                        });
-                    }
+                // KuCoin returns: { code: "200000", data: { time: timestamp, bids: [["price", "size"], ...], asks: [...] } }
+                if (data.code === '200000' && data.data) {
+                    orderBooks[pair] = {
+                        bids: data.data.bids || [],
+                        asks: data.data.asks || []
+                    };
+                    systemLogger.trading(`Fetched KuCoin orderbook for ${pair}`, {
+                        bids: data.data.bids.length,
+                        asks: data.data.asks.length
+                    });
                 }
             } catch (error) {
-                console.error(`⚠️ [KUCOIN] Error calculating path ${pathConfig.id}:`, error.message);
+                systemLogger.error(`Error fetching KuCoin orderbook for ${pair}`, {
+                    error: error.message
+                });
             }
         });
 
-        // Sort by profit percentage
-        opportunities.sort((a, b) => parseFloat(b.profitPercent) - parseFloat(a.profitPercent));
+        await Promise.all(orderBookPromises);
 
-        console.log(`✅ [KUCOIN] Found ${opportunities.length} opportunities above ${threshold}% profit threshold`);
+        // Calculate trade amount using portfolio % calculator
+        const tradeAmountCalc = portfolioCalculator.calculateTradeAmount({
+            balance: currentBalance,
+            portfolioPercent: portfolioPercent,
+            maxTradeAmount: maxTradeAmount,
+            currency: 'USDT',
+            exchange: 'KuCoin',
+            path: null
+        });
+
+        // Calculate profits using ProfitCalculatorService
+        const ProfitCalculatorService = require('../services/triangular-arb/ProfitCalculatorService');
+        const profitCalculator = new ProfitCalculatorService();
+
+        const opportunities = [];
+        const warnings = [];
+
+        // Add portfolio calculator warnings/reasons
+        if (tradeAmountCalc.warning) {
+            warnings.push(tradeAmountCalc.warning);
+        }
+        if (tradeAmountCalc.reason) {
+            warnings.push(tradeAmountCalc.reason);
+        }
+
+        // Use calculated trade amount (respects portfolio % with maxTrade cap)
+        const startAmount = tradeAmountCalc.amount;
+
+        // Only scan if we can trade (balance >= $10 minimum)
+        if (tradeAmountCalc.canTrade) {
+            for (const path of pathsToScan) {
+                const result = profitCalculator.calculate('kucoin', path, orderBooks, startAmount);
+
+                if (result.success && result.profitPercentage > profitThreshold) {
+                    // Filter by configured profit threshold
+                    opportunities.push(result);
+                }
+            }
+        } else {
+            // Log lost opportunity but continue (don't throw error)
+            systemLogger.info('KuCoin scan skipped - insufficient balance', {
+                currentBalance,
+                portfolioPercent,
+                minRequired: 10,
+                pathsToScan: pathsToScan.length
+            });
+        }
+
+        // Sort by profit percentage descending
+        opportunities.sort((a, b) => b.profitPercentage - a.profitPercentage);
+
+        systemLogger.trading('KuCoin triangular scan completed', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'kucoin',
+            pathSetsScanned: setsToScan.length,
+            totalPaths: pathsToScan.length,
+            opportunitiesFound: opportunities.length
+        });
 
         res.json({
             success: true,
-            exchange: 'kucoin',
-            opportunities: opportunities,
-            totalScanned: enabledPaths.length,
-            profitableCount: opportunities.length,
-            timestamp: new Date().toISOString()
+            message: 'KuCoin triangular path scan completed',
+            data: {
+                scannedPaths: pathsToScan.length,
+                opportunities: opportunities,
+                pathSetsScanned: setsToScan.length,
+                orderBooksFetched: Object.keys(orderBooks).length,
+                startAmount: startAmount,
+                profitThreshold: profitThreshold,
+                portfolioCalculation: {
+                    balance: currentBalance,
+                    portfolioPercent: portfolioPercent,
+                    portfolioAmount: tradeAmountCalc.details.portfolioAmount,
+                    maxTradeAmount: maxTradeAmount,
+                    appliedCap: tradeAmountCalc.details.appliedCap,
+                    canTrade: tradeAmountCalc.canTrade
+                },
+                warnings: warnings.length > 0 ? warnings : undefined
+            }
         });
 
     } catch (error) {
-        console.error('❌ [KUCOIN] Scan error:', error.message);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to scan KuCoin triangular opportunities',
+        systemLogger.error('KuCoin triangular scan failed', {
+            userId: req.user?.id || 'anonymous',
             error: error.message
         });
+        throw error;
     }
 }));
 

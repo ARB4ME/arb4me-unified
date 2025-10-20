@@ -9125,6 +9125,70 @@
         // KUCOIN TRIANGULAR ARBITRAGE FUNCTIONS
         // ============================================================================
 
+        // Balance tracking (USDT only for KuCoin triangular)
+        let kucoinBalanceTracking = {
+            startingUSDT: null,
+            currentUSDT: 0
+        };
+
+        // Initialize KuCoin balance on page load
+        async function initializeKuCoinBalance(apiKey, apiSecret, passphrase) {
+            try {
+                const response = await fetch('/api/v1/trading/kucoin/balance', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ apiKey, apiSecret, passphrase })
+                });
+
+                const result = await response.json();
+                console.log('💰 [KUCOIN Balance] API Response:', result);
+
+                if (result.success && result.data && result.data.balances) {
+                    const balances = result.data.balances;
+                    const currentUSDT = balances.USDT ? parseFloat(balances.USDT) : 0;
+
+                    // Check if starting balance is already set
+                    const stored = localStorage.getItem('kucoinStartingBalance');
+                    if (stored) {
+                        const parsed = JSON.parse(stored);
+                        kucoinBalanceTracking.startingUSDT = parsed.usdt;
+                    } else {
+                        // First time - set current as starting
+                        kucoinBalanceTracking.startingUSDT = currentUSDT;
+                        localStorage.setItem('kucoinStartingBalance', JSON.stringify({
+                            usdt: currentUSDT
+                        }));
+                    }
+
+                    kucoinBalanceTracking.currentUSDT = currentUSDT;
+                    console.log('✅ [KUCOIN Balance] Initialized:', kucoinBalanceTracking);
+                }
+            } catch (error) {
+                console.error('❌ [KUCOIN Balance] Failed to initialize:', error);
+            }
+        }
+
+        // Update KuCoin balance
+        async function updateKuCoinBalance(apiKey, apiSecret, passphrase) {
+            try {
+                const response = await fetch('/api/v1/trading/kucoin/balance', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ apiKey, apiSecret, passphrase })
+                });
+
+                const result = await response.json();
+
+                if (result.success && result.data && result.data.balances) {
+                    const balances = result.data.balances;
+                    kucoinBalanceTracking.currentUSDT = balances.USDT ? parseFloat(balances.USDT) : 0;
+                    console.log('💰 [KUCOIN Balance] Updated:', kucoinBalanceTracking.currentUSDT.toFixed(2));
+                }
+            } catch (error) {
+                console.error('❌ [KUCOIN Balance] Update failed:', error);
+            }
+        }
+
         function toggleKuCoinTriangular() {
             const toggle = document.getElementById('kucoinTriangularEnabled');
             const status = document.getElementById('kucoinTriangularStatus');
@@ -9168,7 +9232,10 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    alert(`✅ KuCoin Connection Successful!\n\nAccount Type: ${data.accountType}\nTimestamp: ${new Date(data.timestamp).toLocaleString()}`);
+                    // Initialize balance tracking on successful connection
+                    await initializeKuCoinBalance(apiKey, apiSecret, passphrase);
+
+                    alert(`✅ KuCoin Connection Successful!\n\nAccount Type: ${data.accountType}\nBalance Initialized: ${kucoinBalanceTracking.currentUSDT?.toFixed(2) || '0.00'} USDT\nTimestamp: ${new Date(data.timestamp).toLocaleString()}`);
                     console.log('✅ [KUCOIN] Connection test passed:', data);
                 } else {
                     alert(`❌ Connection Failed: ${data.message}`);
@@ -9192,8 +9259,13 @@
                 return;
             }
 
+            // Update balance before scanning
+            await updateKuCoinBalance(apiKey, apiSecret, passphrase);
+
             const maxTradeAmount = parseFloat(document.getElementById('kucoinMaxTrade').value);
             const profitThreshold = parseFloat(document.getElementById('kucoinProfitThreshold').value);
+            const portfolioPercent = parseFloat(document.getElementById('kucoinPortfolioPercent').value);
+            const currentBalance = kucoinBalanceTracking.currentUSDT || 0;
 
             const enabledSets = {
                 SET_1_ESSENTIAL_ETH_BRIDGE: document.getElementById('kucoinSet1Enabled').checked,
@@ -9216,14 +9288,31 @@
                         passphrase,
                         maxTradeAmount,
                         profitThreshold,
-                        enabledSets
+                        portfolioPercent: portfolioPercent,
+                        currentBalance: currentBalance,
+                        paths: enabledSets
                     })
                 });
 
-                const data = await response.json();
+                const result = await response.json();
 
-                if (data.success) {
-                    console.log(`✅ [KUCOIN] Scan complete: ${data.profitableCount} opportunities found`);
+                if (result.success) {
+                    const data = result.data;
+                    console.log(`✅ [KUCOIN] Scan complete: ${data.opportunities.length} opportunities found`);
+
+                    // Log portfolio calculation details
+                    if (data.portfolioCalculation) {
+                        const calc = data.portfolioCalculation;
+                        console.log(`💰 [KUCOIN Portfolio] Balance: ${calc.balance.toFixed(2)} USDT`);
+                        console.log(`💰 [KUCOIN Portfolio] ${calc.portfolioPercent}% = ${calc.portfolioAmount} USDT, Cap: ${calc.appliedCap}, Can Trade: ${calc.canTrade}`);
+                    }
+
+                    // Display warnings (non-blocking)
+                    if (data.warnings && data.warnings.length > 0) {
+                        data.warnings.forEach(warning => {
+                            console.warn(`⚠️ [KUCOIN Portfolio] ${warning}`);
+                        });
+                    }
 
                     const container = document.getElementById('kucoinOpportunities');
 
@@ -9241,16 +9330,16 @@
                             html += `
                                 <div style="background: rgba(0,208,146,0.1); padding: 15px; border-radius: 8px; border-left: 4px solid #00D092;">
                                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                                        <strong style="color: #00D092;">${opp.description}</strong>
+                                        <strong style="color: #00D092;">${opp.path?.sequence || opp.id}</strong>
                                         <span style="background: #00D092; color: white; padding: 4px 12px; border-radius: 12px; font-weight: 600;">
-                                            +${opp.profitPercent}%
+                                            +${opp.profitPercentage?.toFixed(2) || 0}%
                                         </span>
                                     </div>
                                     <div style="font-size: 0.9rem; color: #b8c6db;">
-                                        <div>Path: ${opp.path.join(' → ')}</div>
-                                        <div>Initial: $${opp.initialAmount} USDT → Final: $${opp.finalAmount.toFixed(2)} USDT</div>
-                                        <div>Profit: $${opp.profitAmount.toFixed(2)} USDT</div>
-                                        <div style="font-size: 0.8rem; color: #888; margin-top: 5px;">${opp.pathId}</div>
+                                        <div>Path: ${opp.path?.path?.join(' → ') || 'N/A'}</div>
+                                        <div>Initial: $${opp.startAmount?.toFixed(2) || 0} USDT → Final: $${opp.endAmount?.toFixed(2) || 0} USDT</div>
+                                        <div>Profit: $${opp.profitAmount?.toFixed(2) || 0} USDT</div>
+                                        <div style="font-size: 0.8rem; color: #888; margin-top: 5px;">${opp.path?.id || opp.id}</div>
                                     </div>
                                 </div>
                             `;
@@ -9264,7 +9353,7 @@
                         container.innerHTML = html;
                     }
 
-                    alert(`✅ Scan Complete!\n\nTotal Scanned: ${data.totalScanned} paths\nProfitable: ${data.profitableCount} opportunities\nBest: ${data.opportunities[0]?.profitPercent || 0}%`);
+                    alert(`✅ Scan Complete!\n\nTotal Scanned: ${data.scannedPaths} paths\nProfitable: ${data.opportunities.length} opportunities\nBest: ${data.opportunities[0]?.profitPercentage?.toFixed(2) || 0}%`);
                 } else {
                     alert(`❌ Scan Failed: ${data.message}`);
                     console.error('❌ [KUCOIN] Scan failed:', data);
