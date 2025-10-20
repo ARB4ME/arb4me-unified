@@ -6169,6 +6169,16 @@
                         return;
                     }
 
+                    // Get risk settings from UI
+                    const maxTradeAmount = parseFloat(document.getElementById('krakenMaxTrade')?.value || 100);
+                    const profitThreshold = parseFloat(document.getElementById('krakenProfitThreshold')?.value || 0.5);
+                    const portfolioPercent = parseFloat(document.getElementById('krakenPortfolioPercent')?.value || 10);
+
+                    // Get current balances (from balance tracking)
+                    const currentBalanceUSD = krakenBalanceTracking.currentUSD || 0;
+                    const currentBalanceUSDT = krakenBalanceTracking.currentUSDT || 0;
+                    const currentBalanceUSDC = krakenBalanceTracking.currentUSDC || 0;
+
                     // Scan for opportunities
                     const response = await fetch('/api/v1/trading/kraken/triangular/scan', {
                         method: 'POST',
@@ -6176,9 +6186,13 @@
                         body: JSON.stringify({
                             apiKey,
                             apiSecret,
-                            enabledSets,
-                            minProfitPercent: parseFloat(document.getElementById('krakenProfitThreshold')?.value) || 0.5,
-                            startAmount: parseFloat(document.getElementById('krakenMaxTrade')?.value) || 1000
+                            paths: enabledSets,
+                            maxTradeAmount: maxTradeAmount,
+                            profitThreshold: profitThreshold,
+                            portfolioPercent: portfolioPercent,
+                            currentBalanceUSD: currentBalanceUSD,
+                            currentBalanceUSDT: currentBalanceUSDT,
+                            currentBalanceUSDC: currentBalanceUSDC
                         })
                     });
 
@@ -6190,6 +6204,20 @@
                         krakenWorkerStats.totalOpportunities += opps.length;
 
                         console.log(`✅ [KRAKEN Worker] Scan complete: ${opps.length} opportunities found`);
+
+                        // Log portfolio calculation details
+                        if (result.data?.portfolioCalculation) {
+                            const calc = result.data.portfolioCalculation;
+                            console.log(`💰 [KRAKEN Portfolio] USD: $${calc.balanceUSD}, USDT: $${calc.balanceUSDT}, USDC: $${calc.balanceUSDC}`);
+                            console.log(`💰 [KRAKEN Portfolio] ${calc.portfolioPercent}% = $${calc.portfolioAmount}, Cap: ${calc.appliedCap}, Can Trade: ${calc.canTrade}`);
+                        }
+
+                        // Display warnings (non-blocking)
+                        if (result.data?.warnings && result.data.warnings.length > 0) {
+                            result.data.warnings.forEach(warning => {
+                                console.warn(`⚠️ [KRAKEN Portfolio] ${warning}`);
+                            });
+                        }
 
                         // Update balance
                         await updateKrakenBalance(apiKey, apiSecret);
