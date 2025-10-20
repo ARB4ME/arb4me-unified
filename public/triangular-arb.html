@@ -1467,11 +1467,53 @@
                 <button disabled class="btn" style="background: #555; opacity: 0.5; cursor: not-allowed;">🗑️ Clear History (Disabled)</button>
             </div>
 
-            <!-- Live Feed Section -->
-            <div class="stat-card">
-                <h4 style="color: #F0B90B; margin-bottom: 15px;">📡 Live Feed</h4>
-                <div id="binanceLiveFeed" style="max-height: 200px; overflow-y: auto; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; font-family: monospace; font-size: 0.85rem; color: #b8c6db;">
-                    <div style="color: #888;">Waiting for scan results...</div>
+            <!-- Tabbed Interface: Balance Tracker & Recent Trades -->
+            <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px;">
+                <!-- Tab Headers -->
+                <div style="display: flex; gap: 10px; margin-bottom: 15px; border-bottom: 2px solid rgba(240,185,11,0.3);">
+                    <button id="binanceBalanceTab" onclick="switchBinanceTab('balance')" style="flex: 1; padding: 10px; background: rgba(240,185,11,0.3); border: none; border-radius: 8px 8px 0 0; color: #F0B90B; font-weight: bold; cursor: pointer; transition: all 0.3s;">
+                        💰 Balance Tracker
+                    </button>
+                    <button id="binanceTradesTab" onclick="switchBinanceTab('trades')" style="flex: 1; padding: 10px; background: rgba(255,255,255,0.05); border: none; border-radius: 8px 8px 0 0; color: #b8c6db; cursor: pointer; transition: all 0.3s;">
+                        🕒 Recent Trades
+                    </button>
+                </div>
+
+                <!-- Balance Tracker Tab Content -->
+                <div id="binanceBalanceContent" style="display: block;">
+                    <h4 style="color: #F0B90B; margin-bottom: 15px;">💰 USDT Balance Tracking</h4>
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 12px;">
+                        <!-- USDT Balance -->
+                        <div style="background: rgba(240,185,11,0.1); padding: 12px; border-radius: 8px; border-left: 4px solid #F0B90B;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; font-size: 0.9rem;">
+                                <div>
+                                    <div style="color: #888; font-size: 0.8rem; margin-bottom: 5px;">Starting</div>
+                                    <div style="color: #F0B90B; font-weight: bold;" id="binanceStartingUSDT">$0.00</div>
+                                </div>
+                                <div>
+                                    <div style="color: #888; font-size: 0.8rem; margin-bottom: 5px;">Current</div>
+                                    <div style="color: #F0B90B; font-weight: bold;" id="binanceCurrentUSDT">$0.00</div>
+                                </div>
+                                <div>
+                                    <div style="color: #888; font-size: 0.8rem; margin-bottom: 5px;">Change</div>
+                                    <div style="color: #b8c6db; font-weight: bold;" id="binanceChangeUSDT">$0.00 (0.0%)</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 10px; padding: 8px; background: rgba(240,185,11,0.1); border-radius: 6px; font-size: 0.8rem; color: #888; text-align: center;">
+                        💡 Balance updates automatically when the worker is running
+                    </div>
+                </div>
+
+                <!-- Recent Trades Tab Content -->
+                <div id="binanceTradesContent" style="display: none;">
+                    <h4 style="color: #F0B90B; margin-bottom: 15px;">🕒 Recent Triangular Trades</h4>
+                    <div id="binanceRecentTrades" style="max-height: 200px; overflow-y: auto;">
+                        <div style="text-align: center; color: #888; padding: 20px;">
+                            No triangular trades yet. Enable live trading to start.
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -6827,6 +6869,10 @@
         };
         let binanceWorkerInterval = null;
         let binanceWorkerRunning = false;
+        let binanceBalanceTracking = {
+            startingUSDT: null,
+            currentUSDT: 0
+        };
 
         // Initialize ByBit balance on page load or worker start
         async function initializeBybitBalance(apiKey, apiSecret) {
@@ -6901,6 +6947,118 @@
             const changeColor = change >= 0 ? '#00ff88' : '#ff6b6b';
             const changeSign = change >= 0 ? '+' : '';
             document.getElementById('bybitChangeUSDT').innerHTML = `
+                <span style="color: ${changeColor};">${changeSign}$${change.toFixed(2)} (${changeSign}${changePercent.toFixed(2)}%)</span>
+            `;
+        }
+
+        // ============================================================
+        // BINANCE TAB SWITCHING & BALANCE TRACKING
+        // ============================================================
+
+        // Switch between Binance tabs
+        function switchBinanceTab(tab) {
+            const balanceTab = document.getElementById('binanceBalanceTab');
+            const tradesTab = document.getElementById('binanceTradesTab');
+            const balanceContent = document.getElementById('binanceBalanceContent');
+            const tradesContent = document.getElementById('binanceTradesContent');
+
+            if (tab === 'balance') {
+                // Activate Balance tab
+                balanceTab.style.background = 'rgba(240,185,11,0.3)';
+                balanceTab.style.color = '#F0B90B';
+                balanceTab.style.fontWeight = 'bold';
+                tradesTab.style.background = 'rgba(255,255,255,0.05)';
+                tradesTab.style.color = '#b8c6db';
+                tradesTab.style.fontWeight = 'normal';
+
+                balanceContent.style.display = 'block';
+                tradesContent.style.display = 'none';
+            } else {
+                // Activate Trades tab
+                tradesTab.style.background = 'rgba(240,185,11,0.3)';
+                tradesTab.style.color = '#F0B90B';
+                tradesTab.style.fontWeight = 'bold';
+                balanceTab.style.background = 'rgba(255,255,255,0.05)';
+                balanceTab.style.color = '#b8c6db';
+                balanceTab.style.fontWeight = 'normal';
+
+                balanceContent.style.display = 'none';
+                tradesContent.style.display = 'block';
+            }
+        }
+
+        // Initialize Binance balance on page load or worker start
+        async function initializeBinanceBalance(apiKey, apiSecret) {
+            try {
+                console.log('💰 [BINANCE Balance] Initializing balance tracking...');
+
+                const response = await fetch('/api/v1/trading/binance/balance', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ apiKey, apiSecret })
+                });
+
+                const result = await response.json();
+
+                if (result.success && result.data && result.data.balances) {
+                    const balances = result.data.balances;
+                    binanceBalanceTracking.currentUSDT = parseFloat(balances.USDT || 0);
+
+                    // Set starting balance if first time
+                    const savedStarting = localStorage.getItem('binanceStartingUSDT');
+                    if (!savedStarting) {
+                        binanceBalanceTracking.startingUSDT = binanceBalanceTracking.currentUSDT;
+                        localStorage.setItem('binanceStartingUSDT', binanceBalanceTracking.startingUSDT.toString());
+                        console.log(`💰 [BINANCE Balance] Starting USDT set: $${binanceBalanceTracking.startingUSDT.toFixed(2)}`);
+                    } else {
+                        binanceBalanceTracking.startingUSDT = parseFloat(savedStarting);
+                        console.log(`💰 [BINANCE Balance] Starting USDT loaded: $${binanceBalanceTracking.startingUSDT.toFixed(2)}`);
+                    }
+
+                    updateBinanceBalanceDisplay();
+                } else {
+                    console.error('❌ [BINANCE Balance] Failed to fetch balance:', result);
+                }
+            } catch (error) {
+                console.error('❌ [BINANCE Balance] Error initializing:', error);
+            }
+        }
+
+        // Update Binance balance
+        async function updateBinanceBalance(apiKey, apiSecret) {
+            try {
+                const response = await fetch('/api/v1/trading/binance/balance', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ apiKey, apiSecret })
+                });
+
+                const result = await response.json();
+
+                if (result.success && result.data && result.data.balances) {
+                    const balances = result.data.balances;
+                    binanceBalanceTracking.currentUSDT = parseFloat(balances.USDT || 0);
+                    updateBinanceBalanceDisplay();
+                }
+            } catch (error) {
+                console.error('❌ [BINANCE Balance] Error updating:', error);
+            }
+        }
+
+        // Update Binance balance display
+        function updateBinanceBalanceDisplay() {
+            const starting = binanceBalanceTracking.startingUSDT || 0;
+            const current = binanceBalanceTracking.currentUSDT || 0;
+            const change = current - starting;
+            const changePercent = starting > 0 ? ((change / starting) * 100) : 0;
+
+            // Update USDT display
+            document.getElementById('binanceStartingUSDT').textContent = `$${starting.toFixed(2)}`;
+            document.getElementById('binanceCurrentUSDT').textContent = `$${current.toFixed(2)}`;
+
+            const changeColor = change >= 0 ? '#00ff88' : '#ff6b6b';
+            const changeSign = change >= 0 ? '+' : '';
+            document.getElementById('binanceChangeUSDT').innerHTML = `
                 <span style="color: ${changeColor};">${changeSign}$${change.toFixed(2)} (${changeSign}${changePercent.toFixed(2)}%)</span>
             `;
         }
@@ -7608,6 +7766,10 @@
             if (lastScanElement) {
                 lastScanElement.textContent = binanceWorkerStats.lastScanTime.toLocaleTimeString();
             }
+
+            // Update balance after scan cycle
+            await updateBinanceBalance(apiKey, apiSecret);
+
             console.log(`✅ [BINANCE Worker] ═══ Scan Cycle #${binanceWorkerStats.totalScans} Complete ═══\n`);
         }
 
@@ -7623,6 +7785,10 @@
                 console.error('❌ [BINANCE Worker] Missing API credentials');
                 return;
             }
+
+            // Initialize balance tracking
+            console.log('💰 [BINANCE Worker] Initializing balance tracking...');
+            await initializeBinanceBalance(apiKey, apiSecret);
 
             // Perform immediate first scan cycle
             console.log('🚀 [BINANCE Worker] Performing immediate first scan cycle...');
