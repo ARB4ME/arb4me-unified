@@ -1590,10 +1590,10 @@
 
             <!-- Control Buttons -->
             <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px;">
-                <button onclick="testOKXTriangularConnection()" class="btn" style="background: linear-gradient(135deg, #00A6FF, #00D4FF);">🔍 Test Connection</button>
-                <button onclick="scanOKXTriangularPaths()" class="btn" style="background: linear-gradient(135deg, #32cd32, #98fb98);">🔍 Scan Opportunities</button>
+                <button disabled class="btn" style="background: #555; opacity: 0.5; cursor: not-allowed;">🔍 Test Connection (Disabled)</button>
+                <button disabled class="btn" style="background: #555; opacity: 0.5; cursor: not-allowed;">🔍 Scan Opportunities (Disabled)</button>
                 <button onclick="viewOKXPathDetails()" class="btn" style="background: linear-gradient(135deg, #00bfff, #87ceeb);">📊 View Paths</button>
-                <button onclick="clearOKXTriangularHistory()" class="btn" style="background: linear-gradient(135deg, #ff6b6b, #ff9999);">🗑️ Clear History</button>
+                <button disabled class="btn" style="background: #555; opacity: 0.5; cursor: not-allowed;">🗑️ Clear History (Disabled)</button>
             </div>
 
             <!-- Live Feed Section -->
@@ -8562,69 +8562,133 @@
 
         // View OKX Path Details
         function viewOKXPathDetails() {
-            const pathDetails = `
-📋 OKX Triangular Arbitrage Paths (32 Total)
+            console.log('📋 [OKX] Displaying path details modal...');
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 1: Essential ETH Bridge (7 paths) ✅ DEFAULT
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. USDT → ETH → BTC → USDT
-2. USDT → ETH → SOL → USDT
-3. USDT → ETH → XRP → USDT
-4. USDT → ETH → ADA → USDT
-5. USDT → ETH → DOT → USDT
-6. USDT → ETH → MATIC → USDT
-7. USDT → ETH → LINK → USDT
+            // Create modal overlay
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.8);
+                backdrop-filter: blur(5px);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 10000;
+                padding: 20px;
+                box-sizing: border-box;
+            `;
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 2: Mid-Cap BTC Bridge (7 paths) ✅ DEFAULT
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. USDT → BTC → ETH → USDT
-2. USDT → BTC → SOL → USDT
-3. USDT → BTC → AVAX → USDT
-4. USDT → BTC → ATOM → USDT
-5. USDT → BTC → LTC → USDT
-6. USDT → BTC → UNI → USDT
-7. USDT → BTC → FIL → USDT
+            // Create modal content
+            const modalContent = document.createElement('div');
+            modalContent.style.cssText = `
+                background: linear-gradient(135deg, #1a1a2e 0%, #0a0a14 100%);
+                border: 2px solid #00A6FF;
+                border-radius: 15px;
+                padding: 30px;
+                max-width: 800px;
+                max-height: 85vh;
+                overflow-y: auto;
+                box-shadow: 0 10px 50px rgba(0, 166, 255, 0.3);
+            `;
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 3: SOL High-Liquidity (6 paths)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. USDT → SOL → BTC → USDT
-2. USDT → SOL → ETH → USDT
-3. USDT → SOL → XRP → USDT
-4. USDT → SOL → ADA → USDT
-5. USDT → SOL → DOT → USDT
-6. USDT → SOL → AVAX → USDT
+            modalContent.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                    <h2 style="color: #00A6FF; margin: 0; font-size: 1.8rem;">📋 OKX Triangular Arbitrage Paths</h2>
+                    <button id="closeModal" style="background: none; border: none; color: #ff6b6b; font-size: 2rem; cursor: pointer; padding: 0; line-height: 1;">&times;</button>
+                </div>
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 4: High Volatility (6 paths)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. USDT → DOGE → BTC → USDT
-2. USDT → SHIB → ETH → USDT
-3. USDT → PEPE → ETH → USDT
-4. USDT → NEAR → BTC → USDT
-5. USDT → APT → ETH → USDT
-6. USDT → FTM → BTC → USDT
+                <div style="background: rgba(0,166,255,0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #00A6FF;">
+                    <div style="color: #00A6FF; font-weight: bold; margin-bottom: 8px;">📊 Overview</div>
+                    <div style="color: #b8c6db;">💡 Total: <strong style="color: #00A6FF;">32 paths</strong> (31 three-leg + 1 four-leg)</div>
+                    <div style="color: #b8c6db;">🌉 Bridge: <strong style="color: #00A6FF;">USDT</strong> (Tether)</div>
+                    <div style="color: #b8c6db;">🌍 Exchange: <strong style="color: #00A6FF;">OKX</strong> (Major derivatives platform)</div>
+                    <div style="color: #b8c6db;">🔐 Auth: <strong style="color: #00A6FF;">API Key + Secret + Passphrase</strong></div>
+                </div>
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 5: Extended Multi-Bridge (6 paths)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. USDT → TRX → BTC → USDT
-2. USDT → ALGO → ETH → USDT
-3. USDT → VET → BTC → USDT
-4. USDT → HBAR → ETH → USDT
-5. USDT → OKB → BTC → USDT (Native token)
-6. USDT → BTC → ETH → SOL → USDT (4-leg)
+                <div style="background: rgba(255,215,0,0.05); padding: 20px; border-radius: 10px; margin-bottom: 15px; border: 1px solid rgba(255,215,0,0.3);">
+                    <strong style="color: #ffd700; font-size: 1.1rem;">SET 1: Major ETH Bridge</strong>
+                    <span style="color: #32cd32; font-size: 0.9rem; margin-left: 10px;">✅ DEFAULT (7 paths)</span>
+                    <div style="color: #b8c6db; margin-top: 12px; line-height: 1.8;">
+                        1. USDT → BTC → ETH → USDT<br>
+                        2. USDT → SOL → ETH → USDT<br>
+                        3. USDT → XRP → ETH → USDT<br>
+                        4. USDT → ADA → ETH → USDT<br>
+                        5. USDT → DOT → ETH → USDT<br>
+                        6. USDT → MATIC → ETH → USDT<br>
+                        7. USDT → LINK → ETH → USDT
+                    </div>
+                </div>
 
-💡 TOTAL: 32 paths (31 three-leg + 1 four-leg)
-🌉 BRIDGE: USDT (Tether)
-🌍 GLOBAL: Major derivatives exchange
-🔐 AUTH: API Key + Secret + Passphrase
-            `.trim();
+                <div style="background: rgba(50,205,50,0.05); padding: 20px; border-radius: 10px; margin-bottom: 15px; border: 1px solid rgba(50,205,50,0.3);">
+                    <strong style="color: #32cd32; font-size: 1.1rem;">SET 2: Mid-Cap BTC Bridge</strong>
+                    <span style="color: #32cd32; font-size: 0.9rem; margin-left: 10px;">✅ DEFAULT (7 paths)</span>
+                    <div style="color: #b8c6db; margin-top: 12px; line-height: 1.8;">
+                        1. USDT → ETH → BTC → USDT<br>
+                        2. USDT → SOL → BTC → USDT<br>
+                        3. USDT → AVAX → BTC → USDT<br>
+                        4. USDT → ATOM → BTC → USDT<br>
+                        5. USDT → LTC → BTC → USDT<br>
+                        6. USDT → UNI → BTC → USDT<br>
+                        7. USDT → FIL → BTC → USDT
+                    </div>
+                </div>
 
-            alert(pathDetails);
-            console.log('📋 [OKX] Path details displayed:', pathDetails);
+                <div style="background: rgba(0,212,255,0.05); padding: 20px; border-radius: 10px; margin-bottom: 15px; border: 1px solid rgba(0,212,255,0.3);">
+                    <strong style="color: #00d4ff; font-size: 1.1rem;">SET 3: OKB Native Bridge</strong>
+                    <span style="color: #888; font-size: 0.9rem; margin-left: 10px;">(6 paths)</span>
+                    <div style="color: #b8c6db; margin-top: 12px; line-height: 1.8;">
+                        1. USDT → BTC → OKB → USDT<br>
+                        2. USDT → ETH → OKB → USDT<br>
+                        3. USDT → SOL → OKB → USDT<br>
+                        4. USDT → XRP → OKB → USDT<br>
+                        5. USDT → ADA → OKB → USDT<br>
+                        6. USDT → DOT → OKB → USDT
+                    </div>
+                </div>
+
+                <div style="background: rgba(255,105,180,0.05); padding: 20px; border-radius: 10px; margin-bottom: 15px; border: 1px solid rgba(255,105,180,0.3);">
+                    <strong style="color: #ff69b4; font-size: 1.1rem;">SET 4: High Volatility</strong>
+                    <span style="color: #888; font-size: 0.9rem; margin-left: 10px;">(6 paths)</span>
+                    <div style="color: #b8c6db; margin-top: 12px; line-height: 1.8;">
+                        1. USDT → DOGE → ETH → USDT<br>
+                        2. USDT → SHIB → ETH → USDT<br>
+                        3. USDT → PEPE → ETH → USDT<br>
+                        4. USDT → NEAR → BTC → USDT<br>
+                        5. USDT → APT → BTC → USDT<br>
+                        6. USDT → FTM → BTC → USDT
+                    </div>
+                </div>
+
+                <div style="background: rgba(255,140,0,0.05); padding: 20px; border-radius: 10px; border: 1px solid rgba(255,140,0,0.3);">
+                    <strong style="color: #ff8c00; font-size: 1.1rem;">SET 5: Extended Multi-Bridge</strong>
+                    <span style="color: #888; font-size: 0.9rem; margin-left: 10px;">(6 paths)</span>
+                    <div style="color: #b8c6db; margin-top: 12px; line-height: 1.8;">
+                        1. USDT → BTC → ETH → SOL → USDT <span style="color: #ff8c00;">(4-leg)</span><br>
+                        2. USDT → ETH → SOL → USDT<br>
+                        3. USDT → SOL → ETH → USDT (reverse)<br>
+                        4. USDT → BTC → SOL → USDT<br>
+                        5. USDT → OKB → ETH → USDT <span style="color: #00A6FF;">(Native)</span><br>
+                        6. USDT → OKB → BTC → USDT <span style="color: #00A6FF;">(Native)</span>
+                    </div>
+                </div>
+            `;
+
+            modal.appendChild(modalContent);
+            document.body.appendChild(modal);
+
+            // Close modal on click outside or close button
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal || e.target.id === 'closeModal') {
+                    document.body.removeChild(modal);
+                    console.log('📋 [OKX] Path details modal closed');
+                }
+            });
+
+            console.log('✅ [OKX] Path details modal displayed');
         }
 
         // Clear OKX Trade History
