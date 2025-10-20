@@ -1531,6 +1531,44 @@
                 </div>
             </div>
 
+            <!-- FUNDING REQUIREMENTS Info Banner -->
+            <div style="background: rgba(0,166,255,0.15); border: 2px solid #00A6FF; border-radius: 10px; padding: 20px; margin-bottom: 20px;">
+                <div style="text-align: center;">
+                    <h4 style="color: #00A6FF; margin: 0 0 10px 0; font-size: 1.2rem;">💰 Funding Requirements for Maximum Coverage</h4>
+                    <p style="color: #b8c6db; margin: 0 0 15px 0; font-size: 0.95rem;">
+                        OKX supports <strong style="color: #00A6FF;">32 triangular arbitrage paths</strong> across <strong>1 fundable currency</strong>.
+                    </p>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr; gap: 15px; margin-top: 15px;">
+                    <!-- USDT Currency -->
+                    <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; border-left: 4px solid #00A6FF;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <h5 style="color: #00A6FF; margin: 0; font-size: 1.1rem;">💰 USDT (Tether)</h5>
+                            <span style="color: #00A6FF; font-weight: bold; font-size: 1.1rem;">32 Paths</span>
+                        </div>
+                        <p style="color: #b8c6db; margin: 0 0 10px 0; font-size: 0.9rem;">
+                            <strong>How to fund:</strong> Transfer from exchange • Crypto wallet • Convert fiat to USDT
+                        </p>
+                        <p style="color: #888; margin: 0; font-size: 0.85rem; font-style: italic;">
+                            All paths use USDT as the base currency including unique OKB (native token) arbitrage opportunities
+                        </p>
+                    </div>
+                </div>
+
+                <div style="margin-top: 15px; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 8px; text-align: center;">
+                    <p style="color: #00A6FF; margin: 0; font-size: 0.9rem; font-weight: 500;">
+                        💡 <strong>Pro Tip:</strong> Fund with USDT = Access to all 32 paths (includes 6 OKB native token paths + 1 four-leg extended path)
+                    </p>
+                </div>
+
+                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(0,166,255,0.3);">
+                    <p style="color: #888; margin: 0; font-size: 0.85rem; text-align: center;">
+                        <strong>Multi-User Platform:</strong> This information helps all users optimize their OKX triangular trading setup
+                    </p>
+                </div>
+            </div>
+
             <!-- Risk Management Section -->
             <div class="stat-card">
                 <h4 style="color: #00A6FF; margin-bottom: 15px;">⚖️ Risk Management</h4>
@@ -1596,11 +1634,53 @@
                 <button disabled class="btn" style="background: #555; opacity: 0.5; cursor: not-allowed;">🗑️ Clear History (Disabled)</button>
             </div>
 
-            <!-- Live Feed Section -->
-            <div class="stat-card">
-                <h4 style="color: #00A6FF; margin-bottom: 15px;">📡 Live Feed</h4>
-                <div id="okxLiveFeed" style="max-height: 200px; overflow-y: auto; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; font-family: monospace; font-size: 0.85rem; color: #b8c6db;">
-                    <div style="color: #888;">Waiting for scan results...</div>
+            <!-- Tabbed Interface: Balance Tracker & Recent Trades -->
+            <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px;">
+                <!-- Tab Headers -->
+                <div style="display: flex; gap: 10px; margin-bottom: 15px; border-bottom: 2px solid rgba(0,166,255,0.3);">
+                    <button id="okxBalanceTab" onclick="switchOKXTab('balance')" style="flex: 1; padding: 10px; background: rgba(0,166,255,0.3); border: none; border-radius: 8px 8px 0 0; color: #00A6FF; font-weight: bold; cursor: pointer; transition: all 0.3s;">
+                        💰 Balance Tracker
+                    </button>
+                    <button id="okxTradesTab" onclick="switchOKXTab('trades')" style="flex: 1; padding: 10px; background: rgba(255,255,255,0.05); border: none; border-radius: 8px 8px 0 0; color: #b8c6db; cursor: pointer; transition: all 0.3s;">
+                        🕒 Recent Trades
+                    </button>
+                </div>
+
+                <!-- Balance Tracker Tab Content -->
+                <div id="okxBalanceContent" style="display: block;">
+                    <h4 style="color: #00A6FF; margin-bottom: 15px;">💰 USDT Balance Tracking</h4>
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 12px;">
+                        <!-- USDT Balance -->
+                        <div style="background: rgba(0,166,255,0.1); padding: 12px; border-radius: 8px; border-left: 4px solid #00A6FF;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; font-size: 0.9rem;">
+                                <div>
+                                    <div style="color: #888; font-size: 0.8rem; margin-bottom: 5px;">Starting</div>
+                                    <div style="color: #00A6FF; font-weight: bold;" id="okxStartingUSDT">$0.00</div>
+                                </div>
+                                <div>
+                                    <div style="color: #888; font-size: 0.8rem; margin-bottom: 5px;">Current</div>
+                                    <div style="color: #00A6FF; font-weight: bold;" id="okxCurrentUSDT">$0.00</div>
+                                </div>
+                                <div>
+                                    <div style="color: #888; font-size: 0.8rem; margin-bottom: 5px;">Change</div>
+                                    <div style="color: #b8c6db; font-weight: bold;" id="okxChangeUSDT">$0.00 (0.0%)</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 10px; padding: 8px; background: rgba(0,166,255,0.1); border-radius: 6px; font-size: 0.8rem; color: #888; text-align: center;">
+                        💡 Balance updates automatically when the worker is running
+                    </div>
+                </div>
+
+                <!-- Recent Trades Tab Content -->
+                <div id="okxTradesContent" style="display: none;">
+                    <h4 style="color: #00A6FF; margin-bottom: 15px;">🕒 Recent Triangular Trades</h4>
+                    <div id="okxRecentTrades" style="max-height: 200px; overflow-y: auto;">
+                        <div style="text-align: center; color: #888; padding: 20px;">
+                            No triangular trades yet. Enable live trading to start.
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -7076,6 +7156,118 @@
             `;
         }
 
+        // ============================================================
+        // OKX TAB SWITCHING & BALANCE TRACKING
+        // ============================================================
+
+        // Switch between OKX tabs
+        function switchOKXTab(tab) {
+            const balanceTab = document.getElementById('okxBalanceTab');
+            const tradesTab = document.getElementById('okxTradesTab');
+            const balanceContent = document.getElementById('okxBalanceContent');
+            const tradesContent = document.getElementById('okxTradesContent');
+
+            if (tab === 'balance') {
+                // Activate Balance tab
+                balanceTab.style.background = 'rgba(0,166,255,0.3)';
+                balanceTab.style.color = '#00A6FF';
+                balanceTab.style.fontWeight = 'bold';
+                tradesTab.style.background = 'rgba(255,255,255,0.05)';
+                tradesTab.style.color = '#b8c6db';
+                tradesTab.style.fontWeight = 'normal';
+
+                balanceContent.style.display = 'block';
+                tradesContent.style.display = 'none';
+            } else {
+                // Activate Trades tab
+                tradesTab.style.background = 'rgba(0,166,255,0.3)';
+                tradesTab.style.color = '#00A6FF';
+                tradesTab.style.fontWeight = 'bold';
+                balanceTab.style.background = 'rgba(255,255,255,0.05)';
+                balanceTab.style.color = '#b8c6db';
+                balanceTab.style.fontWeight = 'normal';
+
+                balanceContent.style.display = 'none';
+                tradesContent.style.display = 'block';
+            }
+        }
+
+        // Initialize OKX balance on page load or worker start
+        async function initializeOKXBalance(apiKey, apiSecret, passphrase) {
+            try {
+                console.log('💰 [OKX Balance] Initializing balance tracking...');
+
+                const response = await fetch('/api/v1/trading/okx/balance', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ apiKey, apiSecret, passphrase })
+                });
+
+                const result = await response.json();
+
+                if (result.success && result.data && result.data.balances) {
+                    const balances = result.data.balances;
+                    okxBalanceTracking.currentUSDT = parseFloat(balances.USDT || 0);
+
+                    // Set starting balance if first time
+                    const savedStarting = localStorage.getItem('okxStartingUSDT');
+                    if (!savedStarting) {
+                        okxBalanceTracking.startingUSDT = okxBalanceTracking.currentUSDT;
+                        localStorage.setItem('okxStartingUSDT', okxBalanceTracking.startingUSDT.toString());
+                        console.log(`💰 [OKX Balance] Starting USDT set: $${okxBalanceTracking.startingUSDT.toFixed(2)}`);
+                    } else {
+                        okxBalanceTracking.startingUSDT = parseFloat(savedStarting);
+                        console.log(`💰 [OKX Balance] Starting USDT loaded: $${okxBalanceTracking.startingUSDT.toFixed(2)}`);
+                    }
+
+                    updateOKXBalanceDisplay();
+                } else {
+                    console.error('❌ [OKX Balance] Failed to fetch balance:', result);
+                }
+            } catch (error) {
+                console.error('❌ [OKX Balance] Error initializing:', error);
+            }
+        }
+
+        // Update OKX balance
+        async function updateOKXBalance(apiKey, apiSecret, passphrase) {
+            try {
+                const response = await fetch('/api/v1/trading/okx/balance', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ apiKey, apiSecret, passphrase })
+                });
+
+                const result = await response.json();
+
+                if (result.success && result.data && result.data.balances) {
+                    const balances = result.data.balances;
+                    okxBalanceTracking.currentUSDT = parseFloat(balances.USDT || 0);
+                    updateOKXBalanceDisplay();
+                }
+            } catch (error) {
+                console.error('❌ [OKX Balance] Error updating:', error);
+            }
+        }
+
+        // Update OKX balance display
+        function updateOKXBalanceDisplay() {
+            const starting = okxBalanceTracking.startingUSDT || 0;
+            const current = okxBalanceTracking.currentUSDT || 0;
+            const change = current - starting;
+            const changePercent = starting > 0 ? ((change / starting) * 100) : 0;
+
+            // Update USDT display
+            document.getElementById('okxStartingUSDT').textContent = `$${starting.toFixed(2)}`;
+            document.getElementById('okxCurrentUSDT').textContent = `$${current.toFixed(2)}`;
+
+            const changeColor = change >= 0 ? '#00ff88' : '#ff6b6b';
+            const changeSign = change >= 0 ? '+' : '';
+            document.getElementById('okxChangeUSDT').innerHTML = `
+                <span style="color: ${changeColor};">${changeSign}$${change.toFixed(2)} (${changeSign}${changePercent.toFixed(2)}%)</span>
+            `;
+        }
+
         // Scan a single ByBit set
         async function scanBybitSet(apiKey, apiSecret, setNumber) {
             try {
@@ -8344,6 +8536,9 @@
                 lastScanElement.textContent = okxWorkerStats.lastScanTime.toLocaleTimeString();
             }
 
+            // Update balance after scan cycle
+            await updateOKXBalance(apiKey, apiSecret, passphrase);
+
             console.log(`✅ [OKX Worker] ═══ Scan Cycle #${okxWorkerStats.totalScans} Complete ═══\n`);
         }
 
@@ -8360,6 +8555,10 @@
                 console.error('❌ [OKX Worker] Missing API credentials');
                 return;
             }
+
+            // Initialize balance tracking
+            console.log('💰 [OKX Worker] Initializing balance tracking...');
+            await initializeOKXBalance(apiKey, apiSecret, passphrase);
 
             // Perform immediate first scan cycle
             console.log('🚀 [OKX Worker] Performing immediate first scan cycle...');
