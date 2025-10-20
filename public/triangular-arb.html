@@ -7566,7 +7566,10 @@
             }
 
             binanceWorkerStats.lastScanTime = new Date();
-            document.getElementById('binanceLastScan')?.textContent = binanceWorkerStats.lastScanTime.toLocaleTimeString();
+            const lastScanElement = document.getElementById('binanceLastScan');
+            if (lastScanElement) {
+                lastScanElement.textContent = binanceWorkerStats.lastScanTime.toLocaleTimeString();
+            }
             console.log(`✅ [BINANCE Worker] ═══ Scan Cycle #${binanceWorkerStats.totalScans} Complete ═══\n`);
         }
 
