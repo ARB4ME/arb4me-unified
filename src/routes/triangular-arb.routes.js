@@ -2140,163 +2140,222 @@ router.post('/binance/triangular/test-connection', authenticatedRateLimit, authe
 
 // Scan Binance Triangular Arbitrage Paths
 router.post('/binance/triangular/scan', asyncHandler(async (req, res) => {
-    const { apiKey, apiSecret, enabledSets, profitThreshold = 0.5 } = req.body;
-
-    if (!apiKey || !apiSecret) {
-        return res.status(400).json({
-            success: false,
-            message: 'API Key and Secret are required'
-        });
-    }
-
     try {
-        // Define all 33 Binance triangular paths across 5 sets
+        const { paths = 'all', apiKey, apiSecret } = req.body;
+
+        systemLogger.trading('Scanning Binance triangular paths', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'binance',
+            pathsRequested: paths
+        });
+
+        // Define all 40 Binance triangular paths (same structure as ByBit)
         const allPathSets = {
-            SET_1_MAJOR_BNB_BRIDGE: [
-                {
-                    id: 'USDT_ETH_BNB_USDT',
-                    pairs: ['ETHUSDT', 'ETHBNB', 'BNBUSDT'],
-                    sequence: 'USDT → ETH → BNB → USDT',
-                    steps: [
-                        { pair: 'ETHUSDT', side: 'buy', from: 'USDT', to: 'ETH' },
-                        { pair: 'ETHBNB', side: 'sell', from: 'ETH', to: 'BNB' },
-                        { pair: 'BNBUSDT', side: 'sell', from: 'BNB', to: 'USDT' }
-                    ]
+            SET_1_MAJOR_BTC: [
+                // USDT → ETH → BTC → USDT
+                { id: 'USDT_ETH_BTC_USDT', pairs: ['ETHUSDT', 'ETHBTC', 'BTCUSDT'],
+                  sequence: 'USDT → ETH → BTC → USDT',
+                  steps: [
+                      { pair: 'ETHUSDT', side: 'buy' },
+                      { pair: 'ETHBTC', side: 'sell' },
+                      { pair: 'BTCUSDT', side: 'sell' }
+                  ]
                 },
-                {
-                    id: 'USDT_BTC_BNB_USDT',
-                    pairs: ['BTCUSDT', 'BTCBNB', 'BNBUSDT'],
-                    sequence: 'USDT → BTC → BNB → USDT',
-                    steps: [
-                        { pair: 'BTCUSDT', side: 'buy', from: 'USDT', to: 'BTC' },
-                        { pair: 'BTCBNB', side: 'sell', from: 'BTC', to: 'BNB' },
-                        { pair: 'BNBUSDT', side: 'sell', from: 'BNB', to: 'USDT' }
-                    ]
+                // USDT → BTC → ETH → USDT (reverse)
+                { id: 'USDT_BTC_ETH_USDT', pairs: ['BTCUSDT', 'ETHBTC', 'ETHUSDT'],
+                  sequence: 'USDT → BTC → ETH → USDT',
+                  steps: [
+                      { pair: 'BTCUSDT', side: 'buy' },
+                      { pair: 'ETHBTC', side: 'buy' },
+                      { pair: 'ETHUSDT', side: 'sell' }
+                  ]
                 },
-                {
-                    id: 'USDT_SOL_BNB_USDT',
-                    pairs: ['SOLUSDT', 'SOLBNB', 'BNBUSDT'],
-                    sequence: 'USDT → SOL → BNB → USDT',
-                    steps: [
-                        { pair: 'SOLUSDT', side: 'buy', from: 'USDT', to: 'SOL' },
-                        { pair: 'SOLBNB', side: 'sell', from: 'SOL', to: 'BNB' },
-                        { pair: 'BNBUSDT', side: 'sell', from: 'BNB', to: 'USDT' }
-                    ]
+                // USDT → SOL → BTC → USDT
+                { id: 'USDT_SOL_BTC_USDT', pairs: ['SOLUSDT', 'SOLBTC', 'BTCUSDT'],
+                  sequence: 'USDT → SOL → BTC → USDT',
+                  steps: [
+                      { pair: 'SOLUSDT', side: 'buy' },
+                      { pair: 'SOLBTC', side: 'sell' },
+                      { pair: 'BTCUSDT', side: 'sell' }
+                  ]
                 },
-                {
-                    id: 'USDT_XRP_BNB_USDT',
-                    pairs: ['XRPUSDT', 'XRPBNB', 'BNBUSDT'],
-                    sequence: 'USDT → XRP → BNB → USDT',
-                    steps: [
-                        { pair: 'XRPUSDT', side: 'buy', from: 'USDT', to: 'XRP' },
-                        { pair: 'XRPBNB', side: 'sell', from: 'XRP', to: 'BNB' },
-                        { pair: 'BNBUSDT', side: 'sell', from: 'BNB', to: 'USDT' }
-                    ]
+                // USDT → BTC → SOL → USDT (reverse)
+                { id: 'USDT_BTC_SOL_USDT', pairs: ['BTCUSDT', 'SOLBTC', 'SOLUSDT'],
+                  sequence: 'USDT → BTC → SOL → USDT',
+                  steps: [
+                      { pair: 'BTCUSDT', side: 'buy' },
+                      { pair: 'SOLBTC', side: 'buy' },
+                      { pair: 'SOLUSDT', side: 'sell' }
+                  ]
                 },
-                {
-                    id: 'USDT_ADA_BNB_USDT',
-                    pairs: ['ADAUSDT', 'ADABNB', 'BNBUSDT'],
-                    sequence: 'USDT → ADA → BNB → USDT',
-                    steps: [
-                        { pair: 'ADAUSDT', side: 'buy', from: 'USDT', to: 'ADA' },
-                        { pair: 'ADABNB', side: 'sell', from: 'ADA', to: 'BNB' },
-                        { pair: 'BNBUSDT', side: 'sell', from: 'BNB', to: 'USDT' }
-                    ]
+                // USDT → XRP → BTC → USDT
+                { id: 'USDT_XRP_BTC_USDT', pairs: ['XRPUSDT', 'XRPBTC', 'BTCUSDT'],
+                  sequence: 'USDT → XRP → BTC → USDT',
+                  steps: [
+                      { pair: 'XRPUSDT', side: 'buy' },
+                      { pair: 'XRPBTC', side: 'sell' },
+                      { pair: 'BTCUSDT', side: 'sell' }
+                  ]
                 },
-                {
-                    id: 'USDT_DOT_BNB_USDT',
-                    pairs: ['DOTUSDT', 'DOTBNB', 'BNBUSDT'],
-                    sequence: 'USDT → DOT → BNB → USDT',
-                    steps: [
-                        { pair: 'DOTUSDT', side: 'buy', from: 'USDT', to: 'DOT' },
-                        { pair: 'DOTBNB', side: 'sell', from: 'DOT', to: 'BNB' },
-                        { pair: 'BNBUSDT', side: 'sell', from: 'BNB', to: 'USDT' }
-                    ]
+                // USDT → BTC → XRP → USDT (reverse)
+                { id: 'USDT_BTC_XRP_USDT', pairs: ['BTCUSDT', 'XRPBTC', 'XRPUSDT'],
+                  sequence: 'USDT → BTC → XRP → USDT',
+                  steps: [
+                      { pair: 'BTCUSDT', side: 'buy' },
+                      { pair: 'XRPBTC', side: 'buy' },
+                      { pair: 'XRPUSDT', side: 'sell' }
+                  ]
                 },
-                {
-                    id: 'USDT_MATIC_BNB_USDT',
-                    pairs: ['MATICUSDT', 'MATICBNB', 'BNBUSDT'],
-                    sequence: 'USDT → MATIC → BNB → USDT',
-                    steps: [
-                        { pair: 'MATICUSDT', side: 'buy', from: 'USDT', to: 'MATIC' },
-                        { pair: 'MATICBNB', side: 'sell', from: 'MATIC', to: 'BNB' },
-                        { pair: 'BNBUSDT', side: 'sell', from: 'BNB', to: 'USDT' }
-                    ]
+                // USDT → LTC → BTC → USDT
+                { id: 'USDT_LTC_BTC_USDT', pairs: ['LTCUSDT', 'LTCBTC', 'BTCUSDT'],
+                  sequence: 'USDT → LTC → BTC → USDT',
+                  steps: [
+                      { pair: 'LTCUSDT', side: 'buy' },
+                      { pair: 'LTCBTC', side: 'sell' },
+                      { pair: 'BTCUSDT', side: 'sell' }
+                  ]
+                },
+                // USDT → BTC → LTC → USDT (reverse)
+                { id: 'USDT_BTC_LTC_USDT', pairs: ['BTCUSDT', 'LTCBTC', 'LTCUSDT'],
+                  sequence: 'USDT → BTC → LTC → USDT',
+                  steps: [
+                      { pair: 'BTCUSDT', side: 'buy' },
+                      { pair: 'LTCBTC', side: 'buy' },
+                      { pair: 'LTCUSDT', side: 'sell' }
+                  ]
                 }
             ],
-            SET_2_MIDCAP_ETH_BRIDGE: [
-                {
-                    id: 'USDT_AVAX_ETH_USDT',
-                    pairs: ['AVAXUSDT', 'AVAXETH', 'ETHUSDT'],
-                    sequence: 'USDT → AVAX → ETH → USDT',
-                    steps: [
-                        { pair: 'AVAXUSDT', side: 'buy', from: 'USDT', to: 'AVAX' },
-                        { pair: 'AVAXETH', side: 'sell', from: 'AVAX', to: 'ETH' },
-                        { pair: 'ETHUSDT', side: 'sell', from: 'ETH', to: 'USDT' }
-                    ]
+            SET_2_ALTCOINS_BTC: [
+                // USDT → ADA → BTC → USDT
+                { id: 'USDT_ADA_BTC_USDT', pairs: ['ADAUSDT', 'ADABTC', 'BTCUSDT'],
+                  sequence: 'USDT → ADA → BTC → USDT',
+                  steps: [
+                      { pair: 'ADAUSDT', side: 'buy' },
+                      { pair: 'ADABTC', side: 'sell' },
+                      { pair: 'BTCUSDT', side: 'sell' }
+                  ]
                 },
-                {
-                    id: 'USDT_LINK_ETH_USDT',
-                    pairs: ['LINKUSDT', 'LINKETH', 'ETHUSDT'],
-                    sequence: 'USDT → LINK → ETH → USDT',
-                    steps: [
-                        { pair: 'LINKUSDT', side: 'buy', from: 'USDT', to: 'LINK' },
-                        { pair: 'LINKETH', side: 'sell', from: 'LINK', to: 'ETH' },
-                        { pair: 'ETHUSDT', side: 'sell', from: 'ETH', to: 'USDT' }
-                    ]
+                // USDT → BTC → ADA → USDT (reverse)
+                { id: 'USDT_BTC_ADA_USDT', pairs: ['BTCUSDT', 'ADABTC', 'ADAUSDT'],
+                  sequence: 'USDT → BTC → ADA → USDT',
+                  steps: [
+                      { pair: 'BTCUSDT', side: 'buy' },
+                      { pair: 'ADABTC', side: 'buy' },
+                      { pair: 'ADAUSDT', side: 'sell' }
+                  ]
                 },
-                {
-                    id: 'USDT_UNI_ETH_USDT',
-                    pairs: ['UNIUSDT', 'UNIETH', 'ETHUSDT'],
-                    sequence: 'USDT → UNI → ETH → USDT',
-                    steps: [
-                        { pair: 'UNIUSDT', side: 'buy', from: 'USDT', to: 'UNI' },
-                        { pair: 'UNIETH', side: 'sell', from: 'UNI', to: 'ETH' },
-                        { pair: 'ETHUSDT', side: 'sell', from: 'ETH', to: 'USDT' }
-                    ]
+                // USDT → DOT → BTC → USDT
+                { id: 'USDT_DOT_BTC_USDT', pairs: ['DOTUSDT', 'DOTBTC', 'BTCUSDT'],
+                  sequence: 'USDT → DOT → BTC → USDT',
+                  steps: [
+                      { pair: 'DOTUSDT', side: 'buy' },
+                      { pair: 'DOTBTC', side: 'sell' },
+                      { pair: 'BTCUSDT', side: 'sell' }
+                  ]
                 },
-                {
-                    id: 'USDT_AAVE_ETH_USDT',
-                    pairs: ['AAVEUSDT', 'AAVEETH', 'ETHUSDT'],
-                    sequence: 'USDT → AAVE → ETH → USDT',
-                    steps: [
-                        { pair: 'AAVEUSDT', side: 'buy', from: 'USDT', to: 'AAVE' },
-                        { pair: 'AAVEETH', side: 'sell', from: 'AAVE', to: 'ETH' },
-                        { pair: 'ETHUSDT', side: 'sell', from: 'ETH', to: 'USDT' }
-                    ]
+                // USDT → BTC → DOT → USDT (reverse)
+                { id: 'USDT_BTC_DOT_USDT', pairs: ['BTCUSDT', 'DOTBTC', 'DOTUSDT'],
+                  sequence: 'USDT → BTC → DOT → USDT',
+                  steps: [
+                      { pair: 'BTCUSDT', side: 'buy' },
+                      { pair: 'DOTBTC', side: 'buy' },
+                      { pair: 'DOTUSDT', side: 'sell' }
+                  ]
                 },
-                {
-                    id: 'USDT_LTC_BNB_USDT',
-                    pairs: ['LTCUSDT', 'LTCBNB', 'BNBUSDT'],
-                    sequence: 'USDT → LTC → BNB → USDT',
-                    steps: [
-                        { pair: 'LTCUSDT', side: 'buy', from: 'USDT', to: 'LTC' },
-                        { pair: 'LTCBNB', side: 'sell', from: 'LTC', to: 'BNB' },
-                        { pair: 'BNBUSDT', side: 'sell', from: 'BNB', to: 'USDT' }
-                    ]
+                // USDT → MATIC → BTC → USDT
+                { id: 'USDT_MATIC_BTC_USDT', pairs: ['MATICUSDT', 'MATICBTC', 'BTCUSDT'],
+                  sequence: 'USDT → MATIC → BTC → USDT',
+                  steps: [
+                      { pair: 'MATICUSDT', side: 'buy' },
+                      { pair: 'MATICBTC', side: 'sell' },
+                      { pair: 'BTCUSDT', side: 'sell' }
+                  ]
                 },
-                {
-                    id: 'USDT_ATOM_BNB_USDT',
-                    pairs: ['ATOMUSDT', 'ATOMBNB', 'BNBUSDT'],
-                    sequence: 'USDT → ATOM → BNB → USDT',
-                    steps: [
-                        { pair: 'ATOMUSDT', side: 'buy', from: 'USDT', to: 'ATOM' },
-                        { pair: 'ATOMBNB', side: 'sell', from: 'ATOM', to: 'BNB' },
-                        { pair: 'BNBUSDT', side: 'sell', from: 'BNB', to: 'USDT' }
-                    ]
+                // USDT → BTC → MATIC → USDT (reverse)
+                { id: 'USDT_BTC_MATIC_USDT', pairs: ['BTCUSDT', 'MATICBTC', 'MATICUSDT'],
+                  sequence: 'USDT → BTC → MATIC → USDT',
+                  steps: [
+                      { pair: 'BTCUSDT', side: 'buy' },
+                      { pair: 'MATICBTC', side: 'buy' },
+                      { pair: 'MATICUSDT', side: 'sell' }
+                  ]
                 },
-                {
-                    id: 'USDT_FIL_BNB_USDT',
-                    pairs: ['FILUSDT', 'FILBNB', 'BNBUSDT'],
-                    sequence: 'USDT → FIL → BNB → USDT',
-                    steps: [
-                        { pair: 'FILUSDT', side: 'buy', from: 'USDT', to: 'FIL' },
-                        { pair: 'FILBNB', side: 'sell', from: 'FIL', to: 'BNB' },
-                        { pair: 'BNBUSDT', side: 'sell', from: 'BNB', to: 'USDT' }
-                    ]
+                // USDT → AVAX → BTC → USDT
+                { id: 'USDT_AVAX_BTC_USDT', pairs: ['AVAXUSDT', 'AVAXBTC', 'BTCUSDT'],
+                  sequence: 'USDT → AVAX → BTC → USDT',
+                  steps: [
+                      { pair: 'AVAXUSDT', side: 'buy' },
+                      { pair: 'AVAXBTC', side: 'sell' },
+                      { pair: 'BTCUSDT', side: 'sell' }
+                  ]
+                },
+                // USDT → BTC → AVAX → USDT (reverse)
+                { id: 'USDT_BTC_AVAX_USDT', pairs: ['BTCUSDT', 'AVAXBTC', 'AVAXUSDT'],
+                  sequence: 'USDT → BTC → AVAX → USDT',
+                  steps: [
+                      { pair: 'BTCUSDT', side: 'buy' },
+                      { pair: 'AVAXBTC', side: 'buy' },
+                      { pair: 'AVAXUSDT', side: 'sell' }
+                  ]
                 }
             ],
-            SET_3_DEFI_GAMING: [
+            SET_3_DEFI_BTC: [
+                // USDT → LINK → BTC → USDT
+                { id: 'USDT_LINK_BTC_USDT', pairs: ['LINKUSDT', 'LINKBTC', 'BTCUSDT'],
+                  sequence: 'USDT → LINK → BTC → USDT',
+                  steps: [
+                      { pair: 'LINKUSDT', side: 'buy' },
+                      { pair: 'LINKBTC', side: 'sell' },
+                      { pair: 'BTCUSDT', side: 'sell' }
+                  ]
+                },
+                // USDT → BTC → LINK → USDT (reverse)
+                { id: 'USDT_BTC_LINK_USDT', pairs: ['BTCUSDT', 'LINKBTC', 'LINKUSDT'],
+                  sequence: 'USDT → BTC → LINK → USDT',
+                  steps: [
+                      { pair: 'BTCUSDT', side: 'buy' },
+                      { pair: 'LINKBTC', side: 'buy' },
+                      { pair: 'LINKUSDT', side: 'sell' }
+                  ]
+                },
+                // USDT → UNI → BTC → USDT
+                { id: 'USDT_UNI_BTC_USDT', pairs: ['UNIUSDT', 'UNIBTC', 'BTCUSDT'],
+                  sequence: 'USDT → UNI → BTC → USDT',
+                  steps: [
+                      { pair: 'UNIUSDT', side: 'buy' },
+                      { pair: 'UNIBTC', side: 'sell' },
+                      { pair: 'BTCUSDT', side: 'sell' }
+                  ]
+                },
+                // USDT → BTC → UNI → USDT (reverse)
+                { id: 'USDT_BTC_UNI_USDT', pairs: ['BTCUSDT', 'UNIBTC', 'UNIUSDT'],
+                  sequence: 'USDT → BTC → UNI → USDT',
+                  steps: [
+                      { pair: 'BTCUSDT', side: 'buy' },
+                      { pair: 'UNIBTC', side: 'buy' },
+                      { pair: 'UNIUSDT', side: 'sell' }
+                  ]
+                },
+                // USDT → ATOM → BTC → USDT
+                { id: 'USDT_ATOM_BTC_USDT', pairs: ['ATOMUSDT', 'ATOMBTC', 'BTCUSDT'],
+                  sequence: 'USDT → ATOM → BTC → USDT',
+                  steps: [
+                      { pair: 'ATOMUSDT', side: 'buy' },
+                      { pair: 'ATOMBTC', side: 'sell' },
+                      { pair: 'BTCUSDT', side: 'sell' }
+                  ]
+                },
+                // USDT → BTC → ATOM → USDT (reverse)
+                { id: 'USDT_BTC_ATOM_USDT', pairs: ['BTCUSDT', 'ATOMBTC', 'ATOMUSDT'],
+                  sequence: 'USDT → BTC → ATOM → USDT',
+                  steps: [
+                      { pair: 'BTCUSDT', side: 'buy' },
+                      { pair: 'ATOMBTC', side: 'buy' },
+                      { pair: 'ATOMUSDT', side: 'sell' }
+                  ]
+                }
+            ],
+            SET_4_ETH_BNB_BRIDGE: [
                 {
                     id: 'USDT_SAND_BNB_USDT',
                     pairs: ['SANDUSDT', 'SANDBNB', 'BNBUSDT'],
@@ -2495,39 +2554,87 @@ router.post('/binance/triangular/scan', asyncHandler(async (req, res) => {
             ]
         };
 
-        // Filter to only enabled sets
-        const setsToScan = enabledSets || [1, 2, 3, 4, 5];
-        const enabledPaths = [];
+        // Calculate which sets to scan
+        let setsToScan = [];
+        let pathsToScan = [];
 
-        setsToScan.forEach(setNum => {
-            const setKey = Object.keys(allPathSets)[setNum - 1];
-            if (allPathSets[setKey]) {
-                enabledPaths.push(...allPathSets[setKey]);
+        if (paths === 'all') {
+            setsToScan = Object.keys(allPathSets);
+            setsToScan.forEach(setKey => {
+                pathsToScan = pathsToScan.concat(allPathSets[setKey]);
+            });
+        } else if (Array.isArray(paths)) {
+            paths.forEach(setNum => {
+                const setKeys = Object.keys(allPathSets);
+                if (setNum >= 1 && setNum <= setKeys.length) {
+                    const setKey = setKeys[setNum - 1];
+                    setsToScan.push(setKey);
+                    pathsToScan = pathsToScan.concat(allPathSets[setKey]);
+                }
+            });
+        }
+
+        // Get unique pairs from all paths
+        const uniquePairs = new Set();
+        pathsToScan.forEach(path => {
+            path.pairs.forEach(pair => uniquePairs.add(pair));
+        });
+
+        // Fetch order books for all pairs (Binance public endpoint, no auth needed)
+        const orderBooks = {};
+        const orderBookPromises = Array.from(uniquePairs).map(async (pair) => {
+            try {
+                const response = await fetch(`https://api.binance.com/api/v3/depth?symbol=${pair}&limit=20`);
+                if (response.ok) {
+                    const data = await response.json();
+                    // Binance format: {bids: [[price, qty]], asks: [[price, qty]]}
+                    orderBooks[pair] = {
+                        bids: data.bids || [],
+                        asks: data.asks || []
+                    };
+                }
+            } catch (error) {
+                systemLogger.error(`Failed to fetch orderbook for ${pair}`, { error: error.message });
             }
         });
 
-        // Placeholder for full scanning logic
-        // In production, this would:
-        // 1. Fetch current prices for all pairs using Binance API
-        // 2. Calculate arbitrage profit for each path
-        // 3. Filter paths above profitThreshold
-        // 4. Return ranked opportunities
+        await Promise.all(orderBookPromises);
+
+        // Calculate profits using ProfitCalculatorService
+        const ProfitCalculatorService = require('../services/triangular-arb/ProfitCalculatorService');
+        const profitCalculator = new ProfitCalculatorService();
+
+        const opportunities = [];
+        const startAmount = 1000; // Default $1000 USDT
+
+        for (const path of pathsToScan) {
+            const result = profitCalculator.calculate('binance', path, orderBooks, startAmount);
+
+            if (result.success && result.profitPercentage > 0.1) {
+                // Only include opportunities with > 0.1% profit (filter out noise)
+                opportunities.push(result);
+            }
+        }
+
+        // Sort by profit percentage descending
+        opportunities.sort((a, b) => b.profitPercentage - a.profitPercentage);
+
+        systemLogger.trading('Binance triangular scan completed', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'binance',
+            pathSetsScanned: setsToScan.length,
+            totalPaths: pathsToScan.length,
+            opportunitiesFound: opportunities.length
+        });
 
         res.json({
             success: true,
             message: 'Binance triangular path scan completed',
             data: {
-                scannedPaths: enabledPaths.length,
-                totalPaths: 33,
-                opportunities: [],
-                pathSetsScanned: setsToScan.length,
-                profitThreshold: profitThreshold,
-                message: 'Full scanning implementation coming soon. Backend routes ready.',
-                enabledPathDetails: enabledPaths.map(p => ({
-                    id: p.id,
-                    sequence: p.sequence,
-                    pairs: p.pairs
-                }))
+                pathSetsScanned: setsToScan,
+                totalPaths: pathsToScan.length,
+                opportunities: opportunities,
+                timestamp: new Date().toISOString()
             }
         });
 

@@ -6781,6 +6781,15 @@
         let bybitWorkerInterval = null;
         let bybitWorkerRunning = false;
 
+        // Binance Worker Variables
+        let binanceWorkerStats = {
+            totalScans: 0,
+            totalOpportunities: 0,
+            lastScanTime: null
+        };
+        let binanceWorkerInterval = null;
+        let binanceWorkerRunning = false;
+
         // Initialize ByBit balance on page load or worker start
         async function initializeBybitBalance(apiKey, apiSecret) {
             try {
@@ -7474,22 +7483,179 @@
         // BINANCE TRIANGULAR ARBITRAGE FUNCTIONS
         // ========================================================================
 
-        // Binance Toggle Event Listener
-        document.getElementById('binanceTriangularEnabled').addEventListener('click', function() {
+        // Scan a single Binance path set
+        async function scanBinanceSet(apiKey, apiSecret, setNumber) {
+            console.log(`📊 [BINANCE Worker] Scanning SET ${setNumber}...`);
+
+            try {
+                const response = await fetch(`${API_BASE}/trading/binance/triangular/scan`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        apiKey,
+                        apiSecret,
+                        paths: [setNumber]  // Scan only this set
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success && result.data) {
+                    const opps = result.data.opportunities || [];
+                    binanceWorkerStats.totalOpportunities += opps.length;
+
+                    if (opps.length > 0) {
+                        console.log(`💰 [BINANCE Worker] SET ${setNumber}: Found ${opps.length} opportunities`);
+                        opps.forEach((opp, idx) => {
+                            console.log(`   ${idx + 1}. ${opp.path?.id || 'Unknown'}: +${opp.profitPercentage?.toFixed(2)}%`);
+                        });
+                    } else {
+                        console.log(`ℹ️ [BINANCE Worker] SET ${setNumber}: No opportunities found`);
+                    }
+                } else {
+                    console.warn(`⚠️ [BINANCE Worker] SET ${setNumber}: Scan failed -`, result.message);
+                }
+            } catch (error) {
+                console.error(`❌ [BINANCE Worker] SET ${setNumber} scan error:`, error.message);
+            }
+        }
+
+        // Perform sequential scan cycle (scan each enabled set with delays)
+        async function performBinanceSequentialScan(apiKey, apiSecret) {
+            // Check if worker was stopped
+            if (!binanceWorkerRunning) {
+                console.log('⏹️ [BINANCE Worker] Scan cycle aborted - worker stopped');
+                return;
+            }
+
+            binanceWorkerStats.totalScans++;
+            console.log(`\n🔄 [BINANCE Worker] ═══ Scan Cycle #${binanceWorkerStats.totalScans} Starting ═══`);
+
+            // Get enabled path sets
+            const enabledSets = [];
+            for (let i = 1; i <= 5; i++) {
+                const checkbox = document.getElementById(`binanceSet${i}Enabled`);
+                if (checkbox && checkbox.checked) {
+                    enabledSets.push(i);
+                }
+            }
+
+            if (enabledSets.length === 0) {
+                console.warn('⚠️ [BINANCE Worker] No path sets enabled');
+                return;
+            }
+
+            console.log(`📋 [BINANCE Worker] Enabled sets: [${enabledSets.join(', ')}] - Scanning sequentially...`);
+
+            // Scan each enabled set with 5-second delay between sets
+            for (let i = 0; i < enabledSets.length; i++) {
+                // Check if worker was stopped before each set
+                if (!binanceWorkerRunning) {
+                    console.log('⏹️ [BINANCE Worker] Scan cycle aborted mid-cycle - worker stopped');
+                    return;
+                }
+
+                const setNumber = enabledSets[i];
+                await scanBinanceSet(apiKey, apiSecret, setNumber);
+
+                // Wait 5 seconds before next set (except after last set)
+                if (i < enabledSets.length - 1) {
+                    console.log(`⏳ [BINANCE Worker] Waiting 5 seconds before next set...`);
+                    await new Promise(resolve => setTimeout(resolve, 5000));
+                }
+            }
+
+            binanceWorkerStats.lastScanTime = new Date();
+            document.getElementById('binanceLastScan')?.textContent = binanceWorkerStats.lastScanTime.toLocaleTimeString();
+            console.log(`✅ [BINANCE Worker] ═══ Scan Cycle #${binanceWorkerStats.totalScans} Complete ═══\n`);
+        }
+
+        // Start Binance automated worker (sequential scanning)
+        async function startBinanceWorker() {
+            binanceWorkerRunning = true;  // Enable worker flag
+            console.log('🔄 [BINANCE Worker] Starting sequential scanning...');
+
+            const apiKey = localStorage.getItem('binance_triangular_api');
+            const apiSecret = localStorage.getItem('binance_triangular_secret');
+
+            if (!apiKey || !apiSecret) {
+                console.error('❌ [BINANCE Worker] Missing API credentials');
+                return;
+            }
+
+            // Perform immediate first scan cycle
+            console.log('🚀 [BINANCE Worker] Performing immediate first scan cycle...');
+            await performBinanceSequentialScan(apiKey, apiSecret);
+
+            // Continue scanning cycles every 30 seconds
+            binanceWorkerInterval = setInterval(async () => {
+                await performBinanceSequentialScan(apiKey, apiSecret);
+            }, 30000); // 30 seconds between cycles
+
+            console.log('✅ [BINANCE Worker] Sequential scanning started (cycles every 30s, 5s delay between sets)');
+        }
+
+        // Stop Binance automated worker
+        function stopBinanceWorker() {
+            binanceWorkerRunning = false;  // Disable worker flag to abort any running scan
+            if (binanceWorkerInterval) {
+                clearInterval(binanceWorkerInterval);
+                binanceWorkerInterval = null;
+                console.log('⏹️ [BINANCE Worker] Automated scanning stopped');
+            }
+        }
+
+        // Binance Toggle Event Listener (Updated with worker)
+        document.getElementById('binanceTriangularEnabled').addEventListener('click', async function() {
             console.log('🔄 [BINANCE] Toggle clicked');
-            this.classList.toggle('active');
+
+            const isCurrentlyActive = this.classList.contains('active');
             const status = document.getElementById('binanceTriangularStatus');
 
-            if (this.classList.contains('active')) {
-                console.log('✅ [BINANCE] Live trading enabled');
+            if (!isCurrentlyActive) {
+                // Enabling - validate credentials first
+                const apiKey = localStorage.getItem('binance_triangular_api');
+                const apiSecret = localStorage.getItem('binance_triangular_secret');
+
+                if (!apiKey || !apiSecret) {
+                    console.warn('⚠️ [BINANCE] Missing API credentials');
+                    alert('❌ Please set up your Binance API credentials first in the Strategy API Setup page.');
+                    return;
+                }
+
+                // Validate at least one path set is enabled
+                const enabledSets = [];
+                for (let i = 1; i <= 5; i++) {
+                    const checkbox = document.getElementById(`binanceSet${i}Enabled`);
+                    if (checkbox && checkbox.checked) {
+                        enabledSets.push(i);
+                    }
+                }
+
+                if (enabledSets.length === 0) {
+                    console.warn('⚠️ [BINANCE] No path sets enabled');
+                    alert('❌ Please enable at least one path set before starting automated scanning.');
+                    return;
+                }
+
+                console.log('✅ [BINANCE] Automated scanning enabled');
+                this.classList.add('active');
                 status.textContent = 'ON';
                 status.style.color = '#F0B90B';
                 localStorage.setItem('binanceTriangularEnabled', 'true');
+
+                // Start the worker
+                await startBinanceWorker();
             } else {
-                console.log('❌ [BINANCE] Live trading disabled');
+                // Disabling
+                console.log('❌ [BINANCE] Automated scanning disabled');
+                this.classList.remove('active');
                 status.textContent = 'OFF';
                 status.style.color = '#ff6b6b';
                 localStorage.setItem('binanceTriangularEnabled', 'false');
+
+                // Stop the worker
+                stopBinanceWorker();
             }
         });
 
