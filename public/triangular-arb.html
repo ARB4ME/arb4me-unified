@@ -1689,149 +1689,182 @@
         <div style="background: rgba(0,208,146,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 2px solid #00D092;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <h3 style="color: #00D092; margin: 0;">🟢 KUCOIN Triangular Arbitrage</h3>
-                <div style="display: flex; align-items: center; gap: 15px;">
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <span style="color: #b8c6db; font-size: 0.9rem;">KuCoin Live Trading:</span>
                     <div class="toggle-switch" id="kucoinTriangularEnabled" onclick="toggleKuCoinTriangular()">
                         <div class="toggle-knob"></div>
                     </div>
-                    <span id="kucoinTriangularStatus" style="color: #ff6b6b; font-weight: 600;">OFF</span>
+                    <span id="kucoinTriangularStatus" style="color: #ff6b6b; font-size: 0.9rem; margin-left: 10px;">OFF</span>
                 </div>
             </div>
 
-            <div class="stat-grid">
+            <!-- FUNDING REQUIREMENTS Info Banner -->
+            <div style="background: rgba(0,208,146,0.15); border: 2px solid #00D092; border-radius: 10px; padding: 20px; margin-bottom: 20px;">
+                <div style="text-align: center;">
+                    <h4 style="color: #00D092; margin: 0 0 10px 0; font-size: 1.2rem;">💰 Funding Requirements for Maximum Coverage</h4>
+                    <p style="color: #b8c6db; margin: 0 0 15px 0; font-size: 0.95rem;">
+                        KuCoin supports <strong style="color: #00D092;">32 triangular arbitrage paths</strong> across <strong>1 fundable currency</strong>.
+                    </p>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr; gap: 15px; margin-top: 15px;">
+                    <!-- USDT Currency -->
+                    <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; border-left: 4px solid #00D092;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <h5 style="color: #00D092; margin: 0; font-size: 1.1rem;">💰 USDT (Tether)</h5>
+                            <span style="color: #00D092; font-weight: bold; font-size: 1.1rem;">32 Paths</span>
+                        </div>
+                        <p style="color: #b8c6db; margin: 0 0 10px 0; font-size: 0.9rem;">
+                            <strong>How to fund:</strong> Transfer from exchange • Crypto wallet • Convert fiat to USDT
+                        </p>
+                        <p style="color: #888; margin: 0; font-size: 0.85rem; font-style: italic;">
+                            All paths use USDT as the base currency - includes ETH Bridge, BTC Bridge, and KCS Native paths
+                        </p>
+                    </div>
+                </div>
+
+                <div style="margin-top: 15px; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 8px; text-align: center;">
+                    <p style="color: #00D092; margin: 0; font-size: 0.9rem; font-weight: 500;">
+                        💡 <strong>Pro Tip:</strong> Fund with USDT = Access to all 32 triangular arbitrage paths (5 sets)
+                    </p>
+                </div>
+
+                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(0,208,146,0.3);">
+                    <p style="color: #888; margin: 0; font-size: 0.85rem; text-align: center;">
+                        <strong>Multi-User Platform:</strong> This information helps all users optimize their KuCoin triangular trading setup
+                    </p>
+                </div>
+            </div>
+
+            <!-- KUCOIN Settings Grid -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 20px;">
                 <!-- Risk Management -->
                 <div class="stat-card">
                     <h4 style="color: #00D092; margin-bottom: 15px;">⚖️ Risk Management</h4>
-                    <div class="form-group" style="margin-bottom: 15px;">
-                        <label style="display: block; margin-bottom: 5px; font-weight: 500;">Max Trade (USDT)</label>
-                        <input type="number" id="kucoinMaxTrade" value="100" min="10" max="10000" step="10"
-                               style="width: 100%; padding: 8px; border: 1px solid #00D092; border-radius: 5px; background: rgba(0,208,146,0.05);">
-                    </div>
-                    <div class="form-group" style="margin-bottom: 15px;">
-                        <label style="display: block; margin-bottom: 5px; font-weight: 500;">Portfolio % per Trade</label>
-                        <input type="number" id="kucoinPortfolioPercent" value="10" min="1" max="50" step="1"
-                               style="width: 100%; padding: 8px; border: 1px solid #00D092; border-radius: 5px; background: rgba(0,208,146,0.05);">
+                    <div class="form-group">
+                        <label>Max Single Trade (USDT)</label>
+                        <input type="number" id="kucoinMaxTrade" value="100" min="10" max="5000">
                     </div>
                     <div class="form-group">
-                        <label style="display: block; margin-bottom: 5px; font-weight: 500;">Min Profit % Threshold</label>
-                        <input type="number" id="kucoinProfitThreshold" value="0.5" min="0.1" max="5" step="0.1"
-                               style="width: 100%; padding: 8px; border: 1px solid #00D092; border-radius: 5px; background: rgba(0,208,146,0.05);">
+                        <label>Portfolio % per Trade</label>
+                        <input type="number" id="kucoinPortfolioPercent" value="10" min="1" max="50">
+                    </div>
+                    <div class="form-group">
+                        <label>Min Profit Threshold (%)</label>
+                        <input type="number" id="kucoinProfitThreshold" value="0.5" min="0.1" max="5" step="0.1">
                     </div>
                 </div>
 
-                <!-- Path Sets Configuration -->
+                <!-- Path Categories -->
                 <div class="stat-card">
-                    <h4 style="color: #00D092; margin-bottom: 15px;">🎯 Triangular Path Sets (32 Paths)</h4>
-                    <div style="display: flex; flex-direction: column; gap: 10px;">
-                        <label style="display: flex; align-items: center; cursor: pointer;">
-                            <input type="checkbox" id="kucoinSet1Enabled" checked style="margin-right: 10px; width: 18px; height: 18px;">
-                            <span><strong>SET 1:</strong> Essential ETH Bridge (7 paths) - BTC, SOL, XRP, ADA, DOT, MATIC, LINK</span>
-                        </label>
-                        <label style="display: flex; align-items: center; cursor: pointer;">
-                            <input type="checkbox" id="kucoinSet2Enabled" checked style="margin-right: 10px; width: 18px; height: 18px;">
-                            <span><strong>SET 2:</strong> Mid-Cap BTC Bridge (7 paths) - ETH, SOL, AVAX, ATOM, LTC, UNI, FIL</span>
-                        </label>
-                        <label style="display: flex; align-items: center; cursor: pointer;">
-                            <input type="checkbox" id="kucoinSet3Enabled" style="margin-right: 10px; width: 18px; height: 18px;">
-                            <span><strong>SET 3:</strong> KCS Native Bridge (6 paths) - Using KuCoin's KCS token</span>
-                        </label>
-                        <label style="display: flex; align-items: center; cursor: pointer;">
-                            <input type="checkbox" id="kucoinSet4Enabled" style="margin-right: 10px; width: 18px; height: 18px;">
-                            <span><strong>SET 4:</strong> High Volatility (6 paths) - DOGE, SHIB, PEPE, NEAR, APT, FTM</span>
-                        </label>
-                        <label style="display: flex; align-items: center; cursor: pointer;">
-                            <input type="checkbox" id="kucoinSet5Enabled" style="margin-right: 10px; width: 18px; height: 18px;">
-                            <span><strong>SET 5:</strong> Extended Multi-Bridge (6 paths) - BNB, TRX, ALGO, VET, HBAR + 4-leg path</span>
-                        </label>
+                    <h4 style="color: #00D092; margin-bottom: 15px;">📊 Path Sets (32 Paths in 5 Sets)</h4>
+                    <div style="display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; max-height: 200px; overflow-y: auto;">
+                        <span style="color: #00D092; font-size: 0.85rem;">SET 1: ETH Bridge (7 paths)</span>
+                        <input type="checkbox" id="kucoinSet1Enabled" checked>
+
+                        <span style="color: #00D092; font-size: 0.85rem;">SET 2: BTC Bridge (7 paths)</span>
+                        <input type="checkbox" id="kucoinSet2Enabled" checked>
+
+                        <span style="color: #00D092; font-size: 0.85rem;">SET 3: KCS Native (6 paths)</span>
+                        <input type="checkbox" id="kucoinSet3Enabled">
+
+                        <span style="color: #00D092; font-size: 0.85rem;">SET 4: High Volatility (6 paths)</span>
+                        <input type="checkbox" id="kucoinSet4Enabled">
+
+                        <span style="color: #00D092; font-size: 0.85rem;">SET 5: Extended (6 paths)</span>
+                        <input type="checkbox" id="kucoinSet5Enabled">
+                    </div>
+                    <div style="margin-top: 10px; padding: 8px; background: rgba(0,208,146,0.1); border-radius: 6px; font-size: 0.8rem; color: #b8c6db;">
+                        💡 Sets 1-2 are essential (14 paths). All paths are 3-leg pure triangular arbitrage.
                     </div>
                 </div>
 
-                <!-- Actions -->
+                <!-- Performance Stats -->
                 <div class="stat-card">
-                    <h4 style="color: #00D092; margin-bottom: 15px;">🔧 Actions</h4>
-                    <button onclick="testKuCoinTriangularConnection()" class="btn" style="background: #00D092; width: 100%; margin-bottom: 10px;">
-                        🔌 Test Connection
+                    <h4 style="color: #00D092; margin-bottom: 15px;">📈 Performance Stats</h4>
+                    <div style="display: grid; grid-template-columns: 1fr auto; gap: 10px; font-size: 0.9rem;">
+                        <span style="color: #b8c6db;">Total Trades:</span>
+                        <span style="color: #00D092;" id="kucoinTotalTrades">0</span>
+
+                        <span style="color: #b8c6db;">Successful Trades:</span>
+                        <span style="color: #00D092;" id="kucoinSuccessfulTrades">0</span>
+
+                        <span style="color: #b8c6db;">Success Rate:</span>
+                        <span style="color: #00D092;" id="kucoinSuccessRate">0%</span>
+
+                        <span style="color: #b8c6db;">Total Profit:</span>
+                        <span style="color: #00D092;" id="kucoinTotalProfit">$0.00</span>
+
+                        <span style="color: #b8c6db;">Best Path:</span>
+                        <span style="color: #00D092;" id="kucoinBestPath">-</span>
+
+                        <span style="color: #b8c6db;">Last Scan:</span>
+                        <span style="color: #b8c6db;" id="kucoinLastScan">Never</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- KUCOIN Control Buttons -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                <button onclick="testKuCoinTriangularConnection()" class="btn" disabled style="opacity: 0.4; cursor: not-allowed;">
+                    🔍 Test Connection
+                </button>
+                <button onclick="scanKuCoinTriangularPaths()" class="btn" disabled style="opacity: 0.4; cursor: not-allowed;">
+                    🔍 Scan Opportunities
+                </button>
+                <button onclick="viewKuCoinPathDetails()" class="btn">
+                    📊 View Paths
+                </button>
+                <button onclick="clearKuCoinTriangularHistory()" class="btn" disabled style="opacity: 0.4; cursor: not-allowed;">
+                    🗑️ Clear History
+                </button>
+            </div>
+
+            <!-- Tabbed Interface: Balance Tracker & Trading -->
+            <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px;">
+                <!-- Tab Headers -->
+                <div style="display: flex; gap: 10px; margin-bottom: 15px; border-bottom: 2px solid rgba(0,208,146,0.3);">
+                    <button id="kucoinBalanceTab" onclick="switchKuCoinTab('balance')" style="flex: 1; padding: 10px; background: rgba(0,208,146,0.3); border: none; border-radius: 8px 8px 0 0; color: #00D092; font-weight: bold; cursor: pointer; transition: all 0.3s;">
+                        💰 Balance Tracker
                     </button>
-                    <button onclick="scanKuCoinTriangularPaths()" class="btn" style="background: #00D092; width: 100%; margin-bottom: 10px;">
-                        🔍 Scan Opportunities
-                    </button>
-                    <button onclick="viewKuCoinPathDetails()" class="btn" style="background: #666; width: 100%; margin-bottom: 10px;">
-                        📋 View All Paths
-                    </button>
-                    <button onclick="clearKuCoinTriangularHistory()" class="btn" style="background: #ff6b6b; width: 100%; margin-bottom: 10px;">
-                        🗑️ Clear History
-                    </button>
-                    <button onclick="saveKuCoinTriangularSettings()" class="btn" style="background: #4CAF50; width: 100%;">
-                        💾 Save Settings
+                    <button id="kucoinTradingTab" onclick="switchKuCoinTab('trading')" style="flex: 1; padding: 10px; background: rgba(255,255,255,0.05); border: none; border-radius: 8px 8px 0 0; color: #b8c6db; cursor: pointer; transition: all 0.3s;">
+                        💎 Current Opportunities
                     </button>
                 </div>
 
-                <!-- Tabbed Content Area -->
-                <div class="stat-card" style="grid-column: span 2;">
-                    <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px;">
-                        <!-- Tab Headers -->
-                        <div style="display: flex; gap: 5px; margin-bottom: 15px; background: rgba(0,0,0,0.4); padding: 5px; border-radius: 8px;">
-                            <button class="kucoin-tab-btn active" data-tab="trading" onclick="switchKuCoinTab('trading')" style="flex: 1; padding: 12px 10px; background: rgba(0,208,146,0.15); border: 1px solid #00D092; border-radius: 6px; color: #00D092; cursor: pointer; font-weight: bold; font-size: 0.95rem; transition: all 0.3s ease;">
-                                💰 Trading
-                            </button>
-                            <button class="kucoin-tab-btn" data-tab="balance" onclick="switchKuCoinTab('balance')" style="flex: 1; padding: 12px 10px; background: rgba(255,255,255,0.03); border: 1px solid transparent; border-radius: 6px; color: #888; cursor: pointer; font-weight: bold; font-size: 0.95rem; transition: all 0.3s ease;">
-                                💵 Balance Tracker
-                            </button>
-                            <button class="kucoin-tab-btn" data-tab="alerts" onclick="switchKuCoinTab('alerts')" style="flex: 1; padding: 12px 10px; background: rgba(255,255,255,0.03); border: 1px solid transparent; border-radius: 6px; color: #888; cursor: pointer; font-weight: bold; font-size: 0.95rem; transition: all 0.3s ease;">
-                                ⚠️ Alerts <span id="kucoinAlertBadge" style="display: none; background: #ff4444; color: white; padding: 2px 6px; border-radius: 10px; font-size: 0.75rem; margin-left: 5px;">0</span>
-                            </button>
-                        </div>
-
-                        <!-- Tab Content Panels -->
-
-                        <!-- Tab 1: Trading -->
-                        <div id="kucoinTabTrading" class="kucoin-tab-content" style="display: block;">
-                            <h4 style="color: #00D092; margin-bottom: 15px;">💰 Current Opportunities</h4>
-                            <div id="kucoinOpportunities" style="max-height: 400px; overflow-y: auto;">
-                                <p style="color: #888; text-align: center; padding: 20px;">
-                                    Click "Scan Opportunities" to find triangular arbitrage paths
-                                </p>
-                            </div>
-                        </div>
-
-                        <!-- Tab 2: Balance Tracker -->
-                        <div id="kucoinTabBalance" class="kucoin-tab-content" style="display: none;">
-                            <div style="margin-bottom: 20px;">
-                                <h5 style="color: #00D092; margin-bottom: 10px;">💵 USDT Balance</h5>
-                                <div style="background: rgba(0,208,146,0.1); padding: 15px; border-radius: 8px; border-left: 4px solid #00D092;">
-                                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; font-size: 0.9rem;">
-                                        <div>
-                                            <div style="color: #888; margin-bottom: 5px;">Starting</div>
-                                            <div style="color: #00D092; font-weight: bold; font-size: 1.1rem;" id="kucoinStartingUSDT">$0.00</div>
-                                        </div>
-                                        <div>
-                                            <div style="color: #888; margin-bottom: 5px;">Current</div>
-                                            <div style="color: #00D092; font-weight: bold; font-size: 1.1rem;" id="kucoinCurrentUSDT">$0.00</div>
-                                        </div>
-                                        <div>
-                                            <div style="color: #888; margin-bottom: 5px;">Change</div>
-                                            <div style="font-weight: bold; font-size: 1.1rem;" id="kucoinChangeUSDT">+$0.00 (+0%)</div>
-                                        </div>
-                                    </div>
+                <!-- Balance Tracker Tab Content -->
+                <div id="kucoinBalanceContent" style="display: block;">
+                    <h4 style="color: #00D092; margin-bottom: 15px;">💰 USDT Balance Tracking</h4>
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 12px;">
+                        <!-- USDT Balance -->
+                        <div style="background: rgba(0,208,146,0.1); padding: 12px; border-radius: 8px; border-left: 4px solid #00D092;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; font-size: 0.9rem;">
+                                <div>
+                                    <div style="color: #888; font-size: 0.8rem; margin-bottom: 5px;">Starting</div>
+                                    <div style="color: #00D092; font-weight: bold;" id="kucoinStartingUSDT">$0.00</div>
+                                </div>
+                                <div>
+                                    <div style="color: #888; font-size: 0.8rem; margin-bottom: 5px;">Current</div>
+                                    <div style="color: #00D092; font-weight: bold;" id="kucoinCurrentUSDT">$0.00</div>
+                                </div>
+                                <div>
+                                    <div style="color: #888; font-size: 0.8rem; margin-bottom: 5px;">Change</div>
+                                    <div style="color: #b8c6db; font-weight: bold;" id="kucoinChangeUSDT">$0.00 (0.0%)</div>
                                 </div>
                             </div>
-
-                            <div style="display: flex; gap: 10px; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1);">
-                                <div style="color: #888; font-size: 0.85rem;">
-                                    Last Updated: <span id="kucoinBalanceLastUpdate">Never</span>
-                                </div>
-                                <button onclick="resetKuCoinStartingBalance()" style="padding: 6px 12px; background: rgba(255,255,255,0.1); color: #00D092; border: 1px solid #00D092; border-radius: 5px; cursor: pointer; font-size: 0.85rem;">
-                                    🔄 Reset Starting Balance
-                                </button>
-                            </div>
                         </div>
+                    </div>
+                    <div style="margin-top: 10px; padding: 8px; background: rgba(0,208,146,0.1); border-radius: 6px; font-size: 0.8rem; color: #888; text-align: center;">
+                        💡 Balance updates automatically when scanning opportunities
+                    </div>
+                </div>
 
-                        <!-- Tab 3: Alerts -->
-                        <div id="kucoinTabAlerts" class="kucoin-tab-content" style="display: none;">
-                            <div id="kucoinAlertsList" style="max-height: 200px; overflow-y: auto;">
-                                <div style="text-align: center; color: #888; padding: 20px;">
-                                    No alerts yet. Alerts will appear here when opportunities are found.
-                                </div>
-                            </div>
+                <!-- Trading Tab Content -->
+                <div id="kucoinTradingContent" style="display: none;">
+                    <h4 style="color: #00D092; margin-bottom: 15px;">💎 Current Opportunities</h4>
+                    <div id="kucoinOpportunities" style="max-height: 200px; overflow-y: auto;">
+                        <div style="text-align: center; color: #888; padding: 20px;">
+                            Click "Scan Opportunities" to find triangular arbitrage paths
                         </div>
                     </div>
                 </div>
@@ -9428,71 +9461,142 @@
         }
 
         function viewKuCoinPathDetails() {
-            console.log('📋 [KUCOIN] Viewing all triangular path details...');
+            console.log('📋 [KUCOIN] Opening paths modal');
 
-            const pathDetails = `
-📋 KUCOIN Triangular Arbitrage Paths (32 Total)
+            // Create modal overlay
+            const modal = document.createElement('div');
+            modal.id = 'kucoinPathsModal';
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.85);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 10000;
+                backdrop-filter: blur(5px);
+            `;
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 1: ESSENTIAL ETH BRIDGE (7 paths) ✓
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. USDT → ETH → BTC → USDT
-2. USDT → ETH → SOL → USDT
-3. USDT → ETH → XRP → USDT
-4. USDT → ETH → ADA → USDT
-5. USDT → ETH → DOT → USDT
-6. USDT → ETH → MATIC → USDT
-7. USDT → ETH → LINK → USDT
+            // Create modal content
+            const modalContent = document.createElement('div');
+            modalContent.style.cssText = `
+                background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+                border: 2px solid #00D092;
+                border-radius: 15px;
+                padding: 30px;
+                max-width: 900px;
+                max-height: 85vh;
+                overflow-y: auto;
+                box-shadow: 0 10px 50px rgba(0,208,146,0.3);
+                position: relative;
+            `;
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 2: MIDCAP BTC BRIDGE (7 paths) ✓
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. USDT → BTC → ETH → USDT
-2. USDT → BTC → SOL → USDT
-3. USDT → BTC → AVAX → USDT
-4. USDT → BTC → ATOM → USDT
-5. USDT → BTC → LTC → USDT
-6. USDT → BTC → UNI → USDT
-7. USDT → BTC → FIL → USDT
+            modalContent.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid rgba(0,208,146,0.3); padding-bottom: 15px;">
+                    <h2 style="color: #00D092; margin: 0; font-size: 1.8rem;">📋 KuCoin Triangular Arbitrage Paths</h2>
+                    <button onclick="document.getElementById('kucoinPathsModal').remove()" style="background: rgba(255,255,255,0.1); border: 1px solid #00D092; color: #00D092; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-size: 1.2rem; font-weight: bold;">✕</button>
+                </div>
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 3: KCS NATIVE BRIDGE (6 paths)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. USDT → KCS → BTC → USDT
-2. USDT → KCS → ETH → USDT
-3. USDT → KCS → SOL → USDT
-4. USDT → KCS → XRP → USDT
-5. USDT → KCS → ADA → USDT
-6. USDT → KCS → DOT → USDT
+                <div style="background: rgba(0,208,146,0.1); padding: 15px; border-radius: 10px; margin-bottom: 25px; border-left: 4px solid #00D092;">
+                    <p style="color: #b8c6db; margin: 0; font-size: 0.95rem;">
+                        <strong style="color: #00D092;">32 Triangular Arbitrage Paths</strong> organized in 5 sets.
+                        <br><br>
+                        🌉 <strong>Bridge Currencies:</strong> ETH (Set 1), BTC (Set 2), KCS (Set 3), Mixed (Sets 4-5)
+                        <br>
+                        💰 <strong>Base Currency:</strong> USDT (Tether) - Fund KuCoin with USDT only
+                        <br>
+                        💡 <strong>Default:</strong> Sets 1-2 enabled (14 paths) | Enable Sets 3-5 for 18 additional paths
+                    </p>
+                </div>
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 4: HIGH VOLATILITY (6 paths)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. USDT → DOGE → BTC → USDT (Meme)
-2. USDT → SHIB → ETH → USDT (Meme)
-3. USDT → PEPE → ETH → USDT (Meme)
-4. USDT → NEAR → BTC → USDT (Layer1)
-5. USDT → APT → ETH → USDT (Layer1)
-6. USDT → FTM → BTC → USDT (DeFi)
+                <!-- SET 1 -->
+                <div style="background: rgba(0,255,127,0.1); padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #00ff7f;">
+                    <h3 style="color: #00ff7f; margin: 0 0 15px 0;">SET 1: ESSENTIAL ETH BRIDGE (7 paths) ✅ DEFAULT</h3>
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 8px; font-size: 0.9rem;">
+                        <div style="color: #b8c6db;">1. USDT → ETH → BTC → USDT</div>
+                        <div style="color: #b8c6db;">2. USDT → ETH → SOL → USDT</div>
+                        <div style="color: #b8c6db;">3. USDT → ETH → XRP → USDT</div>
+                        <div style="color: #b8c6db;">4. USDT → ETH → ADA → USDT</div>
+                        <div style="color: #b8c6db;">5. USDT → ETH → DOT → USDT</div>
+                        <div style="color: #b8c6db;">6. USDT → ETH → MATIC → USDT</div>
+                        <div style="color: #b8c6db;">7. USDT → ETH → LINK → USDT</div>
+                    </div>
+                </div>
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 5: EXTENDED MULTIBRIDGE (6 paths)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. USDT → BNB → ETH → USDT
-2. USDT → TRX → BTC → USDT
-3. USDT → ALGO → ETH → USDT
-4. USDT → VET → BTC → USDT
-5. USDT → HBAR → ETH → USDT
-6. USDT → BTC → ETH → SOL → USDT (4-leg)
+                <!-- SET 2 -->
+                <div style="background: rgba(0,208,146,0.1); padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #00D092;">
+                    <h3 style="color: #00D092; margin: 0 0 15px 0;">SET 2: MIDCAP BTC BRIDGE (7 paths) ✅ DEFAULT</h3>
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 8px; font-size: 0.9rem;">
+                        <div style="color: #b8c6db;">1. USDT → BTC → ETH → USDT</div>
+                        <div style="color: #b8c6db;">2. USDT → BTC → SOL → USDT</div>
+                        <div style="color: #b8c6db;">3. USDT → BTC → AVAX → USDT</div>
+                        <div style="color: #b8c6db;">4. USDT → BTC → ATOM → USDT</div>
+                        <div style="color: #b8c6db;">5. USDT → BTC → LTC → USDT</div>
+                        <div style="color: #b8c6db;">6. USDT → BTC → UNI → USDT</div>
+                        <div style="color: #b8c6db;">7. USDT → BTC → FIL → USDT</div>
+                    </div>
+                </div>
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                <!-- SET 3 -->
+                <div style="background: rgba(0,191,255,0.1); padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #00bfff;">
+                    <h3 style="color: #00bfff; margin: 0 0 15px 0;">SET 3: KCS NATIVE BRIDGE (6 paths)</h3>
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 8px; font-size: 0.9rem;">
+                        <div style="color: #b8c6db;">1. USDT → KCS → BTC → USDT</div>
+                        <div style="color: #b8c6db;">2. USDT → KCS → ETH → USDT</div>
+                        <div style="color: #b8c6db;">3. USDT → KCS → SOL → USDT</div>
+                        <div style="color: #b8c6db;">4. USDT → KCS → XRP → USDT</div>
+                        <div style="color: #b8c6db;">5. USDT → KCS → ADA → USDT</div>
+                        <div style="color: #b8c6db;">6. USDT → KCS → DOT → USDT</div>
+                    </div>
+                </div>
 
-💡 TIP: Sets 1-2 are enabled by default (14 paths)
-⚡ Enable Sets 3-5 for more opportunities (18 additional paths)
-            `.trim();
+                <!-- SET 4 -->
+                <div style="background: rgba(255,215,0,0.1); padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #ffd700;">
+                    <h3 style="color: #ffd700; margin: 0 0 15px 0;">SET 4: HIGH VOLATILITY (6 paths)</h3>
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 8px; font-size: 0.9rem;">
+                        <div style="color: #b8c6db;">1. USDT → DOGE → BTC → USDT <span style="color: #888;">(Meme)</span></div>
+                        <div style="color: #b8c6db;">2. USDT → SHIB → ETH → USDT <span style="color: #888;">(Meme)</span></div>
+                        <div style="color: #b8c6db;">3. USDT → PEPE → ETH → USDT <span style="color: #888;">(Meme)</span></div>
+                        <div style="color: #b8c6db;">4. USDT → NEAR → BTC → USDT <span style="color: #888;">(Layer1)</span></div>
+                        <div style="color: #b8c6db;">5. USDT → APT → ETH → USDT <span style="color: #888;">(Layer1)</span></div>
+                        <div style="color: #b8c6db;">6. USDT → FTM → BTC → USDT <span style="color: #888;">(DeFi)</span></div>
+                    </div>
+                </div>
 
-            alert(pathDetails);
-            console.log(pathDetails);
+                <!-- SET 5 -->
+                <div style="background: rgba(138,43,226,0.1); padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #8a2be2;">
+                    <h3 style="color: #8a2be2; margin: 0 0 15px 0;">SET 5: EXTENDED MULTIBRIDGE (6 paths)</h3>
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 8px; font-size: 0.9rem;">
+                        <div style="color: #b8c6db;">1. USDT → BNB → ETH → USDT</div>
+                        <div style="color: #b8c6db;">2. USDT → TRX → BTC → USDT</div>
+                        <div style="color: #b8c6db;">3. USDT → ALGO → ETH → USDT</div>
+                        <div style="color: #b8c6db;">4. USDT → VET → BTC → USDT</div>
+                        <div style="color: #b8c6db;">5. USDT → HBAR → ETH → USDT</div>
+                        <div style="color: #b8c6db;">6. USDT → BTC → ETH → SOL → USDT <span style="color: #888;">(4-leg)</span></div>
+                    </div>
+                </div>
+
+                <div style="background: rgba(0,208,146,0.1); padding: 12px; border-radius: 8px; text-align: center; margin-top: 20px; border: 1px solid rgba(0,208,146,0.3);">
+                    <p style="color: #b8c6db; margin: 0; font-size: 0.9rem;">
+                        💡 <strong style="color: #00D092;">Tip:</strong> Enable/disable path sets in the settings above to control which opportunities are scanned.
+                    </p>
+                </div>
+            `;
+
+            modal.appendChild(modalContent);
+            document.body.appendChild(modal);
+
+            // Close on outside click
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.remove();
+                }
+            });
+
+            console.log('✅ [KUCOIN] Paths modal opened');
         }
 
         async function clearKuCoinTriangularHistory() {
@@ -9638,30 +9742,25 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
 
         // Switch KuCoin tabs
         function switchKuCoinTab(tabName) {
-            // Hide all tab contents
-            document.querySelectorAll('.kucoin-tab-content').forEach(tab => {
-                tab.style.display = 'none';
-            });
+            // Hide all content
+            document.getElementById('kucoinBalanceContent').style.display = 'none';
+            document.getElementById('kucoinTradingContent').style.display = 'none';
 
-            // Remove active state from all buttons
-            document.querySelectorAll('.kucoin-tab-btn').forEach(btn => {
-                btn.style.background = 'rgba(255,255,255,0.03)';
-                btn.style.border = '1px solid transparent';
-                btn.style.color = '#888';
-            });
+            // Reset button styles
+            document.getElementById('kucoinBalanceTab').style.background = 'rgba(255,255,255,0.05)';
+            document.getElementById('kucoinBalanceTab').style.color = '#b8c6db';
+            document.getElementById('kucoinTradingTab').style.background = 'rgba(255,255,255,0.05)';
+            document.getElementById('kucoinTradingTab').style.color = '#b8c6db';
 
-            // Show selected tab content
-            const tabContent = document.getElementById(`kucoinTab${tabName.charAt(0).toUpperCase() + tabName.slice(1)}`);
-            if (tabContent) {
-                tabContent.style.display = 'block';
-            }
-
-            // Activate selected button
-            const activeBtn = document.querySelector(`.kucoin-tab-btn[data-tab="${tabName}"]`);
-            if (activeBtn) {
-                activeBtn.style.background = 'rgba(0,208,146,0.15)';
-                activeBtn.style.border = '1px solid #00D092';
-                activeBtn.style.color = '#00D092';
+            // Show selected content and activate button
+            if (tabName === 'balance') {
+                document.getElementById('kucoinBalanceContent').style.display = 'block';
+                document.getElementById('kucoinBalanceTab').style.background = 'rgba(0,208,146,0.3)';
+                document.getElementById('kucoinBalanceTab').style.color = '#00D092';
+            } else if (tabName === 'trading') {
+                document.getElementById('kucoinTradingContent').style.display = 'block';
+                document.getElementById('kucoinTradingTab').style.background = 'rgba(0,208,146,0.3)';
+                document.getElementById('kucoinTradingTab').style.color = '#00D092';
             }
 
             console.log(`🔄 [KUCOIN] Switched to ${tabName} tab`);
