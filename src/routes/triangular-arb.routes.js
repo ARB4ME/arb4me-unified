@@ -14,6 +14,7 @@ const jwt = require('jsonwebtoken');
 
 // Triangular Arbitrage Service Layer
 const triangularArbService = require('../services/triangular-arb/TriangularArbService');
+const portfolioCalculator = require('../utils/portfolio-calculator');
 
 const router = express.Router();
 
@@ -441,7 +442,17 @@ function calculateLunoTriangularProfit(path, orderBooks, amount = 1000) {
 // Scan for Luno triangular arbitrage opportunities
 // REFACTORED: Now uses service layer (Phase 10 - second exchange)
 router.post('/luno/triangular/scan', asyncHandler(async (req, res) => {
-    const { paths = 'all', apiKey, apiSecret, amount = 1000 } = req.body;
+    const {
+        paths = 'all',
+        apiKey,
+        apiSecret,
+        amount = 1000,
+        maxTradeAmount = 1000,
+        profitThreshold = 0.5,
+        portfolioPercent = 10,
+        currentBalanceUSDT = 0,
+        currentBalanceZAR = 0
+    } = req.body;
 
     // Validate credentials
     if (!apiKey || !apiSecret) {
@@ -449,16 +460,26 @@ router.post('/luno/triangular/scan', asyncHandler(async (req, res) => {
     }
 
     systemLogger.trading('Luno triangular scan initiated', {
+        userId: req.user?.id || 'anonymous',
+        exchange: 'luno',
         paths,
-        amount,
+        maxTradeAmount: maxTradeAmount,
+        profitThreshold: profitThreshold,
+        portfolioPercent: portfolioPercent,
+        currentBalanceUSDT: currentBalanceUSDT,
+        currentBalanceZAR: currentBalanceZAR,
         timestamp: new Date().toISOString()
     });
 
-    // Call service layer
+    // Call service layer with portfolio settings
     const opportunities = await triangularArbService.scan('luno', {
         credentials: { apiKey, apiSecret },
         paths,
-        amount
+        amount: maxTradeAmount, // Pass maxTradeAmount for now (service doesn't support portfolio % yet)
+        portfolioPercent,
+        currentBalanceUSDT,
+        currentBalanceZAR,
+        profitThreshold
     });
 
     // Return response (service handles all logic)
@@ -469,7 +490,13 @@ router.post('/luno/triangular/scan', asyncHandler(async (req, res) => {
             opportunitiesFound: opportunities.length,
             profitableCount: opportunities.filter(o => o.profitPercentage > 0).length,
             scanTime: new Date().toISOString(),
-            startAmount: amount
+            startAmount: maxTradeAmount,
+            portfolioCalculation: {
+                balanceUSDT: currentBalanceUSDT,
+                balanceZAR: currentBalanceZAR,
+                portfolioPercent: portfolioPercent,
+                maxTradeAmount: maxTradeAmount
+            }
         }
     });
 }));
@@ -1442,14 +1469,24 @@ router.post('/bybit/triangular/test-connection', authenticatedRateLimit, authent
 // Scan ByBit Triangular Paths
 router.post('/bybit/triangular/scan', asyncHandler(async (req, res) => {
     try {
-        const { paths = 'all', apiKey, apiSecret, maxTradeAmount = 1000, profitThreshold = 0.5 } = req.body;
+        const {
+            paths = 'all',
+            apiKey,
+            apiSecret,
+            maxTradeAmount = 1000,
+            profitThreshold = 0.5,
+            portfolioPercent = 10,
+            currentBalance = 0
+        } = req.body;
 
         systemLogger.trading('Scanning ByBit triangular paths', {
             userId: req.user?.id || 'anonymous',
             exchange: 'bybit',
             pathsRequested: paths,
             maxTradeAmount: maxTradeAmount,
-            profitThreshold: profitThreshold
+            profitThreshold: profitThreshold,
+            portfolioPercent: portfolioPercent,
+            currentBalance: currentBalance
         });
 
         // Define all 40 ByBit triangular paths (Option A: Quality Over Quantity)
@@ -1874,20 +1911,52 @@ router.post('/bybit/triangular/scan', asyncHandler(async (req, res) => {
 
         await Promise.all(orderBookPromises);
 
+        // Calculate trade amount using portfolio % calculator
+        const tradeAmountCalc = portfolioCalculator.calculateTradeAmount({
+            balance: currentBalance,
+            portfolioPercent: portfolioPercent,
+            maxTradeAmount: maxTradeAmount,
+            currency: 'USDT', // ByBit uses USDT for all triangular paths
+            exchange: 'ByBit',
+            path: null // Will be set per-path if needed
+        });
+
         // Calculate profits using ProfitCalculatorService
         const ProfitCalculatorService = require('../services/triangular-arb/ProfitCalculatorService');
         const profitCalculator = new ProfitCalculatorService();
 
         const opportunities = [];
-        const startAmount = maxTradeAmount; // Use configured max trade amount
+        const warnings = [];
 
-        for (const path of pathsToScan) {
-            const result = profitCalculator.calculate('bybit', path, orderBooks, startAmount);
+        // Add portfolio calculator warnings/reasons
+        if (tradeAmountCalc.warning) {
+            warnings.push(tradeAmountCalc.warning);
+        }
+        if (tradeAmountCalc.reason) {
+            warnings.push(tradeAmountCalc.reason);
+        }
 
-            if (result.success && result.profitPercentage > profitThreshold) {
-                // Filter by configured profit threshold
-                opportunities.push(result);
+        // Use calculated trade amount (respects portfolio % with maxTrade cap)
+        const startAmount = tradeAmountCalc.amount;
+
+        // Only scan if we can trade (balance >= $10 minimum)
+        if (tradeAmountCalc.canTrade) {
+            for (const path of pathsToScan) {
+                const result = profitCalculator.calculate('bybit', path, orderBooks, startAmount);
+
+                if (result.success && result.profitPercentage > profitThreshold) {
+                    // Filter by configured profit threshold
+                    opportunities.push(result);
+                }
             }
+        } else {
+            // Log lost opportunity but continue (don't throw error)
+            systemLogger.info('ByBit scan skipped - insufficient balance', {
+                currentBalance,
+                portfolioPercent,
+                minRequired: 10,
+                pathsToScan: pathsToScan.length
+            });
         }
 
         // Sort by profit percentage descending
@@ -1910,7 +1979,16 @@ router.post('/bybit/triangular/scan', asyncHandler(async (req, res) => {
                 pathSetsScanned: setsToScan.length,
                 orderBooksFetched: Object.keys(orderBooks).length,
                 startAmount: startAmount,
-                profitThreshold: profitThreshold
+                profitThreshold: profitThreshold,
+                portfolioCalculation: {
+                    balance: currentBalance,
+                    portfolioPercent: portfolioPercent,
+                    portfolioAmount: tradeAmountCalc.details.portfolioAmount,
+                    maxTradeAmount: maxTradeAmount,
+                    appliedCap: tradeAmountCalc.details.appliedCap,
+                    canTrade: tradeAmountCalc.canTrade
+                },
+                warnings: warnings.length > 0 ? warnings : undefined
             }
         });
 
@@ -2144,14 +2222,24 @@ router.post('/binance/triangular/test-connection', authenticatedRateLimit, authe
 // Scan Binance Triangular Arbitrage Paths
 router.post('/binance/triangular/scan', asyncHandler(async (req, res) => {
     try {
-        const { paths = 'all', apiKey, apiSecret, maxTradeAmount = 1000, profitThreshold = 0.5 } = req.body;
+        const {
+            paths = 'all',
+            apiKey,
+            apiSecret,
+            maxTradeAmount = 1000,
+            profitThreshold = 0.5,
+            portfolioPercent = 10,
+            currentBalance = 0
+        } = req.body;
 
         systemLogger.trading('Scanning Binance triangular paths', {
             userId: req.user?.id || 'anonymous',
             exchange: 'binance',
             pathsRequested: paths,
             maxTradeAmount: maxTradeAmount,
-            profitThreshold: profitThreshold
+            profitThreshold: profitThreshold,
+            portfolioPercent: portfolioPercent,
+            currentBalance: currentBalance
         });
 
         // Define all 40 Binance triangular paths (same structure as ByBit)
@@ -2605,20 +2693,52 @@ router.post('/binance/triangular/scan', asyncHandler(async (req, res) => {
 
         await Promise.all(orderBookPromises);
 
+        // Calculate trade amount using portfolio % calculator
+        const tradeAmountCalc = portfolioCalculator.calculateTradeAmount({
+            balance: currentBalance,
+            portfolioPercent: portfolioPercent,
+            maxTradeAmount: maxTradeAmount,
+            currency: 'USDT', // Binance uses USDT for all triangular paths
+            exchange: 'Binance',
+            path: null // Will be set per-path if needed
+        });
+
         // Calculate profits using ProfitCalculatorService
         const ProfitCalculatorService = require('../services/triangular-arb/ProfitCalculatorService');
         const profitCalculator = new ProfitCalculatorService();
 
         const opportunities = [];
-        const startAmount = maxTradeAmount; // Use configured max trade amount
+        const warnings = [];
 
-        for (const path of pathsToScan) {
-            const result = profitCalculator.calculate('binance', path, orderBooks, startAmount);
+        // Add portfolio calculator warnings/reasons
+        if (tradeAmountCalc.warning) {
+            warnings.push(tradeAmountCalc.warning);
+        }
+        if (tradeAmountCalc.reason) {
+            warnings.push(tradeAmountCalc.reason);
+        }
 
-            if (result.success && result.profitPercentage > profitThreshold) {
-                // Filter by configured profit threshold
-                opportunities.push(result);
+        // Use calculated trade amount (respects portfolio % with maxTrade cap)
+        const startAmount = tradeAmountCalc.amount;
+
+        // Only scan if we can trade (balance >= $10 minimum)
+        if (tradeAmountCalc.canTrade) {
+            for (const path of pathsToScan) {
+                const result = profitCalculator.calculate('binance', path, orderBooks, startAmount);
+
+                if (result.success && result.profitPercentage > profitThreshold) {
+                    // Filter by configured profit threshold
+                    opportunities.push(result);
+                }
             }
+        } else {
+            // Log lost opportunity but continue (don't throw error)
+            systemLogger.info('Binance scan skipped - insufficient balance', {
+                currentBalance,
+                portfolioPercent,
+                minRequired: 10,
+                pathsToScan: pathsToScan.length
+            });
         }
 
         // Sort by profit percentage descending
@@ -2641,7 +2761,16 @@ router.post('/binance/triangular/scan', asyncHandler(async (req, res) => {
                 opportunities: opportunities,
                 timestamp: new Date().toISOString(),
                 startAmount: startAmount,
-                profitThreshold: profitThreshold
+                profitThreshold: profitThreshold,
+                portfolioCalculation: {
+                    balance: currentBalance,
+                    portfolioPercent: portfolioPercent,
+                    portfolioAmount: tradeAmountCalc.details.portfolioAmount,
+                    maxTradeAmount: maxTradeAmount,
+                    appliedCap: tradeAmountCalc.details.appliedCap,
+                    canTrade: tradeAmountCalc.canTrade
+                },
+                warnings: warnings.length > 0 ? warnings : undefined
             }
         });
 
@@ -2877,7 +3006,16 @@ router.post('/okx/triangular/test-connection', authenticatedRateLimit, authentic
 
 // Scan OKX Triangular Arbitrage Paths
 router.post('/okx/triangular/scan', asyncHandler(async (req, res) => {
-    const { apiKey, apiSecret, passphrase, enabledSets, profitThreshold = 0.5, maxTradeAmount = 1000 } = req.body;
+    const {
+        apiKey,
+        apiSecret,
+        passphrase,
+        enabledSets,
+        profitThreshold = 0.5,
+        maxTradeAmount = 1000,
+        portfolioPercent = 10,
+        currentBalance = 0
+    } = req.body;
 
     if (!apiKey || !apiSecret || !passphrase) {
         return res.status(400).json({
@@ -3303,29 +3441,61 @@ router.post('/okx/triangular/scan', asyncHandler(async (req, res) => {
             received: Object.keys(orderBooks).length
         });
 
+        // Calculate trade amount using portfolio % calculator
+        const tradeAmountCalc = portfolioCalculator.calculateTradeAmount({
+            balance: currentBalance,
+            portfolioPercent: portfolioPercent,
+            maxTradeAmount: maxTradeAmount,
+            currency: 'USDT', // OKX uses USDT for all triangular paths
+            exchange: 'OKX',
+            path: null // Will be set per-path if needed
+        });
+
         // Calculate profits using ProfitCalculatorService
         const profitCalculator = new ProfitCalculatorService();
         const opportunities = [];
-        const startAmount = maxTradeAmount; // Use configured max trade amount
+        const warnings = [];
 
-        for (const path of enabledPaths) {
-            try {
-                const result = profitCalculator.calculate('okx', path, orderBooks, startAmount);
+        // Add portfolio calculator warnings/reasons
+        if (tradeAmountCalc.warning) {
+            warnings.push(tradeAmountCalc.warning);
+        }
+        if (tradeAmountCalc.reason) {
+            warnings.push(tradeAmountCalc.reason);
+        }
 
-                if (result.success && result.profitPercentage > profitThreshold) {
-                    opportunities.push(result);
-                    systemLogger.trading(`OKX opportunity found`, {
-                        path: path.id,
-                        profit: result.profitPercentage.toFixed(3),
-                        finalAmount: result.finalAmount.toFixed(2)
+        // Use calculated trade amount (respects portfolio % with maxTrade cap)
+        const startAmount = tradeAmountCalc.amount;
+
+        // Only scan if we can trade (balance >= $10 minimum)
+        if (tradeAmountCalc.canTrade) {
+            for (const path of enabledPaths) {
+                try {
+                    const result = profitCalculator.calculate('okx', path, orderBooks, startAmount);
+
+                    if (result.success && result.profitPercentage > profitThreshold) {
+                        opportunities.push(result);
+                        systemLogger.trading(`OKX opportunity found`, {
+                            path: path.id,
+                            profit: result.profitPercentage.toFixed(3),
+                            finalAmount: result.finalAmount.toFixed(2)
+                        });
+                    }
+                } catch (error) {
+                    systemLogger.error(`Error calculating profit for path ${path.id}`, {
+                        error: error.message,
+                        path: path.id
                     });
                 }
-            } catch (error) {
-                systemLogger.error(`Error calculating profit for path ${path.id}`, {
-                    error: error.message,
-                    path: path.id
-                });
             }
+        } else {
+            // Log lost opportunity but continue (don't throw error)
+            systemLogger.info('OKX scan skipped - insufficient balance', {
+                currentBalance,
+                portfolioPercent,
+                minRequired: 10,
+                pathsToScan: enabledPaths.length
+            });
         }
 
         // Sort opportunities by profit percentage (highest first)
@@ -3347,6 +3517,15 @@ router.post('/okx/triangular/scan', asyncHandler(async (req, res) => {
                 pathSetsScanned: setsToScan.length,
                 profitThreshold: profitThreshold,
                 startAmount: startAmount,
+                portfolioCalculation: {
+                    balance: currentBalance,
+                    portfolioPercent: portfolioPercent,
+                    portfolioAmount: tradeAmountCalc.details.portfolioAmount,
+                    maxTradeAmount: maxTradeAmount,
+                    appliedCap: tradeAmountCalc.details.appliedCap,
+                    canTrade: tradeAmountCalc.canTrade
+                },
+                warnings: warnings.length > 0 ? warnings : undefined,
                 timestamp: new Date().toISOString()
             }
         });
@@ -10223,18 +10402,43 @@ async function rollbackCompletedLegs(completedLegs, apiKey, apiSecret) {
 // Scan for triangular arbitrage opportunities on VALR
 // REFACTORED: Now uses service layer (Phase 4 - VALR test exchange)
 router.post('/valr/triangular/scan', asyncHandler(async (req, res) => {
-    const { paths = 'all', apiKey, apiSecret, amount = 1000 } = req.body;
+    const {
+        paths = 'all',
+        apiKey,
+        apiSecret,
+        amount = 1000,
+        maxTradeAmount = 1000,
+        profitThreshold = 0.5,
+        portfolioPercent = 10,
+        currentBalanceUSDT = 0,
+        currentBalanceZAR = 0
+    } = req.body;
 
     // Validate credentials
     if (!apiKey || !apiSecret) {
         throw new APIError('VALR API credentials required', 400, 'VALR_CREDENTIALS_REQUIRED');
     }
 
-    // Call service layer
+    systemLogger.trading('Scanning VALR triangular paths', {
+        userId: req.user?.id || 'anonymous',
+        exchange: 'valr',
+        pathsRequested: paths,
+        maxTradeAmount: maxTradeAmount,
+        profitThreshold: profitThreshold,
+        portfolioPercent: portfolioPercent,
+        currentBalanceUSDT: currentBalanceUSDT,
+        currentBalanceZAR: currentBalanceZAR
+    });
+
+    // Call service layer with portfolio settings
     const opportunities = await triangularArbService.scan('valr', {
         credentials: { apiKey, apiSecret },
         paths,
-        amount
+        amount: maxTradeAmount, // Pass maxTradeAmount for now (service doesn't support portfolio % yet)
+        portfolioPercent,
+        currentBalanceUSDT,
+        currentBalanceZAR,
+        profitThreshold
     });
 
     // Return response (service handles all logic)
@@ -10245,7 +10449,13 @@ router.post('/valr/triangular/scan', asyncHandler(async (req, res) => {
             opportunitiesFound: opportunities.length,
             profitableCount: opportunities.filter(o => o.profitPercentage > 0).length,
             scanTime: new Date().toISOString(),
-            startAmount: amount
+            startAmount: maxTradeAmount,
+            portfolioCalculation: {
+                balanceUSDT: currentBalanceUSDT,
+                balanceZAR: currentBalanceZAR,
+                portfolioPercent: portfolioPercent,
+                maxTradeAmount: maxTradeAmount
+            }
         }
     });
 }));

@@ -3611,6 +3611,14 @@
 
                     console.log(`\n🔍 [VALR Worker] Scan #${valrWorkerStats.totalScans}: ${currentSet} (${currentSetIndex + 1}/${selectedSets.length})`);
 
+                    // Get risk settings from UI
+                    const portfolioPercent = parseFloat(document.getElementById('valrPortfolioPercent')?.value || 10);
+                    const profitThresholdUI = parseFloat(document.getElementById('valrProfitThreshold')?.value || 0.5);
+
+                    // Get current balances (from balance tracking)
+                    const currentBalanceUSDT = valrBalanceTracking.currentUSDT || 0;
+                    const currentBalanceZAR = valrBalanceTracking.currentZAR || 0;
+
                     // 1. Scan ONE set only
                     const scanResponse = await fetch(`${API_BASE}/trading/valr/triangular/scan`, {
                         method: 'POST',
@@ -3619,7 +3627,12 @@
                             apiKey,
                             apiSecret,
                             scanSet: backendSetName,  // Backend expects scanSet with full name
-                            amount: maxTradeAmount
+                            amount: maxTradeAmount,
+                            maxTradeAmount: maxTradeAmount,
+                            profitThreshold: profitThresholdUI,
+                            portfolioPercent: portfolioPercent,
+                            currentBalanceUSDT: currentBalanceUSDT,
+                            currentBalanceZAR: currentBalanceZAR
                         })
                     });
 
@@ -4479,6 +4492,14 @@
                     lunoWorkerStats.totalScans++;
                     console.log(`\n🔍 [LUNO Worker] Scan #${lunoWorkerStats.totalScans}: SET ${currentSet} (${currentSetIndex + 1}/${selectedSets.length})`);
 
+                    // Get risk settings from UI
+                    const maxTradeAmount = parseFloat(document.getElementById('lunoMaxTrade')?.value || 100);
+                    const portfolioPercent = parseFloat(document.getElementById('lunoPortfolioPercent')?.value || 10);
+
+                    // Get current balances (from balance tracking)
+                    const currentBalanceUSDT = lunoBalanceTracking.currentUSDT || 0;
+                    const currentBalanceZAR = lunoBalanceTracking.currentZAR || 0;
+
                     // Scan current set
                     const scanResponse = await fetch(`${API_BASE}/trading/luno/triangular/scan`, {
                         method: 'POST',
@@ -4490,7 +4511,11 @@
                             apiKey,
                             apiSecret,
                             paths: [currentSet],
-                            profitThreshold
+                            profitThreshold,
+                            maxTradeAmount: maxTradeAmount,
+                            portfolioPercent: portfolioPercent,
+                            currentBalanceUSDT: currentBalanceUSDT,
+                            currentBalanceZAR: currentBalanceZAR
                         })
                     });
 
@@ -7276,6 +7301,10 @@
                 // Get risk settings from UI
                 const maxTradeAmount = parseFloat(document.getElementById('bybitMaxTrade')?.value || 100);
                 const profitThreshold = parseFloat(document.getElementById('bybitProfitThreshold')?.value || 0.5);
+                const portfolioPercent = parseFloat(document.getElementById('bybitPortfolioPercent')?.value || 10);
+
+                // Get current balance (from balance tracking)
+                const currentBalance = bybitBalanceTracking.currentUSDT || 0;
 
                 // Scan for opportunities for this specific set
                 const response = await fetch('/api/v1/trading/bybit/triangular/scan', {
@@ -7286,7 +7315,9 @@
                         apiSecret,
                         paths: [setNumber],  // Scan only this set
                         maxTradeAmount: maxTradeAmount,
-                        profitThreshold: profitThreshold
+                        profitThreshold: profitThreshold,
+                        portfolioPercent: portfolioPercent,
+                        currentBalance: currentBalance
                     })
                 });
 
@@ -7303,6 +7334,19 @@
                     bybitWorkerStats.totalOpportunities += oppCount;
 
                     console.log(`✅ [BYBIT Worker] SET_${setNumber} complete: ${oppCount} opportunities found`);
+
+                    // Log portfolio calculation details
+                    if (result.data?.portfolioCalculation) {
+                        const calc = result.data.portfolioCalculation;
+                        console.log(`💰 [BYBIT Portfolio] Balance: $${calc.balance}, ${calc.portfolioPercent}% = $${calc.portfolioAmount}, Cap: ${calc.appliedCap}, Can Trade: ${calc.canTrade}`);
+                    }
+
+                    // Display warnings (non-blocking)
+                    if (result.data?.warnings && result.data.warnings.length > 0) {
+                        result.data.warnings.forEach(warning => {
+                            console.warn(`⚠️ [BYBIT Portfolio] ${warning}`);
+                        });
+                    }
 
                     if (oppCount > 0) {
                         console.log(`💰 [BYBIT Worker] SET_${setNumber} Opportunities:`, result.data.opportunities);
@@ -7897,6 +7941,10 @@
             // Get risk settings from UI
             const maxTradeAmount = parseFloat(document.getElementById('binanceMaxTrade')?.value || 100);
             const profitThreshold = parseFloat(document.getElementById('binanceProfitThreshold')?.value || 0.5);
+            const portfolioPercent = parseFloat(document.getElementById('binancePortfolioPercent')?.value || 10);
+
+            // Get current balance (from balance tracking)
+            const currentBalance = binanceBalanceTracking.currentUSDT || 0;
 
             try {
                 const response = await fetch(`${API_BASE}/trading/binance/triangular/scan`, {
@@ -7907,7 +7955,9 @@
                         apiSecret,
                         paths: [setNumber],  // Scan only this set
                         maxTradeAmount: maxTradeAmount,
-                        profitThreshold: profitThreshold
+                        profitThreshold: profitThreshold,
+                        portfolioPercent: portfolioPercent,
+                        currentBalance: currentBalance
                     })
                 });
 
@@ -7916,6 +7966,19 @@
                 if (result.success && result.data) {
                     const opps = result.data.opportunities || [];
                     binanceWorkerStats.totalOpportunities += opps.length;
+
+                    // Log portfolio calculation details
+                    if (result.data?.portfolioCalculation) {
+                        const calc = result.data.portfolioCalculation;
+                        console.log(`💰 [BINANCE Portfolio] Balance: $${calc.balance}, ${calc.portfolioPercent}% = $${calc.portfolioAmount}, Cap: ${calc.appliedCap}, Can Trade: ${calc.canTrade}`);
+                    }
+
+                    // Display warnings (non-blocking)
+                    if (result.data?.warnings && result.data.warnings.length > 0) {
+                        result.data.warnings.forEach(warning => {
+                            console.warn(`⚠️ [BINANCE Portfolio] ${warning}`);
+                        });
+                    }
 
                     if (opps.length > 0) {
                         console.log(`💰 [BINANCE Worker] SET ${setNumber}: Found ${opps.length} opportunities`);
@@ -8450,6 +8513,10 @@
                 // Get risk settings from UI
                 const maxTradeAmount = parseFloat(document.getElementById('okxMaxTrade')?.value || 100);
                 const profitThreshold = parseFloat(document.getElementById('okxProfitThreshold')?.value || 0.5);
+                const portfolioPercent = parseFloat(document.getElementById('okxPortfolioPercent')?.value || 10);
+
+                // Get current balance (from balance tracking)
+                const currentBalance = okxBalanceTracking.currentUSDT || 0;
 
                 // Scan for opportunities for this specific set
                 const response = await fetch('/api/v1/trading/okx/triangular/scan', {
@@ -8461,7 +8528,9 @@
                         passphrase,
                         enabledSets: [setNumber],  // Scan only this set
                         maxTradeAmount: maxTradeAmount,
-                        profitThreshold: profitThreshold
+                        profitThreshold: profitThreshold,
+                        portfolioPercent: portfolioPercent,
+                        currentBalance: currentBalance
                     })
                 });
 
@@ -8470,6 +8539,19 @@
                 if (result.success && result.data && result.data.opportunities) {
                     const opportunities = result.data.opportunities;
                     console.log(`✅ [OKX Worker] SET_${setNumber} scanned: ${opportunities.length} opportunities found`);
+
+                    // Log portfolio calculation details
+                    if (result.data?.portfolioCalculation) {
+                        const calc = result.data.portfolioCalculation;
+                        console.log(`💰 [OKX Portfolio] Balance: $${calc.balance}, ${calc.portfolioPercent}% = $${calc.portfolioAmount}, Cap: ${calc.appliedCap}, Can Trade: ${calc.canTrade}`);
+                    }
+
+                    // Display warnings (non-blocking)
+                    if (result.data?.warnings && result.data.warnings.length > 0) {
+                        result.data.warnings.forEach(warning => {
+                            console.warn(`⚠️ [OKX Portfolio] ${warning}`);
+                        });
+                    }
 
                     if (opportunities.length > 0) {
                         okxWorkerStats.totalOpportunities += opportunities.length;
