@@ -1194,8 +1194,28 @@ router.post('/kraken/triangular/test-connection', authenticatedRateLimit, authen
 // Scan Kraken Triangular Paths
 router.post('/kraken/triangular/scan', asyncHandler(async (req, res) => {
     try {
-        const { paths = 'all', apiKey, apiSecret } = req.body;
+        const {
+            paths = 'all',
+            apiKey,
+            apiSecret,
+            maxTradeAmount = 1000,
+            profitThreshold = 0.5,
+            portfolioPercent = 10,
+            currentBalanceUSD = 0,
+            currentBalanceUSDT = 0,
+            currentBalanceUSDC = 0
+        } = req.body;
 
+        systemLogger.trading('Scanning Kraken triangular paths', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'kraken',
+            pathsRequested: paths,
+            maxTradeAmount: maxTradeAmount,
+            profitThreshold: profitThreshold,
+            portfolioPercent: portfolioPercent
+        });
+
+        // Define all 32 Kraken triangular paths across 6 sets
         const allPathSets = {
             SET_1_BTC_FOCUS: [
                 { id: 'USDT_BTC_ETH_USDT', pairs: ['BTCUSDT', 'ETHBTC', 'ETHUSDT'], sequence: 'USDT → BTC → ETH → USDT', steps: [{ pair: 'BTCUSDT', side: 'buy' }, { pair: 'ETHBTC', side: 'buy' }, { pair: 'ETHUSDT', side: 'sell' }] },
@@ -1243,19 +1263,208 @@ router.post('/kraken/triangular/scan', asyncHandler(async (req, res) => {
             ]
         };
 
-        systemLogger.trading('Kraken triangular path scan initiated', {
+        // Calculate which sets to scan
+        let setsToScan = [];
+        let pathsToScan = [];
+
+        if (paths === 'all') {
+            setsToScan = Object.keys(allPathSets);
+            setsToScan.forEach(setKey => {
+                pathsToScan = pathsToScan.concat(allPathSets[setKey]);
+            });
+        } else if (Array.isArray(paths)) {
+            paths.forEach(setNum => {
+                const setKeys = Object.keys(allPathSets);
+                if (setNum >= 1 && setNum <= setKeys.length) {
+                    const setKey = setKeys[setNum - 1];
+                    setsToScan.push(setKey);
+                    pathsToScan = pathsToScan.concat(allPathSets[setKey]);
+                }
+            });
+        }
+
+        // Helper function to convert standard pair names to Kraken format
+        const toKrakenPair = (pair) => {
+            // Kraken pair mapping (simplified - may need adjustments for actual API)
+            const mapping = {
+                'BTCUSDT': 'XBTUSDT',
+                'ETHUSDT': 'ETHUSDT',
+                'SOLUSDT': 'SOLUSDT',
+                'ADAUSDT': 'ADAUSDT',
+                'LINKUSDT': 'LINKUSDT',
+                'DOTUSDT': 'DOTUSDT',
+                'ATOMUSDT': 'ATOMUSDT',
+                'ALGOUSDT': 'ALGOUSDT',
+                'XRPUSDT': 'XRPUSDT',
+                'LTCUSDT': 'LTCUSDT',
+                'BCHUSDT': 'BCHUSDT',
+                'XMRUSDT': 'XMRUSDT',
+                'DOGEUSDT': 'DOGEUSDT',
+                'MANAUSDT': 'MANAUSDT',
+                // Crypto-to-crypto pairs
+                'ETHBTC': 'ETHXBT',
+                'SOLBTC': 'SOLXBT',
+                'ADABTC': 'ADAXBT',
+                'LINKBTC': 'LINKXBT',
+                'DOTBTC': 'DOTXBT',
+                'ATOMBTC': 'ATOMXBT',
+                'ALGOBTC': 'ALGOXBT',
+                'XRPBTC': 'XRPXBT',
+                'LTCBTC': 'LTCXBT',
+                'BCHBTC': 'BCHXBT',
+                'XMRBTC': 'XMRXBT',
+                'DOGEBTC': 'DOGEXBT',
+                'MANABTC': 'MANAXBT',
+                'SOLETH': 'SOLETH',
+                'ADAETH': 'ADAETH',
+                'LINKETH': 'LINKETH',
+                'DOTETH': 'DOTETH',
+                'ATOMETH': 'ATOMETH',
+                'ALGOETH': 'ALGOETH',
+                'XRPETH': 'XRPETH',
+                'LTCETH': 'LTCETH',
+                'BCHETH': 'BCHETH'
+            };
+            return mapping[pair] || pair;
+        };
+
+        // Get unique pairs from all paths (convert to Kraken format)
+        const uniquePairs = new Set();
+        pathsToScan.forEach(path => {
+            path.pairs.forEach(pair => uniquePairs.add(toKrakenPair(pair)));
+        });
+
+        // Fetch order books for all pairs (Kraken public endpoint)
+        const orderBooks = {};
+        const orderBookPromises = Array.from(uniquePairs).map(async (pair) => {
+            try {
+                // Kraken public orderbook endpoint
+                const response = await fetch(`https://api.kraken.com/0/public/Depth?pair=${pair}&count=20`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    systemLogger.error(`Failed to fetch Kraken orderbook for ${pair}`, {
+                        status: response.status
+                    });
+                    return;
+                }
+
+                const data = await response.json();
+
+                // Kraken returns: { error: [], result: { "XBTUSDT": { asks: [[price, volume, timestamp], ...], bids: [...] } } }
+                if (data.error && data.error.length === 0 && data.result) {
+                    const pairData = Object.values(data.result)[0];
+                    if (pairData) {
+                        orderBooks[pair] = {
+                            bids: pairData.bids || [],
+                            asks: pairData.asks || []
+                        };
+                        systemLogger.trading(`Fetched Kraken orderbook for ${pair}`, {
+                            bids: pairData.bids.length,
+                            asks: pairData.asks.length
+                        });
+                    }
+                }
+            } catch (error) {
+                systemLogger.error(`Error fetching Kraken orderbook for ${pair}`, {
+                    error: error.message
+                });
+            }
+        });
+
+        await Promise.all(orderBookPromises);
+
+        // Calculate trade amount using portfolio % calculator
+        // For USDT paths, use USDT balance
+        const tradeAmountCalc = portfolioCalculator.calculateTradeAmount({
+            balance: currentBalanceUSDT,
+            portfolioPercent: portfolioPercent,
+            maxTradeAmount: maxTradeAmount,
+            currency: 'USDT',
+            exchange: 'Kraken',
+            path: null
+        });
+
+        // Calculate profits using ProfitCalculatorService
+        const ProfitCalculatorService = require('../services/triangular-arb/ProfitCalculatorService');
+        const profitCalculator = new ProfitCalculatorService();
+
+        const opportunities = [];
+        const warnings = [];
+
+        // Add portfolio calculator warnings/reasons
+        if (tradeAmountCalc.warning) {
+            warnings.push(tradeAmountCalc.warning);
+        }
+        if (tradeAmountCalc.reason) {
+            warnings.push(tradeAmountCalc.reason);
+        }
+
+        // Use calculated trade amount (respects portfolio % with maxTrade cap)
+        const startAmount = tradeAmountCalc.amount;
+
+        // Only scan if we can trade (balance >= $10 minimum)
+        if (tradeAmountCalc.canTrade) {
+            for (const path of pathsToScan) {
+                // Convert path pairs to Kraken format for orderbook lookup
+                const krakenPath = {
+                    ...path,
+                    pairs: path.pairs.map(p => toKrakenPair(p))
+                };
+
+                const result = profitCalculator.calculate('kraken', krakenPath, orderBooks, startAmount);
+
+                if (result.success && result.profitPercentage > profitThreshold) {
+                    // Filter by configured profit threshold
+                    opportunities.push(result);
+                }
+            }
+        } else {
+            // Log lost opportunity but continue (don't throw error)
+            systemLogger.info('Kraken scan skipped - insufficient balance', {
+                currentBalanceUSDT,
+                portfolioPercent,
+                minRequired: 10,
+                pathsToScan: pathsToScan.length
+            });
+        }
+
+        // Sort by profit percentage descending
+        opportunities.sort((a, b) => b.profitPercentage - a.profitPercentage);
+
+        systemLogger.trading('Kraken triangular scan completed', {
             userId: req.user?.id || 'anonymous',
-            pathSetsRequested: paths
+            exchange: 'kraken',
+            pathSetsScanned: setsToScan.length,
+            totalPaths: pathsToScan.length,
+            opportunitiesFound: opportunities.length
         });
 
         res.json({
             success: true,
             message: 'Kraken triangular path scan completed',
             data: {
-                scannedPaths: 32,
-                opportunities: [],
-                pathSetsScanned: paths === 'all' ? 6 : paths.length,
-                message: 'Full scanning implementation coming soon. Backend routes ready.'
+                scannedPaths: pathsToScan.length,
+                opportunities: opportunities,
+                pathSetsScanned: setsToScan.length,
+                orderBooksFetched: Object.keys(orderBooks).length,
+                startAmount: startAmount,
+                profitThreshold: profitThreshold,
+                portfolioCalculation: {
+                    balanceUSD: currentBalanceUSD,
+                    balanceUSDT: currentBalanceUSDT,
+                    balanceUSDC: currentBalanceUSDC,
+                    portfolioPercent: portfolioPercent,
+                    portfolioAmount: tradeAmountCalc.details.portfolioAmount,
+                    maxTradeAmount: maxTradeAmount,
+                    appliedCap: tradeAmountCalc.details.appliedCap,
+                    canTrade: tradeAmountCalc.canTrade
+                },
+                warnings: warnings.length > 0 ? warnings : undefined
             }
         });
 
