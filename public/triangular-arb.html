@@ -1765,13 +1765,74 @@
                     </button>
                 </div>
 
-                <!-- Current Opportunities -->
+                <!-- Tabbed Content Area -->
                 <div class="stat-card" style="grid-column: span 2;">
-                    <h4 style="color: #00D092; margin-bottom: 15px;">💰 Current Opportunities</h4>
-                    <div id="kucoinOpportunities" style="max-height: 400px; overflow-y: auto;">
-                        <p style="color: #888; text-align: center; padding: 20px;">
-                            Click "Scan Opportunities" to find triangular arbitrage paths
-                        </p>
+                    <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px;">
+                        <!-- Tab Headers -->
+                        <div style="display: flex; gap: 5px; margin-bottom: 15px; background: rgba(0,0,0,0.4); padding: 5px; border-radius: 8px;">
+                            <button class="kucoin-tab-btn active" data-tab="trading" onclick="switchKuCoinTab('trading')" style="flex: 1; padding: 12px 10px; background: rgba(0,208,146,0.15); border: 1px solid #00D092; border-radius: 6px; color: #00D092; cursor: pointer; font-weight: bold; font-size: 0.95rem; transition: all 0.3s ease;">
+                                💰 Trading
+                            </button>
+                            <button class="kucoin-tab-btn" data-tab="balance" onclick="switchKuCoinTab('balance')" style="flex: 1; padding: 12px 10px; background: rgba(255,255,255,0.03); border: 1px solid transparent; border-radius: 6px; color: #888; cursor: pointer; font-weight: bold; font-size: 0.95rem; transition: all 0.3s ease;">
+                                💵 Balance Tracker
+                            </button>
+                            <button class="kucoin-tab-btn" data-tab="alerts" onclick="switchKuCoinTab('alerts')" style="flex: 1; padding: 12px 10px; background: rgba(255,255,255,0.03); border: 1px solid transparent; border-radius: 6px; color: #888; cursor: pointer; font-weight: bold; font-size: 0.95rem; transition: all 0.3s ease;">
+                                ⚠️ Alerts <span id="kucoinAlertBadge" style="display: none; background: #ff4444; color: white; padding: 2px 6px; border-radius: 10px; font-size: 0.75rem; margin-left: 5px;">0</span>
+                            </button>
+                        </div>
+
+                        <!-- Tab Content Panels -->
+
+                        <!-- Tab 1: Trading -->
+                        <div id="kucoinTabTrading" class="kucoin-tab-content" style="display: block;">
+                            <h4 style="color: #00D092; margin-bottom: 15px;">💰 Current Opportunities</h4>
+                            <div id="kucoinOpportunities" style="max-height: 400px; overflow-y: auto;">
+                                <p style="color: #888; text-align: center; padding: 20px;">
+                                    Click "Scan Opportunities" to find triangular arbitrage paths
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Tab 2: Balance Tracker -->
+                        <div id="kucoinTabBalance" class="kucoin-tab-content" style="display: none;">
+                            <div style="margin-bottom: 20px;">
+                                <h5 style="color: #00D092; margin-bottom: 10px;">💵 USDT Balance</h5>
+                                <div style="background: rgba(0,208,146,0.1); padding: 15px; border-radius: 8px; border-left: 4px solid #00D092;">
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; font-size: 0.9rem;">
+                                        <div>
+                                            <div style="color: #888; margin-bottom: 5px;">Starting</div>
+                                            <div style="color: #00D092; font-weight: bold; font-size: 1.1rem;" id="kucoinStartingUSDT">$0.00</div>
+                                        </div>
+                                        <div>
+                                            <div style="color: #888; margin-bottom: 5px;">Current</div>
+                                            <div style="color: #00D092; font-weight: bold; font-size: 1.1rem;" id="kucoinCurrentUSDT">$0.00</div>
+                                        </div>
+                                        <div>
+                                            <div style="color: #888; margin-bottom: 5px;">Change</div>
+                                            <div style="font-weight: bold; font-size: 1.1rem;" id="kucoinChangeUSDT">+$0.00 (+0%)</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style="display: flex; gap: 10px; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1);">
+                                <div style="color: #888; font-size: 0.85rem;">
+                                    Last Updated: <span id="kucoinBalanceLastUpdate">Never</span>
+                                </div>
+                                <button onclick="resetKuCoinStartingBalance()" style="padding: 6px 12px; background: rgba(255,255,255,0.1); color: #00D092; border: 1px solid #00D092; border-radius: 5px; cursor: pointer; font-size: 0.85rem;">
+                                    🔄 Reset Starting Balance
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Tab 3: Alerts -->
+                        <div id="kucoinTabAlerts" class="kucoin-tab-content" style="display: none;">
+                            <div id="kucoinAlertsList" style="max-height: 200px; overflow-y: auto;">
+                                <div style="text-align: center; color: #888; padding: 20px;">
+                                    No alerts yet. Alerts will appear here when opportunities are found.
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -9161,6 +9222,7 @@
                     }
 
                     kucoinBalanceTracking.currentUSDT = currentUSDT;
+                    updateKuCoinBalanceDisplay();
                     console.log('✅ [KUCOIN Balance] Initialized:', kucoinBalanceTracking);
                 }
             } catch (error) {
@@ -9182,6 +9244,7 @@
                 if (result.success && result.data && result.data.balances) {
                     const balances = result.data.balances;
                     kucoinBalanceTracking.currentUSDT = balances.USDT ? parseFloat(balances.USDT) : 0;
+                    updateKuCoinBalanceDisplay();
                     console.log('💰 [KUCOIN Balance] Updated:', kucoinBalanceTracking.currentUSDT.toFixed(2));
                 }
             } catch (error) {
@@ -9521,6 +9584,87 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
             } else {
                 console.log('ℹ️ [KUCOIN] Live trading disabled (from localStorage)');
             }
+        }
+
+        // Update KuCoin balance display
+        function updateKuCoinBalanceDisplay() {
+            // Update starting balance
+            document.getElementById('kucoinStartingUSDT').textContent = `$${kucoinBalanceTracking.startingUSDT?.toFixed(2) || '0.00'}`;
+
+            // Update current balance
+            document.getElementById('kucoinCurrentUSDT').textContent = `$${kucoinBalanceTracking.currentUSDT.toFixed(2)}`;
+
+            // Calculate and update change
+            if (kucoinBalanceTracking.startingUSDT !== null) {
+                const change = kucoinBalanceTracking.currentUSDT - kucoinBalanceTracking.startingUSDT;
+                const changePercent = kucoinBalanceTracking.startingUSDT > 0
+                    ? ((change / kucoinBalanceTracking.startingUSDT) * 100).toFixed(2)
+                    : '0.00';
+
+                const changeSign = change >= 0 ? '+' : '';
+                const changeColor = change >= 0 ? '#00D092' : '#ff4444';
+
+                const changeElement = document.getElementById('kucoinChangeUSDT');
+                changeElement.textContent = `${changeSign}$${change.toFixed(2)} (${changeSign}${changePercent}%)`;
+                changeElement.style.color = changeColor;
+            }
+
+            // Update last update time
+            document.getElementById('kucoinBalanceLastUpdate').textContent = new Date().toLocaleString();
+        }
+
+        // Reset KuCoin starting balance to current balance
+        function resetKuCoinStartingBalance() {
+            const confirm = window.confirm('Reset starting balance to current balance?\n\nThis will use the current balance as the new baseline for profit/loss tracking.');
+
+            if (!confirm) return;
+
+            // Get current balance
+            const currentUSDT = kucoinBalanceTracking.currentUSDT;
+
+            // Set as new starting balance
+            kucoinBalanceTracking.startingUSDT = currentUSDT;
+
+            // Save to localStorage
+            localStorage.setItem('kucoinStartingBalance', JSON.stringify({
+                usdt: currentUSDT
+            }));
+
+            // Update display
+            updateKuCoinBalanceDisplay();
+
+            console.log('✅ [KUCOIN] Starting balance reset:', kucoinBalanceTracking);
+        }
+
+        // Switch KuCoin tabs
+        function switchKuCoinTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.kucoin-tab-content').forEach(tab => {
+                tab.style.display = 'none';
+            });
+
+            // Remove active state from all buttons
+            document.querySelectorAll('.kucoin-tab-btn').forEach(btn => {
+                btn.style.background = 'rgba(255,255,255,0.03)';
+                btn.style.border = '1px solid transparent';
+                btn.style.color = '#888';
+            });
+
+            // Show selected tab content
+            const tabContent = document.getElementById(`kucoinTab${tabName.charAt(0).toUpperCase() + tabName.slice(1)}`);
+            if (tabContent) {
+                tabContent.style.display = 'block';
+            }
+
+            // Activate selected button
+            const activeBtn = document.querySelector(`.kucoin-tab-btn[data-tab="${tabName}"]`);
+            if (activeBtn) {
+                activeBtn.style.background = 'rgba(0,208,146,0.15)';
+                activeBtn.style.border = '1px solid #00D092';
+                activeBtn.style.color = '#00D092';
+            }
+
+            console.log(`🔄 [KUCOIN] Switched to ${tabName} tab`);
         }
 
         // Initialize OKX settings on page load
