@@ -5648,7 +5648,7 @@ router.post('/gateio/triangular/test-connection', asyncHandler(async (req, res) 
 // ROUTE 2: Scan Gate.io Triangular Arbitrage Opportunities
 router.post('/gateio/triangular/scan', asyncHandler(async (req, res) => {
     try {
-        const { apiKey, apiSecret, maxTradeAmount, profitThreshold, enabledSets } = req.body;
+        const { apiKey, apiSecret, maxTradeAmount, portfolioPercent = 10, profitThreshold, enabledSets } = req.body;
 
         if (!apiKey || !apiSecret) {
             return res.status(400).json({
@@ -5656,6 +5656,13 @@ router.post('/gateio/triangular/scan', asyncHandler(async (req, res) => {
                 message: 'API credentials required'
             });
         }
+
+        systemLogger.info('Gate.io triangular scan started', {
+            maxTradeAmount,
+            portfolioPercent,
+            profitThreshold,
+            enabledSets
+        });
 
         // Define all 32 triangular arbitrage paths
         const allPaths = {
@@ -5711,104 +5718,154 @@ router.post('/gateio/triangular/scan', asyncHandler(async (req, res) => {
             }
         });
 
-        // Fetch all tickers to build price map
-        const tickersResponse = await fetch(`${GATE_CONFIG.baseUrl}${GATE_CONFIG.endpoints.tickers}`, {
-            method: 'GET',
+        systemLogger.info(`Gate.io: Scanning ${pathsToScan.length} paths`);
+
+        // Fetch USDT balance for portfolio % calculation
+        const method = 'GET';
+        const endpoint = GATE_CONFIG.endpoints.balances;
+        const auth = createGateSignature(apiKey, apiSecret, method, endpoint);
+
+        const balanceResponse = await fetch(`${GATE_CONFIG.baseUrl}${endpoint}`, {
+            method: method,
             headers: {
+                'KEY': apiKey,
+                'Timestamp': auth.timestamp,
+                'SIGN': auth.signature,
                 'Content-Type': 'application/json'
             }
         });
 
-        if (!tickersResponse.ok) {
-            throw new Error('Failed to fetch Gate.io tickers');
+        if (!balanceResponse.ok) {
+            throw new Error('Failed to fetch Gate.io balance');
         }
 
-        const tickers = await tickersResponse.json();
+        const balances = await balanceResponse.json();
+        const usdtBalance = balances.find(b => b.currency === 'USDT');
+        const balance = usdtBalance ? parseFloat(usdtBalance.available) : 0;
 
-        // Build price map
-        const priceMap = {};
-        tickers.forEach(ticker => {
-            priceMap[ticker.currency_pair] = {
-                bid: parseFloat(ticker.highest_bid) || 0,
-                ask: parseFloat(ticker.lowest_ask) || 0,
-                last: parseFloat(ticker.last) || 0
+        // Calculate trade amount using portfolio calculator
+        const portfolioCalc = portfolioCalculator.calculateTradeAmount({
+            balance,
+            portfolioPercent,
+            maxTradeAmount,
+            currency: 'USDT',
+            exchange: 'Gate.io',
+            path: null
+        });
+
+        if (!portfolioCalc.canTrade) {
+            return res.json({
+                success: true,
+                scanned: 0,
+                profitableCount: 0,
+                opportunities: [],
+                message: portfolioCalc.reason,
+                timestamp: new Date().toISOString()
+            });
+        }
+
+        const tradeAmount = portfolioCalc.amount;
+
+        systemLogger.info('Gate.io portfolio calculation', {
+            balance: balance.toFixed(2),
+            portfolioPercent,
+            maxTradeAmount,
+            tradeAmount: tradeAmount.toFixed(2),
+            appliedCap: portfolioCalc.details.appliedCap
+        });
+
+        // Collect all unique pairs needed for orderbooks
+        const uniquePairs = new Set();
+        pathsToScan.forEach(pathDef => {
+            pathDef.pairs.forEach(pair => uniquePairs.add(pair));
+        });
+
+        // Fetch orderbooks for all pairs
+        const orderBooks = {};
+        for (const pair of uniquePairs) {
+            try {
+                const obResponse = await fetch(`${GATE_CONFIG.baseUrl}${GATE_CONFIG.endpoints.orderBook}?currency_pair=${pair}&limit=20`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (obResponse.ok) {
+                    const data = await obResponse.json();
+                    orderBooks[pair] = data;
+                }
+            } catch (error) {
+                systemLogger.warn(`Gate.io: Failed to fetch orderbook for ${pair}`, { error: error.message });
+            }
+        }
+
+        systemLogger.info(`Gate.io: Fetched ${Object.keys(orderBooks).length} orderbooks`);
+
+        // Convert paths to ProfitCalculatorService format
+        const pathsForCalculation = pathsToScan.map(pathDef => {
+            const steps = [];
+
+            for (let i = 0; i < pathDef.pairs.length; i++) {
+                const pair = pathDef.pairs[i];
+                const fromCurrency = pathDef.path[i];
+                const toCurrency = pathDef.path[i + 1];
+                const [base, quote] = pair.split('_');
+
+                let side;
+                if (fromCurrency === quote && toCurrency === base) {
+                    side = 'buy';
+                } else if (fromCurrency === base && toCurrency === quote) {
+                    side = 'sell';
+                } else {
+                    side = null;
+                }
+
+                steps.push({ pair, side });
+            }
+
+            return {
+                id: pathDef.id,
+                description: pathDef.description,
+                sequence: pathDef.path.join(' → '),
+                steps
             };
         });
 
-        // Scan each path for arbitrage opportunities
+        // Calculate profits using ProfitCalculatorService
+        const profitCalculator = new ProfitCalculatorService();
         const opportunities = [];
 
-        for (const pathDef of pathsToScan) {
-            try {
-                const { path, pairs, id, description } = pathDef;
-                let currentAmount = maxTradeAmount;
-                let prices = [];
-                let valid = true;
+        for (const path of pathsForCalculation) {
+            const result = profitCalculator.calculate('gateio', path, orderBooks, tradeAmount);
 
-                // Calculate through each leg
-                for (let i = 0; i < pairs.length; i++) {
-                    const pair = pairs[i];
-                    const priceData = priceMap[pair];
-
-                    if (!priceData || priceData.bid === 0 || priceData.ask === 0) {
-                        valid = false;
-                        break;
-                    }
-
-                    const fromCurrency = path[i];
-                    const toCurrency = path[i + 1];
-
-                    // Determine if we're buying or selling the pair
-                    const [base, quote] = pair.split('_');
-
-                    if (fromCurrency === quote && toCurrency === base) {
-                        // Buying base with quote (use ask price)
-                        const price = priceData.ask;
-                        currentAmount = currentAmount / price;
-                        prices.push({ pair, side: 'buy', price, amount: currentAmount });
-                    } else if (fromCurrency === base && toCurrency === quote) {
-                        // Selling base for quote (use bid price)
-                        const price = priceData.bid;
-                        currentAmount = currentAmount * price;
-                        prices.push({ pair, side: 'sell', price, amount: currentAmount });
-                    } else {
-                        valid = false;
-                        break;
-                    }
-                }
-
-                if (valid) {
-                    const finalAmount = currentAmount;
-                    const profit = finalAmount - maxTradeAmount;
-                    const profitPercent = (profit / maxTradeAmount) * 100;
-
-                    if (profitPercent >= profitThreshold) {
-                        opportunities.push({
-                            pathId: id,
-                            path: path.join(' → '),
-                            pairs: pairs,
-                            description: description,
-                            initialAmount: maxTradeAmount,
-                            finalAmount: finalAmount.toFixed(2),
-                            profit: profit.toFixed(2),
-                            profitPercent: profitPercent.toFixed(4),
-                            legs: prices,
-                            timestamp: new Date().toISOString()
-                        });
-                    }
-                }
-            } catch (error) {
-                console.error(`Error scanning path ${pathDef.id}:`, error);
+            if (result.success && result.profitPercentage >= profitThreshold) {
+                opportunities.push({
+                    pathId: result.pathId,
+                    description: path.description,
+                    path: result.sequence.split(' → '),
+                    initialAmount: result.startAmount,
+                    finalAmount: result.endAmount,
+                    profitAmount: result.profit,
+                    profitPercent: result.profitPercentage.toFixed(4),
+                    steps: result.steps,
+                    totalFees: result.totalFees,
+                    timestamp: result.timestamp
+                });
             }
         }
 
         // Sort by profit percentage descending
         opportunities.sort((a, b) => parseFloat(b.profitPercent) - parseFloat(a.profitPercent));
 
+        systemLogger.info(`Gate.io scan complete: ${opportunities.length} profitable paths found`);
+
         res.json({
             success: true,
             scanned: pathsToScan.length,
+            profitableCount: opportunities.length,
             opportunities: opportunities,
+            portfolioDetails: portfolioCalc.details,
             timestamp: new Date().toISOString()
         });
 
@@ -5817,6 +5874,73 @@ router.post('/gateio/triangular/scan', asyncHandler(async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Failed to scan Gate.io triangular paths'
+        });
+    }
+}));
+
+// ROUTE 2.5: Get Gate.io Balance
+router.post('/gateio/balance', asyncHandler(async (req, res) => {
+    try {
+        const { apiKey, apiSecret, currency = 'USDT' } = req.body;
+
+        if (!apiKey || !apiSecret) {
+            return res.status(400).json({
+                success: false,
+                message: 'API credentials required'
+            });
+        }
+
+        // Fetch account balances
+        const method = 'GET';
+        const endpoint = GATE_CONFIG.endpoints.balances;
+        const auth = createGateSignature(apiKey, apiSecret, method, endpoint);
+
+        const response = await fetch(`${GATE_CONFIG.baseUrl}${endpoint}`, {
+            method: method,
+            headers: {
+                'KEY': apiKey,
+                'Timestamp': auth.timestamp,
+                'SIGN': auth.signature,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            return res.status(401).json({
+                success: false,
+                message: 'Gate.io API authentication failed',
+                error: errorText
+            });
+        }
+
+        const balances = await response.json();
+
+        // Find requested currency balance
+        const currencyBalance = balances.find(b => b.currency === currency);
+        const available = currencyBalance ? parseFloat(currencyBalance.available) : 0;
+        const locked = currencyBalance ? parseFloat(currencyBalance.locked) : 0;
+
+        systemLogger.info(`Gate.io balance fetched`, {
+            currency,
+            available: available.toFixed(2),
+            locked: locked.toFixed(2)
+        });
+
+        res.json({
+            success: true,
+            currency,
+            balance: available.toFixed(2),
+            locked: locked.toFixed(2),
+            total: (available + locked).toFixed(2),
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        systemLogger.error('Gate.io balance fetch error', { error: error.message });
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch Gate.io balance'
         });
     }
 }));
