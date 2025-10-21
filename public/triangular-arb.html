@@ -3038,101 +3038,239 @@
 
         <!-- BingX Exchange -->
         <div style="background: rgba(0,191,255,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 2px solid #00BFFF;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <!-- Header with toggle -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <h3 style="color: #00BFFF; margin: 0;">🌊 BingX Triangular Arbitrage</h3>
-                <div style="display: flex; align-items: center; gap: 15px;">
-                    <span style="color: #b8c6db; font-size: 0.9rem;">Live Trading:</span>
-                    <div class="toggle-switch" id="bingxTriangularEnabled">
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <span style="color: #b8c6db; font-size: 0.9rem;">BingX Live Trading:</span>
+                    <div class="toggle-switch" id="bingxTriangularEnabled" onclick="toggleBingxTriangular()">
                         <div class="toggle-knob"></div>
                     </div>
-                    <span id="bingxTriangularStatus" style="color: #ff6b6b; font-weight: 600; font-size: 0.9rem;">OFF</span>
+                    <span id="bingxTriangularStatus" style="color: #ff6b6b; font-size: 0.9rem; margin-left: 10px;">OFF</span>
                 </div>
             </div>
-            <p style="color: #888; margin: 0 0 10px 0; font-size: 14px;">
-                700+ USDT pairs | No native token | SOL high-liquidity bridge | 0.10% fees | HMAC-SHA256
-            </p>
 
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 20px;">
-                <!-- Status Card -->
-                <div class="stat-card">
-                    <h4 style="color: #00BFFF; margin-bottom: 15px;">📊 Status</h4>
-                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-                        <div id="bingxStatusIndicator" style="width: 12px; height: 12px; border-radius: 50%; background: #666;"></div>
-                        <span id="bingxStatusText" style="color: #888;">Not Connected</span>
+            <!-- FUNDING REQUIREMENTS Info Banner -->
+            <div style="background: rgba(0,191,255,0.15); border: 2px solid #00BFFF; border-radius: 10px; padding: 20px; margin-bottom: 20px;">
+                <h4 style="color: #00BFFF; margin: 0 0 15px 0; font-size: 1.1rem;">💰 FUNDING REQUIREMENTS - 32 Paths Across 5 Sets</h4>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px;">
+                    <!-- SET 1 -->
+                    <div style="background: rgba(0,255,0,0.05); border-left: 3px solid #00ff00; padding: 12px; border-radius: 5px;">
+                        <div style="color: #00ff00; font-weight: bold; margin-bottom: 8px;">✅ SET 1: Essential ETH Bridge</div>
+                        <div style="color: #b8c6db; font-size: 0.85rem; line-height: 1.6;">
+                            <div>• 7 paths (3-leg cycles)</div>
+                            <div>• Assets: ETH, BTC, SOL, MATIC, LINK</div>
+                            <div>• Funding: ~$50-100 USDT per path</div>
+                            <div>• Total Set Budget: ~$350-700 USDT</div>
+                        </div>
                     </div>
-                    <div style="margin-top: 15px; display: flex; gap: 10px;">
-                        <button onclick="testBingXTriangularConnection()" style="flex: 1; padding: 10px; background: #00BFFF; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
-                            Test Connection
-                        </button>
-                        <button onclick="viewBingXPathDetails()" style="flex: 1; padding: 10px; background: rgba(0,191,255,0.2); color: #00BFFF; border: 1px solid #00BFFF; border-radius: 8px; cursor: pointer; font-weight: 600;">
-                            View Paths
-                        </button>
+
+                    <!-- SET 2 -->
+                    <div style="background: rgba(0,255,0,0.05); border-left: 3px solid #00ff00; padding: 12px; border-radius: 5px;">
+                        <div style="color: #00ff00; font-weight: bold; margin-bottom: 8px;">✅ SET 2: Mid-Cap BTC Bridge</div>
+                        <div style="color: #b8c6db; font-size: 0.85rem; line-height: 1.6;">
+                            <div>• 7 paths (3-leg cycles)</div>
+                            <div>• Assets: BTC, ETH, SOL, AVAX, UNI</div>
+                            <div>• Funding: ~$50-100 USDT per path</div>
+                            <div>• Total Set Budget: ~$350-700 USDT</div>
+                        </div>
+                    </div>
+
+                    <!-- SET 3 -->
+                    <div style="background: rgba(255,215,0,0.05); border-left: 3px solid #FFD700; padding: 12px; border-radius: 5px;">
+                        <div style="color: #FFD700; font-weight: bold; margin-bottom: 8px;">💎 SET 3: SOL High-Liquidity</div>
+                        <div style="color: #b8c6db; font-size: 0.85rem; line-height: 1.6;">
+                            <div>• 6 paths (3-leg cycles)</div>
+                            <div>• Assets: SOL, BTC, ETH, BNB, AVAX</div>
+                            <div>• Funding: ~$50-100 USDT per path</div>
+                            <div>• Total Set Budget: ~$300-600 USDT</div>
+                        </div>
+                    </div>
+
+                    <!-- SET 4 -->
+                    <div style="background: rgba(255,165,0,0.05); border-left: 3px solid #FFA500; padding: 12px; border-radius: 5px;">
+                        <div style="color: #FFA500; font-weight: bold; margin-bottom: 8px;">⚡ SET 4: High Volatility</div>
+                        <div style="color: #b8c6db; font-size: 0.85rem; line-height: 1.6;">
+                            <div>• 6 paths (3-leg cycles)</div>
+                            <div>• Assets: FTM, NEAR, AAVE, ALGO</div>
+                            <div>• Funding: ~$75-150 USDT per path</div>
+                            <div>• Total Set Budget: ~$450-900 USDT</div>
+                        </div>
+                    </div>
+
+                    <!-- SET 5 -->
+                    <div style="background: rgba(255,0,0,0.05); border-left: 3px solid #ff4444; padding: 12px; border-radius: 5px;">
+                        <div style="color: #ff4444; font-weight: bold; margin-bottom: 8px;">🔁 SET 5: Extended Multi-Bridge</div>
+                        <div style="color: #b8c6db; font-size: 0.85rem; line-height: 1.6;">
+                            <div>• 6 paths (4 three-leg, 2 four-leg)</div>
+                            <div>• Assets: XRP, LTC, TRX, ADA, DOGE</div>
+                            <div>• Funding: ~$75-150 USDT per path</div>
+                            <div>• Total Set Budget: ~$450-900 USDT</div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Risk Management -->
+                <div style="margin-top: 15px; padding: 12px; background: rgba(0,191,255,0.1); border-radius: 5px;">
+                    <div style="color: #00BFFF; font-weight: bold; margin-bottom: 5px;">📊 TOTAL FUNDING RANGE</div>
+                    <div style="color: #b8c6db; font-size: 0.9rem;">
+                        • Conservative (All Sets): ~$1,900 USDT | Recommended (All Sets): ~$3,800 USDT
+                    </div>
+                    <div style="color: #888; font-size: 0.85rem; margin-top: 8px;">
+                        💡 <strong>Portfolio % Mode:</strong> Trade amount = MIN(portfolioPercent × balance, maxTradeAmount). Start with conservative funding and scale up as profits compound.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Grid: Risk Management, Path Sets, Performance Stats -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 20px;">
+
+                <!-- Column 1: Risk Management -->
                 <div class="stat-card">
                     <h4 style="color: #00BFFF; margin-bottom: 15px;">⚖️ Risk Management</h4>
+
                     <label style="display: block; color: #888; margin-bottom: 5px; font-size: 14px;">Max Trade Amount (USDT)</label>
-                    <input type="number" id="bingxMaxTrade" value="100" min="10" max="10000" step="10" style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid #444; border-radius: 8px; color: white; margin-bottom: 15px;">
+                    <input type="number" id="bingxMaxTrade" value="1000" min="10" max="10000" step="10"
+                           style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid #444; border-radius: 8px; color: white; margin-bottom: 15px;"
+                           onchange="saveBingxTriangularSettings()">
 
                     <label style="display: block; color: #888; margin-bottom: 5px; font-size: 14px;">Portfolio % Risk</label>
-                    <input type="number" id="bingxPortfolioPercent" value="5" min="1" max="20" step="1" style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid #444; border-radius: 8px; color: white; margin-bottom: 15px;">
+                    <input type="number" id="bingxPortfolioPercent" value="10" min="1" max="20" step="1"
+                           style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid #444; border-radius: 8px; color: white; margin-bottom: 15px;"
+                           onchange="saveBingxTriangularSettings()">
 
                     <label style="display: block; color: #888; margin-bottom: 5px; font-size: 14px;">Min Profit Threshold (%)</label>
-                    <input type="number" id="bingxProfitThreshold" value="0.3" min="0.1" max="5" step="0.1" style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid #444; border-radius: 8px; color: white;">
+                    <input type="number" id="bingxProfitThreshold" value="0.5" min="0.1" max="5" step="0.1"
+                           style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid #444; border-radius: 8px; color: white;"
+                           onchange="saveBingxTriangularSettings()">
+
+                    <div style="margin-top: 15px; padding: 10px; background: rgba(0,191,255,0.1); border-radius: 5px;">
+                        <div style="color: #00BFFF; font-size: 0.85rem; font-weight: bold; margin-bottom: 5px;">💡 Portfolio % Mode Active</div>
+                        <div style="color: #888; font-size: 0.8rem; line-height: 1.4;">Trade size = MIN(10% × balance, $1,000 cap)</div>
+                    </div>
                 </div>
 
-                <!-- Path Sets -->
+                <!-- Column 2: Path Sets -->
                 <div class="stat-card">
                     <h4 style="color: #00BFFF; margin-bottom: 15px;">🔀 Path Selection (32 Total)</h4>
                     <div style="display: flex; flex-direction: column; gap: 10px;">
                         <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                            <input type="checkbox" id="bingxSet1Enabled" checked style="width: 18px; height: 18px; cursor: pointer;">
-                            <span style="color: #ddd;">✅ SET 1: Essential ETH Bridge (7 paths)</span>
+                            <input type="checkbox" id="bingxSet1Enabled" checked style="width: 18px; height: 18px; cursor: pointer;" onchange="saveBingxTriangularSettings()">
+                            <span style="color: #00ff00; font-weight: 600;">✅ SET 1: Essential ETH (7)</span>
                         </label>
                         <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                            <input type="checkbox" id="bingxSet2Enabled" checked style="width: 18px; height: 18px; cursor: pointer;">
-                            <span style="color: #ddd;">✅ SET 2: Mid-Cap BTC Bridge (7 paths)</span>
+                            <input type="checkbox" id="bingxSet2Enabled" checked style="width: 18px; height: 18px; cursor: pointer;" onchange="saveBingxTriangularSettings()">
+                            <span style="color: #00ff00; font-weight: 600;">✅ SET 2: Mid-Cap BTC (7)</span>
                         </label>
                         <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                            <input type="checkbox" id="bingxSet3Enabled" style="width: 18px; height: 18px; cursor: pointer;">
-                            <span style="color: #ddd;">💎 SET 3: SOL High-Liquidity (6 paths)</span>
+                            <input type="checkbox" id="bingxSet3Enabled" style="width: 18px; height: 18px; cursor: pointer;" onchange="saveBingxTriangularSettings()">
+                            <span style="color: #FFD700; font-weight: 600;">💎 SET 3: SOL High-Liq (6)</span>
                         </label>
                         <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                            <input type="checkbox" id="bingxSet4Enabled" style="width: 18px; height: 18px; cursor: pointer;">
-                            <span style="color: #ddd;">⚡ SET 4: High Volatility (6 paths)</span>
+                            <input type="checkbox" id="bingxSet4Enabled" style="width: 18px; height: 18px; cursor: pointer;" onchange="saveBingxTriangularSettings()">
+                            <span style="color: #FFA500; font-weight: 600;">⚡ SET 4: High Volatility (6)</span>
                         </label>
                         <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                            <input type="checkbox" id="bingxSet5Enabled" style="width: 18px; height: 18px; cursor: pointer;">
-                            <span style="color: #ddd;">🔁 SET 5: Extended Multi-Bridge (6 paths)</span>
+                            <input type="checkbox" id="bingxSet5Enabled" style="width: 18px; height: 18px; cursor: pointer;" onchange="saveBingxTriangularSettings()">
+                            <span style="color: #ff4444; font-weight: 600;">🔁 SET 5: Multi-Bridge (6)</span>
                         </label>
+                    </div>
+
+                    <div style="margin-top: 15px;">
+                        <button onclick="viewBingxPathDetails()"
+                                style="width: 100%; padding: 10px; background: rgba(0,191,255,0.2); color: #00BFFF; border: 1px solid #00BFFF; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                            📋 View All 32 Paths
+                        </button>
                     </div>
                 </div>
 
-                <!-- Scanner Controls -->
+                <!-- Column 3: Performance Stats -->
                 <div class="stat-card">
-                    <h4 style="color: #00BFFF; margin-bottom: 15px;">🔍 Scanner</h4>
-                    <button onclick="scanBingXTriangularPaths()" style="width: 100%; padding: 12px; background: #00BFFF; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 16px; margin-bottom: 15px;">
-                        🔍 Scan Opportunities
+                    <h4 style="color: #00BFFF; margin-bottom: 15px;">📊 Performance Stats</h4>
+                    <div style="display: grid; gap: 10px;">
+                        <div style="background: rgba(0,191,255,0.1); padding: 10px; border-radius: 5px;">
+                            <div style="color: #888; font-size: 0.75rem; margin-bottom: 3px;">Paths Scanned</div>
+                            <div id="bingxPathsScanned" style="color: #00BFFF; font-size: 1.3rem; font-weight: bold;">0</div>
+                        </div>
+                        <div style="background: rgba(0,191,255,0.1); padding: 10px; border-radius: 5px;">
+                            <div style="color: #888; font-size: 0.75rem; margin-bottom: 3px;">Opportunities Found</div>
+                            <div id="bingxOpportunitiesFound" style="color: #00d26a; font-size: 1.3rem; font-weight: bold;">0</div>
+                        </div>
+                        <div style="background: rgba(0,191,255,0.1); padding: 10px; border-radius: 5px;">
+                            <div style="color: #888; font-size: 0.75rem; margin-bottom: 3px;">Trades Executed</div>
+                            <div id="bingxTradesExecuted" style="color: #00BFFF; font-size: 1.3rem; font-weight: bold;">0</div>
+                        </div>
+                        <div style="background: rgba(0,191,255,0.1); padding: 10px; border-radius: 5px;">
+                            <div style="color: #888; font-size: 0.75rem; margin-bottom: 3px;">Success Rate</div>
+                            <div id="bingxSuccessRate" style="color: #00BFFF; font-size: 1.3rem; font-weight: bold;">0%</div>
+                        </div>
+                        <div style="background: rgba(0,191,255,0.1); padding: 10px; border-radius: 5px;">
+                            <div style="color: #888; font-size: 0.75rem; margin-bottom: 3px;">Total Profit</div>
+                            <div id="bingxTotalProfit" style="color: #00d26a; font-size: 1.3rem; font-weight: bold;">$0.00</div>
+                        </div>
+                        <div style="background: rgba(0,191,255,0.1); padding: 10px; border-radius: 5px;">
+                            <div style="color: #888; font-size: 0.75rem; margin-bottom: 3px;">Avg Profit/Trade</div>
+                            <div id="bingxAvgProfit" style="color: #00BFFF; font-size: 1.3rem; font-weight: bold;">$0.00</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabbed Interface: Balance Tracker & Trading -->
+            <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px;">
+                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                    <button id="bingxBalanceTab" onclick="switchBingxTab('balance')"
+                            style="flex: 1; padding: 12px; background: #00BFFF; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.3s;">
+                        💰 Balance Tracker
                     </button>
-                    <div id="bingxScanStatus" style="color: #888; font-size: 14px; text-align: center; min-height: 20px;"></div>
+                    <button id="bingxTradingTab" onclick="switchBingxTab('trading')"
+                            style="flex: 1; padding: 12px; background: rgba(0,191,255,0.2); color: #00BFFF; border: 1px solid #00BFFF; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.3s;">
+                        🚀 Current Opportunities
+                    </button>
                 </div>
 
-                <!-- Opportunities Display -->
-                <div class="stat-card" style="grid-column: 1 / -1;">
-                    <h4 style="color: #00BFFF; margin-bottom: 15px;">💎 Active Opportunities</h4>
+                <!-- Balance Tracker Tab Content -->
+                <div id="bingxBalanceContent" style="display: block;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px;">
+                        <div style="background: rgba(0,191,255,0.1); padding: 15px; border-radius: 8px;">
+                            <div style="color: #888; font-size: 0.85rem; margin-bottom: 5px;">Starting Balance</div>
+                            <div id="bingxStartingUSDT" style="color: #00BFFF; font-size: 1.4rem; font-weight: bold;">0.00 USDT</div>
+                        </div>
+                        <div style="background: rgba(0,191,255,0.1); padding: 15px; border-radius: 8px;">
+                            <div style="color: #888; font-size: 0.85rem; margin-bottom: 5px;">Current Balance</div>
+                            <div id="bingxCurrentUSDT" style="color: #00BFFF; font-size: 1.4rem; font-weight: bold;">0.00 USDT</div>
+                        </div>
+                        <div style="background: rgba(0,191,255,0.1); padding: 15px; border-radius: 8px;">
+                            <div style="color: #888; font-size: 0.85rem; margin-bottom: 5px;">Change</div>
+                            <div id="bingxChangeUSDT" style="font-size: 1.4rem; font-weight: bold;">0.00 USDT (0.0%)</div>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button onclick="updateBingxBalance()"
+                                style="flex: 1; padding: 10px; background: #00BFFF; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                            🔄 Refresh Balance
+                        </button>
+                        <button onclick="resetBingxStartingBalance()"
+                                style="flex: 1; padding: 10px; background: rgba(0,191,255,0.2); color: #00BFFF; border: 1px solid #00BFFF; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                            📊 Reset Starting Point
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Trading Tab Content -->
+                <div id="bingxTradingContent" style="display: none;">
+                    <button onclick="scanBingxTriangularPaths()"
+                            style="width: 100%; padding: 12px; background: #00BFFF; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 16px; margin-bottom: 15px;">
+                        🔍 Scan Opportunities Now
+                    </button>
+                    <div id="bingxScanStatus" style="color: #888; font-size: 14px; text-align: center; margin-bottom: 15px; min-height: 20px;"></div>
                     <div id="bingxOpportunities" style="color: #888; font-size: 14px;">
-                        No scan results yet. Click "Scan Opportunities" to begin.
+                        No opportunities found yet. Click "Scan Opportunities Now" to begin scanning.
                     </div>
-                </div>
-
-                <!-- Trade History -->
-                <div class="stat-card" style="grid-column: 1 / -1;">
-                    <h4 style="color: #00BFFF; margin-bottom: 15px;">📜 Recent Trades</h4>
-                    <div id="bingxTradeHistory" style="color: #888; font-size: 14px;">
-                        No trade history available.
-                    </div>
+                    <button onclick="clearBingxHistory()"
+                            style="width: 100%; padding: 10px; background: rgba(255,68,68,0.2); color: #ff4444; border: 1px solid #ff4444; border-radius: 8px; cursor: pointer; font-weight: 600; margin-top: 15px;">
+                        🗑️ Clear Opportunity History
+                    </button>
                 </div>
             </div>
         </div>
@@ -14110,123 +14248,315 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
             switchAscendexTab('balance');
         });
 
-        // ============================================================================
+        // ═══════════════════════════════════════════════════════════
         // BINGX TRIANGULAR ARBITRAGE FUNCTIONS
-        // ============================================================================
+        // ═══════════════════════════════════════════════════════════
 
-        // Test BingX Connection
-        async function testBingXTriangularConnection() {
-            const apiKey = localStorage.getItem('bingx_api') || '';
-            const apiSecret = localStorage.getItem('bingx_secret') || '';
-            const statusIndicator = document.getElementById('bingxStatusIndicator');
-            const statusText = document.getElementById('bingxStatusText');
+        // 1. Toggle BingX Triangular
+        function toggleBingxTriangular() {
+            const toggle = document.getElementById('bingxTriangularEnabled');
+            const status = document.getElementById('bingxTriangularStatus');
+            const isActive = toggle.classList.toggle('active');
 
-            if (!apiKey || !apiSecret) {
-                statusIndicator.style.background = '#FF4444';
-                statusText.textContent = 'No API credentials configured';
-                statusText.style.color = '#FF4444';
-                return;
+            if (isActive) {
+                status.textContent = 'ON';
+                status.style.color = '#00BFFF';
+                localStorage.setItem('bingxTriangularEnabled', 'true');
+            } else {
+                status.textContent = 'OFF';
+                status.style.color = '#ff6b6b';
+                localStorage.setItem('bingxTriangularEnabled', 'false');
             }
+        }
 
-            statusIndicator.style.background = '#FFD700';
-            statusText.textContent = 'Testing connection...';
-            statusText.style.color = '#FFD700';
+        // 2. View BingX Path Details (Professional Modal)
+        function viewBingxPathDetails() {
+            // Create modal overlay
+            const modal = document.createElement('div');
+            modal.id = 'bingxPathsModal';
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.85);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 10000;
+                backdrop-filter: blur(5px);
+            `;
 
+            // Create modal content
+            const modalContent = document.createElement('div');
+            modalContent.style.cssText = `
+                background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+                border-radius: 20px;
+                max-width: 900px;
+                max-height: 90vh;
+                overflow-y: auto;
+                padding: 30px;
+                box-shadow: 0 10px 50px rgba(0,191,255,0.3);
+                border: 2px solid #00BFFF;
+            `;
+
+            modalContent.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                    <h2 style="color: #00BFFF; margin: 0; font-size: 1.8rem;">🌊 BingX Triangular Arbitrage Paths</h2>
+                    <button onclick="document.getElementById('bingxPathsModal').remove()"
+                            style="background: rgba(255,68,68,0.2); color: #ff4444; border: 1px solid #ff4444; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                        ✕ Close
+                    </button>
+                </div>
+
+                <div style="background: rgba(0,191,255,0.1); padding: 15px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #00BFFF;">
+                    <div style="color: #00BFFF; font-weight: bold; margin-bottom: 8px;">📊 Overview</div>
+                    <div style="color: #b8c6db; font-size: 0.9rem; line-height: 1.6;">
+                        • <strong>32 Total Paths:</strong> 31 three-leg + 1 four-leg cycles<br>
+                        • <strong>Bridge Currency:</strong> USDT (200+ trading pairs)<br>
+                        • <strong>Native Token:</strong> None (uses SOL for high-liquidity paths)<br>
+                        • <strong>Authentication:</strong> HMAC-SHA256 with X-BX-APIKEY header<br>
+                        • <strong>Exchange:</strong> BingX (Global derivatives & spot)
+                    </div>
+                </div>
+
+                <!-- SET 1 -->
+                <div style="background: rgba(0,255,0,0.05); border-left: 4px solid #00ff00; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                    <div style="color: #00ff00; font-weight: bold; font-size: 1.1rem; margin-bottom: 12px;">✅ SET 1: Essential ETH Bridge (7 paths) - ENABLED BY DEFAULT</div>
+                    <div style="color: #b8c6db; font-size: 0.9rem; line-height: 1.8;">
+                        1. USDT → ETH → BTC → USDT (ETH-USDT, BTC-ETH, BTC-USDT)<br>
+                        2. USDT → ETH → SOL → USDT (ETH-USDT, SOL-ETH, SOL-USDT)<br>
+                        3. USDT → ETH → XRP → USDT (ETH-USDT, XRP-ETH, XRP-USDT)<br>
+                        4. USDT → ETH → ADA → USDT (ETH-USDT, ADA-ETH, ADA-USDT)<br>
+                        5. USDT → ETH → DOT → USDT (ETH-USDT, DOT-ETH, DOT-USDT)<br>
+                        6. USDT → ETH → MATIC → USDT (ETH-USDT, MATIC-ETH, MATIC-USDT)<br>
+                        7. USDT → ETH → LINK → USDT (ETH-USDT, LINK-ETH, LINK-USDT)
+                    </div>
+                </div>
+
+                <!-- SET 2 -->
+                <div style="background: rgba(0,255,0,0.05); border-left: 4px solid #00ff00; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                    <div style="color: #00ff00; font-weight: bold; font-size: 1.1rem; margin-bottom: 12px;">✅ SET 2: Mid-Cap BTC Bridge (7 paths) - ENABLED BY DEFAULT</div>
+                    <div style="color: #b8c6db; font-size: 0.9rem; line-height: 1.8;">
+                        1. USDT → BTC → ETH → USDT (BTC-USDT, ETH-BTC, ETH-USDT)<br>
+                        2. USDT → BTC → SOL → USDT (BTC-USDT, SOL-BTC, SOL-USDT)<br>
+                        3. USDT → BTC → AVAX → USDT (BTC-USDT, AVAX-BTC, AVAX-USDT)<br>
+                        4. USDT → BTC → ATOM → USDT (BTC-USDT, ATOM-BTC, ATOM-USDT)<br>
+                        5. USDT → BTC → LTC → USDT (BTC-USDT, LTC-BTC, LTC-USDT)<br>
+                        6. USDT → BTC → UNI → USDT (BTC-USDT, UNI-BTC, UNI-USDT)<br>
+                        7. USDT → BTC → FIL → USDT (BTC-USDT, FIL-BTC, FIL-USDT)
+                    </div>
+                </div>
+
+                <!-- SET 3 -->
+                <div style="background: rgba(255,215,0,0.05); border-left: 4px solid #FFD700; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                    <div style="color: #FFD700; font-weight: bold; font-size: 1.1rem; margin-bottom: 12px;">🌟 SET 3: SOL High-Liquidity (6 paths) - No Native Token</div>
+                    <div style="color: #b8c6db; font-size: 0.9rem; line-height: 1.8;">
+                        1. USDT → SOL → BTC → USDT (SOL-USDT, BTC-SOL, BTC-USDT)<br>
+                        2. USDT → SOL → ETH → USDT (SOL-USDT, ETH-SOL, ETH-USDT)<br>
+                        3. USDT → SOL → XRP → USDT (SOL-USDT, XRP-SOL, XRP-USDT)<br>
+                        4. USDT → SOL → ADA → USDT (SOL-USDT, ADA-SOL, ADA-USDT)<br>
+                        5. USDT → SOL → DOT → USDT (SOL-USDT, DOT-SOL, DOT-USDT)<br>
+                        6. USDT → SOL → AVAX → USDT (SOL-USDT, AVAX-SOL, AVAX-USDT)
+                    </div>
+                </div>
+
+                <!-- SET 4 -->
+                <div style="background: rgba(255,165,0,0.05); border-left: 4px solid #FFA500; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                    <div style="color: #FFA500; font-weight: bold; font-size: 1.1rem; margin-bottom: 12px;">⚡ SET 4: High Volatility (6 paths)</div>
+                    <div style="color: #b8c6db; font-size: 0.9rem; line-height: 1.8;">
+                        1. USDT → DOGE → BTC → USDT (DOGE-USDT, BTC-DOGE, BTC-USDT)<br>
+                        2. USDT → SHIB → ETH → USDT (SHIB-USDT, ETH-SHIB, ETH-USDT)<br>
+                        3. USDT → PEPE → ETH → USDT (PEPE-USDT, ETH-PEPE, ETH-USDT)<br>
+                        4. USDT → NEAR → BTC → USDT (NEAR-USDT, BTC-NEAR, BTC-USDT)<br>
+                        5. USDT → APT → ETH → USDT (APT-USDT, ETH-APT, ETH-USDT)<br>
+                        6. USDT → FTM → BTC → USDT (FTM-USDT, BTC-FTM, BTC-USDT)
+                    </div>
+                </div>
+
+                <!-- SET 5 -->
+                <div style="background: rgba(255,0,0,0.05); border-left: 4px solid #ff4444; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                    <div style="color: #ff4444; font-weight: bold; font-size: 1.1rem; margin-bottom: 12px;">🔁 SET 5: Extended Multi-Bridge (6 paths) - Includes 1 Four-Leg Path</div>
+                    <div style="color: #b8c6db; font-size: 0.9rem; line-height: 1.8;">
+                        1. USDT → TRX → BTC → USDT (TRX-USDT, BTC-TRX, BTC-USDT)<br>
+                        2. USDT → ALGO → ETH → USDT (ALGO-USDT, ETH-ALGO, ETH-USDT)<br>
+                        3. USDT → VET → BTC → USDT (VET-USDT, BTC-VET, BTC-USDT)<br>
+                        4. USDT → HBAR → ETH → USDT (HBAR-USDT, ETH-HBAR, ETH-USDT)<br>
+                        5. USDT → SAND → ETH → USDT (SAND-USDT, ETH-SAND, ETH-USDT)<br>
+                        6. USDT → BTC → ETH → SOL → USDT ⭐ <strong style="color: #ff4444;">4-LEG</strong> (BTC-USDT, ETH-BTC, SOL-ETH, SOL-USDT)
+                    </div>
+                </div>
+
+                <div style="background: rgba(0,191,255,0.1); padding: 15px; border-radius: 10px; margin-top: 20px; border-left: 4px solid #00BFFF;">
+                    <div style="color: #00BFFF; font-weight: bold; margin-bottom: 8px;">💡 Portfolio % Risk Management</div>
+                    <div style="color: #b8c6db; font-size: 0.9rem; line-height: 1.6;">
+                        Trade Amount = <strong>MIN(portfolioPercent × balance, maxTradeAmount)</strong><br>
+                        Default: 10% of USDT balance, capped at $1,000<br>
+                        Adjust in Risk Management settings above.
+                    </div>
+                </div>
+            `;
+
+            modal.appendChild(modalContent);
+            document.body.appendChild(modal);
+
+            // Close on background click
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.remove();
+                }
+            });
+        }
+
+        // 3. Switch BingX Tabs
+        function switchBingxTab(tab) {
+            const balanceTab = document.getElementById('bingxBalanceTab');
+            const tradingTab = document.getElementById('bingxTradingTab');
+            const balanceContent = document.getElementById('bingxBalanceContent');
+            const tradingContent = document.getElementById('bingxTradingContent');
+
+            if (tab === 'balance') {
+                balanceTab.style.background = '#00BFFF';
+                balanceTab.style.color = 'white';
+                balanceTab.style.border = 'none';
+                tradingTab.style.background = 'rgba(0,191,255,0.2)';
+                tradingTab.style.color = '#00BFFF';
+                tradingTab.style.border = '1px solid #00BFFF';
+
+                balanceContent.style.display = 'block';
+                tradingContent.style.display = 'none';
+            } else {
+                tradingTab.style.background = '#00BFFF';
+                tradingTab.style.color = 'white';
+                tradingTab.style.border = 'none';
+                balanceTab.style.background = 'rgba(0,191,255,0.2)';
+                balanceTab.style.color = '#00BFFF';
+                balanceTab.style.border = '1px solid #00BFFF';
+
+                tradingContent.style.display = 'block';
+                balanceContent.style.display = 'none';
+            }
+        }
+
+        // 4. BingX Balance Tracking
+        const bingxBalanceTracking = {
+            starting: 0,
+            current: 0,
+            initialized: false
+        };
+
+        async function initializeBingxBalance() {
             try {
-                const response = await fetch('/api/v1/trading/bingx/triangular/test-connection', {
+                const apiKey = localStorage.getItem('bingx_triangular_api');
+                const apiSecret = localStorage.getItem('bingx_triangular_secret');
+
+                if (!apiKey || !apiSecret) {
+                    console.log('BingX credentials not found, skipping balance initialization');
+                    return;
+                }
+
+                const response = await fetch('/api/v1/trading/bingx/balance', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ apiKey, apiSecret })
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    },
+                    body: JSON.stringify({
+                        apiKey,
+                        apiSecret,
+                        currency: 'USDT'
+                    })
                 });
 
                 const result = await response.json();
 
                 if (result.success) {
-                    statusIndicator.style.background = '#00ff88';
-                    statusText.textContent = `Connected | ${result.data.balances.length} assets`;
-                    statusText.style.color = '#00ff88';
-                    saveBingXTriangularSettings();
+                    const balance = parseFloat(result.balance) || 0;
+                    bingxBalanceTracking.starting = balance;
+                    bingxBalanceTracking.current = balance;
+                    bingxBalanceTracking.initialized = true;
+                    updateBingxBalanceDisplay();
+                    console.log('✅ [BINGX] Balance initialized:', balance);
                 } else {
-                    statusIndicator.style.background = '#FF4444';
-                    statusText.textContent = 'Connection failed';
-                    statusText.style.color = '#FF4444';
+                    console.warn('BingX balance fetch failed:', result.message);
+                    // Set to 0 if failed
+                    bingxBalanceTracking.starting = 0;
+                    bingxBalanceTracking.current = 0;
+                    updateBingxBalanceDisplay();
                 }
             } catch (error) {
-                statusIndicator.style.background = '#FF4444';
-                statusText.textContent = 'Connection error';
-                statusText.style.color = '#FF4444';
+                console.error('BingX balance initialization error:', error);
             }
         }
 
-        // View BingX Path Details
-        function viewBingXPathDetails() {
-            const pathDetails = `
-📋 BINGX Triangular Arbitrage Paths (32 Total)
+        async function updateBingxBalance() {
+            try {
+                const apiKey = localStorage.getItem('bingx_triangular_api');
+                const apiSecret = localStorage.getItem('bingx_triangular_secret');
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 1: Essential ETH Bridge (7 paths) ✅ DEFAULT
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. USDT → ETH → BTC → USDT
-2. USDT → ETH → SOL → USDT
-3. USDT → ETH → XRP → USDT
-4. USDT → ETH → ADA → USDT
-5. USDT → ETH → DOT → USDT
-6. USDT → ETH → MATIC → USDT
-7. USDT → ETH → LINK → USDT
+                if (!apiKey || !apiSecret) {
+                    alert('❌ BingX API credentials not found!\n\nPlease set your API credentials on the SETUP page first.');
+                    return;
+                }
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 2: Mid-Cap BTC Bridge (7 paths) ✅ DEFAULT
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. USDT → BTC → ETH → USDT
-2. USDT → BTC → SOL → USDT
-3. USDT → BTC → AVAX → USDT
-4. USDT → BTC → ATOM → USDT
-5. USDT → BTC → LTC → USDT
-6. USDT → BTC → UNI → USDT
-7. USDT → BTC → FIL → USDT
+                const response = await fetch('/api/v1/trading/bingx/balance', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    },
+                    body: JSON.stringify({
+                        apiKey,
+                        apiSecret,
+                        currency: 'USDT'
+                    })
+                });
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 3: SOL High-Liquidity (6 paths)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. USDT → SOL → BTC → USDT
-2. USDT → SOL → ETH → USDT
-3. USDT → SOL → XRP → USDT
-4. USDT → SOL → ADA → USDT
-5. USDT → SOL → DOT → USDT
-6. USDT → SOL → AVAX → USDT
+                const result = await response.json();
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 4: High Volatility (6 paths)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. USDT → DOGE → BTC → USDT
-2. USDT → SHIB → ETH → USDT
-3. USDT → PEPE → ETH → USDT
-4. USDT → NEAR → BTC → USDT
-5. USDT → APT → ETH → USDT
-6. USDT → FTM → BTC → USDT
+                if (result.success) {
+                    const balance = parseFloat(result.balance) || 0;
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 5: Extended Multi-Bridge (6 paths)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. USDT → TRX → BTC → USDT
-2. USDT → ALGO → ETH → USDT
-3. USDT → VET → BTC → USDT
-4. USDT → HBAR → ETH → USDT
-5. USDT → SAND → ETH → USDT
-6. USDT → BTC → ETH → SOL → USDT (4-leg)
+                    if (!bingxBalanceTracking.initialized) {
+                        bingxBalanceTracking.starting = balance;
+                        bingxBalanceTracking.initialized = true;
+                    }
 
-💡 TOTAL: 32 paths (31 three-leg + 1 four-leg)
-🌉 BRIDGE: USDT (Tether)
-🌍 GLOBAL: Derivatives and spot exchange
-🔐 AUTH: API Key + Secret
-            `.trim();
-
-            alert(pathDetails);
-            console.log('📋 [BINGX] Path details displayed:', pathDetails);
+                    bingxBalanceTracking.current = balance;
+                    updateBingxBalanceDisplay();
+                } else {
+                    alert(`❌ Failed to fetch BingX balance\n\n${result.message}`);
+                }
+            } catch (error) {
+                console.error('BingX balance update error:', error);
+                alert(`❌ Failed to fetch BingX balance\n\n${error.message}`);
+            }
         }
 
-        // Save BingX Settings
-        function saveBingXTriangularSettings() {
+        function updateBingxBalanceDisplay() {
+            // Ensure we have valid numbers, default to 0 if undefined/null/NaN
+            const starting = Number(bingxBalanceTracking.starting) || 0;
+            const current = Number(bingxBalanceTracking.current) || 0;
+            const change = current - starting;
+            const changePercent = starting > 0 ? ((change / starting) * 100).toFixed(2) : '0.00';
+            const changeSign = change >= 0 ? '+' : '';
+            const changeColor = change >= 0 ? '#00d26a' : '#ff4444';
+
+            document.getElementById('bingxStartingUSDT').textContent = `${starting.toFixed(2)} USDT`;
+            document.getElementById('bingxCurrentUSDT').textContent = `${current.toFixed(2)} USDT`;
+            document.getElementById('bingxChangeUSDT').innerHTML = `<span style="color: ${changeColor}">${changeSign}${change.toFixed(2)} USDT (${changeSign}${changePercent}%)</span>`;
+        }
+
+        function resetBingxStartingBalance() {
+            if (confirm('Reset starting balance to current balance?\n\nThis will reset your profit tracking.')) {
+                bingxBalanceTracking.starting = bingxBalanceTracking.current;
+                updateBingxBalanceDisplay();
+            }
+        }
+
+        // 5. Save BingX Settings
+        function saveBingxTriangularSettings() {
             const settings = {
                 maxTrade: document.getElementById('bingxMaxTrade').value,
                 portfolioPercent: document.getElementById('bingxPortfolioPercent').value,
@@ -14239,122 +14569,177 @@ SET 5: Extended Multi-Bridge (6 paths)
             };
 
             localStorage.setItem('bingx_triangular_settings', JSON.stringify(settings));
-            console.log('🌊 [BINGX] Settings saved:', settings);
+            console.log('✅ [BINGX] Settings saved:', settings);
         }
 
-        // Load BingX Settings
-        function loadBingXTriangularSettings() {
-            const savedSettings = localStorage.getItem('bingx_triangular_settings');
-            if (savedSettings) {
-                const settings = JSON.parse(savedSettings);
-                document.getElementById('bingxMaxTrade').value = settings.maxTrade || 100;
-                document.getElementById('bingxPortfolioPercent').value = settings.portfolioPercent || 5;
-                document.getElementById('bingxProfitThreshold').value = settings.profitThreshold || 0.3;
+        // 6. Load BingX Settings
+        function loadBingxTriangularSettings() {
+            const saved = localStorage.getItem('bingx_triangular_settings');
+            if (saved) {
+                const settings = JSON.parse(saved);
+                document.getElementById('bingxMaxTrade').value = settings.maxTrade || 1000;
+                document.getElementById('bingxPortfolioPercent').value = settings.portfolioPercent || 10;
+                document.getElementById('bingxProfitThreshold').value = settings.profitThreshold || 0.5;
                 document.getElementById('bingxSet1Enabled').checked = settings.set1Enabled !== false;
                 document.getElementById('bingxSet2Enabled').checked = settings.set2Enabled !== false;
-                document.getElementById('bingxSet3Enabled').checked = settings.set3Enabled || false;
-                document.getElementById('bingxSet4Enabled').checked = settings.set4Enabled || false;
-                document.getElementById('bingxSet5Enabled').checked = settings.set5Enabled || false;
+                document.getElementById('bingxSet3Enabled').checked = settings.set3Enabled === true;
+                document.getElementById('bingxSet4Enabled').checked = settings.set4Enabled === true;
+                document.getElementById('bingxSet5Enabled').checked = settings.set5Enabled === true;
+                console.log('✅ [BINGX] Settings loaded:', settings);
+            }
+
+            // Load toggle state
+            const enabled = localStorage.getItem('bingxTriangularEnabled') === 'true';
+            const toggle = document.getElementById('bingxTriangularEnabled');
+            const status = document.getElementById('bingxTriangularStatus');
+
+            if (enabled) {
+                toggle.classList.add('active');
+                status.textContent = 'ON';
+                status.style.color = '#00BFFF';
+            } else {
+                toggle.classList.remove('active');
+                status.textContent = 'OFF';
+                status.style.color = '#ff6b6b';
             }
         }
 
-        // Scan BingX Triangular Opportunities
-        async function scanBingXTriangularPaths() {
-            const apiKey = localStorage.getItem('bingx_api') || '';
-            const apiSecret = localStorage.getItem('bingx_secret') || '';
-            const minProfitPercent = parseFloat(document.getElementById('bingxProfitThreshold').value);
-            const scanStatus = document.getElementById('bingxScanStatus');
-            const opportunitiesDiv = document.getElementById('bingxOpportunities');
-
-            if (!apiKey || !apiSecret) {
-                opportunitiesDiv.innerHTML = '<div style="color: #FF4444;">⚠️ No API credentials configured. Please connect BingX on the Exchange Connections page.</div>';
-                return;
+        // 7. Clear BingX History
+        function clearBingxHistory() {
+            if (confirm('Clear all opportunity history?\n\nThis cannot be undone.')) {
+                document.getElementById('bingxOpportunities').innerHTML = '<div style="color: #888; font-size: 14px;">No opportunities found yet. Click "Scan Opportunities Now" to begin scanning.</div>';
+                document.getElementById('bingxScanStatus').textContent = '';
+                document.getElementById('bingxPathsScanned').textContent = '0';
+                document.getElementById('bingxOpportunitiesFound').textContent = '0';
             }
+        }
 
-            scanStatus.innerHTML = '<span style="color: #FFD700;">🔍 Scanning 32 paths...</span>';
-            opportunitiesDiv.innerHTML = '<div style="color: #888;">Scanning in progress...</div>';
-
+        // 8. Scan BingX Triangular Paths (Updated with portfolioPercent)
+        async function scanBingxTriangularPaths() {
             try {
+                const apiKey = localStorage.getItem('bingx_triangular_api');
+                const apiSecret = localStorage.getItem('bingx_triangular_secret');
+
+                if (!apiKey || !apiSecret) {
+                    alert('❌ BingX API credentials not found!\n\nPlease set your API credentials on the SETUP page first.');
+                    return;
+                }
+
+                const maxTradeAmount = parseFloat(document.getElementById('bingxMaxTrade').value);
+                const portfolioPercent = parseFloat(document.getElementById('bingxPortfolioPercent').value);
+                const profitThreshold = parseFloat(document.getElementById('bingxProfitThreshold').value);
+
+                const enabledSets = {
+                    SET_1_ESSENTIAL_ETH_BRIDGE: document.getElementById('bingxSet1Enabled').checked,
+                    SET_2_MIDCAP_BTC_BRIDGE: document.getElementById('bingxSet2Enabled').checked,
+                    SET_3_SOL_HIGH_LIQUIDITY: document.getElementById('bingxSet3Enabled').checked,
+                    SET_4_HIGH_VOLATILITY: document.getElementById('bingxSet4Enabled').checked,
+                    SET_5_EXTENDED_MULTIBRIDGE: document.getElementById('bingxSet5Enabled').checked
+                };
+
+                document.getElementById('bingxScanStatus').textContent = '🔍 Scanning BingX paths...';
+                document.getElementById('bingxOpportunities').innerHTML = '<div style="text-align: center; padding: 20px; color: #00BFFF;">⏳ Analyzing 200+ pairs...</div>';
+
                 const response = await fetch('/api/v1/trading/bingx/triangular/scan', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ apiKey, apiSecret, minProfitPercent })
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    },
+                    body: JSON.stringify({ apiKey, apiSecret, maxTradeAmount, portfolioPercent, profitThreshold, enabledSets })
                 });
 
                 const result = await response.json();
 
+                // Update performance stats
                 if (result.success) {
-                    scanStatus.innerHTML = `<span style="color: #00ff88;">✅ Scan complete | ${result.opportunities.length} opportunities</span>`;
+                    document.getElementById('bingxPathsScanned').textContent = result.scanned || 0;
+                    document.getElementById('bingxOpportunitiesFound').textContent = result.profitableCount || 0;
+                }
 
-                    if (result.opportunities.length > 0) {
-                        let oppHtml = '<div style="display: grid; gap: 10px; max-height: 500px; overflow-y: auto;">';
+                if (result.success && result.opportunities.length > 0) {
+                    document.getElementById('bingxScanStatus').textContent = `✅ Found ${result.opportunities.length} opportunities`;
 
-                        result.opportunities.forEach(opp => {
-                            oppHtml += `
-                                <div style="background: rgba(0,191,255,0.1); padding: 15px; border-radius: 8px; border-left: 3px solid #00BFFF;">
-                                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                                        <span style="color: white; font-weight: 600;">${opp.description}</span>
-                                        <span style="color: #00ff88; font-weight: 600;">+${opp.profitPercent}%</span>
-                                    </div>
-                                    <div style="color: #aaa; font-size: 13px; margin-bottom: 5px;">${opp.path.join(' → ')}</div>
-                                    <div style="color: #00BFFF; font-size: 12px;">Est. Profit: $${opp.estimatedProfit} USDT</div>
-                                    <button onclick='executeBingXTriangularTrade(${JSON.stringify(opp)})' style="margin-top: 10px; padding: 8px 16px; background: #00BFFF; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px;">Execute Trade</button>
+                    let oppsHtml = '<div style="display: grid; gap: 15px;">';
+                    result.opportunities.forEach(opp => {
+                        const profitColor = parseFloat(opp.profitPercent) >= 1 ? '#00ff88' : '#00BFFF';
+
+                        oppsHtml += `
+                            <div style="background: rgba(0,191,255,0.1); padding: 15px; border-radius: 10px; border-left: 4px solid ${profitColor};">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                    <span style="color: white; font-weight: 600; font-size: 15px;">${opp.path.join(' → ')}</span>
+                                    <span style="color: ${profitColor}; font-weight: 700; font-size: 16px;">+${opp.profitPercent}%</span>
                                 </div>
-                            `;
-                        });
+                                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; font-size: 13px;">
+                                    <div><span style="color: #888;">Initial:</span> <span style="color: white;">$${opp.initialAmount}</span></div>
+                                    <div><span style="color: #888;">Final:</span> <span style="color: white;">$${opp.finalAmount}</span></div>
+                                    <div><span style="color: #888;">Profit:</span> <span style="color: ${profitColor};">$${opp.profitAmount}</span></div>
+                                </div>
+                                <div style="margin-top: 12px; font-size: 13px;">
+                                    <div><span style="color: #888;">Description:</span> <span style="color: #b8c6db;">${opp.description}</span></div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    oppsHtml += '</div>';
 
-                        oppHtml += '</div>';
-                        opportunitiesDiv.innerHTML = oppHtml;
-                    } else {
-                        opportunitiesDiv.innerHTML = '<div style="color: #FFD700;">📊 No profitable opportunities found at current profit threshold (>=' + minProfitPercent + '%)</div>';
-                    }
+                    document.getElementById('bingxOpportunities').innerHTML = oppsHtml;
                 } else {
-                    scanStatus.innerHTML = '<span style="color: #FF4444;">❌ Scan failed</span>';
-                    opportunitiesDiv.innerHTML = `<div style="color: #FF4444;">${result.message}</div>`;
+                    document.getElementById('bingxScanStatus').textContent = '❌ No profitable opportunities found';
+                    document.getElementById('bingxOpportunities').innerHTML = '<div style="text-align: center; padding: 20px; color: #888;">No opportunities above profit threshold. Try lowering threshold or enabling more path sets.</div>';
                 }
             } catch (error) {
-                scanStatus.innerHTML = '<span style="color: #FF4444;">❌ Scan error</span>';
-                opportunitiesDiv.innerHTML = `<div style="color: #FF4444;">Error: ${error.message}</div>`;
+                console.error('BingX scan error:', error);
+                document.getElementById('bingxScanStatus').textContent = '❌ Scan failed';
+                document.getElementById('bingxOpportunities').innerHTML = `<div style="color: #FF4444; padding: 20px; text-align: center;">Error: ${error.message}</div>`;
             }
         }
 
-        // Execute BingX Triangular Trade
-        async function executeBingXTriangularTrade(opportunity) {
-            const apiKey = localStorage.getItem('bingx_api') || '';
-            const apiSecret = localStorage.getItem('bingx_secret') || '';
-            const maxTrade = parseFloat(document.getElementById('bingxMaxTrade').value);
-            const scanStatus = document.getElementById('bingxScanStatus');
-
-            if (!confirm(`Execute BingX triangular trade?\nPath: ${opportunity.path.join(' → ')}\nEstimated Profit: +${opportunity.profitPercent}%\nAmount: $${maxTrade} USDT`)) {
-                return;
-            }
-
-            scanStatus.innerHTML = '<span style="color: #00BFFF;">⚡ Executing trade...</span>';
-
+        // 9. Execute BingX Triangular Trade
+        async function executeBingxTriangularTrade(opportunity) {
             try {
+                const confirmation = confirm(`🌊 EXECUTE BINGX TRIANGULAR TRADE\n\nPath: ${opportunity.path.join(' → ')}\nExpected Profit: ${opportunity.profitPercent}% (+${opportunity.expectedProfitZAR} USDT)\nRisk: ${opportunity.risk}\n\n⚠️ This will execute a real trade on BingX.\nContinue?`);
+
+                if (!confirmation) {
+                    return;
+                }
+
+                const apiKey = localStorage.getItem('bingx_triangular_api');
+                const apiSecret = localStorage.getItem('bingx_triangular_secret');
+                const userId = localStorage.getItem('userId');
+
                 const response = await fetch('/api/v1/trading/bingx/triangular/execute', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ apiKey, apiSecret, opportunity, investmentAmount: maxTrade })
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    },
+                    body: JSON.stringify({
+                        apiKey,
+                        apiSecret,
+                        userId,
+                        opportunity,
+                        dryRun: false
+                    })
                 });
 
                 const result = await response.json();
 
                 if (result.success) {
-                    scanStatus.innerHTML = `<span style="color: #00ff88;">✅ Trade executed | Profit: +$${result.execution.profit.toFixed(2)} USDT</span>`;
-                    loadBingXTradeHistory();
-                    // Re-scan after trade
-                    setTimeout(() => scanBingXTriangularPaths(), 2000);
+                    alert(`✅ BingX Trade Executed!\n\nPath: ${opportunity.path.join(' → ')}\nActual Profit: ${result.actualProfitZAR} USDT (${result.actualProfitPercent}%)\nExecution Time: ${result.executionTime}ms\n\nTrade ID: ${result.tradeId}`);
+                    loadBingxTradeHistory();
+                    scanBingxTriangularPaths(); // Refresh opportunities
                 } else {
-                    scanStatus.innerHTML = `<span style="color: #FF4444;">❌ Execution failed</span>`;
+                    throw new Error(result.message);
                 }
             } catch (error) {
-                scanStatus.innerHTML = `<span style="color: #FF4444;">❌ Error: ${error.message}</span>`;
+                console.error('BingX execution error:', error);
+                alert(`❌ BingX Trade Failed\n\n${error.message}`);
             }
         }
 
-        // Load BingX Trade History
-        async function loadBingXTradeHistory() {
+        // 10. Load BingX Trade History
+        async function loadBingxTradeHistory() {
             try {
                 const userId = localStorage.getItem('userId');
                 if (!userId) return;
@@ -14396,22 +14781,12 @@ SET 5: Extended Multi-Bridge (6 paths)
             }
         }
 
-        // Initialize BingX settings on page load
+        // 11. Initialize BingX on DOMContentLoaded
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('🌊 [BINGX] Initializing triangular arbitrage settings...');
-            loadBingXTriangularSettings();
-
-            const bingxInputs = document.querySelectorAll('#bingxMaxTrade, #bingxPortfolioPercent, #bingxProfitThreshold');
-            bingxInputs.forEach(input => {
-                input.addEventListener('change', saveBingXTriangularSettings);
-            });
-
-            for (let i = 1; i <= 5; i++) {
-                const checkbox = document.getElementById(`bingxSet${i}Enabled`);
-                if (checkbox) {
-                    checkbox.addEventListener('change', saveBingXTriangularSettings);
-                }
-            }
+            console.log('🌊 [BINGX] Initializing triangular arbitrage...');
+            loadBingxTriangularSettings();
+            initializeBingxBalance();
+            switchBingxTab('balance');
         });
 
         // ============================================================================
