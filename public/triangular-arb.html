@@ -16861,6 +16861,19 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
         // ============================================================================
 
         // 1. Toggle Gemini Triangular
+        // Gemini Worker Variables
+        let geminiWorkerInterval = null;
+        let geminiWorkerStats = {
+            totalScans: 0,
+            totalOpportunities: 0,
+            totalTrades: 0,
+            successfulTrades: 0,
+            totalProfit: 0,
+            bestProfit: 0,
+            bestPath: null,
+            lastScanTime: null
+        };
+
         function toggleGeminiTriangular() {
             const toggle = document.getElementById('geminiTriangularEnabled');
             const status = document.getElementById('geminiTriangularStatus');
@@ -16870,10 +16883,14 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
                 status.textContent = 'ON';
                 status.style.color = '#00AADD';
                 localStorage.setItem('geminiTriangularEnabled', 'true');
+                console.log('💎 [GEMINI] Triangular arbitrage enabled - starting worker...');
+                startGeminiWorker();
             } else {
                 status.textContent = 'OFF';
                 status.style.color = '#ff6b6b';
                 localStorage.setItem('geminiTriangularEnabled', 'false');
+                console.log('💎 [GEMINI] Triangular arbitrage disabled - stopping worker...');
+                stopGeminiWorker();
             }
         }
 
@@ -17271,6 +17288,149 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
                 console.error('❌ [GEMINI] Trade execution error:', error);
                 alert(`❌ Error executing trade: ${error.message}`);
             }
+        }
+
+        // ============================================================================
+        // GEMINI WORKER FUNCTIONS (Sequential Scanning)
+        // ============================================================================
+
+        // Start Gemini Worker (Sequential Scanning - One Set at a Time)
+        async function startGeminiWorker() {
+            console.log('🚀 [GEMINI Worker] Starting automated trading (sequential mode)...');
+
+            const apiKey = localStorage.getItem('gemini_api') || '';
+            const apiSecret = localStorage.getItem('gemini_secret') || '';
+            const profitThreshold = parseFloat(document.getElementById('geminiProfitThreshold')?.value) || 0.5;
+            const maxTradeAmount = parseFloat(document.getElementById('geminiMaxTrade')?.value) || 1000;
+
+            // Get selected path sets
+            const selectedSets = [];
+            for (let i = 1; i <= 5; i++) {
+                const checkbox = document.getElementById(`geminiSet${i}Enabled`);
+                if (checkbox && checkbox.checked) {
+                    selectedSets.push(i);
+                }
+            }
+
+            if (selectedSets.length === 0) {
+                console.error('❌ [GEMINI Worker] No sets selected!');
+                alert('⚠️ Please select at least one path set to scan');
+                return;
+            }
+
+            if (!apiKey || !apiSecret) {
+                console.error('❌ [GEMINI Worker] Missing API credentials');
+                alert('⚠️ Please configure your Gemini API credentials first');
+                return;
+            }
+
+            await initializeGeminiBalance();
+
+            let currentSetIndex = 0;
+
+            const setNameMapping = {
+                1: 'SET_1_BTC_ETH_DIRECT',
+                2: 'SET_2_DOGE_BRIDGE',
+                3: 'SET_3_LINK_BRIDGE',
+                4: 'SET_4_LTC_BRIDGE',
+                5: 'SET_5_SOL_BRIDGE'
+            };
+
+            // Sequential scan function - scans ONE set at a time
+            async function scanAndExecuteSequential() {
+                try {
+                    const currentSetNum = selectedSets[currentSetIndex];
+                    const currentSet = `SET ${currentSetNum}`;
+                    const backendSetName = setNameMapping[currentSetNum];
+                    geminiWorkerStats.totalScans++;
+
+                    console.log(`\n🔍 [GEMINI Worker] Scan #${geminiWorkerStats.totalScans}: ${currentSet} (${currentSetIndex + 1}/${selectedSets.length})`);
+
+                    const portfolioPercent = parseFloat(document.getElementById('geminiPortfolioPercent')?.value || 10);
+                    const profitThresholdUI = parseFloat(document.getElementById('geminiProfitThreshold')?.value || 0.5);
+
+                    // Scan ONE set only
+                    const enabledSets = {};
+                    enabledSets[backendSetName] = true;
+
+                    const scanResponse = await fetch(`${API_BASE}/trading/gemini/triangular/scan`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            apiKey,
+                            apiSecret,
+                            enabledSets: enabledSets,
+                            maxTradeAmount: maxTradeAmount,
+                            profitThreshold: profitThresholdUI,
+                            portfolioPercent: portfolioPercent
+                        })
+                    });
+
+                    const scanResult = await scanResponse.json();
+
+                    if (scanResult.success && scanResult.opportunities) {
+                        const paths = scanResult.opportunities;
+                        console.log(`✅ [GEMINI Worker] ${currentSet}: Analyzed ${scanResult.scanned} paths, found ${paths.length} opportunities`);
+
+                        // Log detailed profit for each path
+                        paths.forEach((path, index) => {
+                            const profitPct = parseFloat(path.profitPercent);
+                            const profitSign = profitPct >= 0 ? '+' : '';
+                            const profitColor = profitPct >= profitThreshold ? '💎' :
+                                              profitPct >= 0 ? '💛' : '❌';
+                            const status = profitPct >= profitThreshold ? 'OPPORTUNITY' :
+                                         profitPct >= 0 ? 'below threshold' : 'unprofitable';
+                            console.log(`   ${profitColor} Path ${index + 1}: ${profitSign}${profitPct.toFixed(2)}% (${status})`);
+                        });
+
+                        const profitable = paths.filter(opp => parseFloat(opp.profitPercent) >= profitThreshold);
+                        geminiWorkerStats.totalOpportunities += profitable.length;
+
+                        if (profitable.length > 0) {
+                            console.log(`💰 [GEMINI Worker] ${currentSet}: ${profitable.length} OPPORTUNITIES above ${profitThreshold}% threshold`);
+                            profitable.forEach(opp => {
+                                console.log(`⚡ [GEMINI Worker] Opportunity: ${opp.pathId} (${parseFloat(opp.profitPercent).toFixed(2)}% profit) - execution available`);
+                            });
+                        }
+                    }
+
+                    // Move to next set (circular)
+                    currentSetIndex = (currentSetIndex + 1) % selectedSets.length;
+
+                    if (currentSetIndex === 0) {
+                        console.log(`🔄 [GEMINI Worker] Completed full cycle of ${selectedSets.length} sets. Restarting...`);
+                        await updateGeminiBalance();
+                    }
+
+                } catch (error) {
+                    console.error('❌ [GEMINI Worker] Scan error:', error);
+                    handleGeminiExecutionError(error, null);
+                }
+            }
+
+            // Start sequential scanning with 8-second intervals
+            geminiWorkerInterval = setInterval(scanAndExecuteSequential, 8000);
+
+            console.log('✅ [GEMINI Worker] Automated trading started (8s between sets, sequential scanning)');
+        }
+
+        // Stop Gemini Worker
+        function stopGeminiWorker() {
+            if (geminiWorkerInterval) {
+                clearInterval(geminiWorkerInterval);
+                geminiWorkerInterval = null;
+                console.log('⏹️ [GEMINI Worker] Automated trading stopped');
+            }
+        }
+
+        // Handle Gemini Execution Errors
+        function handleGeminiExecutionError(error, pathId) {
+            console.error('❌ [GEMINI Worker] Execution error:', {
+                pathId,
+                error: error.message,
+                timestamp: new Date().toISOString()
+            });
+            // Non-blocking - worker continues
         }
 
         // Save Gemini Settings
