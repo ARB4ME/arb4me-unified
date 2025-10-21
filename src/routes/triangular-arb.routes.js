@@ -8834,6 +8834,7 @@ const BITGET_TRIANGULAR_CONFIG = {
     baseUrl: 'https://api.bitget.com',
     endpoints: {
         ticker: '/api/v2/spot/market/tickers',
+        orderBook: '/api/v2/spot/market/orderbook',
         balance: '/api/v2/spot/account/assets',
         placeOrder: '/api/v2/spot/trade/place-order',
         symbols: '/api/v2/spot/public/symbols'
@@ -8946,129 +8947,279 @@ router.post('/bitget/triangular/test-connection', asyncHandler(async (req, res) 
     }
 }));
 
-// ROUTE 2: Scan Bitget Triangular Opportunities
+// ROUTE 2: Scan Bitget Triangular Opportunities (Updated with orderbook + ProfitCalculatorService)
 router.post('/bitget/triangular/scan', asyncHandler(async (req, res) => {
     try {
-        const { apiKey, apiSecret, passphrase, minProfitPercent = 0.3, enabledSets = ['SET_1', 'SET_2', 'SET_3', 'SET_4', 'SET_5'] } = req.body;
+        const {
+            apiKey,
+            apiSecret,
+            passphrase,
+            maxTradeAmount = 1000,
+            portfolioPercent = 10,
+            profitThreshold = 0.5,
+            enabledSets = {}
+        } = req.body;
 
         if (!apiKey || !apiSecret || !passphrase) {
             return res.status(400).json({
                 success: false,
-                message: 'API credentials required'
+                message: 'API credentials (key, secret, passphrase) required'
             });
         }
 
-        // Fetch all tickers
-        const tickerResponse = await axios.get(
-            `${BITGET_TRIANGULAR_CONFIG.baseUrl}${BITGET_TRIANGULAR_CONFIG.endpoints.ticker}`
-        );
-
-        if (tickerResponse.data.code !== '00000') {
-            return res.status(400).json({
-                success: false,
-                message: 'Failed to fetch Bitget market data'
-            });
-        }
-
-        const tickers = tickerResponse.data.data || [];
-        const priceMap = {};
-
-        tickers.forEach(ticker => {
-            if (ticker.symbol) {
-                priceMap[ticker.symbol] = {
-                    bid: parseFloat(ticker.bidPr || ticker.buyOne || 0),
-                    ask: parseFloat(ticker.askPr || ticker.sellOne || 0),
-                    last: parseFloat(ticker.lastPr || ticker.close || 0)
-                };
-            }
+        systemLogger.info('Bitget triangular scan started', {
+            maxTradeAmount,
+            portfolioPercent,
+            profitThreshold,
+            enabledSets
         });
+
+        // Define all 32 paths with steps for ProfitCalculatorService
+        const allPaths = {
+            SET_1_ESSENTIAL_ETH_BRIDGE: [
+                { id: 'BITGET_ETH_1', path: ['USDT', 'ETH', 'BTC', 'USDT'], sequence: 'USDT → ETH → BTC → USDT', description: 'ETH → BTC Essential', steps: [{ pair: 'ETHUSDT_SPBL', side: 'buy' }, { pair: 'BTCETH_SPBL', side: 'buy' }, { pair: 'BTCUSDT_SPBL', side: 'sell' }] },
+                { id: 'BITGET_ETH_2', path: ['USDT', 'ETH', 'SOL', 'USDT'], sequence: 'USDT → ETH → SOL → USDT', description: 'ETH → SOL Essential', steps: [{ pair: 'ETHUSDT_SPBL', side: 'buy' }, { pair: 'SOLETH_SPBL', side: 'buy' }, { pair: 'SOLUSDT_SPBL', side: 'sell' }] },
+                { id: 'BITGET_ETH_3', path: ['USDT', 'ETH', 'LINK', 'USDT'], sequence: 'USDT → ETH → LINK → USDT', description: 'ETH → LINK Essential', steps: [{ pair: 'ETHUSDT_SPBL', side: 'buy' }, { pair: 'LINKETH_SPBL', side: 'buy' }, { pair: 'LINKUSDT_SPBL', side: 'sell' }] },
+                { id: 'BITGET_ETH_4', path: ['USDT', 'ETH', 'AVAX', 'USDT'], sequence: 'USDT → ETH → AVAX → USDT', description: 'ETH → AVAX Essential', steps: [{ pair: 'ETHUSDT_SPBL', side: 'buy' }, { pair: 'AVAXETH_SPBL', side: 'buy' }, { pair: 'AVAXUSDT_SPBL', side: 'sell' }] },
+                { id: 'BITGET_ETH_5', path: ['USDT', 'ETH', 'MATIC', 'USDT'], sequence: 'USDT → ETH → MATIC → USDT', description: 'ETH → MATIC Essential', steps: [{ pair: 'ETHUSDT_SPBL', side: 'buy' }, { pair: 'MATICETH_SPBL', side: 'buy' }, { pair: 'MATICUSDT_SPBL', side: 'sell' }] },
+                { id: 'BITGET_ETH_6', path: ['USDT', 'ETH', 'UNI', 'USDT'], sequence: 'USDT → ETH → UNI → USDT', description: 'ETH → UNI Essential', steps: [{ pair: 'ETHUSDT_SPBL', side: 'buy' }, { pair: 'UNIETH_SPBL', side: 'buy' }, { pair: 'UNIUSDT_SPBL', side: 'sell' }] },
+                { id: 'BITGET_ETH_7', path: ['USDT', 'ETH', 'AAVE', 'USDT'], sequence: 'USDT → ETH → AAVE → USDT', description: 'ETH → AAVE Essential', steps: [{ pair: 'ETHUSDT_SPBL', side: 'buy' }, { pair: 'AAVEETH_SPBL', side: 'buy' }, { pair: 'AAVEUSDT_SPBL', side: 'sell' }] }
+            ],
+            SET_2_MIDCAP_BTC_BRIDGE: [
+                { id: 'BITGET_BTC_1', path: ['USDT', 'BTC', 'DOGE', 'USDT'], sequence: 'USDT → BTC → DOGE → USDT', description: 'BTC → DOGE MidCap', steps: [{ pair: 'BTCUSDT_SPBL', side: 'buy' }, { pair: 'DOGEBTC_SPBL', side: 'buy' }, { pair: 'DOGEUSDT_SPBL', side: 'sell' }] },
+                { id: 'BITGET_BTC_2', path: ['USDT', 'BTC', 'LTC', 'USDT'], sequence: 'USDT → BTC → LTC → USDT', description: 'BTC → LTC MidCap', steps: [{ pair: 'BTCUSDT_SPBL', side: 'buy' }, { pair: 'LTCBTC_SPBL', side: 'buy' }, { pair: 'LTCUSDT_SPBL', side: 'sell' }] },
+                { id: 'BITGET_BTC_3', path: ['USDT', 'BTC', 'XRP', 'USDT'], sequence: 'USDT → BTC → XRP → USDT', description: 'BTC → XRP MidCap', steps: [{ pair: 'BTCUSDT_SPBL', side: 'buy' }, { pair: 'XRPBTC_SPBL', side: 'buy' }, { pair: 'XRPUSDT_SPBL', side: 'sell' }] },
+                { id: 'BITGET_BTC_4', path: ['USDT', 'BTC', 'ADA', 'USDT'], sequence: 'USDT → BTC → ADA → USDT', description: 'BTC → ADA MidCap', steps: [{ pair: 'BTCUSDT_SPBL', side: 'buy' }, { pair: 'ADABTC_SPBL', side: 'buy' }, { pair: 'ADAUSDT_SPBL', side: 'sell' }] },
+                { id: 'BITGET_BTC_5', path: ['USDT', 'BTC', 'DOT', 'USDT'], sequence: 'USDT → BTC → DOT → USDT', description: 'BTC → DOT MidCap', steps: [{ pair: 'BTCUSDT_SPBL', side: 'buy' }, { pair: 'DOTBTC_SPBL', side: 'buy' }, { pair: 'DOTUSDT_SPBL', side: 'sell' }] },
+                { id: 'BITGET_BTC_6', path: ['USDT', 'BTC', 'BCH', 'USDT'], sequence: 'USDT → BTC → BCH → USDT', description: 'BTC → BCH MidCap', steps: [{ pair: 'BTCUSDT_SPBL', side: 'buy' }, { pair: 'BCHBTC_SPBL', side: 'buy' }, { pair: 'BCHUSDT_SPBL', side: 'sell' }] },
+                { id: 'BITGET_BTC_7', path: ['USDT', 'BTC', 'TRX', 'USDT'], sequence: 'USDT → BTC → TRX → USDT', description: 'BTC → TRX MidCap', steps: [{ pair: 'BTCUSDT_SPBL', side: 'buy' }, { pair: 'TRXBTC_SPBL', side: 'buy' }, { pair: 'TRXUSDT_SPBL', side: 'sell' }] }
+            ],
+            SET_3_BGB_NATIVE_TOKEN: [
+                { id: 'BITGET_BGB_1', path: ['USDT', 'BGB', 'BTC', 'USDT'], sequence: 'USDT → BGB → BTC → USDT', description: 'BGB → BTC Native', steps: [{ pair: 'BGBUSDT_SPBL', side: 'buy' }, { pair: 'BTCBGB_SPBL', side: 'buy' }, { pair: 'BTCUSDT_SPBL', side: 'sell' }] },
+                { id: 'BITGET_BGB_2', path: ['USDT', 'BGB', 'ETH', 'USDT'], sequence: 'USDT → BGB → ETH → USDT', description: 'BGB → ETH Native', steps: [{ pair: 'BGBUSDT_SPBL', side: 'buy' }, { pair: 'ETHBGB_SPBL', side: 'buy' }, { pair: 'ETHUSDT_SPBL', side: 'sell' }] },
+                { id: 'BITGET_BGB_3', path: ['USDT', 'BTC', 'BGB', 'USDT'], sequence: 'USDT → BTC → BGB → USDT', description: 'BTC → BGB Native', steps: [{ pair: 'BTCUSDT_SPBL', side: 'buy' }, { pair: 'BGBBTC_SPBL', side: 'buy' }, { pair: 'BGBUSDT_SPBL', side: 'sell' }] },
+                { id: 'BITGET_BGB_4', path: ['USDT', 'ETH', 'BGB', 'USDT'], sequence: 'USDT → ETH → BGB → USDT', description: 'ETH → BGB Native', steps: [{ pair: 'ETHUSDT_SPBL', side: 'buy' }, { pair: 'BGBETH_SPBL', side: 'buy' }, { pair: 'BGBUSDT_SPBL', side: 'sell' }] },
+                { id: 'BITGET_BGB_5', path: ['USDT', 'BGB', 'SOL', 'USDT'], sequence: 'USDT → BGB → SOL → USDT', description: 'BGB → SOL Native', steps: [{ pair: 'BGBUSDT_SPBL', side: 'buy' }, { pair: 'SOLBGB_SPBL', side: 'buy' }, { pair: 'SOLUSDT_SPBL', side: 'sell' }] },
+                { id: 'BITGET_BGB_6', path: ['USDT', 'SOL', 'BGB', 'USDT'], sequence: 'USDT → SOL → BGB → USDT', description: 'SOL → BGB Native', steps: [{ pair: 'SOLUSDT_SPBL', side: 'buy' }, { pair: 'BGBSOL_SPBL', side: 'buy' }, { pair: 'BGBUSDT_SPBL', side: 'sell' }] }
+            ],
+            SET_4_HIGH_VOLATILITY: [
+                { id: 'BITGET_VOL_1', path: ['USDT', 'SOL', 'LINK', 'USDT'], sequence: 'USDT → SOL → LINK → USDT', description: 'SOL → LINK Volatility', steps: [{ pair: 'SOLUSDT_SPBL', side: 'buy' }, { pair: 'LINKSOL_SPBL', side: 'buy' }, { pair: 'LINKUSDT_SPBL', side: 'sell' }] },
+                { id: 'BITGET_VOL_2', path: ['USDT', 'SOL', 'MATIC', 'USDT'], sequence: 'USDT → SOL → MATIC → USDT', description: 'SOL → MATIC Volatility', steps: [{ pair: 'SOLUSDT_SPBL', side: 'buy' }, { pair: 'MATICSOL_SPBL', side: 'buy' }, { pair: 'MATICUSDT_SPBL', side: 'sell' }] },
+                { id: 'BITGET_VOL_3', path: ['USDT', 'LINK', 'BTC', 'USDT'], sequence: 'USDT → LINK → BTC → USDT', description: 'LINK → BTC Volatility', steps: [{ pair: 'LINKUSDT_SPBL', side: 'buy' }, { pair: 'BTCLINK_SPBL', side: 'buy' }, { pair: 'BTCUSDT_SPBL', side: 'sell' }] },
+                { id: 'BITGET_VOL_4', path: ['USDT', 'AVAX', 'SOL', 'USDT'], sequence: 'USDT → AVAX → SOL → USDT', description: 'AVAX → SOL Volatility', steps: [{ pair: 'AVAXUSDT_SPBL', side: 'buy' }, { pair: 'SOLAVAX_SPBL', side: 'buy' }, { pair: 'SOLUSDT_SPBL', side: 'sell' }] },
+                { id: 'BITGET_VOL_5', path: ['USDT', 'MATIC', 'BTC', 'USDT'], sequence: 'USDT → MATIC → BTC → USDT', description: 'MATIC → BTC Volatility', steps: [{ pair: 'MATICUSDT_SPBL', side: 'buy' }, { pair: 'BTCMATIC_SPBL', side: 'buy' }, { pair: 'BTCUSDT_SPBL', side: 'sell' }] },
+                { id: 'BITGET_VOL_6', path: ['USDT', 'UNI', 'ETH', 'USDT'], sequence: 'USDT → UNI → ETH → USDT', description: 'UNI → ETH Volatility', steps: [{ pair: 'UNIUSDT_SPBL', side: 'buy' }, { pair: 'ETHUNI_SPBL', side: 'buy' }, { pair: 'ETHUSDT_SPBL', side: 'sell' }] }
+            ],
+            SET_5_EXTENDED_MULTIBRIDGE: [
+                { id: 'BITGET_EXT_1', path: ['USDT', 'ATOM', 'BTC', 'USDT'], sequence: 'USDT → ATOM → BTC → USDT', description: 'ATOM → BTC Extended', steps: [{ pair: 'ATOMUSDT_SPBL', side: 'buy' }, { pair: 'BTCATOM_SPBL', side: 'buy' }, { pair: 'BTCUSDT_SPBL', side: 'sell' }] },
+                { id: 'BITGET_EXT_2', path: ['USDT', 'FIL', 'ETH', 'USDT'], sequence: 'USDT → FIL → ETH → USDT', description: 'FIL → ETH Extended', steps: [{ pair: 'FILUSDT_SPBL', side: 'buy' }, { pair: 'ETHFIL_SPBL', side: 'buy' }, { pair: 'ETHUSDT_SPBL', side: 'sell' }] },
+                { id: 'BITGET_EXT_3', path: ['USDT', 'XLM', 'BTC', 'USDT'], sequence: 'USDT → XLM → BTC → USDT', description: 'XLM → BTC Extended', steps: [{ pair: 'XLMUSDT_SPBL', side: 'buy' }, { pair: 'BTCXLM_SPBL', side: 'buy' }, { pair: 'BTCUSDT_SPBL', side: 'sell' }] },
+                { id: 'BITGET_EXT_4', path: ['USDT', 'ALGO', 'ETH', 'USDT'], sequence: 'USDT → ALGO → ETH → USDT', description: 'ALGO → ETH Extended', steps: [{ pair: 'ALGOUSDT_SPBL', side: 'buy' }, { pair: 'ETHALGO_SPBL', side: 'buy' }, { pair: 'ETHUSDT_SPBL', side: 'sell' }] },
+                { id: 'BITGET_EXT_5', path: ['USDT', 'ETH', 'BTC', 'SOL', 'USDT'], sequence: 'USDT → ETH → BTC → SOL → USDT', description: 'Four-Leg: ETH→BTC→SOL', steps: [{ pair: 'ETHUSDT_SPBL', side: 'buy' }, { pair: 'BTCETH_SPBL', side: 'buy' }, { pair: 'SOLBTC_SPBL', side: 'buy' }, { pair: 'SOLUSDT_SPBL', side: 'sell' }] },
+                { id: 'BITGET_EXT_6', path: ['USDT', 'BTC', 'ETH', 'LINK', 'USDT'], sequence: 'USDT → BTC → ETH → LINK → USDT', description: 'Four-Leg: BTC→ETH→LINK', steps: [{ pair: 'BTCUSDT_SPBL', side: 'buy' }, { pair: 'ETHBTC_SPBL', side: 'buy' }, { pair: 'LINKETH_SPBL', side: 'buy' }, { pair: 'LINKUSDT_SPBL', side: 'sell' }] }
+            ]
+        };
+
+        // Fetch USDT balance from Bitget
+        const timestamp = Date.now().toString();
+        const method = 'GET';
+        const requestPath = BITGET_TRIANGULAR_CONFIG.endpoints.balance;
+        const balanceSignature = createBitgetTriangularSignature(timestamp, method, requestPath, '', apiSecret);
+
+        let balance = 0;
+        try {
+            const balanceResponse = await axios.get(
+                `${BITGET_TRIANGULAR_CONFIG.baseUrl}${requestPath}`,
+                {
+                    headers: {
+                        'ACCESS-KEY': apiKey,
+                        'ACCESS-SIGN': balanceSignature,
+                        'ACCESS-TIMESTAMP': timestamp,
+                        'ACCESS-PASSPHRASE': passphrase,
+                        'Content-Type': 'application/json'
+                    }
+                }
+            );
+
+            if (balanceResponse.data.code === '00000') {
+                const usdtAsset = balanceResponse.data.data.find(asset => asset.coin === 'USDT');
+                balance = usdtAsset ? parseFloat(usdtAsset.available || 0) : 0;
+                systemLogger.info('Bitget USDT balance fetched', { balance });
+            }
+        } catch (error) {
+            systemLogger.warn('Bitget balance fetch failed', { error: error.message });
+        }
+
+        // Calculate trade amount using portfolio calculator
+        const portfolioCalc = portfolioCalculator.calculateTradeAmount({
+            balance,
+            portfolioPercent,
+            maxTradeAmount,
+            currency: 'USDT',
+            exchange: 'Bitget',
+            path: null
+        });
+
+        if (!portfolioCalc.canTrade) {
+            return res.json({
+                success: true,
+                scanned: 0,
+                profitableCount: 0,
+                opportunities: [],
+                portfolioDetails: portfolioCalc.details,
+                warning: portfolioCalc.reason,
+                timestamp: new Date().toISOString()
+            });
+        }
+
+        const tradeAmount = portfolioCalc.amount;
 
         // Filter enabled paths
-        let allPaths = [];
-        if (enabledSets.includes('SET_1')) allPaths = allPaths.concat(BITGET_TRIANGULAR_PATHS.SET_1_ESSENTIAL_ETH_BRIDGE);
-        if (enabledSets.includes('SET_2')) allPaths = allPaths.concat(BITGET_TRIANGULAR_PATHS.SET_2_MIDCAP_BTC_BRIDGE);
-        if (enabledSets.includes('SET_3')) allPaths = allPaths.concat(BITGET_TRIANGULAR_PATHS.SET_3_BGB_NATIVE_TOKEN);
-        if (enabledSets.includes('SET_4')) allPaths = allPaths.concat(BITGET_TRIANGULAR_PATHS.SET_4_HIGH_VOLATILITY);
-        if (enabledSets.includes('SET_5')) allPaths = allPaths.concat(BITGET_TRIANGULAR_PATHS.SET_5_EXTENDED_MULTIBRIDGE);
+        let pathsToScan = [];
+        if (enabledSets.SET_1_ESSENTIAL_ETH_BRIDGE) pathsToScan = pathsToScan.concat(allPaths.SET_1_ESSENTIAL_ETH_BRIDGE);
+        if (enabledSets.SET_2_MIDCAP_BTC_BRIDGE) pathsToScan = pathsToScan.concat(allPaths.SET_2_MIDCAP_BTC_BRIDGE);
+        if (enabledSets.SET_3_BGB_NATIVE_TOKEN) pathsToScan = pathsToScan.concat(allPaths.SET_3_BGB_NATIVE_TOKEN);
+        if (enabledSets.SET_4_HIGH_VOLATILITY) pathsToScan = pathsToScan.concat(allPaths.SET_4_HIGH_VOLATILITY);
+        if (enabledSets.SET_5_EXTENDED_MULTIBRIDGE) pathsToScan = pathsToScan.concat(allPaths.SET_5_EXTENDED_MULTIBRIDGE);
 
+        // Get unique pairs from all paths
+        const uniquePairs = new Set();
+        pathsToScan.forEach(path => {
+            path.steps.forEach(step => uniquePairs.add(step.pair));
+        });
+
+        // Fetch orderbooks for all unique pairs
+        const orderBooks = {};
+        for (const pair of uniquePairs) {
+            try {
+                const obTimestamp = Date.now().toString();
+                const obPath = `${BITGET_TRIANGULAR_CONFIG.endpoints.orderBook}?symbol=${pair}&limit=20`;
+
+                const obResponse = await axios.get(
+                    `${BITGET_TRIANGULAR_CONFIG.baseUrl}${obPath}`
+                );
+
+                if (obResponse.data.code === '00000' && obResponse.data.data) {
+                    orderBooks[pair] = {
+                        bids: obResponse.data.data.bids || [],
+                        asks: obResponse.data.data.asks || []
+                    };
+                }
+            } catch (error) {
+                systemLogger.warn(`Bitget orderbook fetch failed for ${pair}`, { error: error.message });
+            }
+        }
+
+        // Calculate profits using ProfitCalculatorService
+        const profitCalculator = new ProfitCalculatorService();
         const opportunities = [];
-        const feePercent = 0.10; // Bitget 0.10% maker/taker fee
 
-        allPaths.forEach(pathConfig => {
-            const pairs = pathConfig.pairs;
-            let isValid = true;
-            let prices = [];
+        for (const path of pathsToScan) {
+            const result = profitCalculator.calculate('bitget', path, orderBooks, tradeAmount);
 
-            // Get prices for each pair
-            for (const pair of pairs) {
-                if (!priceMap[pair]) {
-                    isValid = false;
-                    break;
-                }
-                prices.push(priceMap[pair]);
-            }
-
-            if (!isValid) return;
-
-            // Calculate profit for triangular path
-            let amount = 100; // Start with 100 USDT
-
-            // Execute each leg
-            for (let i = 0; i < pairs.length; i++) {
-                const price = prices[i];
-                const avgPrice = (price.bid + price.ask) / 2;
-
-                // Apply fee
-                amount = amount * (1 - feePercent / 100);
-
-                // Execute trade
-                if (i === 0 || i === pairs.length - 1) {
-                    // First and last leg: buying/selling against USDT
-                    amount = amount / avgPrice;
-                } else {
-                    // Middle legs: cross pairs
-                    amount = amount * avgPrice;
-                }
-            }
-
-            const profitPercent = ((amount - 100) / 100) * 100;
-
-            if (profitPercent >= minProfitPercent) {
+            if (result.success && result.profitPercentage >= profitThreshold) {
                 opportunities.push({
-                    id: pathConfig.id,
-                    path: pathConfig.path,
-                    pairs: pathConfig.pairs,
-                    description: pathConfig.description,
-                    profitPercent: profitPercent.toFixed(3),
-                    estimatedProfit: (amount - 100).toFixed(2),
-                    prices: prices.map(p => ({
-                        bid: p.bid,
-                        ask: p.ask,
-                        spread: ((p.ask - p.bid) / p.bid * 100).toFixed(3)
-                    }))
+                    pathId: result.pathId,
+                    description: path.description,
+                    path: result.sequence.split(' → '),
+                    initialAmount: result.startAmount,
+                    finalAmount: result.endAmount,
+                    profitAmount: result.profit,
+                    profitPercent: result.profitPercentage.toFixed(4),
+                    steps: result.steps,
+                    totalFees: result.totalFees,
+                    timestamp: result.timestamp
                 });
             }
-        });
+        }
 
         // Sort by profit
         opportunities.sort((a, b) => parseFloat(b.profitPercent) - parseFloat(a.profitPercent));
 
         res.json({
             success: true,
-            opportunities,
-            scannedPaths: allPaths.length,
+            scanned: pathsToScan.length,
+            profitableCount: opportunities.length,
+            opportunities: opportunities,
+            portfolioDetails: portfolioCalc.details,
             timestamp: new Date().toISOString()
         });
 
     } catch (error) {
+        systemLogger.error('Bitget triangular scan error', { error: error.message });
         res.status(500).json({
             success: false,
-            message: 'Failed to scan Bitget opportunities'
+            message: 'Failed to scan Bitget opportunities',
+            error: error.message
         });
     }
 }));
 
-// ROUTE 3: Get Bitget Triangular Paths
+// ROUTE 3: Get Bitget Balance
+router.post('/bitget/balance', asyncHandler(async (req, res) => {
+    try {
+        const { apiKey, apiSecret, passphrase, currency = 'USDT' } = req.body;
+
+        if (!apiKey || !apiSecret || !passphrase) {
+            return res.status(400).json({
+                success: false,
+                message: 'Missing Bitget API credentials (key, secret, passphrase required)'
+            });
+        }
+
+        systemLogger.info('Bitget balance fetch started', { currency });
+
+        const timestamp = Date.now().toString();
+        const method = 'GET';
+        const requestPath = BITGET_TRIANGULAR_CONFIG.endpoints.balance;
+        const signature = createBitgetTriangularSignature(timestamp, method, requestPath, '', apiSecret);
+
+        const response = await axios.get(
+            `${BITGET_TRIANGULAR_CONFIG.baseUrl}${requestPath}`,
+            {
+                headers: {
+                    'ACCESS-KEY': apiKey,
+                    'ACCESS-SIGN': signature,
+                    'ACCESS-TIMESTAMP': timestamp,
+                    'ACCESS-PASSPHRASE': passphrase,
+                    'Content-Type': 'application/json'
+                }
+            }
+        );
+
+        if (response.data.code !== '00000') {
+            return res.status(400).json({
+                success: false,
+                message: `Bitget balance error: ${response.data.msg}`
+            });
+        }
+
+        // Extract balance for requested currency
+        const currencyAsset = response.data.data.find(asset => asset.coin === currency.toUpperCase());
+        const available = currencyAsset ? parseFloat(currencyAsset.available || 0) : 0;
+        const locked = currencyAsset ? parseFloat(currencyAsset.locked || 0) : 0;
+        const total = available + locked;
+
+        res.json({
+            success: true,
+            currency,
+            balance: available.toFixed(2),
+            locked: locked.toFixed(2),
+            total: total.toFixed(2),
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        systemLogger.error('Bitget balance fetch error', { error: error.message });
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch Bitget balance',
+            error: error.message
+        });
+    }
+}));
+
+// ROUTE 4: Get Bitget Triangular Paths
 router.get('/bitget/triangular/paths', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
     const allPaths = [
         ...BITGET_TRIANGULAR_PATHS.SET_1_ESSENTIAL_ETH_BRIDGE,
