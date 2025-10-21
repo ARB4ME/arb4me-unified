@@ -2995,15 +2995,15 @@
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px;">
                         <div style="background: rgba(138,43,226,0.1); padding: 15px; border-radius: 8px;">
                             <div style="color: #888; font-size: 0.85rem; margin-bottom: 5px;">Starting Balance</div>
-                            <div id="ascendexStartingUSDT" style="color: #8A2BE2; font-size: 1.4rem; font-weight: bold;">$0.00</div>
+                            <div id="ascendexStartingUSDT" style="color: #8A2BE2; font-size: 1.4rem; font-weight: bold;">0.00 USDT</div>
                         </div>
                         <div style="background: rgba(138,43,226,0.1); padding: 15px; border-radius: 8px;">
                             <div style="color: #888; font-size: 0.85rem; margin-bottom: 5px;">Current Balance</div>
-                            <div id="ascendexCurrentUSDT" style="color: #8A2BE2; font-size: 1.4rem; font-weight: bold;">$0.00</div>
+                            <div id="ascendexCurrentUSDT" style="color: #8A2BE2; font-size: 1.4rem; font-weight: bold;">0.00 USDT</div>
                         </div>
                         <div style="background: rgba(138,43,226,0.1); padding: 15px; border-radius: 8px;">
                             <div style="color: #888; font-size: 0.85rem; margin-bottom: 5px;">Change</div>
-                            <div id="ascendexChangeUSDT" style="font-size: 1.4rem; font-weight: bold;">$0.00 (0.0%)</div>
+                            <div id="ascendexChangeUSDT" style="font-size: 1.4rem; font-weight: bold;">0.00 USDT (0.0%)</div>
                         </div>
                     </div>
                     <div style="display: flex; gap: 10px;">
@@ -13860,9 +13860,9 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
             const changeSign = change >= 0 ? '+' : '';
             const changeColor = change >= 0 ? '#00d26a' : '#ff4444';
 
-            document.getElementById('ascendexStartingUSDT').textContent = `$${starting.toFixed(2)}`;
-            document.getElementById('ascendexCurrentUSDT').textContent = `$${current.toFixed(2)}`;
-            document.getElementById('ascendexChangeUSDT').innerHTML = `<span style="color: ${changeColor}">${changeSign}$${change.toFixed(2)} (${changeSign}${changePercent}%)</span>`;
+            document.getElementById('ascendexStartingUSDT').textContent = `${starting.toFixed(2)} USDT`;
+            document.getElementById('ascendexCurrentUSDT').textContent = `${current.toFixed(2)} USDT`;
+            document.getElementById('ascendexChangeUSDT').innerHTML = `<span style="color: ${changeColor}">${changeSign}${change.toFixed(2)} USDT (${changeSign}${changePercent}%)</span>`;
         }
 
         function resetAscendexStartingBalance() {
