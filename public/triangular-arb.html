@@ -13244,51 +13244,7 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
             }
         }
 
-        // 9. Scan XT Triangular Paths
-🌉 BRIDGE: USDT (1,000+ trading pairs)
-🚀 NATIVE: XT token for fee optimization
-🔐 AUTH: HMAC-SHA256 signature with custom headers
-📊 EXCHANGE: XT.COM (7.8M users globally)
-            `.trim();
-
-            alert(pathDetails);
-        }
-
-        // 3. Save XT Settings
-        function saveXtTriangularSettings() {
-            const settings = {
-                maxTrade: document.getElementById('xtMaxTrade').value,
-                portfolioPercent: document.getElementById('xtPortfolioPercent').value,
-                profitThreshold: document.getElementById('xtProfitThreshold').value,
-                set1Enabled: document.getElementById('xtSet1Enabled').checked,
-                set2Enabled: document.getElementById('xtSet2Enabled').checked,
-                set3Enabled: document.getElementById('xtSet3Enabled').checked,
-                set4Enabled: document.getElementById('xtSet4Enabled').checked,
-                set5Enabled: document.getElementById('xtSet5Enabled').checked
-            };
-
-            localStorage.setItem('xt_triangular_settings', JSON.stringify(settings));
-            console.log('✅ [XT] Settings saved:', settings);
-        }
-
-        // 4. Load XT Settings
-        function loadXtTriangularSettings() {
-            const saved = localStorage.getItem('xt_triangular_settings');
-            if (saved) {
-                const settings = JSON.parse(saved);
-                document.getElementById('xtMaxTrade').value = settings.maxTrade || 100;
-                document.getElementById('xtPortfolioPercent').value = settings.portfolioPercent || 5;
-                document.getElementById('xtProfitThreshold').value = settings.profitThreshold || 0.3;
-                document.getElementById('xtSet1Enabled').checked = settings.set1Enabled !== false;
-                document.getElementById('xtSet2Enabled').checked = settings.set2Enabled !== false;
-                document.getElementById('xtSet3Enabled').checked = settings.set3Enabled === true;
-                document.getElementById('xtSet4Enabled').checked = settings.set4Enabled === true;
-                document.getElementById('xtSet5Enabled').checked = settings.set5Enabled === true;
-                console.log('✅ [XT] Settings loaded:', settings);
-            }
-        }
-
-        // 5. Scan XT Triangular Paths
+        // 10. Scan XT Triangular Paths
         async function scanXtTriangularPaths() {
             try {
                 const apiKey = localStorage.getItem('xt_triangular_api');
