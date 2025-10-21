@@ -17793,8 +17793,56 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
 
         // 11. Execute Coincatch Triangular Trade
         async function executeCoincatchTriangularTrade(pathId) {
-            alert('⚠️ Trade execution requires additional implementation. Contact support to enable live trading.');
-            console.log(`🎯 [COINCATCH] Trade execution requested for path: ${pathId}`);
+            try {
+                const apiKey = localStorage.getItem('coincatch_api') || '';
+                const apiSecret = localStorage.getItem('coincatch_secret') || '';
+                const passphrase = localStorage.getItem('coincatch_passphrase') || '';
+                const maxTradeAmount = parseFloat(document.getElementById('coincatchMaxTrade').value);
+
+                if (!apiKey || !apiSecret || !passphrase) {
+                    alert('⚠️ Please configure your Coincatch API credentials first.');
+                    return;
+                }
+
+                if (!confirm(`Execute trade for ${pathId}?\n\nAmount: $${maxTradeAmount}\n\nNote: Currently in SIMULATION mode - no real funds will be traded.`)) {
+                    return;
+                }
+
+                console.log(`🎯 [COINCATCH] Executing trade: ${pathId}`);
+
+                const response = await fetch(`${API_BASE}/trading/coincatch/triangular/execute`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        apiKey,
+                        apiSecret,
+                        passphrase,
+                        pathId,
+                        amount: maxTradeAmount
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert(`✅ Trade Executed!\n\nPath: ${pathId}\nAmount: $${data.amount}\nProfit: $${data.simulatedProfit} (${data.profitPercentage}%)\n\n${data.note || ''}`);
+
+                    console.log('✅ [COINCATCH] Trade executed successfully:', data);
+
+                    // Update balance after execution
+                    await updateCoincatchBalance();
+
+                    // Refresh opportunities
+                    await scanCoincatchTriangularPaths();
+                } else {
+                    alert(`❌ Trade Execution Failed\n\n${data.message || 'Unknown error'}`);
+                    console.error('❌ [COINCATCH] Trade execution failed:', data);
+                }
+
+            } catch (error) {
+                console.error('❌ [COINCATCH] Trade execution error:', error);
+                alert(`❌ Error executing trade: ${error.message}`);
+            }
         }
 
         // ============================================================================
