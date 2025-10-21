@@ -10053,6 +10053,7 @@ const BITRUE_TRIANGULAR_CONFIG = {
     baseUrl: 'https://openapi.bitrue.com',
     endpoints: {
         ticker: '/api/v1/ticker/24hr',
+        orderBook: '/api/v1/depth',
         balance: '/api/v1/account',
         placeOrder: '/api/v1/order',
         symbols: '/api/v1/exchangeInfo'
@@ -10159,10 +10160,17 @@ router.post('/bitrue/triangular/test-connection', asyncHandler(async (req, res) 
     }
 }));
 
-// ROUTE 2: Scan Bitrue Triangular Opportunities
+// ROUTE 2: Scan Bitrue Triangular Opportunities (with ProfitCalculatorService)
 router.post('/bitrue/triangular/scan', asyncHandler(async (req, res) => {
     try {
-        const { apiKey, apiSecret, minProfitPercent = 0.3, enabledSets = ['SET_1', 'SET_2', 'SET_3', 'SET_4', 'SET_5'] } = req.body;
+        const {
+            apiKey,
+            apiSecret,
+            maxTradeAmount = 1000,
+            portfolioPercent = 10,
+            profitThreshold = 0.5,
+            enabledSets = {}
+        } = req.body;
 
         if (!apiKey || !apiSecret) {
             return res.status(400).json({
@@ -10171,117 +10179,241 @@ router.post('/bitrue/triangular/scan', asyncHandler(async (req, res) => {
             });
         }
 
-        // Fetch all tickers
-        const tickerResponse = await axios.get(
-            `${BITRUE_TRIANGULAR_CONFIG.baseUrl}${BITRUE_TRIANGULAR_CONFIG.endpoints.ticker}`
-        );
+        // Define all 32 paths with steps for ProfitCalculatorService (Bitrue uses Binance-style pairs)
+        const allPaths = {
+            SET_1_ESSENTIAL_ETH_BRIDGE: [
+                { id: 'BITRUE_ETH_1', path: ['USDT', 'ETH', 'BTC', 'USDT'], sequence: 'USDT → ETH → BTC → USDT', description: 'ETH → BTC Bridge', steps: [{ pair: 'ETHUSDT', side: 'buy' }, { pair: 'ETHBTC', side: 'sell' }, { pair: 'BTCUSDT', side: 'sell' }] },
+                { id: 'BITRUE_ETH_2', path: ['USDT', 'ETH', 'SOL', 'USDT'], sequence: 'USDT → ETH → SOL → USDT', description: 'ETH → SOL Bridge', steps: [{ pair: 'ETHUSDT', side: 'buy' }, { pair: 'SOLETH', side: 'buy' }, { pair: 'SOLUSDT', side: 'sell' }] },
+                { id: 'BITRUE_ETH_3', path: ['USDT', 'ETH', 'LINK', 'USDT'], sequence: 'USDT → ETH → LINK → USDT', description: 'ETH → LINK Bridge', steps: [{ pair: 'ETHUSDT', side: 'buy' }, { pair: 'LINKETH', side: 'buy' }, { pair: 'LINKUSDT', side: 'sell' }] },
+                { id: 'BITRUE_ETH_4', path: ['USDT', 'ETH', 'AVAX', 'USDT'], sequence: 'USDT → ETH → AVAX → USDT', description: 'ETH → AVAX Bridge', steps: [{ pair: 'ETHUSDT', side: 'buy' }, { pair: 'AVAXETH', side: 'buy' }, { pair: 'AVAXUSDT', side: 'sell' }] },
+                { id: 'BITRUE_ETH_5', path: ['USDT', 'ETH', 'MATIC', 'USDT'], sequence: 'USDT → ETH → MATIC → USDT', description: 'ETH → MATIC Bridge', steps: [{ pair: 'ETHUSDT', side: 'buy' }, { pair: 'MATICETH', side: 'buy' }, { pair: 'MATICUSDT', side: 'sell' }] },
+                { id: 'BITRUE_ETH_6', path: ['USDT', 'ETH', 'UNI', 'USDT'], sequence: 'USDT → ETH → UNI → USDT', description: 'ETH → UNI Bridge', steps: [{ pair: 'ETHUSDT', side: 'buy' }, { pair: 'UNIETH', side: 'buy' }, { pair: 'UNIUSDT', side: 'sell' }] },
+                { id: 'BITRUE_ETH_7', path: ['USDT', 'ETH', 'AAVE', 'USDT'], sequence: 'USDT → ETH → AAVE → USDT', description: 'ETH → AAVE Bridge', steps: [{ pair: 'ETHUSDT', side: 'buy' }, { pair: 'AAVEETH', side: 'buy' }, { pair: 'AAVEUSDT', side: 'sell' }] }
+            ],
+            SET_2_MIDCAP_BTC_BRIDGE: [
+                { id: 'BITRUE_BTC_1', path: ['USDT', 'BTC', 'DOGE', 'USDT'], sequence: 'USDT → BTC → DOGE → USDT', description: 'BTC → DOGE Bridge', steps: [{ pair: 'BTCUSDT', side: 'buy' }, { pair: 'DOGEBTC', side: 'buy' }, { pair: 'DOGEUSDT', side: 'sell' }] },
+                { id: 'BITRUE_BTC_2', path: ['USDT', 'BTC', 'LTC', 'USDT'], sequence: 'USDT → BTC → LTC → USDT', description: 'BTC → LTC Bridge', steps: [{ pair: 'BTCUSDT', side: 'buy' }, { pair: 'LTCBTC', side: 'buy' }, { pair: 'LTCUSDT', side: 'sell' }] },
+                { id: 'BITRUE_BTC_3', path: ['USDT', 'BTC', 'XRP', 'USDT'], sequence: 'USDT → BTC → XRP → USDT', description: 'BTC → XRP Bridge', steps: [{ pair: 'BTCUSDT', side: 'buy' }, { pair: 'XRPBTC', side: 'buy' }, { pair: 'XRPUSDT', side: 'sell' }] },
+                { id: 'BITRUE_BTC_4', path: ['USDT', 'BTC', 'ADA', 'USDT'], sequence: 'USDT → BTC → ADA → USDT', description: 'BTC → ADA Bridge', steps: [{ pair: 'BTCUSDT', side: 'buy' }, { pair: 'ADABTC', side: 'buy' }, { pair: 'ADAUSDT', side: 'sell' }] },
+                { id: 'BITRUE_BTC_5', path: ['USDT', 'BTC', 'DOT', 'USDT'], sequence: 'USDT → BTC → DOT → USDT', description: 'BTC → DOT Bridge', steps: [{ pair: 'BTCUSDT', side: 'buy' }, { pair: 'DOTBTC', side: 'buy' }, { pair: 'DOTUSDT', side: 'sell' }] },
+                { id: 'BITRUE_BTC_6', path: ['USDT', 'BTC', 'BCH', 'USDT'], sequence: 'USDT → BTC → BCH → USDT', description: 'BTC → BCH Bridge', steps: [{ pair: 'BTCUSDT', side: 'buy' }, { pair: 'BCHBTC', side: 'buy' }, { pair: 'BCHUSDT', side: 'sell' }] },
+                { id: 'BITRUE_BTC_7', path: ['USDT', 'BTC', 'TRX', 'USDT'], sequence: 'USDT → BTC → TRX → USDT', description: 'BTC → TRX Bridge', steps: [{ pair: 'BTCUSDT', side: 'buy' }, { pair: 'TRXBTC', side: 'buy' }, { pair: 'TRXUSDT', side: 'sell' }] }
+            ],
+            SET_3_BTR_NATIVE_TOKEN: [
+                { id: 'BITRUE_BTR_1', path: ['USDT', 'BTR', 'BTC', 'USDT'], sequence: 'USDT → BTR → BTC → USDT', description: 'BTR → BTC Native', steps: [{ pair: 'BTRUSDT', side: 'buy' }, { pair: 'BTRBTC', side: 'sell' }, { pair: 'BTCUSDT', side: 'sell' }] },
+                { id: 'BITRUE_BTR_2', path: ['USDT', 'BTR', 'ETH', 'USDT'], sequence: 'USDT → BTR → ETH → USDT', description: 'BTR → ETH Native', steps: [{ pair: 'BTRUSDT', side: 'buy' }, { pair: 'BTRETH', side: 'sell' }, { pair: 'ETHUSDT', side: 'sell' }] },
+                { id: 'BITRUE_BTR_3', path: ['USDT', 'BTC', 'BTR', 'USDT'], sequence: 'USDT → BTC → BTR → USDT', description: 'BTC → BTR Native', steps: [{ pair: 'BTCUSDT', side: 'buy' }, { pair: 'BTRBTC', side: 'buy' }, { pair: 'BTRUSDT', side: 'sell' }] },
+                { id: 'BITRUE_BTR_4', path: ['USDT', 'ETH', 'BTR', 'USDT'], sequence: 'USDT → ETH → BTR → USDT', description: 'ETH → BTR Native', steps: [{ pair: 'ETHUSDT', side: 'buy' }, { pair: 'BTRETH', side: 'buy' }, { pair: 'BTRUSDT', side: 'sell' }] },
+                { id: 'BITRUE_BTR_5', path: ['USDT', 'BTR', 'SOL', 'USDT'], sequence: 'USDT → BTR → SOL → USDT', description: 'BTR → SOL Native', steps: [{ pair: 'BTRUSDT', side: 'buy' }, { pair: 'BTRSOL', side: 'sell' }, { pair: 'SOLUSDT', side: 'sell' }] },
+                { id: 'BITRUE_BTR_6', path: ['USDT', 'SOL', 'BTR', 'USDT'], sequence: 'USDT → SOL → BTR → USDT', description: 'SOL → BTR Native', steps: [{ pair: 'SOLUSDT', side: 'buy' }, { pair: 'BTRSOL', side: 'buy' }, { pair: 'BTRUSDT', side: 'sell' }] }
+            ],
+            SET_4_HIGH_VOLATILITY: [
+                { id: 'BITRUE_VOL_1', path: ['USDT', 'SOL', 'LINK', 'USDT'], sequence: 'USDT → SOL → LINK → USDT', description: 'SOL → LINK Volatility', steps: [{ pair: 'SOLUSDT', side: 'buy' }, { pair: 'LINKSOL', side: 'buy' }, { pair: 'LINKUSDT', side: 'sell' }] },
+                { id: 'BITRUE_VOL_2', path: ['USDT', 'SOL', 'MATIC', 'USDT'], sequence: 'USDT → SOL → MATIC → USDT', description: 'SOL → MATIC Volatility', steps: [{ pair: 'SOLUSDT', side: 'buy' }, { pair: 'MATICSOL', side: 'buy' }, { pair: 'MATICUSDT', side: 'sell' }] },
+                { id: 'BITRUE_VOL_3', path: ['USDT', 'LINK', 'BTC', 'USDT'], sequence: 'USDT → LINK → BTC → USDT', description: 'LINK → BTC Volatility', steps: [{ pair: 'LINKUSDT', side: 'buy' }, { pair: 'LINKBTC', side: 'sell' }, { pair: 'BTCUSDT', side: 'sell' }] },
+                { id: 'BITRUE_VOL_4', path: ['USDT', 'AVAX', 'SOL', 'USDT'], sequence: 'USDT → AVAX → SOL → USDT', description: 'AVAX → SOL Volatility', steps: [{ pair: 'AVAXUSDT', side: 'buy' }, { pair: 'SOLAVAX', side: 'buy' }, { pair: 'SOLUSDT', side: 'sell' }] },
+                { id: 'BITRUE_VOL_5', path: ['USDT', 'MATIC', 'BTC', 'USDT'], sequence: 'USDT → MATIC → BTC → USDT', description: 'MATIC → BTC Volatility', steps: [{ pair: 'MATICUSDT', side: 'buy' }, { pair: 'MATICBTC', side: 'sell' }, { pair: 'BTCUSDT', side: 'sell' }] },
+                { id: 'BITRUE_VOL_6', path: ['USDT', 'UNI', 'ETH', 'USDT'], sequence: 'USDT → UNI → ETH → USDT', description: 'UNI → ETH Volatility', steps: [{ pair: 'UNIUSDT', side: 'buy' }, { pair: 'UNIETH', side: 'sell' }, { pair: 'ETHUSDT', side: 'sell' }] }
+            ],
+            SET_5_EXTENDED_MULTIBRIDGE: [
+                { id: 'BITRUE_EXT_1', path: ['USDT', 'ATOM', 'BTC', 'USDT'], sequence: 'USDT → ATOM → BTC → USDT', description: 'ATOM → BTC Extended', steps: [{ pair: 'ATOMUSDT', side: 'buy' }, { pair: 'ATOMBTC', side: 'sell' }, { pair: 'BTCUSDT', side: 'sell' }] },
+                { id: 'BITRUE_EXT_2', path: ['USDT', 'FIL', 'ETH', 'USDT'], sequence: 'USDT → FIL → ETH → USDT', description: 'FIL → ETH Extended', steps: [{ pair: 'FILUSDT', side: 'buy' }, { pair: 'FILETH', side: 'sell' }, { pair: 'ETHUSDT', side: 'sell' }] },
+                { id: 'BITRUE_EXT_3', path: ['USDT', 'XLM', 'BTC', 'USDT'], sequence: 'USDT → XLM → BTC → USDT', description: 'XLM → BTC Extended', steps: [{ pair: 'XLMUSDT', side: 'buy' }, { pair: 'XLMBTC', side: 'sell' }, { pair: 'BTCUSDT', side: 'sell' }] },
+                { id: 'BITRUE_EXT_4', path: ['USDT', 'ALGO', 'ETH', 'USDT'], sequence: 'USDT → ALGO → ETH → USDT', description: 'ALGO → ETH Extended', steps: [{ pair: 'ALGOUSDT', side: 'buy' }, { pair: 'ALGOETH', side: 'sell' }, { pair: 'ETHUSDT', side: 'sell' }] },
+                { id: 'BITRUE_EXT_5', path: ['USDT', 'ETH', 'BTC', 'SOL', 'USDT'], sequence: 'USDT → ETH → BTC → SOL → USDT', description: 'Four-Leg: ETH→BTC→SOL', steps: [{ pair: 'ETHUSDT', side: 'buy' }, { pair: 'ETHBTC', side: 'sell' }, { pair: 'SOLBTC', side: 'buy' }, { pair: 'SOLUSDT', side: 'sell' }] },
+                { id: 'BITRUE_EXT_6', path: ['USDT', 'BTC', 'ETH', 'LINK', 'USDT'], sequence: 'USDT → BTC → ETH → LINK → USDT', description: 'Four-Leg: BTC→ETH→LINK', steps: [{ pair: 'BTCUSDT', side: 'buy' }, { pair: 'ETHBTC', side: 'buy' }, { pair: 'LINKETH', side: 'buy' }, { pair: 'LINKUSDT', side: 'sell' }] }
+            ]
+        };
 
-        if (!Array.isArray(tickerResponse.data)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Failed to fetch Bitrue market data'
+        // Fetch USDT balance from Bitrue API (Binance-compatible)
+        const timestamp = Date.now();
+        const balanceQueryString = `timestamp=${timestamp}`;
+        const balanceSignature = createBitrueTriangularSignature(balanceQueryString, apiSecret);
+
+        let balance = 0;
+        try {
+            const balanceResponse = await axios.get(
+                `${BITRUE_TRIANGULAR_CONFIG.baseUrl}${BITRUE_TRIANGULAR_CONFIG.endpoints.balance}?${balanceQueryString}&signature=${balanceSignature}`,
+                {
+                    headers: {
+                        'X-MBX-APIKEY': apiKey
+                    }
+                }
+            );
+
+            if (balanceResponse.data && balanceResponse.data.balances) {
+                const usdtBalance = balanceResponse.data.balances.find(b => b.asset === 'USDT');
+                balance = usdtBalance ? parseFloat(usdtBalance.free || 0) : 0;
+            }
+        } catch (balanceError) {
+            systemLogger.warn('Bitrue balance fetch failed, using default', {
+                error: balanceError.message
             });
         }
 
-        const tickers = tickerResponse.data;
-        const priceMap = {};
-
-        tickers.forEach(ticker => {
-            if (ticker.symbol) {
-                priceMap[ticker.symbol] = {
-                    bid: parseFloat(ticker.bidPrice || 0),
-                    ask: parseFloat(ticker.askPrice || 0),
-                    last: parseFloat(ticker.lastPrice || 0)
-                };
-            }
+        // Calculate trade amount using portfolio calculator
+        const portfolioCalc = portfolioCalculator.calculateTradeAmount({
+            balance,
+            portfolioPercent,
+            maxTradeAmount,
+            currency: 'USDT',
+            exchange: 'Bitrue',
+            path: null
         });
 
-        // Filter enabled paths
-        let allPaths = [];
-        if (enabledSets.includes('SET_1')) allPaths = allPaths.concat(BITRUE_TRIANGULAR_PATHS.SET_1_ESSENTIAL_ETH_BRIDGE);
-        if (enabledSets.includes('SET_2')) allPaths = allPaths.concat(BITRUE_TRIANGULAR_PATHS.SET_2_MIDCAP_BTC_BRIDGE);
-        if (enabledSets.includes('SET_3')) allPaths = allPaths.concat(BITRUE_TRIANGULAR_PATHS.SET_3_BTR_NATIVE_TOKEN);
-        if (enabledSets.includes('SET_4')) allPaths = allPaths.concat(BITRUE_TRIANGULAR_PATHS.SET_4_HIGH_VOLATILITY);
-        if (enabledSets.includes('SET_5')) allPaths = allPaths.concat(BITRUE_TRIANGULAR_PATHS.SET_5_EXTENDED_MULTIBRIDGE);
+        if (!portfolioCalc.canTrade) {
+            return res.json({
+                success: false,
+                message: portfolioCalc.reason,
+                portfolioDetails: portfolioCalc.details
+            });
+        }
 
-        const opportunities = [];
-        const feePercent = 0.10; // Bitrue ~0.10% fee (0.07% with BTR)
+        const tradeAmount = portfolioCalc.amount;
 
-        allPaths.forEach(pathConfig => {
-            const pairs = pathConfig.pairs;
-            let isValid = true;
-            let prices = [];
+        // Filter paths based on enabled sets
+        let pathsToScan = [];
+        if (enabledSets.SET_1) pathsToScan = pathsToScan.concat(allPaths.SET_1_ESSENTIAL_ETH_BRIDGE);
+        if (enabledSets.SET_2) pathsToScan = pathsToScan.concat(allPaths.SET_2_MIDCAP_BTC_BRIDGE);
+        if (enabledSets.SET_3) pathsToScan = pathsToScan.concat(allPaths.SET_3_BTR_NATIVE_TOKEN);
+        if (enabledSets.SET_4) pathsToScan = pathsToScan.concat(allPaths.SET_4_HIGH_VOLATILITY);
+        if (enabledSets.SET_5) pathsToScan = pathsToScan.concat(allPaths.SET_5_EXTENDED_MULTIBRIDGE);
 
-            // Get prices for each pair
-            for (const pair of pairs) {
-                if (!priceMap[pair]) {
-                    isValid = false;
-                    break;
+        // Get all unique pairs from enabled paths
+        const uniquePairs = new Set();
+        pathsToScan.forEach(path => {
+            path.steps.forEach(step => uniquePairs.add(step.pair));
+        });
+
+        // Fetch orderbooks for all unique pairs
+        const orderBooks = {};
+        for (const pair of uniquePairs) {
+            try {
+                const obResponse = await axios.get(
+                    `${BITRUE_TRIANGULAR_CONFIG.baseUrl}${BITRUE_TRIANGULAR_CONFIG.endpoints.orderBook}?symbol=${pair}&limit=20`
+                );
+
+                if (obResponse.data && obResponse.data.bids && obResponse.data.asks) {
+                    orderBooks[pair] = {
+                        bids: obResponse.data.bids,
+                        asks: obResponse.data.asks
+                    };
                 }
-                prices.push(priceMap[pair]);
-            }
-
-            if (!isValid) return;
-
-            // Calculate profit for triangular path
-            let amount = 100; // Start with 100 USDT
-
-            // Execute each leg
-            for (let i = 0; i < pairs.length; i++) {
-                const price = prices[i];
-                const avgPrice = (price.bid + price.ask) / 2;
-
-                // Apply fee
-                amount = amount * (1 - feePercent / 100);
-
-                // Execute trade
-                if (i === 0 || i === pairs.length - 1) {
-                    // First and last leg: buying/selling against USDT
-                    amount = amount / avgPrice;
-                } else {
-                    // Middle legs: cross pairs
-                    amount = amount * avgPrice;
-                }
-            }
-
-            const profitPercent = ((amount - 100) / 100) * 100;
-
-            if (profitPercent >= minProfitPercent) {
-                opportunities.push({
-                    id: pathConfig.id,
-                    path: pathConfig.path,
-                    pairs: pathConfig.pairs,
-                    description: pathConfig.description,
-                    profitPercent: profitPercent.toFixed(3),
-                    estimatedProfit: (amount - 100).toFixed(2),
-                    prices: prices.map(p => ({
-                        bid: p.bid,
-                        ask: p.ask,
-                        spread: ((p.ask - p.bid) / p.bid * 100).toFixed(3)
-                    }))
+            } catch (obError) {
+                systemLogger.warn(`Bitrue orderbook fetch failed for ${pair}`, {
+                    error: obError.message
                 });
             }
-        });
+        }
 
-        // Sort by profit
+        // Calculate profits using ProfitCalculatorService (0.10% fees, 0.07% with BTR)
+        const profitCalculator = new ProfitCalculatorService();
+        const opportunities = [];
+
+        for (const path of pathsToScan) {
+            const result = profitCalculator.calculate('bitrue', path, orderBooks, tradeAmount);
+
+            if (result.success && result.profitPercentage >= profitThreshold) {
+                opportunities.push({
+                    pathId: result.pathId,
+                    description: path.description,
+                    path: result.sequence.split(' → '),
+                    initialAmount: result.startAmount,
+                    finalAmount: result.endAmount,
+                    profitAmount: result.profit,
+                    profitPercent: result.profitPercentage.toFixed(4),
+                    steps: result.steps,
+                    totalFees: result.totalFees,
+                    timestamp: result.timestamp
+                });
+            }
+        }
+
+        // Sort by profitability
         opportunities.sort((a, b) => parseFloat(b.profitPercent) - parseFloat(a.profitPercent));
 
         res.json({
             success: true,
-            opportunities,
-            scannedPaths: allPaths.length,
+            scanned: pathsToScan.length,
+            profitableCount: opportunities.length,
+            opportunities: opportunities,
+            portfolioDetails: portfolioCalc.details,
+            profitThreshold,
             timestamp: new Date().toISOString()
         });
 
     } catch (error) {
+        systemLogger.error('Bitrue scan error', {
+            error: error.message,
+            stack: error.stack
+        });
+
         res.status(500).json({
             success: false,
-            message: 'Failed to scan Bitrue opportunities'
+            message: error.message || 'Failed to scan Bitrue opportunities',
+            error: error.message
         });
     }
 }));
 
-// ROUTE 3: Get Bitrue Triangular Paths
+// ROUTE 3: Get Bitrue Balance
+router.post('/bitrue/balance', asyncHandler(async (req, res) => {
+    try {
+        const { apiKey, apiSecret, currency = 'USDT' } = req.body;
+
+        if (!apiKey || !apiSecret) {
+            return res.status(400).json({
+                success: false,
+                message: 'Missing Bitrue API credentials (key and secret required)'
+            });
+        }
+
+        // Create Binance-compatible signature
+        const timestamp = Date.now();
+        const queryString = `timestamp=${timestamp}`;
+        const signature = createBitrueTriangularSignature(queryString, apiSecret);
+
+        const response = await axios.get(
+            `${BITRUE_TRIANGULAR_CONFIG.baseUrl}${BITRUE_TRIANGULAR_CONFIG.endpoints.balance}?${queryString}&signature=${signature}`,
+            {
+                headers: {
+                    'X-MBX-APIKEY': apiKey
+                }
+            }
+        );
+
+        // Extract balance for requested currency
+        const balances = response.data.balances || [];
+        const currencyBalance = balances.find(b => b.asset === currency.toUpperCase());
+
+        const available = currencyBalance ? parseFloat(currencyBalance.free || 0) : 0;
+        const locked = currencyBalance ? parseFloat(currencyBalance.locked || 0) : 0;
+        const total = available + locked;
+
+        res.json({
+            success: true,
+            currency,
+            balance: available.toFixed(2),
+            locked: locked.toFixed(2),
+            total: total.toFixed(2),
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        systemLogger.error('Bitrue balance error', {
+            error: error.message,
+            stack: error.stack
+        });
+
+        res.status(500).json({
+            success: false,
+            message: error.response?.data?.msg || error.message || 'Failed to fetch Bitrue balance',
+            error: error.message
+        });
+    }
+}));
+
+// ROUTE 4: Get Bitrue Triangular Paths
 router.get('/bitrue/triangular/paths', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
     const allPaths = [
         ...BITRUE_TRIANGULAR_PATHS.SET_1_ESSENTIAL_ETH_BRIDGE,
