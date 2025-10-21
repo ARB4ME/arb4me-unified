@@ -6765,7 +6765,7 @@ router.post('/mexc/triangular/test-connection', asyncHandler(async (req, res) =>
 // ROUTE 2: Scan MEXC Triangular Arbitrage Opportunities
 router.post('/mexc/triangular/scan', asyncHandler(async (req, res) => {
     try {
-        const { apiKey, apiSecret, maxTradeAmount, profitThreshold, enabledSets } = req.body;
+        const { apiKey, apiSecret, maxTradeAmount, portfolioPercent = 10, profitThreshold, enabledSets } = req.body;
 
         if (!apiKey || !apiSecret) {
             return res.status(400).json({
@@ -6774,49 +6774,56 @@ router.post('/mexc/triangular/scan', asyncHandler(async (req, res) => {
             });
         }
 
-        // Define all 32 triangular arbitrage paths
+        systemLogger.info('MEXC triangular scan started', {
+            maxTradeAmount,
+            portfolioPercent,
+            profitThreshold,
+            enabledSets
+        });
+
+        // Define all 32 triangular arbitrage paths with steps for ProfitCalculatorService
         const allPaths = {
             SET_1_ESSENTIAL_ETH_BRIDGE: [
-                { id: 'MEXC_ETH_1', path: ['USDT', 'ETH', 'BTC', 'USDT'], pairs: ['ETHUSDT', 'BTCETH', 'BTCUSDT'], description: 'ETH → BTC Bridge' },
-                { id: 'MEXC_ETH_2', path: ['USDT', 'ETH', 'SOL', 'USDT'], pairs: ['ETHUSDT', 'SOLETH', 'SOLUSDT'], description: 'ETH → SOL Bridge' },
-                { id: 'MEXC_ETH_3', path: ['USDT', 'ETH', 'XRP', 'USDT'], pairs: ['ETHUSDT', 'XRPETH', 'XRPUSDT'], description: 'ETH → XRP Bridge' },
-                { id: 'MEXC_ETH_4', path: ['USDT', 'ETH', 'ADA', 'USDT'], pairs: ['ETHUSDT', 'ADAETH', 'ADAUSDT'], description: 'ETH → ADA Bridge' },
-                { id: 'MEXC_ETH_5', path: ['USDT', 'ETH', 'MATIC', 'USDT'], pairs: ['ETHUSDT', 'MATICETH', 'MATICUSDT'], description: 'ETH → MATIC Bridge' },
-                { id: 'MEXC_ETH_6', path: ['USDT', 'ETH', 'DOT', 'USDT'], pairs: ['ETHUSDT', 'DOTETH', 'DOTUSDT'], description: 'ETH → DOT Bridge' },
-                { id: 'MEXC_ETH_7', path: ['USDT', 'ETH', 'AVAX', 'USDT'], pairs: ['ETHUSDT', 'AVAXETH', 'AVAXUSDT'], description: 'ETH → AVAX Bridge' }
+                { id: 'MEXC_ETH_1', path: ['USDT', 'ETH', 'BTC', 'USDT'], sequence: 'USDT → ETH → BTC → USDT', description: 'ETH → BTC Bridge', steps: [{ pair: 'ETHUSDT', side: 'buy' }, { pair: 'BTCETH', side: 'buy' }, { pair: 'BTCUSDT', side: 'sell' }] },
+                { id: 'MEXC_ETH_2', path: ['USDT', 'ETH', 'SOL', 'USDT'], sequence: 'USDT → ETH → SOL → USDT', description: 'ETH → SOL Bridge', steps: [{ pair: 'ETHUSDT', side: 'buy' }, { pair: 'SOLETH', side: 'buy' }, { pair: 'SOLUSDT', side: 'sell' }] },
+                { id: 'MEXC_ETH_3', path: ['USDT', 'ETH', 'XRP', 'USDT'], sequence: 'USDT → ETH → XRP → USDT', description: 'ETH → XRP Bridge', steps: [{ pair: 'ETHUSDT', side: 'buy' }, { pair: 'XRPETH', side: 'buy' }, { pair: 'XRPUSDT', side: 'sell' }] },
+                { id: 'MEXC_ETH_4', path: ['USDT', 'ETH', 'ADA', 'USDT'], sequence: 'USDT → ETH → ADA → USDT', description: 'ETH → ADA Bridge', steps: [{ pair: 'ETHUSDT', side: 'buy' }, { pair: 'ADAETH', side: 'buy' }, { pair: 'ADAUSDT', side: 'sell' }] },
+                { id: 'MEXC_ETH_5', path: ['USDT', 'ETH', 'MATIC', 'USDT'], sequence: 'USDT → ETH → MATIC → USDT', description: 'ETH → MATIC Bridge', steps: [{ pair: 'ETHUSDT', side: 'buy' }, { pair: 'MATICETH', side: 'buy' }, { pair: 'MATICUSDT', side: 'sell' }] },
+                { id: 'MEXC_ETH_6', path: ['USDT', 'ETH', 'DOT', 'USDT'], sequence: 'USDT → ETH → DOT → USDT', description: 'ETH → DOT Bridge', steps: [{ pair: 'ETHUSDT', side: 'buy' }, { pair: 'DOTETH', side: 'buy' }, { pair: 'DOTUSDT', side: 'sell' }] },
+                { id: 'MEXC_ETH_7', path: ['USDT', 'ETH', 'AVAX', 'USDT'], sequence: 'USDT → ETH → AVAX → USDT', description: 'ETH → AVAX Bridge', steps: [{ pair: 'ETHUSDT', side: 'buy' }, { pair: 'AVAXETH', side: 'buy' }, { pair: 'AVAXUSDT', side: 'sell' }] }
             ],
             SET_2_MIDCAP_BTC_BRIDGE: [
-                { id: 'MEXC_BTC_1', path: ['USDT', 'BTC', 'ETH', 'USDT'], pairs: ['BTCUSDT', 'ETHBTC', 'ETHUSDT'], description: 'BTC → ETH Bridge' },
-                { id: 'MEXC_BTC_2', path: ['USDT', 'BTC', 'SOL', 'USDT'], pairs: ['BTCUSDT', 'SOLBTC', 'SOLUSDT'], description: 'BTC → SOL Bridge' },
-                { id: 'MEXC_BTC_3', path: ['USDT', 'BTC', 'XRP', 'USDT'], pairs: ['BTCUSDT', 'XRPBTC', 'XRPUSDT'], description: 'BTC → XRP Bridge' },
-                { id: 'MEXC_BTC_4', path: ['USDT', 'BTC', 'LTC', 'USDT'], pairs: ['BTCUSDT', 'LTCBTC', 'LTCUSDT'], description: 'BTC → LTC Bridge' },
-                { id: 'MEXC_BTC_5', path: ['USDT', 'BTC', 'LINK', 'USDT'], pairs: ['BTCUSDT', 'LINKBTC', 'LINKUSDT'], description: 'BTC → LINK Bridge' },
-                { id: 'MEXC_BTC_6', path: ['USDT', 'BTC', 'ATOM', 'USDT'], pairs: ['BTCUSDT', 'ATOMBTC', 'ATOMUSDT'], description: 'BTC → ATOM Bridge' },
-                { id: 'MEXC_BTC_7', path: ['USDT', 'BTC', 'UNI', 'USDT'], pairs: ['BTCUSDT', 'UNIBTC', 'UNIUSDT'], description: 'BTC → UNI Bridge' }
+                { id: 'MEXC_BTC_1', path: ['USDT', 'BTC', 'ETH', 'USDT'], sequence: 'USDT → BTC → ETH → USDT', description: 'BTC → ETH Bridge', steps: [{ pair: 'BTCUSDT', side: 'buy' }, { pair: 'ETHBTC', side: 'buy' }, { pair: 'ETHUSDT', side: 'sell' }] },
+                { id: 'MEXC_BTC_2', path: ['USDT', 'BTC', 'SOL', 'USDT'], sequence: 'USDT → BTC → SOL → USDT', description: 'BTC → SOL Bridge', steps: [{ pair: 'BTCUSDT', side: 'buy' }, { pair: 'SOLBTC', side: 'buy' }, { pair: 'SOLUSDT', side: 'sell' }] },
+                { id: 'MEXC_BTC_3', path: ['USDT', 'BTC', 'XRP', 'USDT'], sequence: 'USDT → BTC → XRP → USDT', description: 'BTC → XRP Bridge', steps: [{ pair: 'BTCUSDT', side: 'buy' }, { pair: 'XRPBTC', side: 'buy' }, { pair: 'XRPUSDT', side: 'sell' }] },
+                { id: 'MEXC_BTC_4', path: ['USDT', 'BTC', 'LTC', 'USDT'], sequence: 'USDT → BTC → LTC → USDT', description: 'BTC → LTC Bridge', steps: [{ pair: 'BTCUSDT', side: 'buy' }, { pair: 'LTCBTC', side: 'buy' }, { pair: 'LTCUSDT', side: 'sell' }] },
+                { id: 'MEXC_BTC_5', path: ['USDT', 'BTC', 'LINK', 'USDT'], sequence: 'USDT → BTC → LINK → USDT', description: 'BTC → LINK Bridge', steps: [{ pair: 'BTCUSDT', side: 'buy' }, { pair: 'LINKBTC', side: 'buy' }, { pair: 'LINKUSDT', side: 'sell' }] },
+                { id: 'MEXC_BTC_6', path: ['USDT', 'BTC', 'ATOM', 'USDT'], sequence: 'USDT → BTC → ATOM → USDT', description: 'BTC → ATOM Bridge', steps: [{ pair: 'BTCUSDT', side: 'buy' }, { pair: 'ATOMBTC', side: 'buy' }, { pair: 'ATOMUSDT', side: 'sell' }] },
+                { id: 'MEXC_BTC_7', path: ['USDT', 'BTC', 'UNI', 'USDT'], sequence: 'USDT → BTC → UNI → USDT', description: 'BTC → UNI Bridge', steps: [{ pair: 'BTCUSDT', side: 'buy' }, { pair: 'UNIBTC', side: 'buy' }, { pair: 'UNIUSDT', side: 'sell' }] }
             ],
             SET_3_MX_NATIVE_BRIDGE: [
-                { id: 'MEXC_MX_1', path: ['USDT', 'MX', 'BTC', 'USDT'], pairs: ['MXUSDT', 'BTCMX', 'BTCUSDT'], description: 'MX → BTC Native' },
-                { id: 'MEXC_MX_2', path: ['USDT', 'MX', 'ETH', 'USDT'], pairs: ['MXUSDT', 'ETHMX', 'ETHUSDT'], description: 'MX → ETH Native' },
-                { id: 'MEXC_MX_3', path: ['USDT', 'MX', 'SOL', 'USDT'], pairs: ['MXUSDT', 'SOLMX', 'SOLUSDT'], description: 'MX → SOL Native' },
-                { id: 'MEXC_MX_4', path: ['USDT', 'BTC', 'MX', 'USDT'], pairs: ['BTCUSDT', 'MXBTC', 'MXUSDT'], description: 'BTC → MX Reverse' },
-                { id: 'MEXC_MX_5', path: ['USDT', 'ETH', 'MX', 'USDT'], pairs: ['ETHUSDT', 'MXETH', 'MXUSDT'], description: 'ETH → MX Reverse' },
-                { id: 'MEXC_MX_6', path: ['USDT', 'MX', 'BNB', 'USDT'], pairs: ['MXUSDT', 'BNBMX', 'BNBUSDT'], description: 'MX → BNB Native' }
+                { id: 'MEXC_MX_1', path: ['USDT', 'MX', 'BTC', 'USDT'], sequence: 'USDT → MX → BTC → USDT', description: 'MX → BTC Native', steps: [{ pair: 'MXUSDT', side: 'buy' }, { pair: 'BTCMX', side: 'buy' }, { pair: 'BTCUSDT', side: 'sell' }] },
+                { id: 'MEXC_MX_2', path: ['USDT', 'MX', 'ETH', 'USDT'], sequence: 'USDT → MX → ETH → USDT', description: 'MX → ETH Native', steps: [{ pair: 'MXUSDT', side: 'buy' }, { pair: 'ETHMX', side: 'buy' }, { pair: 'ETHUSDT', side: 'sell' }] },
+                { id: 'MEXC_MX_3', path: ['USDT', 'MX', 'SOL', 'USDT'], sequence: 'USDT → MX → SOL → USDT', description: 'MX → SOL Native', steps: [{ pair: 'MXUSDT', side: 'buy' }, { pair: 'SOLMX', side: 'buy' }, { pair: 'SOLUSDT', side: 'sell' }] },
+                { id: 'MEXC_MX_4', path: ['USDT', 'BTC', 'MX', 'USDT'], sequence: 'USDT → BTC → MX → USDT', description: 'BTC → MX Reverse', steps: [{ pair: 'BTCUSDT', side: 'buy' }, { pair: 'MXBTC', side: 'buy' }, { pair: 'MXUSDT', side: 'sell' }] },
+                { id: 'MEXC_MX_5', path: ['USDT', 'ETH', 'MX', 'USDT'], sequence: 'USDT → ETH → MX → USDT', description: 'ETH → MX Reverse', steps: [{ pair: 'ETHUSDT', side: 'buy' }, { pair: 'MXETH', side: 'buy' }, { pair: 'MXUSDT', side: 'sell' }] },
+                { id: 'MEXC_MX_6', path: ['USDT', 'MX', 'BNB', 'USDT'], sequence: 'USDT → MX → BNB → USDT', description: 'MX → BNB Native', steps: [{ pair: 'MXUSDT', side: 'buy' }, { pair: 'BNBMX', side: 'buy' }, { pair: 'BNBUSDT', side: 'sell' }] }
             ],
             SET_4_HIGH_VOLATILITY: [
-                { id: 'MEXC_VOL_1', path: ['USDT', 'DOGE', 'BTC', 'USDT'], pairs: ['DOGEUSDT', 'BTCDOGE', 'BTCUSDT'], description: 'DOGE → BTC Volatility' },
-                { id: 'MEXC_VOL_2', path: ['USDT', 'SHIB', 'ETH', 'USDT'], pairs: ['SHIBUSDT', 'ETHSHIB', 'ETHUSDT'], description: 'SHIB → ETH Volatility' },
-                { id: 'MEXC_VOL_3', path: ['USDT', 'PEPE', 'ETH', 'USDT'], pairs: ['PEPEUSDT', 'ETHPEPE', 'ETHUSDT'], description: 'PEPE → ETH Volatility' },
-                { id: 'MEXC_VOL_4', path: ['USDT', 'FLOKI', 'BTC', 'USDT'], pairs: ['FLOKIUSDT', 'BTCFLOKI', 'BTCUSDT'], description: 'FLOKI → BTC Volatility' },
-                { id: 'MEXC_VOL_5', path: ['USDT', 'TON', 'ETH', 'USDT'], pairs: ['TONUSDT', 'ETHTON', 'ETHUSDT'], description: 'TON → ETH Volatility' },
-                { id: 'MEXC_VOL_6', path: ['USDT', 'SUI', 'BTC', 'USDT'], pairs: ['SUIUSDT', 'BTCSUI', 'BTCUSDT'], description: 'SUI → BTC Volatility' }
+                { id: 'MEXC_VOL_1', path: ['USDT', 'DOGE', 'BTC', 'USDT'], sequence: 'USDT → DOGE → BTC → USDT', description: 'DOGE → BTC Volatility', steps: [{ pair: 'DOGEUSDT', side: 'buy' }, { pair: 'BTCDOGE', side: 'buy' }, { pair: 'BTCUSDT', side: 'sell' }] },
+                { id: 'MEXC_VOL_2', path: ['USDT', 'SHIB', 'ETH', 'USDT'], sequence: 'USDT → SHIB → ETH → USDT', description: 'SHIB → ETH Volatility', steps: [{ pair: 'SHIBUSDT', side: 'buy' }, { pair: 'ETHSHIB', side: 'buy' }, { pair: 'ETHUSDT', side: 'sell' }] },
+                { id: 'MEXC_VOL_3', path: ['USDT', 'PEPE', 'ETH', 'USDT'], sequence: 'USDT → PEPE → ETH → USDT', description: 'PEPE → ETH Volatility', steps: [{ pair: 'PEPEUSDT', side: 'buy' }, { pair: 'ETHPEPE', side: 'buy' }, { pair: 'ETHUSDT', side: 'sell' }] },
+                { id: 'MEXC_VOL_4', path: ['USDT', 'FLOKI', 'BTC', 'USDT'], sequence: 'USDT → FLOKI → BTC → USDT', description: 'FLOKI → BTC Volatility', steps: [{ pair: 'FLOKIUSDT', side: 'buy' }, { pair: 'BTCFLOKI', side: 'buy' }, { pair: 'BTCUSDT', side: 'sell' }] },
+                { id: 'MEXC_VOL_5', path: ['USDT', 'TON', 'ETH', 'USDT'], sequence: 'USDT → TON → ETH → USDT', description: 'TON → ETH Volatility', steps: [{ pair: 'TONUSDT', side: 'buy' }, { pair: 'ETHTON', side: 'buy' }, { pair: 'ETHUSDT', side: 'sell' }] },
+                { id: 'MEXC_VOL_6', path: ['USDT', 'SUI', 'BTC', 'USDT'], sequence: 'USDT → SUI → BTC → USDT', description: 'SUI → BTC Volatility', steps: [{ pair: 'SUIUSDT', side: 'buy' }, { pair: 'BTCSUI', side: 'buy' }, { pair: 'BTCUSDT', side: 'sell' }] }
             ],
             SET_5_EXTENDED_MULTIBRIDGE: [
-                { id: 'MEXC_EXT_1', path: ['USDT', 'SOL', 'BTC', 'USDT'], pairs: ['SOLUSDT', 'BTCSOL', 'BTCUSDT'], description: 'SOL → BTC Multi-Bridge' },
-                { id: 'MEXC_EXT_2', path: ['USDT', 'ADA', 'BTC', 'USDT'], pairs: ['ADAUSDT', 'BTCADA', 'BTCUSDT'], description: 'ADA → BTC Multi-Bridge' },
-                { id: 'MEXC_EXT_3', path: ['USDT', 'AVAX', 'BTC', 'USDT'], pairs: ['AVAXUSDT', 'BTCAVAX', 'BTCUSDT'], description: 'AVAX → BTC Multi-Bridge' },
-                { id: 'MEXC_EXT_4', path: ['USDT', 'MATIC', 'ETH', 'USDT'], pairs: ['MATICUSDT', 'ETHMATIC', 'ETHUSDT'], description: 'MATIC → ETH Multi-Bridge' },
-                { id: 'MEXC_EXT_5', path: ['USDT', 'BTC', 'ETH', 'SOL', 'USDT'], pairs: ['BTCUSDT', 'ETHBTC', 'SOLETH', 'SOLUSDT'], description: '4-Leg BTC-ETH-SOL' },
-                { id: 'MEXC_EXT_6', path: ['USDT', 'ETH', 'BTC', 'XRP', 'USDT'], pairs: ['ETHUSDT', 'BTCETH', 'XRPBTC', 'XRPUSDT'], description: '4-Leg ETH-BTC-XRP' }
+                { id: 'MEXC_EXT_1', path: ['USDT', 'SOL', 'BTC', 'USDT'], sequence: 'USDT → SOL → BTC → USDT', description: 'SOL → BTC Multi-Bridge', steps: [{ pair: 'SOLUSDT', side: 'buy' }, { pair: 'BTCSOL', side: 'buy' }, { pair: 'BTCUSDT', side: 'sell' }] },
+                { id: 'MEXC_EXT_2', path: ['USDT', 'ADA', 'BTC', 'USDT'], sequence: 'USDT → ADA → BTC → USDT', description: 'ADA → BTC Multi-Bridge', steps: [{ pair: 'ADAUSDT', side: 'buy' }, { pair: 'BTCADA', side: 'buy' }, { pair: 'BTCUSDT', side: 'sell' }] },
+                { id: 'MEXC_EXT_3', path: ['USDT', 'AVAX', 'BTC', 'USDT'], sequence: 'USDT → AVAX → BTC → USDT', description: 'AVAX → BTC Multi-Bridge', steps: [{ pair: 'AVAXUSDT', side: 'buy' }, { pair: 'BTCAVAX', side: 'buy' }, { pair: 'BTCUSDT', side: 'sell' }] },
+                { id: 'MEXC_EXT_4', path: ['USDT', 'MATIC', 'ETH', 'USDT'], sequence: 'USDT → MATIC → ETH → USDT', description: 'MATIC → ETH Multi-Bridge', steps: [{ pair: 'MATICUSDT', side: 'buy' }, { pair: 'ETHMATIC', side: 'buy' }, { pair: 'ETHUSDT', side: 'sell' }] },
+                { id: 'MEXC_EXT_5', path: ['USDT', 'BTC', 'ETH', 'SOL', 'USDT'], sequence: 'USDT → BTC → ETH → SOL → USDT', description: '4-Leg BTC-ETH-SOL', steps: [{ pair: 'BTCUSDT', side: 'buy' }, { pair: 'ETHBTC', side: 'buy' }, { pair: 'SOLETH', side: 'buy' }, { pair: 'SOLUSDT', side: 'sell' }] },
+                { id: 'MEXC_EXT_6', path: ['USDT', 'ETH', 'BTC', 'XRP', 'USDT'], sequence: 'USDT → ETH → BTC → XRP → USDT', description: '4-Leg ETH-BTC-XRP', steps: [{ pair: 'ETHUSDT', side: 'buy' }, { pair: 'BTCETH', side: 'buy' }, { pair: 'XRPBTC', side: 'buy' }, { pair: 'XRPUSDT', side: 'sell' }] }
             ]
         };
 
@@ -6828,126 +6835,182 @@ router.post('/mexc/triangular/scan', asyncHandler(async (req, res) => {
             }
         });
 
-        // Fetch all tickers (public endpoint, no auth needed)
-        const tickersResponse = await fetch(`${MEXC_TRIANGULAR_CONFIG.baseUrl}${MEXC_TRIANGULAR_CONFIG.endpoints.ticker}`, {
+        // Fetch USDT balance for portfolio % calculation
+        const timestamp = Date.now().toString();
+        const queryString = `timestamp=${timestamp}`;
+        const signature = createMexcSignature(apiKey, apiSecret, timestamp, queryString);
+
+        const balanceResponse = await fetch(`${MEXC_TRIANGULAR_CONFIG.baseUrl}${MEXC_TRIANGULAR_CONFIG.endpoints.account}?${queryString}&signature=${signature}`, {
             method: 'GET',
             headers: {
+                'X-MEXC-APIKEY': apiKey,
                 'Content-Type': 'application/json'
             }
         });
 
-        if (!tickersResponse.ok) {
-            throw new Error('Failed to fetch MEXC tickers');
+        let balance = 0;
+        if (balanceResponse.ok) {
+            const balanceResult = await balanceResponse.json();
+            const usdtBalance = balanceResult.balances?.find(b => b.asset === 'USDT');
+            balance = usdtBalance ? parseFloat(usdtBalance.free) : 0;
         }
 
-        const tickers = await tickersResponse.json();
-
-        // Build price map
-        const priceMap = {};
-        tickers.forEach(ticker => {
-            priceMap[ticker.symbol] = {
-                bid: parseFloat(ticker.bidPrice) || 0,
-                ask: parseFloat(ticker.askPrice) || 0,
-                last: parseFloat(ticker.lastPrice) || 0
-            };
+        // Calculate trade amount using portfolio calculator
+        const portfolioCalc = portfolioCalculator.calculateTradeAmount({
+            balance,
+            portfolioPercent,
+            maxTradeAmount,
+            currency: 'USDT',
+            exchange: 'MEXC',
+            path: null
         });
 
-        // Scan each path for arbitrage opportunities
-        const opportunities = [];
+        if (!portfolioCalc.canTrade) {
+            return res.json({
+                success: false,
+                message: portfolioCalc.reason,
+                scanned: 0,
+                opportunities: []
+            });
+        }
 
-        for (const pathDef of pathsToScan) {
+        const tradeAmount = portfolioCalc.amount;
+
+        // Collect unique pairs from enabled paths
+        const uniquePairs = new Set();
+        pathsToScan.forEach(path => {
+            path.steps.forEach(step => uniquePairs.add(step.pair));
+        });
+
+        // Fetch orderbooks for all pairs (public endpoint)
+        const orderBooks = {};
+        for (const pair of uniquePairs) {
             try {
-                const { path, pairs, id, description } = pathDef;
-                let currentAmount = maxTradeAmount;
-                let prices = [];
-                let valid = true;
-
-                // Calculate through each leg
-                for (let i = 0; i < pairs.length; i++) {
-                    const pair = pairs[i];
-                    const priceData = priceMap[pair];
-
-                    if (!priceData || priceData.bid === 0 || priceData.ask === 0) {
-                        valid = false;
-                        break;
+                const obResponse = await fetch(`${MEXC_TRIANGULAR_CONFIG.baseUrl}${MEXC_TRIANGULAR_CONFIG.endpoints.orderBook}?symbol=${pair}&limit=20`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
                     }
+                });
 
-                    const fromCurrency = path[i];
-                    const toCurrency = path[i + 1];
-
-                    // Determine if we're buying or selling the pair
-                    // MEXC format: BTCUSDT means BTC is base, USDT is quote
-                    let base, quote;
-                    if (pair.endsWith('USDT')) {
-                        quote = 'USDT';
-                        base = pair.replace('USDT', '');
-                    } else if (pair.endsWith('BTC')) {
-                        quote = 'BTC';
-                        base = pair.replace('BTC', '');
-                    } else if (pair.endsWith('ETH')) {
-                        quote = 'ETH';
-                        base = pair.replace('ETH', '');
-                    } else {
-                        valid = false;
-                        break;
-                    }
-
-                    if (fromCurrency === quote && toCurrency === base) {
-                        // Buying base with quote (use ask price)
-                        const price = priceData.ask;
-                        currentAmount = currentAmount / price;
-                        prices.push({ pair, side: 'buy', price, amount: currentAmount });
-                    } else if (fromCurrency === base && toCurrency === quote) {
-                        // Selling base for quote (use bid price)
-                        const price = priceData.bid;
-                        currentAmount = currentAmount * price;
-                        prices.push({ pair, side: 'sell', price, amount: currentAmount });
-                    } else {
-                        valid = false;
-                        break;
-                    }
-                }
-
-                if (valid) {
-                    const finalAmount = currentAmount;
-                    const profit = finalAmount - maxTradeAmount;
-                    const profitPercent = (profit / maxTradeAmount) * 100;
-
-                    if (profitPercent >= profitThreshold) {
-                        opportunities.push({
-                            pathId: id,
-                            path: path.join(' → '),
-                            pairs: pairs,
-                            description: description,
-                            initialAmount: maxTradeAmount,
-                            finalAmount: finalAmount.toFixed(2),
-                            profit: profit.toFixed(2),
-                            profitPercent: profitPercent.toFixed(4),
-                            legs: prices,
-                            timestamp: new Date().toISOString()
-                        });
-                    }
+                if (obResponse.ok) {
+                    const obResult = await obResponse.json();
+                    orderBooks[pair] = {
+                        bids: obResult.bids || [],
+                        asks: obResult.asks || []
+                    };
                 }
             } catch (error) {
-                console.error(`Error scanning path ${pathDef.id}:`, error);
+                systemLogger.error(`Failed to fetch orderbook for ${pair}`, { error: error.message });
+            }
+        }
+
+        // Calculate profits using ProfitCalculatorService
+        const profitCalculator = new ProfitCalculatorService();
+        const opportunities = [];
+
+        for (const path of pathsToScan) {
+            const result = profitCalculator.calculate('mexc', path, orderBooks, tradeAmount);
+
+            if (result.success && result.profitPercentage >= profitThreshold) {
+                opportunities.push({
+                    pathId: result.pathId,
+                    description: path.description,
+                    path: result.sequence.split(' → '),
+                    initialAmount: result.startAmount,
+                    finalAmount: result.endAmount,
+                    profitAmount: result.profit,
+                    profitPercent: result.profitPercentage.toFixed(4),
+                    steps: result.steps,
+                    totalFees: result.totalFees,
+                    timestamp: result.timestamp
+                });
             }
         }
 
         // Sort by profit percentage descending
         opportunities.sort((a, b) => parseFloat(b.profitPercent) - parseFloat(a.profitPercent));
 
+        systemLogger.info('MEXC triangular scan complete', {
+            scanned: pathsToScan.length,
+            profitableCount: opportunities.length,
+            tradeAmount,
+            balance
+        });
+
         res.json({
             success: true,
             scanned: pathsToScan.length,
+            profitableCount: opportunities.length,
             opportunities: opportunities,
+            portfolioDetails: portfolioCalc.details,
             timestamp: new Date().toISOString()
         });
 
     } catch (error) {
-        console.error('MEXC scan error:', error);
+        systemLogger.error('MEXC scan error', { error: error.message });
         res.status(500).json({
             success: false,
             message: 'Failed to scan MEXC triangular paths'
+        });
+    }
+}));
+
+// NEW ROUTE: Get MEXC Balance
+router.post('/mexc/balance', asyncHandler(async (req, res) => {
+    try {
+        const { apiKey, apiSecret, currency = 'USDT' } = req.body;
+
+        if (!apiKey || !apiSecret) {
+            return res.status(400).json({
+                success: false,
+                message: 'API credentials required'
+            });
+        }
+
+        // Create authenticated request
+        const timestamp = Date.now().toString();
+        const queryString = `timestamp=${timestamp}`;
+        const signature = createMexcSignature(apiKey, apiSecret, timestamp, queryString);
+
+        const response = await fetch(`${MEXC_TRIANGULAR_CONFIG.baseUrl}${MEXC_TRIANGULAR_CONFIG.endpoints.account}?${queryString}&signature=${signature}`, {
+            method: 'GET',
+            headers: {
+                'X-MEXC-APIKEY': apiKey,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`MEXC API error: ${response.status} - ${errorText}`);
+        }
+
+        const result = await response.json();
+        const currencyBalance = result.balances?.find(b => b.asset === currency);
+        const available = currencyBalance ? parseFloat(currencyBalance.free) : 0;
+        const locked = currencyBalance ? parseFloat(currencyBalance.locked) : 0;
+
+        systemLogger.info(`MEXC balance fetched`, {
+            currency,
+            available: available.toFixed(2),
+            locked: locked.toFixed(2)
+        });
+
+        res.json({
+            success: true,
+            currency,
+            balance: available.toFixed(2),
+            locked: locked.toFixed(2),
+            total: (available + locked).toFixed(2),
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        systemLogger.error('MEXC balance fetch error', { error: error.message });
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch MEXC balance'
         });
     }
 }));
