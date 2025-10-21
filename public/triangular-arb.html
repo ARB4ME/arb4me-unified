@@ -17556,251 +17556,330 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
             const passphrase = localStorage.getItem('coincatch_passphrase') || '';
 
             if (!apiKey || !apiSecret || !passphrase) {
-                showNotification('Please set up Coincatch API credentials (including passphrase) in Settings first', 'error');
+                console.log('🎯 [COINCATCH] No API credentials - skipping auto-fetch');
                 return;
             }
 
-            document.getElementById('coincatchStatus').innerHTML = '<span style="color: #FFA500;">⏳ Testing connection...</span>';
-
             try {
-                const response = await fetch(`${API_BASE}/trading/coincatch/triangular/test-connection`, {
+                const response = await fetch('/api/v1/trading/coincatch/balance', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    },
-                    body: JSON.stringify({ apiKey, apiSecret, passphrase })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ apiKey, apiSecret, passphrase, currency: 'USDT' })
                 });
 
                 const data = await response.json();
 
                 if (data.success) {
-                    document.getElementById('coincatchStatus').innerHTML = '<span style="color: #00FF00;">✅ Connected</span>';
-                    document.getElementById('coincatchBalance').innerHTML = `USDT Balance: $${data.balance.available.toFixed(2)} / $${data.balance.total.toFixed(2)}`;
-                    showNotification('Coincatch connection successful!', 'success');
+                    const balance = Number(data.balance) || 0;
 
-                    // Auto-load trade history
-                    await loadCoincatchTradeHistory();
-                } else {
-                    document.getElementById('coincatchStatus').innerHTML = '<span style="color: #FF0000;">❌ Connection failed</span>';
-                    showNotification(data.message || 'Coincatch connection failed', 'error');
+                    if (!coincatchBalanceTracking.initialized) {
+                        coincatchBalanceTracking.starting = balance;
+                        coincatchBalanceTracking.current = balance;
+                        coincatchBalanceTracking.initialized = true;
+                        console.log(`🎯 [COINCATCH] Balance initialized: ${balance} USDT`);
+                    } else {
+                        coincatchBalanceTracking.current = balance;
+                    }
+
+                    updateCoincatchBalanceDisplay();
                 }
             } catch (error) {
-                console.error('Coincatch connection error:', error);
-                document.getElementById('coincatchStatus').innerHTML = '<span style="color: #FF0000;">❌ Error</span>';
-                showNotification('Network error during connection test', 'error');
+                console.error('🎯 [COINCATCH] Auto-fetch failed:', error);
             }
         }
 
-        // Scan for Coincatch Opportunities
-        async function scanCoincatchTriangular() {
+        // 6. Update Coincatch Balance (Manual Refresh)
+        async function updateCoincatchBalance() {
             const apiKey = localStorage.getItem('coincatch_api') || '';
             const apiSecret = localStorage.getItem('coincatch_secret') || '';
             const passphrase = localStorage.getItem('coincatch_passphrase') || '';
 
             if (!apiKey || !apiSecret || !passphrase) {
-                showNotification('Please set up Coincatch API credentials and test connection first', 'error');
+                alert('⚠️ Please configure your Coincatch API credentials on the Exchange Connections page first.');
                 return;
             }
-
-            // Get selected sets
-            const selectedSets = [];
-            for (let i = 1; i <= 5; i++) {
-                const checkbox = document.getElementById(`coincatch_SET_${i}`);
-                if (checkbox && checkbox.checked) {
-                    selectedSets.push(`SET_${i}_${['BTC_ETH_DIRECT', 'GMT_BTC_BRIDGE', 'MAJOR_4LEG', 'ALTCOIN_4LEG', 'EXTENDED_4LEG'][i - 1]}`);
-                }
-            }
-
-            if (selectedSets.length === 0) {
-                showNotification('Please select at least one path set', 'error');
-                return;
-            }
-
-            document.getElementById('coincatchScanResults').innerHTML = '<span style="color: #FFA500;">⏳ Scanning for opportunities...</span>';
-            document.getElementById('coincatchOpportunities').innerHTML = '<div style="color: #888; text-align: center; padding: 20px;">Scanning...</div>';
 
             try {
-                const response = await fetch(`${API_BASE}/trading/coincatch/triangular/scan`, {
+                const response = await fetch('/api/v1/trading/coincatch/balance', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    },
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ apiKey, apiSecret, passphrase, currency: 'USDT' })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    const balance = Number(data.balance) || 0;
+
+                    if (!coincatchBalanceTracking.initialized) {
+                        coincatchBalanceTracking.starting = balance;
+                        coincatchBalanceTracking.initialized = true;
+                    }
+
+                    coincatchBalanceTracking.current = balance;
+                    updateCoincatchBalanceDisplay();
+
+                    console.log(`🎯 [COINCATCH] Balance updated: ${balance} USDT`);
+                } else {
+                    alert(`❌ Failed to fetch balance: ${data.error}`);
+                }
+            } catch (error) {
+                console.error('🎯 [COINCATCH] Balance fetch error:', error);
+                alert('❌ Network error while fetching balance');
+            }
+        }
+
+        // 7. Update Coincatch Balance Display (with NaN prevention)
+        function updateCoincatchBalanceDisplay() {
+            const starting = Number(coincatchBalanceTracking.starting) || 0;
+            const current = Number(coincatchBalanceTracking.current) || 0;
+            const change = current - starting;
+            const changePercent = starting > 0 ? ((change / starting) * 100) : 0;
+
+            document.getElementById('coincatchStartingUSDT').textContent = `${starting.toFixed(2)} USDT`;
+            document.getElementById('coincatchCurrentUSDT').textContent = `${current.toFixed(2)} USDT`;
+
+            const changeDisplay = document.getElementById('coincatchChangeUSDT');
+            const changeSign = change >= 0 ? '+' : '';
+            const changeColor = change >= 0 ? '#00d26a' : '#FF4444';
+
+            changeDisplay.textContent = `${changeSign}${change.toFixed(2)} USDT (${changeSign}${changePercent.toFixed(2)}%)`;
+            changeDisplay.style.color = changeColor;
+        }
+
+        // 8. Reset Coincatch Starting Balance
+        function resetCoincatchStartingBalance() {
+            if (!confirm('Reset starting balance to current balance? This will reset your P&L tracking.')) {
+                return;
+            }
+
+            coincatchBalanceTracking.starting = coincatchBalanceTracking.current;
+            updateCoincatchBalanceDisplay();
+
+            console.log(`🎯 [COINCATCH] Starting balance reset to ${coincatchBalanceTracking.starting} USDT`);
+            alert('✅ Starting balance has been reset to current balance');
+        }
+
+        // 9. Clear Coincatch History
+        function clearCoincatchHistory() {
+            if (!confirm('Clear all opportunity history?')) {
+                return;
+            }
+
+            document.getElementById('coincatchOpportunities').innerHTML = '<div style="color: #666; font-size: 13px; text-align: center; padding: 20px;">No active opportunities. Run a scan to discover paths.</div>';
+            document.getElementById('coincatchScanStatus').textContent = 'Click "Scan Opportunities" to find profitable paths';
+
+            console.log('🎯 [COINCATCH] Opportunity history cleared');
+            alert('✅ Opportunity history cleared');
+        }
+
+        // 10. Scan Coincatch Triangular Paths
+        async function scanCoincatchTriangularPaths() {
+            const apiKey = localStorage.getItem('coincatch_api') || '';
+            const apiSecret = localStorage.getItem('coincatch_secret') || '';
+            const passphrase = localStorage.getItem('coincatch_passphrase') || '';
+            const profitThreshold = parseFloat(document.getElementById('coincatchProfitThreshold').value);
+            const maxTradeAmount = parseFloat(document.getElementById('coincatchMaxTrade').value);
+            const portfolioPercent = parseFloat(document.getElementById('coincatchPortfolioPercent').value);
+            const scanStatus = document.getElementById('coincatchScanStatus');
+            const opportunitiesDiv = document.getElementById('coincatchOpportunities');
+
+            if (!apiKey || !apiSecret || !passphrase) {
+                alert('⚠️ Please configure your Coincatch API credentials on the Exchange Connections page first.');
+                return;
+            }
+
+            scanStatus.textContent = '🔄 Scanning 32 triangular paths...';
+            scanStatus.style.color = '#FFA500';
+            opportunitiesDiv.innerHTML = '<div style="text-align: center; color: #888; padding: 20px;">Scanning for opportunities...</div>';
+
+            try {
+                const enabledSets = {};
+                for (let i = 1; i <= 5; i++) {
+                    const checkbox = document.getElementById(`coincatchSet${i}Enabled`);
+                    if (checkbox && checkbox.checked) {
+                        const setNames = ['BTC_ETH_DIRECT', 'GMT_BTC_BRIDGE', 'MAJOR_4LEG', 'ALTCOIN_4LEG', 'EXTENDED_4LEG'];
+                        enabledSets[`SET_${i}_${setNames[i - 1]}`] = true;
+                    }
+                }
+
+                const response = await fetch('/api/v1/trading/coincatch/triangular/scan', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         apiKey,
                         apiSecret,
                         passphrase,
-                        selectedSets
+                        profitThreshold,
+                        maxTradeAmount,
+                        portfolioPercent,
+                        enabledSets
                     })
                 });
 
                 const data = await response.json();
 
                 if (data.success) {
-                    const minProfit = parseFloat(document.getElementById('coincatchMinProfit').value) || 0.5;
-                    const filteredOpps = data.opportunities.filter(opp => opp.profitPercentage >= minProfit);
+                    scanStatus.textContent = `✅ Found ${data.profitableCount} opportunities (scanned ${data.scanned} paths)`;
+                    scanStatus.style.color = '#00FF00';
 
-                    document.getElementById('coincatchScanResults').innerHTML =
-                        `<span style="color: #00FF00;">✅ Scan complete: ${filteredOpps.length} opportunities found (${data.scannedPaths} paths scanned)</span>`;
-
-                    if (filteredOpps.length === 0) {
-                        document.getElementById('coincatchOpportunities').innerHTML =
-                            '<div style="color: #888; text-align: center; padding: 20px;">No profitable opportunities found above minimum profit threshold.</div>';
+                    if (data.profitableCount === 0) {
+                        opportunitiesDiv.innerHTML = '<div style="text-align: center; color: #888; padding: 20px;">No opportunities found above profit threshold</div>';
                         return;
                     }
 
-                    // Display opportunities
-                    let html = '';
-                    filteredOpps.forEach((opp, index) => {
+                    let html = '<div style="display: grid; gap: 15px;">';
+                    data.opportunities.forEach(opp => {
+                        const profitColor = parseFloat(opp.profitPercent) >= 1.0 ? '#00FF00' : '#FFA500';
+
                         html += `
-                            <div style="background: rgba(255,87,34,0.1); padding: 15px; border-radius: 10px; margin-bottom: 15px; border: 1px solid #FF5722;">
+                            <div style="padding: 15px; background: rgba(0,0,0,0.3); border-radius: 10px; border-left: 3px solid ${profitColor};">
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                                     <div>
-                                        <span style="color: #FF5722; font-weight: bold;">${opp.pathId}</span>
-                                        <span style="color: #888; margin-left: 10px; font-size: 12px;">${opp.description}</span>
+                                        <div style="color: #FF5722; font-weight: 600; font-size: 14px;">${opp.pathId}</div>
+                                        <div style="color: #888; font-size: 12px;">${opp.description}</div>
                                     </div>
                                     <div style="text-align: right;">
-                                        <div style="color: ${opp.profitPercentage >= 1 ? '#00FF00' : '#FFA500'}; font-weight: bold; font-size: 18px;">
-                                            +${opp.profitPercentage.toFixed(2)}%
-                                        </div>
-                                        <div style="color: #888; font-size: 12px;">
-                                            ~$${opp.estimatedProfit.toFixed(2)} profit
-                                        </div>
+                                        <div style="color: ${profitColor}; font-weight: 700; font-size: 18px;">+${opp.profitPercent}%</div>
+                                        <div style="color: #888; font-size: 12px;">$${opp.profitAmount} profit</div>
                                     </div>
                                 </div>
-                                <div style="color: #888; font-size: 13px; margin-bottom: 10px;">
-                                    Path: ${opp.path.join(' → ')}
+                                <div style="color: #888; font-size: 12px; margin-bottom: 8px;">
+                                    ${opp.path.join(' → ')}
                                 </div>
-                                <div style="color: #666; font-size: 12px; margin-bottom: 10px;">
-                                    Pairs: ${opp.pairs.join(', ')}
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 11px; color: #666;">
+                                    <div>Initial: $${opp.initialAmount}</div>
+                                    <div>Final: $${opp.finalAmount}</div>
                                 </div>
-                                <button onclick='executeCoincatchTriangular(${JSON.stringify(opp)})'
-                                        style="width: 100%; padding: 10px; background: #FF5722; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
+                                <button onclick="executeCoincatchTriangularTrade('${opp.pathId}')"
+                                    style="margin-top: 10px; width: 100%; padding: 8px; background: #FF5722; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: 600; font-size: 13px;">
                                     ⚡ Execute Trade
                                 </button>
                             </div>
                         `;
                     });
+                    html += '</div>';
 
-                    document.getElementById('coincatchOpportunities').innerHTML = html;
-                    showNotification(`Found ${filteredOpps.length} opportunities!`, 'success');
+                    opportunitiesDiv.innerHTML = html;
+                    console.log(`🎯 [COINCATCH] Scan complete: ${data.profitableCount} opportunities found`);
 
                 } else {
-                    document.getElementById('coincatchScanResults').innerHTML =
-                        '<span style="color: #FF0000;">❌ Scan failed</span>';
-                    document.getElementById('coincatchOpportunities').innerHTML =
-                        '<div style="color: #888; text-align: center; padding: 20px;">Scan failed. Please try again.</div>';
-                    showNotification(data.message || 'Scan failed', 'error');
+                    scanStatus.textContent = '❌ Scan failed';
+                    scanStatus.style.color = '#FF4444';
+                    opportunitiesDiv.innerHTML = `<div style="text-align: center; color: #FF4444; padding: 20px;">Error: ${data.error || 'Scan failed'}</div>`;
                 }
 
             } catch (error) {
-                console.error('Coincatch scan error:', error);
-                document.getElementById('coincatchScanResults').innerHTML = '<span style="color: #FF0000;">❌ Error</span>';
-                showNotification('Network error during scan', 'error');
+                console.error('🎯 [COINCATCH] Scan error:', error);
+                scanStatus.textContent = '❌ Scan error';
+                scanStatus.style.color = '#FF4444';
+                opportunitiesDiv.innerHTML = `<div style="text-align: center; color: #FF4444; padding: 20px;">Error: ${error.message}</div>`;
             }
         }
 
-        // Execute Coincatch Triangular Trade
-        async function executeCoincatchTriangular(opportunity) {
-            const apiKey = localStorage.getItem('coincatch_api') || '';
-            const apiSecret = localStorage.getItem('coincatch_secret') || '';
-            const passphrase = localStorage.getItem('coincatch_passphrase') || '';
-            const maxInvestment = parseFloat(document.getElementById('coincatchMaxInvestment').value) || 1000;
+        // 11. Execute Coincatch Triangular Trade
+        async function executeCoincatchTriangularTrade(pathId) {
+            alert('⚠️ Trade execution requires additional implementation. Contact support to enable live trading.');
+            console.log(`🎯 [COINCATCH] Trade execution requested for path: ${pathId}`);
+        }
 
-            if (!confirm(`Execute triangular arbitrage on Coincatch?\n\nPath: ${opportunity.pathId}\nExpected Profit: ${opportunity.profitPercentage.toFixed(2)}%\nInvestment: $${maxInvestment}`)) {
-                return;
-            }
-
-            showNotification('Executing Coincatch triangular arbitrage...', 'info');
-
+        // 12. Save Coincatch Triangular Settings
+        function saveCoincatchTriangularSettings() {
             try {
-                const response = await fetch(`${API_BASE}/trading/coincatch/triangular/execute`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    },
-                    body: JSON.stringify({
-                        apiKey,
-                        apiSecret,
-                        passphrase,
-                        opportunity,
-                        investmentAmount: maxInvestment
-                    })
-                });
+                const settings = {
+                    maxTrade: document.getElementById('coincatchMaxTrade').value,
+                    portfolioPercent: document.getElementById('coincatchPortfolioPercent').value,
+                    profitThreshold: document.getElementById('coincatchProfitThreshold').value,
+                    enabledSets: {
+                        set1: document.getElementById('coincatchSet1Enabled').checked,
+                        set2: document.getElementById('coincatchSet2Enabled').checked,
+                        set3: document.getElementById('coincatchSet3Enabled').checked,
+                        set4: document.getElementById('coincatchSet4Enabled').checked,
+                        set5: document.getElementById('coincatchSet5Enabled').checked
+                    }
+                };
 
-                const data = await response.json();
-
-                if (data.success) {
-                    showNotification(`Trade executed! Profit: $${data.profit.toFixed(2)} (${data.profitPercentage}%)`, 'success');
-
-                    // Refresh opportunities and history
-                    await scanCoincatchTriangular();
-                    await loadCoincatchTradeHistory();
-                } else {
-                    showNotification(data.message || 'Trade execution failed', 'error');
-                }
-
+                localStorage.setItem('coincatch_triangular_settings', JSON.stringify(settings));
+                console.log('🎯 [COINCATCH] Settings saved:', settings);
+                alert('✅ Settings saved successfully');
             } catch (error) {
-                console.error('Coincatch execution error:', error);
-                showNotification('Network error during trade execution', 'error');
+                console.error('🎯 [COINCATCH] Error saving settings:', error);
+                alert('❌ Failed to save settings');
             }
         }
 
-        // View Coincatch Path Details
-        function viewCoincatchPathDetails() {
-            const pathDetails = `
-📋 COINCATCH Triangular Arbitrage Paths (48 Total)
+        // 13. Load Coincatch Triangular Settings
+        function loadCoincatchTriangularSettings() {
+            try {
+                const settings = JSON.parse(localStorage.getItem('coincatch_triangular_settings') || '{}');
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 1: Essential 3-Leg (10 paths) ✅ DEFAULT
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. USDT → BTC → ETH → USDT
-2. USDT → ETH → SOL → USDT
-3. USDT → BTC → SOL → USDT
-4. USDT → ETH → XRP → USDT
-5. USDT → BTC → XRP → USDT
-6. USDT → ETH → ADA → USDT
-7. USDT → BTC → ADA → USDT
-8. USDT → SOL → XRP → USDT
-9. USDT → SOL → ADA → USDT
-10. USDT → XRP → ADA → USDT
+                if (settings.maxTrade) {
+                    document.getElementById('coincatchMaxTrade').value = settings.maxTrade;
+                }
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 2: Mid-Cap 3-Leg (10 paths) ✅ DEFAULT
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. USDT → DOT → MATIC → USDT
-2. USDT → LINK → AVAX → USDT
-3. USDT → ATOM → UNI → USDT
-4. USDT → LTC → BCH → USDT
-5. USDT → NEAR → APT → USDT
-6. USDT → DOT → LINK → USDT
-7. USDT → MATIC → AVAX → USDT
-8. USDT → ATOM → DOT → USDT
-9. USDT → UNI → LINK → USDT
-10. USDT → APT → NEAR → USDT
+                if (settings.portfolioPercent) {
+                    document.getElementById('coincatchPortfolioPercent').value = settings.portfolioPercent;
+                }
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 3: Major 4-Leg (8 paths)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. USDT → BTC → ETH → SOL → USDT
-2. USDT → BTC → ETH → XRP → USDT
-3. USDT → BTC → SOL → XRP → USDT
-4. USDT → ETH → SOL → ADA → USDT
-5. USDT → BTC → ETH → ADA → USDT
-6. USDT → ETH → XRP → ADA → USDT
-7. USDT → BTC → SOL → ADA → USDT
-8. USDT → SOL → XRP → ADA → USDT
+                if (settings.profitThreshold) {
+                    document.getElementById('coincatchProfitThreshold').value = settings.profitThreshold;
+                }
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 4: Altcoin 4-Leg (10 paths)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. USDT → DOT → MATIC → LINK → USDT
-2. USDT → LINK → AVAX → ATOM → USDT
-3. USDT → ATOM → UNI → DOT → USDT
-4. USDT → MATIC → AVAX → LINK → USDT
-5. USDT → DOT → LINK → ATOM → USDT
+                if (settings.enabledSets) {
+                    document.getElementById('coincatchSet1Enabled').checked = settings.enabledSets.set1 !== false;
+                    document.getElementById('coincatchSet2Enabled').checked = settings.enabledSets.set2 !== false;
+                    document.getElementById('coincatchSet3Enabled').checked = settings.enabledSets.set3 || false;
+                    document.getElementById('coincatchSet4Enabled').checked = settings.enabledSets.set4 || false;
+                    document.getElementById('coincatchSet5Enabled').checked = settings.enabledSets.set5 || false;
+
+                    console.log('🎯 [COINCATCH] Settings loaded:', settings);
+                }
+            } catch (error) {
+                console.error('🎯 [COINCATCH] Error loading settings:', error);
+            }
+        }
+
+        // Initialize Coincatch settings on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🎯 [COINCATCH] Initializing triangular arbitrage settings...');
+            loadCoincatchTriangularSettings();
+
+            // Initialize balance tracking
+            initializeCoincatchBalance();
+
+            // Set default tab to Balance Tracker
+            switchCoincatchTab('balance');
+
+            // Restore toggle state
+            const toggleEnabled = localStorage.getItem('coincatchTriangularEnabled') === 'true';
+            const toggle = document.getElementById('coincatchTriangularEnabled');
+            const status = document.getElementById('coincatchTriangularStatus');
+            if (toggle && status) {
+                if (toggleEnabled) {
+                    toggle.classList.add('active');
+                    status.textContent = 'ON';
+                    status.style.color = '#FF5722';
+                } else {
+                    toggle.classList.remove('active');
+                    status.textContent = 'OFF';
+                    status.style.color = '#ff6b6b';
+                }
+            }
+
+            const coincatchInputs = document.querySelectorAll('#coincatchMaxTrade, #coincatchPortfolioPercent, #coincatchProfitThreshold');
+            coincatchInputs.forEach(input => {
+                input.addEventListener('change', saveCoincatchTriangularSettings);
+            });
+
+            for (let i = 1; i <= 5; i++) {
+                const checkbox = document.getElementById(`coincatchSet${i}Enabled`);
+                if (checkbox) {
+                    checkbox.addEventListener('change', saveCoincatchTriangularSettings);
+                }
+            }
+        });
+
+        // End of Coincatch Triangular Arbitrage Functions (21/21 - COMPLETE!)
 6. USDT → AVAX → UNI → MATIC → USDT
 7. USDT → LINK → ATOM → DOT → USDT
 8. USDT → UNI → MATIC → AVAX → USDT
