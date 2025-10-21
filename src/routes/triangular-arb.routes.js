@@ -6206,7 +6206,7 @@ router.post('/cryptocom/triangular/test-connection', asyncHandler(async (req, re
 // ROUTE 2: Scan Crypto.com Triangular Arbitrage Opportunities
 router.post('/cryptocom/triangular/scan', asyncHandler(async (req, res) => {
     try {
-        const { apiKey, apiSecret, maxTradeAmount, profitThreshold, enabledSets } = req.body;
+        const { apiKey, apiSecret, maxTradeAmount, portfolioPercent = 10, profitThreshold, enabledSets } = req.body;
 
         if (!apiKey || !apiSecret) {
             return res.status(400).json({
@@ -6214,6 +6214,13 @@ router.post('/cryptocom/triangular/scan', asyncHandler(async (req, res) => {
                 message: 'API credentials required'
             });
         }
+
+        systemLogger.info('Crypto.com triangular scan started', {
+            maxTradeAmount,
+            portfolioPercent,
+            profitThreshold,
+            enabledSets
+        });
 
         // Define all 32 triangular arbitrage paths
         const allPaths = {
@@ -6269,119 +6276,258 @@ router.post('/cryptocom/triangular/scan', asyncHandler(async (req, res) => {
             }
         });
 
-        // Fetch all tickers (public endpoint, no auth needed)
-        const tickersResponse = await fetch(`${CRYPTOCOM_TRIANGULAR_CONFIG.baseUrl}${CRYPTOCOM_TRIANGULAR_CONFIG.endpoints.tickers}`, {
-            method: 'GET',
+        systemLogger.info(`Crypto.com: Scanning ${pathsToScan.length} paths`);
+
+        // Fetch USDT balance for portfolio % calculation
+        const nonce = Date.now();
+        const balanceParams = { nonce };
+        const balanceAuth = createCryptocomSignature(apiKey, apiSecret, 'POST', CRYPTOCOM_TRIANGULAR_CONFIG.endpoints.balance, balanceParams);
+
+        const balanceResponse = await fetch(`${CRYPTOCOM_TRIANGULAR_CONFIG.baseUrl}${CRYPTOCOM_TRIANGULAR_CONFIG.endpoints.balance}`, {
+            method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
-            }
+            },
+            body: JSON.stringify({
+                id: nonce,
+                method: 'private/get-account-summary',
+                api_key: apiKey,
+                sig: balanceAuth.signature,
+                nonce: nonce,
+                params: {}
+            })
         });
 
-        if (!tickersResponse.ok) {
-            throw new Error('Failed to fetch Crypto.com tickers');
+        if (!balanceResponse.ok) {
+            throw new Error('Failed to fetch Crypto.com balance');
         }
 
-        const tickersResult = await tickersResponse.json();
+        const balanceResult = await balanceResponse.json();
 
-        if (tickersResult.code !== 0) {
-            throw new Error(tickersResult.message || 'Failed to fetch tickers');
+        if (balanceResult.code !== 0) {
+            throw new Error(balanceResult.message || 'Failed to fetch balance');
         }
 
-        const tickers = tickersResult.result.data || [];
+        const accounts = balanceResult.result?.accounts || [];
+        const usdtAccount = accounts.find(acc => acc.currency === 'USDT');
+        const balance = usdtAccount ? parseFloat(usdtAccount.available) : 0;
 
-        // Build price map
-        const priceMap = {};
-        tickers.forEach(ticker => {
-            const symbol = ticker.i; // instrument_name like BTC_USDT
-            priceMap[symbol] = {
-                bid: parseFloat(ticker.b) || 0,  // best bid
-                ask: parseFloat(ticker.k) || 0,  // best ask
-                last: parseFloat(ticker.a) || 0  // latest price
-            };
+        // Calculate trade amount using portfolio calculator
+        const portfolioCalc = portfolioCalculator.calculateTradeAmount({
+            balance,
+            portfolioPercent,
+            maxTradeAmount,
+            currency: 'USDT',
+            exchange: 'Crypto.com',
+            path: null
         });
 
-        // Scan each path for arbitrage opportunities
-        const opportunities = [];
+        if (!portfolioCalc.canTrade) {
+            return res.json({
+                success: true,
+                scanned: 0,
+                profitableCount: 0,
+                opportunities: [],
+                message: portfolioCalc.reason,
+                timestamp: new Date().toISOString()
+            });
+        }
 
-        for (const pathDef of pathsToScan) {
+        const tradeAmount = portfolioCalc.amount;
+
+        systemLogger.info('Crypto.com portfolio calculation', {
+            balance: balance.toFixed(2),
+            portfolioPercent,
+            maxTradeAmount,
+            tradeAmount: tradeAmount.toFixed(2),
+            appliedCap: portfolioCalc.details.appliedCap
+        });
+
+        // Collect all unique pairs needed for orderbooks
+        const uniquePairs = new Set();
+        pathsToScan.forEach(pathDef => {
+            pathDef.pairs.forEach(pair => uniquePairs.add(pair));
+        });
+
+        // Fetch orderbooks for all pairs (public endpoint)
+        const orderBooks = {};
+        for (const pair of uniquePairs) {
             try {
-                const { path, pairs, id, description } = pathDef;
-                let currentAmount = maxTradeAmount;
-                let prices = [];
-                let valid = true;
-
-                // Calculate through each leg
-                for (let i = 0; i < pairs.length; i++) {
-                    const pair = pairs[i];
-                    const priceData = priceMap[pair];
-
-                    if (!priceData || priceData.bid === 0 || priceData.ask === 0) {
-                        valid = false;
-                        break;
+                const obResponse = await fetch(`${CRYPTOCOM_TRIANGULAR_CONFIG.baseUrl}${CRYPTOCOM_TRIANGULAR_CONFIG.endpoints.orderBook}?instrument_name=${pair}&depth=20`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
                     }
+                });
 
-                    const fromCurrency = path[i];
-                    const toCurrency = path[i + 1];
-
-                    // Determine if we're buying or selling the pair
-                    const [base, quote] = pair.split('_');
-
-                    if (fromCurrency === quote && toCurrency === base) {
-                        // Buying base with quote (use ask price)
-                        const price = priceData.ask;
-                        currentAmount = currentAmount / price;
-                        prices.push({ pair, side: 'buy', price, amount: currentAmount });
-                    } else if (fromCurrency === base && toCurrency === quote) {
-                        // Selling base for quote (use bid price)
-                        const price = priceData.bid;
-                        currentAmount = currentAmount * price;
-                        prices.push({ pair, side: 'sell', price, amount: currentAmount });
-                    } else {
-                        valid = false;
-                        break;
-                    }
-                }
-
-                if (valid) {
-                    const finalAmount = currentAmount;
-                    const profit = finalAmount - maxTradeAmount;
-                    const profitPercent = (profit / maxTradeAmount) * 100;
-
-                    if (profitPercent >= profitThreshold) {
-                        opportunities.push({
-                            pathId: id,
-                            path: path.join(' → '),
-                            pairs: pairs,
-                            description: description,
-                            initialAmount: maxTradeAmount,
-                            finalAmount: finalAmount.toFixed(2),
-                            profit: profit.toFixed(2),
-                            profitPercent: profitPercent.toFixed(4),
-                            legs: prices,
-                            timestamp: new Date().toISOString()
-                        });
+                if (obResponse.ok) {
+                    const obResult = await obResponse.json();
+                    if (obResult.code === 0 && obResult.result) {
+                        orderBooks[pair] = {
+                            bids: obResult.result.data[0]?.bids || [],
+                            asks: obResult.result.data[0]?.asks || []
+                        };
                     }
                 }
             } catch (error) {
-                console.error(`Error scanning path ${pathDef.id}:`, error);
+                systemLogger.warn(`Crypto.com: Failed to fetch orderbook for ${pair}`, { error: error.message });
+            }
+        }
+
+        systemLogger.info(`Crypto.com: Fetched ${Object.keys(orderBooks).length} orderbooks`);
+
+        // Convert paths to ProfitCalculatorService format
+        const pathsForCalculation = pathsToScan.map(pathDef => {
+            const steps = [];
+
+            for (let i = 0; i < pathDef.pairs.length; i++) {
+                const pair = pathDef.pairs[i];
+                const fromCurrency = pathDef.path[i];
+                const toCurrency = pathDef.path[i + 1];
+                const [base, quote] = pair.split('_');
+
+                let side;
+                if (fromCurrency === quote && toCurrency === base) {
+                    side = 'buy';
+                } else if (fromCurrency === base && toCurrency === quote) {
+                    side = 'sell';
+                } else {
+                    side = null;
+                }
+
+                steps.push({ pair, side });
+            }
+
+            return {
+                id: pathDef.id,
+                description: pathDef.description,
+                sequence: pathDef.path.join(' → '),
+                steps
+            };
+        });
+
+        // Calculate profits using ProfitCalculatorService
+        const profitCalculator = new ProfitCalculatorService();
+        const opportunities = [];
+
+        for (const path of pathsForCalculation) {
+            const result = profitCalculator.calculate('cryptocom', path, orderBooks, tradeAmount);
+
+            if (result.success && result.profitPercentage >= profitThreshold) {
+                opportunities.push({
+                    pathId: result.pathId,
+                    description: path.description,
+                    path: result.sequence.split(' → '),
+                    initialAmount: result.startAmount,
+                    finalAmount: result.endAmount,
+                    profitAmount: result.profit,
+                    profitPercent: result.profitPercentage.toFixed(4),
+                    steps: result.steps,
+                    totalFees: result.totalFees,
+                    timestamp: result.timestamp
+                });
             }
         }
 
         // Sort by profit percentage descending
         opportunities.sort((a, b) => parseFloat(b.profitPercent) - parseFloat(a.profitPercent));
 
+        systemLogger.info(`Crypto.com scan complete: ${opportunities.length} profitable paths found`);
+
         res.json({
             success: true,
             scanned: pathsToScan.length,
+            profitableCount: opportunities.length,
             opportunities: opportunities,
+            portfolioDetails: portfolioCalc.details,
             timestamp: new Date().toISOString()
         });
 
     } catch (error) {
-        console.error('Crypto.com scan error:', error);
+        systemLogger.error('Crypto.com scan error', { error: error.message });
         res.status(500).json({
             success: false,
             message: 'Failed to scan Crypto.com triangular paths'
+        });
+    }
+}));
+
+// ROUTE 2.5: Get Crypto.com Balance
+router.post('/cryptocom/balance', asyncHandler(async (req, res) => {
+    try {
+        const { apiKey, apiSecret, currency = 'USDT' } = req.body;
+
+        if (!apiKey || !apiSecret) {
+            return res.status(400).json({
+                success: false,
+                message: 'API credentials required'
+            });
+        }
+
+        // Fetch account summary
+        const nonce = Date.now();
+        const params = { nonce };
+        const auth = createCryptocomSignature(apiKey, apiSecret, 'POST', CRYPTOCOM_TRIANGULAR_CONFIG.endpoints.balance, params);
+
+        const response = await fetch(`${CRYPTOCOM_TRIANGULAR_CONFIG.baseUrl}${CRYPTOCOM_TRIANGULAR_CONFIG.endpoints.balance}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                id: nonce,
+                method: 'private/get-account-summary',
+                api_key: apiKey,
+                sig: auth.signature,
+                nonce: nonce,
+                params: {}
+            })
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            return res.status(401).json({
+                success: false,
+                message: 'Crypto.com API authentication failed',
+                error: errorText
+            });
+        }
+
+        const result = await response.json();
+
+        if (result.code !== 0) {
+            return res.status(400).json({
+                success: false,
+                message: result.message || 'Failed to fetch balance'
+            });
+        }
+
+        // Find requested currency balance
+        const accounts = result.result?.accounts || [];
+        const currencyAccount = accounts.find(acc => acc.currency === currency);
+        const available = currencyAccount ? parseFloat(currencyAccount.available) : 0;
+        const locked = currencyAccount ? parseFloat(currencyAccount.order) : 0;
+
+        systemLogger.info(`Crypto.com balance fetched`, {
+            currency,
+            available: available.toFixed(2),
+            locked: locked.toFixed(2)
+        });
+
+        res.json({
+            success: true,
+            currency,
+            balance: available.toFixed(2),
+            locked: locked.toFixed(2),
+            total: (available + locked).toFixed(2),
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        systemLogger.error('Crypto.com balance fetch error', { error: error.message });
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch Crypto.com balance'
         });
     }
 }));
