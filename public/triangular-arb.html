@@ -4133,36 +4133,32 @@
                 <!-- Column 3: Performance Stats -->
                 <div class="stat-card">
                     <h4 style="color: #FF5722; margin-bottom: 15px;">📊 Performance Stats</h4>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 15px;">
-                        <div>
-                            <div style="color: #666; font-size: 11px; margin-bottom: 4px;">Scans Today</div>
-                            <div style="color: #FF5722; font-size: 18px; font-weight: bold;">0</div>
+                    <div style="display: grid; gap: 8px; font-size: 0.8rem;">
+                        <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                            <span style="color: #888;">Total Scans:</span>
+                            <span id="coincatchTotalScans" style="color: #FF5722; font-weight: 600;">0</span>
                         </div>
-                        <div>
-                            <div style="color: #666; font-size: 11px; margin-bottom: 4px;">Opps Found</div>
-                            <div style="color: #FF5722; font-size: 18px; font-weight: bold;">0</div>
+                        <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                            <span style="color: #888;">Opportunities Found:</span>
+                            <span id="coincatchOppsFound" style="color: #FF5722; font-weight: 600;">0</span>
                         </div>
-                        <div>
-                            <div style="color: #666; font-size: 11px; margin-bottom: 4px;">Trades</div>
-                            <div style="color: #FF5722; font-size: 18px; font-weight: bold;">0</div>
+                        <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                            <span style="color: #888;">Trades Executed:</span>
+                            <span id="coincatchTradesExecuted" style="color: #FF5722; font-weight: 600;">0</span>
                         </div>
-                        <div>
-                            <div style="color: #666; font-size: 11px; margin-bottom: 4px;">Win Rate</div>
-                            <div style="color: #FF5722; font-size: 18px; font-weight: bold;">0%</div>
+                        <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                            <span style="color: #888;">Success Rate:</span>
+                            <span id="coincatchSuccessRate" style="color: #FF5722; font-weight: 600;">0%</span>
                         </div>
-                        <div>
-                            <div style="color: #666; font-size: 11px; margin-bottom: 4px;">Total P&L</div>
-                            <div style="color: #00FF00; font-size: 18px; font-weight: bold;">$0.00</div>
+                        <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                            <span style="color: #888;">Total Profit:</span>
+                            <span id="coincatchTotalProfit" style="color: #00d26a; font-weight: 600;">$0.00</span>
                         </div>
-                        <div>
-                            <div style="color: #666; font-size: 11px; margin-bottom: 4px;">Avg Profit</div>
-                            <div style="color: #FF5722; font-size: 18px; font-weight: bold;">0.0%</div>
+                        <div style="display: flex; justify-content: space-between; padding: 6px 0;">
+                            <span style="color: #888;">Avg Profit/Trade:</span>
+                            <span id="coincatchAvgProfit" style="color: #00d26a; font-weight: 600;">$0.00</span>
                         </div>
                     </div>
-                    <button onclick="scanCoincatchTriangularPaths()"
-                        style="width: 100%; padding: 10px; background: #FF5722; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 14px;">
-                        🔍 Scan Opportunities
-                    </button>
                 </div>
             </div>
 
@@ -4211,9 +4207,15 @@
 
                 <!-- Tab Content: Current Opportunities -->
                 <div id="coincatchTradingContent" style="display: none;">
-                    <div id="coincatchScanStatus" style="color: #888; font-size: 13px; margin-bottom: 10px;">
-                        Click "Scan Opportunities" to find profitable paths
+                    <!-- Scan Button -->
+                    <div style="margin-bottom: 15px;">
+                        <button onclick="scanCoincatchTriangularPaths()" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #FF5722, #E64A19); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 1rem;">
+                            🔍 Scan Opportunities Now
+                        </button>
                     </div>
+
+                    <!-- Scan Status -->
+                    <div id="coincatchScanStatus" style="color: #888; font-size: 13px; margin-bottom: 10px; text-align: center;"></div>
                     <div id="coincatchOpportunities" style="max-height: 300px; overflow-y: auto;">
                         <div style="color: #666; font-size: 13px; text-align: center; padding: 20px;">
                             No active opportunities. Run a scan to discover paths.
