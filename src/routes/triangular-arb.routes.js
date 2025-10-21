@@ -7677,6 +7677,7 @@ const ASCENDEX_TRIANGULAR_CONFIG = {
         accountInfo: '/api/pro/v1/info',
         balance: '/api/pro/v1/cash/balance',
         ticker: '/api/pro/v1/spot/ticker',
+        orderBook: '/api/pro/v1/depth',
         products: '/api/pro/v1/cash/products',
         placeOrder: '/api/pro/v1/cash/order'
     }
@@ -7819,7 +7820,14 @@ router.post('/ascendex/triangular/test-connection', authenticate, asyncHandler(a
 // 2. AscendEX Scan Triangular Paths Route
 router.post('/ascendex/triangular/scan', asyncHandler(async (req, res) => {
     try {
-        const { apiKey, apiSecret, maxTradeAmount, profitThreshold, enabledSets } = req.body;
+        const { apiKey, apiSecret, maxTradeAmount, portfolioPercent = 10, profitThreshold, enabledSets } = req.body;
+
+        systemLogger.info('AscendEX triangular scan started', {
+            maxTradeAmount,
+            portfolioPercent,
+            profitThreshold,
+            enabledSets
+        });
 
         if (!apiKey || !apiSecret) {
             return res.status(400).json({
@@ -7828,112 +7836,339 @@ router.post('/ascendex/triangular/scan', asyncHandler(async (req, res) => {
             });
         }
 
-        // Fetch all tickers from AscendEX
-        const tickersResponse = await fetch(`${ASCENDEX_TRIANGULAR_CONFIG.baseUrl}${ASCENDEX_TRIANGULAR_CONFIG.endpoints.ticker}`, {
+        // Define all 32 triangular arbitrage paths with steps for ProfitCalculatorService
+        const allPaths = {
+            SET_1_ESSENTIAL_ETH_BRIDGE: [
+                { id: 'ASCENDEX_ETH_1', path: ['USDT', 'ETH', 'BTC', 'USDT'], sequence: 'USDT → ETH → BTC → USDT', description: 'ETH → BTC Essential', steps: [{ pair: 'ETH/USDT', side: 'buy' }, { pair: 'BTC/ETH', side: 'buy' }, { pair: 'BTC/USDT', side: 'sell' }] },
+                { id: 'ASCENDEX_ETH_2', path: ['USDT', 'ETH', 'SOL', 'USDT'], sequence: 'USDT → ETH → SOL → USDT', description: 'ETH → SOL Essential', steps: [{ pair: 'ETH/USDT', side: 'buy' }, { pair: 'SOL/ETH', side: 'buy' }, { pair: 'SOL/USDT', side: 'sell' }] },
+                { id: 'ASCENDEX_ETH_3', path: ['USDT', 'ETH', 'XRP', 'USDT'], sequence: 'USDT → ETH → XRP → USDT', description: 'ETH → XRP Essential', steps: [{ pair: 'ETH/USDT', side: 'buy' }, { pair: 'XRP/ETH', side: 'buy' }, { pair: 'XRP/USDT', side: 'sell' }] },
+                { id: 'ASCENDEX_ETH_4', path: ['USDT', 'ETH', 'ADA', 'USDT'], sequence: 'USDT → ETH → ADA → USDT', description: 'ETH → ADA Essential', steps: [{ pair: 'ETH/USDT', side: 'buy' }, { pair: 'ADA/ETH', side: 'buy' }, { pair: 'ADA/USDT', side: 'sell' }] },
+                { id: 'ASCENDEX_ETH_5', path: ['USDT', 'ETH', 'MATIC', 'USDT'], sequence: 'USDT → ETH → MATIC → USDT', description: 'ETH → MATIC Essential', steps: [{ pair: 'ETH/USDT', side: 'buy' }, { pair: 'MATIC/ETH', side: 'buy' }, { pair: 'MATIC/USDT', side: 'sell' }] },
+                { id: 'ASCENDEX_ETH_6', path: ['USDT', 'ETH', 'DOT', 'USDT'], sequence: 'USDT → ETH → DOT → USDT', description: 'ETH → DOT Essential', steps: [{ pair: 'ETH/USDT', side: 'buy' }, { pair: 'DOT/ETH', side: 'buy' }, { pair: 'DOT/USDT', side: 'sell' }] },
+                { id: 'ASCENDEX_ETH_7', path: ['USDT', 'ETH', 'AVAX', 'USDT'], sequence: 'USDT → ETH → AVAX → USDT', description: 'ETH → AVAX Essential', steps: [{ pair: 'ETH/USDT', side: 'buy' }, { pair: 'AVAX/ETH', side: 'buy' }, { pair: 'AVAX/USDT', side: 'sell' }] }
+            ],
+            SET_2_MIDCAP_BTC_BRIDGE: [
+                { id: 'ASCENDEX_BTC_1', path: ['USDT', 'BTC', 'ETH', 'USDT'], sequence: 'USDT → BTC → ETH → USDT', description: 'BTC → ETH Mid-Cap', steps: [{ pair: 'BTC/USDT', side: 'buy' }, { pair: 'ETH/BTC', side: 'buy' }, { pair: 'ETH/USDT', side: 'sell' }] },
+                { id: 'ASCENDEX_BTC_2', path: ['USDT', 'BTC', 'SOL', 'USDT'], sequence: 'USDT → BTC → SOL → USDT', description: 'BTC → SOL Mid-Cap', steps: [{ pair: 'BTC/USDT', side: 'buy' }, { pair: 'SOL/BTC', side: 'buy' }, { pair: 'SOL/USDT', side: 'sell' }] },
+                { id: 'ASCENDEX_BTC_3', path: ['USDT', 'BTC', 'ADA', 'USDT'], sequence: 'USDT → BTC → ADA → USDT', description: 'BTC → ADA Mid-Cap', steps: [{ pair: 'BTC/USDT', side: 'buy' }, { pair: 'ADA/BTC', side: 'buy' }, { pair: 'ADA/USDT', side: 'sell' }] },
+                { id: 'ASCENDEX_BTC_4', path: ['USDT', 'BTC', 'DOT', 'USDT'], sequence: 'USDT → BTC → DOT → USDT', description: 'BTC → DOT Mid-Cap', steps: [{ pair: 'BTC/USDT', side: 'buy' }, { pair: 'DOT/BTC', side: 'buy' }, { pair: 'DOT/USDT', side: 'sell' }] },
+                { id: 'ASCENDEX_BTC_5', path: ['USDT', 'BTC', 'ATOM', 'USDT'], sequence: 'USDT → BTC → ATOM → USDT', description: 'BTC → ATOM Mid-Cap', steps: [{ pair: 'BTC/USDT', side: 'buy' }, { pair: 'ATOM/BTC', side: 'buy' }, { pair: 'ATOM/USDT', side: 'sell' }] },
+                { id: 'ASCENDEX_BTC_6', path: ['USDT', 'BTC', 'LTC', 'USDT'], sequence: 'USDT → BTC → LTC → USDT', description: 'BTC → LTC Mid-Cap', steps: [{ pair: 'BTC/USDT', side: 'buy' }, { pair: 'LTC/BTC', side: 'buy' }, { pair: 'LTC/USDT', side: 'sell' }] },
+                { id: 'ASCENDEX_BTC_7', path: ['USDT', 'BTC', 'XRP', 'USDT'], sequence: 'USDT → BTC → XRP → USDT', description: 'BTC → XRP Mid-Cap', steps: [{ pair: 'BTC/USDT', side: 'buy' }, { pair: 'XRP/BTC', side: 'buy' }, { pair: 'XRP/USDT', side: 'sell' }] }
+            ],
+            SET_3_ASD_NATIVE_BRIDGE: [
+                { id: 'ASCENDEX_ASD_1', path: ['USDT', 'ASD', 'BTC', 'USDT'], sequence: 'USDT → ASD → BTC → USDT', description: 'ASD → BTC Native', steps: [{ pair: 'ASD/USDT', side: 'buy' }, { pair: 'BTC/ASD', side: 'buy' }, { pair: 'BTC/USDT', side: 'sell' }] },
+                { id: 'ASCENDEX_ASD_2', path: ['USDT', 'ASD', 'ETH', 'USDT'], sequence: 'USDT → ASD → ETH → USDT', description: 'ASD → ETH Native', steps: [{ pair: 'ASD/USDT', side: 'buy' }, { pair: 'ETH/ASD', side: 'buy' }, { pair: 'ETH/USDT', side: 'sell' }] },
+                { id: 'ASCENDEX_ASD_3', path: ['USDT', 'ASD', 'SOL', 'USDT'], sequence: 'USDT → ASD → SOL → USDT', description: 'ASD → SOL Native', steps: [{ pair: 'ASD/USDT', side: 'buy' }, { pair: 'SOL/ASD', side: 'buy' }, { pair: 'SOL/USDT', side: 'sell' }] },
+                { id: 'ASCENDEX_ASD_4', path: ['USDT', 'BTC', 'ASD', 'USDT'], sequence: 'USDT → BTC → ASD → USDT', description: 'BTC → ASD Native', steps: [{ pair: 'BTC/USDT', side: 'buy' }, { pair: 'ASD/BTC', side: 'buy' }, { pair: 'ASD/USDT', side: 'sell' }] },
+                { id: 'ASCENDEX_ASD_5', path: ['USDT', 'ETH', 'ASD', 'USDT'], sequence: 'USDT → ETH → ASD → USDT', description: 'ETH → ASD Native', steps: [{ pair: 'ETH/USDT', side: 'buy' }, { pair: 'ASD/ETH', side: 'buy' }, { pair: 'ASD/USDT', side: 'sell' }] },
+                { id: 'ASCENDEX_ASD_6', path: ['USDT', 'ASD', 'MATIC', 'USDT'], sequence: 'USDT → ASD → MATIC → USDT', description: 'ASD → MATIC Native', steps: [{ pair: 'ASD/USDT', side: 'buy' }, { pair: 'MATIC/ASD', side: 'buy' }, { pair: 'MATIC/USDT', side: 'sell' }] }
+            ],
+            SET_4_HIGH_VOLATILITY: [
+                { id: 'ASCENDEX_VOL_1', path: ['USDT', 'DOGE', 'BTC', 'USDT'], sequence: 'USDT → DOGE → BTC → USDT', description: 'DOGE High Vol', steps: [{ pair: 'DOGE/USDT', side: 'buy' }, { pair: 'BTC/DOGE', side: 'buy' }, { pair: 'BTC/USDT', side: 'sell' }] },
+                { id: 'ASCENDEX_VOL_2', path: ['USDT', 'SHIB', 'ETH', 'USDT'], sequence: 'USDT → SHIB → ETH → USDT', description: 'SHIB High Vol', steps: [{ pair: 'SHIB/USDT', side: 'buy' }, { pair: 'ETH/SHIB', side: 'buy' }, { pair: 'ETH/USDT', side: 'sell' }] },
+                { id: 'ASCENDEX_VOL_3', path: ['USDT', 'MATIC', 'BTC', 'USDT'], sequence: 'USDT → MATIC → BTC → USDT', description: 'MATIC High Vol', steps: [{ pair: 'MATIC/USDT', side: 'buy' }, { pair: 'BTC/MATIC', side: 'buy' }, { pair: 'BTC/USDT', side: 'sell' }] },
+                { id: 'ASCENDEX_VOL_4', path: ['USDT', 'SOL', 'ETH', 'USDT'], sequence: 'USDT → SOL → ETH → USDT', description: 'SOL High Vol', steps: [{ pair: 'SOL/USDT', side: 'buy' }, { pair: 'ETH/SOL', side: 'buy' }, { pair: 'ETH/USDT', side: 'sell' }] },
+                { id: 'ASCENDEX_VOL_5', path: ['USDT', 'ADA', 'BTC', 'USDT'], sequence: 'USDT → ADA → BTC → USDT', description: 'ADA High Vol', steps: [{ pair: 'ADA/USDT', side: 'buy' }, { pair: 'BTC/ADA', side: 'buy' }, { pair: 'BTC/USDT', side: 'sell' }] },
+                { id: 'ASCENDEX_VOL_6', path: ['USDT', 'DOT', 'ETH', 'USDT'], sequence: 'USDT → DOT → ETH → USDT', description: 'DOT High Vol', steps: [{ pair: 'DOT/USDT', side: 'buy' }, { pair: 'ETH/DOT', side: 'buy' }, { pair: 'ETH/USDT', side: 'sell' }] }
+            ],
+            SET_5_EXTENDED_MULTIBRIDGE: [
+                { id: 'ASCENDEX_EXT_1', path: ['USDT', 'SOL', 'BTC', 'USDT'], sequence: 'USDT → SOL → BTC → USDT', description: 'SOL Multi-Bridge', steps: [{ pair: 'SOL/USDT', side: 'buy' }, { pair: 'BTC/SOL', side: 'buy' }, { pair: 'BTC/USDT', side: 'sell' }] },
+                { id: 'ASCENDEX_EXT_2', path: ['USDT', 'XRP', 'ETH', 'USDT'], sequence: 'USDT → XRP → ETH → USDT', description: 'XRP Multi-Bridge', steps: [{ pair: 'XRP/USDT', side: 'buy' }, { pair: 'ETH/XRP', side: 'buy' }, { pair: 'ETH/USDT', side: 'sell' }] },
+                { id: 'ASCENDEX_EXT_3', path: ['USDT', 'AVAX', 'BTC', 'USDT'], sequence: 'USDT → AVAX → BTC → USDT', description: 'AVAX Multi-Bridge', steps: [{ pair: 'AVAX/USDT', side: 'buy' }, { pair: 'BTC/AVAX', side: 'buy' }, { pair: 'BTC/USDT', side: 'sell' }] },
+                { id: 'ASCENDEX_EXT_4', path: ['USDT', 'ATOM', 'ETH', 'USDT'], sequence: 'USDT → ATOM → ETH → USDT', description: 'ATOM Multi-Bridge', steps: [{ pair: 'ATOM/USDT', side: 'buy' }, { pair: 'ETH/ATOM', side: 'buy' }, { pair: 'ETH/USDT', side: 'sell' }] },
+                { id: 'ASCENDEX_EXT_5', path: ['USDT', 'BTC', 'ETH', 'SOL', 'USDT'], sequence: 'USDT → BTC → ETH → SOL → USDT', description: 'BTC-ETH-SOL 4-Leg', steps: [{ pair: 'BTC/USDT', side: 'buy' }, { pair: 'ETH/BTC', side: 'buy' }, { pair: 'SOL/ETH', side: 'buy' }, { pair: 'SOL/USDT', side: 'sell' }] },
+                { id: 'ASCENDEX_EXT_6', path: ['USDT', 'ETH', 'BTC', 'ADA', 'USDT'], sequence: 'USDT → ETH → BTC → ADA → USDT', description: 'ETH-BTC-ADA 4-Leg', steps: [{ pair: 'ETH/USDT', side: 'buy' }, { pair: 'BTC/ETH', side: 'buy' }, { pair: 'ADA/BTC', side: 'buy' }, { pair: 'ADA/USDT', side: 'sell' }] }
+            ]
+        };
+
+        // Get account info first to obtain account-group
+        const timestamp = Date.now().toString();
+        const accountInfoPath = ASCENDEX_TRIANGULAR_CONFIG.endpoints.accountInfo;
+        const accountInfoSignature = createAscendexSignature(apiSecret, timestamp, accountInfoPath);
+
+        const accountInfoResponse = await fetch(`${ASCENDEX_TRIANGULAR_CONFIG.baseUrl}${accountInfoPath}`, {
             method: 'GET',
-            headers: { 'Content-Type': 'application/json' }
+            headers: {
+                'Content-Type': 'application/json',
+                'x-auth-key': apiKey,
+                'x-auth-timestamp': timestamp,
+                'x-auth-signature': accountInfoSignature
+            }
         });
 
-        const tickersData = await tickersResponse.json();
+        const accountInfo = await accountInfoResponse.json();
 
-        if (!tickersResponse.ok || tickersData.code !== 0) {
-            throw new Error('Failed to fetch AscendEX tickers');
+        if (!accountInfoResponse.ok || accountInfo.code !== 0) {
+            throw new Error(accountInfo.message || 'Failed to get account info');
         }
 
-        // Parse ticker data into price map
-        const priceMap = {};
-        tickersData.data.forEach(ticker => {
-            const symbol = ticker.symbol; // AscendEX uses BTC/USDT format
-            priceMap[symbol] = {
-                bid: parseFloat(ticker.bid && ticker.bid[0] ? ticker.bid[0] : 0),
-                ask: parseFloat(ticker.ask && ticker.ask[0] ? ticker.ask[0] : 0),
-                last: parseFloat(ticker.close || 0)
-            };
+        const accountGroup = accountInfo.data.accountGroup;
+
+        // Fetch USDT balance for portfolio % calculation
+        const balancePath = `/${accountGroup}${ASCENDEX_TRIANGULAR_CONFIG.endpoints.balance}`;
+        const balanceTimestamp = Date.now().toString();
+        const balanceSignature = createAscendexSignature(apiSecret, balanceTimestamp, balancePath);
+
+        const balanceResponse = await fetch(`${ASCENDEX_TRIANGULAR_CONFIG.baseUrl}${balancePath}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-auth-key': apiKey,
+                'x-auth-timestamp': balanceTimestamp,
+                'x-auth-signature': balanceSignature
+            }
         });
+
+        let balance = 0;
+        if (balanceResponse.ok) {
+            const balanceResult = await balanceResponse.json();
+            if (balanceResult.code === 0) {
+                const usdtBalance = balanceResult.data?.find(b => b.asset === 'USDT');
+                balance = usdtBalance ? parseFloat(usdtBalance.availableBalance || 0) : 0;
+            }
+        }
+
+        systemLogger.info('AscendEX balance fetched', { balance });
+
+        // Calculate trade amount using portfolio calculator
+        const portfolioCalc = portfolioCalculator.calculateTradeAmount({
+            balance,
+            portfolioPercent,
+            maxTradeAmount,
+            currency: 'USDT',
+            exchange: 'AscendEX',
+            path: null
+        });
+
+        const tradeAmount = portfolioCalc.amount;
+
+        if (!portfolioCalc.canTrade) {
+            return res.json({
+                success: true,
+                scanned: 0,
+                profitableCount: 0,
+                opportunities: [],
+                portfolioDetails: portfolioCalc.details,
+                warning: portfolioCalc.reason,
+                timestamp: new Date().toISOString()
+            });
+        }
 
         // Collect enabled paths
-        const enabledPaths = [];
-        Object.keys(ASCENDEX_TRIANGULAR_PATHS).forEach(setKey => {
+        const pathsToScan = [];
+        Object.keys(allPaths).forEach(setKey => {
             if (enabledSets[setKey]) {
-                enabledPaths.push(...ASCENDEX_TRIANGULAR_PATHS[setKey]);
+                pathsToScan.push(...allPaths[setKey]);
             }
         });
 
-        // Scan each enabled path
-        const opportunities = [];
-        for (const pathConfig of enabledPaths) {
+        // Get all unique pairs from enabled paths
+        const uniquePairs = new Set();
+        pathsToScan.forEach(path => {
+            path.steps.forEach(step => uniquePairs.add(step.pair));
+        });
+
+        systemLogger.info('Fetching AscendEX orderbooks', { pairCount: uniquePairs.size });
+
+        // Fetch orderbooks for all unique pairs
+        const orderBooks = {};
+        for (const pair of uniquePairs) {
             try {
-                const { path, pairs } = pathConfig;
+                const obResponse = await fetch(`${ASCENDEX_TRIANGULAR_CONFIG.baseUrl}${ASCENDEX_TRIANGULAR_CONFIG.endpoints.orderBook}?symbol=${pair}`);
 
-                // Get prices for all pairs in the path
-                const prices = pairs.map(pair => priceMap[pair]);
+                if (obResponse.ok) {
+                    const obResult = await obResponse.json();
 
-                // Skip if any price is missing
-                if (prices.some(p => !p || p.ask === 0 || p.bid === 0)) continue;
-
-                // Calculate triangular arbitrage profit
-                let currentAmount = maxTradeAmount || 100;
-                const legs = [];
-
-                // Leg 1: USDT → Asset1
-                currentAmount = currentAmount / prices[0].ask;
-                legs.push({ pair: pairs[0], side: 'BUY', price: prices[0].ask, amount: currentAmount });
-
-                // Leg 2: Asset1 → Asset2
-                if (pairs.length >= 2) {
-                    currentAmount = currentAmount / prices[1].ask;
-                    legs.push({ pair: pairs[1], side: 'BUY', price: prices[1].ask, amount: currentAmount });
+                    if (obResult.code === 0 && obResult.data) {
+                        orderBooks[pair] = {
+                            bids: obResult.data.bids || [],
+                            asks: obResult.data.asks || []
+                        };
+                    }
                 }
-
-                // Leg 3: Asset2 → USDT (or Asset3)
-                if (pairs.length >= 3) {
-                    currentAmount = currentAmount * prices[2].bid;
-                    legs.push({ pair: pairs[2], side: 'SELL', price: prices[2].bid, amount: currentAmount });
-                }
-
-                // Leg 4 (if 4-leg path): Asset3 → USDT
-                if (pairs.length === 4) {
-                    currentAmount = currentAmount * prices[3].bid;
-                    legs.push({ pair: pairs[3], side: 'SELL', price: prices[3].bid, amount: currentAmount });
-                }
-
-                const finalAmount = currentAmount;
-                const profit = finalAmount - (maxTradeAmount || 100);
-                const profitPercent = ((profit / (maxTradeAmount || 100)) * 100).toFixed(4);
-
-                // Check if profit exceeds threshold
-                if (parseFloat(profitPercent) >= profitThreshold) {
-                    opportunities.push({
-                        pathId: pathConfig.id,
-                        path: pathConfig.path,
-                        pairs: pathConfig.pairs,
-                        description: pathConfig.description,
-                        profitPercent: profitPercent,
-                        expectedProfitZAR: profit.toFixed(2),
-                        estimatedSlippage: '0.2',
-                        risk: parseFloat(profitPercent) >= 1 ? 'EXECUTE' : 'CAUTIOUS',
-                        legs: legs
-                    });
-                }
-            } catch (err) {
-                console.error(`Error scanning AscendEX path ${pathConfig.id}:`, err);
+            } catch (error) {
+                systemLogger.error(`Failed to fetch orderbook for ${pair}`, { error: error.message });
             }
         }
 
-        // Sort by profit descending
-        opportunities.sort((a, b) => parseFloat(b.profitPercent) - parseFloat(a.profitPercent));
+        systemLogger.info('AscendEX orderbooks fetched', { count: Object.keys(orderBooks).length });
+
+        // Calculate profits using ProfitCalculatorService
+        const profitCalculator = new ProfitCalculatorService();
+        const opportunities = [];
+
+        for (const path of pathsToScan) {
+            const result = profitCalculator.calculate('ascendex', path, orderBooks, tradeAmount);
+
+            if (result.success && result.profitPercentage >= profitThreshold) {
+                opportunities.push({
+                    pathId: result.pathId,
+                    description: path.description,
+                    path: result.sequence.split(' → '),
+                    initialAmount: result.startAmount,
+                    finalAmount: result.endAmount,
+                    profitAmount: result.profit,
+                    profitPercent: result.profitPercentage.toFixed(4),
+                    steps: result.steps,
+                    totalFees: result.totalFees,
+                    timestamp: result.timestamp
+                });
+            }
+        }
+
+        systemLogger.info('AscendEX scan complete', {
+            scanned: pathsToScan.length,
+            profitable: opportunities.length
+        });
 
         res.json({
             success: true,
-            opportunities: opportunities.slice(0, 20), // Return top 20
-            scannedPaths: enabledPaths.length,
+            scanned: pathsToScan.length,
+            profitableCount: opportunities.length,
+            opportunities: opportunities,
+            portfolioDetails: portfolioCalc.details,
             timestamp: new Date().toISOString()
         });
 
     } catch (error) {
+        systemLogger.error('AscendEX scan error', { error: error.message });
         res.status(500).json({
             success: false,
             message: error.message || 'AscendEX scan failed'
+        });
+    }
+}));
+
+// 2. AscendEX Balance Endpoint
+router.post('/ascendex/balance', asyncHandler(async (req, res) => {
+    try {
+        const { apiKey, apiSecret, currency = 'USDT' } = req.body;
+
+        if (!apiKey || !apiSecret) {
+            return res.status(400).json({
+                success: false,
+                message: 'Missing AscendEX API credentials'
+            });
+        }
+
+        systemLogger.info('AscendEX balance fetch started', {
+            currency
+        });
+
+        // Step 1: Get account info to obtain account-group
+        const timestamp = Date.now().toString();
+        const accountInfoPath = ASCENDEX_TRIANGULAR_CONFIG.endpoints.accountInfo;
+        const accountInfoSignature = createAscendexSignature(apiSecret, timestamp, accountInfoPath);
+
+        const accountInfoResponse = await fetch(`${ASCENDEX_TRIANGULAR_CONFIG.baseUrl}${accountInfoPath}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-auth-key': apiKey,
+                'x-auth-timestamp': timestamp,
+                'x-auth-signature': accountInfoSignature
+            }
+        });
+
+        if (!accountInfoResponse.ok) {
+            const errorText = await accountInfoResponse.text();
+            systemLogger.error('AscendEX account info fetch failed', {
+                status: accountInfoResponse.status,
+                error: errorText
+            });
+            return res.status(400).json({
+                success: false,
+                message: `AscendEX account info failed: ${errorText}`
+            });
+        }
+
+        const accountInfo = await accountInfoResponse.json();
+
+        if (accountInfo.code !== 0) {
+            systemLogger.error('AscendEX account info error', {
+                code: accountInfo.code,
+                message: accountInfo.message
+            });
+            return res.status(400).json({
+                success: false,
+                message: `AscendEX account info error: ${accountInfo.message}`
+            });
+        }
+
+        const accountGroup = accountInfo.data.accountGroup;
+
+        // Step 2: Fetch balance using account-group
+        const balancePath = `/${accountGroup}${ASCENDEX_TRIANGULAR_CONFIG.endpoints.balance}`;
+        const balanceTimestamp = Date.now().toString();
+        const balanceSignature = createAscendexSignature(apiSecret, balanceTimestamp, balancePath);
+
+        const balanceResponse = await fetch(`${ASCENDEX_TRIANGULAR_CONFIG.baseUrl}${balancePath}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-auth-key': apiKey,
+                'x-auth-timestamp': balanceTimestamp,
+                'x-auth-signature': balanceSignature
+            }
+        });
+
+        if (!balanceResponse.ok) {
+            const errorText = await balanceResponse.text();
+            systemLogger.error('AscendEX balance fetch failed', {
+                status: balanceResponse.status,
+                error: errorText
+            });
+            return res.status(400).json({
+                success: false,
+                message: `AscendEX balance fetch failed: ${errorText}`
+            });
+        }
+
+        const balanceResult = await balanceResponse.json();
+
+        if (balanceResult.code !== 0) {
+            systemLogger.error('AscendEX balance error', {
+                code: balanceResult.code,
+                message: balanceResult.message
+            });
+            return res.status(400).json({
+                success: false,
+                message: `AscendEX balance error: ${balanceResult.message}`
+            });
+        }
+
+        // Extract balance for requested currency
+        const currencyBalance = balanceResult.data?.find(b => b.asset === currency.toUpperCase());
+        const available = currencyBalance ? parseFloat(currencyBalance.availableBalance || 0) : 0;
+        const totalBalance = currencyBalance ? parseFloat(currencyBalance.totalBalance || 0) : 0;
+        const locked = totalBalance - available;
+
+        systemLogger.info('AscendEX balance fetched successfully', {
+            currency,
+            available: available.toFixed(2),
+            locked: locked.toFixed(2),
+            total: totalBalance.toFixed(2)
+        });
+
+        res.json({
+            success: true,
+            currency,
+            balance: available.toFixed(2),
+            locked: locked.toFixed(2),
+            total: totalBalance.toFixed(2),
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        systemLogger.error('AscendEX balance endpoint error', {
+            error: error.message,
+            stack: error.stack
+        });
+
+        res.status(500).json({
+            success: false,
+            message: `AscendEX balance error: ${error.message}`
         });
     }
 }));
