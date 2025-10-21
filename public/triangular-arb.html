@@ -1873,91 +1873,188 @@
 
         <!-- Huobi (HTX) Exchange -->
         <div style="background: rgba(45,108,248,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 2px solid #2D6CF8;">
+            <!-- Header with toggle -->
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <h3 style="color: #2D6CF8; margin: 0;">🔷 HUOBI (HTX) Triangular Arbitrage</h3>
-                <div style="display: flex; align-items: center; gap: 15px;">
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <span style="color: #b8c6db; font-size: 0.9rem;">HTX Live Trading:</span>
                     <div class="toggle-switch" id="huobiTriangularEnabled" onclick="toggleHuobiTriangular()">
                         <div class="toggle-knob"></div>
                     </div>
-                    <span id="huobiTriangularStatus" style="color: #ff6b6b; font-weight: 600;">OFF</span>
+                    <span id="huobiTriangularStatus" style="color: #ff6b6b; font-size: 0.9rem; margin-left: 10px;">OFF</span>
                 </div>
             </div>
 
-            <div class="stat-grid">
+            <!-- FUNDING REQUIREMENTS Info Banner -->
+            <div style="background: rgba(45,108,248,0.15); border: 2px solid #2D6CF8; border-radius: 10px; padding: 20px; margin-bottom: 20px;">
+                <div style="text-align: center;">
+                    <h4 style="color: #2D6CF8; margin: 0 0 10px 0; font-size: 1.2rem;">💰 Funding Requirements for Maximum Coverage</h4>
+                    <p style="color: #b8c6db; margin: 0 0 15px 0; font-size: 0.95rem;">
+                        HTX supports <strong style="color: #2D6CF8;">31 triangular arbitrage paths</strong> across <strong>1 fundable currency</strong>.
+                    </p>
+                </div>
+
+                <!-- USDT Currency Details -->
+                <div style="background: rgba(45,108,248,0.1); padding: 15px; border-radius: 8px; border-left: 4px solid #2D6CF8;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <h5 style="color: #2D6CF8; margin: 0; font-size: 1.1rem;">💵 USDT (Tether)</h5>
+                        <span style="color: #00d26a; font-weight: bold; font-size: 0.9rem;">✓ REQUIRED</span>
+                    </div>
+                    <div style="color: #b8c6db; font-size: 0.9rem; line-height: 1.6;">
+                        <div style="margin-bottom: 8px;">
+                            <strong style="color: #2D6CF8;">Coverage:</strong> All 31 paths (100% coverage)
+                        </div>
+                        <div style="margin-bottom: 8px;">
+                            <strong style="color: #2D6CF8;">Path Sets:</strong>
+                            <ul style="margin: 5px 0; padding-left: 20px;">
+                                <li>SET 1: Essential ETH Bridge (7 paths)</li>
+                                <li>SET 2: Mid-Cap BTC Bridge (7 paths)</li>
+                                <li>SET 3: HT Native Bridge (6 paths)</li>
+                                <li>SET 4: High Volatility (6 paths)</li>
+                                <li>SET 5: Extended Multi-Bridge (5 paths)</li>
+                            </ul>
+                        </div>
+                        <div style="background: rgba(45,108,248,0.15); padding: 8px; border-radius: 5px; margin-top: 10px;">
+                            💡 <strong>Recommendation:</strong> Fund HTX with USDT only - covers all triangular arbitrage opportunities
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Grid: Risk Management, Path Sets, Performance Stats -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 20px;">
+
                 <!-- Risk Management -->
                 <div class="stat-card">
                     <h4 style="color: #2D6CF8; margin-bottom: 15px;">⚖️ Risk Management</h4>
                     <div class="form-group" style="margin-bottom: 15px;">
-                        <label style="display: block; margin-bottom: 5px; font-weight: 500;">Max Trade (USDT)</label>
-                        <input type="number" id="huobiMaxTrade" value="100" min="10" max="10000" step="10"
-                               style="width: 100%; padding: 8px; border: 1px solid #2D6CF8; border-radius: 5px; background: rgba(45,108,248,0.05);">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 500; color: #b8c6db;">Max Trade (USDT)</label>
+                        <input type="number" id="huobiMaxTrade" value="1000" min="10" max="10000" step="10"
+                               style="width: 100%; padding: 8px; border: 1px solid #2D6CF8; border-radius: 5px; background: rgba(45,108,248,0.05); color: #fff;">
                     </div>
                     <div class="form-group" style="margin-bottom: 15px;">
-                        <label style="display: block; margin-bottom: 5px; font-weight: 500;">Portfolio % per Trade</label>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 500; color: #b8c6db;">Portfolio % per Trade</label>
                         <input type="number" id="huobiPortfolioPercent" value="10" min="1" max="50" step="1"
-                               style="width: 100%; padding: 8px; border: 1px solid #2D6CF8; border-radius: 5px; background: rgba(45,108,248,0.05);">
+                               style="width: 100%; padding: 8px; border: 1px solid #2D6CF8; border-radius: 5px; background: rgba(45,108,248,0.05); color: #fff;">
                     </div>
                     <div class="form-group">
-                        <label style="display: block; margin-bottom: 5px; font-weight: 500;">Min Profit % Threshold</label>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 500; color: #b8c6db;">Min Profit % Threshold</label>
                         <input type="number" id="huobiProfitThreshold" value="0.5" min="0.1" max="5" step="0.1"
-                               style="width: 100%; padding: 8px; border: 1px solid #2D6CF8; border-radius: 5px; background: rgba(45,108,248,0.05);">
+                               style="width: 100%; padding: 8px; border: 1px solid #2D6CF8; border-radius: 5px; background: rgba(45,108,248,0.05); color: #fff;">
                     </div>
                 </div>
 
-                <!-- Path Sets Configuration -->
+                <!-- Path Sets - Compact Grid -->
                 <div class="stat-card">
-                    <h4 style="color: #2D6CF8; margin-bottom: 15px;">🎯 Triangular Path Sets (32 Paths)</h4>
-                    <div style="display: flex; flex-direction: column; gap: 10px;">
-                        <label style="display: flex; align-items: center; cursor: pointer;">
-                            <input type="checkbox" id="huobiSet1Enabled" checked style="margin-right: 10px; width: 18px; height: 18px;">
-                            <span><strong>SET 1:</strong> Essential ETH Bridge (7 paths) - BTC, SOL, XRP, TRX, DOT, MATIC, LINK</span>
-                        </label>
-                        <label style="display: flex; align-items: center; cursor: pointer;">
-                            <input type="checkbox" id="huobiSet2Enabled" checked style="margin-right: 10px; width: 18px; height: 18px;">
-                            <span><strong>SET 2:</strong> Mid-Cap BTC Bridge (7 paths) - ETH, XRP, LTC, BCH, ADA, AVAX, UNI</span>
-                        </label>
-                        <label style="display: flex; align-items: center; cursor: pointer;">
-                            <input type="checkbox" id="huobiSet3Enabled" style="margin-right: 10px; width: 18px; height: 18px;">
-                            <span><strong>SET 3:</strong> HT Native Bridge (6 paths) - Using Huobi Token (HT)</span>
-                        </label>
-                        <label style="display: flex; align-items: center; cursor: pointer;">
-                            <input type="checkbox" id="huobiSet4Enabled" style="margin-right: 10px; width: 18px; height: 18px;">
-                            <span><strong>SET 4:</strong> High Volatility (6 paths) - DOGE, SHIB, APE, NEAR, APT, FTM</span>
-                        </label>
-                        <label style="display: flex; align-items: center; cursor: pointer;">
-                            <input type="checkbox" id="huobiSet5Enabled" style="margin-right: 10px; width: 18px; height: 18px;">
-                            <span><strong>SET 5:</strong> Extended Multi-Bridge (6 paths) - FIL, ATOM, ICP, ALGO, ETC + 4-leg path</span>
-                        </label>
+                    <h4 style="color: #2D6CF8; margin-bottom: 15px;">📊 Path Sets (31 Paths in 5 Sets)</h4>
+                    <div style="display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center;">
+                        <span style="color: #2D6CF8; font-size: 0.85rem;">SET 1: ETH Bridge (7 paths)</span>
+                        <input type="checkbox" id="huobiSet1Enabled" checked>
+
+                        <span style="color: #2D6CF8; font-size: 0.85rem;">SET 2: BTC Bridge (7 paths)</span>
+                        <input type="checkbox" id="huobiSet2Enabled" checked>
+
+                        <span style="color: #888; font-size: 0.85rem;">SET 3: HT Native (6 paths)</span>
+                        <input type="checkbox" id="huobiSet3Enabled">
+
+                        <span style="color: #888; font-size: 0.85rem;">SET 4: High Vol (6 paths)</span>
+                        <input type="checkbox" id="huobiSet4Enabled">
+
+                        <span style="color: #888; font-size: 0.85rem;">SET 5: Extended (5 paths)</span>
+                        <input type="checkbox" id="huobiSet5Enabled">
+                    </div>
+                    <div style="margin-top: 12px; padding: 8px; background: rgba(45,108,248,0.1); border-radius: 6px; font-size: 0.8rem; color: #888; text-align: center;">
+                        💡 Sets 1-2 enabled by default (14 paths)
                     </div>
                 </div>
 
-                <!-- Actions -->
+                <!-- Performance Stats -->
                 <div class="stat-card">
-                    <h4 style="color: #2D6CF8; margin-bottom: 15px;">🔧 Actions</h4>
-                    <button onclick="testHuobiTriangularConnection()" class="btn" style="background: #2D6CF8; width: 100%; margin-bottom: 10px;">
-                        🔌 Test Connection
+                    <h4 style="color: #2D6CF8; margin-bottom: 15px;">📈 Performance Stats</h4>
+                    <div style="display: grid; grid-template-columns: 1fr auto; gap: 10px; font-size: 0.9rem;">
+                        <span style="color: #b8c6db;">Total Trades:</span>
+                        <span style="color: #2D6CF8;" id="huobiTotalTrades">0</span>
+
+                        <span style="color: #b8c6db;">Success Rate:</span>
+                        <span style="color: #2D6CF8;" id="huobiSuccessRate">0%</span>
+
+                        <span style="color: #b8c6db;">Avg Profit:</span>
+                        <span style="color: #2D6CF8;" id="huobiAvgProfit">$0.00</span>
+
+                        <span style="color: #b8c6db;">Total Profit:</span>
+                        <span style="color: #00d26a; font-weight: bold;" id="huobiTotalProfit">$0.00</span>
+
+                        <span style="color: #b8c6db;">Best Path:</span>
+                        <span style="color: #2D6CF8; font-size: 0.8rem;" id="huobiBestPath">-</span>
+
+                        <span style="color: #b8c6db;">Last Scan:</span>
+                        <span style="color: #888; font-size: 0.8rem;" id="huobiLastScan">Never</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- HTX Control Buttons -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                <button onclick="testHuobiTriangularConnection()" class="btn" disabled style="opacity: 0.4; cursor: not-allowed;">
+                    🔍 Test Connection
+                </button>
+                <button onclick="scanHuobiTriangularPaths()" class="btn" disabled style="opacity: 0.4; cursor: not-allowed;">
+                    🔍 Scan Opportunities
+                </button>
+                <button onclick="viewHuobiPathDetails()" class="btn">
+                    📊 View Paths
+                </button>
+                <button onclick="clearHuobiTriangularHistory()" class="btn" disabled style="opacity: 0.4; cursor: not-allowed;">
+                    🗑️ Clear History
+                </button>
+            </div>
+
+            <!-- Tabbed Interface: Balance Tracker & Trading -->
+            <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px;">
+                <!-- Tab Headers -->
+                <div style="display: flex; gap: 10px; margin-bottom: 15px; border-bottom: 2px solid rgba(45,108,248,0.3);">
+                    <button id="huobiBalanceTab" onclick="switchHuobiTab('balance')" style="flex: 1; padding: 10px; background: rgba(45,108,248,0.3); border: none; border-radius: 8px 8px 0 0; color: #2D6CF8; font-weight: bold; cursor: pointer; transition: all 0.3s;">
+                        💰 Balance Tracker
                     </button>
-                    <button onclick="scanHuobiTriangularPaths()" class="btn" style="background: #2D6CF8; width: 100%; margin-bottom: 10px;">
-                        🔍 Scan Opportunities
-                    </button>
-                    <button onclick="viewHuobiPathDetails()" class="btn" style="background: #666; width: 100%; margin-bottom: 10px;">
-                        📋 View All Paths
-                    </button>
-                    <button onclick="clearHuobiTriangularHistory()" class="btn" style="background: #ff6b6b; width: 100%; margin-bottom: 10px;">
-                        🗑️ Clear History
-                    </button>
-                    <button onclick="saveHuobiTriangularSettings()" class="btn" style="background: #4CAF50; width: 100%;">
-                        💾 Save Settings
+                    <button id="huobiTradingTab" onclick="switchHuobiTab('trading')" style="flex: 1; padding: 10px; background: rgba(255,255,255,0.05); border: none; border-radius: 8px 8px 0 0; color: #b8c6db; cursor: pointer; transition: all 0.3s;">
+                        💎 Current Opportunities
                     </button>
                 </div>
 
-                <!-- Current Opportunities -->
-                <div class="stat-card" style="grid-column: span 2;">
-                    <h4 style="color: #2D6CF8; margin-bottom: 15px;">💰 Current Opportunities</h4>
-                    <div id="huobiOpportunities" style="max-height: 400px; overflow-y: auto;">
-                        <p style="color: #888; text-align: center; padding: 20px;">
+                <!-- Balance Tracker Tab Content -->
+                <div id="huobiBalanceContent" style="display: block;">
+                    <h4 style="color: #2D6CF8; margin-bottom: 15px;">💰 USDT Balance Tracking</h4>
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 12px;">
+                        <!-- USDT Balance -->
+                        <div style="background: rgba(45,108,248,0.1); padding: 12px; border-radius: 8px; border-left: 4px solid #2D6CF8;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; font-size: 0.9rem;">
+                                <div>
+                                    <div style="color: #888; font-size: 0.8rem; margin-bottom: 5px;">Starting</div>
+                                    <div style="color: #2D6CF8; font-weight: bold;" id="huobiStartingUSDT">$0.00</div>
+                                </div>
+                                <div>
+                                    <div style="color: #888; font-size: 0.8rem; margin-bottom: 5px;">Current</div>
+                                    <div style="color: #2D6CF8; font-weight: bold;" id="huobiCurrentUSDT">$0.00</div>
+                                </div>
+                                <div>
+                                    <div style="color: #888; font-size: 0.8rem; margin-bottom: 5px;">Change</div>
+                                    <div style="color: #b8c6db; font-weight: bold;" id="huobiChangeUSDT">$0.00 (0.0%)</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 10px; padding: 8px; background: rgba(45,108,248,0.1); border-radius: 6px; font-size: 0.8rem; color: #888; text-align: center;">
+                        💡 Balance updates automatically when scanning opportunities
+                    </div>
+                </div>
+
+                <!-- Trading Tab Content -->
+                <div id="huobiTradingContent" style="display: none;">
+                    <h4 style="color: #2D6CF8; margin-bottom: 15px;">💎 Current Opportunities</h4>
+                    <div id="huobiOpportunities" style="max-height: 200px; overflow-y: auto;">
+                        <div style="text-align: center; color: #888; padding: 20px;">
                             Click "Scan Opportunities" to find triangular arbitrage paths
-                        </p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -10207,6 +10304,7 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
             }
 
             const maxTradeAmount = parseFloat(document.getElementById('huobiMaxTrade').value);
+            const portfolioPercent = parseFloat(document.getElementById('huobiPortfolioPercent').value);
             const profitThreshold = parseFloat(document.getElementById('huobiProfitThreshold').value);
 
             const enabledSets = {
@@ -10228,6 +10326,7 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
                         apiKey,
                         apiSecret,
                         maxTradeAmount,
+                        portfolioPercent,
                         profitThreshold,
                         enabledSets
                     })
@@ -10289,71 +10388,278 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
         }
 
         function viewHuobiPathDetails() {
-            console.log('📋 [HUOBI] Viewing all triangular path details...');
+            console.log('📋 [HTX] Opening paths modal');
 
-            const pathDetails = `
-📋 HUOBI (HTX) Triangular Arbitrage Paths (32 Total)
+            // Create modal overlay
+            const modal = document.createElement('div');
+            modal.id = 'huobiPathsModal';
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.85);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 10000;
+                backdrop-filter: blur(5px);
+            `;
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 1: ESSENTIAL ETH BRIDGE (7 paths) ✓
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. USDT → ETH → BTC → USDT
-2. USDT → ETH → SOL → USDT
-3. USDT → ETH → XRP → USDT
-4. USDT → ETH → TRX → USDT
-5. USDT → ETH → DOT → USDT
-6. USDT → ETH → MATIC → USDT
-7. USDT → ETH → LINK → USDT
+            // Create modal content
+            const modalContent = document.createElement('div');
+            modalContent.style.cssText = `
+                background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+                border: 2px solid #2D6CF8;
+                border-radius: 15px;
+                padding: 30px;
+                max-width: 900px;
+                max-height: 85vh;
+                overflow-y: auto;
+                box-shadow: 0 10px 50px rgba(45,108,248,0.3);
+                position: relative;
+            `;
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 2: MIDCAP BTC BRIDGE (7 paths) ✓
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. USDT → BTC → ETH → USDT
-2. USDT → BTC → XRP → USDT
-3. USDT → BTC → LTC → USDT
-4. USDT → BTC → BCH → USDT
-5. USDT → BTC → ADA → USDT
-6. USDT → BTC → AVAX → USDT
-7. USDT → BTC → UNI → USDT
+            modalContent.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid rgba(45,108,248,0.3); padding-bottom: 15px;">
+                    <h2 style="color: #2D6CF8; margin: 0; font-size: 1.8rem;">📋 HTX (Huobi) Triangular Arbitrage Paths</h2>
+                    <button onclick="document.getElementById('huobiPathsModal').remove()" style="background: rgba(255,255,255,0.1); border: 1px solid #2D6CF8; color: #2D6CF8; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-size: 1.2rem; font-weight: bold;">✕</button>
+                </div>
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 3: HT NATIVE BRIDGE (6 paths)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. USDT → HT → BTC → USDT (Native)
-2. USDT → HT → ETH → USDT (Native)
-3. USDT → HT → XRP → USDT (Native)
-4. USDT → HT → TRX → USDT (Native)
-5. USDT → HT → DOT → USDT (Native)
-6. USDT → HT → SOL → USDT (Native)
+                <div style="background: rgba(45,108,248,0.1); padding: 15px; border-radius: 10px; margin-bottom: 25px; border-left: 4px solid #2D6CF8;">
+                    <p style="color: #b8c6db; margin: 0; font-size: 0.95rem;">
+                        <strong style="color: #2D6CF8;">31 Triangular Arbitrage Paths</strong> organized in 5 sets.
+                        <br><br>
+                        🌉 <strong>Bridge Currencies:</strong> ETH (Set 1), BTC (Set 2), HT (Set 3), Mixed (Sets 4-5)
+                        <br>
+                        💰 <strong>Base Currency:</strong> USDT (Tether) - Fund HTX with USDT only
+                        <br>
+                        💡 <strong>Default:</strong> Sets 1-2 enabled (14 paths) | Enable Sets 3-5 for 17 additional paths
+                    </p>
+                </div>
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 4: HIGH VOLATILITY (6 paths)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. USDT → DOGE → BTC → USDT (Meme)
-2. USDT → SHIB → ETH → USDT (Meme)
-3. USDT → APE → ETH → USDT (NFT)
-4. USDT → NEAR → BTC → USDT (Layer1)
-5. USDT → APT → ETH → USDT (Layer1)
-6. USDT → FTM → BTC → USDT (DeFi)
+                <!-- SET 1 -->
+                <div style="background: rgba(0,255,200,0.1); padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #00ffc8;">
+                    <h3 style="color: #00ffc8; margin: 0 0 15px 0;">SET 1: ESSENTIAL ETH BRIDGE (7 paths) ✅ DEFAULT</h3>
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 8px; font-size: 0.9rem;">
+                        <div style="color: #b8c6db;">1. USDT → ETH → BTC → USDT</div>
+                        <div style="color: #b8c6db;">2. USDT → ETH → SOL → USDT</div>
+                        <div style="color: #b8c6db;">3. USDT → ETH → XRP → USDT</div>
+                        <div style="color: #b8c6db;">4. USDT → ETH → TRX → USDT</div>
+                        <div style="color: #b8c6db;">5. USDT → ETH → DOT → USDT</div>
+                        <div style="color: #b8c6db;">6. USDT → ETH → MATIC → USDT</div>
+                        <div style="color: #b8c6db;">7. USDT → ETH → LINK → USDT</div>
+                    </div>
+                </div>
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 5: EXTENDED MULTIBRIDGE (6 paths)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. USDT → FIL → BTC → USDT
-2. USDT → ATOM → ETH → USDT
-3. USDT → ICP → BTC → USDT
-4. USDT → ALGO → ETH → USDT
-5. USDT → ETC → BTC → USDT
-6. USDT → BTC → ETH → XRP → USDT (4-leg)
+                <!-- SET 2 -->
+                <div style="background: rgba(45,108,248,0.1); padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #2D6CF8;">
+                    <h3 style="color: #2D6CF8; margin: 0 0 15px 0;">SET 2: MIDCAP BTC BRIDGE (7 paths) ✅ DEFAULT</h3>
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 8px; font-size: 0.9rem;">
+                        <div style="color: #b8c6db;">1. USDT → BTC → ETH → USDT</div>
+                        <div style="color: #b8c6db;">2. USDT → BTC → XRP → USDT</div>
+                        <div style="color: #b8c6db;">3. USDT → BTC → LTC → USDT</div>
+                        <div style="color: #b8c6db;">4. USDT → BTC → BCH → USDT</div>
+                        <div style="color: #b8c6db;">5. USDT → BTC → ADA → USDT</div>
+                        <div style="color: #b8c6db;">6. USDT → BTC → AVAX → USDT</div>
+                        <div style="color: #b8c6db;">7. USDT → BTC → UNI → USDT</div>
+                    </div>
+                </div>
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                <!-- SET 3 -->
+                <div style="background: rgba(100,150,255,0.1); padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #6496ff;">
+                    <h3 style="color: #6496ff; margin: 0 0 15px 0;">SET 3: HT NATIVE BRIDGE (6 paths)</h3>
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 8px; font-size: 0.9rem;">
+                        <div style="color: #b8c6db;">1. USDT → HT → BTC → USDT <span style="color: #888;">(Native)</span></div>
+                        <div style="color: #b8c6db;">2. USDT → HT → ETH → USDT <span style="color: #888;">(Native)</span></div>
+                        <div style="color: #b8c6db;">3. USDT → HT → XRP → USDT <span style="color: #888;">(Native)</span></div>
+                        <div style="color: #b8c6db;">4. USDT → HT → TRX → USDT <span style="color: #888;">(Native)</span></div>
+                        <div style="color: #b8c6db;">5. USDT → HT → DOT → USDT <span style="color: #888;">(Native)</span></div>
+                        <div style="color: #b8c6db;">6. USDT → HT → SOL → USDT <span style="color: #888;">(Native)</span></div>
+                    </div>
+                </div>
 
-💡 TIP: Sets 1-2 are enabled by default (14 paths)
-⚡ Enable Sets 3-5 for more opportunities (18 additional paths)
-            `.trim();
+                <!-- SET 4 -->
+                <div style="background: rgba(255,165,0,0.1); padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #ffa500;">
+                    <h3 style="color: #ffa500; margin: 0 0 15px 0;">SET 4: HIGH VOLATILITY (6 paths)</h3>
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 8px; font-size: 0.9rem;">
+                        <div style="color: #b8c6db;">1. USDT → DOGE → BTC → USDT <span style="color: #888;">(Meme)</span></div>
+                        <div style="color: #b8c6db;">2. USDT → SHIB → ETH → USDT <span style="color: #888;">(Meme)</span></div>
+                        <div style="color: #b8c6db;">3. USDT → APE → ETH → USDT <span style="color: #888;">(NFT)</span></div>
+                        <div style="color: #b8c6db;">4. USDT → NEAR → BTC → USDT <span style="color: #888;">(Layer1)</span></div>
+                        <div style="color: #b8c6db;">5. USDT → APT → ETH → USDT <span style="color: #888;">(Layer1)</span></div>
+                        <div style="color: #b8c6db;">6. USDT → FTM → BTC → USDT <span style="color: #888;">(DeFi)</span></div>
+                    </div>
+                </div>
 
-            alert(pathDetails);
-            console.log(pathDetails);
+                <!-- SET 5 -->
+                <div style="background: rgba(138,43,226,0.1); padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #8a2be2;">
+                    <h3 style="color: #8a2be2; margin: 0 0 15px 0;">SET 5: EXTENDED MULTIBRIDGE (5 paths)</h3>
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 8px; font-size: 0.9rem;">
+                        <div style="color: #b8c6db;">1. USDT → FIL → BTC → USDT</div>
+                        <div style="color: #b8c6db;">2. USDT → ATOM → ETH → USDT</div>
+                        <div style="color: #b8c6db;">3. USDT → ICP → BTC → USDT</div>
+                        <div style="color: #b8c6db;">4. USDT → ALGO → ETH → USDT</div>
+                        <div style="color: #b8c6db;">5. USDT → ETC → BTC → USDT</div>
+                    </div>
+                </div>
+
+                <div style="background: rgba(45,108,248,0.1); padding: 12px; border-radius: 8px; text-align: center; margin-top: 20px; border: 1px solid rgba(45,108,248,0.3);">
+                    <p style="color: #b8c6db; margin: 0; font-size: 0.9rem;">
+                        💡 <strong style="color: #2D6CF8;">Tip:</strong> Enable/disable path sets in the settings above to control which opportunities are scanned.
+                    </p>
+                </div>
+            `;
+
+            modal.appendChild(modalContent);
+            document.body.appendChild(modal);
+
+            // Close on outside click
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.remove();
+                }
+            });
+
+            console.log('✅ [HTX] Paths modal opened');
+        }
+
+        // Tab switching function
+        function switchHuobiTab(tabName) {
+            console.log(`🔄 [HTX] Switching to ${tabName} tab`);
+
+            // Hide all content divs
+            document.getElementById('huobiBalanceContent').style.display = 'none';
+            document.getElementById('huobiTradingContent').style.display = 'none';
+
+            // Reset all tab button styles
+            document.getElementById('huobiBalanceTab').style.background = 'rgba(255,255,255,0.05)';
+            document.getElementById('huobiBalanceTab').style.color = '#b8c6db';
+            document.getElementById('huobiTradingTab').style.background = 'rgba(255,255,255,0.05)';
+            document.getElementById('huobiTradingTab').style.color = '#b8c6db';
+
+            // Show selected content and activate button
+            if (tabName === 'balance') {
+                document.getElementById('huobiBalanceContent').style.display = 'block';
+                document.getElementById('huobiBalanceTab').style.background = 'rgba(45,108,248,0.3)';
+                document.getElementById('huobiBalanceTab').style.color = '#2D6CF8';
+            } else if (tabName === 'trading') {
+                document.getElementById('huobiTradingContent').style.display = 'block';
+                document.getElementById('huobiTradingTab').style.background = 'rgba(45,108,248,0.3)';
+                document.getElementById('huobiTradingTab').style.color = '#2D6CF8';
+            }
+        }
+
+        // Balance tracking object
+        const huobiBalanceTracking = {
+            startingUSDT: 0,
+            currentUSDT: 0
+        };
+
+        // Initialize HTX balance tracking
+        async function initializeHuobiBalance() {
+            console.log('💰 [HTX] Initializing balance tracking...');
+
+            const apiKey = localStorage.getItem('huobi_triangular_api');
+            const apiSecret = localStorage.getItem('huobi_triangular_secret');
+
+            if (!apiKey || !apiSecret) {
+                console.warn('⚠️ [HTX] No API credentials configured - balance tracking disabled');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/v1/trading/huobi/balance', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    },
+                    body: JSON.stringify({
+                        apiKey,
+                        apiSecret,
+                        currency: 'USDT'
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    huobiBalanceTracking.startingUSDT = parseFloat(data.balance);
+                    huobiBalanceTracking.currentUSDT = parseFloat(data.balance);
+                    updateHuobiBalanceDisplay();
+                    console.log(`✅ [HTX] Balance initialized: $${data.balance} USDT`);
+                } else {
+                    console.error('❌ [HTX] Failed to fetch balance:', data.message);
+                }
+            } catch (error) {
+                console.error('❌ [HTX] Balance initialization error:', error);
+            }
+        }
+
+        // Update current HTX balance
+        async function updateHuobiBalance() {
+            const apiKey = localStorage.getItem('huobi_triangular_api');
+            const apiSecret = localStorage.getItem('huobi_triangular_secret');
+
+            if (!apiKey || !apiSecret) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/v1/trading/huobi/balance', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    },
+                    body: JSON.stringify({
+                        apiKey,
+                        apiSecret,
+                        currency: 'USDT'
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    huobiBalanceTracking.currentUSDT = parseFloat(data.balance);
+                    updateHuobiBalanceDisplay();
+                }
+            } catch (error) {
+                console.error('❌ [HTX] Balance update error:', error);
+            }
+        }
+
+        // Update balance display
+        function updateHuobiBalanceDisplay() {
+            const startingElement = document.getElementById('huobiStartingUSDT');
+            const currentElement = document.getElementById('huobiCurrentUSDT');
+            const changeElement = document.getElementById('huobiChangeUSDT');
+
+            if (!startingElement || !currentElement || !changeElement) {
+                return;
+            }
+
+            const starting = huobiBalanceTracking.startingUSDT;
+            const current = huobiBalanceTracking.currentUSDT;
+            const change = current - starting;
+            const changePercent = starting > 0 ? ((change / starting) * 100).toFixed(2) : '0.00';
+
+            startingElement.textContent = `$${starting.toFixed(2)}`;
+            currentElement.textContent = `$${current.toFixed(2)}`;
+
+            const changeSign = change >= 0 ? '+' : '';
+            changeElement.textContent = `${changeSign}$${change.toFixed(2)} (${changeSign}${changePercent}%)`;
+            changeElement.style.color = change >= 0 ? '#00d26a' : '#ff4444';
+        }
+
+        // Reset starting balance to current balance
+        function resetHuobiStartingBalance() {
+            huobiBalanceTracking.startingUSDT = huobiBalanceTracking.currentUSDT;
+            updateHuobiBalanceDisplay();
+            console.log('🔄 [HTX] Starting balance reset to current balance');
         }
 
         async function clearHuobiTriangularHistory() {
