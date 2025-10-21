@@ -2400,101 +2400,196 @@
 
         <!-- MEXC Exchange -->
         <div style="background: rgba(255,165,0,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 2px solid #FFA500;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <!-- Header with toggle -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <h3 style="color: #FFA500; margin: 0;">🟠 MEXC Triangular Arbitrage</h3>
-                <div style="display: flex; align-items: center; gap: 15px;">
-                    <span style="color: #b8c6db; font-size: 0.9rem;">Live Trading:</span>
-                    <div class="toggle-switch" id="mexcTriangularEnabled">
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <span style="color: #b8c6db; font-size: 0.9rem;">MEXC Live Trading:</span>
+                    <div class="toggle-switch" id="mexcTriangularEnabled" onclick="toggleMexcTriangular()">
                         <div class="toggle-knob"></div>
                     </div>
-                    <span id="mexcTriangularStatus" style="color: #ff6b6b; font-weight: 600; font-size: 0.9rem;">OFF</span>
+                    <span id="mexcTriangularStatus" style="color: #ff6b6b; font-size: 0.9rem; margin-left: 10px;">OFF</span>
                 </div>
             </div>
-            <p style="color: #888; margin: 0 0 10px 0; font-size: 14px;">
-                2,908+ USDT pairs | MX native token | 0% trading fees | HMAC-SHA256 authentication
-            </p>
 
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 20px;">
-                <!-- Status Card -->
-                <div class="stat-card">
-                    <h4 style="color: #FFA500; margin-bottom: 15px;">📊 Status</h4>
-                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-                        <div id="mexcStatusIndicator" style="width: 12px; height: 12px; border-radius: 50%; background: #666;"></div>
-                        <span id="mexcStatusText" style="color: #888;">Not Connected</span>
-                    </div>
-                    <div style="margin-top: 15px; display: flex; gap: 10px;">
-                        <button onclick="testMexcTriangularConnection()" style="flex: 1; padding: 10px; background: #FFA500; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
-                            Test Connection
-                        </button>
-                        <button onclick="viewMexcPathDetails()" style="flex: 1; padding: 10px; background: rgba(255,165,0,0.2); color: #FFA500; border: 1px solid #FFA500; border-radius: 8px; cursor: pointer; font-weight: 600;">
-                            View Paths
-                        </button>
-                    </div>
+            <!-- FUNDING REQUIREMENTS Info Banner -->
+            <div style="background: rgba(255,165,0,0.15); border: 2px solid #FFA500; border-radius: 10px; padding: 20px; margin-bottom: 20px;">
+                <div style="text-align: center;">
+                    <h4 style="color: #FFA500; margin: 0 0 10px 0; font-size: 1.2rem;">💰 Funding Requirements for Maximum Coverage</h4>
+                    <p style="color: #b8c6db; margin: 0 0 15px 0; font-size: 0.95rem;">
+                        MEXC supports <strong style="color: #FFA500;">32 triangular arbitrage paths</strong> across <strong>1 fundable currency</strong>.
+                    </p>
                 </div>
 
+                <!-- USDT currency details with all 5 sets listed -->
+                <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; border-left: 4px solid #FFA500;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span style="color: #FFA500; font-size: 1.5rem;">💵</span>
+                            <div>
+                                <div style="color: #FFA500; font-weight: 600; font-size: 1.1rem;">USDT (Tether)</div>
+                                <div style="color: #888; font-size: 0.85rem;">Base Currency - Fund MEXC with USDT only</div>
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="color: #FFA500; font-weight: 600; font-size: 1.2rem;">32 Paths</div>
+                            <div style="color: #888; font-size: 0.85rem;">2,908+ pairs</div>
+                        </div>
+                    </div>
+                    <div style="color: #b8c6db; font-size: 0.9rem; line-height: 1.6;">
+                        <strong style="color: #FFA500;">Path Sets Included:</strong><br>
+                        • <strong>Set 1:</strong> Essential ETH Bridge (7 paths) - ETH/BTC/SOL/XRP/ADA/MATIC/DOT/AVAX<br>
+                        • <strong>Set 2:</strong> Mid-Cap BTC Bridge (7 paths) - BTC/ETH/SOL/XRP/LTC/LINK/ATOM/UNI<br>
+                        • <strong>Set 3:</strong> MX Native Bridge (6 paths) - MX token (0% fees!) / BTC/ETH/SOL/BNB<br>
+                        • <strong>Set 4:</strong> High Volatility (6 paths) - DOGE/SHIB/PEPE/FLOKI/TON/SUI<br>
+                        • <strong>Set 5:</strong> Extended Multi-Bridge (6 paths) - Includes 2 four-leg paths
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Grid: Risk Management, Path Sets, Performance Stats -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 20px;">
                 <!-- Risk Management -->
                 <div class="stat-card">
                     <h4 style="color: #FFA500; margin-bottom: 15px;">⚖️ Risk Management</h4>
                     <label style="display: block; color: #888; margin-bottom: 5px; font-size: 14px;">Max Trade Amount (USDT)</label>
-                    <input type="number" id="mexcMaxTrade" value="100" min="10" max="10000" step="10" style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid #444; border-radius: 8px; color: white; margin-bottom: 15px;">
+                    <input type="number" id="mexcMaxTrade" value="1000" min="10" max="10000" step="10"
+                           onchange="saveMexcTriangularSettings()"
+                           style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid #444; border-radius: 8px; color: white; margin-bottom: 15px;">
 
                     <label style="display: block; color: #888; margin-bottom: 5px; font-size: 14px;">Portfolio % Risk</label>
-                    <input type="number" id="mexcPortfolioPercent" value="5" min="1" max="20" step="1" style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid #444; border-radius: 8px; color: white; margin-bottom: 15px;">
+                    <input type="number" id="mexcPortfolioPercent" value="10" min="1" max="20" step="1"
+                           onchange="saveMexcTriangularSettings()"
+                           style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid #444; border-radius: 8px; color: white; margin-bottom: 15px;">
 
                     <label style="display: block; color: #888; margin-bottom: 5px; font-size: 14px;">Min Profit Threshold (%)</label>
-                    <input type="number" id="mexcProfitThreshold" value="0.3" min="0.1" max="5" step="0.1" style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid #444; border-radius: 8px; color: white;">
+                    <input type="number" id="mexcProfitThreshold" value="0.5" min="0.1" max="5" step="0.1"
+                           onchange="saveMexcTriangularSettings()"
+                           style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid #444; border-radius: 8px; color: white;">
                 </div>
 
-                <!-- Path Sets -->
+                <!-- Path Sets (Compact 2-column grid) -->
                 <div class="stat-card">
-                    <h4 style="color: #FFA500; margin-bottom: 15px;">🔀 Path Selection (32 Total)</h4>
-                    <div style="display: flex; flex-direction: column; gap: 10px;">
-                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                            <input type="checkbox" id="mexcSet1Enabled" checked style="width: 18px; height: 18px; cursor: pointer;">
-                            <span style="color: #ddd;">✅ SET 1: Essential ETH Bridge (7 paths)</span>
+                    <h4 style="color: #FFA500; margin-bottom: 15px;">🔀 Path Sets (32 Total)</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.85rem;">
+                            <input type="checkbox" id="mexcSet1Enabled" checked onchange="saveMexcTriangularSettings()" style="width: 16px; height: 16px; cursor: pointer;">
+                            <span style="color: #ddd;">✅ Set 1 (7)</span>
                         </label>
-                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                            <input type="checkbox" id="mexcSet2Enabled" checked style="width: 18px; height: 18px; cursor: pointer;">
-                            <span style="color: #ddd;">✅ SET 2: Mid-Cap BTC Bridge (7 paths)</span>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.85rem;">
+                            <input type="checkbox" id="mexcSet2Enabled" checked onchange="saveMexcTriangularSettings()" style="width: 16px; height: 16px; cursor: pointer;">
+                            <span style="color: #ddd;">✅ Set 2 (7)</span>
                         </label>
-                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                            <input type="checkbox" id="mexcSet3Enabled" style="width: 18px; height: 18px; cursor: pointer;">
-                            <span style="color: #ddd;">🟠 SET 3: MX Native Bridge (6 paths)</span>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.85rem;">
+                            <input type="checkbox" id="mexcSet3Enabled" onchange="saveMexcTriangularSettings()" style="width: 16px; height: 16px; cursor: pointer;">
+                            <span style="color: #ddd;">🟠 Set 3 (6)</span>
                         </label>
-                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                            <input type="checkbox" id="mexcSet4Enabled" style="width: 18px; height: 18px; cursor: pointer;">
-                            <span style="color: #ddd;">⚡ SET 4: High Volatility (6 paths)</span>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.85rem;">
+                            <input type="checkbox" id="mexcSet4Enabled" onchange="saveMexcTriangularSettings()" style="width: 16px; height: 16px; cursor: pointer;">
+                            <span style="color: #ddd;">⚡ Set 4 (6)</span>
                         </label>
-                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                            <input type="checkbox" id="mexcSet5Enabled" style="width: 18px; height: 18px; cursor: pointer;">
-                            <span style="color: #ddd;">🔁 SET 5: Extended Multi-Bridge (6 paths)</span>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.85rem; grid-column: 1 / -1;">
+                            <input type="checkbox" id="mexcSet5Enabled" onchange="saveMexcTriangularSettings()" style="width: 16px; height: 16px; cursor: pointer;">
+                            <span style="color: #ddd;">🔁 Set 5 (6)</span>
                         </label>
+                    </div>
+                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,165,0,0.2); font-size: 0.8rem; color: #888; text-align: center;">
+                        ETH Bridge • BTC Bridge • MX Native • Volatility • Extended
                     </div>
                 </div>
 
-                <!-- Scanner Controls -->
+                <!-- Performance Stats -->
                 <div class="stat-card">
-                    <h4 style="color: #FFA500; margin-bottom: 15px;">🔍 Scanner</h4>
-                    <button onclick="scanMexcTriangularPaths()" style="width: 100%; padding: 12px; background: #FFA500; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 16px; margin-bottom: 15px;">
-                        🔍 Scan Opportunities
+                    <h4 style="color: #FFA500; margin-bottom: 15px;">📊 Performance Stats</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.85rem;">
+                        <div>
+                            <div style="color: #888;">Total Trades</div>
+                            <div style="color: #FFA500; font-weight: 600;" id="mexcTotalTrades">0</div>
+                        </div>
+                        <div>
+                            <div style="color: #888;">Success Rate</div>
+                            <div style="color: #FFA500; font-weight: 600;" id="mexcSuccessRate">0%</div>
+                        </div>
+                        <div>
+                            <div style="color: #888;">Avg Profit</div>
+                            <div style="color: #FFA500; font-weight: 600;" id="mexcAvgProfit">$0.00</div>
+                        </div>
+                        <div>
+                            <div style="color: #888;">Total Profit</div>
+                            <div style="color: #FFA500; font-weight: 600;" id="mexcTotalProfit">$0.00</div>
+                        </div>
+                        <div style="grid-column: 1 / -1;">
+                            <div style="color: #888;">Best Path</div>
+                            <div style="color: #FFA500; font-weight: 600; font-size: 0.75rem;" id="mexcBestPath">—</div>
+                        </div>
+                        <div style="grid-column: 1 / -1;">
+                            <div style="color: #888;">Last Scan</div>
+                            <div style="color: #888; font-size: 0.75rem;" id="mexcLastScan">Never</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Control Buttons -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                <button onclick="testMexcTriangularConnection()" class="btn" disabled style="opacity: 0.4; cursor: not-allowed;">
+                    🔍 Test Connection
+                </button>
+                <button onclick="scanMexcTriangularPaths()" class="btn" disabled style="opacity: 0.4; cursor: not-allowed;">
+                    🔍 Scan Opportunities
+                </button>
+                <button onclick="viewMexcPathDetails()" class="btn">
+                    📊 View Paths
+                </button>
+                <button onclick="clearMexcTriangularHistory()" class="btn" disabled style="opacity: 0.4; cursor: not-allowed;">
+                    🗑️ Clear History
+                </button>
+            </div>
+
+            <!-- Tabbed Interface: Balance Tracker & Trading -->
+            <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px;">
+                <div style="display: flex; gap: 10px; margin-bottom: 15px; border-bottom: 2px solid rgba(255,165,0,0.3);">
+                    <button id="mexcBalanceTab" onclick="switchMexcTab('balance')" style="padding: 10px 20px; background: rgba(255,165,0,0.3); color: #FFA500; border: none; border-bottom: 3px solid #FFA500; cursor: pointer; font-weight: 600; transition: all 0.3s;">
+                        💰 Balance Tracker
                     </button>
-                    <div id="mexcScanStatus" style="color: #888; font-size: 14px; text-align: center; min-height: 20px;"></div>
+                    <button id="mexcTradingTab" onclick="switchMexcTab('trading')" style="padding: 10px 20px; background: rgba(255,255,255,0.05); color: #b8c6db; border: none; border-bottom: 3px solid transparent; cursor: pointer; font-weight: 600; transition: all 0.3s;">
+                        🟠 Current Opportunities
+                    </button>
                 </div>
 
-                <!-- Opportunities Display -->
-                <div class="stat-card" style="grid-column: 1 / -1;">
-                    <h4 style="color: #FFA500; margin-bottom: 15px;">💎 Active Opportunities</h4>
+                <!-- Balance Tracker Tab Content -->
+                <div id="mexcBalanceContent" style="display: block;">
+                    <h4 style="color: #FFA500; margin-bottom: 15px;">💰 USDT Balance Tracking</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
+                        <div>
+                            <div style="color: #888;">Starting</div>
+                            <div style="color: #FFA500; font-weight: 600; font-size: 1.2rem;" id="mexcStartingUSDT">$0.00</div>
+                        </div>
+                        <div>
+                            <div style="color: #888;">Current</div>
+                            <div style="color: #FFA500; font-weight: 600; font-size: 1.2rem;" id="mexcCurrentUSDT">$0.00</div>
+                        </div>
+                        <div>
+                            <div style="color: #888;">Change</div>
+                            <div style="color: #b8c6db; font-weight: 600; font-size: 1.2rem;" id="mexcChangeUSDT">$0.00 (0.0%)</div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,165,0,0.2);">
+                        <button onclick="updateMexcBalance()" style="padding: 10px 20px; background: rgba(255,165,0,0.2); color: #FFA500; border: 1px solid #FFA500; border-radius: 8px; cursor: pointer; margin-right: 10px;">
+                            🔄 Refresh Balance
+                        </button>
+                        <button onclick="resetMexcStartingBalance()" style="padding: 10px 20px; background: rgba(255,255,255,0.05); color: #888; border: 1px solid #444; border-radius: 8px; cursor: pointer;">
+                            🔁 Reset Starting Balance
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Trading Tab Content -->
+                <div id="mexcTradingContent" style="display: none;">
                     <div id="mexcOpportunities" style="color: #888; font-size: 14px;">
-                        No scan results yet. Click "Scan Opportunities" to begin.
+                        Click "Scan Opportunities" to find triangular arbitrage paths
                     </div>
-                </div>
-
-                <!-- Trade History -->
-                <div class="stat-card" style="grid-column: 1 / -1;">
-                    <h4 style="color: #FFA500; margin-bottom: 15px;">📜 Recent Trades</h4>
-                    <div id="mexcTradeHistory" style="color: #888; font-size: 14px;">
-                        No trade history available.
-                    </div>
+                    <div id="mexcScanStatus" style="color: #888; font-size: 14px; margin-top: 15px; text-align: center;"></div>
                 </div>
             </div>
         </div>
@@ -12105,6 +12200,25 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
         // MEXC TRIANGULAR ARBITRAGE FUNCTIONS
         // ═══════════════════════════════════════════════════════════
 
+        // 0. Toggle MEXC Triangular Trading
+        function toggleMexcTriangular() {
+            const toggle = document.getElementById('mexcTriangularEnabled');
+            const status = document.getElementById('mexcTriangularStatus');
+            const isActive = toggle.classList.toggle('active');
+
+            if (isActive) {
+                status.textContent = 'ON';
+                status.style.color = '#FFA500';
+                localStorage.setItem('mexcTriangularEnabled', 'true');
+                console.log('✅ [MEXC] Live triangular trading enabled');
+            } else {
+                status.textContent = 'OFF';
+                status.style.color = '#ff6b6b';
+                localStorage.setItem('mexcTriangularEnabled', 'false');
+                console.log('⏸️ [MEXC] Live triangular trading disabled');
+            }
+        }
+
         // 1. Test MEXC Connection
         async function testMexcTriangularConnection() {
             try {
@@ -12145,70 +12259,291 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
             }
         }
 
-        // 2. View MEXC Path Details
+        // 2. View MEXC Path Details (Modal)
         function viewMexcPathDetails() {
-            const pathDetails = `
-📋 MEXC Triangular Arbitrage Paths (32 Total)
+            console.log('📋 [MEXC] Opening paths modal');
 
-✨ SET 1: Essential ETH Bridge (7 paths) ✅ ENABLED BY DEFAULT
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. USDT → ETH → BTC → USDT (ETHUSDT, BTCETH, BTCUSDT)
-2. USDT → ETH → SOL → USDT (ETHUSDT, SOLETH, SOLUSDT)
-3. USDT → ETH → XRP → USDT (ETHUSDT, XRPETH, XRPUSDT)
-4. USDT → ETH → ADA → USDT (ETHUSDT, ADAETH, ADAUSDT)
-5. USDT → ETH → MATIC → USDT (ETHUSDT, MATICETH, MATICUSDT)
-6. USDT → ETH → DOT → USDT (ETHUSDT, DOTETH, DOTUSDT)
-7. USDT → ETH → AVAX → USDT (ETHUSDT, AVAXETH, AVAXUSDT)
+            // Create modal overlay
+            const modal = document.createElement('div');
+            modal.id = 'mexcPathsModal';
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.85);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 10000;
+                backdrop-filter: blur(5px);
+            `;
 
-🔷 SET 2: Mid-Cap BTC Bridge (7 paths) ✅ ENABLED BY DEFAULT
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. USDT → BTC → ETH → USDT (BTCUSDT, ETHBTC, ETHUSDT)
-2. USDT → BTC → SOL → USDT (BTCUSDT, SOLBTC, SOLUSDT)
-3. USDT → BTC → ADA → USDT (BTCUSDT, ADABTC, ADAUSDT)
-4. USDT → BTC → DOT → USDT (BTCUSDT, DOTBTC, DOTUSDT)
-5. USDT → BTC → ATOM → USDT (BTCUSDT, ATOMBTC, ATOMUSDT)
-6. USDT → BTC → LTC → USDT (BTCUSDT, LTCBTC, LTCUSDT)
-7. USDT → BTC → XRP → USDT (BTCUSDT, XRPBTC, XRPUSDT)
+            // Create modal content
+            const modalContent = document.createElement('div');
+            modalContent.style.cssText = `
+                background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+                border: 2px solid #FFA500;
+                border-radius: 15px;
+                padding: 30px;
+                max-width: 900px;
+                max-height: 85vh;
+                overflow-y: auto;
+                box-shadow: 0 10px 50px rgba(255,165,0,0.3);
+                position: relative;
+            `;
 
-🟠 SET 3: MX Native Bridge (6 paths) - MX Token (0% Fees!)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. USDT → MX → BTC → USDT (MXUSDT, BTCMX, BTCUSDT)
-2. USDT → MX → ETH → USDT (MXUSDT, ETHMX, ETHUSDT)
-3. USDT → MX → SOL → USDT (MXUSDT, SOLMX, SOLUSDT)
-4. USDT → BTC → MX → USDT (BTCUSDT, MXBTC, MXUSDT)
-5. USDT → ETH → MX → USDT (ETHUSDT, MXETH, MXUSDT)
-6. USDT → MX → MATIC → USDT (MXUSDT, MATICMX, MATICUSDT)
+            modalContent.innerHTML = `
+                <!-- Header with close button -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid rgba(255,165,0,0.3); padding-bottom: 15px;">
+                    <h2 style="color: #FFA500; margin: 0; font-size: 1.8rem;">📋 MEXC Triangular Arbitrage Paths</h2>
+                    <button onclick="document.getElementById('mexcPathsModal').remove()" style="background: rgba(255,255,255,0.1); border: 1px solid #FFA500; color: #FFA500; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-size: 1.2rem; font-weight: bold;">✕</button>
+                </div>
 
-⚡ SET 4: High Volatility (6 paths)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. USDT → DOGE → BTC → USDT (DOGEUSDT, BTCDOGE, BTCUSDT)
-2. USDT → SHIB → ETH → USDT (SHIBUSDT, ETHSHIB, ETHUSDT)
-3. USDT → MATIC → BTC → USDT (MATICUSDT, BTCMATIC, BTCUSDT)
-4. USDT → SOL → ETH → USDT (SOLUSDT, ETHSOL, ETHUSDT)
-5. USDT → ADA → BTC → USDT (ADAUSDT, BTCADA, BTCUSDT)
-6. USDT → DOT → ETH → USDT (DOTUSDT, ETHDOT, ETHUSDT)
+                <!-- Info banner -->
+                <div style="background: rgba(255,165,0,0.1); padding: 15px; border-radius: 10px; margin-bottom: 25px; border-left: 4px solid #FFA500;">
+                    <p style="color: #b8c6db; margin: 0; font-size: 0.95rem;">
+                        <strong style="color: #FFA500;">32 Triangular Arbitrage Paths</strong> organized in 5 sets.
+                        <br><br>
+                        🌉 <strong>Bridge Currencies:</strong> ETH (Set 1), BTC (Set 2), MX (Set 3), Mixed (Sets 4-5)
+                        <br>
+                        💰 <strong>Base Currency:</strong> USDT (Tether) - Fund MEXC with USDT only
+                        <br>
+                        💡 <strong>Default:</strong> Sets 1-2 enabled (14 paths) | Enable Sets 3-5 for 18 additional paths
+                    </p>
+                </div>
 
-🔁 SET 5: Extended Multi-Bridge (6 paths)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. USDT → SOL → BTC → USDT (SOLUSDT, BTCSOL, BTCUSDT)
-2. USDT → XRP → ETH → USDT (XRPUSDT, ETHXRP, ETHUSDT)
-3. USDT → AVAX → BTC → USDT (AVAXUSDT, BTCAVAX, BTCUSDT)
-4. USDT → ATOM → ETH → USDT (ATOMUSDT, ETHATOM, ETHUSDT)
-5. USDT → BTC → ETH → SOL → USDT ⭐ 4-LEG (BTCUSDT, ETHBTC, SOLETH, SOLUSDT)
-6. USDT → ETH → BTC → ADA → USDT ⭐ 4-LEG (ETHUSDT, BTCETH, ADABTC, ADAUSDT)
+                <!-- SET 1: ESSENTIAL ETH BRIDGE (7 paths) - Color: #ffd700 -->
+                <div style="background: rgba(255,215,0,0.05); padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #ffd700;">
+                    <h3 style="color: #ffd700; margin: 0 0 15px 0; font-size: 1.3rem;">✨ SET 1: Essential ETH Bridge (7 paths) ✅ ENABLED BY DEFAULT</h3>
+                    <div style="display: grid; gap: 8px; font-size: 0.9rem; color: #b8c6db;">
+                        <div>1. <strong style="color: #ffd700;">USDT → ETH → BTC → USDT</strong> <span style="color: #888;">(ETHUSDT, BTCETH, BTCUSDT)</span></div>
+                        <div>2. <strong style="color: #ffd700;">USDT → ETH → SOL → USDT</strong> <span style="color: #888;">(ETHUSDT, SOLETH, SOLUSDT)</span></div>
+                        <div>3. <strong style="color: #ffd700;">USDT → ETH → XRP → USDT</strong> <span style="color: #888;">(ETHUSDT, XRPETH, XRPUSDT)</span></div>
+                        <div>4. <strong style="color: #ffd700;">USDT → ETH → ADA → USDT</strong> <span style="color: #888;">(ETHUSDT, ADAETH, ADAUSDT)</span></div>
+                        <div>5. <strong style="color: #ffd700;">USDT → ETH → MATIC → USDT</strong> <span style="color: #888;">(ETHUSDT, MATICETH, MATICUSDT)</span></div>
+                        <div>6. <strong style="color: #ffd700;">USDT → ETH → DOT → USDT</strong> <span style="color: #888;">(ETHUSDT, DOTETH, DOTUSDT)</span></div>
+                        <div>7. <strong style="color: #ffd700;">USDT → ETH → AVAX → USDT</strong> <span style="color: #888;">(ETHUSDT, AVAXETH, AVAXUSDT)</span></div>
+                    </div>
+                </div>
 
-💡 TOTAL: 32 paths (30 three-leg + 2 four-leg)
-🌉 BRIDGE: USDT (2,908+ trading pairs)
-🟠 NATIVE: MX token for maximum opportunities
-🔐 AUTH: HMAC-SHA256 signature
-💰 FEES: 0% trading fees on all pairs!
-📊 EXCHANGE: MEXC Global (formerly MXC)
-            `.trim();
+                <!-- SET 2: MIDCAP BTC BRIDGE (7 paths) - Color: #FFA500 -->
+                <div style="background: rgba(255,165,0,0.05); padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #FFA500;">
+                    <h3 style="color: #FFA500; margin: 0 0 15px 0; font-size: 1.3rem;">🔷 SET 2: Mid-Cap BTC Bridge (7 paths) ✅ ENABLED BY DEFAULT</h3>
+                    <div style="display: grid; gap: 8px; font-size: 0.9rem; color: #b8c6db;">
+                        <div>1. <strong style="color: #FFA500;">USDT → BTC → ETH → USDT</strong> <span style="color: #888;">(BTCUSDT, ETHBTC, ETHUSDT)</span></div>
+                        <div>2. <strong style="color: #FFA500;">USDT → BTC → SOL → USDT</strong> <span style="color: #888;">(BTCUSDT, SOLBTC, SOLUSDT)</span></div>
+                        <div>3. <strong style="color: #FFA500;">USDT → BTC → XRP → USDT</strong> <span style="color: #888;">(BTCUSDT, XRPBTC, XRPUSDT)</span></div>
+                        <div>4. <strong style="color: #FFA500;">USDT → BTC → LTC → USDT</strong> <span style="color: #888;">(BTCUSDT, LTCBTC, LTCUSDT)</span></div>
+                        <div>5. <strong style="color: #FFA500;">USDT → BTC → LINK → USDT</strong> <span style="color: #888;">(BTCUSDT, LINKBTC, LINKUSDT)</span></div>
+                        <div>6. <strong style="color: #FFA500;">USDT → BTC → ATOM → USDT</strong> <span style="color: #888;">(BTCUSDT, ATOMBTC, ATOMUSDT)</span></div>
+                        <div>7. <strong style="color: #FFA500;">USDT → BTC → UNI → USDT</strong> <span style="color: #888;">(BTCUSDT, UNIBTC, UNIUSDT)</span></div>
+                    </div>
+                </div>
 
-            alert(pathDetails);
+                <!-- SET 3: MX NATIVE BRIDGE (6 paths) - Color: #ff8c00 -->
+                <div style="background: rgba(255,140,0,0.05); padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #ff8c00;">
+                    <h3 style="color: #ff8c00; margin: 0 0 15px 0; font-size: 1.3rem;">🟠 SET 3: MX Native Bridge (6 paths) - MX Token (0% Fees!)</h3>
+                    <div style="display: grid; gap: 8px; font-size: 0.9rem; color: #b8c6db;">
+                        <div>1. <strong style="color: #ff8c00;">USDT → MX → BTC → USDT</strong> <span style="color: #888;">(MXUSDT, BTCMX, BTCUSDT)</span></div>
+                        <div>2. <strong style="color: #ff8c00;">USDT → MX → ETH → USDT</strong> <span style="color: #888;">(MXUSDT, ETHMX, ETHUSDT)</span></div>
+                        <div>3. <strong style="color: #ff8c00;">USDT → MX → SOL → USDT</strong> <span style="color: #888;">(MXUSDT, SOLMX, SOLUSDT)</span></div>
+                        <div>4. <strong style="color: #ff8c00;">USDT → BTC → MX → USDT</strong> <span style="color: #888;">(BTCUSDT, MXBTC, MXUSDT)</span></div>
+                        <div>5. <strong style="color: #ff8c00;">USDT → ETH → MX → USDT</strong> <span style="color: #888;">(ETHUSDT, MXETH, MXUSDT)</span></div>
+                        <div>6. <strong style="color: #ff8c00;">USDT → MX → BNB → USDT</strong> <span style="color: #888;">(MXUSDT, BNBMX, BNBUSDT)</span></div>
+                    </div>
+                </div>
+
+                <!-- SET 4: HIGH VOLATILITY (6 paths) - Color: #ff6347 -->
+                <div style="background: rgba(255,99,71,0.05); padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #ff6347;">
+                    <h3 style="color: #ff6347; margin: 0 0 15px 0; font-size: 1.3rem;">⚡ SET 4: High Volatility (6 paths)</h3>
+                    <div style="display: grid; gap: 8px; font-size: 0.9rem; color: #b8c6db;">
+                        <div>1. <strong style="color: #ff6347;">USDT → DOGE → BTC → USDT</strong> <span style="color: #888;">(DOGEUSDT, BTCDOGE, BTCUSDT)</span></div>
+                        <div>2. <strong style="color: #ff6347;">USDT → SHIB → ETH → USDT</strong> <span style="color: #888;">(SHIBUSDT, ETHSHIB, ETHUSDT)</span></div>
+                        <div>3. <strong style="color: #ff6347;">USDT → PEPE → ETH → USDT</strong> <span style="color: #888;">(PEPEUSDT, ETHPEPE, ETHUSDT)</span></div>
+                        <div>4. <strong style="color: #ff6347;">USDT → FLOKI → BTC → USDT</strong> <span style="color: #888;">(FLOKIUSDT, BTCFLOKI, BTCUSDT)</span></div>
+                        <div>5. <strong style="color: #ff6347;">USDT → TON → ETH → USDT</strong> <span style="color: #888;">(TONUSDT, ETHTON, ETHUSDT)</span></div>
+                        <div>6. <strong style="color: #ff6347;">USDT → SUI → BTC → USDT</strong> <span style="color: #888;">(SUIUSDT, BTCSUI, BTCUSDT)</span></div>
+                    </div>
+                </div>
+
+                <!-- SET 5: EXTENDED MULTIBRIDGE (6 paths) - Color: #8a2be2 -->
+                <div style="background: rgba(138,43,226,0.05); padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #8a2be2;">
+                    <h3 style="color: #8a2be2; margin: 0 0 15px 0; font-size: 1.3rem;">🔁 SET 5: Extended Multi-Bridge (6 paths)</h3>
+                    <div style="display: grid; gap: 8px; font-size: 0.9rem; color: #b8c6db;">
+                        <div>1. <strong style="color: #8a2be2;">USDT → SOL → BTC → USDT</strong> <span style="color: #888;">(SOLUSDT, BTCSOL, BTCUSDT)</span></div>
+                        <div>2. <strong style="color: #8a2be2;">USDT → ADA → BTC → USDT</strong> <span style="color: #888;">(ADAUSDT, BTCADA, BTCUSDT)</span></div>
+                        <div>3. <strong style="color: #8a2be2;">USDT → AVAX → BTC → USDT</strong> <span style="color: #888;">(AVAXUSDT, BTCAVAX, BTCUSDT)</span></div>
+                        <div>4. <strong style="color: #8a2be2;">USDT → MATIC → ETH → USDT</strong> <span style="color: #888;">(MATICUSDT, ETHMATIC, ETHUSDT)</span></div>
+                        <div>5. <strong style="color: #8a2be2;">USDT → BTC → ETH → SOL → USDT</strong> ⭐ 4-LEG <span style="color: #888;">(BTCUSDT, ETHBTC, SOLETH, SOLUSDT)</span></div>
+                        <div>6. <strong style="color: #8a2be2;">USDT → ETH → BTC → XRP → USDT</strong> ⭐ 4-LEG <span style="color: #888;">(ETHUSDT, BTCETH, XRPBTC, XRPUSDT)</span></div>
+                    </div>
+                </div>
+
+                <!-- Summary Footer -->
+                <div style="background: rgba(255,165,0,0.1); padding: 15px; border-radius: 10px; margin-top: 25px;">
+                    <div style="display: grid; gap: 8px; font-size: 0.9rem; color: #b8c6db;">
+                        <div>💡 <strong style="color: #FFA500;">TOTAL:</strong> 32 paths (30 three-leg + 2 four-leg)</div>
+                        <div>🌉 <strong style="color: #FFA500;">BRIDGE:</strong> USDT (2,908+ trading pairs)</div>
+                        <div>🟠 <strong style="color: #FFA500;">NATIVE:</strong> MX token for 0% trading fees</div>
+                        <div>🔐 <strong style="color: #FFA500;">AUTH:</strong> HMAC-SHA256 signature</div>
+                        <div>📊 <strong style="color: #FFA500;">EXCHANGE:</strong> MEXC Global (formerly MXC)</div>
+                    </div>
+                </div>
+            `;
+
+            modal.appendChild(modalContent);
+            document.body.appendChild(modal);
+
+            // Close on outside click
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.remove();
+                }
+            });
+
+            console.log('✅ [MEXC] Paths modal opened');
         }
 
-        // 3. Save MEXC Settings
+        // 3. Switch MEXC Tab
+        function switchMexcTab(tab) {
+            console.log(`🔄 [MEXC] Switching to tab: ${tab}`);
+
+            if (tab === 'balance') {
+                document.getElementById('mexcBalanceTab').classList.add('active');
+                document.getElementById('mexcTradingTab').classList.remove('active');
+                document.getElementById('mexcBalanceContent').style.display = 'block';
+                document.getElementById('mexcTradingContent').style.display = 'none';
+                console.log('✅ [MEXC] Balance Tracker tab active');
+            } else if (tab === 'trading') {
+                document.getElementById('mexcBalanceTab').classList.remove('active');
+                document.getElementById('mexcTradingTab').classList.add('active');
+                document.getElementById('mexcBalanceContent').style.display = 'none';
+                document.getElementById('mexcTradingContent').style.display = 'block';
+                console.log('✅ [MEXC] Current Opportunities tab active');
+            }
+        }
+
+        // 4. MEXC Balance Tracking
+        const mexcBalanceTracking = {
+            starting: 0,
+            current: 0,
+            initialized: false
+        };
+
+        async function initializeMexcBalance() {
+            try {
+                const apiKey = localStorage.getItem('mexc_triangular_api');
+                const apiSecret = localStorage.getItem('mexc_triangular_secret');
+
+                if (!apiKey || !apiSecret) {
+                    console.log('⏸️ [MEXC] API credentials not set - skipping balance initialization');
+                    return;
+                }
+
+                console.log('🔄 [MEXC] Fetching initial USDT balance...');
+
+                const response = await fetch('/api/v1/trading/mexc/balance', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    },
+                    body: JSON.stringify({ apiKey, apiSecret, currency: 'USDT' })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    const balance = parseFloat(result.balance);
+                    mexcBalanceTracking.starting = balance;
+                    mexcBalanceTracking.current = balance;
+                    mexcBalanceTracking.initialized = true;
+
+                    updateMexcBalanceDisplay();
+                    console.log(`✅ [MEXC] Balance initialized: $${balance.toFixed(2)} USDT`);
+                } else {
+                    console.error('❌ [MEXC] Balance fetch failed:', result.error);
+                }
+            } catch (error) {
+                console.error('❌ [MEXC] Balance initialization error:', error);
+            }
+        }
+
+        async function updateMexcBalance() {
+            try {
+                const apiKey = localStorage.getItem('mexc_triangular_api');
+                const apiSecret = localStorage.getItem('mexc_triangular_secret');
+
+                if (!apiKey || !apiSecret) {
+                    return;
+                }
+
+                const response = await fetch('/api/v1/trading/mexc/balance', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    },
+                    body: JSON.stringify({ apiKey, apiSecret, currency: 'USDT' })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    mexcBalanceTracking.current = parseFloat(result.balance);
+                    updateMexcBalanceDisplay();
+                    console.log(`🔄 [MEXC] Balance updated: $${mexcBalanceTracking.current.toFixed(2)} USDT`);
+                }
+            } catch (error) {
+                console.error('❌ [MEXC] Balance update error:', error);
+            }
+        }
+
+        function updateMexcBalanceDisplay() {
+            const starting = mexcBalanceTracking.starting;
+            const current = mexcBalanceTracking.current;
+            const change = current - starting;
+            const changePercent = starting > 0 ? ((change / starting) * 100).toFixed(2) : '0.00';
+
+            document.getElementById('mexcStartingUSDT').innerHTML = `
+                <div style="text-align: center;">
+                    <div style="color: #888; font-size: 0.85rem; margin-bottom: 5px;">💰 Starting Balance</div>
+                    <div style="color: white; font-size: 1.3rem; font-weight: 600;">$${starting.toFixed(2)}</div>
+                    <div style="color: #888; font-size: 0.8rem;">USDT</div>
+                </div>
+            `;
+
+            document.getElementById('mexcCurrentUSDT').innerHTML = `
+                <div style="text-align: center;">
+                    <div style="color: #888; font-size: 0.85rem; margin-bottom: 5px;">📊 Current Balance</div>
+                    <div style="color: white; font-size: 1.3rem; font-weight: 600;">$${current.toFixed(2)}</div>
+                    <div style="color: #888; font-size: 0.8rem;">USDT</div>
+                </div>
+            `;
+
+            const changeColor = change >= 0 ? '#FFA500' : '#ff4444';
+            const changeSign = change >= 0 ? '+' : '';
+
+            document.getElementById('mexcChangeUSDT').innerHTML = `
+                <div style="text-align: center;">
+                    <div style="color: #888; font-size: 0.85rem; margin-bottom: 5px;">📈 Change</div>
+                    <div style="color: ${changeColor}; font-size: 1.3rem; font-weight: 600;">${changeSign}$${change.toFixed(2)}</div>
+                    <div style="color: ${changeColor}; font-size: 0.9rem;">${changeSign}${changePercent}%</div>
+                </div>
+            `;
+        }
+
+        function resetMexcStartingBalance() {
+            if (confirm('🔄 Reset MEXC Starting Balance?\n\nThis will set your current balance as the new baseline for tracking.')) {
+                mexcBalanceTracking.starting = mexcBalanceTracking.current;
+                updateMexcBalanceDisplay();
+                console.log(`✅ [MEXC] Starting balance reset to $${mexcBalanceTracking.starting.toFixed(2)}`);
+            }
+        }
+
+        // 5. Save MEXC Settings
         function saveMexcTriangularSettings() {
             const settings = {
                 maxTrade: document.getElementById('mexcMaxTrade').value,
@@ -12254,6 +12589,7 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
                 }
 
                 const maxTradeAmount = parseFloat(document.getElementById('mexcMaxTrade').value);
+                const portfolioPercent = parseFloat(document.getElementById('mexcPortfolioPercent').value);
                 const profitThreshold = parseFloat(document.getElementById('mexcProfitThreshold').value);
 
                 const enabledSets = {
@@ -12273,7 +12609,7 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${localStorage.getItem('authToken')}`
                     },
-                    body: JSON.stringify({ apiKey, apiSecret, maxTradeAmount, profitThreshold, enabledSets })
+                    body: JSON.stringify({ apiKey, apiSecret, maxTradeAmount, portfolioPercent, profitThreshold, enabledSets })
                 });
 
                 const result = await response.json();
@@ -12412,6 +12748,12 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🟠 [MEXC] Initializing triangular arbitrage settings...');
             loadMexcTriangularSettings();
+
+            // Initialize balance tracker
+            initializeMexcBalance();
+
+            // Set default tab
+            switchMexcTab('balance');
 
             const mexcInputs = document.querySelectorAll('#mexcMaxTrade, #mexcPortfolioPercent, #mexcProfitThreshold');
             mexcInputs.forEach(input => {
