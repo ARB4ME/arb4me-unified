@@ -7290,7 +7290,14 @@ router.post('/xt/triangular/test-connection', authenticate, asyncHandler(async (
 // 2. XT Scan Triangular Paths Route
 router.post('/xt/triangular/scan', asyncHandler(async (req, res) => {
     try {
-        const { apiKey, apiSecret, maxTradeAmount, profitThreshold, enabledSets } = req.body;
+        const { apiKey, apiSecret, maxTradeAmount, portfolioPercent = 10, profitThreshold, enabledSets } = req.body;
+
+        systemLogger.info('XT triangular scan started', {
+            maxTradeAmount,
+            portfolioPercent,
+            profitThreshold,
+            enabledSets
+        });
 
         if (!apiKey || !apiSecret) {
             return res.status(400).json({
@@ -7299,109 +7306,181 @@ router.post('/xt/triangular/scan', asyncHandler(async (req, res) => {
             });
         }
 
-        // Fetch all tickers from XT
-        const tickersResponse = await fetch(`${XT_TRIANGULAR_CONFIG.baseUrl}${XT_TRIANGULAR_CONFIG.endpoints.ticker}`, {
+        // Define all 32 triangular arbitrage paths with steps for ProfitCalculatorService
+        const allPaths = {
+            SET_1_ESSENTIAL_ETH_BRIDGE: [
+                { id: 'XT_ETH_1', path: ['USDT', 'ETH', 'BTC', 'USDT'], sequence: 'USDT → ETH → BTC → USDT', description: 'ETH → BTC Essential', steps: [{ pair: 'eth_usdt', side: 'buy' }, { pair: 'btc_eth', side: 'buy' }, { pair: 'btc_usdt', side: 'sell' }] },
+                { id: 'XT_ETH_2', path: ['USDT', 'ETH', 'SOL', 'USDT'], sequence: 'USDT → ETH → SOL → USDT', description: 'ETH → SOL Essential', steps: [{ pair: 'eth_usdt', side: 'buy' }, { pair: 'sol_eth', side: 'buy' }, { pair: 'sol_usdt', side: 'sell' }] },
+                { id: 'XT_ETH_3', path: ['USDT', 'ETH', 'XRP', 'USDT'], sequence: 'USDT → ETH → XRP → USDT', description: 'ETH → XRP Essential', steps: [{ pair: 'eth_usdt', side: 'buy' }, { pair: 'xrp_eth', side: 'buy' }, { pair: 'xrp_usdt', side: 'sell' }] },
+                { id: 'XT_ETH_4', path: ['USDT', 'ETH', 'ADA', 'USDT'], sequence: 'USDT → ETH → ADA → USDT', description: 'ETH → ADA Essential', steps: [{ pair: 'eth_usdt', side: 'buy' }, { pair: 'ada_eth', side: 'buy' }, { pair: 'ada_usdt', side: 'sell' }] },
+                { id: 'XT_ETH_5', path: ['USDT', 'ETH', 'MATIC', 'USDT'], sequence: 'USDT → ETH → MATIC → USDT', description: 'ETH → MATIC Essential', steps: [{ pair: 'eth_usdt', side: 'buy' }, { pair: 'matic_eth', side: 'buy' }, { pair: 'matic_usdt', side: 'sell' }] },
+                { id: 'XT_ETH_6', path: ['USDT', 'ETH', 'DOT', 'USDT'], sequence: 'USDT → ETH → DOT → USDT', description: 'ETH → DOT Essential', steps: [{ pair: 'eth_usdt', side: 'buy' }, { pair: 'dot_eth', side: 'buy' }, { pair: 'dot_usdt', side: 'sell' }] },
+                { id: 'XT_ETH_7', path: ['USDT', 'ETH', 'AVAX', 'USDT'], sequence: 'USDT → ETH → AVAX → USDT', description: 'ETH → AVAX Essential', steps: [{ pair: 'eth_usdt', side: 'buy' }, { pair: 'avax_eth', side: 'buy' }, { pair: 'avax_usdt', side: 'sell' }] }
+            ],
+            SET_2_MIDCAP_BTC_BRIDGE: [
+                { id: 'XT_BTC_1', path: ['USDT', 'BTC', 'ETH', 'USDT'], sequence: 'USDT → BTC → ETH → USDT', description: 'BTC → ETH Mid-Cap', steps: [{ pair: 'btc_usdt', side: 'buy' }, { pair: 'eth_btc', side: 'buy' }, { pair: 'eth_usdt', side: 'sell' }] },
+                { id: 'XT_BTC_2', path: ['USDT', 'BTC', 'SOL', 'USDT'], sequence: 'USDT → BTC → SOL → USDT', description: 'BTC → SOL Mid-Cap', steps: [{ pair: 'btc_usdt', side: 'buy' }, { pair: 'sol_btc', side: 'buy' }, { pair: 'sol_usdt', side: 'sell' }] },
+                { id: 'XT_BTC_3', path: ['USDT', 'BTC', 'ADA', 'USDT'], sequence: 'USDT → BTC → ADA → USDT', description: 'BTC → ADA Mid-Cap', steps: [{ pair: 'btc_usdt', side: 'buy' }, { pair: 'ada_btc', side: 'buy' }, { pair: 'ada_usdt', side: 'sell' }] },
+                { id: 'XT_BTC_4', path: ['USDT', 'BTC', 'DOT', 'USDT'], sequence: 'USDT → BTC → DOT → USDT', description: 'BTC → DOT Mid-Cap', steps: [{ pair: 'btc_usdt', side: 'buy' }, { pair: 'dot_btc', side: 'buy' }, { pair: 'dot_usdt', side: 'sell' }] },
+                { id: 'XT_BTC_5', path: ['USDT', 'BTC', 'ATOM', 'USDT'], sequence: 'USDT → BTC → ATOM → USDT', description: 'BTC → ATOM Mid-Cap', steps: [{ pair: 'btc_usdt', side: 'buy' }, { pair: 'atom_btc', side: 'buy' }, { pair: 'atom_usdt', side: 'sell' }] },
+                { id: 'XT_BTC_6', path: ['USDT', 'BTC', 'LTC', 'USDT'], sequence: 'USDT → BTC → LTC → USDT', description: 'BTC → LTC Mid-Cap', steps: [{ pair: 'btc_usdt', side: 'buy' }, { pair: 'ltc_btc', side: 'buy' }, { pair: 'ltc_usdt', side: 'sell' }] },
+                { id: 'XT_BTC_7', path: ['USDT', 'BTC', 'XRP', 'USDT'], sequence: 'USDT → BTC → XRP → USDT', description: 'BTC → XRP Mid-Cap', steps: [{ pair: 'btc_usdt', side: 'buy' }, { pair: 'xrp_btc', side: 'buy' }, { pair: 'xrp_usdt', side: 'sell' }] }
+            ],
+            SET_3_XT_NATIVE_BRIDGE: [
+                { id: 'XT_XT_1', path: ['USDT', 'XT', 'BTC', 'USDT'], sequence: 'USDT → XT → BTC → USDT', description: 'XT → BTC Native', steps: [{ pair: 'xt_usdt', side: 'buy' }, { pair: 'btc_xt', side: 'buy' }, { pair: 'btc_usdt', side: 'sell' }] },
+                { id: 'XT_XT_2', path: ['USDT', 'XT', 'ETH', 'USDT'], sequence: 'USDT → XT → ETH → USDT', description: 'XT → ETH Native', steps: [{ pair: 'xt_usdt', side: 'buy' }, { pair: 'eth_xt', side: 'buy' }, { pair: 'eth_usdt', side: 'sell' }] },
+                { id: 'XT_XT_3', path: ['USDT', 'XT', 'SOL', 'USDT'], sequence: 'USDT → XT → SOL → USDT', description: 'XT → SOL Native', steps: [{ pair: 'xt_usdt', side: 'buy' }, { pair: 'sol_xt', side: 'buy' }, { pair: 'sol_usdt', side: 'sell' }] },
+                { id: 'XT_XT_4', path: ['USDT', 'BTC', 'XT', 'USDT'], sequence: 'USDT → BTC → XT → USDT', description: 'BTC → XT Native', steps: [{ pair: 'btc_usdt', side: 'buy' }, { pair: 'xt_btc', side: 'buy' }, { pair: 'xt_usdt', side: 'sell' }] },
+                { id: 'XT_XT_5', path: ['USDT', 'ETH', 'XT', 'USDT'], sequence: 'USDT → ETH → XT → USDT', description: 'ETH → XT Native', steps: [{ pair: 'eth_usdt', side: 'buy' }, { pair: 'xt_eth', side: 'buy' }, { pair: 'xt_usdt', side: 'sell' }] },
+                { id: 'XT_XT_6', path: ['USDT', 'XT', 'MATIC', 'USDT'], sequence: 'USDT → XT → MATIC → USDT', description: 'XT → MATIC Native', steps: [{ pair: 'xt_usdt', side: 'buy' }, { pair: 'matic_xt', side: 'buy' }, { pair: 'matic_usdt', side: 'sell' }] }
+            ],
+            SET_4_HIGH_VOLATILITY: [
+                { id: 'XT_VOL_1', path: ['USDT', 'DOGE', 'BTC', 'USDT'], sequence: 'USDT → DOGE → BTC → USDT', description: 'DOGE High Vol', steps: [{ pair: 'doge_usdt', side: 'buy' }, { pair: 'btc_doge', side: 'buy' }, { pair: 'btc_usdt', side: 'sell' }] },
+                { id: 'XT_VOL_2', path: ['USDT', 'SHIB', 'ETH', 'USDT'], sequence: 'USDT → SHIB → ETH → USDT', description: 'SHIB High Vol', steps: [{ pair: 'shib_usdt', side: 'buy' }, { pair: 'eth_shib', side: 'buy' }, { pair: 'eth_usdt', side: 'sell' }] },
+                { id: 'XT_VOL_3', path: ['USDT', 'MATIC', 'BTC', 'USDT'], sequence: 'USDT → MATIC → BTC → USDT', description: 'MATIC High Vol', steps: [{ pair: 'matic_usdt', side: 'buy' }, { pair: 'btc_matic', side: 'buy' }, { pair: 'btc_usdt', side: 'sell' }] },
+                { id: 'XT_VOL_4', path: ['USDT', 'SOL', 'ETH', 'USDT'], sequence: 'USDT → SOL → ETH → USDT', description: 'SOL High Vol', steps: [{ pair: 'sol_usdt', side: 'buy' }, { pair: 'eth_sol', side: 'buy' }, { pair: 'eth_usdt', side: 'sell' }] },
+                { id: 'XT_VOL_5', path: ['USDT', 'ADA', 'BTC', 'USDT'], sequence: 'USDT → ADA → BTC → USDT', description: 'ADA High Vol', steps: [{ pair: 'ada_usdt', side: 'buy' }, { pair: 'btc_ada', side: 'buy' }, { pair: 'btc_usdt', side: 'sell' }] },
+                { id: 'XT_VOL_6', path: ['USDT', 'DOT', 'ETH', 'USDT'], sequence: 'USDT → DOT → ETH → USDT', description: 'DOT High Vol', steps: [{ pair: 'dot_usdt', side: 'buy' }, { pair: 'eth_dot', side: 'buy' }, { pair: 'eth_usdt', side: 'sell' }] }
+            ],
+            SET_5_EXTENDED_MULTIBRIDGE: [
+                { id: 'XT_EXT_1', path: ['USDT', 'SOL', 'BTC', 'USDT'], sequence: 'USDT → SOL → BTC → USDT', description: 'SOL Multi-Bridge', steps: [{ pair: 'sol_usdt', side: 'buy' }, { pair: 'btc_sol', side: 'buy' }, { pair: 'btc_usdt', side: 'sell' }] },
+                { id: 'XT_EXT_2', path: ['USDT', 'XRP', 'ETH', 'USDT'], sequence: 'USDT → XRP → ETH → USDT', description: 'XRP Multi-Bridge', steps: [{ pair: 'xrp_usdt', side: 'buy' }, { pair: 'eth_xrp', side: 'buy' }, { pair: 'eth_usdt', side: 'sell' }] },
+                { id: 'XT_EXT_3', path: ['USDT', 'AVAX', 'BTC', 'USDT'], sequence: 'USDT → AVAX → BTC → USDT', description: 'AVAX Multi-Bridge', steps: [{ pair: 'avax_usdt', side: 'buy' }, { pair: 'btc_avax', side: 'buy' }, { pair: 'btc_usdt', side: 'sell' }] },
+                { id: 'XT_EXT_4', path: ['USDT', 'ATOM', 'ETH', 'USDT'], sequence: 'USDT → ATOM → ETH → USDT', description: 'ATOM Multi-Bridge', steps: [{ pair: 'atom_usdt', side: 'buy' }, { pair: 'eth_atom', side: 'buy' }, { pair: 'eth_usdt', side: 'sell' }] },
+                { id: 'XT_EXT_5', path: ['USDT', 'BTC', 'ETH', 'SOL', 'USDT'], sequence: 'USDT → BTC → ETH → SOL → USDT', description: 'BTC-ETH-SOL 4-Leg', steps: [{ pair: 'btc_usdt', side: 'buy' }, { pair: 'eth_btc', side: 'buy' }, { pair: 'sol_eth', side: 'buy' }, { pair: 'sol_usdt', side: 'sell' }] },
+                { id: 'XT_EXT_6', path: ['USDT', 'ETH', 'BTC', 'ADA', 'USDT'], sequence: 'USDT → ETH → BTC → ADA → USDT', description: 'ETH-BTC-ADA 4-Leg', steps: [{ pair: 'eth_usdt', side: 'buy' }, { pair: 'btc_eth', side: 'buy' }, { pair: 'ada_btc', side: 'buy' }, { pair: 'ada_usdt', side: 'sell' }] }
+            ]
+        };
+
+        // Fetch USDT balance for portfolio % calculation
+        const timestamp = Date.now().toString();
+        const balanceEndpoint = XT_TRIANGULAR_CONFIG.endpoints.balance;
+        const balanceSignature = createXtSignature(apiKey, apiSecret, timestamp, 'GET', balanceEndpoint, '');
+
+        const balanceResponse = await fetch(`${XT_TRIANGULAR_CONFIG.baseUrl}${balanceEndpoint}`, {
             method: 'GET',
-            headers: { 'Content-Type': 'application/json' }
+            headers: {
+                'Content-Type': 'application/json',
+                'xt-validate-appkey': apiKey,
+                'xt-validate-timestamp': timestamp,
+                'xt-validate-signature': balanceSignature,
+                'xt-validate-algorithms': 'HmacSHA256'
+            }
         });
 
-        const tickersData = await tickersResponse.json();
-
-        if (!tickersResponse.ok || tickersData.returnCode !== 0) {
-            throw new Error('Failed to fetch XT tickers');
+        let balance = 0;
+        if (balanceResponse.ok) {
+            const balanceResult = await balanceResponse.json();
+            if (balanceResult.returnCode === 0) {
+                const usdtBalance = balanceResult.result?.find(b => b.currency?.toUpperCase() === 'USDT');
+                balance = usdtBalance ? parseFloat(usdtBalance.free || 0) : 0;
+            }
         }
 
-        // Parse ticker data into price map
-        const priceMap = {};
-        tickersData.result.forEach(ticker => {
-            const symbol = ticker.s.toLowerCase(); // XT returns uppercase, convert to lowercase
-            priceMap[symbol] = {
-                bid: parseFloat(ticker.b || 0),
-                ask: parseFloat(ticker.a || 0),
-                last: parseFloat(ticker.c || 0)
-            };
+        systemLogger.info('XT balance fetched', { balance });
+
+        // Calculate trade amount using portfolio calculator
+        const portfolioCalc = portfolioCalculator.calculateTradeAmount({
+            balance,
+            portfolioPercent,
+            maxTradeAmount,
+            currency: 'USDT',
+            exchange: 'XT',
+            path: null
         });
+
+        const tradeAmount = portfolioCalc.amount;
+
+        if (!portfolioCalc.canTrade) {
+            return res.json({
+                success: true,
+                scanned: 0,
+                profitableCount: 0,
+                opportunities: [],
+                portfolioDetails: portfolioCalc.details,
+                warning: portfolioCalc.reason,
+                timestamp: new Date().toISOString()
+            });
+        }
 
         // Collect enabled paths
-        const enabledPaths = [];
-        Object.keys(XT_TRIANGULAR_PATHS).forEach(setKey => {
+        const pathsToScan = [];
+        Object.keys(allPaths).forEach(setKey => {
             if (enabledSets[setKey]) {
-                enabledPaths.push(...XT_TRIANGULAR_PATHS[setKey]);
+                pathsToScan.push(...allPaths[setKey]);
             }
         });
 
-        // Scan each enabled path
-        const opportunities = [];
-        for (const pathConfig of enabledPaths) {
+        // Get all unique pairs from enabled paths
+        const uniquePairs = new Set();
+        pathsToScan.forEach(path => {
+            path.steps.forEach(step => uniquePairs.add(step.pair));
+        });
+
+        systemLogger.info('Fetching XT orderbooks', { pairCount: uniquePairs.size });
+
+        // Fetch orderbooks for all unique pairs
+        const orderBooks = {};
+        for (const pair of uniquePairs) {
             try {
-                const { path, pairs } = pathConfig;
+                const obResponse = await fetch(`${XT_TRIANGULAR_CONFIG.baseUrl}${XT_TRIANGULAR_CONFIG.endpoints.orderBook}?symbol=${pair}&limit=20`);
 
-                // Get prices for all pairs in the path
-                const prices = pairs.map(pair => priceMap[pair]);
+                if (obResponse.ok) {
+                    const obResult = await obResponse.json();
 
-                // Skip if any price is missing
-                if (prices.some(p => !p || p.ask === 0 || p.bid === 0)) continue;
-
-                // Calculate triangular arbitrage profit
-                let currentAmount = maxTradeAmount || 100;
-                const legs = [];
-
-                // Leg 1: USDT → Asset1
-                currentAmount = currentAmount / prices[0].ask;
-                legs.push({ pair: pairs[0], side: 'BUY', price: prices[0].ask, amount: currentAmount });
-
-                // Leg 2: Asset1 → Asset2
-                if (pairs.length >= 2) {
-                    currentAmount = currentAmount / prices[1].ask;
-                    legs.push({ pair: pairs[1], side: 'BUY', price: prices[1].ask, amount: currentAmount });
+                    if (obResult.returnCode === 0 && obResult.result) {
+                        orderBooks[pair] = {
+                            bids: obResult.result.b || [],
+                            asks: obResult.result.a || []
+                        };
+                    }
                 }
-
-                // Leg 3: Asset2 → USDT (or Asset3)
-                if (pairs.length >= 3) {
-                    currentAmount = currentAmount * prices[2].bid;
-                    legs.push({ pair: pairs[2], side: 'SELL', price: prices[2].bid, amount: currentAmount });
-                }
-
-                // Leg 4 (if 4-leg path): Asset3 → USDT
-                if (pairs.length === 4) {
-                    currentAmount = currentAmount * prices[3].bid;
-                    legs.push({ pair: pairs[3], side: 'SELL', price: prices[3].bid, amount: currentAmount });
-                }
-
-                const finalAmount = currentAmount;
-                const profit = finalAmount - (maxTradeAmount || 100);
-                const profitPercent = ((profit / (maxTradeAmount || 100)) * 100).toFixed(4);
-
-                // Check if profit exceeds threshold
-                if (parseFloat(profitPercent) >= profitThreshold) {
-                    opportunities.push({
-                        pathId: pathConfig.id,
-                        path: pathConfig.path,
-                        pairs: pathConfig.pairs,
-                        description: pathConfig.description,
-                        profitPercent: profitPercent,
-                        expectedProfitZAR: profit.toFixed(2),
-                        estimatedSlippage: '0.2',
-                        risk: parseFloat(profitPercent) >= 1 ? 'EXECUTE' : 'CAUTIOUS',
-                        legs: legs
-                    });
-                }
-            } catch (err) {
-                console.error(`Error scanning XT path ${pathConfig.id}:`, err);
+            } catch (error) {
+                systemLogger.error(`Failed to fetch orderbook for ${pair}`, { error: error.message });
             }
         }
 
-        // Sort by profit descending
-        opportunities.sort((a, b) => parseFloat(b.profitPercent) - parseFloat(a.profitPercent));
+        systemLogger.info('XT orderbooks fetched', { count: Object.keys(orderBooks).length });
+
+        // Calculate profits using ProfitCalculatorService
+        const profitCalculator = new ProfitCalculatorService();
+        const opportunities = [];
+
+        for (const path of pathsToScan) {
+            const result = profitCalculator.calculate('xt', path, orderBooks, tradeAmount);
+
+            if (result.success && result.profitPercentage >= profitThreshold) {
+                opportunities.push({
+                    pathId: result.pathId,
+                    description: path.description,
+                    path: result.sequence.split(' → '),
+                    initialAmount: result.startAmount,
+                    finalAmount: result.endAmount,
+                    profitAmount: result.profit,
+                    profitPercent: result.profitPercentage.toFixed(4),
+                    steps: result.steps,
+                    totalFees: result.totalFees,
+                    timestamp: result.timestamp
+                });
+            }
+        }
+
+        systemLogger.info('XT scan complete', {
+            scanned: pathsToScan.length,
+            profitable: opportunities.length
+        });
 
         res.json({
             success: true,
-            opportunities: opportunities.slice(0, 20), // Return top 20
-            scannedPaths: enabledPaths.length,
+            scanned: pathsToScan.length,
+            profitableCount: opportunities.length,
+            opportunities: opportunities,
+            portfolioDetails: portfolioCalc.details,
             timestamp: new Date().toISOString()
         });
 
     } catch (error) {
+        systemLogger.error('XT scan error', { error: error.message });
         res.status(500).json({
             success: false,
             message: error.message || 'XT scan failed'
@@ -7409,7 +7488,69 @@ router.post('/xt/triangular/scan', asyncHandler(async (req, res) => {
     }
 }));
 
-// 3. XT Get Available Paths Route
+// 3. XT Balance Endpoint
+router.post('/xt/balance', asyncHandler(async (req, res) => {
+    try {
+        const { apiKey, apiSecret, currency = 'USDT' } = req.body;
+
+        if (!apiKey || !apiSecret) {
+            return res.status(400).json({
+                success: false,
+                message: 'Missing XT API credentials'
+            });
+        }
+
+        const timestamp = Date.now().toString();
+        const balanceEndpoint = XT_TRIANGULAR_CONFIG.endpoints.balance;
+        const balanceSignature = createXtSignature(apiKey, apiSecret, timestamp, 'GET', balanceEndpoint, '');
+
+        systemLogger.info('Fetching XT balance', { currency });
+
+        const response = await fetch(`${XT_TRIANGULAR_CONFIG.baseUrl}${balanceEndpoint}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'xt-validate-appkey': apiKey,
+                'xt-validate-timestamp': timestamp,
+                'xt-validate-signature': balanceSignature,
+                'xt-validate-algorithms': 'HmacSHA256'
+            }
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.returnCode === 0) {
+            const currencyBalance = result.result?.find(b => b.currency?.toUpperCase() === currency.toUpperCase());
+            const available = currencyBalance ? parseFloat(currencyBalance.free || 0) : 0;
+            const locked = currencyBalance ? parseFloat(currencyBalance.locked || 0) : 0;
+
+            systemLogger.info('XT balance fetched successfully', {
+                currency,
+                available,
+                locked
+            });
+
+            res.json({
+                success: true,
+                currency,
+                balance: available.toFixed(2),
+                locked: locked.toFixed(2),
+                total: (available + locked).toFixed(2),
+                timestamp: new Date().toISOString()
+            });
+        } else {
+            throw new Error(result.message || 'Failed to fetch XT balance');
+        }
+    } catch (error) {
+        systemLogger.error('XT balance fetch error', { error: error.message });
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Failed to fetch XT balance'
+        });
+    }
+}));
+
+// 4. XT Get Available Paths Route
 router.get('/xt/triangular/paths', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
     res.json({
         success: true,
