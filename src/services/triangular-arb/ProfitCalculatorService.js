@@ -92,8 +92,8 @@ class ProfitCalculatorService {
                 taker: 0.001
             },
             gemini: {
-                maker: 0.001,
-                taker: 0.001
+                maker: 0.001,   // 0.1% maker fee
+                taker: 0.0035   // 0.35% taker fee (Gemini has higher taker fees)
             },
             coincatch: {
                 maker: 0.002,

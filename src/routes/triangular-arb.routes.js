@@ -10644,6 +10644,7 @@ const GEMINI_TRIANGULAR_CONFIG = {
     baseUrl: 'https://api.gemini.com',
     endpoints: {
         ticker: '/v2/ticker',
+        orderBook: '/v1/book',  // Order book endpoint (append /:symbol)
         balance: '/v1/balances',
         placeOrder: '/v1/order/new',
         symbols: '/v1/symbols'
@@ -10752,148 +10753,297 @@ router.post('/gemini/triangular/test-connection', authenticatedRateLimit, authen
 }));
 
 // POST /api/v1/trading/gemini/triangular/scan
-// Scan for Gemini triangular arbitrage opportunities
+// Scan for Gemini triangular arbitrage opportunities with Portfolio % Mode
 router.post('/gemini/triangular/scan', asyncHandler(async (req, res) => {
     try {
-        const { apiKey, apiSecret, selectedSets } = req.body;
+        const {
+            apiKey,
+            apiSecret,
+            maxTradeAmount = 1000,
+            portfolioPercent = 10,
+            profitThreshold = 0.5,
+            enabledSets = {}
+        } = req.body;
 
         systemLogger.trading('Gemini triangular scan initiated', {
             userId: req.user?.id || 'anonymous',
-            selectedSets
+            portfolioPercent,
+            maxTradeAmount,
+            profitThreshold
         });
 
         // Validate inputs
         if (!apiKey || !apiSecret) {
-            throw new APIError('Gemini API credentials required', 400, 'GEMINI_CREDENTIALS_REQUIRED');
+            return res.status(400).json({
+                success: false,
+                message: 'Gemini API credentials required (key and secret)'
+            });
         }
 
-        if (!selectedSets || selectedSets.length === 0) {
-            throw new APIError('At least one path set must be selected', 400, 'NO_PATHS_SELECTED');
-        }
-
-        // Collect all paths from selected sets
-        let allPaths = [];
-        selectedSets.forEach(setName => {
-            if (GEMINI_TRIANGULAR_PATHS[setName]) {
-                allPaths = allPaths.concat(GEMINI_TRIANGULAR_PATHS[setName]);
-            }
-        });
-
-        if (allPaths.length === 0) {
-            throw new APIError('No valid paths found in selected sets', 400, 'NO_VALID_PATHS');
-        }
-
-        // Fetch all unique symbols (no authentication needed for ticker data)
-        const uniqueSymbols = [...new Set(allPaths.flatMap(p => p.pairs))];
-
-        const tickerPromises = uniqueSymbols.map(async symbol => {
-            try {
-                const response = await axios.get(`${GEMINI_TRIANGULAR_CONFIG.baseUrl}${GEMINI_TRIANGULAR_CONFIG.endpoints.ticker}/${symbol}`);
-                return {
-                    symbol,
-                    bid: parseFloat(response.data.bid),
-                    ask: parseFloat(response.data.ask)
-                };
-            } catch (error) {
-                systemLogger.trading(`Gemini ticker fetch failed for ${symbol}`, { error: error.message });
-                return null;
-            }
-        });
-
-        const tickers = (await Promise.all(tickerPromises)).filter(t => t !== null);
-
-        // Create ticker map
-        const tickerMap = {};
-        tickers.forEach(t => {
-            tickerMap[t.symbol] = t;
-        });
-
-        // Calculate arbitrage opportunities
-        const opportunities = [];
-        for (const pathConfig of allPaths) {
-            try {
-                // Check if all required tickers are available
-                const missingTickers = pathConfig.pairs.filter(pair => !tickerMap[pair]);
-                if (missingTickers.length > 0) {
-                    continue;
+        // Define all 10 paths with steps for ProfitCalculatorService
+        // NOTE: Gemini only has 2 USDT pairs (btcusdt, ethusdt), so only 10 paths total
+        const allPaths = {
+            SET_1_BTC_ETH_DIRECT: [
+                {
+                    id: 'GEMINI_BTCETH_1',
+                    path: ['USDT', 'BTC', 'ETH', 'USDT'],
+                    sequence: 'USDT → BTC → ETH → USDT',
+                    description: 'Direct BTC-ETH bridge (forward)',
+                    steps: [
+                        { pair: 'btcusdt', side: 'buy' },
+                        { pair: 'ethbtc', side: 'sell' },
+                        { pair: 'ethusdt', side: 'sell' }
+                    ]
+                },
+                {
+                    id: 'GEMINI_ETHBTC_1',
+                    path: ['USDT', 'ETH', 'BTC', 'USDT'],
+                    sequence: 'USDT → ETH → BTC → USDT',
+                    description: 'Direct ETH-BTC bridge (reverse)',
+                    steps: [
+                        { pair: 'ethusdt', side: 'buy' },
+                        { pair: 'ethbtc', side: 'buy' },
+                        { pair: 'btcusdt', side: 'sell' }
+                    ]
                 }
+            ],
+            SET_2_DOGE_BRIDGE: [
+                {
+                    id: 'GEMINI_DOGE_1',
+                    path: ['USDT', 'BTC', 'DOGE', 'ETH', 'USDT'],
+                    sequence: 'USDT → BTC → DOGE → ETH → USDT',
+                    description: 'BTC → DOGE → ETH bridge',
+                    steps: [
+                        { pair: 'btcusdt', side: 'buy' },
+                        { pair: 'dogebtc', side: 'sell' },
+                        { pair: 'dogeeth', side: 'sell' },
+                        { pair: 'ethusdt', side: 'sell' }
+                    ]
+                },
+                {
+                    id: 'GEMINI_DOGE_2',
+                    path: ['USDT', 'ETH', 'DOGE', 'BTC', 'USDT'],
+                    sequence: 'USDT → ETH → DOGE → BTC → USDT',
+                    description: 'ETH → DOGE → BTC bridge',
+                    steps: [
+                        { pair: 'ethusdt', side: 'buy' },
+                        { pair: 'dogeeth', side: 'buy' },
+                        { pair: 'dogebtc', side: 'buy' },
+                        { pair: 'btcusdt', side: 'sell' }
+                    ]
+                }
+            ],
+            SET_3_LINK_BRIDGE: [
+                {
+                    id: 'GEMINI_LINK_1',
+                    path: ['USDT', 'BTC', 'LINK', 'ETH', 'USDT'],
+                    sequence: 'USDT → BTC → LINK → ETH → USDT',
+                    description: 'BTC → LINK → ETH bridge',
+                    steps: [
+                        { pair: 'btcusdt', side: 'buy' },
+                        { pair: 'linkbtc', side: 'sell' },
+                        { pair: 'linketh', side: 'sell' },
+                        { pair: 'ethusdt', side: 'sell' }
+                    ]
+                },
+                {
+                    id: 'GEMINI_LINK_2',
+                    path: ['USDT', 'ETH', 'LINK', 'BTC', 'USDT'],
+                    sequence: 'USDT → ETH → LINK → BTC → USDT',
+                    description: 'ETH → LINK → BTC bridge',
+                    steps: [
+                        { pair: 'ethusdt', side: 'buy' },
+                        { pair: 'linketh', side: 'buy' },
+                        { pair: 'linkbtc', side: 'buy' },
+                        { pair: 'btcusdt', side: 'sell' }
+                    ]
+                }
+            ],
+            SET_4_LTC_BRIDGE: [
+                {
+                    id: 'GEMINI_LTC_1',
+                    path: ['USDT', 'BTC', 'LTC', 'ETH', 'USDT'],
+                    sequence: 'USDT → BTC → LTC → ETH → USDT',
+                    description: 'BTC → LTC → ETH bridge',
+                    steps: [
+                        { pair: 'btcusdt', side: 'buy' },
+                        { pair: 'ltcbtc', side: 'sell' },
+                        { pair: 'ltceth', side: 'sell' },
+                        { pair: 'ethusdt', side: 'sell' }
+                    ]
+                },
+                {
+                    id: 'GEMINI_LTC_2',
+                    path: ['USDT', 'ETH', 'LTC', 'BTC', 'USDT'],
+                    sequence: 'USDT → ETH → LTC → BTC → USDT',
+                    description: 'ETH → LTC → BTC bridge',
+                    steps: [
+                        { pair: 'ethusdt', side: 'buy' },
+                        { pair: 'ltceth', side: 'buy' },
+                        { pair: 'ltcbtc', side: 'buy' },
+                        { pair: 'btcusdt', side: 'sell' }
+                    ]
+                }
+            ],
+            SET_5_SOL_BRIDGE: [
+                {
+                    id: 'GEMINI_SOL_1',
+                    path: ['USDT', 'BTC', 'SOL', 'ETH', 'USDT'],
+                    sequence: 'USDT → BTC → SOL → ETH → USDT',
+                    description: 'BTC → SOL → ETH bridge',
+                    steps: [
+                        { pair: 'btcusdt', side: 'buy' },
+                        { pair: 'solbtc', side: 'sell' },
+                        { pair: 'soleth', side: 'sell' },
+                        { pair: 'ethusdt', side: 'sell' }
+                    ]
+                },
+                {
+                    id: 'GEMINI_SOL_2',
+                    path: ['USDT', 'ETH', 'SOL', 'BTC', 'USDT'],
+                    sequence: 'USDT → ETH → SOL → BTC → USDT',
+                    description: 'ETH → SOL → BTC bridge',
+                    steps: [
+                        { pair: 'ethusdt', side: 'buy' },
+                        { pair: 'soleth', side: 'buy' },
+                        { pair: 'solbtc', side: 'buy' },
+                        { pair: 'btcusdt', side: 'sell' }
+                    ]
+                }
+            ]
+        };
 
-                let simulatedAmount = 1000; // Start with $1000 USDT
-                const trades = [];
+        // Filter paths based on enabled sets
+        let pathsToScan = [];
+        Object.keys(allPaths).forEach(setKey => {
+            if (enabledSets[setKey] === true) {
+                pathsToScan = pathsToScan.concat(allPaths[setKey]);
+            }
+        });
 
-                // Execute simulated trades
-                for (let i = 0; i < pathConfig.pairs.length; i++) {
-                    const pair = pathConfig.pairs[i];
-                    const ticker = tickerMap[pair];
-                    const fromCurrency = pathConfig.path[i];
-                    const toCurrency = pathConfig.path[i + 1];
+        if (pathsToScan.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'No path sets enabled. Please enable at least one set.'
+            });
+        }
 
-                    // Determine if we're buying or selling
-                    const pairBase = pair.replace('usdt', '').replace('btc', '').replace('eth', '');
-                    let price, side;
+        // Fetch USDT balance from Gemini
+        const timestamp = Date.now();
+        const balancePayload = {
+            request: '/v1/balances',
+            nonce: timestamp
+        };
+        const base64Payload = Buffer.from(JSON.stringify(balancePayload)).toString('base64');
+        const balanceSignature = createGeminiTriangularSignature(base64Payload, apiSecret);
 
-                    if (pair === `${toCurrency.toLowerCase()}usdt` || pair === `${toCurrency.toLowerCase()}btc` || pair === `${toCurrency.toLowerCase()}eth`) {
-                        // Buying the quote currency
-                        side = 'buy';
-                        price = ticker.ask;
-                    } else {
-                        // Selling to get the quote currency
-                        side = 'sell';
-                        price = ticker.bid;
+        let balance = 0;
+        try {
+            const balanceResponse = await axios.post(`${GEMINI_TRIANGULAR_CONFIG.baseUrl}/v1/balances`, {}, {
+                headers: {
+                    'Content-Type': 'text/plain',
+                    'X-GEMINI-APIKEY': apiKey,
+                    'X-GEMINI-PAYLOAD': base64Payload,
+                    'X-GEMINI-SIGNATURE': balanceSignature,
+                    'Cache-Control': 'no-cache'
+                }
+            });
+
+            if (balanceResponse.data && Array.isArray(balanceResponse.data)) {
+                const usdtBalance = balanceResponse.data.find(b => b.currency === 'USDT');
+                balance = usdtBalance ? parseFloat(usdtBalance.available || 0) : 0;
+            }
+        } catch (balanceError) {
+            systemLogger.warn(`Gemini balance fetch failed: ${balanceError.message}`);
+            // Continue with balance = 0
+        }
+
+        // Calculate trade amount using portfolio calculator
+        const portfolioCalc = portfolioCalculator.calculateTradeAmount({
+            balance,
+            portfolioPercent,
+            maxTradeAmount,
+            currency: 'USDT',
+            exchange: 'Gemini',
+            path: null
+        });
+
+        if (!portfolioCalc.canTrade) {
+            return res.status(400).json({
+                success: false,
+                message: portfolioCalc.reason || 'Insufficient balance to trade'
+            });
+        }
+
+        const tradeAmount = portfolioCalc.amount;
+
+        // Collect unique pairs from all paths
+        const uniquePairs = [...new Set(pathsToScan.flatMap(p => p.steps.map(s => s.pair)))];
+
+        // Fetch orderbooks for all unique pairs (public endpoint, no auth needed)
+        const orderBooks = {};
+        for (const pair of uniquePairs) {
+            try {
+                const obResponse = await axios.get(
+                    `${GEMINI_TRIANGULAR_CONFIG.baseUrl}${GEMINI_TRIANGULAR_CONFIG.endpoints.orderBook}/${pair}`,
+                    {
+                        params: { limit_bids: 20, limit_asks: 20 }
                     }
+                );
 
-                    const newAmount = side === 'buy' ? simulatedAmount / price : simulatedAmount * price;
-
-                    trades.push({
-                        pair,
-                        side,
-                        price,
-                        fromAmount: simulatedAmount,
-                        toAmount: newAmount,
-                        fromCurrency,
-                        toCurrency
-                    });
-
-                    simulatedAmount = newAmount;
+                if (obResponse.data && obResponse.data.bids && obResponse.data.asks) {
+                    orderBooks[pair] = {
+                        bids: obResponse.data.bids.map(b => ({ price: b.price, amount: b.amount })),
+                        asks: obResponse.data.asks.map(a => ({ price: a.price, amount: a.amount }))
+                    };
                 }
-
-                const profit = simulatedAmount - 1000;
-                const profitPercentage = (profit / 1000) * 100;
-
-                // Consider 0.35% trading fee (maker/taker average on Gemini)
-                const feePercentage = 0.35 * pathConfig.pairs.length;
-                const netProfitPercentage = profitPercentage - feePercentage;
-
-                if (netProfitPercentage > 0.1) { // Minimum 0.1% profit after fees
-                    opportunities.push({
-                        pathId: pathConfig.id,
-                        path: pathConfig.path,
-                        pairs: pathConfig.pairs,
-                        description: pathConfig.description,
-                        profitPercentage: netProfitPercentage,
-                        estimatedProfit: (netProfitPercentage / 100) * 1000,
-                        trades
-                    });
-                }
-
             } catch (error) {
-                systemLogger.trading(`Error calculating path ${pathConfig.id}`, { error: error.message });
+                systemLogger.warn(`Gemini orderbook fetch failed for ${pair}: ${error.message}`);
+            }
+        }
+
+        // Calculate profits using ProfitCalculatorService
+        // Gemini fees: 0.1% maker / 0.35% taker (we use taker for immediate execution)
+        const profitCalculator = new ProfitCalculatorService();
+        const opportunities = [];
+
+        for (const path of pathsToScan) {
+            const result = profitCalculator.calculate('gemini', path, orderBooks, tradeAmount);
+
+            if (result.success && result.profitPercentage >= profitThreshold) {
+                opportunities.push({
+                    pathId: result.pathId,
+                    description: path.description,
+                    path: result.sequence.split(' → '),
+                    initialAmount: result.startAmount,
+                    finalAmount: result.endAmount,
+                    profitAmount: result.profit,
+                    profitPercent: result.profitPercentage.toFixed(4),
+                    steps: result.steps,
+                    totalFees: result.totalFees,
+                    timestamp: result.timestamp
+                });
             }
         }
 
         // Sort by profit percentage
-        opportunities.sort((a, b) => b.profitPercentage - a.profitPercentage);
+        opportunities.sort((a, b) => parseFloat(b.profitPercent) - parseFloat(a.profitPercent));
 
         systemLogger.trading('Gemini triangular scan completed', {
             userId: req.user?.id || 'anonymous',
-            pathsScanned: allPaths.length,
-            opportunitiesFound: opportunities.length
+            pathsScanned: pathsToScan.length,
+            opportunitiesFound: opportunities.length,
+            tradeAmount,
+            balance
         });
 
         res.json({
             success: true,
-            opportunities,
-            scannedPaths: allPaths.length,
+            scanned: pathsToScan.length,
+            profitableCount: opportunities.length,
+            opportunities: opportunities,
+            portfolioDetails: portfolioCalc.details,
+            profitThreshold,
             timestamp: new Date().toISOString()
         });
 
@@ -10902,6 +11052,69 @@ router.post('/gemini/triangular/scan', asyncHandler(async (req, res) => {
         res.status(500).json({
             success: false,
             message: error.message || 'Failed to scan Gemini triangular opportunities'
+        });
+    }
+}));
+
+// POST /api/v1/trading/gemini/balance
+// Get USDT balance from Gemini exchange
+router.post('/gemini/balance', asyncHandler(async (req, res) => {
+    try {
+        const { apiKey, apiSecret, currency = 'USDT' } = req.body;
+
+        if (!apiKey || !apiSecret) {
+            return res.status(400).json({
+                success: false,
+                message: 'Missing Gemini API credentials (key and secret required)'
+            });
+        }
+
+        // Create HMAC-SHA384 signature (NOTE: Gemini uses SHA384!)
+        const timestamp = Date.now();
+        const payload = {
+            request: '/v1/balances',
+            nonce: timestamp
+        };
+
+        const base64Payload = Buffer.from(JSON.stringify(payload)).toString('base64');
+        const signature = createGeminiTriangularSignature(base64Payload, apiSecret);
+
+        const response = await axios.post(
+            `${GEMINI_TRIANGULAR_CONFIG.baseUrl}${GEMINI_TRIANGULAR_CONFIG.endpoints.balance}`,
+            {},
+            {
+                headers: {
+                    'Content-Type': 'text/plain',
+                    'X-GEMINI-APIKEY': apiKey,
+                    'X-GEMINI-PAYLOAD': base64Payload,
+                    'X-GEMINI-SIGNATURE': signature,
+                    'Cache-Control': 'no-cache'
+                }
+            }
+        );
+
+        // Extract balance for requested currency
+        const balances = response.data || [];
+        const currencyBalance = balances.find(b => b.currency === currency.toUpperCase());
+
+        const available = currencyBalance ? parseFloat(currencyBalance.available || 0) : 0;
+        const locked = currencyBalance ? parseFloat(currencyBalance.availableForWithdrawal || 0) : 0;
+        const total = available;
+
+        res.json({
+            success: true,
+            currency,
+            balance: available.toFixed(2),
+            locked: (available - locked).toFixed(2),
+            total: total.toFixed(2),
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        console.error('Gemini balance error:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Failed to fetch Gemini balance'
         });
     }
 }));
