@@ -13797,12 +13797,18 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
                 const result = await response.json();
 
                 if (result.success) {
-                    const balance = parseFloat(result.balance);
+                    const balance = parseFloat(result.balance) || 0;
                     ascendexBalanceTracking.starting = balance;
                     ascendexBalanceTracking.current = balance;
                     ascendexBalanceTracking.initialized = true;
                     updateAscendexBalanceDisplay();
                     console.log('✅ [ASCENDEX] Balance initialized:', balance);
+                } else {
+                    console.warn('AscendEX balance fetch failed:', result.message);
+                    // Set to 0 if failed
+                    ascendexBalanceTracking.starting = 0;
+                    ascendexBalanceTracking.current = 0;
+                    updateAscendexBalanceDisplay();
                 }
             } catch (error) {
                 console.error('AscendEX balance initialization error:', error);
@@ -13835,7 +13841,7 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
                 const result = await response.json();
 
                 if (result.success) {
-                    const balance = parseFloat(result.balance);
+                    const balance = parseFloat(result.balance) || 0;
 
                     if (!ascendexBalanceTracking.initialized) {
                         ascendexBalanceTracking.starting = balance;
@@ -13854,7 +13860,9 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
         }
 
         function updateAscendexBalanceDisplay() {
-            const { starting, current } = ascendexBalanceTracking;
+            // Ensure we have valid numbers, default to 0 if undefined/null/NaN
+            const starting = Number(ascendexBalanceTracking.starting) || 0;
+            const current = Number(ascendexBalanceTracking.current) || 0;
             const change = current - starting;
             const changePercent = starting > 0 ? ((change / starting) * 100).toFixed(2) : '0.00';
             const changeSign = change >= 0 ? '+' : '';
