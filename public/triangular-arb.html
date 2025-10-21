@@ -17377,6 +17377,19 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
         // COINCATCH TRIANGULAR ARBITRAGE FUNCTIONS (FINAL EXCHANGE - 21/21)
         // ============================================================================
 
+        // Worker variables
+        let coincatchWorkerInterval = null;
+        let coincatchWorkerStats = {
+            totalScans: 0,
+            totalOpportunities: 0,
+            totalTrades: 0,
+            successfulTrades: 0,
+            totalProfit: 0,
+            bestProfit: 0,
+            bestPath: null,
+            lastScanTime: null
+        };
+
         // 1. Toggle Coincatch Triangular Arbitrage
         function toggleCoincatchTriangular() {
             const toggle = document.getElementById('coincatchTriangularEnabled');
@@ -17387,12 +17400,14 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
                 status.textContent = 'ON';
                 status.style.color = '#FF5722';
                 localStorage.setItem('coincatchTriangularEnabled', 'true');
-                console.log('🎯 [COINCATCH] Triangular arbitrage enabled');
+                console.log('🎯 [COINCATCH] Triangular arbitrage enabled - starting worker...');
+                startCoincatchWorker();
             } else {
                 status.textContent = 'OFF';
                 status.style.color = '#ff6b6b';
                 localStorage.setItem('coincatchTriangularEnabled', 'false');
-                console.log('🎯 [COINCATCH] Triangular arbitrage disabled');
+                console.log('🎯 [COINCATCH] Triangular arbitrage disabled - stopping worker...');
+                stopCoincatchWorker();
             }
         }
 
@@ -17780,6 +17795,181 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
         async function executeCoincatchTriangularTrade(pathId) {
             alert('⚠️ Trade execution requires additional implementation. Contact support to enable live trading.');
             console.log(`🎯 [COINCATCH] Trade execution requested for path: ${pathId}`);
+        }
+
+        // ============================================================================
+        // WORKER FUNCTIONS (Sequential Scanning)
+        // ============================================================================
+
+        // Start Coincatch Worker (Sequential Scanning - One Set at a Time)
+        async function startCoincatchWorker() {
+            console.log('🚀 [COINCATCH Worker] Starting automated trading (sequential mode)...');
+
+            // Read settings from card
+            const apiKey = localStorage.getItem('coincatch_api') || '';
+            const apiSecret = localStorage.getItem('coincatch_secret') || '';
+            const passphrase = localStorage.getItem('coincatch_passphrase') || '';
+            const profitThreshold = parseFloat(document.getElementById('coincatchProfitThreshold')?.value) || 0.5;
+            const maxTradeAmount = parseFloat(document.getElementById('coincatchMaxTrade')?.value) || 1000;
+
+            // Get selected path sets (5 sets available)
+            const selectedSets = [];
+            for (let i = 1; i <= 5; i++) {
+                const checkbox = document.getElementById(`coincatchSet${i}Enabled`);
+                if (checkbox && checkbox.checked) {
+                    selectedSets.push(i);
+                }
+            }
+
+            if (selectedSets.length === 0) {
+                console.error('❌ [COINCATCH Worker] No sets selected!');
+                alert('⚠️ Please select at least one path set to scan');
+                return;
+            }
+
+            if (!apiKey || !apiSecret || !passphrase) {
+                console.error('❌ [COINCATCH Worker] Missing API credentials');
+                alert('⚠️ Please configure your Coincatch API credentials first');
+                return;
+            }
+
+            console.log(`📊 [COINCATCH Worker] Configuration:`, {
+                profitThreshold: `${profitThreshold}%`,
+                maxTradeAmount: `$${maxTradeAmount}`,
+                selectedSets: selectedSets.length,
+                scanMode: 'Sequential (one set at a time)'
+            });
+
+            // Initialize balance tracking
+            await initializeCoincatchBalance();
+
+            let currentSetIndex = 0;
+
+            // Set name mapping for backend
+            const setNameMapping = {
+                1: 'SET_1_BTC_ETH_DIRECT',
+                2: 'SET_2_GMT_BTC_BRIDGE',
+                3: 'SET_3_MAJOR_4LEG',
+                4: 'SET_4_ALTCOIN_4LEG',
+                5: 'SET_5_EXTENDED_4LEG'
+            };
+
+            // Sequential scan-and-execute function (one set per call)
+            async function scanAndExecuteSequential() {
+                try {
+                    // Get current set to scan
+                    const currentSetNum = selectedSets[currentSetIndex];
+                    const currentSet = `SET ${currentSetNum}`;
+                    const backendSetName = setNameMapping[currentSetNum];
+                    coincatchWorkerStats.totalScans++;
+
+                    console.log(`\n🔍 [COINCATCH Worker] Scan #${coincatchWorkerStats.totalScans}: ${currentSet} (${currentSetIndex + 1}/${selectedSets.length})`);
+
+                    // Get risk settings from UI
+                    const portfolioPercent = parseFloat(document.getElementById('coincatchPortfolioPercent')?.value || 10);
+                    const profitThresholdUI = parseFloat(document.getElementById('coincatchProfitThreshold')?.value || 0.5);
+
+                    // 1. Scan ONE set only
+                    const enabledSets = {};
+                    enabledSets[backendSetName] = true;
+
+                    const scanResponse = await fetch(`${API_BASE}/trading/coincatch/triangular/scan`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            apiKey,
+                            apiSecret,
+                            passphrase,
+                            enabledSets: enabledSets,
+                            maxTradeAmount: maxTradeAmount,
+                            profitThreshold: profitThresholdUI,
+                            portfolioPercent: portfolioPercent
+                        })
+                    });
+
+                    const scanResult = await scanResponse.json();
+
+                    if (scanResult.success && scanResult.opportunities) {
+                        const paths = scanResult.opportunities;
+                        console.log(`✅ [COINCATCH Worker] ${currentSet}: Analyzed ${scanResult.scanned} paths, found ${paths.length} opportunities`);
+
+                        // Log detailed profit for each path
+                        paths.forEach((path, index) => {
+                            const profitPct = parseFloat(path.profitPercent);
+                            const profitSign = profitPct >= 0 ? '+' : '';
+                            const profitColor = profitPct >= profitThreshold ? '💚' :
+                                              profitPct >= 0 ? '💛' : '❌';
+                            const status = profitPct >= profitThreshold ? 'OPPORTUNITY' :
+                                         profitPct >= 0 ? 'below threshold' : 'unprofitable';
+                            console.log(`   ${profitColor} Path ${index + 1}: ${profitSign}${profitPct.toFixed(2)}% (${status})`);
+                        });
+
+                        // 2. Filter by profit threshold
+                        const profitable = paths.filter(
+                            opp => parseFloat(opp.profitPercent) >= profitThreshold
+                        );
+
+                        coincatchWorkerStats.totalOpportunities += profitable.length;
+
+                        if (profitable.length > 0) {
+                            console.log(`💰 [COINCATCH Worker] ${currentSet}: ${profitable.length} OPPORTUNITIES above ${profitThreshold}% threshold`);
+
+                            // NOTE: Trade execution not implemented yet - just log opportunities
+                            profitable.forEach(opp => {
+                                console.log(`⚡ [COINCATCH Worker] Opportunity: ${opp.pathId} (${parseFloat(opp.profitPercent).toFixed(2)}% profit) - execution pending implementation`);
+                            });
+                        } else {
+                            console.log(`ℹ️ [COINCATCH Worker] ${currentSet}: No opportunities (all ${scanResult.scanned} paths below ${profitThreshold}% threshold)`);
+                        }
+                    } else {
+                        console.log(`ℹ️ [COINCATCH Worker] ${currentSet}: Scan returned no opportunities`);
+                    }
+
+                    // Move to next set (circular)
+                    currentSetIndex = (currentSetIndex + 1) % selectedSets.length;
+
+                    // Log cycle completion
+                    if (currentSetIndex === 0) {
+                        console.log(`🔄 [COINCATCH Worker] Completed full cycle of ${selectedSets.length} sets. Restarting...`);
+                    }
+
+                    // Update balance after each cycle
+                    if (currentSetIndex === 0) {
+                        await updateCoincatchBalance();
+                    }
+
+                } catch (error) {
+                    console.error('❌ [COINCATCH Worker] Scan error:', error);
+                    handleCoincatchExecutionError(error, null);
+                }
+            }
+
+            // Start sequential scanning with 8-second intervals
+            coincatchWorkerInterval = setInterval(scanAndExecuteSequential, 8000);
+
+            console.log('✅ [COINCATCH Worker] Automated trading started (8s between sets, sequential scanning)');
+        }
+
+        // Stop Coincatch Worker
+        function stopCoincatchWorker() {
+            if (coincatchWorkerInterval) {
+                clearInterval(coincatchWorkerInterval);
+                coincatchWorkerInterval = null;
+                console.log('⏹️ [COINCATCH Worker] Automated trading stopped');
+            }
+        }
+
+        // Handle Coincatch Execution Errors
+        function handleCoincatchExecutionError(error, opportunity) {
+            const errorMessage = error.message || 'Unknown error';
+
+            console.error(`❌ [COINCATCH Worker] Error: ${errorMessage}`, {
+                opportunity: opportunity?.pathId || 'N/A',
+                error: error
+            });
+
+            // Non-blocking - just log, don't stop worker
+            // In production, could add to error log display
         }
 
         // 12. Save Coincatch Triangular Settings
