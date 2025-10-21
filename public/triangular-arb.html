@@ -3276,102 +3276,181 @@
         </div>
 
         <!-- Bitget Exchange -->
+        <!-- BITGET TRIANGULAR ARBITRAGE -->
         <div style="background: rgba(138,43,226,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 2px solid #8A2BE2;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <!-- Header with Toggle -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <h3 style="color: #8A2BE2; margin: 0;">💜 Bitget Triangular Arbitrage</h3>
                 <div style="display: flex; align-items: center; gap: 15px;">
                     <span style="color: #b8c6db; font-size: 0.9rem;">Live Trading:</span>
-                    <div class="toggle-switch" id="bitgetTriangularEnabled">
+                    <div class="toggle-switch" id="bitgetTriangularEnabled" onclick="toggleBitgetTriangular()">
                         <div class="toggle-knob"></div>
                     </div>
                     <span id="bitgetTriangularStatus" style="color: #ff6b6b; font-weight: 600; font-size: 0.9rem;">OFF</span>
                 </div>
             </div>
-            <p style="color: #888; margin: 0 0 10px 0; font-size: 14px;">
-                700+ USDT pairs | BGB native token | 0.10% fees | Passphrase required | HMAC-SHA256 Base64
-            </p>
 
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 20px;">
-                <!-- Status Card -->
-                <div class="stat-card">
-                    <h4 style="color: #8A2BE2; margin-bottom: 15px;">📊 Status</h4>
-                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-                        <div id="bitgetStatusIndicator" style="width: 12px; height: 12px; border-radius: 50%; background: #666;"></div>
-                        <span id="bitgetStatusText" style="color: #888;">Not Connected</span>
+            <!-- FUNDING REQUIREMENTS Info Banner -->
+            <div style="background: rgba(138,43,226,0.15); border: 2px solid #8A2BE2; border-radius: 10px; padding: 20px; margin-bottom: 20px;">
+                <h4 style="color: #8A2BE2; margin: 0 0 15px 0; font-size: 1.1rem;">💰 FUNDING REQUIREMENTS (Portfolio % Mode)</h4>
+                <p style="color: #b8c6db; margin: 0 0 15px 0; font-size: 0.9rem; line-height: 1.6;">
+                    <strong>Portfolio % Strategy:</strong> Trade amount = MIN(portfolioPercent × balance, maxTradeAmount). Default 10% of USDT balance, capped at $1,000. <br>
+                    <strong>Note:</strong> Passphrase required for Bitget API authentication (HMAC-SHA256 Base64).
+                </p>
+                <div style="display: grid; gap: 12px;">
+                    <div style="padding: 12px; background: rgba(0,255,0,0.1); border-left: 4px solid #00ff00; border-radius: 6px;">
+                        <strong style="color: #00ff00;">SET 1: Essential ETH Bridge (7 paths)</strong><br>
+                        <span style="color: #b8c6db; font-size: 0.85rem;">Funding: $350-700 USDT | High liquidity ETH-based paths</span>
                     </div>
-                    <div style="margin-top: 15px; display: flex; gap: 10px;">
-                        <button onclick="testBitgetTriangularConnection()" style="flex: 1; padding: 10px; background: #8A2BE2; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
-                            Test Connection
-                        </button>
-                        <button onclick="viewBitgetPathDetails()" style="flex: 1; padding: 10px; background: rgba(138,43,226,0.2); color: #8A2BE2; border: 1px solid #8A2BE2; border-radius: 8px; cursor: pointer; font-weight: 600;">
-                            View Paths
-                        </button>
+                    <div style="padding: 12px; background: rgba(0,255,0,0.1); border-left: 4px solid #00ff00; border-radius: 6px;">
+                        <strong style="color: #00ff00;">SET 2: Mid-Cap BTC Bridge (7 paths)</strong><br>
+                        <span style="color: #b8c6db; font-size: 0.85rem;">Funding: $350-700 USDT | Established BTC trading pairs</span>
+                    </div>
+                    <div style="padding: 12px; background: rgba(138,43,226,0.2); border-left: 4px solid #8A2BE2; border-radius: 6px;">
+                        <strong style="color: #8A2BE2;">SET 3: BGB Native Token (6 paths)</strong><br>
+                        <span style="color: #b8c6db; font-size: 0.85rem;">Funding: $300-600 USDT | Bitget's exchange token (BGB) - Fee discounts!</span>
+                    </div>
+                    <div style="padding: 12px; background: rgba(255,165,0,0.1); border-left: 4px solid #FFA500; border-radius: 6px;">
+                        <strong style="color: #FFA500;">SET 4: High Volatility (6 paths)</strong><br>
+                        <span style="color: #b8c6db; font-size: 0.85rem;">Funding: $300-600 USDT | Higher risk/reward volatile assets</span>
+                    </div>
+                    <div style="padding: 12px; background: rgba(255,0,0,0.1); border-left: 4px solid #ff4444; border-radius: 6px;">
+                        <strong style="color: #ff4444;">SET 5: Extended Multi-Bridge (6 paths)</strong><br>
+                        <span style="color: #b8c6db; font-size: 0.85rem;">Funding: $300-600 USDT | Includes 2 four-leg paths (advanced)</span>
                     </div>
                 </div>
+                <p style="color: #8A2BE2; margin: 15px 0 0 0; font-weight: 600; font-size: 0.95rem;">
+                    Total Recommended Funding: <strong>$1,600-3,200 USDT</strong> (all sets enabled)
+                </p>
+            </div>
 
-                <!-- Risk Management -->
-                <div class="stat-card">
-                    <h4 style="color: #8A2BE2; margin-bottom: 15px;">⚖️ Risk Management</h4>
-                    <label style="display: block; color: #888; margin-bottom: 5px; font-size: 14px;">Max Trade Amount (USDT)</label>
-                    <input type="number" id="bitgetMaxTrade" value="100" min="10" max="10000" step="10" style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid #444; border-radius: 8px; color: white; margin-bottom: 15px;">
+            <!-- 3-Column Responsive Grid -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 20px;">
+                <!-- Column 1: Risk Management -->
+                <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; border: 1px solid rgba(138,43,226,0.3);">
+                    <h4 style="color: #8A2BE2; margin: 0 0 15px 0;">⚖️ Risk Management</h4>
+                    <label style="display: block; color: #888; margin-bottom: 5px; font-size: 13px;">Max Trade Amount (USDT)</label>
+                    <input type="number" id="bitgetMaxTrade" value="1000" min="10" max="10000" step="10" style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid #444; border-radius: 8px; color: white; margin-bottom: 15px; font-size: 14px;">
 
-                    <label style="display: block; color: #888; margin-bottom: 5px; font-size: 14px;">Portfolio % Risk</label>
-                    <input type="number" id="bitgetPortfolioPercent" value="5" min="1" max="20" step="1" style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid #444; border-radius: 8px; color: white; margin-bottom: 15px;">
+                    <label style="display: block; color: #888; margin-bottom: 5px; font-size: 13px;">Portfolio % (of USDT balance)</label>
+                    <input type="number" id="bitgetPortfolioPercent" value="10" min="1" max="50" step="1" style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid #444; border-radius: 8px; color: white; margin-bottom: 15px; font-size: 14px;">
 
-                    <label style="display: block; color: #888; margin-bottom: 5px; font-size: 14px;">Min Profit Threshold (%)</label>
-                    <input type="number" id="bitgetProfitThreshold" value="0.3" min="0.1" max="5" step="0.1" style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid #444; border-radius: 8px; color: white;">
+                    <label style="display: block; color: #888; margin-bottom: 5px; font-size: 13px;">Min Profit Threshold (%)</label>
+                    <input type="number" id="bitgetProfitThreshold" value="0.5" min="0.1" max="5" step="0.1" style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid #444; border-radius: 8px; color: white; font-size: 14px;">
                 </div>
 
-                <!-- Path Sets -->
-                <div class="stat-card">
-                    <h4 style="color: #8A2BE2; margin-bottom: 15px;">🔀 Path Selection (32 Total)</h4>
-                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                <!-- Column 2: Path Selection -->
+                <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; border: 1px solid rgba(138,43,226,0.3);">
+                    <h4 style="color: #8A2BE2; margin: 0 0 15px 0;">🔀 Path Sets (32 Total)</h4>
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
                         <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
                             <input type="checkbox" id="bitgetSet1Enabled" checked style="width: 18px; height: 18px; cursor: pointer;">
-                            <span style="color: #ddd;">✅ SET 1: Essential ETH Bridge (7 paths)</span>
+                            <span style="color: #ddd; font-size: 14px;">✅ SET 1 (7)</span>
                         </label>
                         <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
                             <input type="checkbox" id="bitgetSet2Enabled" checked style="width: 18px; height: 18px; cursor: pointer;">
-                            <span style="color: #ddd;">✅ SET 2: Mid-Cap BTC Bridge (7 paths)</span>
+                            <span style="color: #ddd; font-size: 14px;">✅ SET 2 (7)</span>
                         </label>
                         <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                            <input type="checkbox" id="bitgetSet3Enabled" checked style="width: 18px; height: 18px; cursor: pointer;">
-                            <span style="color: #ddd;">💜 SET 3: BGB Native Token (6 paths)</span>
+                            <input type="checkbox" id="bitgetSet3Enabled" style="width: 18px; height: 18px; cursor: pointer;">
+                            <span style="color: #ddd; font-size: 14px;">💜 SET 3: BGB (6)</span>
                         </label>
                         <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
                             <input type="checkbox" id="bitgetSet4Enabled" style="width: 18px; height: 18px; cursor: pointer;">
-                            <span style="color: #ddd;">⚡ SET 4: High Volatility (6 paths)</span>
+                            <span style="color: #ddd; font-size: 14px;">⚡ SET 4 (6)</span>
                         </label>
                         <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
                             <input type="checkbox" id="bitgetSet5Enabled" style="width: 18px; height: 18px; cursor: pointer;">
-                            <span style="color: #ddd;">🔁 SET 5: Extended Multi-Bridge (6 paths)</span>
+                            <span style="color: #ddd; font-size: 14px;">🔁 SET 5 (6)</span>
                         </label>
                     </div>
-                </div>
-
-                <!-- Scanner Controls -->
-                <div class="stat-card">
-                    <h4 style="color: #8A2BE2; margin-bottom: 15px;">🔍 Scanner</h4>
-                    <button onclick="scanBitgetTriangularPaths()" style="width: 100%; padding: 12px; background: #8A2BE2; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 16px; margin-bottom: 15px;">
-                        🔍 Scan Opportunities
+                    <button onclick="viewBitgetPathDetails()" style="width: 100%; margin-top: 15px; padding: 10px; background: rgba(138,43,226,0.2); color: #8A2BE2; border: 1px solid #8A2BE2; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px;">
+                        📋 View All 32 Paths
                     </button>
-                    <div id="bitgetScanStatus" style="color: #888; font-size: 14px; text-align: center; min-height: 20px;"></div>
                 </div>
 
-                <!-- Opportunities Display -->
-                <div class="stat-card" style="grid-column: 1 / -1;">
-                    <h4 style="color: #8A2BE2; margin-bottom: 15px;">💎 Active Opportunities</h4>
-                    <div id="bitgetOpportunities" style="color: #888; font-size: 14px;">
-                        No scan results yet. Click "Scan Opportunities" to begin.
+                <!-- Column 3: Performance Stats -->
+                <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; border: 1px solid rgba(138,43,226,0.3);">
+                    <h4 style="color: #8A2BE2; margin: 0 0 15px 0;">📊 Performance Stats</h4>
+                    <div style="display: flex; flex-direction: column; gap: 12px; font-size: 13px;">
+                        <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            <span style="color: #888;">Paths Scanned:</span>
+                            <span id="bitgetPathsScanned" style="color: white; font-weight: 600;">0</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            <span style="color: #888;">Opportunities Found:</span>
+                            <span id="bitgetOpportunitiesFound" style="color: #8A2BE2; font-weight: 600;">0</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            <span style="color: #888;">Trades Executed:</span>
+                            <span id="bitgetTradesExecuted" style="color: white; font-weight: 600;">0</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            <span style="color: #888;">Success Rate:</span>
+                            <span id="bitgetSuccessRate" style="color: #00d26a; font-weight: 600;">0%</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            <span style="color: #888;">Total Profit:</span>
+                            <span id="bitgetTotalProfit" style="color: #00d26a; font-weight: 600;">$0.00</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            <span style="color: #888;">Avg Profit/Trade:</span>
+                            <span id="bitgetAvgProfit" style="color: #8A2BE2; font-weight: 600;">$0.00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabbed Interface: Balance Tracker + Trading -->
+            <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px;">
+                <!-- Tab Buttons -->
+                <div style="display: flex; gap: 10px; margin-bottom: 15px; border-bottom: 1px solid rgba(138,43,226,0.3);">
+                    <button id="bitgetBalanceTab" onclick="switchBitgetTab('balance')" style="padding: 12px 20px; background: #8A2BE2; color: white; border: none; border-radius: 8px 8px 0 0; cursor: pointer; font-weight: 600; font-size: 14px;">
+                        💰 Balance Tracker
+                    </button>
+                    <button id="bitgetTradingTab" onclick="switchBitgetTab('trading')" style="padding: 12px 20px; background: rgba(138,43,226,0.2); color: #8A2BE2; border: 1px solid #8A2BE2; border-radius: 8px 8px 0 0; cursor: pointer; font-weight: 600; font-size: 14px;">
+                        📈 Current Opportunities
+                    </button>
+                </div>
+
+                <!-- Balance Tracker Tab Content -->
+                <div id="bitgetBalanceContent" style="display: block;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px;">
+                        <div style="background: rgba(138,43,226,0.1); padding: 15px; border-radius: 10px; border-left: 4px solid #8A2BE2;">
+                            <div style="color: #888; font-size: 12px; margin-bottom: 5px;">Starting Balance</div>
+                            <div id="bitgetStartingUSDT" style="color: white; font-size: 18px; font-weight: 600;">0.00 USDT</div>
+                        </div>
+                        <div style="background: rgba(138,43,226,0.1); padding: 15px; border-radius: 10px; border-left: 4px solid #8A2BE2;">
+                            <div style="color: #888; font-size: 12px; margin-bottom: 5px;">Current Balance</div>
+                            <div id="bitgetCurrentUSDT" style="color: white; font-size: 18px; font-weight: 600;">0.00 USDT</div>
+                        </div>
+                        <div style="background: rgba(138,43,226,0.1); padding: 15px; border-radius: 10px; border-left: 4px solid #8A2BE2;">
+                            <div style="color: #888; font-size: 12px; margin-bottom: 5px;">Change (Profit/Loss)</div>
+                            <div id="bitgetChangeUSDT" style="color: white; font-size: 18px; font-weight: 600;">0.00 USDT (0.0%)</div>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button onclick="updateBitgetBalance()" style="flex: 1; padding: 10px; background: #8A2BE2; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px;">
+                            🔄 Refresh Balance
+                        </button>
+                        <button onclick="resetBitgetStartingBalance()" style="flex: 1; padding: 10px; background: rgba(138,43,226,0.2); color: #8A2BE2; border: 1px solid #8A2BE2; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px;">
+                            🔁 Reset Starting Point
+                        </button>
                     </div>
                 </div>
 
-                <!-- Trade History -->
-                <div class="stat-card" style="grid-column: 1 / -1;">
-                    <h4 style="color: #8A2BE2; margin-bottom: 15px;">📜 Recent Trades</h4>
-                    <div id="bitgetTradeHistory" style="color: #888; font-size: 14px;">
-                        No trade history available.
+                <!-- Trading Tab Content -->
+                <div id="bitgetTradingContent" style="display: none;">
+                    <button onclick="scanBitgetTriangularPaths()" style="width: 100%; padding: 14px; background: #8A2BE2; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 15px; margin-bottom: 15px;">
+                        🔍 Scan Opportunities Now
+                    </button>
+                    <div id="bitgetScanStatus" style="color: #888; font-size: 14px; margin-bottom: 15px; text-align: center;"></div>
+                    <div id="bitgetOpportunities" style="color: #888; font-size: 14px; min-height: 100px;">
+                        No opportunities found yet. Click "Scan Opportunities Now" to begin scanning.
                     </div>
+                    <button onclick="clearBitgetHistory()" style="width: 100%; margin-top: 15px; padding: 10px; background: rgba(255,68,68,0.2); color: #ff4444; border: 1px solid #ff4444; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px;">
+                        🗑️ Clear Opportunity History
+                    </button>
                 </div>
             </div>
         </div>
@@ -14789,318 +14868,508 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
             switchBingxTab('balance');
         });
 
-        // ============================================================================
+        // ═══════════════════════════════════════════════════════════
         // BITGET TRIANGULAR ARBITRAGE FUNCTIONS
-        // ============================================================================
+        // ═══════════════════════════════════════════════════════════
 
-        // Test Bitget Connection
-        async function testBitgetTriangularConnection() {
+        // 1. Toggle Bitget Triangular
+        function toggleBitgetTriangular() {
+            const toggle = document.getElementById('bitgetTriangularEnabled');
+            const status = document.getElementById('bitgetTriangularStatus');
+            const isActive = toggle.classList.toggle('active');
+
+            if (isActive) {
+                status.textContent = 'ON';
+                status.style.color = '#8A2BE2';
+                localStorage.setItem('bitgetTriangularEnabled', 'true');
+            } else {
+                status.textContent = 'OFF';
+                status.style.color = '#ff6b6b';
+                localStorage.setItem('bitgetTriangularEnabled', 'false');
+            }
+        }
+
+        // 2. View Bitget Path Details (Professional Modal)
+        function viewBitgetPathDetails() {
+            const modal = document.createElement('div');
+            modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center; z-index: 10000; backdrop-filter: blur(8px);';
+
+            modal.innerHTML = `
+                <div style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); padding: 30px; border-radius: 20px; max-width: 800px; max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(138,43,226,0.4); border: 2px solid rgba(138,43,226,0.3);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 2px solid rgba(138,43,226,0.3); padding-bottom: 15px;">
+                        <h2 style="color: #8A2BE2; margin: 0; font-size: 24px; display: flex; align-items: center; gap: 10px;">
+                            💜 Bitget Triangular Arbitrage Paths
+                        </h2>
+                        <button onclick="this.closest('div[style*=fixed]').remove()" style="background: rgba(255,107,107,0.2); color: #ff6b6b; border: 1px solid #ff6b6b; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.3s;">✕ Close</button>
+                    </div>
+
+                    <div style="display: grid; gap: 20px;">
+                        <!-- SET 1 -->
+                        <div style="background: rgba(0,210,106,0.1); padding: 18px; border-radius: 12px; border-left: 5px solid #00d26a;">
+                            <h3 style="color: #00d26a; margin: 0 0 12px 0; font-size: 16px; font-weight: 700;">SET 1: ESSENTIAL ETH BRIDGE (7 paths)</h3>
+                            <div style="color: #b8c6db; font-size: 13px; line-height: 1.8; font-family: 'Courier New', monospace;">
+                                1. USDT → ETH → BTC → USDT<br>
+                                2. USDT → ETH → USDC → USDT<br>
+                                3. USDT → ETH → SOL → USDT<br>
+                                4. USDT → ETH → XRP → USDT<br>
+                                5. USDT → ETH → ADA → USDT<br>
+                                6. USDT → ETH → DOGE → USDT<br>
+                                7. USDT → ETH → TRX → USDT
+                            </div>
+                            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(0,210,106,0.2); color: #00d26a; font-weight: 600; font-size: 13px;">
+                                💰 Funding: $350-700 USDT
+                            </div>
+                        </div>
+
+                        <!-- SET 2 -->
+                        <div style="background: rgba(0,210,106,0.1); padding: 18px; border-radius: 12px; border-left: 5px solid #00d26a;">
+                            <h3 style="color: #00d26a; margin: 0 0 12px 0; font-size: 16px; font-weight: 700;">SET 2: MID-CAP BTC BRIDGE (7 paths)</h3>
+                            <div style="color: #b8c6db; font-size: 13px; line-height: 1.8; font-family: 'Courier New', monospace;">
+                                1. USDT → BTC → SOL → USDT<br>
+                                2. USDT → BTC → XRP → USDT<br>
+                                3. USDT → BTC → ADA → USDT<br>
+                                4. USDT → BTC → DOGE → USDT<br>
+                                5. USDT → BTC → MATIC → USDT<br>
+                                6. USDT → BTC → DOT → USDT<br>
+                                7. USDT → BTC → LTC → USDT
+                            </div>
+                            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(0,210,106,0.2); color: #00d26a; font-weight: 600; font-size: 13px;">
+                                💰 Funding: $350-700 USDT
+                            </div>
+                        </div>
+
+                        <!-- SET 3 - BGB NATIVE TOKEN -->
+                        <div style="background: rgba(138,43,226,0.15); padding: 18px; border-radius: 12px; border-left: 5px solid #8A2BE2;">
+                            <h3 style="color: #8A2BE2; margin: 0 0 12px 0; font-size: 16px; font-weight: 700;">SET 3: BGB NATIVE TOKEN (6 paths) 💜</h3>
+                            <div style="color: #b8c6db; font-size: 13px; line-height: 1.8; font-family: 'Courier New', monospace;">
+                                1. USDT → BGB → BTC → USDT<br>
+                                2. USDT → BGB → ETH → USDT<br>
+                                3. USDT → BGB → SOL → USDT<br>
+                                4. USDT → BGB → XRP → USDT<br>
+                                5. USDT → BGB → ADA → USDT<br>
+                                6. USDT → BGB → DOGE → USDT
+                            </div>
+                            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(138,43,226,0.3); color: #8A2BE2; font-weight: 600; font-size: 13px;">
+                                💰 Funding: $300-600 USDT | BGB is Bitget's exchange token - may have fee discounts!
+                            </div>
+                        </div>
+
+                        <!-- SET 4 -->
+                        <div style="background: rgba(255,165,0,0.1); padding: 18px; border-radius: 12px; border-left: 5px solid #FFA500;">
+                            <h3 style="color: #FFA500; margin: 0 0 12px 0; font-size: 16px; font-weight: 700;">SET 4: HIGH VOLATILITY (6 paths)</h3>
+                            <div style="color: #b8c6db; font-size: 13px; line-height: 1.8; font-family: 'Courier New', monospace;">
+                                1. USDT → LINK → BTC → USDT<br>
+                                2. USDT → LINK → ETH → USDT<br>
+                                3. USDT → AVAX → BTC → USDT<br>
+                                4. USDT → AVAX → ETH → USDT<br>
+                                5. USDT → ATOM → BTC → USDT<br>
+                                6. USDT → ATOM → ETH → USDT
+                            </div>
+                            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,165,0,0.2); color: #FFA500; font-weight: 600; font-size: 13px;">
+                                💰 Funding: $300-600 USDT
+                            </div>
+                        </div>
+
+                        <!-- SET 5 -->
+                        <div style="background: rgba(255,68,68,0.1); padding: 18px; border-radius: 12px; border-left: 5px solid #FF4444;">
+                            <h3 style="color: #FF4444; margin: 0 0 12px 0; font-size: 16px; font-weight: 700;">SET 5: EXTENDED MULTI-BRIDGE (6 paths) 🔥</h3>
+                            <div style="color: #b8c6db; font-size: 13px; line-height: 1.8; font-family: 'Courier New', monospace;">
+                                1. USDT → UNI → BTC → USDT<br>
+                                2. USDT → UNI → ETH → USDT<br>
+                                3. USDT → SHIB → BTC → USDT<br>
+                                4. USDT → SHIB → ETH → USDT<br>
+                                5. USDT → BTC → ETH → SOL → USDT (4-leg)<br>
+                                6. USDT → ETH → BTC → XRP → USDT (4-leg)
+                            </div>
+                            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,68,68,0.2); color: #FF4444; font-weight: 600; font-size: 13px;">
+                                💰 Funding: $300-600 USDT | Includes 2 four-leg paths
+                            </div>
+                        </div>
+
+                        <!-- Total Funding -->
+                        <div style="background: rgba(138,43,226,0.15); padding: 20px; border-radius: 12px; border: 2px solid #8A2BE2; text-align: center;">
+                            <div style="color: #8A2BE2; font-size: 20px; font-weight: 700; margin-bottom: 10px;">
+                                💰 TOTAL RECOMMENDED FUNDING
+                            </div>
+                            <div style="color: white; font-size: 28px; font-weight: 700; margin-bottom: 10px;">
+                                $1,600 - $3,200 USDT
+                            </div>
+                            <div style="color: #b8c6db; font-size: 14px;">
+                                (All 5 sets enabled)
+                            </div>
+                        </div>
+
+                        <!-- Portfolio % Info -->
+                        <div style="background: rgba(0,0,0,0.3); padding: 18px; border-radius: 12px; border: 1px solid rgba(138,43,226,0.3);">
+                            <h4 style="color: #8A2BE2; margin: 0 0 12px 0; font-size: 15px;">⚖️ PORTFOLIO % MODE</h4>
+                            <p style="color: #b8c6db; margin: 0; font-size: 13px; line-height: 1.6;">
+                                Trade amount = <strong style="color: white;">MIN(portfolioPercent × balance, maxTradeAmount)</strong><br>
+                                Default: 10% of USDT balance, capped at $1,000<br>
+                                <strong style="color: #8A2BE2;">Note:</strong> Passphrase required for Bitget API authentication
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+
+            // Close on outside click
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) modal.remove();
+            });
+        }
+
+        // 3. Switch Bitget Tab
+        function switchBitgetTab(tab) {
+            const balanceBtn = document.getElementById('bitgetBalanceTab');
+            const tradingBtn = document.getElementById('bitgetTradingTab');
+            const balanceContent = document.getElementById('bitgetBalanceContent');
+            const tradingContent = document.getElementById('bitgetTradingContent');
+
+            if (tab === 'balance') {
+                balanceBtn.style.background = 'linear-gradient(135deg, #8A2BE2, #9370DB)';
+                balanceBtn.style.color = 'white';
+                tradingBtn.style.background = 'rgba(0,0,0,0.3)';
+                tradingBtn.style.color = '#888';
+                balanceContent.style.display = 'block';
+                tradingContent.style.display = 'none';
+            } else {
+                tradingBtn.style.background = 'linear-gradient(135deg, #8A2BE2, #9370DB)';
+                tradingBtn.style.color = 'white';
+                balanceBtn.style.background = 'rgba(0,0,0,0.3)';
+                balanceBtn.style.color = '#888';
+                tradingContent.style.display = 'block';
+                balanceContent.style.display = 'none';
+            }
+        }
+
+        // 4. Balance Tracking with NaN Prevention
+        const bitgetBalanceTracking = {
+            starting: 0,
+            current: 0,
+            initialized: false
+        };
+
+        async function initializeBitgetBalance() {
             const apiKey = localStorage.getItem('bitget_api') || '';
             const apiSecret = localStorage.getItem('bitget_secret') || '';
             const passphrase = localStorage.getItem('bitget_passphrase') || '';
-            const statusIndicator = document.getElementById('bitgetStatusIndicator');
-            const statusText = document.getElementById('bitgetStatusText');
 
             if (!apiKey || !apiSecret || !passphrase) {
-                statusIndicator.style.background = '#FF4444';
-                statusText.textContent = 'No API credentials configured';
-                statusText.style.color = '#FF4444';
-                alert('⚠️ Please configure your Bitget API credentials (including passphrase) on the Exchange Connections page first.');
+                console.log('💜 [BITGET] No API credentials - skipping auto-fetch');
                 return;
             }
 
-            statusIndicator.style.background = '#FFA500';
-            statusText.textContent = 'Testing connection...';
-            statusText.style.color = '#FFA500';
-
             try {
-                const response = await fetch('/api/v1/trading/bitget/triangular/test-connection', {
+                const response = await fetch('/api/v1/trading/bitget/balance', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ apiKey, apiSecret, passphrase })
+                    body: JSON.stringify({ apiKey, apiSecret, passphrase, currency: 'USDT' })
                 });
 
                 const data = await response.json();
 
                 if (data.success) {
-                    statusIndicator.style.background = '#00FF00';
-                    statusText.textContent = `✅ Connected - ${data.data?.balances?.length || 0} assets`;
-                    statusText.style.color = '#00FF00';
-                } else {
-                    statusIndicator.style.background = '#FF4444';
-                    statusText.textContent = '❌ Connection Failed';
-                    statusText.style.color = '#FF4444';
-                    alert(`Connection failed: ${data.message}`);
+                    const balance = Number(data.balance) || 0;
+
+                    if (!bitgetBalanceTracking.initialized) {
+                        bitgetBalanceTracking.starting = balance;
+                        bitgetBalanceTracking.current = balance;
+                        bitgetBalanceTracking.initialized = true;
+                        console.log(`💜 [BITGET] Balance initialized: ${balance} USDT`);
+                    } else {
+                        bitgetBalanceTracking.current = balance;
+                    }
+
+                    updateBitgetBalanceDisplay();
                 }
             } catch (error) {
-                statusIndicator.style.background = '#FF4444';
-                statusText.textContent = '❌ Connection Error';
-                statusText.style.color = '#FF4444';
+                console.error('💜 [BITGET] Auto-fetch failed:', error);
+            }
+        }
+
+        async function updateBitgetBalance() {
+            const apiKey = localStorage.getItem('bitget_api') || '';
+            const apiSecret = localStorage.getItem('bitget_secret') || '';
+            const passphrase = localStorage.getItem('bitget_passphrase') || '';
+
+            if (!apiKey || !apiSecret || !passphrase) {
+                alert('⚠️ Please configure your Bitget API credentials (including passphrase) on the Exchange Connections page first.');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/v1/trading/bitget/balance', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ apiKey, apiSecret, passphrase, currency: 'USDT' })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    const balance = Number(data.balance) || 0;
+
+                    if (!bitgetBalanceTracking.initialized) {
+                        bitgetBalanceTracking.starting = balance;
+                        bitgetBalanceTracking.initialized = true;
+                    }
+
+                    bitgetBalanceTracking.current = balance;
+                    updateBitgetBalanceDisplay();
+                    alert(`✅ Bitget USDT Balance Updated\n\nCurrent: ${balance.toFixed(2)} USDT`);
+                } else {
+                    alert(`Balance fetch failed: ${data.message}`);
+                }
+            } catch (error) {
+                console.error('Bitget balance error:', error);
                 alert(`Error: ${error.message}`);
             }
         }
 
-        // View Bitget Path Details
-        function viewBitgetPathDetails() {
-            const pathDetails = `
-📋 BITGET Triangular Arbitrage Paths (32 Total)
+        function updateBitgetBalanceDisplay() {
+            const starting = Number(bitgetBalanceTracking.starting) || 0;
+            const current = Number(bitgetBalanceTracking.current) || 0;
+            const change = current - starting;
+            const changePercent = starting > 0 ? ((change / starting) * 100) : 0;
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 1: Essential ETH Bridge (7 paths) ✅ DEFAULT
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. USDT → ETH → BTC → USDT
-2. USDT → ETH → SOL → USDT
-3. USDT → ETH → XRP → USDT
-4. USDT → ETH → ADA → USDT
-5. USDT → ETH → DOT → USDT
-6. USDT → ETH → MATIC → USDT
-7. USDT → ETH → LINK → USDT
+            document.getElementById('bitgetStartingUSDT').textContent = `${starting.toFixed(2)} USDT`;
+            document.getElementById('bitgetCurrentUSDT').textContent = `${current.toFixed(2)} USDT`;
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 2: Mid-Cap BTC Bridge (7 paths) ✅ DEFAULT
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. USDT → BTC → ETH → USDT
-2. USDT → BTC → SOL → USDT
-3. USDT → BTC → AVAX → USDT
-4. USDT → BTC → ATOM → USDT
-5. USDT → BTC → LTC → USDT
-6. USDT → BTC → UNI → USDT
-7. USDT → BTC → FIL → USDT
+            const changeDisplay = document.getElementById('bitgetChangeUSDT');
+            const changeSign = change >= 0 ? '+' : '';
+            const changeColor = change >= 0 ? '#00d26a' : '#FF4444';
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 3: SOL High-Liquidity (6 paths)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. USDT → SOL → BTC → USDT
-2. USDT → SOL → ETH → USDT
-3. USDT → SOL → XRP → USDT
-4. USDT → SOL → ADA → USDT
-5. USDT → SOL → DOT → USDT
-6. USDT → SOL → AVAX → USDT
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 4: High Volatility (6 paths)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. USDT → DOGE → BTC → USDT
-2. USDT → SHIB → ETH → USDT
-3. USDT → PEPE → ETH → USDT
-4. USDT → NEAR → BTC → USDT
-5. USDT → APT → ETH → USDT
-6. USDT → FTM → BTC → USDT
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 5: Extended Multi-Bridge (6 paths)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. USDT → TRX → BTC → USDT
-2. USDT → ALGO → ETH → USDT
-3. USDT → VET → BTC → USDT
-4. USDT → HBAR → ETH → USDT
-5. USDT → BGB → BTC → USDT (Native token)
-6. USDT → BTC → ETH → SOL → USDT (4-leg)
-
-💡 TOTAL: 32 paths (31 three-leg + 1 four-leg)
-🌉 BRIDGE: USDT (Tether)
-🌍 GLOBAL: Multi-asset derivatives platform
-🔐 AUTH: API Key + Secret + Passphrase
-            `.trim();
-
-            alert(pathDetails);
-            console.log('📋 [BITGET] Path details displayed:', pathDetails);
+            changeDisplay.textContent = `${changeSign}${change.toFixed(2)} USDT (${changeSign}${changePercent.toFixed(2)}%)`;
+            changeDisplay.style.color = changeColor;
         }
 
-        // Scan Bitget Triangular Paths
+        function resetBitgetStartingBalance() {
+            if (!confirm('Reset starting balance to current balance?\n\nThis will reset your P&L tracking.')) {
+                return;
+            }
+
+            bitgetBalanceTracking.starting = bitgetBalanceTracking.current;
+            updateBitgetBalanceDisplay();
+            alert('✅ Bitget starting balance reset!');
+        }
+
+        // 5. Clear Bitget History
+        function clearBitgetHistory() {
+            if (!confirm('Clear all Bitget opportunity history?')) {
+                return;
+            }
+
+            document.getElementById('bitgetOpportunities').innerHTML = '';
+            document.getElementById('bitgetScanStatus').innerHTML = '';
+            window.bitgetCurrentOpportunities = [];
+            alert('✅ Bitget opportunity history cleared!');
+        }
+
+        // 6. Scan Bitget Triangular Paths
         async function scanBitgetTriangularPaths() {
             const apiKey = localStorage.getItem('bitget_api') || '';
             const apiSecret = localStorage.getItem('bitget_secret') || '';
             const passphrase = localStorage.getItem('bitget_passphrase') || '';
-            const minProfitPercent = parseFloat(document.getElementById('bitgetProfitThreshold').value);
-            const scanStatus = document.getElementById('bitgetScanStatus');
-            const opportunitiesDiv = document.getElementById('bitgetOpportunities');
+            const maxTradeAmount = parseFloat(document.getElementById('bitgetMaxTrade').value) || 1000;
+            const portfolioPercent = parseFloat(document.getElementById('bitgetPortfolioPercent').value) || 10;
+            const profitThreshold = parseFloat(document.getElementById('bitgetProfitThreshold').value) || 0.5;
 
             if (!apiKey || !apiSecret || !passphrase) {
                 alert('⚠️ Please configure your Bitget API credentials (including passphrase) on the Exchange Connections page first.');
                 return;
             }
 
-            scanStatus.textContent = '🔄 Scanning 32 triangular paths...';
-            scanStatus.style.color = '#FFA500';
-            opportunitiesDiv.innerHTML = '<div style="text-align: center; color: #888; padding: 20px;">Scanning for opportunities...</div>';
+            const scanButton = event.target;
+            const originalText = scanButton.textContent;
+            scanButton.textContent = '⏳ Scanning...';
+            scanButton.disabled = true;
+
+            const enabledSets = {};
+            for (let i = 1; i <= 5; i++) {
+                const checkbox = document.getElementById(`bitgetSet${i}Enabled`);
+                enabledSets[`SET_${i}`] = checkbox ? checkbox.checked : false;
+            }
 
             try {
-                const enabledSets = [];
-                for (let i = 1; i <= 5; i++) {
-                    const checkbox = document.getElementById(`bitgetSet${i}Enabled`);
-                    if (checkbox && checkbox.checked) {
-                        enabledSets.push(`SET_${i}`);
-                    }
-                }
-
                 const response = await fetch('/api/v1/trading/bitget/triangular/scan', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ apiKey, apiSecret, passphrase, minProfitPercent, enabledSets })
+                    body: JSON.stringify({
+                        apiKey,
+                        apiSecret,
+                        passphrase,
+                        maxTradeAmount,
+                        portfolioPercent,
+                        profitThreshold,
+                        enabledSets
+                    })
                 });
 
-                const data = await response.json();
+                const result = await response.json();
 
-                if (data.success) {
-                    scanStatus.textContent = `✅ Found ${data.opportunities.length} opportunities (scanned ${data.scannedPaths} paths)`;
-                    scanStatus.style.color = '#00FF00';
-
-                    if (data.opportunities.length > 0) {
-                        let opportunitiesHtml = '<div style="display: grid; gap: 15px;">';
-
-                        data.opportunities.forEach((opp, index) => {
-                            const profitColor = parseFloat(opp.profitPercent) >= 0.5 ? '#00FF00' : '#FFA500';
-
-                            opportunitiesHtml += `
-                                <div style="padding: 15px; background: rgba(138,43,226,0.1); border-radius: 10px; border: 2px solid #8A2BE2;">
-                                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
-                                        <div>
-                                            <div style="color: #8A2BE2; font-weight: 600; margin-bottom: 5px;">${opp.id}</div>
-                                            <div style="color: #ddd; margin-bottom: 5px;">${opp.description}</div>
-                                            <div style="color: #888; font-size: 14px;">Path: ${opp.path.join(' → ')}</div>
-                                        </div>
-                                        <div style="text-align: right;">
-                                            <div style="color: ${profitColor}; font-size: 24px; font-weight: 700;">${opp.profitPercent}%</div>
-                                            <div style="color: #888; font-size: 14px;">~$${opp.estimatedProfit} profit</div>
-                                        </div>
-                                    </div>
-                                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #444;">
-                                        <div style="color: #888; font-size: 12px; margin-bottom: 5px;">Pairs: ${opp.pairs.join(', ')}</div>
-                                        <button onclick="executeBitgetTriangularTrade('${opp.id}')" style="width: 100%; padding: 8px; background: #8A2BE2; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; margin-top: 10px;">
-                                            💜 Execute Trade
-                                        </button>
-                                    </div>
-                                </div>
-                            `;
-                        });
-
-                        opportunitiesHtml += '</div>';
-                        opportunitiesDiv.innerHTML = opportunitiesHtml;
-                    } else {
-                        opportunitiesDiv.innerHTML = '<div style="text-align: center; color: #888; padding: 20px;">No profitable opportunities found. Try lowering the profit threshold.</div>';
-                    }
+                if (result.success) {
+                    displayBitgetOpportunities(result);
                 } else {
-                    scanStatus.textContent = '❌ Scan failed';
-                    scanStatus.style.color = '#FF4444';
-                    opportunitiesDiv.innerHTML = `<div style="text-align: center; color: #FF4444; padding: 20px;">${data.message}</div>`;
+                    alert(`Scan failed: ${result.message}`);
                 }
             } catch (error) {
-                scanStatus.textContent = '❌ Scan error';
-                scanStatus.style.color = '#FF4444';
-                opportunitiesDiv.innerHTML = `<div style="text-align: center; color: #FF4444; padding: 20px;">Error: ${error.message}</div>`;
+                console.error('Bitget scan error:', error);
+                alert(`Error: ${error.message}`);
+            } finally {
+                scanButton.textContent = originalText;
+                scanButton.disabled = false;
             }
         }
 
-        // Execute Bitget Triangular Trade
-        async function executeBitgetTriangularTrade(pathId) {
+        function displayBitgetOpportunities(result) {
+            const opportunitiesDiv = document.getElementById('bitgetOpportunities');
+            const scanStatus = document.getElementById('bitgetScanStatus');
+
+            scanStatus.innerHTML = `
+                <div style="color: #8A2BE2; font-weight: 600; margin-bottom: 10px;">
+                    ✅ Scan Complete: ${result.scanned} paths scanned, ${result.profitableCount} profitable (>${result.profitThreshold || 0.5}%)
+                </div>
+            `;
+
+            if (result.opportunities.length === 0) {
+                opportunitiesDiv.innerHTML = '<div style="color: #888; padding: 20px; text-align: center;">No profitable opportunities found at this time</div>';
+                return;
+            }
+
+            let html = '<div style="display: grid; gap: 12px;">';
+
+            result.opportunities.forEach((opp, index) => {
+                const profitColor = parseFloat(opp.profitPercent) > 1 ? '#00ff88' : '#8A2BE2';
+
+                html += `
+                    <div style="background: rgba(138,43,226,0.1); padding: 15px; border-radius: 10px; border-left: 4px solid ${profitColor};">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <div>
+                                <div style="color: white; font-weight: 600; font-size: 14px; margin-bottom: 5px;">
+                                    ${opp.path.join(' → ')}
+                                </div>
+                                <div style="color: #b8c6db; font-size: 12px;">
+                                    ${opp.description}
+                                </div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="color: ${profitColor}; font-weight: 700; font-size: 18px;">
+                                    +${opp.profitPercent}%
+                                </div>
+                                <div style="color: #b8c6db; font-size: 12px;">
+                                    +$${opp.profitAmount.toFixed(2)}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 10px; font-size: 12px;">
+                            <div style="color: #888;">Initial: <span style="color: white;">$${opp.initialAmount.toFixed(2)}</span></div>
+                            <div style="color: #888;">Final: <span style="color: white;">$${opp.finalAmount.toFixed(2)}</span></div>
+                            <div style="color: #888;">Fees: <span style="color: white;">$${opp.totalFees.toFixed(2)}</span></div>
+                            <div style="color: #888;">Time: <span style="color: white;">${new Date(opp.timestamp).toLocaleTimeString()}</span></div>
+                        </div>
+
+                        <button onclick="executeBitgetTriangularTrade(${index})"
+                                style="width: 100%; padding: 8px; background: linear-gradient(135deg, #8A2BE2, #9370DB); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px;">
+                            ⚡ Execute Trade
+                        </button>
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+            opportunitiesDiv.innerHTML = html;
+
+            // Store opportunities for execution
+            window.bitgetCurrentOpportunities = result.opportunities;
+        }
+
+        // 7. Execute Bitget Triangular Trade
+        async function executeBitgetTriangularTrade(index) {
+            const opportunity = window.bitgetCurrentOpportunities[index];
+            if (!opportunity) {
+                alert('Opportunity data not found');
+                return;
+            }
+
             const apiKey = localStorage.getItem('bitget_api') || '';
             const apiSecret = localStorage.getItem('bitget_secret') || '';
             const passphrase = localStorage.getItem('bitget_passphrase') || '';
-            const maxTrade = parseFloat(document.getElementById('bitgetMaxTrade').value);
             const userId = localStorage.getItem('userId');
 
-            if (!confirm(`⚠️ Execute triangular arbitrage trade?\n\nPath: ${pathId}\nAmount: ${maxTrade} USDT\n\nThis will execute real trades on Bitget.`)) {
+            if (!userId) {
+                alert('User not logged in');
+                return;
+            }
+
+            if (!confirm(`Execute Bitget triangular trade?\n\nPath: ${opportunity.path.join(' → ')}\nExpected Profit: +${opportunity.profitPercent}% ($${opportunity.profitAmount.toFixed(2)})\n\nThis will execute real trades!`)) {
                 return;
             }
 
             try {
                 const response = await fetch('/api/v1/trading/bitget/triangular/execute', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ apiKey, apiSecret, passphrase, pathId, amount: maxTrade, userId })
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    },
+                    body: JSON.stringify({
+                        apiKey,
+                        apiSecret,
+                        passphrase,
+                        userId,
+                        opportunity,
+                        dryRun: false
+                    })
                 });
 
-                const data = await response.json();
+                const result = await response.json();
 
-                if (data.success) {
-                    alert(`✅ Trade executed successfully!\n\nProfit: $${data.execution.profit.toFixed(2)} (${data.execution.profitPercent.toFixed(3)}%)\nFinal Amount: ${data.execution.finalAmount.toFixed(2)} USDT`);
-
-                    // Refresh opportunities and history
-                    scanBitgetTriangularPaths();
+                if (result.success) {
+                    alert(`✅ Bitget Trade Executed!\n\nPath: ${opportunity.path.join(' → ')}\nActual Profit: ${result.actualProfitZAR} USDT (${result.actualProfitPercent}%)\nExecution Time: ${result.executionTime}ms\n\nTrade ID: ${result.tradeId}`);
                     loadBitgetTradeHistory();
+                    updateBitgetBalance(); // Refresh balance after trade
+                    scanBitgetTriangularPaths(); // Refresh opportunities
                 } else {
-                    alert(`❌ Trade execution failed:\n\n${data.message}`);
+                    throw new Error(result.message);
                 }
             } catch (error) {
-                alert(`❌ Trade execution error:\n\n${error.message}`);
+                console.error('Bitget execution error:', error);
+                alert(`❌ Bitget Trade Failed\n\n${error.message}`);
             }
         }
 
-        // Save Bitget Settings
-        function saveBitgetTriangularSettings() {
-            const settings = {
-                maxTrade: document.getElementById('bitgetMaxTrade').value,
-                portfolioPercent: document.getElementById('bitgetPortfolioPercent').value,
-                profitThreshold: document.getElementById('bitgetProfitThreshold').value,
-                set1Enabled: document.getElementById('bitgetSet1Enabled').checked,
-                set2Enabled: document.getElementById('bitgetSet2Enabled').checked,
-                set3Enabled: document.getElementById('bitgetSet3Enabled').checked,
-                set4Enabled: document.getElementById('bitgetSet4Enabled').checked,
-                set5Enabled: document.getElementById('bitgetSet5Enabled').checked
-            };
-            localStorage.setItem('bitget_triangular_settings', JSON.stringify(settings));
-            console.log('💜 [BITGET] Settings saved:', settings);
-        }
-
-        // Load Bitget Settings
-        function loadBitgetTriangularSettings() {
-            try {
-                const saved = localStorage.getItem('bitget_triangular_settings');
-                if (saved) {
-                    const settings = JSON.parse(saved);
-
-                    if (settings.maxTrade) document.getElementById('bitgetMaxTrade').value = settings.maxTrade;
-                    if (settings.portfolioPercent) document.getElementById('bitgetPortfolioPercent').value = settings.portfolioPercent;
-                    if (settings.profitThreshold) document.getElementById('bitgetProfitThreshold').value = settings.profitThreshold;
-
-                    if (settings.set1Enabled !== undefined) document.getElementById('bitgetSet1Enabled').checked = settings.set1Enabled;
-                    if (settings.set2Enabled !== undefined) document.getElementById('bitgetSet2Enabled').checked = settings.set2Enabled;
-                    if (settings.set3Enabled !== undefined) document.getElementById('bitgetSet3Enabled').checked = settings.set3Enabled;
-                    if (settings.set4Enabled !== undefined) document.getElementById('bitgetSet4Enabled').checked = settings.set4Enabled;
-                    if (settings.set5Enabled !== undefined) document.getElementById('bitgetSet5Enabled').checked = settings.set5Enabled;
-
-                    console.log('💜 [BITGET] Settings loaded:', settings);
-                }
-            } catch (error) {
-                console.error('💜 [BITGET] Error loading settings:', error);
-            }
-        }
-
-        // Load Bitget Trade History
+        // 8. Load Bitget Trade History
         async function loadBitgetTradeHistory() {
-            const userId = localStorage.getItem('userId');
-
-            if (!userId) {
-                return;
-            }
-
             try {
+                const userId = localStorage.getItem('userId');
+                if (!userId) return;
+
                 const response = await fetch('/api/v1/trading/bitget/triangular/history', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId, limit: 20 })
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    },
+                    body: JSON.stringify({ userId, limit: 10 })
                 });
 
-                const data = await response.json();
+                const result = await response.json();
 
-                if (data.success && data.trades.length > 0) {
+                if (result.success && result.trades.length > 0) {
                     let historyHtml = '<div style="display: grid; gap: 10px;">';
 
-                    data.trades.forEach(trade => {
-                        const profitColor = trade.profit >= 0 ? '#00FF00' : '#FF4444';
+                    result.trades.forEach(trade => {
+                        const statusColor = trade.execution_status === 'completed' ? '#8A2BE2' : '#FF4444';
+                        const profitColor = parseFloat(trade.actual_profit_zar || 0) > 0 ? '#00ff88' : '#FF4444';
 
                         historyHtml += `
-                            <div style="padding: 12px; background: rgba(0,0,0,0.3); border-radius: 8px; border-left: 3px solid ${profitColor};">
-                                <div style="display: flex; justify-content: space-between; align-items: center;">
-                                    <div>
-                                        <div style="color: #8A2BE2; font-weight: 600;">${trade.path_id}</div>
-                                        <div style="color: #888; font-size: 12px;">${trade.path_description}</div>
-                                    </div>
-                                    <div style="text-align: right;">
-                                        <div style="color: ${profitColor}; font-weight: 600;">${trade.profit_percent?.toFixed(3)}%</div>
-                                        <div style="color: #888; font-size: 12px;">$${trade.profit?.toFixed(2)}</div>
-                                    </div>
+                            <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; border-left: 3px solid ${statusColor};">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                                    <span style="color: white; font-weight: 600; font-size: 13px;">${trade.path_sequence}</span>
+                                    <span style="color: ${profitColor}; font-weight: 600;">${trade.actual_profit_zar ? '+' + trade.actual_profit_zar : '—'} USDT</span>
                                 </div>
                                 <div style="color: #888; font-size: 12px;">${new Date(trade.created_at).toLocaleString()}</div>
                             </div>
@@ -15115,22 +15384,44 @@ SET 5: Extended Multi-Bridge (6 paths)
             }
         }
 
-        // Initialize Bitget settings on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('💜 [BITGET] Initializing triangular arbitrage settings...');
-            loadBitgetTriangularSettings();
+        // 9. Settings Management
+        function saveBitgetTriangularSettings() {
+            const maxTrade = document.getElementById('bitgetMaxTrade').value;
+            const portfolioPercent = document.getElementById('bitgetPortfolioPercent').value;
+            const profitThreshold = document.getElementById('bitgetProfitThreshold').value;
 
-            const bitgetInputs = document.querySelectorAll('#bitgetMaxTrade, #bitgetPortfolioPercent, #bitgetProfitThreshold');
-            bitgetInputs.forEach(input => {
-                input.addEventListener('change', saveBitgetTriangularSettings);
-            });
+            localStorage.setItem('bitget_triangular_maxTrade', maxTrade);
+            localStorage.setItem('bitget_triangular_portfolioPercent', portfolioPercent);
+            localStorage.setItem('bitget_triangular_profitThreshold', profitThreshold);
 
             for (let i = 1; i <= 5; i++) {
                 const checkbox = document.getElementById(`bitgetSet${i}Enabled`);
                 if (checkbox) {
-                    checkbox.addEventListener('change', saveBitgetTriangularSettings);
+                    localStorage.setItem(`bitget_triangular_set${i}`, checkbox.checked);
                 }
             }
+        }
+
+        function loadBitgetTriangularSettings() {
+            document.getElementById('bitgetMaxTrade').value = localStorage.getItem('bitget_triangular_maxTrade') || '1000';
+            document.getElementById('bitgetPortfolioPercent').value = localStorage.getItem('bitget_triangular_portfolioPercent') || '10';
+            document.getElementById('bitgetProfitThreshold').value = localStorage.getItem('bitget_triangular_profitThreshold') || '0.5';
+
+            for (let i = 1; i <= 5; i++) {
+                const checkbox = document.getElementById(`bitgetSet${i}Enabled`);
+                if (checkbox) {
+                    const saved = localStorage.getItem(`bitget_triangular_set${i}`);
+                    checkbox.checked = saved === 'true' || (saved === null && i <= 2);
+                }
+            }
+        }
+
+        // 10. Initialize Bitget on DOMContentLoaded
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('💜 [BITGET] Initializing triangular arbitrage...');
+            loadBitgetTriangularSettings();
+            initializeBitgetBalance();
+            switchBitgetTab('balance');
         });
 
         // ============================================================================
