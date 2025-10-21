@@ -2062,100 +2062,168 @@
 
         <!-- Gate.io Exchange -->
         <div style="background: rgba(23,199,132,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 2px solid #17C784;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <!-- Header with toggle -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <h3 style="color: #17C784; margin: 0;">🌿 GATE.IO Triangular Arbitrage</h3>
-                <div style="display: flex; align-items: center; gap: 15px;">
-                    <span style="color: #b8c6db; font-size: 0.9rem;">Live Trading:</span>
-                    <div class="toggle-switch" id="gateioTriangularEnabled">
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <span style="color: #b8c6db; font-size: 0.9rem;">Gate.io Live Trading:</span>
+                    <div class="toggle-switch" id="gateioTriangularEnabled" onclick="toggleGateioTriangular()">
                         <div class="toggle-knob"></div>
                     </div>
-                    <span id="gateioTriangularStatus" style="color: #ff6b6b; font-weight: 600; font-size: 0.9rem;">OFF</span>
+                    <span id="gateioTriangularStatus" style="color: #ff6b6b; font-size: 0.9rem; margin-left: 10px;">OFF</span>
                 </div>
             </div>
-            <p style="color: #888; margin: 0 0 10px 0; font-size: 14px;">
-                3,800+ trading pairs | USDT bridge | GT native token | HMAC-SHA512 authentication
-            </p>
 
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 20px;">
-                <!-- Status Card -->
-                <div class="stat-card">
-                    <h4 style="color: #17C784; margin-bottom: 15px;">📊 Status</h4>
-                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-                        <div id="gateioStatusIndicator" style="width: 12px; height: 12px; border-radius: 50%; background: #666;"></div>
-                        <span id="gateioStatusText" style="color: #888;">Not Connected</span>
-                    </div>
-                    <div style="margin-top: 15px; display: flex; gap: 10px;">
-                        <button onclick="testGateioTriangularConnection()" style="flex: 1; padding: 10px; background: #17C784; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
-                            Test Connection
-                        </button>
-                        <button onclick="viewGateioPathDetails()" style="flex: 1; padding: 10px; background: rgba(23,199,132,0.2); color: #17C784; border: 1px solid #17C784; border-radius: 8px; cursor: pointer; font-weight: 600;">
-                            View Paths
-                        </button>
-                    </div>
+            <!-- FUNDING REQUIREMENTS Info Banner -->
+            <div style="background: rgba(23,199,132,0.15); border: 2px solid #17C784; border-radius: 10px; padding: 20px; margin-bottom: 20px;">
+                <div style="text-align: center;">
+                    <h4 style="color: #17C784; margin: 0 0 10px 0; font-size: 1.2rem;">💰 Funding Requirements for Maximum Coverage</h4>
+                    <p style="color: #b8c6db; margin: 0 0 15px 0; font-size: 0.95rem;">
+                        Gate.io supports <strong style="color: #17C784;">32 triangular arbitrage paths</strong> across <strong>1 fundable currency</strong>.
+                    </p>
                 </div>
 
+                <!-- USDT Currency Details -->
+                <div style="background: rgba(23,199,132,0.1); border-left: 4px solid #17C784; padding: 15px; border-radius: 8px; margin-top: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <h5 style="color: #17C784; margin: 0; font-size: 1.1rem;">💵 USDT (Tether)</h5>
+                        <span style="background: #17C784; color: white; padding: 4px 12px; border-radius: 12px; font-weight: 600; font-size: 0.9rem;">32 paths</span>
+                    </div>
+                    <p style="color: #b8c6db; margin: 10px 0; font-size: 0.9rem;">
+                        <strong>Required for:</strong> All 32 triangular arbitrage paths (5 sets total)
+                    </p>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; font-size: 0.85rem; color: #b8c6db;">
+                        <div>• <strong style="color: #17C784;">SET 1:</strong> ETH Bridge (7 paths)</div>
+                        <div>• <strong style="color: #17C784;">SET 2:</strong> BTC Bridge (7 paths)</div>
+                        <div>• <strong style="color: #17C784;">SET 3:</strong> GT Native (6 paths)</div>
+                        <div>• <strong style="color: #17C784;">SET 4:</strong> High Volatility (6 paths)</div>
+                        <div style="grid-column: 1 / -1;">• <strong style="color: #17C784;">SET 5:</strong> Extended Multi-Bridge (6 paths, includes 2 four-leg paths)</div>
+                    </div>
+                    <p style="color: #888; margin: 15px 0 0 0; font-size: 0.8rem; font-style: italic;">
+                        💡 Recommended minimum: Fund USDT on Gate.io for maximum arbitrage coverage
+                    </p>
+                </div>
+            </div>
+
+            <!-- Settings Grid: Risk Management, Path Sets, Performance Stats -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 20px;">
                 <!-- Risk Management -->
                 <div class="stat-card">
                     <h4 style="color: #17C784; margin-bottom: 15px;">⚖️ Risk Management</h4>
                     <label style="display: block; color: #888; margin-bottom: 5px; font-size: 14px;">Max Trade Amount (USDT)</label>
-                    <input type="number" id="gateioMaxTrade" value="100" min="10" max="10000" step="10" style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid #444; border-radius: 8px; color: white; margin-bottom: 15px;">
+                    <input type="number" id="gateioMaxTrade" value="1000" min="10" max="10000" step="10" style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid #444; border-radius: 8px; color: white; margin-bottom: 15px;" onchange="saveGateioTriangularSettings()">
 
                     <label style="display: block; color: #888; margin-bottom: 5px; font-size: 14px;">Portfolio % Risk</label>
-                    <input type="number" id="gateioPortfolioPercent" value="5" min="1" max="20" step="1" style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid #444; border-radius: 8px; color: white; margin-bottom: 15px;">
+                    <input type="number" id="gateioPortfolioPercent" value="10" min="1" max="100" step="1" style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid #444; border-radius: 8px; color: white; margin-bottom: 15px;" onchange="saveGateioTriangularSettings()">
 
                     <label style="display: block; color: #888; margin-bottom: 5px; font-size: 14px;">Min Profit Threshold (%)</label>
-                    <input type="number" id="gateioProfitThreshold" value="0.3" min="0.1" max="5" step="0.1" style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid #444; border-radius: 8px; color: white;">
+                    <input type="number" id="gateioProfitThreshold" value="0.5" min="0.1" max="5" step="0.1" style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid #444; border-radius: 8px; color: white;" onchange="saveGateioTriangularSettings()">
                 </div>
 
-                <!-- Path Sets -->
+                <!-- Path Sets - Compact Grid -->
                 <div class="stat-card">
-                    <h4 style="color: #17C784; margin-bottom: 15px;">🔀 Path Selection (32 Total)</h4>
-                    <div style="display: flex; flex-direction: column; gap: 10px;">
-                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                            <input type="checkbox" id="gateioSet1Enabled" checked style="width: 18px; height: 18px; cursor: pointer;">
-                            <span style="color: #ddd;">✅ SET 1: Essential ETH Bridge (7 paths)</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                            <input type="checkbox" id="gateioSet2Enabled" checked style="width: 18px; height: 18px; cursor: pointer;">
-                            <span style="color: #ddd;">✅ SET 2: Mid-Cap BTC Bridge (7 paths)</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                            <input type="checkbox" id="gateioSet3Enabled" style="width: 18px; height: 18px; cursor: pointer;">
-                            <span style="color: #ddd;">🌿 SET 3: GT Native Bridge (6 paths)</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                            <input type="checkbox" id="gateioSet4Enabled" style="width: 18px; height: 18px; cursor: pointer;">
-                            <span style="color: #ddd;">⚡ SET 4: High Volatility (6 paths)</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                            <input type="checkbox" id="gateioSet5Enabled" style="width: 18px; height: 18px; cursor: pointer;">
-                            <span style="color: #ddd;">🔁 SET 5: Extended Multi-Bridge (6 paths)</span>
-                        </label>
+                    <h4 style="color: #17C784; margin-bottom: 15px;">📊 Path Sets (32 Paths in 5 Sets)</h4>
+                    <div style="display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center;">
+                        <span style="color: #17C784; font-size: 0.85rem;">SET 1: ETH Bridge (7 paths)</span>
+                        <input type="checkbox" id="gateioSet1Enabled" checked onchange="saveGateioTriangularSettings()">
+
+                        <span style="color: #17C784; font-size: 0.85rem;">SET 2: BTC Bridge (7 paths)</span>
+                        <input type="checkbox" id="gateioSet2Enabled" checked onchange="saveGateioTriangularSettings()">
+
+                        <span style="color: #888; font-size: 0.85rem;">SET 3: GT Native (6 paths)</span>
+                        <input type="checkbox" id="gateioSet3Enabled" onchange="saveGateioTriangularSettings()">
+
+                        <span style="color: #888; font-size: 0.85rem;">SET 4: High Volatility (6 paths)</span>
+                        <input type="checkbox" id="gateioSet4Enabled" onchange="saveGateioTriangularSettings()">
+
+                        <span style="color: #888; font-size: 0.85rem;">SET 5: Extended Multi (6 paths)</span>
+                        <input type="checkbox" id="gateioSet5Enabled" onchange="saveGateioTriangularSettings()">
                     </div>
                 </div>
 
-                <!-- Scanner Controls -->
+                <!-- Performance Stats -->
                 <div class="stat-card">
-                    <h4 style="color: #17C784; margin-bottom: 15px;">🔍 Scanner</h4>
-                    <button onclick="scanGateioTriangularPaths()" style="width: 100%; padding: 12px; background: #17C784; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 16px; margin-bottom: 15px;">
-                        🔍 Scan Opportunities
+                    <h4 style="color: #17C784; margin-bottom: 15px;">📈 Performance Stats</h4>
+                    <div style="display: grid; grid-template-columns: 1fr auto; gap: 10px; font-size: 0.9rem;">
+                        <span style="color: #b8c6db;">Total Trades:</span>
+                        <span style="color: #17C784;" id="gateioTotalTrades">0</span>
+
+                        <span style="color: #b8c6db;">Success Rate:</span>
+                        <span style="color: #17C784;" id="gateioSuccessRate">0%</span>
+
+                        <span style="color: #b8c6db;">Avg Profit:</span>
+                        <span style="color: #17C784;" id="gateioAvgProfit">$0.00</span>
+
+                        <span style="color: #b8c6db;">Total Profit:</span>
+                        <span style="color: #17C784;" id="gateioTotalProfit">$0.00</span>
+
+                        <span style="color: #b8c6db;">Best Path:</span>
+                        <span style="color: #17C784; font-size: 0.75rem;" id="gateioBestPath">-</span>
+
+                        <span style="color: #b8c6db;">Last Scan:</span>
+                        <span style="color: #888; font-size: 0.75rem;" id="gateioLastScan">Never</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gate.io Control Buttons -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                <button onclick="testGateioTriangularConnection()" class="btn" disabled style="opacity: 0.4; cursor: not-allowed;">
+                    🔍 Test Connection
+                </button>
+                <button onclick="scanGateioTriangularPaths()" class="btn" disabled style="opacity: 0.4; cursor: not-allowed;">
+                    🔍 Scan Opportunities
+                </button>
+                <button onclick="viewGateioPathDetails()" class="btn">
+                    📊 View Paths
+                </button>
+                <button onclick="clearGateioTriangularHistory()" class="btn" disabled style="opacity: 0.4; cursor: not-allowed;">
+                    🗑️ Clear History
+                </button>
+            </div>
+
+            <!-- Tabbed Interface: Balance Tracker & Trading -->
+            <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px;">
+                <!-- Tab Headers -->
+                <div style="display: flex; gap: 10px; margin-bottom: 15px; border-bottom: 2px solid rgba(23,199,132,0.3);">
+                    <button id="gateioBalanceTab" onclick="switchGateioTab('balance')" style="flex: 1; padding: 10px; background: rgba(23,199,132,0.3); border: none; border-radius: 8px 8px 0 0; color: #17C784; font-weight: bold; cursor: pointer; transition: all 0.3s;">
+                        💰 Balance Tracker
                     </button>
-                    <div id="gateioScanStatus" style="color: #888; font-size: 14px; text-align: center; min-height: 20px;"></div>
+                    <button id="gateioTradingTab" onclick="switchGateioTab('trading')" style="flex: 1; padding: 10px; background: rgba(255,255,255,0.05); border: none; border-radius: 8px 8px 0 0; color: #b8c6db; cursor: pointer; transition: all 0.3s;">
+                        💎 Current Opportunities
+                    </button>
                 </div>
 
-                <!-- Opportunities Display -->
-                <div class="stat-card" style="grid-column: 1 / -1;">
-                    <h4 style="color: #17C784; margin-bottom: 15px;">💎 Active Opportunities</h4>
-                    <div id="gateioOpportunities" style="color: #888; font-size: 14px;">
-                        No scan results yet. Click "Scan Opportunities" to begin.
+                <!-- Balance Tracker Tab Content -->
+                <div id="gateioBalanceContent" style="display: block;">
+                    <h4 style="color: #17C784; margin-bottom: 15px;">💰 USDT Balance Tracking</h4>
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 12px;">
+                        <div style="background: rgba(23,199,132,0.1); padding: 12px; border-radius: 8px; border-left: 4px solid #17C784;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; font-size: 0.9rem;">
+                                <div>
+                                    <div style="color: #888; font-size: 0.8rem; margin-bottom: 5px;">Starting</div>
+                                    <div style="color: #17C784; font-weight: bold;" id="gateioStartingUSDT">$0.00</div>
+                                </div>
+                                <div>
+                                    <div style="color: #888; font-size: 0.8rem; margin-bottom: 5px;">Current</div>
+                                    <div style="color: #17C784; font-weight: bold;" id="gateioCurrentUSDT">$0.00</div>
+                                </div>
+                                <div>
+                                    <div style="color: #888; font-size: 0.8rem; margin-bottom: 5px;">Change</div>
+                                    <div style="color: #b8c6db; font-weight: bold;" id="gateioChangeUSDT">$0.00 (0.0%)</div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Trade History -->
-                <div class="stat-card" style="grid-column: 1 / -1;">
-                    <h4 style="color: #17C784; margin-bottom: 15px;">📜 Recent Trades</h4>
-                    <div id="gateioTradeHistory" style="color: #888; font-size: 14px;">
-                        No trade history available.
+                <!-- Trading Tab Content -->
+                <div id="gateioTradingContent" style="display: none;">
+                    <h4 style="color: #17C784; margin-bottom: 15px;">💎 Current Opportunities</h4>
+                    <div id="gateioOpportunities" style="max-height: 200px; overflow-y: auto;">
+                        <div style="text-align: center; color: #888; padding: 20px;">
+                            Click "Scan Opportunities" to find triangular arbitrage paths
+                        </div>
                     </div>
                 </div>
             </div>
@@ -10772,6 +10840,25 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
         // GATE.IO TRIANGULAR ARBITRAGE JAVASCRIPT FUNCTIONS
         // ============================================================================
 
+        // 0. Toggle Gate.io Triangular Trading
+        function toggleGateioTriangular() {
+            const toggle = document.getElementById('gateioTriangularEnabled');
+            const status = document.getElementById('gateioTriangularStatus');
+            const isActive = toggle.classList.toggle('active');
+
+            if (isActive) {
+                status.textContent = 'ON';
+                status.style.color = '#17C784';
+                localStorage.setItem('gateioTriangularEnabled', 'true');
+                console.log('✅ [GATE.IO] Live triangular trading enabled');
+            } else {
+                status.textContent = 'OFF';
+                status.style.color = '#ff6b6b';
+                localStorage.setItem('gateioTriangularEnabled', 'false');
+                console.log('⏸️ [GATE.IO] Live triangular trading disabled');
+            }
+        }
+
         // 1. Test Gate.io Connection
         async function testGateioTriangularConnection() {
             try {
@@ -10814,64 +10901,286 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
 
         // 2. View Gate.io Path Details
         function viewGateioPathDetails() {
-            const pathDetails = `
-📋 GATE.IO Triangular Arbitrage Paths (32 Total)
+            console.log('📋 [GATE.IO] Opening paths modal');
 
-🌿 SET 1: Essential ETH Bridge (7 paths) ✅ ENABLED BY DEFAULT
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. USDT → ETH → BTC → USDT (ETH_USDT, BTC_ETH, BTC_USDT)
-2. USDT → ETH → SOL → USDT (ETH_USDT, SOL_ETH, SOL_USDT)
-3. USDT → ETH → XRP → USDT (ETH_USDT, XRP_ETH, XRP_USDT)
-4. USDT → ETH → ADA → USDT (ETH_USDT, ADA_ETH, ADA_USDT)
-5. USDT → ETH → MATIC → USDT (ETH_USDT, MATIC_ETH, MATIC_USDT)
-6. USDT → ETH → LINK → USDT (ETH_USDT, LINK_ETH, LINK_USDT)
-7. USDT → ETH → AVAX → USDT (ETH_USDT, AVAX_ETH, AVAX_USDT)
+            // Create modal overlay
+            const modal = document.createElement('div');
+            modal.id = 'gateioPathsModal';
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.85);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 10000;
+                backdrop-filter: blur(5px);
+            `;
 
-🔷 SET 2: Mid-Cap BTC Bridge (7 paths) ✅ ENABLED BY DEFAULT
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. USDT → BTC → ETH → USDT (BTC_USDT, ETH_BTC, ETH_USDT)
-2. USDT → BTC → SOL → USDT (BTC_USDT, SOL_BTC, SOL_USDT)
-3. USDT → BTC → LTC → USDT (BTC_USDT, LTC_BTC, LTC_USDT)
-4. USDT → BTC → DOT → USDT (BTC_USDT, DOT_BTC, DOT_USDT)
-5. USDT → BTC → ATOM → USDT (BTC_USDT, ATOM_BTC, ATOM_USDT)
-6. USDT → BTC → UNI → USDT (BTC_USDT, UNI_BTC, UNI_USDT)
-7. USDT → BTC → BCH → USDT (BTC_USDT, BCH_BTC, BCH_USDT)
+            // Create modal content
+            const modalContent = document.createElement('div');
+            modalContent.style.cssText = `
+                background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+                border: 2px solid #17C784;
+                border-radius: 15px;
+                padding: 30px;
+                max-width: 900px;
+                max-height: 85vh;
+                overflow-y: auto;
+                box-shadow: 0 10px 50px rgba(23,199,132,0.3);
+                position: relative;
+            `;
 
-🌿 SET 3: GT Native Bridge (6 paths) - Gate Token
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. USDT → GT → BTC → USDT (GT_USDT, BTC_GT, BTC_USDT)
-2. USDT → GT → ETH → USDT (GT_USDT, ETH_GT, ETH_USDT)
-3. USDT → GT → SOL → USDT (GT_USDT, SOL_GT, SOL_USDT)
-4. USDT → BTC → GT → USDT (BTC_USDT, GT_BTC, GT_USDT)
-5. USDT → ETH → GT → USDT (ETH_USDT, GT_ETH, GT_USDT)
-6. USDT → GT → TRX → USDT (GT_USDT, TRX_GT, TRX_USDT)
+            modalContent.innerHTML = `
+                <!-- Header with close button -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid rgba(23,199,132,0.3); padding-bottom: 15px;">
+                    <h2 style="color: #17C784; margin: 0; font-size: 1.8rem;">📋 Gate.io Triangular Arbitrage Paths</h2>
+                    <button onclick="document.getElementById('gateioPathsModal').remove()" style="background: rgba(255,255,255,0.1); border: 1px solid #17C784; color: #17C784; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-size: 1.2rem; font-weight: bold;">✕</button>
+                </div>
 
-⚡ SET 4: High Volatility (6 paths)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. USDT → DOGE → BTC → USDT (DOGE_USDT, BTC_DOGE, BTC_USDT)
-2. USDT → SHIB → ETH → USDT (SHIB_USDT, ETH_SHIB, ETH_USDT)
-3. USDT → FTM → BTC → USDT (FTM_USDT, BTC_FTM, BTC_USDT)
-4. USDT → SAND → ETH → USDT (SAND_USDT, ETH_SAND, ETH_USDT)
-5. USDT → MANA → BTC → USDT (MANA_USDT, BTC_MANA, BTC_USDT)
-6. USDT → APE → ETH → USDT (APE_USDT, ETH_APE, ETH_USDT)
+                <!-- Info banner -->
+                <div style="background: rgba(23,199,132,0.1); padding: 15px; border-radius: 10px; margin-bottom: 25px; border-left: 4px solid #17C784;">
+                    <p style="color: #b8c6db; margin: 0; font-size: 0.95rem;">
+                        <strong style="color: #17C784;">32 Triangular Arbitrage Paths</strong> organized in 5 sets.
+                        <br><br>
+                        🌉 <strong>Bridge Currencies:</strong> ETH (Set 1), BTC (Set 2), GT (Set 3), Mixed (Sets 4-5)
+                        <br>
+                        💰 <strong>Base Currency:</strong> USDT (Tether) - Fund Gate.io with USDT only
+                        <br>
+                        💡 <strong>Default:</strong> Sets 1-2 enabled (14 paths) | Enable Sets 3-5 for 18 additional paths
+                    </p>
+                </div>
 
-🔁 SET 5: Extended Multi-Bridge (6 paths)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. USDT → SOL → ETH → USDT (SOL_USDT, ETH_SOL, ETH_USDT)
-2. USDT → XRP → BTC → USDT (XRP_USDT, BTC_XRP, BTC_USDT)
-3. USDT → TRX → BTC → USDT (TRX_USDT, BTC_TRX, BTC_USDT)
-4. USDT → ADA → BTC → USDT (ADA_USDT, BTC_ADA, BTC_USDT)
-5. USDT → BTC → ETH → SOL → USDT ⭐ 4-LEG (BTC_USDT, ETH_BTC, SOL_ETH, SOL_USDT)
-6. USDT → ETH → BTC → XRP → USDT ⭐ 4-LEG (ETH_USDT, BTC_ETH, XRP_BTC, XRP_USDT)
+                <!-- SET 1: ESSENTIAL ETH BRIDGE (7 paths) - Color: #00ffc8 -->
+                <div style="background: rgba(0,255,200,0.05); padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #00ffc8;">
+                    <h3 style="color: #00ffc8; margin: 0 0 15px 0; font-size: 1.3rem;">🌿 SET 1: Essential ETH Bridge (7 paths) ✅ ENABLED BY DEFAULT</h3>
+                    <div style="display: grid; gap: 8px; font-size: 0.9rem; color: #b8c6db;">
+                        <div>1. <strong style="color: #00ffc8;">USDT → ETH → BTC → USDT</strong> <span style="color: #888;">(ETH_USDT, BTC_ETH, BTC_USDT)</span></div>
+                        <div>2. <strong style="color: #00ffc8;">USDT → ETH → SOL → USDT</strong> <span style="color: #888;">(ETH_USDT, SOL_ETH, SOL_USDT)</span></div>
+                        <div>3. <strong style="color: #00ffc8;">USDT → ETH → XRP → USDT</strong> <span style="color: #888;">(ETH_USDT, XRP_ETH, XRP_USDT)</span></div>
+                        <div>4. <strong style="color: #00ffc8;">USDT → ETH → ADA → USDT</strong> <span style="color: #888;">(ETH_USDT, ADA_ETH, ADA_USDT)</span></div>
+                        <div>5. <strong style="color: #00ffc8;">USDT → ETH → MATIC → USDT</strong> <span style="color: #888;">(ETH_USDT, MATIC_ETH, MATIC_USDT)</span></div>
+                        <div>6. <strong style="color: #00ffc8;">USDT → ETH → LINK → USDT</strong> <span style="color: #888;">(ETH_USDT, LINK_ETH, LINK_USDT)</span></div>
+                        <div>7. <strong style="color: #00ffc8;">USDT → ETH → AVAX → USDT</strong> <span style="color: #888;">(ETH_USDT, AVAX_ETH, AVAX_USDT)</span></div>
+                    </div>
+                </div>
 
-💡 TOTAL: 32 paths (30 three-leg + 2 four-leg)
-🌉 BRIDGE: USDT (3,800+ pairs available)
-🌿 NATIVE: GT (GateToken) for reduced fees
-🔐 AUTH: HMAC-SHA512 signature
-📊 LIQUIDITY: $2.5B+ daily BTC/USDT volume
-            `.trim();
+                <!-- SET 2: MIDCAP BTC BRIDGE (7 paths) - Color: #17C784 -->
+                <div style="background: rgba(23,199,132,0.05); padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #17C784;">
+                    <h3 style="color: #17C784; margin: 0 0 15px 0; font-size: 1.3rem;">🔷 SET 2: Mid-Cap BTC Bridge (7 paths) ✅ ENABLED BY DEFAULT</h3>
+                    <div style="display: grid; gap: 8px; font-size: 0.9rem; color: #b8c6db;">
+                        <div>1. <strong style="color: #17C784;">USDT → BTC → ETH → USDT</strong> <span style="color: #888;">(BTC_USDT, ETH_BTC, ETH_USDT)</span></div>
+                        <div>2. <strong style="color: #17C784;">USDT → BTC → SOL → USDT</strong> <span style="color: #888;">(BTC_USDT, SOL_BTC, SOL_USDT)</span></div>
+                        <div>3. <strong style="color: #17C784;">USDT → BTC → LTC → USDT</strong> <span style="color: #888;">(BTC_USDT, LTC_BTC, LTC_USDT)</span></div>
+                        <div>4. <strong style="color: #17C784;">USDT → BTC → DOT → USDT</strong> <span style="color: #888;">(BTC_USDT, DOT_BTC, DOT_USDT)</span></div>
+                        <div>5. <strong style="color: #17C784;">USDT → BTC → ATOM → USDT</strong> <span style="color: #888;">(BTC_USDT, ATOM_BTC, ATOM_USDT)</span></div>
+                        <div>6. <strong style="color: #17C784;">USDT → BTC → UNI → USDT</strong> <span style="color: #888;">(BTC_USDT, UNI_BTC, UNI_USDT)</span></div>
+                        <div>7. <strong style="color: #17C784;">USDT → BTC → BCH → USDT</strong> <span style="color: #888;">(BTC_USDT, BCH_BTC, BCH_USDT)</span></div>
+                    </div>
+                </div>
 
-            alert(pathDetails);
+                <!-- SET 3: GT NATIVE BRIDGE (6 paths) - Color: #6496ff -->
+                <div style="background: rgba(100,150,255,0.05); padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #6496ff;">
+                    <h3 style="color: #6496ff; margin: 0 0 15px 0; font-size: 1.3rem;">🌿 SET 3: GT Native Bridge (6 paths) - Gate Token</h3>
+                    <div style="display: grid; gap: 8px; font-size: 0.9rem; color: #b8c6db;">
+                        <div>1. <strong style="color: #6496ff;">USDT → GT → BTC → USDT</strong> <span style="color: #888;">(GT_USDT, BTC_GT, BTC_USDT)</span></div>
+                        <div>2. <strong style="color: #6496ff;">USDT → GT → ETH → USDT</strong> <span style="color: #888;">(GT_USDT, ETH_GT, ETH_USDT)</span></div>
+                        <div>3. <strong style="color: #6496ff;">USDT → GT → SOL → USDT</strong> <span style="color: #888;">(GT_USDT, SOL_GT, SOL_USDT)</span></div>
+                        <div>4. <strong style="color: #6496ff;">USDT → BTC → GT → USDT</strong> <span style="color: #888;">(BTC_USDT, GT_BTC, GT_USDT)</span></div>
+                        <div>5. <strong style="color: #6496ff;">USDT → ETH → GT → USDT</strong> <span style="color: #888;">(ETH_USDT, GT_ETH, GT_USDT)</span></div>
+                        <div>6. <strong style="color: #6496ff;">USDT → GT → TRX → USDT</strong> <span style="color: #888;">(GT_USDT, TRX_GT, TRX_USDT)</span></div>
+                    </div>
+                </div>
+
+                <!-- SET 4: HIGH VOLATILITY (6 paths) - Color: #ffa500 -->
+                <div style="background: rgba(255,165,0,0.05); padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #ffa500;">
+                    <h3 style="color: #ffa500; margin: 0 0 15px 0; font-size: 1.3rem;">⚡ SET 4: High Volatility (6 paths)</h3>
+                    <div style="display: grid; gap: 8px; font-size: 0.9rem; color: #b8c6db;">
+                        <div>1. <strong style="color: #ffa500;">USDT → DOGE → BTC → USDT</strong> <span style="color: #888;">(DOGE_USDT, BTC_DOGE, BTC_USDT)</span></div>
+                        <div>2. <strong style="color: #ffa500;">USDT → SHIB → ETH → USDT</strong> <span style="color: #888;">(SHIB_USDT, ETH_SHIB, ETH_USDT)</span></div>
+                        <div>3. <strong style="color: #ffa500;">USDT → FTM → BTC → USDT</strong> <span style="color: #888;">(FTM_USDT, BTC_FTM, BTC_USDT)</span></div>
+                        <div>4. <strong style="color: #ffa500;">USDT → SAND → ETH → USDT</strong> <span style="color: #888;">(SAND_USDT, ETH_SAND, ETH_USDT)</span></div>
+                        <div>5. <strong style="color: #ffa500;">USDT → MANA → BTC → USDT</strong> <span style="color: #888;">(MANA_USDT, BTC_MANA, BTC_USDT)</span></div>
+                        <div>6. <strong style="color: #ffa500;">USDT → APE → ETH → USDT</strong> <span style="color: #888;">(APE_USDT, ETH_APE, ETH_USDT)</span></div>
+                    </div>
+                </div>
+
+                <!-- SET 5: EXTENDED MULTIBRIDGE (6 paths) - Color: #8a2be2 -->
+                <div style="background: rgba(138,43,226,0.05); padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #8a2be2;">
+                    <h3 style="color: #8a2be2; margin: 0 0 15px 0; font-size: 1.3rem;">🔁 SET 5: Extended Multi-Bridge (6 paths)</h3>
+                    <div style="display: grid; gap: 8px; font-size: 0.9rem; color: #b8c6db;">
+                        <div>1. <strong style="color: #8a2be2;">USDT → SOL → ETH → USDT</strong> <span style="color: #888;">(SOL_USDT, ETH_SOL, ETH_USDT)</span></div>
+                        <div>2. <strong style="color: #8a2be2;">USDT → XRP → BTC → USDT</strong> <span style="color: #888;">(XRP_USDT, BTC_XRP, BTC_USDT)</span></div>
+                        <div>3. <strong style="color: #8a2be2;">USDT → TRX → BTC → USDT</strong> <span style="color: #888;">(TRX_USDT, BTC_TRX, BTC_USDT)</span></div>
+                        <div>4. <strong style="color: #8a2be2;">USDT → ADA → BTC → USDT</strong> <span style="color: #888;">(ADA_USDT, BTC_ADA, BTC_USDT)</span></div>
+                        <div>5. <strong style="color: #8a2be2;">USDT → BTC → ETH → SOL → USDT</strong> ⭐ 4-LEG <span style="color: #888;">(BTC_USDT, ETH_BTC, SOL_ETH, SOL_USDT)</span></div>
+                        <div>6. <strong style="color: #8a2be2;">USDT → ETH → BTC → XRP → USDT</strong> ⭐ 4-LEG <span style="color: #888;">(ETH_USDT, BTC_ETH, XRP_BTC, XRP_USDT)</span></div>
+                    </div>
+                </div>
+
+                <!-- Summary Footer -->
+                <div style="background: rgba(23,199,132,0.1); padding: 15px; border-radius: 10px; margin-top: 25px;">
+                    <div style="display: grid; gap: 8px; font-size: 0.9rem; color: #b8c6db;">
+                        <div>💡 <strong style="color: #17C784;">TOTAL:</strong> 32 paths (30 three-leg + 2 four-leg)</div>
+                        <div>🌉 <strong style="color: #17C784;">BRIDGE:</strong> USDT (3,800+ pairs available)</div>
+                        <div>🌿 <strong style="color: #17C784;">NATIVE:</strong> GT (GateToken) for reduced fees</div>
+                        <div>🔐 <strong style="color: #17C784;">AUTH:</strong> HMAC-SHA512 signature</div>
+                        <div>📊 <strong style="color: #17C784;">LIQUIDITY:</strong> $2.5B+ daily BTC/USDT volume</div>
+                    </div>
+                </div>
+            `;
+
+            modal.appendChild(modalContent);
+            document.body.appendChild(modal);
+
+            // Close on outside click
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.remove();
+                }
+            });
+
+            console.log('✅ [GATE.IO] Paths modal opened');
+        }
+
+        // Tab switching function
+        function switchGateioTab(tabName) {
+            console.log(`🔄 [GATE.IO] Switching to ${tabName} tab`);
+
+            // Hide all content divs
+            document.getElementById('gateioBalanceContent').style.display = 'none';
+            document.getElementById('gateioTradingContent').style.display = 'none';
+
+            // Reset all tab button styles
+            document.getElementById('gateioBalanceTab').style.background = 'rgba(255,255,255,0.05)';
+            document.getElementById('gateioBalanceTab').style.color = '#b8c6db';
+            document.getElementById('gateioTradingTab').style.background = 'rgba(255,255,255,0.05)';
+            document.getElementById('gateioTradingTab').style.color = '#b8c6db';
+
+            // Show selected content and activate button
+            if (tabName === 'balance') {
+                document.getElementById('gateioBalanceContent').style.display = 'block';
+                document.getElementById('gateioBalanceTab').style.background = 'rgba(23,199,132,0.3)';
+                document.getElementById('gateioBalanceTab').style.color = '#17C784';
+            } else if (tabName === 'trading') {
+                document.getElementById('gateioTradingContent').style.display = 'block';
+                document.getElementById('gateioTradingTab').style.background = 'rgba(23,199,132,0.3)';
+                document.getElementById('gateioTradingTab').style.color = '#17C784';
+            }
+        }
+
+        // Balance tracking object
+        const gateioBalanceTracking = {
+            startingUSDT: 0,
+            currentUSDT: 0
+        };
+
+        // Initialize Gate.io balance tracking
+        async function initializeGateioBalance() {
+            console.log('💰 [GATE.IO] Initializing balance tracking...');
+
+            const apiKey = localStorage.getItem('gateio_triangular_api');
+            const apiSecret = localStorage.getItem('gateio_triangular_secret');
+
+            if (!apiKey || !apiSecret) {
+                console.warn('⚠️ [GATE.IO] No API credentials configured - balance tracking disabled');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/v1/trading/gateio/balance', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    },
+                    body: JSON.stringify({
+                        apiKey,
+                        apiSecret,
+                        currency: 'USDT'
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    gateioBalanceTracking.startingUSDT = parseFloat(data.balance);
+                    gateioBalanceTracking.currentUSDT = parseFloat(data.balance);
+                    updateGateioBalanceDisplay();
+                    console.log(`✅ [GATE.IO] Balance initialized: $${data.balance} USDT`);
+                } else {
+                    console.error('❌ [GATE.IO] Failed to fetch balance:', data.message);
+                }
+            } catch (error) {
+                console.error('❌ [GATE.IO] Balance initialization error:', error);
+            }
+        }
+
+        // Update current Gate.io balance
+        async function updateGateioBalance() {
+            const apiKey = localStorage.getItem('gateio_triangular_api');
+            const apiSecret = localStorage.getItem('gateio_triangular_secret');
+
+            if (!apiKey || !apiSecret) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/v1/trading/gateio/balance', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    },
+                    body: JSON.stringify({
+                        apiKey,
+                        apiSecret,
+                        currency: 'USDT'
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    gateioBalanceTracking.currentUSDT = parseFloat(data.balance);
+                    updateGateioBalanceDisplay();
+                }
+            } catch (error) {
+                console.error('❌ [GATE.IO] Balance update error:', error);
+            }
+        }
+
+        // Update balance display
+        function updateGateioBalanceDisplay() {
+            const startingElement = document.getElementById('gateioStartingUSDT');
+            const currentElement = document.getElementById('gateioCurrentUSDT');
+            const changeElement = document.getElementById('gateioChangeUSDT');
+
+            if (!startingElement || !currentElement || !changeElement) {
+                return;
+            }
+
+            const starting = gateioBalanceTracking.startingUSDT;
+            const current = gateioBalanceTracking.currentUSDT;
+            const change = current - starting;
+            const changePercent = starting > 0 ? ((change / starting) * 100).toFixed(2) : '0.00';
+
+            startingElement.textContent = `$${starting.toFixed(2)}`;
+            currentElement.textContent = `$${current.toFixed(2)}`;
+
+            const changeSign = change >= 0 ? '+' : '';
+            changeElement.textContent = `${changeSign}$${change.toFixed(2)} (${changeSign}${changePercent}%)`;
+            changeElement.style.color = change >= 0 ? '#00d26a' : '#ff4444';
+        }
+
+        // Reset starting balance to current balance
+        function resetGateioStartingBalance() {
+            gateioBalanceTracking.startingUSDT = gateioBalanceTracking.currentUSDT;
+            updateGateioBalanceDisplay();
+            console.log('🔄 [GATE.IO] Starting balance reset to current balance');
         }
 
         // 3. Save Gate.io Settings
@@ -10920,6 +11229,7 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
                 }
 
                 const maxTradeAmount = parseFloat(document.getElementById('gateioMaxTrade').value);
+                const portfolioPercent = parseFloat(document.getElementById('gateioPortfolioPercent').value);
                 const profitThreshold = parseFloat(document.getElementById('gateioProfitThreshold').value);
 
                 const enabledSets = {
@@ -10930,7 +11240,9 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
                     SET_5_EXTENDED_MULTIBRIDGE: document.getElementById('gateioSet5Enabled').checked
                 };
 
-                document.getElementById('gateioScanStatus').innerHTML = '🔍 Scanning Gate.io triangular paths...';
+                // Switch to trading tab to show results
+                switchGateioTab('trading');
+
                 document.getElementById('gateioOpportunities').innerHTML = '<div style="text-align: center; padding: 20px;">⏳ Analyzing market data...</div>';
 
                 const response = await fetch('/api/v1/trading/gateio/triangular/scan', {
@@ -10943,6 +11255,7 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
                         apiKey,
                         apiSecret,
                         maxTradeAmount,
+                        portfolioPercent,
                         profitThreshold,
                         enabledSets
                     })
