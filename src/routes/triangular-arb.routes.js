@@ -9451,6 +9451,7 @@ const BITMART_TRIANGULAR_CONFIG = {
     baseUrl: 'https://api-cloud.bitmart.com',
     endpoints: {
         ticker: '/spot/v2/ticker',
+        orderBook: '/spot/quotation/v3/books',
         balance: '/account/v1/wallet',
         placeOrder: '/spot/v1/submit_order',
         symbols: '/spot/v1/symbols'
@@ -9564,121 +9565,259 @@ router.post('/bitmart/triangular/test-connection', asyncHandler(async (req, res)
 // ROUTE 2: Scan Bitmart Triangular Opportunities
 router.post('/bitmart/triangular/scan', asyncHandler(async (req, res) => {
     try {
-        const { apiKey, apiSecret, memo, minProfitPercent = 0.3, enabledSets = ['SET_1', 'SET_2', 'SET_3', 'SET_4', 'SET_5'] } = req.body;
+        const {
+            apiKey,
+            apiSecret,
+            memo,
+            maxTradeAmount = 1000,
+            portfolioPercent = 10,
+            profitThreshold = 0.5,
+            enabledSets = {}
+        } = req.body;
 
         if (!apiKey || !apiSecret || !memo) {
             return res.status(400).json({
                 success: false,
-                message: 'API credentials required'
+                message: 'API credentials required (key, secret, memo)'
             });
         }
 
-        // Fetch all tickers
-        const tickerResponse = await axios.get(
-            `${BITMART_TRIANGULAR_CONFIG.baseUrl}${BITMART_TRIANGULAR_CONFIG.endpoints.ticker}`
-        );
+        // Define all 32 paths with steps for ProfitCalculatorService
+        const allPaths = {
+            SET_1_ESSENTIAL_ETH_BRIDGE: [
+                { id: 'BITMART_ETH_1', path: ['USDT', 'ETH', 'BTC', 'USDT'], sequence: 'USDT → ETH → BTC → USDT', description: 'ETH → BTC Bridge', steps: [{ pair: 'ETH_USDT', side: 'buy' }, { pair: 'BTC_ETH', side: 'buy' }, { pair: 'BTC_USDT', side: 'sell' }] },
+                { id: 'BITMART_ETH_2', path: ['USDT', 'ETH', 'SOL', 'USDT'], sequence: 'USDT → ETH → SOL → USDT', description: 'ETH → SOL Bridge', steps: [{ pair: 'ETH_USDT', side: 'buy' }, { pair: 'SOL_ETH', side: 'buy' }, { pair: 'SOL_USDT', side: 'sell' }] },
+                { id: 'BITMART_ETH_3', path: ['USDT', 'ETH', 'LINK', 'USDT'], sequence: 'USDT → ETH → LINK → USDT', description: 'ETH → LINK Bridge', steps: [{ pair: 'ETH_USDT', side: 'buy' }, { pair: 'LINK_ETH', side: 'buy' }, { pair: 'LINK_USDT', side: 'sell' }] },
+                { id: 'BITMART_ETH_4', path: ['USDT', 'ETH', 'AVAX', 'USDT'], sequence: 'USDT → ETH → AVAX → USDT', description: 'ETH → AVAX Bridge', steps: [{ pair: 'ETH_USDT', side: 'buy' }, { pair: 'AVAX_ETH', side: 'buy' }, { pair: 'AVAX_USDT', side: 'sell' }] },
+                { id: 'BITMART_ETH_5', path: ['USDT', 'ETH', 'MATIC', 'USDT'], sequence: 'USDT → ETH → MATIC → USDT', description: 'ETH → MATIC Bridge', steps: [{ pair: 'ETH_USDT', side: 'buy' }, { pair: 'MATIC_ETH', side: 'buy' }, { pair: 'MATIC_USDT', side: 'sell' }] },
+                { id: 'BITMART_ETH_6', path: ['USDT', 'ETH', 'UNI', 'USDT'], sequence: 'USDT → ETH → UNI → USDT', description: 'ETH → UNI Bridge', steps: [{ pair: 'ETH_USDT', side: 'buy' }, { pair: 'UNI_ETH', side: 'buy' }, { pair: 'UNI_USDT', side: 'sell' }] },
+                { id: 'BITMART_ETH_7', path: ['USDT', 'ETH', 'AAVE', 'USDT'], sequence: 'USDT → ETH → AAVE → USDT', description: 'ETH → AAVE Bridge', steps: [{ pair: 'ETH_USDT', side: 'buy' }, { pair: 'AAVE_ETH', side: 'buy' }, { pair: 'AAVE_USDT', side: 'sell' }] }
+            ],
+            SET_2_MIDCAP_BTC_BRIDGE: [
+                { id: 'BITMART_BTC_1', path: ['USDT', 'BTC', 'DOGE', 'USDT'], sequence: 'USDT → BTC → DOGE → USDT', description: 'BTC → DOGE Bridge', steps: [{ pair: 'BTC_USDT', side: 'buy' }, { pair: 'DOGE_BTC', side: 'buy' }, { pair: 'DOGE_USDT', side: 'sell' }] },
+                { id: 'BITMART_BTC_2', path: ['USDT', 'BTC', 'LTC', 'USDT'], sequence: 'USDT → BTC → LTC → USDT', description: 'BTC → LTC Bridge', steps: [{ pair: 'BTC_USDT', side: 'buy' }, { pair: 'LTC_BTC', side: 'buy' }, { pair: 'LTC_USDT', side: 'sell' }] },
+                { id: 'BITMART_BTC_3', path: ['USDT', 'BTC', 'XRP', 'USDT'], sequence: 'USDT → BTC → XRP → USDT', description: 'BTC → XRP Bridge', steps: [{ pair: 'BTC_USDT', side: 'buy' }, { pair: 'XRP_BTC', side: 'buy' }, { pair: 'XRP_USDT', side: 'sell' }] },
+                { id: 'BITMART_BTC_4', path: ['USDT', 'BTC', 'ADA', 'USDT'], sequence: 'USDT → BTC → ADA → USDT', description: 'BTC → ADA Bridge', steps: [{ pair: 'BTC_USDT', side: 'buy' }, { pair: 'ADA_BTC', side: 'buy' }, { pair: 'ADA_USDT', side: 'sell' }] },
+                { id: 'BITMART_BTC_5', path: ['USDT', 'BTC', 'DOT', 'USDT'], sequence: 'USDT → BTC → DOT → USDT', description: 'BTC → DOT Bridge', steps: [{ pair: 'BTC_USDT', side: 'buy' }, { pair: 'DOT_BTC', side: 'buy' }, { pair: 'DOT_USDT', side: 'sell' }] },
+                { id: 'BITMART_BTC_6', path: ['USDT', 'BTC', 'BCH', 'USDT'], sequence: 'USDT → BTC → BCH → USDT', description: 'BTC → BCH Bridge', steps: [{ pair: 'BTC_USDT', side: 'buy' }, { pair: 'BCH_BTC', side: 'buy' }, { pair: 'BCH_USDT', side: 'sell' }] },
+                { id: 'BITMART_BTC_7', path: ['USDT', 'BTC', 'TRX', 'USDT'], sequence: 'USDT → BTC → TRX → USDT', description: 'BTC → TRX Bridge', steps: [{ pair: 'BTC_USDT', side: 'buy' }, { pair: 'TRX_BTC', side: 'buy' }, { pair: 'TRX_USDT', side: 'sell' }] }
+            ],
+            SET_3_BMX_NATIVE_TOKEN: [
+                { id: 'BITMART_BMX_1', path: ['USDT', 'BMX', 'BTC', 'USDT'], sequence: 'USDT → BMX → BTC → USDT', description: 'BMX → BTC Native', steps: [{ pair: 'BMX_USDT', side: 'buy' }, { pair: 'BTC_BMX', side: 'buy' }, { pair: 'BTC_USDT', side: 'sell' }] },
+                { id: 'BITMART_BMX_2', path: ['USDT', 'BMX', 'ETH', 'USDT'], sequence: 'USDT → BMX → ETH → USDT', description: 'BMX → ETH Native', steps: [{ pair: 'BMX_USDT', side: 'buy' }, { pair: 'ETH_BMX', side: 'buy' }, { pair: 'ETH_USDT', side: 'sell' }] },
+                { id: 'BITMART_BMX_3', path: ['USDT', 'BTC', 'BMX', 'USDT'], sequence: 'USDT → BTC → BMX → USDT', description: 'BTC → BMX Native', steps: [{ pair: 'BTC_USDT', side: 'buy' }, { pair: 'BMX_BTC', side: 'buy' }, { pair: 'BMX_USDT', side: 'sell' }] },
+                { id: 'BITMART_BMX_4', path: ['USDT', 'ETH', 'BMX', 'USDT'], sequence: 'USDT → ETH → BMX → USDT', description: 'ETH → BMX Native', steps: [{ pair: 'ETH_USDT', side: 'buy' }, { pair: 'BMX_ETH', side: 'buy' }, { pair: 'BMX_USDT', side: 'sell' }] },
+                { id: 'BITMART_BMX_5', path: ['USDT', 'BMX', 'SOL', 'USDT'], sequence: 'USDT → BMX → SOL → USDT', description: 'BMX → SOL Native', steps: [{ pair: 'BMX_USDT', side: 'buy' }, { pair: 'SOL_BMX', side: 'buy' }, { pair: 'SOL_USDT', side: 'sell' }] },
+                { id: 'BITMART_BMX_6', path: ['USDT', 'SOL', 'BMX', 'USDT'], sequence: 'USDT → SOL → BMX → USDT', description: 'SOL → BMX Native', steps: [{ pair: 'SOL_USDT', side: 'buy' }, { pair: 'BMX_SOL', side: 'buy' }, { pair: 'BMX_USDT', side: 'sell' }] }
+            ],
+            SET_4_HIGH_VOLATILITY: [
+                { id: 'BITMART_VOL_1', path: ['USDT', 'SOL', 'LINK', 'USDT'], sequence: 'USDT → SOL → LINK → USDT', description: 'SOL → LINK Volatility', steps: [{ pair: 'SOL_USDT', side: 'buy' }, { pair: 'LINK_SOL', side: 'buy' }, { pair: 'LINK_USDT', side: 'sell' }] },
+                { id: 'BITMART_VOL_2', path: ['USDT', 'SOL', 'MATIC', 'USDT'], sequence: 'USDT → SOL → MATIC → USDT', description: 'SOL → MATIC Volatility', steps: [{ pair: 'SOL_USDT', side: 'buy' }, { pair: 'MATIC_SOL', side: 'buy' }, { pair: 'MATIC_USDT', side: 'sell' }] },
+                { id: 'BITMART_VOL_3', path: ['USDT', 'LINK', 'BTC', 'USDT'], sequence: 'USDT → LINK → BTC → USDT', description: 'LINK → BTC Volatility', steps: [{ pair: 'LINK_USDT', side: 'buy' }, { pair: 'BTC_LINK', side: 'buy' }, { pair: 'BTC_USDT', side: 'sell' }] },
+                { id: 'BITMART_VOL_4', path: ['USDT', 'AVAX', 'SOL', 'USDT'], sequence: 'USDT → AVAX → SOL → USDT', description: 'AVAX → SOL Volatility', steps: [{ pair: 'AVAX_USDT', side: 'buy' }, { pair: 'SOL_AVAX', side: 'buy' }, { pair: 'SOL_USDT', side: 'sell' }] },
+                { id: 'BITMART_VOL_5', path: ['USDT', 'MATIC', 'BTC', 'USDT'], sequence: 'USDT → MATIC → BTC → USDT', description: 'MATIC → BTC Volatility', steps: [{ pair: 'MATIC_USDT', side: 'buy' }, { pair: 'BTC_MATIC', side: 'buy' }, { pair: 'BTC_USDT', side: 'sell' }] },
+                { id: 'BITMART_VOL_6', path: ['USDT', 'UNI', 'ETH', 'USDT'], sequence: 'USDT → UNI → ETH → USDT', description: 'UNI → ETH Volatility', steps: [{ pair: 'UNI_USDT', side: 'buy' }, { pair: 'ETH_UNI', side: 'buy' }, { pair: 'ETH_USDT', side: 'sell' }] }
+            ],
+            SET_5_EXTENDED_MULTIBRIDGE: [
+                { id: 'BITMART_EXT_1', path: ['USDT', 'ATOM', 'BTC', 'USDT'], sequence: 'USDT → ATOM → BTC → USDT', description: 'ATOM → BTC Extended', steps: [{ pair: 'ATOM_USDT', side: 'buy' }, { pair: 'BTC_ATOM', side: 'buy' }, { pair: 'BTC_USDT', side: 'sell' }] },
+                { id: 'BITMART_EXT_2', path: ['USDT', 'FIL', 'ETH', 'USDT'], sequence: 'USDT → FIL → ETH → USDT', description: 'FIL → ETH Extended', steps: [{ pair: 'FIL_USDT', side: 'buy' }, { pair: 'ETH_FIL', side: 'buy' }, { pair: 'ETH_USDT', side: 'sell' }] },
+                { id: 'BITMART_EXT_3', path: ['USDT', 'XLM', 'BTC', 'USDT'], sequence: 'USDT → XLM → BTC → USDT', description: 'XLM → BTC Extended', steps: [{ pair: 'XLM_USDT', side: 'buy' }, { pair: 'BTC_XLM', side: 'buy' }, { pair: 'BTC_USDT', side: 'sell' }] },
+                { id: 'BITMART_EXT_4', path: ['USDT', 'ALGO', 'ETH', 'USDT'], sequence: 'USDT → ALGO → ETH → USDT', description: 'ALGO → ETH Extended', steps: [{ pair: 'ALGO_USDT', side: 'buy' }, { pair: 'ETH_ALGO', side: 'buy' }, { pair: 'ETH_USDT', side: 'sell' }] },
+                { id: 'BITMART_EXT_5', path: ['USDT', 'ETH', 'BTC', 'SOL', 'USDT'], sequence: 'USDT → ETH → BTC → SOL → USDT', description: 'Four-Leg: ETH→BTC→SOL', steps: [{ pair: 'ETH_USDT', side: 'buy' }, { pair: 'BTC_ETH', side: 'buy' }, { pair: 'SOL_BTC', side: 'buy' }, { pair: 'SOL_USDT', side: 'sell' }] },
+                { id: 'BITMART_EXT_6', path: ['USDT', 'BTC', 'ETH', 'LINK', 'USDT'], sequence: 'USDT → BTC → ETH → LINK → USDT', description: 'Four-Leg: BTC→ETH→LINK', steps: [{ pair: 'BTC_USDT', side: 'buy' }, { pair: 'ETH_BTC', side: 'buy' }, { pair: 'LINK_ETH', side: 'buy' }, { pair: 'LINK_USDT', side: 'sell' }] }
+            ]
+        };
 
-        if (tickerResponse.data.code !== 1000) {
-            return res.status(400).json({
-                success: false,
-                message: 'Failed to fetch Bitmart market data'
-            });
-        }
+        // Fetch USDT balance from BitMart
+        const timestamp = Date.now().toString();
+        const balanceQueryString = '';
+        const balanceSignature = createBitmartTriangularSignature(timestamp, memo, balanceQueryString, apiSecret);
 
-        const tickers = tickerResponse.data.data || [];
-        const priceMap = {};
+        let balance = 0;
+        try {
+            const balanceResponse = await axios.get(
+                `${BITMART_TRIANGULAR_CONFIG.baseUrl}${BITMART_TRIANGULAR_CONFIG.endpoints.balance}`,
+                {
+                    headers: {
+                        'X-BM-KEY': apiKey,
+                        'X-BM-SIGN': balanceSignature,
+                        'X-BM-TIMESTAMP': timestamp,
+                        'Content-Type': 'application/json'
+                    }
+                }
+            );
 
-        tickers.forEach(ticker => {
-            if (ticker.symbol) {
-                priceMap[ticker.symbol] = {
-                    bid: parseFloat(ticker.best_bid || ticker.buy_1_price || 0),
-                    ask: parseFloat(ticker.best_ask || ticker.sell_1_price || 0),
-                    last: parseFloat(ticker.last_price || ticker.close || 0)
-                };
+            if (balanceResponse.data.code === 1000 && balanceResponse.data.data.wallet) {
+                const usdtWallet = balanceResponse.data.data.wallet.find(w => w.id === 'USDT');
+                balance = usdtWallet ? parseFloat(usdtWallet.available || 0) : 0;
             }
+        } catch (balanceError) {
+            systemLogger.error('BitMart balance fetch failed', { error: balanceError.message });
+        }
+
+        // Calculate trade amount using portfolio calculator
+        const portfolioCalc = portfolioCalculator.calculateTradeAmount({
+            balance,
+            portfolioPercent,
+            maxTradeAmount,
+            currency: 'USDT',
+            exchange: 'BitMart',
+            path: null
         });
+
+        if (!portfolioCalc.canTrade) {
+            return res.json({
+                success: true,
+                scanned: 0,
+                profitableCount: 0,
+                opportunities: [],
+                warning: portfolioCalc.reason,
+                portfolioDetails: portfolioCalc.details,
+                timestamp: new Date().toISOString()
+            });
+        }
+
+        const tradeAmount = portfolioCalc.amount;
 
         // Filter enabled paths
-        let allPaths = [];
-        if (enabledSets.includes('SET_1')) allPaths = allPaths.concat(BITMART_TRIANGULAR_PATHS.SET_1_ESSENTIAL_ETH_BRIDGE);
-        if (enabledSets.includes('SET_2')) allPaths = allPaths.concat(BITMART_TRIANGULAR_PATHS.SET_2_MIDCAP_BTC_BRIDGE);
-        if (enabledSets.includes('SET_3')) allPaths = allPaths.concat(BITMART_TRIANGULAR_PATHS.SET_3_BMX_NATIVE_TOKEN);
-        if (enabledSets.includes('SET_4')) allPaths = allPaths.concat(BITMART_TRIANGULAR_PATHS.SET_4_HIGH_VOLATILITY);
-        if (enabledSets.includes('SET_5')) allPaths = allPaths.concat(BITMART_TRIANGULAR_PATHS.SET_5_EXTENDED_MULTIBRIDGE);
+        let pathsToScan = [];
+        if (enabledSets.SET_1) pathsToScan = pathsToScan.concat(allPaths.SET_1_ESSENTIAL_ETH_BRIDGE);
+        if (enabledSets.SET_2) pathsToScan = pathsToScan.concat(allPaths.SET_2_MIDCAP_BTC_BRIDGE);
+        if (enabledSets.SET_3) pathsToScan = pathsToScan.concat(allPaths.SET_3_BMX_NATIVE_TOKEN);
+        if (enabledSets.SET_4) pathsToScan = pathsToScan.concat(allPaths.SET_4_HIGH_VOLATILITY);
+        if (enabledSets.SET_5) pathsToScan = pathsToScan.concat(allPaths.SET_5_EXTENDED_MULTIBRIDGE);
 
-        const opportunities = [];
-        const feePercent = 0.25; // Bitmart 0.25% maker/taker fee (0.1% with BMX)
-
-        allPaths.forEach(pathConfig => {
-            const pairs = pathConfig.pairs;
-            let isValid = true;
-            let prices = [];
-
-            // Get prices for each pair
-            for (const pair of pairs) {
-                if (!priceMap[pair]) {
-                    isValid = false;
-                    break;
-                }
-                prices.push(priceMap[pair]);
-            }
-
-            if (!isValid) return;
-
-            // Calculate profit for triangular path
-            let amount = 100; // Start with 100 USDT
-
-            // Execute each leg
-            for (let i = 0; i < pairs.length; i++) {
-                const price = prices[i];
-                const avgPrice = (price.bid + price.ask) / 2;
-
-                // Apply fee
-                amount = amount * (1 - feePercent / 100);
-
-                // Execute trade
-                if (i === 0 || i === pairs.length - 1) {
-                    // First and last leg: buying/selling against USDT
-                    amount = amount / avgPrice;
-                } else {
-                    // Middle legs: cross pairs
-                    amount = amount * avgPrice;
-                }
-            }
-
-            const profitPercent = ((amount - 100) / 100) * 100;
-
-            if (profitPercent >= minProfitPercent) {
-                opportunities.push({
-                    id: pathConfig.id,
-                    path: pathConfig.path,
-                    pairs: pathConfig.pairs,
-                    description: pathConfig.description,
-                    profitPercent: profitPercent.toFixed(3),
-                    estimatedProfit: (amount - 100).toFixed(2),
-                    prices: prices.map(p => ({
-                        bid: p.bid,
-                        ask: p.ask,
-                        spread: ((p.ask - p.bid) / p.bid * 100).toFixed(3)
-                    }))
-                });
-            }
+        // Get unique pairs
+        const uniquePairs = new Set();
+        pathsToScan.forEach(path => {
+            path.steps.forEach(step => uniquePairs.add(step.pair));
         });
 
-        // Sort by profit
+        // Fetch orderbooks for all unique pairs
+        const orderBooks = {};
+        for (const pair of uniquePairs) {
+            try {
+                const obResponse = await axios.get(
+                    `${BITMART_TRIANGULAR_CONFIG.baseUrl}${BITMART_TRIANGULAR_CONFIG.endpoints.orderBook}?symbol=${pair}`
+                );
+
+                if (obResponse.data.code === 1000 && obResponse.data.data) {
+                    orderBooks[pair] = {
+                        bids: obResponse.data.data.buys || [],
+                        asks: obResponse.data.data.sells || []
+                    };
+                }
+            } catch (obError) {
+                systemLogger.warn(`BitMart orderbook fetch failed for ${pair}`, { error: obError.message });
+            }
+        }
+
+        // Calculate profits using ProfitCalculatorService
+        const profitCalculator = new ProfitCalculatorService();
+        const opportunities = [];
+
+        for (const path of pathsToScan) {
+            const result = profitCalculator.calculate('bitmart', path, orderBooks, tradeAmount);
+
+            if (result.success && result.profitPercentage >= profitThreshold) {
+                opportunities.push({
+                    pathId: result.pathId,
+                    description: path.description,
+                    path: result.sequence.split(' → '),
+                    initialAmount: result.startAmount,
+                    finalAmount: result.endAmount,
+                    profitAmount: result.profit,
+                    profitPercent: result.profitPercentage.toFixed(4),
+                    steps: result.steps,
+                    totalFees: result.totalFees,
+                    timestamp: result.timestamp
+                });
+            }
+        }
+
+        // Sort by profit percentage
         opportunities.sort((a, b) => parseFloat(b.profitPercent) - parseFloat(a.profitPercent));
 
         res.json({
             success: true,
-            opportunities,
-            scannedPaths: allPaths.length,
+            scanned: pathsToScan.length,
+            profitableCount: opportunities.length,
+            opportunities: opportunities,
+            portfolioDetails: portfolioCalc.details,
             timestamp: new Date().toISOString()
         });
 
     } catch (error) {
+        systemLogger.error('BitMart triangular scan failed', { error: error.message, stack: error.stack });
         res.status(500).json({
             success: false,
-            message: 'Failed to scan Bitmart opportunities'
+            message: 'Failed to scan BitMart opportunities',
+            error: error.message
+        });
+    }
+}));
+
+// ROUTE 2B: Get BitMart Balance
+router.post('/bitmart/balance', asyncHandler(async (req, res) => {
+    try {
+        const { apiKey, apiSecret, memo, currency = 'USDT' } = req.body;
+
+        if (!apiKey || !apiSecret || !memo) {
+            return res.status(400).json({
+                success: false,
+                message: 'Missing BitMart API credentials (key, secret, memo required)'
+            });
+        }
+
+        // Create signature for balance request
+        const timestamp = Date.now().toString();
+        const queryString = '';
+        const signature = createBitmartTriangularSignature(timestamp, memo, queryString, apiSecret);
+
+        // Fetch balance from BitMart
+        const response = await axios.get(
+            `${BITMART_TRIANGULAR_CONFIG.baseUrl}${BITMART_TRIANGULAR_CONFIG.endpoints.balance}`,
+            {
+                headers: {
+                    'X-BM-KEY': apiKey,
+                    'X-BM-SIGN': signature,
+                    'X-BM-TIMESTAMP': timestamp,
+                    'Content-Type': 'application/json'
+                }
+            }
+        );
+
+        if (response.data.code !== 1000) {
+            return res.status(400).json({
+                success: false,
+                message: 'Failed to fetch BitMart balance',
+                error: response.data.message
+            });
+        }
+
+        // Extract balance for requested currency
+        const wallet = response.data.data.wallet || [];
+        const currencyWallet = wallet.find(w => w.id === currency.toUpperCase());
+
+        const available = currencyWallet ? parseFloat(currencyWallet.available || 0) : 0;
+        const frozen = currencyWallet ? parseFloat(currencyWallet.frozen || 0) : 0;
+        const total = available + frozen;
+
+        res.json({
+            success: true,
+            currency,
+            balance: available.toFixed(2),
+            locked: frozen.toFixed(2),
+            total: total.toFixed(2),
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        systemLogger.error('BitMart balance fetch failed', { error: error.message });
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch BitMart balance',
+            error: error.message
         });
     }
 }));
