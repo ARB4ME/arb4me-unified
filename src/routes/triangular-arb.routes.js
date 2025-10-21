@@ -11130,121 +11130,38 @@ router.get('/gemini/triangular/paths', authenticatedRateLimit, authenticateUser,
 }));
 
 // POST /api/v1/trading/gemini/triangular/execute
-// Execute a Gemini triangular arbitrage trade
-router.post('/gemini/triangular/execute', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
-    try {
-        const { apiKey, apiSecret, opportunity, investmentAmount } = req.body;
+// Execute a Gemini triangular arbitrage trade (REAL ATOMIC EXECUTION)
+router.post('/gemini/triangular/execute', asyncHandler(async (req, res) => {
+    const { pathId, amount, apiKey, apiSecret } = req.body;
 
-        systemLogger.trading('Gemini triangular execution initiated', {
-            userId: req.user?.id || 'anonymous',
-            pathId: opportunity.pathId,
-            investmentAmount
-        });
-
-        // Validate inputs
-        if (!apiKey || !apiSecret) {
-            throw new APIError('Gemini API credentials required', 400, 'GEMINI_CREDENTIALS_REQUIRED');
-        }
-
-        if (!opportunity || !investmentAmount) {
-            throw new APIError('Opportunity and investment amount required', 400, 'MISSING_PARAMETERS');
-        }
-
-        const executedTrades = [];
-        let currentAmount = investmentAmount;
-
-        // Execute each leg of the triangular arbitrage
-        for (let i = 0; i < opportunity.trades.length; i++) {
-            const trade = opportunity.trades[i];
-
-            const timestamp = Date.now() + i; // Increment nonce for each request
-            const orderPayload = {
-                request: '/v1/order/new',
-                nonce: timestamp,
-                symbol: trade.pair,
-                amount: (currentAmount / trade.price).toFixed(8),
-                price: trade.price.toFixed(8),
-                side: trade.side,
-                type: 'exchange limit',
-                options: ['immediate-or-cancel'] // IOC for quick execution
-            };
-
-            const base64Payload = Buffer.from(JSON.stringify(orderPayload)).toString('base64');
-            const signature = createGeminiTriangularSignature(base64Payload, apiSecret);
-
-            const orderResponse = await axios.post(`${GEMINI_TRIANGULAR_CONFIG.baseUrl}/v1/order/new`, {}, {
-                headers: {
-                    'Content-Type': 'text/plain',
-                    'X-GEMINI-APIKEY': apiKey,
-                    'X-GEMINI-PAYLOAD': base64Payload,
-                    'X-GEMINI-SIGNATURE': signature,
-                    'Cache-Control': 'no-cache'
-                }
-            });
-
-            executedTrades.push({
-                pair: trade.pair,
-                side: trade.side,
-                price: trade.price,
-                amount: parseFloat(orderPayload.amount),
-                orderId: orderResponse.data.order_id
-            });
-
-            currentAmount = trade.toAmount;
-
-            // Small delay between trades
-            await new Promise(resolve => setTimeout(resolve, 100));
-        }
-
-        const finalProfit = currentAmount - investmentAmount;
-
-        // Save to database
-        if (req.db) {
-            await req.db.query(
-                `INSERT INTO triangular_trades
-                (user_id, exchange, path_id, investment_amount, final_amount, profit, status, trades_data, created_at)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())`,
-                [
-                    req.user?.id || 'anonymous',
-                    'gemini',
-                    opportunity.pathId,
-                    investmentAmount,
-                    currentAmount,
-                    finalProfit,
-                    'completed',
-                    JSON.stringify(executedTrades)
-                ]
-            );
-        }
-
-        systemLogger.trading('Gemini triangular execution completed', {
-            userId: req.user?.id || 'anonymous',
-            pathId: opportunity.pathId,
-            profit: finalProfit
-        });
-
-        res.json({
-            success: true,
-            message: 'Triangular arbitrage executed successfully',
-            executedTrades,
-            finalAmount: currentAmount,
-            profit: finalProfit,
-            profitPercentage: ((finalProfit / investmentAmount) * 100).toFixed(2)
-        });
-
-    } catch (error) {
-        console.error('Gemini execution error:', error);
-
-        systemLogger.trading('Gemini triangular execution failed', {
-            userId: req.user?.id || 'anonymous',
-            error: error.message
-        });
-
-        res.status(500).json({
-            success: false,
-            message: error.response?.data?.message || error.message || 'Execution failed'
-        });
+    // Validate required parameters
+    if (!pathId || !amount) {
+        throw new APIError('Path ID and amount are required', 400, 'MISSING_PARAMETERS');
     }
+
+    if (!apiKey || !apiSecret) {
+        throw new APIError('Gemini API credentials required', 400, 'GEMINI_CREDENTIALS_REQUIRED');
+    }
+
+    systemLogger.trading('Gemini triangular execution initiated', {
+        pathId,
+        amount,
+        timestamp: new Date().toISOString()
+    });
+
+    // Call service layer to execute trade (REAL 3-LEG ATOMIC EXECUTION)
+    const executionResult = await triangularArbService.execute(
+        'gemini',
+        pathId,
+        amount,
+        { apiKey, apiSecret }
+    );
+
+    // Return execution result
+    res.json({
+        success: executionResult.success,
+        data: executionResult
+    });
 }));
 
 // GET /api/v1/trading/gemini/triangular/history

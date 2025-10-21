@@ -228,6 +228,9 @@ class TradeExecutorService {
             case 'binance':
                 return parseFloat(orderResult.executedQty || 0);
 
+            case 'gemini':
+                return parseFloat(orderResult.executed_amount || orderResult.original_amount || 0);
+
             case 'coincatch':
                 return parseFloat(orderResult.data?.size || orderResult.size || orderResult.filledQty || 0);
 
@@ -250,6 +253,9 @@ class TradeExecutorService {
 
             case 'binance':
                 return parseFloat(orderResult.price || 0);
+
+            case 'gemini':
+                return parseFloat(orderResult.avg_execution_price || orderResult.price || 0);
 
             case 'coincatch':
                 return parseFloat(orderResult.data?.priceAvg || orderResult.priceAvg || orderResult.price || 0);

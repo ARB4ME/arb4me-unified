@@ -77,7 +77,15 @@ class ExchangeConnectorService {
             bitget: { name: 'Bitget', baseUrl: 'https://api.bitget.com', endpoints: {}, authType: 'api-key' },
             bitmart: { name: 'BitMart', baseUrl: 'https://api-cloud.bitmart.com', endpoints: {}, authType: 'api-key' },
             bitrue: { name: 'Bitrue', baseUrl: 'https://api.bitrue.com', endpoints: {}, authType: 'api-key' },
-            gemini: { name: 'Gemini', baseUrl: 'https://api.gemini.com', endpoints: {}, authType: 'api-key' },
+            gemini: {
+                name: 'Gemini',
+                baseUrl: 'https://api.gemini.com',
+                endpoints: {
+                    orderBook: '/v1/book/:pair',
+                    marketOrder: '/v1/order/new'
+                },
+                authType: 'gemini-signature'
+            },
             coincatch: {
                 name: 'CoinCatch',
                 baseUrl: 'https://api.coincatch.com',
@@ -237,6 +245,9 @@ class ExchangeConnectorService {
             case 'kraken-signature':
                 return this._createKrakenAuth(apiKey, apiSecret, path, body);
 
+            case 'gemini-signature':
+                return this._createGeminiAuth(apiKey, apiSecret, method, path, body);
+
             case 'coincatch-signature':
                 return this._createCoincatchAuth(apiKey, apiSecret, passphrase, method, path, body);
 
@@ -315,6 +326,38 @@ class ExchangeConnectorService {
     }
 
     /**
+     * Gemini authentication (HMAC SHA-384 + Base64 Payload)
+     * @private
+     */
+    _createGeminiAuth(apiKey, apiSecret, method, path, body) {
+        const nonce = Date.now();
+
+        // Create payload object
+        const payload = {
+            request: path,
+            nonce: nonce,
+            ...body
+        };
+
+        // Encode payload as base64
+        const base64Payload = Buffer.from(JSON.stringify(payload)).toString('base64');
+
+        // Create HMAC-SHA384 signature
+        const signature = crypto
+            .createHmac('sha384', apiSecret)
+            .update(base64Payload)
+            .digest('hex');
+
+        return {
+            'Content-Type': 'text/plain',
+            'X-GEMINI-APIKEY': apiKey,
+            'X-GEMINI-PAYLOAD': base64Payload,
+            'X-GEMINI-SIGNATURE': signature,
+            'Cache-Control': 'no-cache'
+        };
+    }
+
+    /**
      * Coincatch authentication (HMAC SHA-256 + Passphrase)
      * @private
      */
@@ -362,6 +405,11 @@ class ExchangeConnectorService {
                 url = `${url}?symbol=${pair}&limit=20`;
                 break;
 
+            case 'gemini':
+                // Gemini uses lowercase pairs in URL
+                url = url.replace(':pair', pair.toLowerCase());
+                break;
+
             default:
                 url = `${url}?pair=${pair}`;
         }
@@ -397,6 +445,14 @@ class ExchangeConnectorService {
                     side: side.toUpperCase(),
                     type: 'MARKET',
                     quantity: amount
+                };
+
+            case 'gemini':
+                return {
+                    symbol: pair.toLowerCase(),
+                    side: side.toLowerCase(),
+                    type: 'exchange market',  // Gemini market order type
+                    amount: amount.toString()
                 };
 
             case 'coincatch':

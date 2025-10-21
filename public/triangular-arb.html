@@ -17211,37 +17211,65 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
             }
         }
 
-        // Execute Gemini Triangular Trade
+        // Execute Gemini Triangular Trade (REAL ATOMIC EXECUTION)
         async function executeGeminiTriangularTrade(pathId) {
-            const apiKey = localStorage.getItem('gemini_api') || '';
-            const apiSecret = localStorage.getItem('gemini_secret') || '';
-            const maxTrade = parseFloat(document.getElementById('geminiMaxTrade').value);
-            const userId = localStorage.getItem('userId');
-
-            if (!confirm(`⚠️ Execute triangular arbitrage trade?\n\nPath: ${pathId}\nAmount: ${maxTrade} USDT\n\nThis will execute real trades on Gemini.`)) {
-                return;
-            }
-
             try {
-                const response = await fetch('/api/v1/trading/gemini/triangular/execute', {
+                const apiKey = localStorage.getItem('gemini_api') || '';
+                const apiSecret = localStorage.getItem('gemini_secret') || '';
+                const maxTradeAmount = parseFloat(document.getElementById('geminiMaxTrade').value);
+
+                if (!apiKey || !apiSecret) {
+                    alert('⚠️ Please configure your Gemini API credentials first.');
+                    return;
+                }
+
+                if (!confirm(`⚠️ REAL MONEY TRADING ⚠️\n\nExecute REAL triangular arbitrage trade?\n\nPath: ${pathId}\nAmount: $${maxTradeAmount} USDT\n\nThis will execute REAL market orders on Gemini.\nClick OK to proceed.`)) {
+                    return;
+                }
+
+                console.log(`💎 [GEMINI] Executing REAL trade: ${pathId}`);
+
+                const response = await fetch(`${API_BASE}/trading/gemini/triangular/execute`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ apiKey, apiSecret, pathId, amount: maxTrade, userId })
+                    body: JSON.stringify({
+                        apiKey,
+                        apiSecret,
+                        pathId,
+                        amount: maxTradeAmount
+                    })
                 });
 
-                const data = await response.json();
+                const result = await response.json();
 
-                if (data.success) {
-                    alert(`✅ Trade executed successfully!\n\nProfit: $${data.execution.profit.toFixed(2)} (${data.execution.profitPercent.toFixed(3)}%)\nFinal Amount: ${data.execution.finalAmount.toFixed(2)} USDT`);
+                if (result.success && result.data) {
+                    const execution = result.data;
+                    const profit = execution.actualProfit || 0;
+                    const profitPct = execution.actualProfitPercentage || 0;
+                    const status = execution.status || 'UNKNOWN';
 
-                    // Refresh opportunities and history
-                    scanGeminiTriangularPaths();
-                    loadGeminiTradeHistory();
+                    if (status === 'COMPLETED') {
+                        alert(`✅ Trade Executed Successfully!\n\nExecution ID: ${execution.executionId}\nPath: ${pathId}\nStart Amount: $${execution.startAmount}\nEnd Amount: $${execution.endAmount}\nProfit: $${profit.toFixed(2)} (${profitPct.toFixed(2)}%)\nLegs Completed: ${execution.legs?.length || 0}/3\n\nAll legs executed atomically with slippage monitoring.`);
+
+                        console.log('✅ [GEMINI] Trade executed successfully:', execution);
+
+                        // Update balance after execution
+                        await updateGeminiBalance();
+
+                        // Refresh opportunities
+                        await scanGeminiTriangularPaths();
+                    } else {
+                        alert(`❌ Trade Execution Failed\n\nExecution ID: ${execution.executionId}\nStatus: ${status}\nError: ${execution.error || 'Unknown error'}\nCompleted Legs: ${execution.legs?.filter(l => l.status === 'COMPLETED').length || 0}/3`);
+                        console.error('❌ [GEMINI] Trade execution failed:', execution);
+                    }
                 } else {
-                    alert(`❌ Trade execution failed:\n\n${data.message}`);
+                    alert(`❌ Trade Execution Failed\n\n${result.message || result.error || 'Unknown error'}`);
+                    console.error('❌ [GEMINI] Trade execution failed:', result);
                 }
+
             } catch (error) {
-                alert(`❌ Trade execution error:\n\n${error.message}`);
+                console.error('❌ [GEMINI] Trade execution error:', error);
+                alert(`❌ Error executing trade: ${error.message}`);
             }
         }
 
