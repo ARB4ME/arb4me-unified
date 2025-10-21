@@ -3820,114 +3820,201 @@
             </div>
         </div>
 
-        <!-- Gemini Exchange -->
+        <!-- GEMINI TRIANGULAR ARBITRAGE -->
         <div style="background: rgba(0,170,221,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 2px solid #00AADD;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <!-- Header with Toggle -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <h3 style="color: #00AADD; margin: 0;">💎 Gemini Triangular Arbitrage</h3>
                 <div style="display: flex; align-items: center; gap: 15px;">
                     <span style="color: #b8c6db; font-size: 0.9rem;">Live Trading:</span>
-                    <div class="toggle-switch" id="geminiTriangularEnabled">
+                    <div class="toggle-switch" id="geminiTriangularEnabled" onclick="toggleGeminiTriangular()">
                         <div class="toggle-knob"></div>
                     </div>
                     <span id="geminiTriangularStatus" style="color: #ff6b6b; font-weight: 600; font-size: 0.9rem;">OFF</span>
                 </div>
             </div>
-            <p style="color: #888; margin: 0 0 10px 0; font-size: 14px;">
-                Regulated US exchange | Limited USDT pairs | 10 paths available | HMAC-SHA384 | Winklevoss-founded | Secure custody
-            </p>
 
-            <div style="margin-top: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
-                <!-- Status Card -->
-                <div class="stat-card">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                        <h4 style="color: #00AADD; margin: 0;">📊 Status</h4>
-                        <button onclick="testGeminiTriangularConnection()" style="padding: 6px 12px; background: #00AADD; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 12px;">
-                            Test Connection
-                        </button>
+            <!-- FUNDING REQUIREMENTS Info Banner -->
+            <div style="background: rgba(0,170,221,0.15); border: 2px solid #00AADD; border-radius: 10px; padding: 20px; margin-bottom: 20px;">
+                <h4 style="color: #00AADD; margin: 0 0 15px 0; font-size: 1.1rem;">💰 FUNDING REQUIREMENTS (Portfolio % Mode)</h4>
+                <p style="color: #b8c6db; margin: 0 0 15px 0; font-size: 0.9rem; line-height: 1.6;">
+                    <strong>Portfolio % Strategy:</strong> Trade amount = MIN(portfolioPercent × balance, maxTradeAmount). Default 10% of USDT balance, capped at $1,000. <br>
+                    <strong>Note:</strong> Regulated US exchange (Winklevoss-founded) | HMAC-SHA384 auth | Limited USDT pairs (only btcusdt, ethusdt) | 10 paths total
+                </p>
+                <div style="display: grid; gap: 12px;">
+                    <!-- 5 color-coded path sets with funding details -->
+                    <div style="padding: 12px; background: rgba(0,170,221,0.2); border-left: 4px solid #00AADD; border-radius: 6px;">
+                        <strong style="color: #00AADD;">SET 1: BTC-ETH Direct (2 paths) 💎</strong><br>
+                        <span style="color: #b8c6db; font-size: 0.85rem;">Funding: $200-400 USDT | Direct BTC-ETH bridge (3-leg)</span>
                     </div>
-                    <div id="geminiStatus" style="color: #888; font-size: 14px;">Not connected</div>
-                    <div id="geminiBalance" style="color: #888; font-size: 14px; margin-top: 5px;"></div>
+                    <div style="padding: 12px; background: rgba(0,170,221,0.2); border-left: 4px solid #00AADD; border-radius: 6px;">
+                        <strong style="color: #00AADD;">SET 2: DOGE Bridge (2 paths) 💎</strong><br>
+                        <span style="color: #b8c6db; font-size: 0.85rem;">Funding: $200-400 USDT | BTC/ETH via DOGE (4-leg)</span>
+                    </div>
+                    <div style="padding: 12px; background: rgba(255,193,7,0.2); border-left: 4px solid #FFC107; border-radius: 6px;">
+                        <strong style="color: #FFC107;">SET 3: LINK Bridge (2 paths) ⚠️</strong><br>
+                        <span style="color: #b8c6db; font-size: 0.85rem;">Funding: $200-400 USDT | BTC/ETH via LINK (4-leg)</span>
+                    </div>
+                    <div style="padding: 12px; background: rgba(255,193,7,0.2); border-left: 4px solid #FFC107; border-radius: 6px;">
+                        <strong style="color: #FFC107;">SET 4: LTC Bridge (2 paths) ⚠️</strong><br>
+                        <span style="color: #b8c6db; font-size: 0.85rem;">Funding: $200-400 USDT | BTC/ETH via LTC (4-leg)</span>
+                    </div>
+                    <div style="padding: 12px; background: rgba(255,87,34,0.2); border-left: 4px solid #FF5722; border-radius: 6px;">
+                        <strong style="color: #FF5722;">SET 5: SOL Bridge (2 paths) 🔥</strong><br>
+                        <span style="color: #b8c6db; font-size: 0.85rem;">Funding: $200-400 USDT | BTC/ETH via SOL (4-leg, higher volatility)</span>
+                    </div>
                 </div>
+                <p style="color: #00AADD; margin: 15px 0 0 0; font-weight: 600; font-size: 0.95rem;">
+                    Total Recommended Funding: <strong>$1,000-2,000 USDT</strong> (all sets enabled)
+                </p>
+            </div>
 
-                <!-- Risk Management -->
+            <!-- 3-Column Responsive Grid -->
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px;">
+                <!-- Column 1: Risk Management -->
                 <div class="stat-card">
-                    <h4 style="color: #00AADD; margin-bottom: 10px;">⚙️ Risk Settings</h4>
-                    <div style="margin-bottom: 10px;">
-                        <label style="color: #888; font-size: 12px; display: block; margin-bottom: 5px;">Min Profit %</label>
-                        <input type="number" id="geminiMinProfit" value="0.5" step="0.1" style="width: 100%; padding: 8px; background: rgba(255,255,255,0.05); border: 1px solid #555; border-radius: 5px; color: white; font-size: 14px;">
+                    <h4 style="color: #00AADD; margin: 0 0 15px 0; font-size: 0.95rem;">⚙️ Risk Management</h4>
+                    <div style="margin-bottom: 12px;">
+                        <label style="color: #888; font-size: 0.8rem; display: block; margin-bottom: 5px;">Max Trade Amount ($)</label>
+                        <input type="number" id="geminiMaxTrade" value="1000" step="100" min="10" style="width: 100%; padding: 8px; background: rgba(255,255,255,0.05); border: 1px solid #555; border-radius: 5px; color: white; font-size: 0.85rem;">
+                    </div>
+                    <div style="margin-bottom: 12px;">
+                        <label style="color: #888; font-size: 0.8rem; display: block; margin-bottom: 5px;">Portfolio % to Use</label>
+                        <input type="number" id="geminiPortfolioPercent" value="10" step="1" min="1" max="100" style="width: 100%; padding: 8px; background: rgba(255,255,255,0.05); border: 1px solid #555; border-radius: 5px; color: white; font-size: 0.85rem;">
                     </div>
                     <div>
-                        <label style="color: #888; font-size: 12px; display: block; margin-bottom: 5px;">Max Investment ($)</label>
-                        <input type="number" id="geminiMaxInvestment" value="1000" step="100" style="width: 100%; padding: 8px; background: rgba(255,255,255,0.05); border: 1px solid #555; border-radius: 5px; color: white; font-size: 14px;">
+                        <label style="color: #888; font-size: 0.8rem; display: block; margin-bottom: 5px;">Min Profit % Threshold</label>
+                        <input type="number" id="geminiProfitThreshold" value="0.5" step="0.1" min="0.1" style="width: 100%; padding: 8px; background: rgba(255,255,255,0.05); border: 1px solid #555; border-radius: 5px; color: white; font-size: 0.85rem;">
                     </div>
                 </div>
 
-                <!-- Path Selection -->
-                <div class="stat-card" style="grid-column: 1 / -1;">
-                    <h4 style="color: #00AADD; margin-bottom: 15px;">🛤️ Path Selection (10 paths available)</h4>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
-                        <label style="display: flex; align-items: center; color: #888; cursor: pointer;">
-                            <input type="checkbox" id="gemini_SET_1" checked style="margin-right: 8px; width: 16px; height: 16px;">
-                            <span>SET 1: BTC-ETH Direct (2 paths)</span>
+                <!-- Column 2: Path Selection -->
+                <div class="stat-card">
+                    <h4 style="color: #00AADD; margin: 0 0 15px 0; font-size: 0.95rem;">🛤️ Path Selection</h4>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <label style="display: flex; align-items: center; color: #888; cursor: pointer; font-size: 0.85rem;">
+                            <input type="checkbox" id="geminiSet1Enabled" checked style="margin-right: 8px; width: 16px; height: 16px;">
+                            <span>SET 1: BTC-ETH (2)</span>
                         </label>
-                        <label style="display: flex; align-items: center; color: #888; cursor: pointer;">
-                            <input type="checkbox" id="gemini_SET_2" checked style="margin-right: 8px; width: 16px; height: 16px;">
-                            <span>SET 2: DOGE Bridge (2 paths)</span>
+                        <label style="display: flex; align-items: center; color: #888; cursor: pointer; font-size: 0.85rem;">
+                            <input type="checkbox" id="geminiSet2Enabled" checked style="margin-right: 8px; width: 16px; height: 16px;">
+                            <span>SET 2: DOGE (2)</span>
                         </label>
-                        <label style="display: flex; align-items: center; color: #888; cursor: pointer;">
-                            <input type="checkbox" id="gemini_SET_3" checked style="margin-right: 8px; width: 16px; height: 16px;">
-                            <span>SET 3: LINK Bridge (2 paths)</span>
+                        <label style="display: flex; align-items: center; color: #888; cursor: pointer; font-size: 0.85rem;">
+                            <input type="checkbox" id="geminiSet3Enabled" style="margin-right: 8px; width: 16px; height: 16px;">
+                            <span>SET 3: LINK (2)</span>
                         </label>
-                        <label style="display: flex; align-items: center; color: #888; cursor: pointer;">
-                            <input type="checkbox" id="gemini_SET_4" checked style="margin-right: 8px; width: 16px; height: 16px;">
-                            <span>SET 4: LTC Bridge (2 paths)</span>
+                        <label style="display: flex; align-items: center; color: #888; cursor: pointer; font-size: 0.85rem;">
+                            <input type="checkbox" id="geminiSet4Enabled" style="margin-right: 8px; width: 16px; height: 16px;">
+                            <span>SET 4: LTC (2)</span>
                         </label>
-                        <label style="display: flex; align-items: center; color: #888; cursor: pointer;">
-                            <input type="checkbox" id="gemini_SET_5" checked style="margin-right: 8px; width: 16px; height: 16px;">
-                            <span>SET 5: SOL Bridge (2 paths)</span>
+                        <label style="display: flex; align-items: center; color: #888; cursor: pointer; font-size: 0.85rem;">
+                            <input type="checkbox" id="geminiSet5Enabled" style="margin-right: 8px; width: 16px; height: 16px;">
+                            <span>SET 5: SOL (2)</span>
                         </label>
-                    </div>
-                    <div style="margin-top: 15px; display: flex; gap: 10px;">
-                        <button onclick="saveGeminiSettings()" style="flex: 1; padding: 10px; background: rgba(0,170,221,0.2); color: #00AADD; border: 1px solid #00AADD; border-radius: 5px; cursor: pointer;">
-                            💾 Save Settings
-                        </button>
-                        <button onclick="loadGeminiSettings()" style="flex: 1; padding: 10px; background: rgba(0,170,221,0.2); color: #00AADD; border: 1px solid #00AADD; border-radius: 5px; cursor: pointer;">
-                            📥 Load Settings
-                        </button>
-                        <button onclick="viewGeminiPathDetails()" style="flex: 1; padding: 10px; background: rgba(0,170,221,0.2); color: #00AADD; border: 1px solid #00AADD; border-radius: 5px; cursor: pointer;">
-                            📊 View Paths
+                        <button onclick="viewGeminiPathDetails()" style="width: 100%; padding: 8px; background: rgba(0,170,221,0.2); color: #00AADD; border: 1px solid #00AADD; border-radius: 5px; cursor: pointer; font-size: 0.8rem; margin-top: 5px;">
+                            📊 View All 10 Paths
                         </button>
                     </div>
                 </div>
 
-                <!-- Scanner -->
-                <div class="stat-card" style="grid-column: 1 / -1;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                        <h4 style="color: #00AADD; margin: 0;">🔍 Opportunity Scanner</h4>
-                        <button onclick="scanGeminiTriangular()" style="padding: 10px 20px; background: #00AADD; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
-                            🔍 Scan Opportunities
-                        </button>
-                    </div>
-                    <div id="geminiScanResults" style="color: #888; font-size: 14px;">
-                        Click "Scan Opportunities" to find profitable triangular arbitrage paths.
-                    </div>
-                </div>
-
-                <!-- Opportunities Display -->
-                <div class="stat-card" style="grid-column: 1 / -1;">
-                    <h4 style="color: #00AADD; margin-bottom: 15px;">💰 Live Opportunities</h4>
-                    <div id="geminiOpportunities" style="max-height: 400px; overflow-y: auto;">
-                        <div style="color: #888; font-size: 14px; text-align: center; padding: 20px;">
-                            No opportunities found yet. Run a scan to discover profitable paths.
+                <!-- Column 3: Performance Stats -->
+                <div class="stat-card">
+                    <h4 style="color: #00AADD; margin: 0 0 15px 0; font-size: 0.95rem;">📊 Performance Stats</h4>
+                    <div style="display: grid; gap: 8px; font-size: 0.8rem;">
+                        <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                            <span style="color: #888;">Total Scans:</span>
+                            <span id="geminiTotalScans" style="color: #00AADD; font-weight: 600;">0</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                            <span style="color: #888;">Opportunities Found:</span>
+                            <span id="geminiOppsFound" style="color: #00AADD; font-weight: 600;">0</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                            <span style="color: #888;">Trades Executed:</span>
+                            <span id="geminiTradesExecuted" style="color: #00AADD; font-weight: 600;">0</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                            <span style="color: #888;">Success Rate:</span>
+                            <span id="geminiSuccessRate" style="color: #00AADD; font-weight: 600;">0%</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                            <span style="color: #888;">Total Profit:</span>
+                            <span id="geminiTotalProfit" style="color: #00d26a; font-weight: 600;">$0.00</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 6px 0;">
+                            <span style="color: #888;">Avg Profit/Trade:</span>
+                            <span id="geminiAvgProfit" style="color: #00d26a; font-weight: 600;">$0.00</span>
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <!-- Trade History -->
-                <div class="stat-card" style="grid-column: 1 / -1;">
-                    <h4 style="color: #00AADD; margin-bottom: 15px;">📜 Recent Trades</h4>
-                    <div id="geminiTradeHistory" style="color: #888; font-size: 14px;">
-                        No trade history available.
+            <!-- Balance Tracker + Trading Tabs -->
+            <div style="background: rgba(0,0,0,0.2); border-radius: 10px; padding: 15px;">
+                <!-- Tab Headers -->
+                <div style="display: flex; gap: 10px; margin-bottom: 15px; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 10px;">
+                    <button id="geminiBalanceTab" onclick="switchGeminiTab('balance')" style="padding: 8px 16px; background: linear-gradient(135deg, #00AADD, #0088AA); color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: 600; font-size: 0.9rem;">
+                        💰 Balance Tracker
+                    </button>
+                    <button id="geminiTradingTab" onclick="switchGeminiTab('trading')" style="padding: 8px 16px; background: rgba(0,0,0,0.3); color: #888; border: none; border-radius: 5px; cursor: pointer; font-weight: 600; font-size: 0.9rem;">
+                        📈 Current Opportunities
+                    </button>
+                </div>
+
+                <!-- Balance Tracker Content -->
+                <div id="geminiBalanceContent" style="display: block;">
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 15px;">
+                        <!-- Starting Balance Card -->
+                        <div style="background: rgba(0,170,221,0.1); padding: 15px; border-radius: 8px; border: 1px solid rgba(0,170,221,0.3);">
+                            <div style="color: #888; font-size: 0.8rem; margin-bottom: 5px;">Starting Balance</div>
+                            <div id="geminiStartingUSDT" style="color: #00AADD; font-size: 1.2rem; font-weight: 700;">0.00 USDT</div>
+                        </div>
+
+                        <!-- Current Balance Card -->
+                        <div style="background: rgba(0,170,221,0.1); padding: 15px; border-radius: 8px; border: 1px solid rgba(0,170,221,0.3);">
+                            <div style="color: #888; font-size: 0.8rem; margin-bottom: 5px;">Current Balance</div>
+                            <div id="geminiCurrentUSDT" style="color: #00AADD; font-size: 1.2rem; font-weight: 700;">0.00 USDT</div>
+                        </div>
+
+                        <!-- Change Card -->
+                        <div style="background: rgba(0,170,221,0.1); padding: 15px; border-radius: 8px; border: 1px solid rgba(0,170,221,0.3);">
+                            <div style="color: #888; font-size: 0.8rem; margin-bottom: 5px;">Change (P&L)</div>
+                            <div id="geminiChangeUSDT" style="color: #00d26a; font-size: 1.2rem; font-weight: 700;">+0.00 USDT (+0.00%)</div>
+                        </div>
+                    </div>
+
+                    <!-- Balance Actions -->
+                    <div style="display: flex; gap: 10px;">
+                        <button onclick="updateGeminiBalance()" style="flex: 1; padding: 10px; background: #00AADD; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: 600;">
+                            🔄 Refresh Balance
+                        </button>
+                        <button onclick="resetGeminiStartingBalance()" style="flex: 1; padding: 10px; background: rgba(0,170,221,0.2); color: #00AADD; border: 1px solid #00AADD; border-radius: 5px; cursor: pointer; font-weight: 600;">
+                            🔁 Reset Starting Point
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Trading Content -->
+                <div id="geminiTradingContent" style="display: none;">
+                    <!-- Scan Button -->
+                    <div style="margin-bottom: 15px;">
+                        <button onclick="scanGeminiTriangularPaths()" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #00AADD, #0088AA); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 1rem;">
+                            🔍 Scan Opportunities Now
+                        </button>
+                    </div>
+
+                    <!-- Scan Status -->
+                    <div id="geminiScanStatus" style="color: #888; font-size: 0.85rem; margin-bottom: 10px; text-align: center;"></div>
+
+                    <!-- Opportunities Display -->
+                    <div id="geminiOpportunities" style="max-height: 400px; overflow-y: auto;"></div>
+
+                    <!-- Clear History Button -->
+                    <div style="margin-top: 15px;">
+                        <button onclick="clearGeminiHistory()" style="width: 100%; padding: 8px; background: rgba(255,87,34,0.2); color: #FF5722; border: 1px solid #FF5722; border-radius: 5px; cursor: pointer; font-size: 0.85rem;">
+                            🗑️ Clear Opportunity History
+                        </button>
                     </div>
                 </div>
             </div>
@@ -16677,348 +16764,517 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
         // GEMINI TRIANGULAR ARBITRAGE FUNCTIONS
         // ============================================================================
 
-        // Test Gemini Connection
-        async function testGeminiTriangularConnection() {
+        // 1. Toggle Gemini Triangular
+        function toggleGeminiTriangular() {
+            const toggle = document.getElementById('geminiTriangularEnabled');
+            const status = document.getElementById('geminiTriangularStatus');
+            const isActive = toggle.classList.toggle('active');
+
+            if (isActive) {
+                status.textContent = 'ON';
+                status.style.color = '#00AADD';
+                localStorage.setItem('geminiTriangularEnabled', 'true');
+            } else {
+                status.textContent = 'OFF';
+                status.style.color = '#ff6b6b';
+                localStorage.setItem('geminiTriangularEnabled', 'false');
+            }
+        }
+
+        // 2. View Gemini Path Details (Professional Modal)
+        function viewGeminiPathDetails() {
+            const modal = document.createElement('div');
+            modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center; z-index: 10000; backdrop-filter: blur(8px);';
+
+            modal.innerHTML = `
+                <div style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); padding: 30px; border-radius: 20px; max-width: 800px; max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,170,221,0.4); border: 2px solid rgba(0,170,221,0.3);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 2px solid rgba(0,170,221,0.3);">
+                        <h2 style="color: #00AADD; margin: 0; font-size: 24px; font-weight: 700;">💎 Gemini Triangular Arbitrage Paths</h2>
+                        <button onclick="this.closest('div').parentElement.remove()" style="background: rgba(255,87,34,0.2); color: #FF5722; border: 1px solid #FF5722; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px;">
+                            ✕ Close
+                        </button>
+                    </div>
+
+                    <div style="background: rgba(0,170,221,0.1); padding: 15px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #00AADD;">
+                        <p style="color: #b8c6db; margin: 0; font-size: 14px; line-height: 1.6;">
+                            <strong style="color: #00AADD;">Gemini Exchange:</strong> Regulated US exchange founded by Winklevoss twins | HMAC-SHA384 auth | Limited USDT pairs | 10 paths total<br>
+                            <strong style="color: #00AADD;">Funding Range:</strong> $1,000-2,000 USDT total (all sets enabled)
+                        </p>
+                    </div>
+
+                    <!-- SET 1 - BTC-ETH DIRECT -->
+                    <div style="background: rgba(0,170,221,0.15); padding: 18px; border-radius: 12px; margin-bottom: 15px; border-left: 5px solid #00AADD;">
+                        <h3 style="color: #00AADD; margin: 0 0 12px 0; font-size: 16px; font-weight: 700;">SET 1: BTC-ETH Direct (2 paths) 💎</h3>
+                        <div style="color: #b8c6db; font-size: 13px; line-height: 1.8; font-family: 'Courier New', monospace;">
+                            1. USDT → BTC → ETH → USDT<br>
+                            2. USDT → ETH → BTC → USDT
+                        </div>
+                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(0,170,221,0.3); color: #00AADD; font-weight: 600; font-size: 13px;">
+                            💰 Funding: $200-400 USDT | Direct BTC-ETH bridge (3-leg)
+                        </div>
+                    </div>
+
+                    <!-- SET 2 - DOGE BRIDGE -->
+                    <div style="background: rgba(0,170,221,0.15); padding: 18px; border-radius: 12px; margin-bottom: 15px; border-left: 5px solid #00AADD;">
+                        <h3 style="color: #00AADD; margin: 0 0 12px 0; font-size: 16px; font-weight: 700;">SET 2: DOGE Bridge (2 paths) 💎</h3>
+                        <div style="color: #b8c6db; font-size: 13px; line-height: 1.8; font-family: 'Courier New', monospace;">
+                            1. USDT → BTC → DOGE → ETH → USDT<br>
+                            2. USDT → ETH → DOGE → BTC → USDT
+                        </div>
+                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(0,170,221,0.3); color: #00AADD; font-weight: 600; font-size: 13px;">
+                            💰 Funding: $200-400 USDT | BTC/ETH via DOGE (4-leg)
+                        </div>
+                    </div>
+
+                    <!-- SET 3 - LINK BRIDGE -->
+                    <div style="background: rgba(255,193,7,0.15); padding: 18px; border-radius: 12px; margin-bottom: 15px; border-left: 5px solid #FFC107;">
+                        <h3 style="color: #FFC107; margin: 0 0 12px 0; font-size: 16px; font-weight: 700;">SET 3: LINK Bridge (2 paths) ⚠️</h3>
+                        <div style="color: #b8c6db; font-size: 13px; line-height: 1.8; font-family: 'Courier New', monospace;">
+                            1. USDT → BTC → LINK → ETH → USDT<br>
+                            2. USDT → ETH → LINK → BTC → USDT
+                        </div>
+                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,193,7,0.3); color: #FFC107; font-weight: 600; font-size: 13px;">
+                            💰 Funding: $200-400 USDT | BTC/ETH via LINK (4-leg)
+                        </div>
+                    </div>
+
+                    <!-- SET 4 - LTC BRIDGE -->
+                    <div style="background: rgba(255,193,7,0.15); padding: 18px; border-radius: 12px; margin-bottom: 15px; border-left: 5px solid #FFC107;">
+                        <h3 style="color: #FFC107; margin: 0 0 12px 0; font-size: 16px; font-weight: 700;">SET 4: LTC Bridge (2 paths) ⚠️</h3>
+                        <div style="color: #b8c6db; font-size: 13px; line-height: 1.8; font-family: 'Courier New', monospace;">
+                            1. USDT → BTC → LTC → ETH → USDT<br>
+                            2. USDT → ETH → LTC → BTC → USDT
+                        </div>
+                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,193,7,0.3); color: #FFC107; font-weight: 600; font-size: 13px;">
+                            💰 Funding: $200-400 USDT | BTC/ETH via LTC (4-leg)
+                        </div>
+                    </div>
+
+                    <!-- SET 5 - SOL BRIDGE -->
+                    <div style="background: rgba(255,87,34,0.15); padding: 18px; border-radius: 12px; margin-bottom: 15px; border-left: 5px solid #FF5722;">
+                        <h3 style="color: #FF5722; margin: 0 0 12px 0; font-size: 16px; font-weight: 700;">SET 5: SOL Bridge (2 paths) 🔥</h3>
+                        <div style="color: #b8c6db; font-size: 13px; line-height: 1.8; font-family: 'Courier New', monospace;">
+                            1. USDT → BTC → SOL → ETH → USDT<br>
+                            2. USDT → ETH → SOL → BTC → USDT
+                        </div>
+                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,87,34,0.3); color: #FF5722; font-weight: 600; font-size: 13px;">
+                            💰 Funding: $200-400 USDT | BTC/ETH via SOL (4-leg, higher volatility)
+                        </div>
+                    </div>
+
+                    <div style="background: rgba(0,170,221,0.1); padding: 15px; border-radius: 10px; margin-top: 20px;">
+                        <p style="color: #00AADD; margin: 0; font-size: 14px; font-weight: 600;">
+                            📊 Total: 10 paths | 💎 Defaults: SET 1 & SET 2 | 💰 Total Funding: $1,000-2,000 USDT
+                        </p>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) modal.remove();
+            });
+        }
+
+        // 3. Switch Gemini Tab
+        function switchGeminiTab(tab) {
+            const balanceBtn = document.getElementById('geminiBalanceTab');
+            const tradingBtn = document.getElementById('geminiTradingTab');
+            const balanceContent = document.getElementById('geminiBalanceContent');
+            const tradingContent = document.getElementById('geminiTradingContent');
+
+            if (tab === 'balance') {
+                balanceBtn.style.background = 'linear-gradient(135deg, #00AADD, #0088AA)';
+                balanceBtn.style.color = 'white';
+                tradingBtn.style.background = 'rgba(0,0,0,0.3)';
+                tradingBtn.style.color = '#888';
+                balanceContent.style.display = 'block';
+                tradingContent.style.display = 'none';
+            } else {
+                tradingBtn.style.background = 'linear-gradient(135deg, #00AADD, #0088AA)';
+                tradingBtn.style.color = 'white';
+                balanceBtn.style.background = 'rgba(0,0,0,0.3)';
+                balanceBtn.style.color = '#888';
+                tradingContent.style.display = 'block';
+                balanceContent.style.display = 'none';
+            }
+        }
+
+        // 4. Balance Tracking with NaN Prevention
+        const geminiBalanceTracking = {
+            starting: 0,
+            current: 0,
+            initialized: false
+        };
+
+        async function initializeGeminiBalance() {
             const apiKey = localStorage.getItem('gemini_api') || '';
             const apiSecret = localStorage.getItem('gemini_secret') || '';
 
             if (!apiKey || !apiSecret) {
-                showNotification('Please set up Gemini API credentials in Settings first', 'error');
+                console.log('💎 [GEMINI] No API credentials - skipping auto-fetch');
                 return;
             }
 
-            document.getElementById('geminiStatus').innerHTML = '<span style="color: #FFA500;">⏳ Testing connection...</span>';
-
             try {
-                const response = await fetch(`${API_BASE}/trading/gemini/triangular/test-connection`, {
+                const response = await fetch('/api/v1/trading/gemini/balance', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    },
-                    body: JSON.stringify({ apiKey, apiSecret })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ apiKey, apiSecret, currency: 'USDT' })
                 });
 
                 const data = await response.json();
 
                 if (data.success) {
-                    document.getElementById('geminiStatus').innerHTML = '<span style="color: #00FF00;">✅ Connected</span>';
-                    document.getElementById('geminiBalance').innerHTML = `USDT Balance: $${data.balance.available.toFixed(2)} / $${data.balance.total.toFixed(2)}`;
-                    showNotification('Gemini connection successful!', 'success');
+                    const balance = Number(data.balance) || 0;
 
-                    // Auto-load trade history
-                    await loadGeminiTradeHistory();
-                } else {
-                    document.getElementById('geminiStatus').innerHTML = '<span style="color: #FF0000;">❌ Connection failed</span>';
-                    showNotification(data.message || 'Gemini connection failed', 'error');
+                    if (!geminiBalanceTracking.initialized) {
+                        geminiBalanceTracking.starting = balance;
+                        geminiBalanceTracking.current = balance;
+                        geminiBalanceTracking.initialized = true;
+                        console.log(`💎 [GEMINI] Balance initialized: ${balance} USDT`);
+                    } else {
+                        geminiBalanceTracking.current = balance;
+                    }
+
+                    updateGeminiBalanceDisplay();
                 }
             } catch (error) {
-                console.error('Gemini connection error:', error);
-                document.getElementById('geminiStatus').innerHTML = '<span style="color: #FF0000;">❌ Error</span>';
-                showNotification('Network error during connection test', 'error');
+                console.error('💎 [GEMINI] Auto-fetch failed:', error);
             }
         }
 
-        // Scan for Gemini Opportunities
-        async function scanGeminiTriangular() {
+        async function updateGeminiBalance() {
             const apiKey = localStorage.getItem('gemini_api') || '';
             const apiSecret = localStorage.getItem('gemini_secret') || '';
 
             if (!apiKey || !apiSecret) {
-                showNotification('Please set up Gemini API credentials and test connection first', 'error');
+                alert('⚠️ Please configure your Gemini API credentials on the Exchange Connections page first.');
                 return;
             }
-
-            // Get selected sets
-            const selectedSets = [];
-            for (let i = 1; i <= 5; i++) {
-                const checkbox = document.getElementById(`gemini_SET_${i}`);
-                if (checkbox && checkbox.checked) {
-                    selectedSets.push(`SET_${i}_${['BTC_ETH_DIRECT', 'DOGE_BRIDGE', 'LINK_BRIDGE', 'LTC_BRIDGE', 'SOL_BRIDGE'][i - 1]}`);
-                }
-            }
-
-            if (selectedSets.length === 0) {
-                showNotification('Please select at least one path set', 'error');
-                return;
-            }
-
-            document.getElementById('geminiScanResults').innerHTML = '<span style="color: #FFA500;">⏳ Scanning for opportunities...</span>';
-            document.getElementById('geminiOpportunities').innerHTML = '<div style="color: #888; text-align: center; padding: 20px;">Scanning...</div>';
 
             try {
-                const response = await fetch(`${API_BASE}/trading/gemini/triangular/scan`, {
+                const response = await fetch('/api/v1/trading/gemini/balance', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    },
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ apiKey, apiSecret, currency: 'USDT' })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    const balance = Number(data.balance) || 0;
+
+                    if (!geminiBalanceTracking.initialized) {
+                        geminiBalanceTracking.starting = balance;
+                        geminiBalanceTracking.initialized = true;
+                    }
+
+                    geminiBalanceTracking.current = balance;
+                    updateGeminiBalanceDisplay();
+                    alert(`✅ Gemini USDT Balance Updated\n\nCurrent: ${balance.toFixed(2)} USDT`);
+                } else {
+                    alert(`Balance fetch failed: ${data.message}`);
+                }
+            } catch (error) {
+                console.error('Gemini balance error:', error);
+                alert(`Error: ${error.message}`);
+            }
+        }
+
+        function updateGeminiBalanceDisplay() {
+            const starting = Number(geminiBalanceTracking.starting) || 0;
+            const current = Number(geminiBalanceTracking.current) || 0;
+            const change = current - starting;
+            const changePercent = starting > 0 ? ((change / starting) * 100) : 0;
+
+            document.getElementById('geminiStartingUSDT').textContent = `${starting.toFixed(2)} USDT`;
+            document.getElementById('geminiCurrentUSDT').textContent = `${current.toFixed(2)} USDT`;
+
+            const changeDisplay = document.getElementById('geminiChangeUSDT');
+            const changeSign = change >= 0 ? '+' : '';
+            const changeColor = change >= 0 ? '#00d26a' : '#FF4444';
+
+            changeDisplay.textContent = `${changeSign}${change.toFixed(2)} USDT (${changeSign}${changePercent.toFixed(2)}%)`;
+            changeDisplay.style.color = changeColor;
+        }
+
+        function resetGeminiStartingBalance() {
+            if (!confirm('Reset starting balance to current balance?\n\nThis will reset your P&L tracking.')) {
+                return;
+            }
+
+            geminiBalanceTracking.starting = geminiBalanceTracking.current;
+            updateGeminiBalanceDisplay();
+            alert('✅ Gemini starting balance reset!');
+        }
+
+        // 5. Clear Gemini History
+        function clearGeminiHistory() {
+            if (!confirm('Clear all Gemini opportunity history?')) {
+                return;
+            }
+
+            document.getElementById('geminiOpportunities').innerHTML = '';
+            document.getElementById('geminiScanStatus').innerHTML = '';
+            window.geminiCurrentOpportunities = [];
+            alert('✅ Gemini opportunity history cleared!');
+        }
+
+        // 6. Scan Gemini Triangular Paths
+        async function scanGeminiTriangularPaths() {
+            const apiKey = localStorage.getItem('gemini_api') || '';
+            const apiSecret = localStorage.getItem('gemini_secret') || '';
+            const profitThreshold = parseFloat(document.getElementById('geminiProfitThreshold').value);
+            const maxTradeAmount = parseFloat(document.getElementById('geminiMaxTrade').value);
+            const portfolioPercent = parseFloat(document.getElementById('geminiPortfolioPercent').value);
+            const scanStatus = document.getElementById('geminiScanStatus');
+            const opportunitiesDiv = document.getElementById('geminiOpportunities');
+
+            if (!apiKey || !apiSecret) {
+                alert('⚠️ Please configure your Gemini API credentials on the Exchange Connections page first.');
+                return;
+            }
+
+            scanStatus.textContent = '🔄 Scanning 10 triangular paths...';
+            scanStatus.style.color = '#FFA500';
+            opportunitiesDiv.innerHTML = '<div style="text-align: center; color: #888; padding: 20px;">Scanning for opportunities...</div>';
+
+            try {
+                const enabledSets = {};
+                for (let i = 1; i <= 5; i++) {
+                    const checkbox = document.getElementById(`geminiSet${i}Enabled`);
+                    if (checkbox && checkbox.checked) {
+                        enabledSets[`SET_${i}_${['BTC_ETH_DIRECT', 'DOGE_BRIDGE', 'LINK_BRIDGE', 'LTC_BRIDGE', 'SOL_BRIDGE'][i - 1]}`] = true;
+                    }
+                }
+
+                const response = await fetch('/api/v1/trading/gemini/triangular/scan', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         apiKey,
                         apiSecret,
-                        selectedSets
+                        profitThreshold,
+                        maxTradeAmount,
+                        portfolioPercent,
+                        enabledSets
                     })
                 });
 
                 const data = await response.json();
 
                 if (data.success) {
-                    const minProfit = parseFloat(document.getElementById('geminiMinProfit').value) || 0.5;
-                    const filteredOpps = data.opportunities.filter(opp => opp.profitPercentage >= minProfit);
+                    scanStatus.textContent = `✅ Found ${data.profitableCount} opportunities (scanned ${data.scanned} paths)`;
+                    scanStatus.style.color = '#00FF00';
 
-                    document.getElementById('geminiScanResults').innerHTML =
-                        `<span style="color: #00FF00;">✅ Scan complete: ${filteredOpps.length} opportunities found (${data.scannedPaths} paths scanned)</span>`;
+                    if (data.opportunities.length > 0) {
+                        let opportunitiesHtml = '<div style="display: grid; gap: 15px;">';
 
-                    if (filteredOpps.length === 0) {
-                        document.getElementById('geminiOpportunities').innerHTML =
-                            '<div style="color: #888; text-align: center; padding: 20px;">No profitable opportunities found above minimum profit threshold.</div>';
-                        return;
+                        data.opportunities.forEach((opp, index) => {
+                            const profitColor = parseFloat(opp.profitPercent) >= 0.5 ? '#00FF00' : '#FFA500';
+                            const pairs = opp.steps.map(s => s.pair).join(', ');
+
+                            opportunitiesHtml += `
+                                <div style="padding: 15px; background: rgba(0,170,221,0.1); border-radius: 10px; border: 2px solid #00AADD;">
+                                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                                        <div>
+                                            <div style="color: #00AADD; font-weight: 600; margin-bottom: 5px;">${opp.pathId}</div>
+                                            <div style="color: #ddd; margin-bottom: 5px;">${opp.description}</div>
+                                            <div style="color: #888; font-size: 14px;">Path: ${opp.path.join(' → ')}</div>
+                                        </div>
+                                        <div style="text-align: right;">
+                                            <div style="color: ${profitColor}; font-size: 24px; font-weight: 700;">${opp.profitPercent}%</div>
+                                            <div style="color: #888; font-size: 14px;">~$${parseFloat(opp.profitAmount).toFixed(2)} profit</div>
+                                        </div>
+                                    </div>
+                                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #444;">
+                                        <div style="color: #888; font-size: 12px; margin-bottom: 5px;">Pairs: ${pairs}</div>
+                                        <button onclick="executeGeminiTriangularTrade('${opp.pathId}')" style="width: 100%; padding: 8px; background: #00AADD; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; margin-top: 10px;">
+                                            💎 Execute Trade
+                                        </button>
+                                    </div>
+                                </div>
+                            `;
+                        });
+
+                        opportunitiesHtml += '</div>';
+                        opportunitiesDiv.innerHTML = opportunitiesHtml;
+                    } else {
+                        opportunitiesDiv.innerHTML = '<div style="text-align: center; color: #888; padding: 20px;">No profitable opportunities found. Try lowering the profit threshold.</div>';
                     }
-
-                    // Display opportunities
-                    let html = '';
-                    filteredOpps.forEach((opp, index) => {
-                        html += `
-                            <div style="background: rgba(0,170,221,0.1); padding: 15px; border-radius: 10px; margin-bottom: 15px; border: 1px solid #00AADD;">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                                    <div>
-                                        <span style="color: #00AADD; font-weight: bold;">${opp.pathId}</span>
-                                        <span style="color: #888; margin-left: 10px; font-size: 12px;">${opp.description}</span>
-                                    </div>
-                                    <div style="text-align: right;">
-                                        <div style="color: ${opp.profitPercentage >= 1 ? '#00FF00' : '#FFA500'}; font-weight: bold; font-size: 18px;">
-                                            +${opp.profitPercentage.toFixed(2)}%
-                                        </div>
-                                        <div style="color: #888; font-size: 12px;">
-                                            ~$${opp.estimatedProfit.toFixed(2)} profit
-                                        </div>
-                                    </div>
-                                </div>
-                                <div style="color: #888; font-size: 13px; margin-bottom: 10px;">
-                                    Path: ${opp.path.join(' → ')}
-                                </div>
-                                <div style="color: #666; font-size: 12px; margin-bottom: 10px;">
-                                    Pairs: ${opp.pairs.join(', ')}
-                                </div>
-                                <button onclick='executeGeminiTriangular(${JSON.stringify(opp)})'
-                                        style="width: 100%; padding: 10px; background: #00AADD; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
-                                    ⚡ Execute Trade
-                                </button>
-                            </div>
-                        `;
-                    });
-
-                    document.getElementById('geminiOpportunities').innerHTML = html;
-                    showNotification(`Found ${filteredOpps.length} opportunities!`, 'success');
-
                 } else {
-                    document.getElementById('geminiScanResults').innerHTML =
-                        '<span style="color: #FF0000;">❌ Scan failed</span>';
-                    document.getElementById('geminiOpportunities').innerHTML =
-                        '<div style="color: #888; text-align: center; padding: 20px;">Scan failed. Please try again.</div>';
-                    showNotification(data.message || 'Scan failed', 'error');
+                    scanStatus.textContent = '❌ Scan failed';
+                    scanStatus.style.color = '#FF4444';
+                    opportunitiesDiv.innerHTML = `<div style="text-align: center; color: #FF4444; padding: 20px;">${data.message}</div>`;
                 }
-
             } catch (error) {
-                console.error('Gemini scan error:', error);
-                document.getElementById('geminiScanResults').innerHTML = '<span style="color: #FF0000;">❌ Error</span>';
-                showNotification('Network error during scan', 'error');
+                scanStatus.textContent = '❌ Scan error';
+                scanStatus.style.color = '#FF4444';
+                opportunitiesDiv.innerHTML = `<div style="text-align: center; color: #FF4444; padding: 20px;">Error: ${error.message}</div>`;
             }
         }
 
         // Execute Gemini Triangular Trade
-        async function executeGeminiTriangular(opportunity) {
+        async function executeGeminiTriangularTrade(pathId) {
             const apiKey = localStorage.getItem('gemini_api') || '';
             const apiSecret = localStorage.getItem('gemini_secret') || '';
-            const maxInvestment = parseFloat(document.getElementById('geminiMaxInvestment').value) || 1000;
+            const maxTrade = parseFloat(document.getElementById('geminiMaxTrade').value);
+            const userId = localStorage.getItem('userId');
 
-            if (!confirm(`Execute triangular arbitrage on Gemini?\n\nPath: ${opportunity.pathId}\nExpected Profit: ${opportunity.profitPercentage.toFixed(2)}%\nInvestment: $${maxInvestment}`)) {
+            if (!confirm(`⚠️ Execute triangular arbitrage trade?\n\nPath: ${pathId}\nAmount: ${maxTrade} USDT\n\nThis will execute real trades on Gemini.`)) {
                 return;
             }
 
-            showNotification('Executing Gemini triangular arbitrage...', 'info');
-
             try {
-                const response = await fetch(`${API_BASE}/trading/gemini/triangular/execute`, {
+                const response = await fetch('/api/v1/trading/gemini/triangular/execute', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    },
-                    body: JSON.stringify({
-                        apiKey,
-                        apiSecret,
-                        opportunity,
-                        investmentAmount: maxInvestment
-                    })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ apiKey, apiSecret, pathId, amount: maxTrade, userId })
                 });
 
                 const data = await response.json();
 
                 if (data.success) {
-                    showNotification(`Trade executed! Profit: $${data.profit.toFixed(2)} (${data.profitPercentage}%)`, 'success');
+                    alert(`✅ Trade executed successfully!\n\nProfit: $${data.execution.profit.toFixed(2)} (${data.execution.profitPercent.toFixed(3)}%)\nFinal Amount: ${data.execution.finalAmount.toFixed(2)} USDT`);
 
                     // Refresh opportunities and history
-                    await scanGeminiTriangular();
-                    await loadGeminiTradeHistory();
+                    scanGeminiTriangularPaths();
+                    loadGeminiTradeHistory();
                 } else {
-                    showNotification(data.message || 'Trade execution failed', 'error');
+                    alert(`❌ Trade execution failed:\n\n${data.message}`);
                 }
-
             } catch (error) {
-                console.error('Gemini execution error:', error);
-                showNotification('Network error during trade execution', 'error');
+                alert(`❌ Trade execution error:\n\n${error.message}`);
             }
-        }
-
-        // View Gemini Path Details
-        function viewGeminiPathDetails() {
-            const pathDetails = `
-📋 GEMINI Triangular Arbitrage Paths (10 Total)
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 1: BTC-ETH Direct (2 paths) ✅ DEFAULT
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. USD → BTC → ETH → USD
-2. USD → ETH → BTC → USD
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 2: DOGE Bridge (2 paths) ✅ DEFAULT
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. USD → DOGE → BTC → USD
-2. USD → DOGE → ETH → USD
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 3: LINK Bridge (2 paths) ✅ DEFAULT
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. USD → LINK → BTC → USD
-2. USD → LINK → ETH → USD
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 4: LTC Bridge (2 paths) ✅ DEFAULT
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. USD → LTC → BTC → USD
-2. USD → LTC → ETH → USD
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SET 5: SOL Bridge (2 paths) ✅ DEFAULT
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. USD → SOL → BTC → USD
-2. USD → SOL → ETH → USD
-
-💡 TOTAL: 10 paths (all 3-leg)
-🌉 BRIDGE: USD (US Dollar)
-🇺🇸 REGIONAL: US-regulated exchange
-🔐 AUTH: API Key + Secret (institutional-grade)
-            `.trim();
-
-            alert(pathDetails);
-            console.log('📋 [GEMINI] Path details displayed:', pathDetails);
         }
 
         // Save Gemini Settings
-        function saveGeminiSettings() {
+        function saveGeminiTriangularSettings() {
             const settings = {
-                minProfit: document.getElementById('geminiMinProfit').value,
-                maxInvestment: document.getElementById('geminiMaxInvestment').value,
-                selectedSets: []
+                maxTrade: document.getElementById('geminiMaxTrade').value,
+                portfolioPercent: document.getElementById('geminiPortfolioPercent').value,
+                profitThreshold: document.getElementById('geminiProfitThreshold').value,
+                set1Enabled: document.getElementById('geminiSet1Enabled').checked,
+                set2Enabled: document.getElementById('geminiSet2Enabled').checked,
+                set3Enabled: document.getElementById('geminiSet3Enabled').checked,
+                set4Enabled: document.getElementById('geminiSet4Enabled').checked,
+                set5Enabled: document.getElementById('geminiSet5Enabled').checked
             };
-
-            for (let i = 1; i <= 5; i++) {
-                const checkbox = document.getElementById(`gemini_SET_${i}`);
-                if (checkbox) {
-                    settings.selectedSets.push({
-                        id: i,
-                        checked: checkbox.checked
-                    });
-                }
-            }
-
             localStorage.setItem('gemini_triangular_settings', JSON.stringify(settings));
-            showNotification('Gemini settings saved!', 'success');
+            console.log('💎 [GEMINI] Settings saved:', settings);
         }
 
         // Load Gemini Settings
-        function loadGeminiSettings() {
-            const settings = JSON.parse(localStorage.getItem('gemini_triangular_settings') || '{}');
+        function loadGeminiTriangularSettings() {
+            try {
+                const saved = localStorage.getItem('gemini_triangular_settings');
+                if (saved) {
+                    const settings = JSON.parse(saved);
 
-            if (settings.minProfit) {
-                document.getElementById('geminiMinProfit').value = settings.minProfit;
+                    if (settings.maxTrade) document.getElementById('geminiMaxTrade').value = settings.maxTrade;
+                    if (settings.portfolioPercent) document.getElementById('geminiPortfolioPercent').value = settings.portfolioPercent;
+                    if (settings.profitThreshold) document.getElementById('geminiProfitThreshold').value = settings.profitThreshold;
+
+                    if (settings.set1Enabled !== undefined) document.getElementById('geminiSet1Enabled').checked = settings.set1Enabled;
+                    if (settings.set2Enabled !== undefined) document.getElementById('geminiSet2Enabled').checked = settings.set2Enabled;
+                    if (settings.set3Enabled !== undefined) document.getElementById('geminiSet3Enabled').checked = settings.set3Enabled;
+                    if (settings.set4Enabled !== undefined) document.getElementById('geminiSet4Enabled').checked = settings.set4Enabled;
+                    if (settings.set5Enabled !== undefined) document.getElementById('geminiSet5Enabled').checked = settings.set5Enabled;
+
+                    console.log('💎 [GEMINI] Settings loaded:', settings);
+                }
+            } catch (error) {
+                console.error('💎 [GEMINI] Error loading settings:', error);
             }
-
-            if (settings.maxInvestment) {
-                document.getElementById('geminiMaxInvestment').value = settings.maxInvestment;
-            }
-
-            if (settings.selectedSets) {
-                settings.selectedSets.forEach(set => {
-                    const checkbox = document.getElementById(`gemini_SET_${set.id}`);
-                    if (checkbox) {
-                        checkbox.checked = set.checked;
-                    }
-                });
-            }
-
-            showNotification('Gemini settings loaded!', 'success');
         }
 
         // Load Gemini Trade History
         async function loadGeminiTradeHistory() {
+            const userId = localStorage.getItem('userId');
+
+            if (!userId) {
+                return;
+            }
+
             try {
-                const response = await fetch(`${API_BASE}/trading/gemini/triangular/history`, {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    }
+                const response = await fetch('/api/v1/trading/gemini/triangular/history', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId, limit: 20 })
                 });
 
                 const data = await response.json();
 
-                if (data.success && data.trades && data.trades.length > 0) {
-                    let html = '<div style="overflow-x: auto;"><table style="width: 100%; border-collapse: collapse; font-size: 13px;">';
-                    html += '<thead><tr style="background: rgba(0,170,221,0.2);">';
-                    html += '<th style="padding: 8px; text-align: left; color: #00AADD;">Date</th>';
-                    html += '<th style="padding: 8px; text-align: left; color: #00AADD;">Path</th>';
-                    html += '<th style="padding: 8px; text-align: right; color: #00AADD;">Investment</th>';
-                    html += '<th style="padding: 8px; text-align: right; color: #00AADD;">Final</th>';
-                    html += '<th style="padding: 8px; text-align: right; color: #00AADD;">Profit</th>';
-                    html += '<th style="padding: 8px; text-align: center; color: #00AADD;">Status</th>';
-                    html += '</tr></thead><tbody>';
+                if (data.success && data.trades.length > 0) {
+                    let historyHtml = '<div style="display: grid; gap: 10px;">';
 
                     data.trades.forEach(trade => {
-                        const profit = parseFloat(trade.profit);
-                        const profitPercent = ((profit / parseFloat(trade.investment_amount)) * 100).toFixed(2);
-                        const profitColor = profit >= 0 ? '#00FF00' : '#FF0000';
+                        const profitColor = trade.profit >= 0 ? '#00FF00' : '#FF4444';
 
-                        html += `<tr style="border-bottom: 1px solid #333;">
-                            <td style="padding: 8px; color: #888;">${new Date(trade.created_at).toLocaleString()}</td>
-                            <td style="padding: 8px; color: #00AADD;">${trade.path_id}</td>
-                            <td style="padding: 8px; text-align: right; color: #888;">$${parseFloat(trade.investment_amount).toFixed(2)}</td>
-                            <td style="padding: 8px; text-align: right; color: #888;">$${parseFloat(trade.final_amount).toFixed(2)}</td>
-                            <td style="padding: 8px; text-align: right; color: ${profitColor};">$${profit.toFixed(2)} (${profitPercent}%)</td>
-                            <td style="padding: 8px; text-align: center;">
-                                <span style="background: rgba(0,170,221,0.2); color: #00AADD; padding: 4px 8px; border-radius: 4px; font-size: 11px;">
-                                    ${trade.status}
-                                </span>
-                            </td>
-                        </tr>`;
+                        historyHtml += `
+                            <div style="padding: 12px; background: rgba(0,0,0,0.3); border-radius: 8px; border-left: 3px solid ${profitColor};">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <div style="color: #00AADD; font-weight: 600;">${trade.path_id}</div>
+                                        <div style="color: #888; font-size: 12px;">${trade.path_description}</div>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div style="color: ${profitColor}; font-weight: 600;">${trade.profit_percent?.toFixed(3)}%</div>
+                                        <div style="color: #888; font-size: 12px;">$${trade.profit?.toFixed(2)}</div>
+                                    </div>
+                                </div>
+                                <div style="color: #888; font-size: 12px;">${new Date(trade.created_at).toLocaleString()}</div>
+                            </div>
+                        `;
                     });
 
-                    html += '</tbody></table></div>';
-                    document.getElementById('geminiTradeHistory').innerHTML = html;
-                } else {
-                    document.getElementById('geminiTradeHistory').innerHTML =
-                        '<div style="color: #888; font-size: 14px;">No trade history available.</div>';
+                    historyHtml += '</div>';
+                    document.getElementById('geminiTradeHistory').innerHTML = historyHtml;
                 }
-
             } catch (error) {
                 console.error('Gemini history error:', error);
             }
         }
 
-        // Auto-load Gemini settings on page load
+        // Initialize Gemini settings on page load
         document.addEventListener('DOMContentLoaded', function() {
-            loadGeminiSettings();
+            console.log('💎 [GEMINI] Initializing triangular arbitrage settings...');
+            loadGeminiTriangularSettings();
+
+            // Initialize balance tracking
+            initializeGeminiBalance();
+
+            // Set default tab to Balance Tracker
+            switchGeminiTab('balance');
+
+            // Restore toggle state
+            const toggleEnabled = localStorage.getItem('geminiTriangularEnabled') === 'true';
+            const toggle = document.getElementById('geminiTriangularEnabled');
+            const status = document.getElementById('geminiTriangularStatus');
+            if (toggle && status) {
+                if (toggleEnabled) {
+                    toggle.classList.add('active');
+                    status.textContent = 'ON';
+                    status.style.color = '#00AADD';
+                } else {
+                    toggle.classList.remove('active');
+                    status.textContent = 'OFF';
+                    status.style.color = '#ff6b6b';
+                }
+            }
+
+            const geminiInputs = document.querySelectorAll('#geminiMaxTrade, #geminiPortfolioPercent, #geminiProfitThreshold');
+            geminiInputs.forEach(input => {
+                input.addEventListener('change', saveGeminiTriangularSettings);
+            });
+
+            for (let i = 1; i <= 5; i++) {
+                const checkbox = document.getElementById(`geminiSet${i}Enabled`);
+                if (checkbox) {
+                    checkbox.addEventListener('change', saveGeminiTriangularSettings);
+                }
+            }
         });
 
         // ============================================================================
