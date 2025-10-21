@@ -8298,6 +8298,7 @@ const BINGX_TRIANGULAR_CONFIG = {
     baseUrl: 'https://open-api.bingx.com',
     endpoints: {
         ticker: '/openApi/spot/v1/ticker/24hr',
+        orderBook: '/openApi/spot/v1/market/depth',
         balance: '/openApi/spot/v1/account/balance',
         placeOrder: '/openApi/spot/v1/trade/order',
         symbols: '/openApi/spot/v1/common/symbols'
@@ -8404,10 +8405,10 @@ router.post('/bingx/triangular/test-connection', asyncHandler(async (req, res) =
     }
 }));
 
-// ROUTE 2: Scan BingX Triangular Opportunities
+// ROUTE 2: Scan BingX Triangular Opportunities (Updated with ProfitCalculatorService)
 router.post('/bingx/triangular/scan', asyncHandler(async (req, res) => {
     try {
-        const { apiKey, apiSecret, minProfitPercent = 0.5 } = req.body;
+        const { apiKey, apiSecret, maxTradeAmount, portfolioPercent = 10, profitThreshold, enabledSets } = req.body;
 
         if (!apiKey || !apiSecret) {
             return res.status(400).json({
@@ -8416,74 +8417,268 @@ router.post('/bingx/triangular/scan', asyncHandler(async (req, res) => {
             });
         }
 
-        const opportunities = [];
+        systemLogger.info('BingX triangular scan started', {
+            maxTradeAmount,
+            portfolioPercent,
+            profitThreshold,
+            enabledSets
+        });
 
-        // Fetch all tickers
-        const tickerResponse = await fetch(`${BINGX_TRIANGULAR_CONFIG.baseUrl}${BINGX_TRIANGULAR_CONFIG.endpoints.ticker}`);
-        const tickerData = await tickerResponse.json();
+        // Define all 32 triangular arbitrage paths with steps for ProfitCalculatorService
+        const allPaths = {
+            SET_1_ESSENTIAL_ETH_BRIDGE: [
+                { id: 'BINGX_ETH_1', path: ['USDT', 'ETH', 'BTC', 'USDT'], sequence: 'USDT → ETH → BTC → USDT', description: 'ETH → BTC Essential', steps: [{ pair: 'ETH-USDT', side: 'buy' }, { pair: 'BTC-ETH', side: 'buy' }, { pair: 'BTC-USDT', side: 'sell' }] },
+                { id: 'BINGX_ETH_2', path: ['USDT', 'ETH', 'SOL', 'USDT'], sequence: 'USDT → ETH → SOL → USDT', description: 'ETH → SOL Essential', steps: [{ pair: 'ETH-USDT', side: 'buy' }, { pair: 'SOL-ETH', side: 'buy' }, { pair: 'SOL-USDT', side: 'sell' }] },
+                { id: 'BINGX_ETH_3', path: ['USDT', 'ETH', 'MATIC', 'USDT'], sequence: 'USDT → ETH → MATIC → USDT', description: 'ETH → MATIC Essential', steps: [{ pair: 'ETH-USDT', side: 'buy' }, { pair: 'MATIC-ETH', side: 'buy' }, { pair: 'MATIC-USDT', side: 'sell' }] },
+                { id: 'BINGX_ETH_4', path: ['USDT', 'ETH', 'LINK', 'USDT'], sequence: 'USDT → ETH → LINK → USDT', description: 'ETH → LINK Essential', steps: [{ pair: 'ETH-USDT', side: 'buy' }, { pair: 'LINK-ETH', side: 'buy' }, { pair: 'LINK-USDT', side: 'sell' }] },
+                { id: 'BINGX_ETH_5', path: ['USDT', 'ETH', 'AVAX', 'USDT'], sequence: 'USDT → ETH → AVAX → USDT', description: 'ETH → AVAX Essential', steps: [{ pair: 'ETH-USDT', side: 'buy' }, { pair: 'AVAX-ETH', side: 'buy' }, { pair: 'AVAX-USDT', side: 'sell' }] },
+                { id: 'BINGX_ETH_6', path: ['USDT', 'ETH', 'DOT', 'USDT'], sequence: 'USDT → ETH → DOT → USDT', description: 'ETH → DOT Essential', steps: [{ pair: 'ETH-USDT', side: 'buy' }, { pair: 'DOT-ETH', side: 'buy' }, { pair: 'DOT-USDT', side: 'sell' }] },
+                { id: 'BINGX_ETH_7', path: ['USDT', 'ETH', 'UNI', 'USDT'], sequence: 'USDT → ETH → UNI → USDT', description: 'ETH → UNI Essential', steps: [{ pair: 'ETH-USDT', side: 'buy' }, { pair: 'UNI-ETH', side: 'buy' }, { pair: 'UNI-USDT', side: 'sell' }] }
+            ],
+            SET_2_MIDCAP_BTC_BRIDGE: [
+                { id: 'BINGX_BTC_1', path: ['USDT', 'BTC', 'ETH', 'USDT'], sequence: 'USDT → BTC → ETH → USDT', description: 'BTC → ETH Mid-Cap', steps: [{ pair: 'BTC-USDT', side: 'buy' }, { pair: 'ETH-BTC', side: 'buy' }, { pair: 'ETH-USDT', side: 'sell' }] },
+                { id: 'BINGX_BTC_2', path: ['USDT', 'BTC', 'SOL', 'USDT'], sequence: 'USDT → BTC → SOL → USDT', description: 'BTC → SOL Mid-Cap', steps: [{ pair: 'BTC-USDT', side: 'buy' }, { pair: 'SOL-BTC', side: 'buy' }, { pair: 'SOL-USDT', side: 'sell' }] },
+                { id: 'BINGX_BTC_3', path: ['USDT', 'BTC', 'AVAX', 'USDT'], sequence: 'USDT → BTC → AVAX → USDT', description: 'BTC → AVAX Mid-Cap', steps: [{ pair: 'BTC-USDT', side: 'buy' }, { pair: 'AVAX-BTC', side: 'buy' }, { pair: 'AVAX-USDT', side: 'sell' }] },
+                { id: 'BINGX_BTC_4', path: ['USDT', 'BTC', 'UNI', 'USDT'], sequence: 'USDT → BTC → UNI → USDT', description: 'BTC → UNI Mid-Cap', steps: [{ pair: 'BTC-USDT', side: 'buy' }, { pair: 'UNI-BTC', side: 'buy' }, { pair: 'UNI-USDT', side: 'sell' }] },
+                { id: 'BINGX_BTC_5', path: ['USDT', 'BTC', 'ATOM', 'USDT'], sequence: 'USDT → BTC → ATOM → USDT', description: 'BTC → ATOM Mid-Cap', steps: [{ pair: 'BTC-USDT', side: 'buy' }, { pair: 'ATOM-BTC', side: 'buy' }, { pair: 'ATOM-USDT', side: 'sell' }] },
+                { id: 'BINGX_BTC_6', path: ['USDT', 'BTC', 'DOT', 'USDT'], sequence: 'USDT → BTC → DOT → USDT', description: 'BTC → DOT Mid-Cap', steps: [{ pair: 'BTC-USDT', side: 'buy' }, { pair: 'DOT-BTC', side: 'buy' }, { pair: 'DOT-USDT', side: 'sell' }] },
+                { id: 'BINGX_BTC_7', path: ['USDT', 'BTC', 'MATIC', 'USDT'], sequence: 'USDT → BTC → MATIC → USDT', description: 'BTC → MATIC Mid-Cap', steps: [{ pair: 'BTC-USDT', side: 'buy' }, { pair: 'MATIC-BTC', side: 'buy' }, { pair: 'MATIC-USDT', side: 'sell' }] }
+            ],
+            SET_3_SOL_HIGH_LIQUIDITY: [
+                { id: 'BINGX_SOL_1', path: ['USDT', 'SOL', 'BTC', 'USDT'], sequence: 'USDT → SOL → BTC → USDT', description: 'SOL → BTC High-Liq', steps: [{ pair: 'SOL-USDT', side: 'buy' }, { pair: 'BTC-SOL', side: 'buy' }, { pair: 'BTC-USDT', side: 'sell' }] },
+                { id: 'BINGX_SOL_2', path: ['USDT', 'SOL', 'ETH', 'USDT'], sequence: 'USDT → SOL → ETH → USDT', description: 'SOL → ETH High-Liq', steps: [{ pair: 'SOL-USDT', side: 'buy' }, { pair: 'ETH-SOL', side: 'buy' }, { pair: 'ETH-USDT', side: 'sell' }] },
+                { id: 'BINGX_SOL_3', path: ['USDT', 'SOL', 'BNB', 'USDT'], sequence: 'USDT → SOL → BNB → USDT', description: 'SOL → BNB High-Liq', steps: [{ pair: 'SOL-USDT', side: 'buy' }, { pair: 'BNB-SOL', side: 'buy' }, { pair: 'BNB-USDT', side: 'sell' }] },
+                { id: 'BINGX_SOL_4', path: ['USDT', 'BTC', 'SOL', 'USDT'], sequence: 'USDT → BTC → SOL → USDT', description: 'BTC → SOL Reverse', steps: [{ pair: 'BTC-USDT', side: 'buy' }, { pair: 'SOL-BTC', side: 'buy' }, { pair: 'SOL-USDT', side: 'sell' }] },
+                { id: 'BINGX_SOL_5', path: ['USDT', 'ETH', 'SOL', 'USDT'], sequence: 'USDT → ETH → SOL → USDT', description: 'ETH → SOL Reverse', steps: [{ pair: 'ETH-USDT', side: 'buy' }, { pair: 'SOL-ETH', side: 'buy' }, { pair: 'SOL-USDT', side: 'sell' }] },
+                { id: 'BINGX_SOL_6', path: ['USDT', 'SOL', 'AVAX', 'USDT'], sequence: 'USDT → SOL → AVAX → USDT', description: 'SOL → AVAX High-Liq', steps: [{ pair: 'SOL-USDT', side: 'buy' }, { pair: 'AVAX-SOL', side: 'buy' }, { pair: 'AVAX-USDT', side: 'sell' }] }
+            ],
+            SET_4_HIGH_VOLATILITY: [
+                { id: 'BINGX_VOL_1', path: ['USDT', 'FTM', 'BTC', 'USDT'], sequence: 'USDT → FTM → BTC → USDT', description: 'FTM → BTC Volatility', steps: [{ pair: 'FTM-USDT', side: 'buy' }, { pair: 'BTC-FTM', side: 'buy' }, { pair: 'BTC-USDT', side: 'sell' }] },
+                { id: 'BINGX_VOL_2', path: ['USDT', 'NEAR', 'ETH', 'USDT'], sequence: 'USDT → NEAR → ETH → USDT', description: 'NEAR → ETH Volatility', steps: [{ pair: 'NEAR-USDT', side: 'buy' }, { pair: 'ETH-NEAR', side: 'buy' }, { pair: 'ETH-USDT', side: 'sell' }] },
+                { id: 'BINGX_VOL_3', path: ['USDT', 'AAVE', 'BTC', 'USDT'], sequence: 'USDT → AAVE → BTC → USDT', description: 'AAVE → BTC Volatility', steps: [{ pair: 'AAVE-USDT', side: 'buy' }, { pair: 'BTC-AAVE', side: 'buy' }, { pair: 'BTC-USDT', side: 'sell' }] },
+                { id: 'BINGX_VOL_4', path: ['USDT', 'ALGO', 'ETH', 'USDT'], sequence: 'USDT → ALGO → ETH → USDT', description: 'ALGO → ETH Volatility', steps: [{ pair: 'ALGO-USDT', side: 'buy' }, { pair: 'ETH-ALGO', side: 'buy' }, { pair: 'ETH-USDT', side: 'sell' }] },
+                { id: 'BINGX_VOL_5', path: ['USDT', 'FTM', 'SOL', 'USDT'], sequence: 'USDT → FTM → SOL → USDT', description: 'FTM → SOL Volatility', steps: [{ pair: 'FTM-USDT', side: 'buy' }, { pair: 'SOL-FTM', side: 'buy' }, { pair: 'SOL-USDT', side: 'sell' }] },
+                { id: 'BINGX_VOL_6', path: ['USDT', 'NEAR', 'BTC', 'USDT'], sequence: 'USDT → NEAR → BTC → USDT', description: 'NEAR → BTC Volatility', steps: [{ pair: 'NEAR-USDT', side: 'buy' }, { pair: 'BTC-NEAR', side: 'buy' }, { pair: 'BTC-USDT', side: 'sell' }] }
+            ],
+            SET_5_EXTENDED_MULTIBRIDGE: [
+                { id: 'BINGX_EXT_1', path: ['USDT', 'XRP', 'BTC', 'USDT'], sequence: 'USDT → XRP → BTC → USDT', description: 'XRP → BTC Multi-Bridge', steps: [{ pair: 'XRP-USDT', side: 'buy' }, { pair: 'BTC-XRP', side: 'buy' }, { pair: 'BTC-USDT', side: 'sell' }] },
+                { id: 'BINGX_EXT_2', path: ['USDT', 'LTC', 'ETH', 'USDT'], sequence: 'USDT → LTC → ETH → USDT', description: 'LTC → ETH Multi-Bridge', steps: [{ pair: 'LTC-USDT', side: 'buy' }, { pair: 'ETH-LTC', side: 'buy' }, { pair: 'ETH-USDT', side: 'sell' }] },
+                { id: 'BINGX_EXT_3', path: ['USDT', 'TRX', 'BTC', 'USDT'], sequence: 'USDT → TRX → BTC → USDT', description: 'TRX → BTC Multi-Bridge', steps: [{ pair: 'TRX-USDT', side: 'buy' }, { pair: 'BTC-TRX', side: 'buy' }, { pair: 'BTC-USDT', side: 'sell' }] },
+                { id: 'BINGX_EXT_4', path: ['USDT', 'ADA', 'SOL', 'USDT'], sequence: 'USDT → ADA → SOL → USDT', description: 'ADA → SOL Multi-Bridge', steps: [{ pair: 'ADA-USDT', side: 'buy' }, { pair: 'SOL-ADA', side: 'buy' }, { pair: 'SOL-USDT', side: 'sell' }] },
+                { id: 'BINGX_EXT_5', path: ['USDT', 'BTC', 'ETH', 'SOL', 'USDT'], sequence: 'USDT → BTC → ETH → SOL → USDT', description: '4-Leg BTC-ETH-SOL', steps: [{ pair: 'BTC-USDT', side: 'buy' }, { pair: 'ETH-BTC', side: 'buy' }, { pair: 'SOL-ETH', side: 'buy' }, { pair: 'SOL-USDT', side: 'sell' }] },
+                { id: 'BINGX_EXT_6', path: ['USDT', 'DOGE', 'BTC', 'ETH', 'USDT'], sequence: 'USDT → DOGE → BTC → ETH → USDT', description: '4-Leg DOGE-BTC-ETH', steps: [{ pair: 'DOGE-USDT', side: 'buy' }, { pair: 'BTC-DOGE', side: 'buy' }, { pair: 'ETH-BTC', side: 'buy' }, { pair: 'ETH-USDT', side: 'sell' }] }
+            ]
+        };
 
-        if (tickerData.code !== 0) {
-            throw new Error(tickerData.msg || 'Failed to fetch BingX tickers');
+        // Filter paths by enabled sets
+        const pathsToScan = [];
+        if (enabledSets?.SET_1_ESSENTIAL_ETH_BRIDGE) pathsToScan.push(...allPaths.SET_1_ESSENTIAL_ETH_BRIDGE);
+        if (enabledSets?.SET_2_MIDCAP_BTC_BRIDGE) pathsToScan.push(...allPaths.SET_2_MIDCAP_BTC_BRIDGE);
+        if (enabledSets?.SET_3_SOL_HIGH_LIQUIDITY) pathsToScan.push(...allPaths.SET_3_SOL_HIGH_LIQUIDITY);
+        if (enabledSets?.SET_4_HIGH_VOLATILITY) pathsToScan.push(...allPaths.SET_4_HIGH_VOLATILITY);
+        if (enabledSets?.SET_5_EXTENDED_MULTIBRIDGE) pathsToScan.push(...allPaths.SET_5_EXTENDED_MULTIBRIDGE);
+
+        if (pathsToScan.length === 0) {
+            pathsToScan.push(...Object.values(allPaths).flat());
         }
 
-        const tickers = {};
-        tickerData.data.forEach(ticker => {
-            tickers[ticker.symbol] = {
-                bid: parseFloat(ticker.bidPrice),
-                ask: parseFloat(ticker.askPrice),
-                volume: parseFloat(ticker.volume)
-            };
+        // Fetch USDT balance for portfolio % calculation
+        const timestamp = Date.now();
+        const balanceQueryString = `timestamp=${timestamp}`;
+        const balanceSignature = createBingXTriangularSignature(balanceQueryString, apiSecret);
+
+        const balanceResponse = await fetch(`${BINGX_TRIANGULAR_CONFIG.baseUrl}${BINGX_TRIANGULAR_CONFIG.endpoints.balance}?${balanceQueryString}&signature=${balanceSignature}`, {
+            method: 'GET',
+            headers: {
+                'X-BX-APIKEY': apiKey,
+                'Content-Type': 'application/json'
+            }
         });
 
-        // Scan all path sets
-        Object.values(BINGX_TRIANGULAR_PATHS).forEach(pathSet => {
-            pathSet.forEach(pathConfig => {
-                try {
-                    const prices = pathConfig.pairs.map(pair => {
-                        const normalizedPair = pair.replace('-', '');
-                        return tickers[normalizedPair];
-                    });
+        let balance = 0;
+        if (balanceResponse.ok) {
+            const balanceResult = await balanceResponse.json();
+            if (balanceResult.code === 0) {
+                const usdtBalance = balanceResult.data?.balances?.find(b => b.asset === 'USDT');
+                balance = usdtBalance ? parseFloat(usdtBalance.free || 0) : 0;
+            }
+        }
 
-                    if (prices.every(p => p && p.bid && p.ask)) {
-                        const leg1 = prices[0].ask;
-                        const leg2 = prices[1].ask;
-                        const leg3 = prices[2].bid;
+        // Calculate trade amount using portfolio calculator
+        const portfolioCalc = portfolioCalculator.calculateTradeAmount({
+            balance,
+            portfolioPercent,
+            maxTradeAmount,
+            currency: 'USDT',
+            exchange: 'BingX',
+            path: null
+        });
 
-                        const finalAmount = (1 / leg1) * (1 / leg2) * leg3;
-                        const profitPercent = (finalAmount - 1) * 100;
-
-                        if (profitPercent >= minProfitPercent) {
-                            opportunities.push({
-                                id: pathConfig.id,
-                                path: pathConfig.path,
-                                pairs: pathConfig.pairs,
-                                description: pathConfig.description,
-                                profitPercent: profitPercent.toFixed(4),
-                                estimatedProfit: (1000 * (finalAmount - 1)).toFixed(2),
-                                leg1Price: leg1,
-                                leg2Price: leg2,
-                                leg3Price: leg3,
-                                timestamp: new Date().toISOString()
-                            });
-                        }
-                    }
-                } catch (err) {
-                    // Skip invalid paths
-                }
+        if (!portfolioCalc.canTrade) {
+            return res.json({
+                success: false,
+                message: portfolioCalc.reason,
+                scanned: 0,
+                profitableCount: 0,
+                opportunities: [],
+                timestamp: new Date().toISOString()
             });
-        });
+        }
+
+        const tradeAmount = portfolioCalc.amount;
+
+        // Get unique pairs from paths
+        const uniquePairs = [...new Set(pathsToScan.flatMap(p => p.steps.map(s => s.pair)))];
+
+        // Fetch orderbooks for all unique pairs
+        const orderBooks = {};
+        for (const pair of uniquePairs) {
+            try {
+                const obResponse = await fetch(`${BINGX_TRIANGULAR_CONFIG.baseUrl}${BINGX_TRIANGULAR_CONFIG.endpoints.orderBook}?symbol=${pair}&limit=20`);
+
+                if (obResponse.ok) {
+                    const obResult = await obResponse.json();
+                    if (obResult.code === 0 && obResult.data) {
+                        orderBooks[pair] = {
+                            bids: obResult.data.bids || [],
+                            asks: obResult.data.asks || []
+                        };
+                    }
+                }
+            } catch (error) {
+                systemLogger.error(`Failed to fetch orderbook for ${pair}`, { error: error.message });
+            }
+        }
+
+        // Calculate profits using ProfitCalculatorService
+        const profitCalculator = new ProfitCalculatorService();
+        const opportunities = [];
+
+        for (const path of pathsToScan) {
+            const result = profitCalculator.calculate('bingx', path, orderBooks, tradeAmount);
+
+            if (result.success && result.profitPercentage >= profitThreshold) {
+                opportunities.push({
+                    pathId: result.pathId,
+                    description: path.description,
+                    path: result.sequence.split(' → '),
+                    initialAmount: result.startAmount,
+                    finalAmount: result.endAmount,
+                    profitAmount: result.profit,
+                    profitPercent: result.profitPercentage.toFixed(4),
+                    steps: result.steps,
+                    totalFees: result.totalFees,
+                    timestamp: result.timestamp
+                });
+            }
+        }
 
         res.json({
             success: true,
-            opportunities: opportunities.sort((a, b) => b.profitPercent - a.profitPercent),
-            scannedPaths: Object.values(BINGX_TRIANGULAR_PATHS).reduce((sum, set) => sum + set.length, 0),
+            scanned: pathsToScan.length,
+            profitableCount: opportunities.length,
+            opportunities: opportunities,
+            portfolioDetails: portfolioCalc.details,
             timestamp: new Date().toISOString()
         });
 
     } catch (error) {
+        systemLogger.error('BingX triangular scan error', {
+            error: error.message,
+            stack: error.stack
+        });
+
         res.status(500).json({
             success: false,
-            message: error.message || 'Failed to scan BingX opportunities'
+            message: error.message || 'BingX scan failed'
+        });
+    }
+}));
+
+// ROUTE 2B: BingX Balance Endpoint
+router.post('/bingx/balance', asyncHandler(async (req, res) => {
+    try {
+        const { apiKey, apiSecret, currency = 'USDT' } = req.body;
+
+        if (!apiKey || !apiSecret) {
+            return res.status(400).json({
+                success: false,
+                message: 'Missing BingX API credentials'
+            });
+        }
+
+        systemLogger.info('BingX balance fetch started', {
+            currency
+        });
+
+        const timestamp = Date.now();
+        const queryString = `timestamp=${timestamp}`;
+        const signature = createBingXTriangularSignature(queryString, apiSecret);
+
+        const response = await fetch(`${BINGX_TRIANGULAR_CONFIG.baseUrl}${BINGX_TRIANGULAR_CONFIG.endpoints.balance}?${queryString}&signature=${signature}`, {
+            method: 'GET',
+            headers: {
+                'X-BX-APIKEY': apiKey,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            systemLogger.error('BingX balance fetch failed', {
+                status: response.status,
+                error: errorText
+            });
+            return res.status(400).json({
+                success: false,
+                message: `BingX balance fetch failed: ${errorText}`
+            });
+        }
+
+        const result = await response.json();
+
+        if (result.code !== 0) {
+            systemLogger.error('BingX balance error', {
+                code: result.code,
+                message: result.msg
+            });
+            return res.status(400).json({
+                success: false,
+                message: `BingX balance error: ${result.msg}`
+            });
+        }
+
+        // Extract balance for requested currency
+        const currencyBalance = result.data?.balances?.find(b => b.asset === currency.toUpperCase());
+        const available = currencyBalance ? parseFloat(currencyBalance.free || 0) : 0;
+        const locked = currencyBalance ? parseFloat(currencyBalance.locked || 0) : 0;
+        const total = available + locked;
+
+        systemLogger.info('BingX balance fetched successfully', {
+            currency,
+            available: available.toFixed(2),
+            locked: locked.toFixed(2),
+            total: total.toFixed(2)
+        });
+
+        res.json({
+            success: true,
+            currency,
+            balance: available.toFixed(2),
+            locked: locked.toFixed(2),
+            total: total.toFixed(2),
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        systemLogger.error('BingX balance endpoint error', {
+            error: error.message,
+            stack: error.stack
+        });
+
+        res.status(500).json({
+            success: false,
+            message: `BingX balance error: ${error.message}`
         });
     }
 }));
