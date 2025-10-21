@@ -12118,58 +12118,38 @@ router.get('/coincatch/triangular/paths', authenticatedRateLimit, authenticateUs
 }));
 
 // POST /api/v1/trading/coincatch/triangular/execute
-// Execute a Coincatch triangular arbitrage trade
+// Execute a Coincatch triangular arbitrage trade (REAL EXECUTION)
 router.post('/coincatch/triangular/execute', asyncHandler(async (req, res) => {
-    try {
-        const { apiKey, apiSecret, passphrase, pathId, amount } = req.body;
+    const { pathId, amount, apiKey, apiSecret, passphrase } = req.body;
 
-        systemLogger.trading('Coincatch triangular execution initiated', {
-            userId: req.user?.id || 'anonymous',
-            pathId,
-            amount
-        });
-
-        // Validate inputs
-        if (!apiKey || !apiSecret || !passphrase) {
-            throw new APIError('Coincatch API credentials required', 400, 'COINCATCH_CREDENTIALS_REQUIRED');
-        }
-
-        if (!pathId || !amount) {
-            throw new APIError('Path ID and amount required', 400, 'MISSING_PARAMETERS');
-        }
-
-        // For now, return placeholder response (full implementation requires order execution logic)
-        // This allows testing without risking real funds
-        systemLogger.trading('Coincatch triangular execution - SIMULATION MODE', {
-            userId: req.user?.id || 'anonymous',
-            pathId,
-            amount,
-            note: 'Full order execution not yet implemented - returning simulated success'
-        });
-
-        res.json({
-            success: true,
-            message: 'Trade execution simulated (live trading pending full implementation)',
-            pathId,
-            amount,
-            simulatedProfit: (amount * 0.005).toFixed(2), // Simulate 0.5% profit
-            profitPercentage: '0.50',
-            note: 'This is a simulation - real order execution will be implemented in Phase 2b'
-        });
-
-    } catch (error) {
-        console.error('Coincatch execution error:', error);
-
-        systemLogger.trading('Coincatch triangular execution failed', {
-            userId: req.user?.id || 'anonymous',
-            error: error.message
-        });
-
-        res.status(500).json({
-            success: false,
-            message: error.message || 'Execution failed'
-        });
+    // Validate required parameters
+    if (!pathId || !amount) {
+        throw new APIError('Path ID and amount are required', 400, 'MISSING_PARAMETERS');
     }
+
+    if (!apiKey || !apiSecret || !passphrase) {
+        throw new APIError('Coincatch API credentials required', 400, 'COINCATCH_CREDENTIALS_REQUIRED');
+    }
+
+    systemLogger.trading('Coincatch triangular execution initiated', {
+        pathId,
+        amount,
+        timestamp: new Date().toISOString()
+    });
+
+    // Call service layer to execute trade (REAL 3-LEG ATOMIC EXECUTION)
+    const executionResult = await triangularArbService.execute(
+        'coincatch',
+        pathId,
+        amount,
+        { apiKey, apiSecret, passphrase }
+    );
+
+    // Return execution result
+    res.json({
+        success: executionResult.success,
+        data: executionResult
+    });
 }));
 
 // GET /api/v1/trading/coincatch/triangular/history

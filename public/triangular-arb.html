@@ -17804,11 +17804,11 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
                     return;
                 }
 
-                if (!confirm(`Execute trade for ${pathId}?\n\nAmount: $${maxTradeAmount}\n\nNote: Currently in SIMULATION mode - no real funds will be traded.`)) {
+                if (!confirm(`⚠️ REAL MONEY TRADING ⚠️\n\nExecute REAL triangular arbitrage trade?\n\nPath: ${pathId}\nAmount: $${maxTradeAmount} USDT\n\nThis will execute REAL market orders on Coincatch.\nClick OK to proceed.`)) {
                     return;
                 }
 
-                console.log(`🎯 [COINCATCH] Executing trade: ${pathId}`);
+                console.log(`🎯 [COINCATCH] Executing REAL trade: ${pathId}`);
 
                 const response = await fetch(`${API_BASE}/trading/coincatch/triangular/execute`, {
                     method: 'POST',
@@ -17822,21 +17822,36 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
                     })
                 });
 
-                const data = await response.json();
+                const result = await response.json();
 
-                if (data.success) {
-                    alert(`✅ Trade Executed!\n\nPath: ${pathId}\nAmount: $${data.amount}\nProfit: $${data.simulatedProfit} (${data.profitPercentage}%)\n\n${data.note || ''}`);
+                if (result.success && result.data) {
+                    const execution = result.data;
+                    const profit = execution.actualProfit || 0;
+                    const profitPct = execution.actualProfitPercentage || 0;
+                    const status = execution.status || 'UNKNOWN';
 
-                    console.log('✅ [COINCATCH] Trade executed successfully:', data);
+                    if (status === 'COMPLETED') {
+                        alert(`✅ Trade Executed Successfully!\n\nExecution ID: ${execution.executionId}\nPath: ${pathId}\nStart Amount: $${execution.startAmount}\nEnd Amount: $${execution.endAmount}\nProfit: $${profit.toFixed(2)} (${profitPct.toFixed(2)}%)\nLegs Completed: ${execution.legs?.length || 0}/3\n\nAll 3 legs executed atomically.`);
 
-                    // Update balance after execution
-                    await updateCoincatchBalance();
+                        console.log('✅ [COINCATCH] Trade executed successfully:', execution);
 
-                    // Refresh opportunities
-                    await scanCoincatchTriangularPaths();
+                        // Update stats
+                        coincatchWorkerStats.totalTrades++;
+                        coincatchWorkerStats.successfulTrades++;
+                        coincatchWorkerStats.totalProfit += profit;
+
+                        // Update balance after execution
+                        await updateCoincatchBalance();
+
+                        // Refresh opportunities
+                        await scanCoincatchTriangularPaths();
+                    } else {
+                        alert(`❌ Trade Execution Failed\n\nExecution ID: ${execution.executionId}\nStatus: ${status}\nError: ${execution.error || 'Unknown error'}\nCompleted Legs: ${execution.legs?.filter(l => l.status === 'COMPLETED').length || 0}/3`);
+                        console.error('❌ [COINCATCH] Trade execution failed:', execution);
+                    }
                 } else {
-                    alert(`❌ Trade Execution Failed\n\n${data.message || 'Unknown error'}`);
-                    console.error('❌ [COINCATCH] Trade execution failed:', data);
+                    alert(`❌ Trade Execution Failed\n\n${result.message || result.error || 'Unknown error'}`);
+                    console.error('❌ [COINCATCH] Trade execution failed:', result);
                 }
 
             } catch (error) {

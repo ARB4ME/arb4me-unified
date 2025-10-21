@@ -228,6 +228,9 @@ class TradeExecutorService {
             case 'binance':
                 return parseFloat(orderResult.executedQty || 0);
 
+            case 'coincatch':
+                return parseFloat(orderResult.data?.size || orderResult.size || orderResult.filledQty || 0);
+
             default:
                 return parseFloat(orderResult.filled || orderResult.amount || orderResult.quantity || 0);
         }
@@ -247,6 +250,9 @@ class TradeExecutorService {
 
             case 'binance':
                 return parseFloat(orderResult.price || 0);
+
+            case 'coincatch':
+                return parseFloat(orderResult.data?.priceAvg || orderResult.priceAvg || orderResult.price || 0);
 
             default:
                 return parseFloat(orderResult.price || orderResult.averagePrice || 0);

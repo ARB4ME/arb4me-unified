@@ -78,7 +78,15 @@ class ExchangeConnectorService {
             bitmart: { name: 'BitMart', baseUrl: 'https://api-cloud.bitmart.com', endpoints: {}, authType: 'api-key' },
             bitrue: { name: 'Bitrue', baseUrl: 'https://api.bitrue.com', endpoints: {}, authType: 'api-key' },
             gemini: { name: 'Gemini', baseUrl: 'https://api.gemini.com', endpoints: {}, authType: 'api-key' },
-            coincatch: { name: 'CoinCatch', baseUrl: 'https://api.coincatch.com', endpoints: {}, authType: 'api-key' }
+            coincatch: {
+                name: 'CoinCatch',
+                baseUrl: 'https://api.coincatch.com',
+                endpoints: {
+                    orderBook: '/api/v1/market/depth',
+                    marketOrder: '/api/v1/trade/order'
+                },
+                authType: 'coincatch-signature'
+            }
         };
     }
 
@@ -214,7 +222,7 @@ class ExchangeConnectorService {
      * @private
      */
     _createAuthHeaders(exchange, method, path, body, credentials) {
-        const { apiKey, apiSecret } = credentials;
+        const { apiKey, apiSecret, passphrase } = credentials;
 
         switch (this.exchanges[exchange].authType) {
             case 'valr-signature':
@@ -228,6 +236,9 @@ class ExchangeConnectorService {
 
             case 'kraken-signature':
                 return this._createKrakenAuth(apiKey, apiSecret, path, body);
+
+            case 'coincatch-signature':
+                return this._createCoincatchAuth(apiKey, apiSecret, passphrase, method, path, body);
 
             case 'api-key':
             default:
@@ -304,6 +315,30 @@ class ExchangeConnectorService {
     }
 
     /**
+     * Coincatch authentication (HMAC SHA-256 + Passphrase)
+     * @private
+     */
+    _createCoincatchAuth(apiKey, apiSecret, passphrase, method, path, body) {
+        const timestamp = Date.now().toString();
+        const bodyStr = body ? JSON.stringify(body) : '';
+
+        // Create signature: timestamp + method + path + body
+        const signaturePayload = timestamp + method.toUpperCase() + path + bodyStr;
+        const signature = crypto
+            .createHmac('sha256', apiSecret)
+            .update(signaturePayload)
+            .digest('hex');
+
+        return {
+            'ACCESS-KEY': apiKey,
+            'ACCESS-SIGN': signature,
+            'ACCESS-TIMESTAMP': timestamp,
+            'ACCESS-PASSPHRASE': passphrase,
+            'Content-Type': 'application/json'
+        };
+    }
+
+    /**
      * Build order book URL with exchange-specific formatting
      * @private
      */
@@ -362,6 +397,15 @@ class ExchangeConnectorService {
                     side: side.toUpperCase(),
                     type: 'MARKET',
                     quantity: amount
+                };
+
+            case 'coincatch':
+                return {
+                    symbol: pair,
+                    side: side.toUpperCase(),
+                    orderType: 'MARKET',
+                    size: amount.toString(),
+                    marginCoin: 'USDT'
                 };
 
             default:
