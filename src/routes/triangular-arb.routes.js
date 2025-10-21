@@ -11330,6 +11330,7 @@ const COINCATCH_TRIANGULAR_CONFIG = {
     baseUrl: 'https://api.coincatch.com',
     endpoints: {
         ticker: '/api/spot/v1/market/tickers',
+        orderBook: '/api/spot/v1/market/depth',
         balance: '/api/spot/v1/account/assets',
         placeOrder: '/api/spot/v1/trade/orders',
         products: '/api/spot/v1/public/products'
@@ -11346,48 +11347,418 @@ function createCoincatchTriangularSignature(timestamp, method, requestPath, quer
 // NOTE: Coincatch only has 2 BTC cross pairs: ETHBTC_SPBL, GMTBTC_SPBL
 const COINCATCH_TRIANGULAR_PATHS = {
     SET_1_BTC_ETH_DIRECT: [
-        { id: 'COINCATCH_BTCETH_1', path: ['USDT', 'BTC', 'ETH', 'USDT'], pairs: ['BTCUSDT_SPBL', 'ETHBTC_SPBL', 'ETHUSDT_SPBL'], description: 'Direct BTC-ETH bridge (forward)' },
-        { id: 'COINCATCH_ETHBTC_1', path: ['USDT', 'ETH', 'BTC', 'USDT'], pairs: ['ETHUSDT_SPBL', 'ETHBTC_SPBL', 'BTCUSDT_SPBL'], description: 'Direct ETH-BTC bridge (reverse)' }
+        {
+            id: 'COINCATCH_BTCETH_1',
+            path: ['USDT', 'BTC', 'ETH', 'USDT'],
+            sequence: 'USDT → BTC → ETH → USDT',
+            description: 'Direct BTC-ETH bridge (forward)',
+            steps: [
+                { pair: 'BTCUSDT_SPBL', side: 'buy' },
+                { pair: 'ETHBTC_SPBL', side: 'sell' },
+                { pair: 'ETHUSDT_SPBL', side: 'sell' }
+            ]
+        },
+        {
+            id: 'COINCATCH_ETHBTC_1',
+            path: ['USDT', 'ETH', 'BTC', 'USDT'],
+            sequence: 'USDT → ETH → BTC → USDT',
+            description: 'Direct ETH-BTC bridge (reverse)',
+            steps: [
+                { pair: 'ETHUSDT_SPBL', side: 'buy' },
+                { pair: 'ETHBTC_SPBL', side: 'buy' },
+                { pair: 'BTCUSDT_SPBL', side: 'sell' }
+            ]
+        }
     ],
     SET_2_GMT_BTC_BRIDGE: [
-        { id: 'COINCATCH_GMT_1', path: ['USDT', 'BTC', 'GMT', 'USDT'], pairs: ['BTCUSDT_SPBL', 'GMTBTC_SPBL', 'GMTUSDT_SPBL'], description: 'BTC → GMT bridge' },
-        { id: 'COINCATCH_GMT_2', path: ['USDT', 'GMT', 'BTC', 'USDT'], pairs: ['GMTUSDT_SPBL', 'GMTBTC_SPBL', 'BTCUSDT_SPBL'], description: 'GMT → BTC bridge' }
+        {
+            id: 'COINCATCH_GMT_1',
+            path: ['USDT', 'BTC', 'GMT', 'USDT'],
+            sequence: 'USDT → BTC → GMT → USDT',
+            description: 'BTC → GMT bridge',
+            steps: [
+                { pair: 'BTCUSDT_SPBL', side: 'buy' },
+                { pair: 'GMTBTC_SPBL', side: 'sell' },
+                { pair: 'GMTUSDT_SPBL', side: 'sell' }
+            ]
+        },
+        {
+            id: 'COINCATCH_GMT_2',
+            path: ['USDT', 'GMT', 'BTC', 'USDT'],
+            sequence: 'USDT → GMT → BTC → USDT',
+            description: 'GMT → BTC bridge',
+            steps: [
+                { pair: 'GMTUSDT_SPBL', side: 'buy' },
+                { pair: 'GMTBTC_SPBL', side: 'buy' },
+                { pair: 'BTCUSDT_SPBL', side: 'sell' }
+            ]
+        }
     ],
     SET_3_MAJOR_4LEG: [
-        { id: 'COINCATCH_4LEG_1', path: ['USDT', 'BTC', 'USDT', 'ETH', 'USDT'], pairs: ['BTCUSDT_SPBL', 'BTCUSDT_SPBL', 'ETHUSDT_SPBL', 'ETHUSDT_SPBL'], description: 'BTC ⇄ ETH via USDT' },
-        { id: 'COINCATCH_4LEG_2', path: ['USDT', 'BTC', 'USDT', 'SOL', 'USDT'], pairs: ['BTCUSDT_SPBL', 'BTCUSDT_SPBL', 'SOLUSDT_SPBL', 'SOLUSDT_SPBL'], description: 'BTC ⇄ SOL via USDT' },
-        { id: 'COINCATCH_4LEG_3', path: ['USDT', 'BTC', 'USDT', 'LINK', 'USDT'], pairs: ['BTCUSDT_SPBL', 'BTCUSDT_SPBL', 'LINKUSDT_SPBL', 'LINKUSDT_SPBL'], description: 'BTC ⇄ LINK via USDT' },
-        { id: 'COINCATCH_4LEG_4', path: ['USDT', 'ETH', 'USDT', 'SOL', 'USDT'], pairs: ['ETHUSDT_SPBL', 'ETHUSDT_SPBL', 'SOLUSDT_SPBL', 'SOLUSDT_SPBL'], description: 'ETH ⇄ SOL via USDT' },
-        { id: 'COINCATCH_4LEG_5', path: ['USDT', 'ETH', 'USDT', 'LINK', 'USDT'], pairs: ['ETHUSDT_SPBL', 'ETHUSDT_SPBL', 'LINKUSDT_SPBL', 'LINKUSDT_SPBL'], description: 'ETH ⇄ LINK via USDT' },
-        { id: 'COINCATCH_4LEG_6', path: ['USDT', 'ETH', 'USDT', 'AVAX', 'USDT'], pairs: ['ETHUSDT_SPBL', 'ETHUSDT_SPBL', 'AVAXUSDT_SPBL', 'AVAXUSDT_SPBL'], description: 'ETH ⇄ AVAX via USDT' },
-        { id: 'COINCATCH_4LEG_7', path: ['USDT', 'SOL', 'USDT', 'LINK', 'USDT'], pairs: ['SOLUSDT_SPBL', 'SOLUSDT_SPBL', 'LINKUSDT_SPBL', 'LINKUSDT_SPBL'], description: 'SOL ⇄ LINK via USDT' },
-        { id: 'COINCATCH_4LEG_8', path: ['USDT', 'SOL', 'USDT', 'UNI', 'USDT'], pairs: ['SOLUSDT_SPBL', 'SOLUSDT_SPBL', 'UNIUSDT_SPBL', 'UNIUSDT_SPBL'], description: 'SOL ⇄ UNI via USDT' }
+        {
+            id: 'COINCATCH_4LEG_1',
+            path: ['USDT', 'BTC', 'USDT', 'ETH', 'USDT'],
+            sequence: 'USDT → BTC → USDT → ETH → USDT',
+            description: 'BTC ⇄ ETH via USDT',
+            steps: [
+                { pair: 'BTCUSDT_SPBL', side: 'buy' },
+                { pair: 'BTCUSDT_SPBL', side: 'sell' },
+                { pair: 'ETHUSDT_SPBL', side: 'buy' },
+                { pair: 'ETHUSDT_SPBL', side: 'sell' }
+            ]
+        },
+        {
+            id: 'COINCATCH_4LEG_2',
+            path: ['USDT', 'BTC', 'USDT', 'SOL', 'USDT'],
+            sequence: 'USDT → BTC → USDT → SOL → USDT',
+            description: 'BTC ⇄ SOL via USDT',
+            steps: [
+                { pair: 'BTCUSDT_SPBL', side: 'buy' },
+                { pair: 'BTCUSDT_SPBL', side: 'sell' },
+                { pair: 'SOLUSDT_SPBL', side: 'buy' },
+                { pair: 'SOLUSDT_SPBL', side: 'sell' }
+            ]
+        },
+        {
+            id: 'COINCATCH_4LEG_3',
+            path: ['USDT', 'BTC', 'USDT', 'LINK', 'USDT'],
+            sequence: 'USDT → BTC → USDT → LINK → USDT',
+            description: 'BTC ⇄ LINK via USDT',
+            steps: [
+                { pair: 'BTCUSDT_SPBL', side: 'buy' },
+                { pair: 'BTCUSDT_SPBL', side: 'sell' },
+                { pair: 'LINKUSDT_SPBL', side: 'buy' },
+                { pair: 'LINKUSDT_SPBL', side: 'sell' }
+            ]
+        },
+        {
+            id: 'COINCATCH_4LEG_4',
+            path: ['USDT', 'ETH', 'USDT', 'SOL', 'USDT'],
+            sequence: 'USDT → ETH → USDT → SOL → USDT',
+            description: 'ETH ⇄ SOL via USDT',
+            steps: [
+                { pair: 'ETHUSDT_SPBL', side: 'buy' },
+                { pair: 'ETHUSDT_SPBL', side: 'sell' },
+                { pair: 'SOLUSDT_SPBL', side: 'buy' },
+                { pair: 'SOLUSDT_SPBL', side: 'sell' }
+            ]
+        },
+        {
+            id: 'COINCATCH_4LEG_5',
+            path: ['USDT', 'ETH', 'USDT', 'LINK', 'USDT'],
+            sequence: 'USDT → ETH → USDT → LINK → USDT',
+            description: 'ETH ⇄ LINK via USDT',
+            steps: [
+                { pair: 'ETHUSDT_SPBL', side: 'buy' },
+                { pair: 'ETHUSDT_SPBL', side: 'sell' },
+                { pair: 'LINKUSDT_SPBL', side: 'buy' },
+                { pair: 'LINKUSDT_SPBL', side: 'sell' }
+            ]
+        },
+        {
+            id: 'COINCATCH_4LEG_6',
+            path: ['USDT', 'ETH', 'USDT', 'AVAX', 'USDT'],
+            sequence: 'USDT → ETH → USDT → AVAX → USDT',
+            description: 'ETH ⇄ AVAX via USDT',
+            steps: [
+                { pair: 'ETHUSDT_SPBL', side: 'buy' },
+                { pair: 'ETHUSDT_SPBL', side: 'sell' },
+                { pair: 'AVAXUSDT_SPBL', side: 'buy' },
+                { pair: 'AVAXUSDT_SPBL', side: 'sell' }
+            ]
+        },
+        {
+            id: 'COINCATCH_4LEG_7',
+            path: ['USDT', 'SOL', 'USDT', 'LINK', 'USDT'],
+            sequence: 'USDT → SOL → USDT → LINK → USDT',
+            description: 'SOL ⇄ LINK via USDT',
+            steps: [
+                { pair: 'SOLUSDT_SPBL', side: 'buy' },
+                { pair: 'SOLUSDT_SPBL', side: 'sell' },
+                { pair: 'LINKUSDT_SPBL', side: 'buy' },
+                { pair: 'LINKUSDT_SPBL', side: 'sell' }
+            ]
+        },
+        {
+            id: 'COINCATCH_4LEG_8',
+            path: ['USDT', 'SOL', 'USDT', 'UNI', 'USDT'],
+            sequence: 'USDT → SOL → USDT → UNI → USDT',
+            description: 'SOL ⇄ UNI via USDT',
+            steps: [
+                { pair: 'SOLUSDT_SPBL', side: 'buy' },
+                { pair: 'SOLUSDT_SPBL', side: 'sell' },
+                { pair: 'UNIUSDT_SPBL', side: 'buy' },
+                { pair: 'UNIUSDT_SPBL', side: 'sell' }
+            ]
+        }
     ],
     SET_4_ALTCOIN_4LEG: [
-        { id: 'COINCATCH_4LEG_9', path: ['USDT', 'DOGE', 'USDT', 'XRP', 'USDT'], pairs: ['DOGEUSDT_SPBL', 'DOGEUSDT_SPBL', 'XRPUSDT_SPBL', 'XRPUSDT_SPBL'], description: 'DOGE ⇄ XRP via USDT' },
-        { id: 'COINCATCH_4LEG_10', path: ['USDT', 'LINK', 'USDT', 'UNI', 'USDT'], pairs: ['LINKUSDT_SPBL', 'LINKUSDT_SPBL', 'UNIUSDT_SPBL', 'UNIUSDT_SPBL'], description: 'LINK ⇄ UNI via USDT' },
-        { id: 'COINCATCH_4LEG_11', path: ['USDT', 'AVAX', 'USDT', 'ATOM', 'USDT'], pairs: ['AVAXUSDT_SPBL', 'AVAXUSDT_SPBL', 'ATOMUSDT_SPBL', 'ATOMUSDT_SPBL'], description: 'AVAX ⇄ ATOM via USDT' },
-        { id: 'COINCATCH_4LEG_12', path: ['USDT', 'DOT', 'USDT', 'UNI', 'USDT'], pairs: ['DOTUSDT_SPBL', 'DOTUSDT_SPBL', 'UNIUSDT_SPBL', 'UNIUSDT_SPBL'], description: 'DOT ⇄ UNI via USDT' },
-        { id: 'COINCATCH_4LEG_13', path: ['USDT', 'ATOM', 'USDT', 'LINK', 'USDT'], pairs: ['ATOMUSDT_SPBL', 'ATOMUSDT_SPBL', 'LINKUSDT_SPBL', 'LINKUSDT_SPBL'], description: 'ATOM ⇄ LINK via USDT' },
-        { id: 'COINCATCH_4LEG_14', path: ['USDT', 'ADA', 'USDT', 'DOT', 'USDT'], pairs: ['ADAUSDT_SPBL', 'ADAUSDT_SPBL', 'DOTUSDT_SPBL', 'DOTUSDT_SPBL'], description: 'ADA ⇄ DOT via USDT' },
-        { id: 'COINCATCH_4LEG_15', path: ['USDT', 'LTC', 'USDT', 'BCH', 'USDT'], pairs: ['LTCUSDT_SPBL', 'LTCUSDT_SPBL', 'BCHUSDT_SPBL', 'BCHUSDT_SPBL'], description: 'LTC ⇄ BCH via USDT' },
-        { id: 'COINCATCH_4LEG_16', path: ['USDT', 'XRP', 'USDT', 'TRX', 'USDT'], pairs: ['XRPUSDT_SPBL', 'XRPUSDT_SPBL', 'TRXUSDT_SPBL', 'TRXUSDT_SPBL'], description: 'XRP ⇄ TRX via USDT' },
-        { id: 'COINCATCH_4LEG_17', path: ['USDT', 'UNI', 'USDT', 'AAVE', 'USDT'], pairs: ['UNIUSDT_SPBL', 'UNIUSDT_SPBL', 'AAVEUSDT_SPBL', 'AAVEUSDT_SPBL'], description: 'UNI ⇄ AAVE via USDT' },
-        { id: 'COINCATCH_4LEG_18', path: ['USDT', 'BNB', 'USDT', 'OP', 'USDT'], pairs: ['BNBUSDT_SPBL', 'BNBUSDT_SPBL', 'OPUSDT_SPBL', 'OPUSDT_SPBL'], description: 'BNB ⇄ OP via USDT' }
+        {
+            id: 'COINCATCH_4LEG_9',
+            path: ['USDT', 'DOGE', 'USDT', 'XRP', 'USDT'],
+            sequence: 'USDT → DOGE → USDT → XRP → USDT',
+            description: 'DOGE ⇄ XRP via USDT',
+            steps: [
+                { pair: 'DOGEUSDT_SPBL', side: 'buy' },
+                { pair: 'DOGEUSDT_SPBL', side: 'sell' },
+                { pair: 'XRPUSDT_SPBL', side: 'buy' },
+                { pair: 'XRPUSDT_SPBL', side: 'sell' }
+            ]
+        },
+        {
+            id: 'COINCATCH_4LEG_10',
+            path: ['USDT', 'LINK', 'USDT', 'UNI', 'USDT'],
+            sequence: 'USDT → LINK → USDT → UNI → USDT',
+            description: 'LINK ⇄ UNI via USDT',
+            steps: [
+                { pair: 'LINKUSDT_SPBL', side: 'buy' },
+                { pair: 'LINKUSDT_SPBL', side: 'sell' },
+                { pair: 'UNIUSDT_SPBL', side: 'buy' },
+                { pair: 'UNIUSDT_SPBL', side: 'sell' }
+            ]
+        },
+        {
+            id: 'COINCATCH_4LEG_11',
+            path: ['USDT', 'AVAX', 'USDT', 'ATOM', 'USDT'],
+            sequence: 'USDT → AVAX → USDT → ATOM → USDT',
+            description: 'AVAX ⇄ ATOM via USDT',
+            steps: [
+                { pair: 'AVAXUSDT_SPBL', side: 'buy' },
+                { pair: 'AVAXUSDT_SPBL', side: 'sell' },
+                { pair: 'ATOMUSDT_SPBL', side: 'buy' },
+                { pair: 'ATOMUSDT_SPBL', side: 'sell' }
+            ]
+        },
+        {
+            id: 'COINCATCH_4LEG_12',
+            path: ['USDT', 'DOT', 'USDT', 'UNI', 'USDT'],
+            sequence: 'USDT → DOT → USDT → UNI → USDT',
+            description: 'DOT ⇄ UNI via USDT',
+            steps: [
+                { pair: 'DOTUSDT_SPBL', side: 'buy' },
+                { pair: 'DOTUSDT_SPBL', side: 'sell' },
+                { pair: 'UNIUSDT_SPBL', side: 'buy' },
+                { pair: 'UNIUSDT_SPBL', side: 'sell' }
+            ]
+        },
+        {
+            id: 'COINCATCH_4LEG_13',
+            path: ['USDT', 'ATOM', 'USDT', 'LINK', 'USDT'],
+            sequence: 'USDT → ATOM → USDT → LINK → USDT',
+            description: 'ATOM ⇄ LINK via USDT',
+            steps: [
+                { pair: 'ATOMUSDT_SPBL', side: 'buy' },
+                { pair: 'ATOMUSDT_SPBL', side: 'sell' },
+                { pair: 'LINKUSDT_SPBL', side: 'buy' },
+                { pair: 'LINKUSDT_SPBL', side: 'sell' }
+            ]
+        },
+        {
+            id: 'COINCATCH_4LEG_14',
+            path: ['USDT', 'ADA', 'USDT', 'DOT', 'USDT'],
+            sequence: 'USDT → ADA → USDT → DOT → USDT',
+            description: 'ADA ⇄ DOT via USDT',
+            steps: [
+                { pair: 'ADAUSDT_SPBL', side: 'buy' },
+                { pair: 'ADAUSDT_SPBL', side: 'sell' },
+                { pair: 'DOTUSDT_SPBL', side: 'buy' },
+                { pair: 'DOTUSDT_SPBL', side: 'sell' }
+            ]
+        },
+        {
+            id: 'COINCATCH_4LEG_15',
+            path: ['USDT', 'LTC', 'USDT', 'BCH', 'USDT'],
+            sequence: 'USDT → LTC → USDT → BCH → USDT',
+            description: 'LTC ⇄ BCH via USDT',
+            steps: [
+                { pair: 'LTCUSDT_SPBL', side: 'buy' },
+                { pair: 'LTCUSDT_SPBL', side: 'sell' },
+                { pair: 'BCHUSDT_SPBL', side: 'buy' },
+                { pair: 'BCHUSDT_SPBL', side: 'sell' }
+            ]
+        },
+        {
+            id: 'COINCATCH_4LEG_16',
+            path: ['USDT', 'XRP', 'USDT', 'TRX', 'USDT'],
+            sequence: 'USDT → XRP → USDT → TRX → USDT',
+            description: 'XRP ⇄ TRX via USDT',
+            steps: [
+                { pair: 'XRPUSDT_SPBL', side: 'buy' },
+                { pair: 'XRPUSDT_SPBL', side: 'sell' },
+                { pair: 'TRXUSDT_SPBL', side: 'buy' },
+                { pair: 'TRXUSDT_SPBL', side: 'sell' }
+            ]
+        },
+        {
+            id: 'COINCATCH_4LEG_17',
+            path: ['USDT', 'UNI', 'USDT', 'AAVE', 'USDT'],
+            sequence: 'USDT → UNI → USDT → AAVE → USDT',
+            description: 'UNI ⇄ AAVE via USDT',
+            steps: [
+                { pair: 'UNIUSDT_SPBL', side: 'buy' },
+                { pair: 'UNIUSDT_SPBL', side: 'sell' },
+                { pair: 'AAVEUSDT_SPBL', side: 'buy' },
+                { pair: 'AAVEUSDT_SPBL', side: 'sell' }
+            ]
+        },
+        {
+            id: 'COINCATCH_4LEG_18',
+            path: ['USDT', 'BNB', 'USDT', 'OP', 'USDT'],
+            sequence: 'USDT → BNB → USDT → OP → USDT',
+            description: 'BNB ⇄ OP via USDT',
+            steps: [
+                { pair: 'BNBUSDT_SPBL', side: 'buy' },
+                { pair: 'BNBUSDT_SPBL', side: 'sell' },
+                { pair: 'OPUSDT_SPBL', side: 'buy' },
+                { pair: 'OPUSDT_SPBL', side: 'sell' }
+            ]
+        }
     ],
     SET_5_EXTENDED_4LEG: [
-        { id: 'COINCATCH_4LEG_19', path: ['USDT', 'PEPE', 'USDT', 'SHIB', 'USDT'], pairs: ['PEPEUSDT_SPBL', 'PEPEUSDT_SPBL', 'SHIBUSDT_SPBL', 'SHIBUSDT_SPBL'], description: 'PEPE ⇄ SHIB via USDT' },
-        { id: 'COINCATCH_4LEG_20', path: ['USDT', 'APT', 'USDT', 'SUI', 'USDT'], pairs: ['APTUSDT_SPBL', 'APTUSDT_SPBL', 'SUIUSDT_SPBL', 'SUIUSDT_SPBL'], description: 'APT ⇄ SUI via USDT' },
-        { id: 'COINCATCH_4LEG_21', path: ['USDT', 'INJ', 'USDT', 'OP', 'USDT'], pairs: ['INJUSDT_SPBL', 'INJUSDT_SPBL', 'OPUSDT_SPBL', 'OPUSDT_SPBL'], description: 'INJ ⇄ OP via USDT' },
-        { id: 'COINCATCH_4LEG_22', path: ['USDT', 'ARB', 'USDT', 'OP', 'USDT'], pairs: ['ARBUSDT_SPBL', 'ARBUSDT_SPBL', 'OPUSDT_SPBL', 'OPUSDT_SPBL'], description: 'ARB ⇄ OP via USDT' },
-        { id: 'COINCATCH_4LEG_23', path: ['USDT', 'FIL', 'USDT', 'ICP', 'USDT'], pairs: ['FILUSDT_SPBL', 'FILUSDT_SPBL', 'ICPUSDT_SPBL', 'ICPUSDT_SPBL'], description: 'FIL ⇄ ICP via USDT' },
-        { id: 'COINCATCH_4LEG_24', path: ['USDT', 'COMP', 'USDT', 'AAVE', 'USDT'], pairs: ['COMPUSDT_SPBL', 'COMPUSDT_SPBL', 'AAVEUSDT_SPBL', 'AAVEUSDT_SPBL'], description: 'COMP ⇄ AAVE via USDT' },
-        { id: 'COINCATCH_4LEG_25', path: ['USDT', 'SNX', 'USDT', 'CRV', 'USDT'], pairs: ['SNXUSDT_SPBL', 'SNXUSDT_SPBL', 'CRVUSDT_SPBL', 'CRVUSDT_SPBL'], description: 'SNX ⇄ CRV via USDT' },
-        { id: 'COINCATCH_4LEG_26', path: ['USDT', 'GALA', 'USDT', 'MANA', 'USDT'], pairs: ['GALAUSDT_SPBL', 'GALAUSDT_SPBL', 'MANAUSDT_SPBL', 'MANAUSDT_SPBL'], description: 'GALA ⇄ MANA via USDT' },
-        { id: 'COINCATCH_4LEG_27', path: ['USDT', 'FLOKI', 'USDT', 'PEPE', 'USDT'], pairs: ['FLOKIUSDT_SPBL', 'FLOKIUSDT_SPBL', 'PEPEUSDT_SPBL', 'PEPEUSDT_SPBL'], description: 'FLOKI ⇄ PEPE via USDT' },
-        { id: 'COINCATCH_4LEG_28', path: ['USDT', 'GRT', 'USDT', 'LDO', 'USDT'], pairs: ['GRTUSDT_SPBL', 'GRTUSDT_SPBL', 'LDOUSDT_SPBL', 'LDOUSDT_SPBL'], description: 'GRT ⇄ LDO via USDT' },
-        { id: 'COINCATCH_4LEG_29', path: ['USDT', 'APE', 'USDT', 'SAND', 'USDT'], pairs: ['APEUSDT_SPBL', 'APEUSDT_SPBL', 'SANDUSDT_SPBL', 'SANDUSDT_SPBL'], description: 'APE ⇄ SAND via USDT' },
-        { id: 'COINCATCH_4LEG_30', path: ['USDT', 'CHZ', 'USDT', 'STORJ', 'USDT'], pairs: ['CHZUSDT_SPBL', 'CHZUSDT_SPBL', 'STORJUSDT_SPBL', 'STORJUSDT_SPBL'], description: 'CHZ ⇄ STORJ via USDT' }
+        {
+            id: 'COINCATCH_4LEG_19',
+            path: ['USDT', 'PEPE', 'USDT', 'SHIB', 'USDT'],
+            sequence: 'USDT → PEPE → USDT → SHIB → USDT',
+            description: 'PEPE ⇄ SHIB via USDT',
+            steps: [
+                { pair: 'PEPEUSDT_SPBL', side: 'buy' },
+                { pair: 'PEPEUSDT_SPBL', side: 'sell' },
+                { pair: 'SHIBUSDT_SPBL', side: 'buy' },
+                { pair: 'SHIBUSDT_SPBL', side: 'sell' }
+            ]
+        },
+        {
+            id: 'COINCATCH_4LEG_20',
+            path: ['USDT', 'APT', 'USDT', 'SUI', 'USDT'],
+            sequence: 'USDT → APT → USDT → SUI → USDT',
+            description: 'APT ⇄ SUI via USDT',
+            steps: [
+                { pair: 'APTUSDT_SPBL', side: 'buy' },
+                { pair: 'APTUSDT_SPBL', side: 'sell' },
+                { pair: 'SUIUSDT_SPBL', side: 'buy' },
+                { pair: 'SUIUSDT_SPBL', side: 'sell' }
+            ]
+        },
+        {
+            id: 'COINCATCH_4LEG_21',
+            path: ['USDT', 'INJ', 'USDT', 'OP', 'USDT'],
+            sequence: 'USDT → INJ → USDT → OP → USDT',
+            description: 'INJ ⇄ OP via USDT',
+            steps: [
+                { pair: 'INJUSDT_SPBL', side: 'buy' },
+                { pair: 'INJUSDT_SPBL', side: 'sell' },
+                { pair: 'OPUSDT_SPBL', side: 'buy' },
+                { pair: 'OPUSDT_SPBL', side: 'sell' }
+            ]
+        },
+        {
+            id: 'COINCATCH_4LEG_22',
+            path: ['USDT', 'ARB', 'USDT', 'OP', 'USDT'],
+            sequence: 'USDT → ARB → USDT → OP → USDT',
+            description: 'ARB ⇄ OP via USDT',
+            steps: [
+                { pair: 'ARBUSDT_SPBL', side: 'buy' },
+                { pair: 'ARBUSDT_SPBL', side: 'sell' },
+                { pair: 'OPUSDT_SPBL', side: 'buy' },
+                { pair: 'OPUSDT_SPBL', side: 'sell' }
+            ]
+        },
+        {
+            id: 'COINCATCH_4LEG_23',
+            path: ['USDT', 'FIL', 'USDT', 'ICP', 'USDT'],
+            sequence: 'USDT → FIL → USDT → ICP → USDT',
+            description: 'FIL ⇄ ICP via USDT',
+            steps: [
+                { pair: 'FILUSDT_SPBL', side: 'buy' },
+                { pair: 'FILUSDT_SPBL', side: 'sell' },
+                { pair: 'ICPUSDT_SPBL', side: 'buy' },
+                { pair: 'ICPUSDT_SPBL', side: 'sell' }
+            ]
+        },
+        {
+            id: 'COINCATCH_4LEG_24',
+            path: ['USDT', 'COMP', 'USDT', 'AAVE', 'USDT'],
+            sequence: 'USDT → COMP → USDT → AAVE → USDT',
+            description: 'COMP ⇄ AAVE via USDT',
+            steps: [
+                { pair: 'COMPUSDT_SPBL', side: 'buy' },
+                { pair: 'COMPUSDT_SPBL', side: 'sell' },
+                { pair: 'AAVEUSDT_SPBL', side: 'buy' },
+                { pair: 'AAVEUSDT_SPBL', side: 'sell' }
+            ]
+        },
+        {
+            id: 'COINCATCH_4LEG_25',
+            path: ['USDT', 'SNX', 'USDT', 'CRV', 'USDT'],
+            sequence: 'USDT → SNX → USDT → CRV → USDT',
+            description: 'SNX ⇄ CRV via USDT',
+            steps: [
+                { pair: 'SNXUSDT_SPBL', side: 'buy' },
+                { pair: 'SNXUSDT_SPBL', side: 'sell' },
+                { pair: 'CRVUSDT_SPBL', side: 'buy' },
+                { pair: 'CRVUSDT_SPBL', side: 'sell' }
+            ]
+        },
+        {
+            id: 'COINCATCH_4LEG_26',
+            path: ['USDT', 'GALA', 'USDT', 'MANA', 'USDT'],
+            sequence: 'USDT → GALA → USDT → MANA → USDT',
+            description: 'GALA ⇄ MANA via USDT',
+            steps: [
+                { pair: 'GALAUSDT_SPBL', side: 'buy' },
+                { pair: 'GALAUSDT_SPBL', side: 'sell' },
+                { pair: 'MANAUSDT_SPBL', side: 'buy' },
+                { pair: 'MANAUSDT_SPBL', side: 'sell' }
+            ]
+        },
+        {
+            id: 'COINCATCH_4LEG_27',
+            path: ['USDT', 'FLOKI', 'USDT', 'PEPE', 'USDT'],
+            sequence: 'USDT → FLOKI → USDT → PEPE → USDT',
+            description: 'FLOKI ⇄ PEPE via USDT',
+            steps: [
+                { pair: 'FLOKIUSDT_SPBL', side: 'buy' },
+                { pair: 'FLOKIUSDT_SPBL', side: 'sell' },
+                { pair: 'PEPEUSDT_SPBL', side: 'buy' },
+                { pair: 'PEPEUSDT_SPBL', side: 'sell' }
+            ]
+        },
+        {
+            id: 'COINCATCH_4LEG_28',
+            path: ['USDT', 'GRT', 'USDT', 'LDO', 'USDT'],
+            sequence: 'USDT → GRT → USDT → LDO → USDT',
+            description: 'GRT ⇄ LDO via USDT',
+            steps: [
+                { pair: 'GRTUSDT_SPBL', side: 'buy' },
+                { pair: 'GRTUSDT_SPBL', side: 'sell' },
+                { pair: 'LDOUSDT_SPBL', side: 'buy' },
+                { pair: 'LDOUSDT_SPBL', side: 'sell' }
+            ]
+        },
+        {
+            id: 'COINCATCH_4LEG_29',
+            path: ['USDT', 'APE', 'USDT', 'SAND', 'USDT'],
+            sequence: 'USDT → APE → USDT → SAND → USDT',
+            description: 'APE ⇄ SAND via USDT',
+            steps: [
+                { pair: 'APEUSDT_SPBL', side: 'buy' },
+                { pair: 'APEUSDT_SPBL', side: 'sell' },
+                { pair: 'SANDUSDT_SPBL', side: 'buy' },
+                { pair: 'SANDUSDT_SPBL', side: 'sell' }
+            ]
+        },
+        {
+            id: 'COINCATCH_4LEG_30',
+            path: ['USDT', 'CHZ', 'USDT', 'STORJ', 'USDT'],
+            sequence: 'USDT → CHZ → USDT → STORJ → USDT',
+            description: 'CHZ ⇄ STORJ via USDT',
+            steps: [
+                { pair: 'CHZUSDT_SPBL', side: 'buy' },
+                { pair: 'CHZUSDT_SPBL', side: 'sell' },
+                { pair: 'STORJUSDT_SPBL', side: 'buy' },
+                { pair: 'STORJUSDT_SPBL', side: 'sell' }
+            ]
+        }
     ]
 };
 
@@ -11464,162 +11835,274 @@ router.post('/coincatch/triangular/test-connection', authenticatedRateLimit, aut
 // Scan for Coincatch triangular arbitrage opportunities
 router.post('/coincatch/triangular/scan', asyncHandler(async (req, res) => {
     try {
-        const { apiKey, apiSecret, passphrase, selectedSets } = req.body;
+        const {
+            apiKey,
+            apiSecret,
+            passphrase,
+            maxTradeAmount = 1000,
+            portfolioPercent = 10,
+            profitThreshold = 0.5,
+            enabledSets = {}
+        } = req.body;
 
         systemLogger.trading('Coincatch triangular scan initiated', {
             userId: req.user?.id || 'anonymous',
-            selectedSets
+            enabledSets,
+            portfolioPercent,
+            maxTradeAmount
         });
 
         // Validate inputs
         if (!apiKey || !apiSecret || !passphrase) {
-            throw new APIError('Coincatch API credentials required', 400, 'COINCATCH_CREDENTIALS_REQUIRED');
+            throw new APIError('Coincatch API credentials (apiKey, apiSecret, passphrase) required', 400, 'COINCATCH_CREDENTIALS_REQUIRED');
         }
 
-        if (!selectedSets || selectedSets.length === 0) {
-            throw new APIError('At least one path set must be selected', 400, 'NO_PATHS_SELECTED');
-        }
+        // Define all 32 paths (with steps for ProfitCalculatorService)
+        const allPaths = {
+            SET_1_BTC_ETH_DIRECT: COINCATCH_TRIANGULAR_PATHS.SET_1_BTC_ETH_DIRECT,
+            SET_2_GMT_BTC_BRIDGE: COINCATCH_TRIANGULAR_PATHS.SET_2_GMT_BTC_BRIDGE,
+            SET_3_MAJOR_4LEG: COINCATCH_TRIANGULAR_PATHS.SET_3_MAJOR_4LEG,
+            SET_4_ALTCOIN_4LEG: COINCATCH_TRIANGULAR_PATHS.SET_4_ALTCOIN_4LEG,
+            SET_5_EXTENDED_4LEG: COINCATCH_TRIANGULAR_PATHS.SET_5_EXTENDED_4LEG
+        };
 
-        // Collect all paths from selected sets
-        let allPaths = [];
-        selectedSets.forEach(setName => {
-            if (COINCATCH_TRIANGULAR_PATHS[setName]) {
-                allPaths = allPaths.concat(COINCATCH_TRIANGULAR_PATHS[setName]);
+        // Collect paths from enabled sets
+        const pathsToScan = [];
+        Object.keys(allPaths).forEach(setName => {
+            if (enabledSets[setName]) {
+                pathsToScan.push(...allPaths[setName]);
             }
         });
 
-        if (allPaths.length === 0) {
-            throw new APIError('No valid paths found in selected sets', 400, 'NO_VALID_PATHS');
+        if (pathsToScan.length === 0) {
+            return res.json({
+                success: true,
+                scanned: 0,
+                profitableCount: 0,
+                opportunities: [],
+                profitThreshold,
+                timestamp: new Date().toISOString(),
+                message: 'No path sets enabled'
+            });
         }
 
-        // Fetch all unique symbols (no authentication needed for ticker data)
-        const uniqueSymbols = [...new Set(allPaths.flatMap(p => p.pairs))];
+        // Fetch USDT balance from Coincatch
+        const timestamp = Date.now().toString();
+        const balanceMethod = 'GET';
+        const balanceRequestPath = '/api/spot/v1/account/assets';
+        const balanceSignature = createCoincatchTriangularSignature(timestamp, balanceMethod, balanceRequestPath, '', '', apiSecret);
 
-        const tickerResponse = await axios.get(`${COINCATCH_TRIANGULAR_CONFIG.baseUrl}${COINCATCH_TRIANGULAR_CONFIG.endpoints.ticker}`);
-
-        if (tickerResponse.data.code !== '00000') {
-            throw new APIError('Failed to fetch Coincatch ticker data', 500, 'COINCATCH_TICKER_ERROR');
-        }
-
-        // Create ticker map
-        const tickerMap = {};
-        tickerResponse.data.data.forEach(ticker => {
-            if (uniqueSymbols.includes(ticker.symbol)) {
-                tickerMap[ticker.symbol] = {
-                    symbol: ticker.symbol,
-                    bid: parseFloat(ticker.bidPr),
-                    ask: parseFloat(ticker.askPr)
-                };
-            }
-        });
-
-        // Calculate arbitrage opportunities
-        const opportunities = [];
-        for (const pathConfig of allPaths) {
-            try {
-                // Check if all required tickers are available
-                const missingTickers = pathConfig.pairs.filter(pair => !tickerMap[pair]);
-                if (missingTickers.length > 0) {
-                    continue;
+        let balance = 0;
+        try {
+            const balanceResponse = await axios.get(`${COINCATCH_TRIANGULAR_CONFIG.baseUrl}${balanceRequestPath}`, {
+                headers: {
+                    'ACCESS-KEY': apiKey,
+                    'ACCESS-SIGN': balanceSignature,
+                    'ACCESS-TIMESTAMP': timestamp,
+                    'ACCESS-PASSPHRASE': passphrase,
+                    'Content-Type': 'application/json'
                 }
+            });
 
-                let simulatedAmount = 1000; // Start with $1000 USDT
-                const trades = [];
+            if (balanceResponse.data.code === '00000' && balanceResponse.data.data) {
+                const usdtAsset = balanceResponse.data.data.find(asset => asset.coinName === 'USDT');
+                if (usdtAsset) {
+                    balance = parseFloat(usdtAsset.available || 0);
+                    systemLogger.trading(`Coincatch USDT balance: ${balance}`, { userId: req.user?.id });
+                }
+            }
+        } catch (balanceError) {
+            systemLogger.warn('Failed to fetch Coincatch balance, using maxTradeAmount', {
+                error: balanceError.message
+            });
+        }
 
-                // Execute simulated trades
-                for (let i = 0; i < pathConfig.pairs.length; i++) {
-                    const pair = pathConfig.pairs[i];
-                    const ticker = tickerMap[pair];
-                    const fromCurrency = pathConfig.path[i];
-                    const toCurrency = pathConfig.path[i + 1];
+        // Calculate trade amount using portfolio calculator
+        const portfolioCalc = portfolioCalculator.calculateTradeAmount({
+            balance,
+            portfolioPercent,
+            maxTradeAmount,
+            currency: 'USDT',
+            exchange: 'Coincatch',
+            path: null
+        });
 
-                    // Determine if we're buying or selling
-                    let price, side;
+        if (!portfolioCalc.canTrade) {
+            return res.json({
+                success: false,
+                error: portfolioCalc.reason,
+                scanned: 0,
+                profitableCount: 0,
+                opportunities: [],
+                timestamp: new Date().toISOString()
+            });
+        }
 
-                    // For 4-leg paths with duplicate pairs, alternate buy/sell
-                    if (pair.includes(fromCurrency) && pair.includes(toCurrency)) {
-                        // Determine based on position in path
-                        if (fromCurrency === 'USDT') {
-                            side = 'buy';
-                            price = ticker.ask;
-                        } else if (toCurrency === 'USDT') {
-                            side = 'sell';
-                            price = ticker.bid;
-                        } else {
-                            side = (i % 2 === 0) ? 'buy' : 'sell';
-                            price = (i % 2 === 0) ? ticker.ask : ticker.bid;
-                        }
-                    } else {
-                        // Standard 3-leg logic
-                        if (pair === `${toCurrency}USDT_SPBL` || pair === `${toCurrency}BTC_SPBL`) {
-                            side = 'buy';
-                            price = ticker.ask;
-                        } else {
-                            side = 'sell';
-                            price = ticker.bid;
+        const tradeAmount = portfolioCalc.amount;
+
+        // Extract unique pairs from paths
+        const uniquePairs = [...new Set(pathsToScan.flatMap(p => p.steps.map(s => s.pair)))];
+
+        // Fetch orderbooks for all unique pairs
+        const orderBooks = {};
+        for (const pair of uniquePairs) {
+            try {
+                const obTimestamp = Date.now().toString();
+                const obMethod = 'GET';
+                const obRequestPath = `${COINCATCH_TRIANGULAR_CONFIG.endpoints.orderBook}`;
+                const obQueryString = `?symbol=${pair}&limit=20`;
+                const obSignature = createCoincatchTriangularSignature(obTimestamp, obMethod, obRequestPath, obQueryString, '', apiSecret);
+
+                const obResponse = await axios.get(
+                    `${COINCATCH_TRIANGULAR_CONFIG.baseUrl}${obRequestPath}${obQueryString}`,
+                    {
+                        headers: {
+                            'ACCESS-KEY': apiKey,
+                            'ACCESS-SIGN': obSignature,
+                            'ACCESS-TIMESTAMP': obTimestamp,
+                            'ACCESS-PASSPHRASE': passphrase,
+                            'Content-Type': 'application/json'
                         }
                     }
+                );
 
-                    const newAmount = side === 'buy' ? simulatedAmount / price : simulatedAmount * price;
-
-                    trades.push({
-                        pair,
-                        side,
-                        price,
-                        fromAmount: simulatedAmount,
-                        toAmount: newAmount,
-                        fromCurrency,
-                        toCurrency
-                    });
-
-                    simulatedAmount = newAmount;
+                if (obResponse.data.code === '00000' && obResponse.data.data) {
+                    orderBooks[pair] = {
+                        bids: obResponse.data.data.bids.map(b => ({ price: b[0], amount: b[1] })),
+                        asks: obResponse.data.data.asks.map(a => ({ price: a[0], amount: a[1] }))
+                    };
                 }
-
-                const profit = simulatedAmount - 1000;
-                const profitPercentage = (profit / 1000) * 100;
-
-                // Consider 0.1% trading fee per leg
-                const feePercentage = 0.1 * pathConfig.pairs.length;
-                const netProfitPercentage = profitPercentage - feePercentage;
-
-                if (netProfitPercentage > 0.1) { // Minimum 0.1% profit after fees
-                    opportunities.push({
-                        pathId: pathConfig.id,
-                        path: pathConfig.path,
-                        pairs: pathConfig.pairs,
-                        description: pathConfig.description,
-                        profitPercentage: netProfitPercentage,
-                        estimatedProfit: (netProfitPercentage / 100) * 1000,
-                        trades
-                    });
-                }
-
             } catch (error) {
-                systemLogger.trading(`Error calculating path ${pathConfig.id}`, { error: error.message });
+                systemLogger.warn(`Failed to fetch orderbook for ${pair}`, { error: error.message });
+            }
+        }
+
+        // Calculate profits using ProfitCalculatorService
+        const profitCalculator = new ProfitCalculatorService();
+        const opportunities = [];
+
+        for (const path of pathsToScan) {
+            const result = profitCalculator.calculate('coincatch', path, orderBooks, tradeAmount);
+
+            if (result.success && result.profitPercentage >= profitThreshold) {
+                opportunities.push({
+                    pathId: result.pathId,
+                    description: path.description,
+                    path: result.sequence.split(' → '),
+                    initialAmount: result.startAmount,
+                    finalAmount: result.endAmount,
+                    profitAmount: result.profit,
+                    profitPercent: result.profitPercentage.toFixed(4),
+                    steps: result.steps,
+                    totalFees: result.totalFees,
+                    timestamp: result.timestamp
+                });
             }
         }
 
         // Sort by profit percentage
-        opportunities.sort((a, b) => b.profitPercentage - a.profitPercentage);
+        opportunities.sort((a, b) => parseFloat(b.profitPercent) - parseFloat(a.profitPercent));
 
         systemLogger.trading('Coincatch triangular scan completed', {
             userId: req.user?.id || 'anonymous',
-            pathsScanned: allPaths.length,
-            opportunitiesFound: opportunities.length
+            scanned: pathsToScan.length,
+            profitableCount: opportunities.length,
+            profitThreshold
         });
 
         res.json({
             success: true,
-            opportunities,
-            scannedPaths: allPaths.length,
+            scanned: pathsToScan.length,
+            profitableCount: opportunities.length,
+            opportunities: opportunities,
+            portfolioDetails: portfolioCalc.details,
+            profitThreshold,
             timestamp: new Date().toISOString()
         });
 
     } catch (error) {
-        console.error('Coincatch scan error:', error);
+        systemLogger.error('Coincatch triangular scan error', {
+            error: error.message,
+            stack: error.stack
+        });
+
         res.status(500).json({
             success: false,
-            message: error.message || 'Failed to scan Coincatch triangular opportunities'
+            error: error.message || 'Failed to scan Coincatch triangular opportunities',
+            scanned: 0,
+            profitableCount: 0,
+            opportunities: [],
+            timestamp: new Date().toISOString()
+        });
+    }
+}));
+
+// POST /api/v1/trading/coincatch/balance
+// Get Coincatch account balance with HMAC-SHA256 + Passphrase authentication
+router.post('/coincatch/balance', asyncHandler(async (req, res) => {
+    try {
+        const { apiKey, apiSecret, passphrase, currency = 'USDT' } = req.body;
+
+        if (!apiKey || !apiSecret || !passphrase) {
+            return res.status(400).json({
+                success: false,
+                error: 'Coincatch API credentials (apiKey, apiSecret, passphrase) required'
+            });
+        }
+
+        // Create HMAC-SHA256 signature with passphrase
+        const timestamp = Date.now().toString();
+        const method = 'GET';
+        const requestPath = '/api/spot/v1/account/assets';
+        const signature = createCoincatchTriangularSignature(timestamp, method, requestPath, '', '', apiSecret);
+
+        systemLogger.trading('Fetching Coincatch balance', {
+            currency,
+            timestamp
+        });
+
+        const response = await axios.get(
+            `${COINCATCH_TRIANGULAR_CONFIG.baseUrl}${requestPath}`,
+            {
+                headers: {
+                    'ACCESS-KEY': apiKey,
+                    'ACCESS-SIGN': signature,
+                    'ACCESS-TIMESTAMP': timestamp,
+                    'ACCESS-PASSPHRASE': passphrase,
+                    'Content-Type': 'application/json'
+                }
+            }
+        );
+
+        if (response.data.code !== '00000') {
+            throw new Error(`Coincatch API error: ${response.data.msg}`);
+        }
+
+        const assets = response.data.data || [];
+        const currencyAsset = assets.find(asset => asset.coinName === currency.toUpperCase());
+
+        const available = currencyAsset ? parseFloat(currencyAsset.available || 0) : 0;
+        const locked = currencyAsset ? parseFloat(currencyAsset.frozen || 0) : 0;
+        const total = available + locked;
+
+        res.json({
+            success: true,
+            currency,
+            balance: available.toFixed(2),
+            locked: locked.toFixed(2),
+            total: total.toFixed(2),
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        systemLogger.error('Coincatch balance fetch failed', {
+            error: error.message,
+            stack: error.stack
+        });
+
+        res.status(500).json({
+            success: false,
+            error: error.message || 'Failed to fetch Coincatch balance'
         });
     }
 }));
