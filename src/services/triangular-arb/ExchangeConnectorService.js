@@ -68,7 +68,15 @@ class ExchangeConnectorService {
             kucoin: { name: 'KuCoin', baseUrl: 'https://api.kucoin.com', endpoints: {}, authType: 'api-key' },
             coinbase: { name: 'Coinbase', baseUrl: 'https://api.coinbase.com', endpoints: {}, authType: 'api-key' },
             htx: { name: 'HTX', baseUrl: 'https://api.huobi.pro', endpoints: {}, authType: 'api-key' },
-            gateio: { name: 'Gate.io', baseUrl: 'https://api.gateio.ws', endpoints: {}, authType: 'api-key' },
+            gateio: {
+                name: 'Gate.io',
+                baseUrl: 'https://api.gateio.ws/api/v4',
+                endpoints: {
+                    orderBook: '/spot/order_book',
+                    marketOrder: '/spot/orders'
+                },
+                authType: 'gateio-signature'
+            },
             cryptocom: {
                 name: 'Crypto.com',
                 baseUrl: 'https://api.crypto.com/v2',
@@ -333,6 +341,9 @@ class ExchangeConnectorService {
 
             case 'cryptocom-signature':
                 return this._createCryptocomAuth(apiKey, apiSecret, method, path, body);
+
+            case 'gateio-signature':
+                return this._createGateioAuth(apiKey, apiSecret, method, path, body);
 
             case 'api-key':
             default:
@@ -625,6 +636,38 @@ class ExchangeConnectorService {
     }
 
     /**
+     * Gate.io authentication (HMAC SHA-512 with body hash)
+     * UNIQUE: Gate.io hashes the request body with SHA512 before signing
+     * @private
+     */
+    _createGateioAuth(apiKey, apiSecret, method, path, body) {
+        const timestamp = Math.floor(Date.now() / 1000).toString();
+        const bodyStr = body ? JSON.stringify(body) : '';
+
+        // Hash the request body with SHA512
+        const bodyHash = crypto
+            .createHash('sha512')
+            .update(bodyStr)
+            .digest('hex');
+
+        // Build signature string: METHOD\nPATH\nQUERY\nBODYHASH\nTIMESTAMP
+        const signatureString = `${method.toUpperCase()}\n${path}\n\n${bodyHash}\n${timestamp}`;
+
+        // Create HMAC-SHA512 signature
+        const signature = crypto
+            .createHmac('sha512', apiSecret)
+            .update(signatureString)
+            .digest('hex');
+
+        return {
+            'KEY': apiKey,
+            'Timestamp': timestamp,
+            'SIGN': signature,
+            'Content-Type': 'application/json'
+        };
+    }
+
+    /**
      * Build order book URL with exchange-specific formatting
      * @private
      */
@@ -678,6 +721,11 @@ class ExchangeConnectorService {
             case 'cryptocom':
                 // Crypto.com uses JSON-RPC - no query params, data in body
                 url = `${config.baseUrl}${config.endpoints.orderBook}`;
+                break;
+
+            case 'gateio':
+                // Gate.io uses underscore pairs and currency_pair parameter
+                url = `${url}?currency_pair=${pair}&limit=20`;
                 break;
 
             default:
@@ -804,6 +852,16 @@ class ExchangeConnectorService {
                         type: 'MARKET',
                         quantity: amount.toString()
                     }
+                };
+
+            case 'gateio':
+                // Gate.io uses underscore pairs (e.g., BTC_USDT) and IOC time_in_force
+                return {
+                    currency_pair: pair,
+                    side: side.toLowerCase(),
+                    type: 'market',
+                    amount: amount.toString(),
+                    time_in_force: 'ioc'  // Immediate or cancel
                 };
 
             default:

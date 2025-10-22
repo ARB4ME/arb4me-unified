@@ -5704,9 +5704,7 @@ router.post('/gateio/triangular/scan', asyncHandler(async (req, res) => {
                 { id: 'GT_EXT_1', path: ['USDT', 'SOL', 'ETH', 'USDT'], pairs: ['SOL_USDT', 'ETH_SOL', 'ETH_USDT'], description: 'SOL → ETH Multi-Bridge' },
                 { id: 'GT_EXT_2', path: ['USDT', 'XRP', 'BTC', 'USDT'], pairs: ['XRP_USDT', 'BTC_XRP', 'BTC_USDT'], description: 'XRP → BTC Multi-Bridge' },
                 { id: 'GT_EXT_3', path: ['USDT', 'TRX', 'BTC', 'USDT'], pairs: ['TRX_USDT', 'BTC_TRX', 'BTC_USDT'], description: 'TRX → BTC Multi-Bridge' },
-                { id: 'GT_EXT_4', path: ['USDT', 'ADA', 'BTC', 'USDT'], pairs: ['ADA_USDT', 'BTC_ADA', 'BTC_USDT'], description: 'ADA → BTC Multi-Bridge' },
-                { id: 'GT_EXT_5', path: ['USDT', 'BTC', 'ETH', 'SOL', 'USDT'], pairs: ['BTC_USDT', 'ETH_BTC', 'SOL_ETH', 'SOL_USDT'], description: '4-Leg BTC-ETH-SOL' },
-                { id: 'GT_EXT_6', path: ['USDT', 'ETH', 'BTC', 'XRP', 'USDT'], pairs: ['ETH_USDT', 'BTC_ETH', 'XRP_BTC', 'XRP_USDT'], description: '4-Leg ETH-BTC-XRP' }
+                { id: 'GT_EXT_4', path: ['USDT', 'ADA', 'BTC', 'USDT'], pairs: ['ADA_USDT', 'BTC_ADA', 'BTC_USDT'], description: 'ADA → BTC Multi-Bridge' }
             ]
         };
 
@@ -5986,58 +5984,43 @@ router.get('/gateio/triangular/paths', authenticatedRateLimit, authenticateUser,
             { id: 'GT_EXT_1', path: ['USDT', 'SOL', 'ETH', 'USDT'], pairs: ['SOL_USDT', 'ETH_SOL', 'ETH_USDT'], description: 'SOL → ETH Multi-Bridge' },
             { id: 'GT_EXT_2', path: ['USDT', 'XRP', 'BTC', 'USDT'], pairs: ['XRP_USDT', 'BTC_XRP', 'BTC_USDT'], description: 'XRP → BTC Multi-Bridge' },
             { id: 'GT_EXT_3', path: ['USDT', 'TRX', 'BTC', 'USDT'], pairs: ['TRX_USDT', 'BTC_TRX', 'BTC_USDT'], description: 'TRX → BTC Multi-Bridge' },
-            { id: 'GT_EXT_4', path: ['USDT', 'ADA', 'BTC', 'USDT'], pairs: ['ADA_USDT', 'BTC_ADA', 'BTC_USDT'], description: 'ADA → BTC Multi-Bridge' },
-            { id: 'GT_EXT_5', path: ['USDT', 'BTC', 'ETH', 'SOL', 'USDT'], pairs: ['BTC_USDT', 'ETH_BTC', 'SOL_ETH', 'SOL_USDT'], description: '4-Leg BTC-ETH-SOL' },
-            { id: 'GT_EXT_6', path: ['USDT', 'ETH', 'BTC', 'XRP', 'USDT'], pairs: ['ETH_USDT', 'BTC_ETH', 'XRP_BTC', 'XRP_USDT'], description: '4-Leg ETH-BTC-XRP' }
+            { id: 'GT_EXT_4', path: ['USDT', 'ADA', 'BTC', 'USDT'], pairs: ['ADA_USDT', 'BTC_ADA', 'BTC_USDT'], description: 'ADA → BTC Multi-Bridge' }
         ]
     };
 
     res.json({
         success: true,
-        totalPaths: 32,
+        totalPaths: 30,
         sets: allPaths
     });
 }));
 
-// ROUTE 4: Execute Gate.io Triangular Trade
+// ROUTE 4: Execute Gate.io Triangular Trade (ATOMIC)
 router.post('/gateio/triangular/execute', asyncHandler(async (req, res) => {
-    try {
-        const { apiKey, apiSecret, opportunity, dryRun } = req.body;
+    const { pathId, amount, apiKey, apiSecret } = req.body;
 
-        if (!apiKey || !apiSecret) {
-            return res.status(400).json({
-                success: false,
-                message: 'API credentials required'
-            });
-        }
-
-        if (dryRun) {
-            return res.json({
-                success: true,
-                message: 'DRY RUN - Trade would execute with following parameters',
-                opportunity: opportunity,
-                execution: {
-                    leg1: { status: 'simulated', pair: opportunity.legs[0].pair },
-                    leg2: { status: 'simulated', pair: opportunity.legs[1].pair },
-                    leg3: { status: 'simulated', pair: opportunity.legs[2].pair }
-                }
-            });
-        }
-
-        // Real execution would go here
-        res.json({
-            success: true,
-            message: 'Gate.io triangular trade execution endpoint ready',
-            note: 'Full execution logic to be implemented after testing phase'
-        });
-
-    } catch (error) {
-        console.error('Gate.io execute error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to execute Gate.io triangular trade'
-        });
+    // Validate required parameters
+    if (!pathId || !amount) {
+        throw new APIError('Path ID and amount required', 400);
     }
+
+    if (!apiKey || !apiSecret) {
+        throw new APIError('Gate.io API credentials required', 400);
+    }
+
+    // Execute atomic 3-leg triangular arbitrage trade
+    const executionResult = await triangularArbService.execute(
+        'gateio',
+        pathId,
+        amount,
+        { apiKey, apiSecret }
+    );
+
+    // Return execution result
+    res.json({
+        success: executionResult.success,
+        data: executionResult
+    });
 }));
 
 // ROUTE 5: Get Gate.io Trade History

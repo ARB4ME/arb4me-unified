@@ -11806,6 +11806,15 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
         // GATE.IO TRIANGULAR ARBITRAGE JAVASCRIPT FUNCTIONS
         // ============================================================================
 
+        // Worker variables
+        let gateioWorkerInterval = null;
+        let gateioWorkerStats = {
+            scansCompleted: 0,
+            opportunitiesFound: 0,
+            tradesExecuted: 0,
+            lastScanTime: null
+        };
+
         // 0. Toggle Gate.io Triangular Trading
         function toggleGateioTriangular() {
             const toggle = document.getElementById('gateioTriangularEnabled');
@@ -11817,11 +11826,13 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
                 status.style.color = '#17C784';
                 localStorage.setItem('gateioTriangularEnabled', 'true');
                 console.log('✅ [GATE.IO] Live triangular trading enabled');
+                startGateioWorker();  // Start worker
             } else {
                 status.textContent = 'OFF';
                 status.style.color = '#ff6b6b';
                 localStorage.setItem('gateioTriangularEnabled', 'false');
                 console.log('⏸️ [GATE.IO] Live triangular trading disabled');
+                stopGateioWorker();  // Stop worker
             }
         }
 
@@ -12402,6 +12413,114 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
                 }
             }
         });
+
+        // 8. Start Gate.io Worker (Sequential Scanning)
+        function startGateioWorker() {
+            console.log('🟢 [GATE.IO] Starting worker with sequential path set scanning...');
+
+            // Stop any existing worker
+            if (gateioWorkerInterval) {
+                clearInterval(gateioWorkerInterval);
+            }
+
+            // Reset stats
+            gateioWorkerStats = {
+                scansCompleted: 0,
+                opportunitiesFound: 0,
+                tradesExecuted: 0,
+                lastScanTime: null
+            };
+
+            let currentSetIndex = 0;
+            const pathSets = ['SET_1_ESSENTIAL_ETH_BRIDGE', 'SET_2_MIDCAP_BTC_BRIDGE', 'SET_3_GT_NATIVE_BRIDGE', 'SET_4_HIGH_VOLATILITY', 'SET_5_EXTENDED_MULTIBRIDGE'];
+
+            // Worker loop: Scan one set at a time, wait 8 seconds, move to next set
+            gateioWorkerInterval = setInterval(async () => {
+                try {
+                    const apiKey = localStorage.getItem('gateio_triangular_api');
+                    const apiSecret = localStorage.getItem('gateio_triangular_secret');
+
+                    if (!apiKey || !apiSecret) {
+                        console.warn('⚠️ [GATE.IO] Missing credentials, worker paused');
+                        return;
+                    }
+
+                    // Get enabled sets from settings
+                    const enabledSets = [];
+                    for (let i = 1; i <= 5; i++) {
+                        const checkbox = document.getElementById(`gateioSet${i}Enabled`);
+                        if (checkbox && checkbox.checked) {
+                            enabledSets.push(pathSets[i - 1]);
+                        }
+                    }
+
+                    if (enabledSets.length === 0) {
+                        console.warn('⚠️ [GATE.IO] No path sets enabled');
+                        return;
+                    }
+
+                    // Get current set to scan (cycle through enabled sets)
+                    if (currentSetIndex >= enabledSets.length) {
+                        currentSetIndex = 0;
+                    }
+                    const currentSet = enabledSets[currentSetIndex];
+
+                    console.log(`🔍 [GATE.IO] Worker scanning ${currentSet} (${currentSetIndex + 1}/${enabledSets.length})...`);
+
+                    // Scan current set
+                    const response = await fetch('/api/v1/trading/gateio/triangular/scan', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                        },
+                        body: JSON.stringify({
+                            apiKey,
+                            apiSecret,
+                            sets: [currentSet]  // Scan only one set at a time
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success && data.opportunities && data.opportunities.length > 0) {
+                        console.log(`💎 [GATE.IO] Found ${data.opportunities.length} opportunities in ${currentSet}`);
+                        gateioWorkerStats.opportunitiesFound += data.opportunities.length;
+                        gateioWorkerStats.lastScanTime = new Date().toISOString();
+
+                        // Display opportunities
+                        displayGateioOpportunities(data.opportunities);
+
+                        // Auto-execute if enabled
+                        const autoExecute = document.getElementById('gateioAutoExecute')?.checked;
+                        if (autoExecute) {
+                            const bestOpp = data.opportunities[0];
+                            await executeAutoTrade('gateio', bestOpp, apiKey, apiSecret);
+                        }
+                    }
+
+                    gateioWorkerStats.scansCompleted++;
+
+                    // Move to next set
+                    currentSetIndex++;
+
+                } catch (error) {
+                    console.error('❌ [GATE.IO] Worker error:', error);
+                }
+            }, 8000);  // 8 second intervals between scans
+
+            console.log(`✅ [GATE.IO] Worker started - scanning ${pathSets.length} path sets sequentially`);
+        }
+
+        // 9. Stop Gate.io Worker
+        function stopGateioWorker() {
+            if (gateioWorkerInterval) {
+                clearInterval(gateioWorkerInterval);
+                gateioWorkerInterval = null;
+                console.log('⏸️ [GATE.IO] Worker stopped');
+                console.log('📊 [GATE.IO] Final stats:', gateioWorkerStats);
+            }
+        }
 
         // ============================================================================
         // CRYPTO.COM TRIANGULAR ARBITRAGE JAVASCRIPT FUNCTIONS

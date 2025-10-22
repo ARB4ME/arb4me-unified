@@ -255,6 +255,10 @@ class TradeExecutorService {
                 // Crypto.com JSON-RPC response format
                 return parseFloat(orderResult.result?.cumulative_quantity || orderResult.cumulative_quantity || 0);
 
+            case 'gateio':
+                // Gate.io response format
+                return parseFloat(orderResult.filled_total || orderResult.amount || 0);
+
             default:
                 return parseFloat(orderResult.filled || orderResult.amount || orderResult.quantity || 0);
         }
@@ -301,6 +305,10 @@ class TradeExecutorService {
             case 'cryptocom':
                 // Crypto.com JSON-RPC response format
                 return parseFloat(orderResult.result?.avg_price || orderResult.avg_price || 0);
+
+            case 'gateio':
+                // Gate.io response format
+                return parseFloat(orderResult.avg_deal_price || orderResult.price || 0);
 
             default:
                 return parseFloat(orderResult.price || orderResult.averagePrice || 0);
