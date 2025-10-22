@@ -75,7 +75,15 @@ class ExchangeConnectorService {
             ascendex: { name: 'AscendEX', baseUrl: 'https://ascendex.com', endpoints: {}, authType: 'api-key' },
             bingx: { name: 'BingX', baseUrl: 'https://open-api.bingx.com', endpoints: {}, authType: 'api-key' },
             bitget: { name: 'Bitget', baseUrl: 'https://api.bitget.com', endpoints: {}, authType: 'api-key' },
-            bitmart: { name: 'BitMart', baseUrl: 'https://api-cloud.bitmart.com', endpoints: {}, authType: 'api-key' },
+            bitmart: {
+                name: 'BitMart',
+                baseUrl: 'https://api-cloud.bitmart.com',
+                endpoints: {
+                    orderBook: '/spot/v1/symbols/book',
+                    marketOrder: '/spot/v2/submit_order'
+                },
+                authType: 'hmac-sha256'
+            },
             bitrue: {
                 name: 'Bitrue',
                 baseUrl: 'https://api.bitrue.com',
@@ -414,6 +422,10 @@ class ExchangeConnectorService {
                 url = `${url}?symbol=${pair}&limit=20`;
                 break;
 
+            case 'bitmart':
+                url = `${url}?symbol=${pair}`;
+                break;
+
             case 'gemini':
                 // Gemini uses lowercase pairs in URL
                 url = url.replace(':pair', pair.toLowerCase());
@@ -463,6 +475,14 @@ class ExchangeConnectorService {
                     type: 'MARKET',
                     quantity: amount,
                     timestamp: Date.now()
+                };
+
+            case 'bitmart':
+                return {
+                    symbol: pair,
+                    side: side.toLowerCase(),
+                    type: 'market',
+                    size: amount.toString()
                 };
 
             case 'gemini':

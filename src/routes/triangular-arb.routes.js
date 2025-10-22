@@ -9868,122 +9868,28 @@ router.get('/bitmart/triangular/paths', authenticatedRateLimit, authenticateUser
 
 // ROUTE 4: Execute Bitmart Triangular Trade
 router.post('/bitmart/triangular/execute', asyncHandler(async (req, res) => {
-    try {
-        const { apiKey, apiSecret, memo, pathId, amount, userId } = req.body;
+    const { pathId, amount, apiKey, apiSecret } = req.body;
 
-        if (!apiKey || !apiSecret || !memo) {
-            return res.status(400).json({
-                success: false,
-                message: 'API credentials required'
-            });
-        }
-
-        // Find the path configuration
-        const allPaths = [
-            ...BITMART_TRIANGULAR_PATHS.SET_1_ESSENTIAL_ETH_BRIDGE,
-            ...BITMART_TRIANGULAR_PATHS.SET_2_MIDCAP_BTC_BRIDGE,
-            ...BITMART_TRIANGULAR_PATHS.SET_3_BMX_NATIVE_TOKEN,
-            ...BITMART_TRIANGULAR_PATHS.SET_4_HIGH_VOLATILITY,
-            ...BITMART_TRIANGULAR_PATHS.SET_5_EXTENDED_MULTIBRIDGE
-        ];
-
-        const pathConfig = allPaths.find(p => p.id === pathId);
-        if (!pathConfig) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid path ID'
-            });
-        }
-
-        const executionResults = [];
-        let currentAmount = parseFloat(amount);
-
-        // Execute each leg sequentially
-        for (let i = 0; i < pathConfig.pairs.length; i++) {
-            const symbol = pathConfig.pairs[i];
-            const timestamp = Date.now().toString();
-            const orderData = {
-                symbol: symbol,
-                side: i % 2 === 0 ? 'buy' : 'sell',
-                type: 'market',
-                size: currentAmount.toString()
-            };
-
-            const queryString = Object.keys(orderData)
-                .sort()
-                .map(key => `${key}=${orderData[key]}`)
-                .join('&');
-
-            const signature = createBitmartTriangularSignature(timestamp, memo, queryString, apiSecret);
-
-            const response = await axios.post(
-                `${BITMART_TRIANGULAR_CONFIG.baseUrl}${BITMART_TRIANGULAR_CONFIG.endpoints.placeOrder}`,
-                orderData,
-                {
-                    headers: {
-                        'X-BM-KEY': apiKey,
-                        'X-BM-SIGN': signature,
-                        'X-BM-TIMESTAMP': timestamp,
-                        'Content-Type': 'application/json'
-                    }
-                }
-            );
-
-            if (response.data.code !== 1000) {
-                throw new Error(`Order failed at leg ${i + 1}: ${response.data.message}`);
-            }
-
-            executionResults.push({
-                leg: i + 1,
-                symbol: symbol,
-                orderId: response.data.data?.order_id,
-                status: 'filled'
-            });
-
-            // Update amount for next leg (simplified)
-            currentAmount = response.data.data?.filled_size || currentAmount;
-        }
-
-        // Store trade in database
-        if (userId) {
-            await pool.query(
-                `INSERT INTO triangular_trades
-                (user_id, exchange, path_id, path_description, initial_amount, final_amount, profit, profit_percent, status, execution_details, created_at)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())`,
-                [
-                    userId,
-                    'bitmart',
-                    pathConfig.id,
-                    pathConfig.description,
-                    parseFloat(amount),
-                    currentAmount,
-                    currentAmount - parseFloat(amount),
-                    ((currentAmount - parseFloat(amount)) / parseFloat(amount)) * 100,
-                    'completed',
-                    JSON.stringify(executionResults)
-                ]
-            );
-        }
-
-        res.json({
-            success: true,
-            message: 'Triangular arbitrage executed successfully',
-            execution: {
-                pathId: pathConfig.id,
-                initialAmount: parseFloat(amount),
-                finalAmount: currentAmount,
-                profit: currentAmount - parseFloat(amount),
-                profitPercent: ((currentAmount - parseFloat(amount)) / parseFloat(amount)) * 100,
-                legs: executionResults
-            }
-        });
-
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: error.message || 'Failed to execute Bitmart triangular trade'
-        });
+    if (!pathId || !amount) {
+        throw new APIError('Path ID and amount are required', 400, 'MISSING_PARAMETERS');
     }
+
+    if (!apiKey || !apiSecret) {
+        throw new APIError('BitMart API credentials required', 400, 'BITMART_CREDENTIALS_REQUIRED');
+    }
+
+    // Call service layer to execute trade (REAL 3-LEG ATOMIC EXECUTION)
+    const executionResult = await triangularArbService.execute(
+        'bitmart',
+        pathId,
+        amount,
+        { apiKey, apiSecret }
+    );
+
+    res.json({
+        success: executionResult.success,
+        data: executionResult
+    });
 }));
 
 // ROUTE 5: Get Bitmart Trade History (User-Specific)
