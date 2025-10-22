@@ -1,4 +1,4 @@
-DEPLOYMENT_TRIGGER=2025-10-22-gateio-triangular-arb-complete
-COMMIT=8f83fd4-gateio-implementation
-FEATURES=triangular-arbitrage,valr-trading,multi-strategy-backend,4-strategy-dashboard-ui,strategy-scanning-integration,clean-header-interface,mexc-triangular-arb-17th-exchange,cryptocom-triangular-arb-18th-exchange,gateio-triangular-arb-19th-exchange
+DEPLOYMENT_TRIGGER=2025-10-22-htx-triangular-arb-complete
+COMMIT=4fcc597-htx-implementation
+FEATURES=triangular-arbitrage,valr-trading,multi-strategy-backend,4-strategy-dashboard-ui,strategy-scanning-integration,clean-header-interface,mexc-triangular-arb-17th-exchange,cryptocom-triangular-arb-18th-exchange,gateio-triangular-arb-19th-exchange,htx-triangular-arb-20th-exchange
 STATUS=ready-for-deployment
