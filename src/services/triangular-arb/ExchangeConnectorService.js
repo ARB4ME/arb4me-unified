@@ -72,7 +72,16 @@ class ExchangeConnectorService {
             cryptocom: { name: 'Crypto.com', baseUrl: 'https://api.crypto.com', endpoints: {}, authType: 'api-key' },
             mexc: { name: 'MEXC', baseUrl: 'https://api.mexc.com', endpoints: {}, authType: 'api-key' },
             xt: { name: 'XT', baseUrl: 'https://api.xt.com', endpoints: {}, authType: 'api-key' },
-            ascendex: { name: 'AscendEX', baseUrl: 'https://ascendex.com', endpoints: {}, authType: 'api-key' },
+            ascendex: {
+                name: 'AscendEX',
+                baseUrl: 'https://ascendex.com',
+                endpoints: {
+                    accountInfo: '/api/pro/v1/info',
+                    orderBook: '/api/pro/v1/depth',
+                    marketOrder: '/{accountGroup}/api/pro/v1/cash/order'
+                },
+                authType: 'ascendex-signature'
+            },
             bingx: {
                 name: 'BingX',
                 baseUrl: 'https://open-api.bingx.com',
@@ -289,6 +298,9 @@ class ExchangeConnectorService {
             case 'bingx-signature':
                 return this._createBingxAuth(apiKey, apiSecret, method, path, body);
 
+            case 'ascendex-signature':
+                return this._createAscendexAuth(apiKey, apiSecret, method, path, body);
+
             case 'api-key':
             default:
                 return {
@@ -467,6 +479,28 @@ class ExchangeConnectorService {
     }
 
     /**
+     * AscendEX authentication (HMAC SHA-256 with timestamp + path)
+     * @private
+     */
+    _createAscendexAuth(apiKey, apiSecret, method, path, body) {
+        const timestamp = Date.now().toString();
+
+        // AscendEX signature: timestamp + path
+        const signaturePayload = timestamp + path;
+        const signature = crypto
+            .createHmac('sha256', apiSecret)
+            .update(signaturePayload)
+            .digest('hex');
+
+        return {
+            'x-auth-key': apiKey,
+            'x-auth-timestamp': timestamp,
+            'x-auth-signature': signature,
+            'Content-Type': 'application/json'
+        };
+    }
+
+    /**
      * Build order book URL with exchange-specific formatting
      * @private
      */
@@ -501,6 +535,10 @@ class ExchangeConnectorService {
 
             case 'bingx':
                 url = `${url}?symbol=${pair}&limit=20`;
+                break;
+
+            case 'ascendex':
+                url = `${url}?symbol=${pair}`;
                 break;
 
             case 'gemini':
@@ -594,6 +632,14 @@ class ExchangeConnectorService {
                     orderType: 'MARKET',
                     size: amount.toString(),
                     marginCoin: 'USDT'
+                };
+
+            case 'ascendex':
+                return {
+                    symbol: pair,
+                    side: side.toLowerCase(),
+                    orderType: 'market',
+                    orderQty: amount.toString()
                 };
 
             default:

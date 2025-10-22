@@ -238,6 +238,9 @@ class TradeExecutorService {
             case 'bingx':
                 return parseFloat(orderResult.data?.executedQty || orderResult.executedQty || 0);
 
+            case 'ascendex':
+                return parseFloat(orderResult.data?.filledQty || orderResult.filledQty || 0);
+
             case 'gemini':
                 return parseFloat(orderResult.executed_amount || orderResult.original_amount || 0);
 
@@ -272,6 +275,9 @@ class TradeExecutorService {
                 return parseFloat(orderResult.data?.fillPrice || orderResult.fillPrice || orderResult.price || 0);
 
             case 'bingx':
+                return parseFloat(orderResult.data?.avgPrice || orderResult.avgPrice || orderResult.price || 0);
+
+            case 'ascendex':
                 return parseFloat(orderResult.data?.avgPrice || orderResult.avgPrice || orderResult.price || 0);
 
             case 'gemini':

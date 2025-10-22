@@ -8184,46 +8184,29 @@ router.get('/ascendex/triangular/paths', authenticatedRateLimit, authenticateUse
 }));
 
 // 4. AscendEX Execute Triangular Trade Route
-router.post('/ascendex/triangular/execute', authenticate, asyncHandler(async (req, res) => {
-    try {
-        const { apiKey, apiSecret, userId, opportunity, dryRun } = req.body;
+router.post('/ascendex/triangular/execute', asyncHandler(async (req, res) => {
+    const { pathId, amount, apiKey, apiSecret } = req.body;
 
-        if (!apiKey || !apiSecret) {
-            return res.status(400).json({
-                success: false,
-                message: 'Missing AscendEX API credentials'
-            });
-        }
-
-        const executionStartTime = Date.now();
-
-        // Simulate execution (real execution would place orders via AscendEX API)
-        if (dryRun) {
-            const tradeId = `TRI_ASCENDEX_${Date.now()}_${Math.floor(Math.random() * 999999)}`;
-
-            res.json({
-                success: true,
-                message: 'AscendEX dry run execution successful',
-                tradeId: tradeId,
-                actualProfitZAR: opportunity.expectedProfitZAR,
-                actualProfitPercent: opportunity.profitPercent,
-                executionTime: Date.now() - executionStartTime,
-                dryRun: true
-            });
-        } else {
-            // Real execution logic would go here
-            res.status(501).json({
-                success: false,
-                message: 'Real AscendEX execution not implemented yet. Use dryRun mode.'
-            });
-        }
-
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: error.message || 'AscendEX execution failed'
-        });
+    if (!pathId || !amount) {
+        throw new APIError('Path ID and amount required', 400);
     }
+
+    if (!apiKey || !apiSecret) {
+        throw new APIError('AscendEX API credentials required', 400);
+    }
+
+    // ATOMIC EXECUTION with TriangularArbService
+    const executionResult = await triangularArbService.execute(
+        'ascendex',
+        pathId,
+        amount,
+        { apiKey, apiSecret }
+    );
+
+    res.json({
+        success: executionResult.success,
+        data: executionResult
+    });
 }));
 
 // 5. AscendEX Trade History Route
