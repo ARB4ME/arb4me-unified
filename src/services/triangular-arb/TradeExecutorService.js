@@ -226,6 +226,7 @@ class TradeExecutorService {
                 return parseFloat(orderResult.base || orderResult.counter || 0);
 
             case 'binance':
+            case 'bitrue':
                 return parseFloat(orderResult.executedQty || 0);
 
             case 'gemini':
@@ -252,6 +253,7 @@ class TradeExecutorService {
                 return parseFloat(orderResult.price || 0);
 
             case 'binance':
+            case 'bitrue':
                 return parseFloat(orderResult.price || 0);
 
             case 'gemini':

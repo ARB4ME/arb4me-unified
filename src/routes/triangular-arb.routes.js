@@ -10459,120 +10459,28 @@ router.get('/bitrue/triangular/paths', authenticatedRateLimit, authenticateUser,
 
 // ROUTE 4: Execute Bitrue Triangular Trade
 router.post('/bitrue/triangular/execute', asyncHandler(async (req, res) => {
-    try {
-        const { apiKey, apiSecret, pathId, amount, userId } = req.body;
+    const { pathId, amount, apiKey, apiSecret } = req.body;
 
-        if (!apiKey || !apiSecret) {
-            return res.status(400).json({
-                success: false,
-                message: 'API credentials required'
-            });
-        }
-
-        // Find the path configuration
-        const allPaths = [
-            ...BITRUE_TRIANGULAR_PATHS.SET_1_ESSENTIAL_ETH_BRIDGE,
-            ...BITRUE_TRIANGULAR_PATHS.SET_2_MIDCAP_BTC_BRIDGE,
-            ...BITRUE_TRIANGULAR_PATHS.SET_3_BTR_NATIVE_TOKEN,
-            ...BITRUE_TRIANGULAR_PATHS.SET_4_HIGH_VOLATILITY,
-            ...BITRUE_TRIANGULAR_PATHS.SET_5_EXTENDED_MULTIBRIDGE
-        ];
-
-        const pathConfig = allPaths.find(p => p.id === pathId);
-        if (!pathConfig) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid path ID'
-            });
-        }
-
-        const executionResults = [];
-        let currentAmount = parseFloat(amount);
-
-        // Execute each leg sequentially
-        for (let i = 0; i < pathConfig.pairs.length; i++) {
-            const symbol = pathConfig.pairs[i];
-            const timestamp = Date.now();
-
-            const orderParams = {
-                symbol: symbol,
-                side: i % 2 === 0 ? 'BUY' : 'SELL',
-                type: 'MARKET',
-                quantity: currentAmount,
-                timestamp: timestamp
-            };
-
-            const queryString = Object.keys(orderParams)
-                .map(key => `${key}=${orderParams[key]}`)
-                .join('&');
-
-            const signature = createBitrueTriangularSignature(queryString, apiSecret);
-
-            const response = await axios.post(
-                `${BITRUE_TRIANGULAR_CONFIG.baseUrl}${BITRUE_TRIANGULAR_CONFIG.endpoints.placeOrder}?${queryString}&signature=${signature}`,
-                {},
-                {
-                    headers: {
-                        'X-MBX-APIKEY': apiKey
-                    }
-                }
-            );
-
-            if (!response.data || response.data.status !== 'FILLED') {
-                throw new Error(`Order failed at leg ${i + 1}: ${response.data?.msg || 'Unknown error'}`);
-            }
-
-            executionResults.push({
-                leg: i + 1,
-                symbol: symbol,
-                orderId: response.data.orderId,
-                status: 'filled'
-            });
-
-            // Update amount for next leg
-            currentAmount = parseFloat(response.data.executedQty || currentAmount);
-        }
-
-        // Store trade in database
-        if (userId) {
-            await pool.query(
-                `INSERT INTO triangular_trades
-                (user_id, exchange, path_id, path_description, initial_amount, final_amount, profit, profit_percent, status, execution_details, created_at)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())`,
-                [
-                    userId,
-                    'bitrue',
-                    pathConfig.id,
-                    pathConfig.description,
-                    parseFloat(amount),
-                    currentAmount,
-                    currentAmount - parseFloat(amount),
-                    ((currentAmount - parseFloat(amount)) / parseFloat(amount)) * 100,
-                    'completed',
-                    JSON.stringify(executionResults)
-                ]
-            );
-        }
-
-        res.json({
-            success: true,
-            message: 'Triangular arbitrage executed successfully',
-            execution: {
-                pathId: pathConfig.id,
-                initialAmount: parseFloat(amount),
-                finalAmount: currentAmount,
-                profit: currentAmount - parseFloat(amount),
-                profitPercent: ((currentAmount - parseFloat(amount)) / parseFloat(amount)) * 100,
-                legs: executionResults
-            }
-        });
-
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: error.message || 'Failed to execute Bitrue triangular trade'
-        });
+    if (!pathId || !amount) {
+        throw new APIError('Path ID and amount are required', 400, 'MISSING_PARAMETERS');
     }
+
+    if (!apiKey || !apiSecret) {
+        throw new APIError('Bitrue API credentials required', 400, 'BITRUE_CREDENTIALS_REQUIRED');
+    }
+
+    // Call service layer to execute trade (REAL 3-LEG ATOMIC EXECUTION)
+    const executionResult = await triangularArbService.execute(
+        'bitrue',
+        pathId,
+        amount,
+        { apiKey, apiSecret }
+    );
+
+    res.json({
+        success: executionResult.success,
+        data: executionResult
+    });
 }));
 
 // ROUTE 5: Get Bitrue Trade History (User-Specific)

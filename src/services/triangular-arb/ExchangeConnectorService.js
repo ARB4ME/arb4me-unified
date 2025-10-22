@@ -76,7 +76,15 @@ class ExchangeConnectorService {
             bingx: { name: 'BingX', baseUrl: 'https://open-api.bingx.com', endpoints: {}, authType: 'api-key' },
             bitget: { name: 'Bitget', baseUrl: 'https://api.bitget.com', endpoints: {}, authType: 'api-key' },
             bitmart: { name: 'BitMart', baseUrl: 'https://api-cloud.bitmart.com', endpoints: {}, authType: 'api-key' },
-            bitrue: { name: 'Bitrue', baseUrl: 'https://api.bitrue.com', endpoints: {}, authType: 'api-key' },
+            bitrue: {
+                name: 'Bitrue',
+                baseUrl: 'https://api.bitrue.com',
+                endpoints: {
+                    orderBook: '/api/v1/depth',
+                    marketOrder: '/api/v1/order'
+                },
+                authType: 'hmac-sha256'
+            },
             gemini: {
                 name: 'Gemini',
                 baseUrl: 'https://api.gemini.com',
@@ -402,6 +410,7 @@ class ExchangeConnectorService {
                 break;
 
             case 'binance':
+            case 'bitrue':
                 url = `${url}?symbol=${pair}&limit=20`;
                 break;
 
@@ -445,6 +454,15 @@ class ExchangeConnectorService {
                     side: side.toUpperCase(),
                     type: 'MARKET',
                     quantity: amount
+                };
+
+            case 'bitrue':
+                return {
+                    symbol: pair,
+                    side: side.toUpperCase(),
+                    type: 'MARKET',
+                    quantity: amount,
+                    timestamp: Date.now()
                 };
 
             case 'gemini':

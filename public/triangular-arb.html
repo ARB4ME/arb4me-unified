@@ -16307,6 +16307,19 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
         // BITRUE TRIANGULAR ARBITRAGE FUNCTIONS
         // ═══════════════════════════════════════════════════════════
 
+        // Worker Variables
+        let bitrueWorkerInterval = null;
+        let bitrueWorkerStats = {
+            totalScans: 0,
+            totalOpportunities: 0,
+            totalTrades: 0,
+            successfulTrades: 0,
+            totalProfit: 0,
+            bestProfit: 0,
+            bestPath: null,
+            lastScanTime: null
+        };
+
         // 1. Toggle Bitrue Triangular
         function toggleBitrueTriangular() {
             const toggle = document.getElementById('bitrueTriangularEnabled');
@@ -16317,10 +16330,14 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
                 status.textContent = 'ON';
                 status.style.color = '#22C55E';
                 localStorage.setItem('bitrueTriangularEnabled', 'true');
+                console.log('💚 [BITRUE] Triangular arbitrage enabled - starting worker...');
+                startBitrueWorker();
             } else {
                 status.textContent = 'OFF';
                 status.style.color = '#ff6b6b';
                 localStorage.setItem('bitrueTriangularEnabled', 'false');
+                console.log('💚 [BITRUE] Triangular arbitrage disabled - stopping worker...');
+                stopBitrueWorker();
             }
         }
 
@@ -16699,9 +16716,9 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
             const apiKey = localStorage.getItem('bitrue_api') || '';
             const apiSecret = localStorage.getItem('bitrue_secret') || '';
             const maxTrade = parseFloat(document.getElementById('bitrueMaxTrade').value);
-            const userId = localStorage.getItem('userId');
 
-            if (!confirm(`⚠️ Execute triangular arbitrage trade?\n\nPath: ${pathId}\nAmount: ${maxTrade} USDT\n\nThis will execute real trades on Bitrue.`)) {
+            // Enhanced real money warning
+            if (!confirm(`⚠️ REAL MONEY TRADING ⚠️\n\nExecute REAL triangular arbitrage trade?\n\nPath: ${pathId}\nAmount: ${maxTrade} USDT\n\nThis will execute REAL market orders on Bitrue.\nClick OK to proceed.`)) {
                 return;
             }
 
@@ -16709,22 +16726,155 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
                 const response = await fetch('/api/v1/trading/bitrue/triangular/execute', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ apiKey, apiSecret, pathId, amount: maxTrade, userId })
+                    body: JSON.stringify({ apiKey, apiSecret, pathId, amount: maxTrade })
                 });
 
-                const data = await response.json();
+                const result = await response.json();
 
-                if (data.success) {
-                    alert(`✅ Trade executed successfully!\n\nProfit: $${data.execution.profit.toFixed(2)} (${data.execution.profitPercent.toFixed(3)}%)\nFinal Amount: ${data.execution.finalAmount.toFixed(2)} USDT`);
+                if (result.success && result.data) {
+                    const execution = result.data;
 
-                    // Refresh opportunities and history
-                    scanBitrueTriangularPaths();
-                    loadBitrueTradeHistory();
+                    if (execution.status === 'COMPLETED') {
+                        const profit = execution.actualProfit || 0;
+                        const profitPct = execution.actualProfitPercentage || 0;
+
+                        alert(`✅ Trade Executed Successfully!\n\nExecution ID: ${execution.executionId}\nProfit: $${profit.toFixed(2)} (${profitPct.toFixed(3)}%)\nLegs Completed: ${execution.legs?.length || 0}/3\nTotal Time: ${execution.totalExecutionTime}ms\n\nAll legs executed atomically with slippage monitoring.`);
+
+                        // Refresh opportunities and balance
+                        scanBitrueTriangularPaths();
+                        initializeBitrueBalance();
+                    } else {
+                        alert(`❌ Trade Failed!\n\nStatus: ${execution.status}\nError: ${execution.error || 'Unknown error'}\nCompleted Legs: ${execution.legs?.filter(l => l.status === 'COMPLETED').length || 0}/3`);
+                    }
                 } else {
-                    alert(`❌ Trade execution failed:\n\n${data.message}`);
+                    alert(`❌ Trade execution failed:\n\n${result.message || 'Unknown error'}`);
                 }
             } catch (error) {
                 alert(`❌ Trade execution error:\n\n${error.message}`);
+            }
+        }
+
+        // Start Bitrue Worker (Sequential Scanning)
+        async function startBitrueWorker() {
+            // Validate credentials
+            const apiKey = localStorage.getItem('bitrue_api');
+            const apiSecret = localStorage.getItem('bitrue_secret');
+
+            if (!apiKey || !apiSecret) {
+                alert('⚠️ Please configure Bitrue API credentials first!');
+                document.getElementById('bitrueTriangularEnabled').classList.remove('active');
+                document.getElementById('bitrueTriangularStatus').textContent = 'OFF';
+                document.getElementById('bitrueTriangularStatus').style.color = '#ff6b6b';
+                return;
+            }
+
+            // Check if at least one set is selected
+            const set1Enabled = document.getElementById('bitrueSet1Enabled').checked;
+            const set2Enabled = document.getElementById('bitrueSet2Enabled').checked;
+            const set3Enabled = document.getElementById('bitrueSet3Enabled').checked;
+            const set4Enabled = document.getElementById('bitrueSet4Enabled').checked;
+            const set5Enabled = document.getElementById('bitrueSet5Enabled').checked;
+
+            if (!set1Enabled && !set2Enabled && !set3Enabled && !set4Enabled && !set5Enabled) {
+                alert('⚠️ Please enable at least one path set!');
+                document.getElementById('bitrueTriangularEnabled').classList.remove('active');
+                document.getElementById('bitrueTriangularStatus').textContent = 'OFF';
+                document.getElementById('bitrueTriangularStatus').style.color = '#ff6b6b';
+                return;
+            }
+
+            const portfolioPercent = parseFloat(document.getElementById('bitruePortfolioPercent').value) || 5;
+            const maxTradeAmount = parseFloat(document.getElementById('bitrueMaxTrade').value) || 100;
+            const profitThreshold = parseFloat(document.getElementById('bitrueProfitThreshold').value) || 0.3;
+
+            // Build selected sets array
+            const selectedSets = [];
+            if (set1Enabled) selectedSets.push('SET_1_ESSENTIAL_ETH_BRIDGE');
+            if (set2Enabled) selectedSets.push('SET_2_MIDCAP_BTC_BRIDGE');
+            if (set3Enabled) selectedSets.push('SET_3_BTR_NATIVE_TOKEN');
+            if (set4Enabled) selectedSets.push('SET_4_HIGH_VOLATILITY');
+            if (set5Enabled) selectedSets.push('SET_5_EXTENDED_MULTIBRIDGE');
+
+            console.log(`💚 [BITRUE] Worker started - scanning ${selectedSets.length} sets sequentially`);
+            console.log(`💚 [BITRUE] Portfolio: ${portfolioPercent}%, Max Trade: $${maxTradeAmount}, Threshold: ${profitThreshold}%`);
+
+            let currentSetIndex = 0;
+
+            // Sequential scan function
+            async function scanAndExecuteSequential() {
+                try {
+                    bitrueWorkerStats.totalScans++;
+                    bitrueWorkerStats.lastScanTime = new Date().toISOString();
+
+                    const currentSet = selectedSets[currentSetIndex];
+                    console.log(`💚 [BITRUE] Scanning set ${currentSetIndex + 1}/${selectedSets.length}: ${currentSet}`);
+
+                    // Scan current set only
+                    const response = await fetch('/api/v1/trading/bitrue/triangular/scan', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            apiKey,
+                            apiSecret,
+                            selectedSets: [currentSet],
+                            portfolioPercent,
+                            maxTradeAmount
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success && data.opportunities && data.opportunities.length > 0) {
+                        bitrueWorkerStats.totalOpportunities += data.opportunities.length;
+
+                        // Log opportunities above threshold
+                        data.opportunities.forEach(opp => {
+                            if (opp.profitPercentage >= profitThreshold) {
+                                console.log(`💚 [BITRUE] Opportunity found: ${opp.pathId} - ${opp.profitPercentage.toFixed(3)}% profit`);
+
+                                // Track best profit
+                                if (opp.profitPercentage > bitrueWorkerStats.bestProfit) {
+                                    bitrueWorkerStats.bestProfit = opp.profitPercentage;
+                                    bitrueWorkerStats.bestPath = opp.pathId;
+                                }
+                            }
+                        });
+                    }
+
+                    // Move to next set (circular)
+                    currentSetIndex = (currentSetIndex + 1) % selectedSets.length;
+
+                    // Update balance after completing full cycle
+                    if (currentSetIndex === 0) {
+                        console.log(`💚 [BITRUE] Completed full cycle - updating balance...`);
+                        initializeBitrueBalance();
+                    }
+
+                } catch (error) {
+                    console.error(`💚 [BITRUE] Worker scan error:`, error);
+                }
+            }
+
+            // Start sequential interval (8 seconds between scans)
+            scanAndExecuteSequential(); // Run immediately
+            bitrueWorkerInterval = setInterval(scanAndExecuteSequential, 8000);
+
+            console.log(`💚 [BITRUE] Worker active - scanning every 8 seconds`);
+        }
+
+        // Stop Bitrue Worker
+        function stopBitrueWorker() {
+            if (bitrueWorkerInterval) {
+                clearInterval(bitrueWorkerInterval);
+                bitrueWorkerInterval = null;
+
+                console.log(`💚 [BITRUE] Worker stopped`);
+                console.log(`💚 [BITRUE] Stats:`, {
+                    totalScans: bitrueWorkerStats.totalScans,
+                    totalOpportunities: bitrueWorkerStats.totalOpportunities,
+                    bestProfit: bitrueWorkerStats.bestProfit?.toFixed(3) + '%',
+                    bestPath: bitrueWorkerStats.bestPath
+                });
             }
         }
 
