@@ -1,4 +1,4 @@
-DEPLOYMENT_TRIGGER=2025-10-22-mexc-triangular-arb-complete
-COMMIT=a746273-mexc-implementation
-FEATURES=triangular-arbitrage,valr-trading,multi-strategy-backend,4-strategy-dashboard-ui,strategy-scanning-integration,clean-header-interface,mexc-triangular-arb-17th-exchange
+DEPLOYMENT_TRIGGER=2025-10-22-cryptocom-triangular-arb-complete
+COMMIT=4cb0e34-cryptocom-implementation
+FEATURES=triangular-arbitrage,valr-trading,multi-strategy-backend,4-strategy-dashboard-ui,strategy-scanning-integration,clean-header-interface,mexc-triangular-arb-17th-exchange,cryptocom-triangular-arb-18th-exchange
 STATUS=ready-for-deployment
