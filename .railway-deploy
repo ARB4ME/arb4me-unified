@@ -1,4 +1,4 @@
-DEPLOYMENT_TRIGGER=2025-09-27-phase4-header-cleanup
-COMMIT=phase4-remove-header-toggle
-FEATURES=triangular-arbitrage,valr-trading,multi-strategy-backend,4-strategy-dashboard-ui,strategy-scanning-integration,clean-header-interface
+DEPLOYMENT_TRIGGER=2025-10-22-mexc-triangular-arb-complete
+COMMIT=a746273-mexc-implementation
+FEATURES=triangular-arbitrage,valr-trading,multi-strategy-backend,4-strategy-dashboard-ui,strategy-scanning-integration,clean-header-interface,mexc-triangular-arb-17th-exchange
 STATUS=ready-for-deployment
