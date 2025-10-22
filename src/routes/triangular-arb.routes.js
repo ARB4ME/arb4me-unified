@@ -6262,9 +6262,7 @@ router.post('/cryptocom/triangular/scan', asyncHandler(async (req, res) => {
                 { id: 'CDC_EXT_1', path: ['USDT', 'SOL', 'BTC', 'USDT'], pairs: ['SOL_USDT', 'BTC_SOL', 'BTC_USDT'], description: 'SOL → BTC Multi-Bridge' },
                 { id: 'CDC_EXT_2', path: ['USDT', 'XRP', 'ETH', 'USDT'], pairs: ['XRP_USDT', 'ETH_XRP', 'ETH_USDT'], description: 'XRP → ETH Multi-Bridge' },
                 { id: 'CDC_EXT_3', path: ['USDT', 'AVAX', 'BTC', 'USDT'], pairs: ['AVAX_USDT', 'BTC_AVAX', 'BTC_USDT'], description: 'AVAX → BTC Multi-Bridge' },
-                { id: 'CDC_EXT_4', path: ['USDT', 'ATOM', 'ETH', 'USDT'], pairs: ['ATOM_USDT', 'ETH_ATOM', 'ETH_USDT'], description: 'ATOM → ETH Multi-Bridge' },
-                { id: 'CDC_EXT_5', path: ['USDT', 'BTC', 'ETH', 'SOL', 'USDT'], pairs: ['BTC_USDT', 'ETH_BTC', 'SOL_ETH', 'SOL_USDT'], description: '4-Leg BTC-ETH-SOL' },
-                { id: 'CDC_EXT_6', path: ['USDT', 'ETH', 'BTC', 'ADA', 'USDT'], pairs: ['ETH_USDT', 'BTC_ETH', 'ADA_BTC', 'ADA_USDT'], description: '4-Leg ETH-BTC-ADA' }
+                { id: 'CDC_EXT_4', path: ['USDT', 'ATOM', 'ETH', 'USDT'], pairs: ['ATOM_USDT', 'ETH_ATOM', 'ETH_USDT'], description: 'ATOM → ETH Multi-Bridge' }
             ]
         };
 
@@ -6586,45 +6584,32 @@ router.get('/cryptocom/triangular/paths', authenticatedRateLimit, authenticateUs
     });
 }));
 
-// ROUTE 4: Execute Crypto.com Triangular Trade
+// ROUTE 4: Execute Crypto.com Triangular Trade (ATOMIC)
 router.post('/cryptocom/triangular/execute', asyncHandler(async (req, res) => {
-    try {
-        const { apiKey, apiSecret, opportunity, dryRun } = req.body;
+    const { pathId, amount, apiKey, apiSecret } = req.body;
 
-        if (!apiKey || !apiSecret) {
-            return res.status(400).json({
-                success: false,
-                message: 'API credentials required'
-            });
-        }
-
-        if (dryRun) {
-            return res.json({
-                success: true,
-                message: 'DRY RUN - Trade would execute with following parameters',
-                opportunity: opportunity,
-                execution: {
-                    leg1: { status: 'simulated', pair: opportunity.legs[0].pair },
-                    leg2: { status: 'simulated', pair: opportunity.legs[1].pair },
-                    leg3: { status: 'simulated', pair: opportunity.legs[2].pair }
-                }
-            });
-        }
-
-        // Real execution would go here
-        res.json({
-            success: true,
-            message: 'Crypto.com triangular trade execution endpoint ready',
-            note: 'Full execution logic to be implemented after testing phase'
-        });
-
-    } catch (error) {
-        console.error('Crypto.com execute error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to execute Crypto.com triangular trade'
-        });
+    // Validate required parameters
+    if (!pathId || !amount) {
+        throw new APIError('Path ID and amount required', 400);
     }
+
+    if (!apiKey || !apiSecret) {
+        throw new APIError('Crypto.com API credentials required', 400);
+    }
+
+    // Execute atomic 3-leg triangular arbitrage trade
+    const executionResult = await triangularArbService.execute(
+        'cryptocom',
+        pathId,
+        amount,
+        { apiKey, apiSecret }
+    );
+
+    // Return execution result
+    res.json({
+        success: executionResult.success,
+        data: executionResult
+    });
 }));
 
 // ROUTE 5: Get Crypto.com Trade History

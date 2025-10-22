@@ -251,6 +251,10 @@ class TradeExecutorService {
             case 'coincatch':
                 return parseFloat(orderResult.data?.size || orderResult.size || orderResult.filledQty || 0);
 
+            case 'cryptocom':
+                // Crypto.com JSON-RPC response format
+                return parseFloat(orderResult.result?.cumulative_quantity || orderResult.cumulative_quantity || 0);
+
             default:
                 return parseFloat(orderResult.filled || orderResult.amount || orderResult.quantity || 0);
         }
@@ -293,6 +297,10 @@ class TradeExecutorService {
 
             case 'coincatch':
                 return parseFloat(orderResult.data?.priceAvg || orderResult.priceAvg || orderResult.price || 0);
+
+            case 'cryptocom':
+                // Crypto.com JSON-RPC response format
+                return parseFloat(orderResult.result?.avg_price || orderResult.avg_price || 0);
 
             default:
                 return parseFloat(orderResult.price || orderResult.averagePrice || 0);

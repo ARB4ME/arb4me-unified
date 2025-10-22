@@ -69,7 +69,15 @@ class ExchangeConnectorService {
             coinbase: { name: 'Coinbase', baseUrl: 'https://api.coinbase.com', endpoints: {}, authType: 'api-key' },
             htx: { name: 'HTX', baseUrl: 'https://api.huobi.pro', endpoints: {}, authType: 'api-key' },
             gateio: { name: 'Gate.io', baseUrl: 'https://api.gateio.ws', endpoints: {}, authType: 'api-key' },
-            cryptocom: { name: 'Crypto.com', baseUrl: 'https://api.crypto.com', endpoints: {}, authType: 'api-key' },
+            cryptocom: {
+                name: 'Crypto.com',
+                baseUrl: 'https://api.crypto.com/v2',
+                endpoints: {
+                    orderBook: '/public/get-book',
+                    marketOrder: '/private/create-order'
+                },
+                authType: 'cryptocom-signature'
+            },
             mexc: {
                 name: 'MEXC',
                 baseUrl: 'https://api.mexc.com',
@@ -323,6 +331,9 @@ class ExchangeConnectorService {
             case 'mexc-signature':
                 return this._createMexcAuth(apiKey, apiSecret, method, path, body);
 
+            case 'cryptocom-signature':
+                return this._createCryptocomAuth(apiKey, apiSecret, method, path, body);
+
             case 'api-key':
             default:
                 return {
@@ -570,6 +581,50 @@ class ExchangeConnectorService {
     }
 
     /**
+     * Crypto.com authentication (JSON-RPC 2.0 with HMAC SHA-256)
+     * UNIQUE: Crypto.com uses JSON-RPC format - auth goes in body, not headers
+     * @private
+     */
+    _createCryptocomAuth(apiKey, apiSecret, method, path, body) {
+        const nonce = Date.now();
+        const requestId = Math.floor(Math.random() * 1000000);
+
+        // Determine JSON-RPC method name from path
+        let jsonRpcMethod = '';
+        if (path.includes('get-book')) {
+            jsonRpcMethod = 'public/get-book';
+        } else if (path.includes('create-order')) {
+            jsonRpcMethod = 'private/create-order';
+        }
+
+        // Prepare params (alphabetically sorted for signature)
+        const params = body ? body : {};
+        const sortedParamKeys = Object.keys(params).sort();
+        const paramString = sortedParamKeys.map(key => `${key}${params[key]}`).join('');
+
+        // Create signature: method + id + api_key + params + nonce
+        const signaturePayload = `${jsonRpcMethod}${requestId}${apiKey}${paramString}${nonce}`;
+        const signature = crypto
+            .createHmac('sha256', apiSecret)
+            .update(signaturePayload)
+            .digest('hex');
+
+        // Store auth data for use in request body (Crypto.com specific)
+        this._cryptocomAuthData = {
+            id: requestId,
+            method: jsonRpcMethod,
+            api_key: apiKey,
+            sig: signature,
+            nonce: nonce
+        };
+
+        // Crypto.com uses standard headers (auth is in body)
+        return {
+            'Content-Type': 'application/json'
+        };
+    }
+
+    /**
      * Build order book URL with exchange-specific formatting
      * @private
      */
@@ -618,6 +673,11 @@ class ExchangeConnectorService {
             case 'gemini':
                 // Gemini uses lowercase pairs in URL
                 url = url.replace(':pair', pair.toLowerCase());
+                break;
+
+            case 'cryptocom':
+                // Crypto.com uses JSON-RPC - no query params, data in body
+                url = `${config.baseUrl}${config.endpoints.orderBook}`;
                 break;
 
             default:
@@ -723,6 +783,27 @@ class ExchangeConnectorService {
                     side: side.toUpperCase(),
                     type: 'MARKET',
                     quantity: amount.toString()
+                };
+
+            case 'cryptocom':
+                // Crypto.com uses JSON-RPC 2.0 format with underscore pairs (BTC_USDT)
+                // Auth data was prepared in _createCryptocomAuth and stored in this._cryptocomAuthData
+                if (!this._cryptocomAuthData) {
+                    throw new Error('Crypto.com auth data not initialized');
+                }
+
+                return {
+                    id: this._cryptocomAuthData.id,
+                    method: this._cryptocomAuthData.method,
+                    api_key: this._cryptocomAuthData.api_key,
+                    sig: this._cryptocomAuthData.sig,
+                    nonce: this._cryptocomAuthData.nonce,
+                    params: {
+                        instrument_name: pair,  // Crypto.com uses underscore format (e.g., BTC_USDT)
+                        side: side.toUpperCase(),
+                        type: 'MARKET',
+                        quantity: amount.toString()
+                    }
                 };
 
             default:
