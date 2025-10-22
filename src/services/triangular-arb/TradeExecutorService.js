@@ -227,6 +227,7 @@ class TradeExecutorService {
 
             case 'binance':
             case 'bitrue':
+            case 'mexc':
                 return parseFloat(orderResult.executedQty || 0);
 
             case 'bitmart':
@@ -269,6 +270,7 @@ class TradeExecutorService {
 
             case 'binance':
             case 'bitrue':
+            case 'mexc':
                 return parseFloat(orderResult.price || 0);
 
             case 'bitmart':

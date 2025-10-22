@@ -13003,6 +13003,15 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
         // MEXC TRIANGULAR ARBITRAGE FUNCTIONS
         // ═══════════════════════════════════════════════════════════
 
+        // Worker variables
+        let mexcWorkerInterval = null;
+        let mexcWorkerStats = {
+            scansCompleted: 0,
+            opportunitiesFound: 0,
+            tradesExecuted: 0,
+            lastScanTime: null
+        };
+
         // 0. Toggle MEXC Triangular Trading
         function toggleMexcTriangular() {
             const toggle = document.getElementById('mexcTriangularEnabled');
@@ -13014,11 +13023,13 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
                 status.style.color = '#FFA500';
                 localStorage.setItem('mexcTriangularEnabled', 'true');
                 console.log('✅ [MEXC] Live triangular trading enabled');
+                startMexcWorker();  // Start worker
             } else {
                 status.textContent = 'OFF';
                 status.style.color = '#ff6b6b';
                 localStorage.setItem('mexcTriangularEnabled', 'false');
                 console.log('⏸️ [MEXC] Live triangular trading disabled');
+                stopMexcWorker();  // Stop worker
             }
         }
 
@@ -13544,6 +13555,153 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
                 }
             } catch (error) {
                 console.error('MEXC history error:', error);
+            }
+        }
+
+        // 8. Start MEXC Worker (Sequential Scanning)
+        function startMexcWorker() {
+            console.log('🟠 [MEXC] Starting worker with sequential path set scanning...');
+
+            // Stop any existing worker
+            if (mexcWorkerInterval) {
+                clearInterval(mexcWorkerInterval);
+            }
+
+            // Reset stats
+            mexcWorkerStats = {
+                scansCompleted: 0,
+                opportunitiesFound: 0,
+                tradesExecuted: 0,
+                lastScanTime: null
+            };
+
+            let currentSetIndex = 0;
+            const pathSets = ['SET_1_ESSENTIAL_ETH_BRIDGE', 'SET_2_MIDCAP_BTC_BRIDGE', 'SET_3_MX_NATIVE_BRIDGE', 'SET_4_HIGH_VOLATILITY', 'SET_5_EXTENDED_MULTIBRIDGE'];
+
+            // Worker loop: Scan one set at a time, wait 8 seconds, move to next set
+            mexcWorkerInterval = setInterval(async () => {
+                try {
+                    const apiKey = localStorage.getItem('mexc_triangular_api');
+                    const apiSecret = localStorage.getItem('mexc_triangular_secret');
+
+                    if (!apiKey || !apiSecret) {
+                        console.warn('⚠️ [MEXC] Missing credentials, worker paused');
+                        return;
+                    }
+
+                    // Get enabled sets from settings
+                    const enabledSets = [];
+                    for (let i = 1; i <= 5; i++) {
+                        const checkbox = document.getElementById(`mexcSet${i}Enabled`);
+                        if (checkbox && checkbox.checked) {
+                            enabledSets.push(pathSets[i - 1]);
+                        }
+                    }
+
+                    if (enabledSets.length === 0) {
+                        console.warn('⚠️ [MEXC] No path sets enabled');
+                        return;
+                    }
+
+                    // Get current set to scan
+                    const currentSet = enabledSets[currentSetIndex % enabledSets.length];
+                    console.log(`🔍 [MEXC] Scanning ${currentSet} (${currentSetIndex % enabledSets.length + 1}/${enabledSets.length})...`);
+
+                    // Scan the current set
+                    const response = await fetch('/api/v1/trading/mexc/triangular/scan', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                        },
+                        body: JSON.stringify({
+                            apiKey,
+                            apiSecret,
+                            maxTradeAmount: parseFloat(document.getElementById('mexcMaxTrade')?.value || 1000),
+                            portfolioPercent: parseFloat(document.getElementById('mexcPortfolioPercent')?.value || 10),
+                            profitThreshold: parseFloat(document.getElementById('mexcProfitThreshold')?.value || 0.5),
+                            enabledSets: [currentSet]  // Scan only one set at a time
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        mexcWorkerStats.scansCompleted++;
+                        mexcWorkerStats.lastScanTime = new Date().toISOString();
+
+                        // Check for profitable opportunities
+                        const opportunities = result.opportunities || [];
+                        const profitableOpps = opportunities.filter(opp => opp.profitPercentage >= parseFloat(document.getElementById('mexcProfitThreshold')?.value || 0.5));
+
+                        mexcWorkerStats.opportunitiesFound += profitableOpps.length;
+
+                        if (profitableOpps.length > 0) {
+                            console.log(`✅ [MEXC] Found ${profitableOpps.length} opportunities in ${currentSet}`);
+
+                            // Auto-execute top opportunity if enabled
+                            const autoExecute = localStorage.getItem('mexcAutoExecute') === 'true';
+                            if (autoExecute && profitableOpps[0]) {
+                                console.log(`🤖 [MEXC] Auto-executing top opportunity...`);
+                                await executeAutoTrade(profitableOpps[0]);
+                                mexcWorkerStats.tradesExecuted++;
+                            }
+                        }
+
+                        // Update UI with worker stats
+                        console.log(`📊 [MEXC] Stats - Scans: ${mexcWorkerStats.scansCompleted}, Opportunities: ${mexcWorkerStats.opportunitiesFound}, Trades: ${mexcWorkerStats.tradesExecuted}`);
+                    }
+
+                    // Move to next set
+                    currentSetIndex++;
+
+                } catch (error) {
+                    console.error(`❌ [MEXC] Worker error:`, error);
+                }
+            }, 8000); // 8 seconds between scans
+
+            console.log('✅ [MEXC] Worker started - scanning every 8 seconds (sequential path sets)');
+        }
+
+        // 9. Stop MEXC Worker
+        function stopMexcWorker() {
+            if (mexcWorkerInterval) {
+                clearInterval(mexcWorkerInterval);
+                mexcWorkerInterval = null;
+                console.log('⏸️ [MEXC] Worker stopped');
+                console.log(`📊 [MEXC] Final Stats - Scans: ${mexcWorkerStats.scansCompleted}, Opportunities: ${mexcWorkerStats.opportunitiesFound}, Trades: ${mexcWorkerStats.tradesExecuted}`);
+            }
+        }
+
+        // Helper: Auto-execute trade
+        async function executeAutoTrade(opportunity) {
+            try {
+                const apiKey = localStorage.getItem('mexc_triangular_api');
+                const apiSecret = localStorage.getItem('mexc_triangular_secret');
+
+                const response = await fetch('/api/v1/trading/mexc/triangular/execute', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    },
+                    body: JSON.stringify({
+                        pathId: opportunity.pathId,
+                        amount: opportunity.startAmount,
+                        apiKey,
+                        apiSecret
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    console.log(`✅ [MEXC] Auto-trade executed: ${opportunity.sequence} - Profit: ${result.data.actualProfitPercentage}%`);
+                } else {
+                    console.error(`❌ [MEXC] Auto-trade failed:`, result.message);
+                }
+            } catch (error) {
+                console.error(`❌ [MEXC] Auto-execute error:`, error);
             }
         }
 

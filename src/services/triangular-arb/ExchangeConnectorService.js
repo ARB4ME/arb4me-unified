@@ -70,7 +70,15 @@ class ExchangeConnectorService {
             htx: { name: 'HTX', baseUrl: 'https://api.huobi.pro', endpoints: {}, authType: 'api-key' },
             gateio: { name: 'Gate.io', baseUrl: 'https://api.gateio.ws', endpoints: {}, authType: 'api-key' },
             cryptocom: { name: 'Crypto.com', baseUrl: 'https://api.crypto.com', endpoints: {}, authType: 'api-key' },
-            mexc: { name: 'MEXC', baseUrl: 'https://api.mexc.com', endpoints: {}, authType: 'api-key' },
+            mexc: {
+                name: 'MEXC',
+                baseUrl: 'https://api.mexc.com',
+                endpoints: {
+                    orderBook: '/api/v3/depth',
+                    marketOrder: '/api/v3/order'
+                },
+                authType: 'mexc-signature'
+            },
             xt: {
                 name: 'XT',
                 baseUrl: 'https://api.xt.com',
@@ -312,6 +320,9 @@ class ExchangeConnectorService {
             case 'xt-signature':
                 return this._createXtAuth(apiKey, apiSecret, method, path, body);
 
+            case 'mexc-signature':
+                return this._createMexcAuth(apiKey, apiSecret, method, path, body);
+
             case 'api-key':
             default:
                 return {
@@ -536,6 +547,29 @@ class ExchangeConnectorService {
     }
 
     /**
+     * MEXC authentication (HMAC SHA-256 with query params)
+     * @private
+     */
+    _createMexcAuth(apiKey, apiSecret, method, path, body) {
+        const timestamp = Date.now();
+
+        // Create query string from body for signature
+        const queryParams = body ? new URLSearchParams(body).toString() : '';
+        const signatureString = queryParams ? `${queryParams}&timestamp=${timestamp}` : `timestamp=${timestamp}`;
+
+        // Create HMAC-SHA256 signature
+        const signature = crypto
+            .createHmac('sha256', apiSecret)
+            .update(signatureString)
+            .digest('hex');
+
+        return {
+            'X-MEXC-APIKEY': apiKey,
+            'Content-Type': 'application/json'
+        };
+    }
+
+    /**
      * Build order book URL with exchange-specific formatting
      * @private
      */
@@ -557,6 +591,7 @@ class ExchangeConnectorService {
 
             case 'binance':
             case 'bitrue':
+            case 'mexc':
                 url = `${url}?symbol=${pair}&limit=20`;
                 break;
 
@@ -615,6 +650,7 @@ class ExchangeConnectorService {
                 };
 
             case 'binance':
+            case 'mexc':
                 return {
                     symbol: pair,
                     side: side.toUpperCase(),

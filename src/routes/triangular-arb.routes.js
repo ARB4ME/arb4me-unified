@@ -6821,9 +6821,7 @@ router.post('/mexc/triangular/scan', asyncHandler(async (req, res) => {
                 { id: 'MEXC_EXT_1', path: ['USDT', 'SOL', 'BTC', 'USDT'], sequence: 'USDT → SOL → BTC → USDT', description: 'SOL → BTC Multi-Bridge', steps: [{ pair: 'SOLUSDT', side: 'buy' }, { pair: 'BTCSOL', side: 'buy' }, { pair: 'BTCUSDT', side: 'sell' }] },
                 { id: 'MEXC_EXT_2', path: ['USDT', 'ADA', 'BTC', 'USDT'], sequence: 'USDT → ADA → BTC → USDT', description: 'ADA → BTC Multi-Bridge', steps: [{ pair: 'ADAUSDT', side: 'buy' }, { pair: 'BTCADA', side: 'buy' }, { pair: 'BTCUSDT', side: 'sell' }] },
                 { id: 'MEXC_EXT_3', path: ['USDT', 'AVAX', 'BTC', 'USDT'], sequence: 'USDT → AVAX → BTC → USDT', description: 'AVAX → BTC Multi-Bridge', steps: [{ pair: 'AVAXUSDT', side: 'buy' }, { pair: 'BTCAVAX', side: 'buy' }, { pair: 'BTCUSDT', side: 'sell' }] },
-                { id: 'MEXC_EXT_4', path: ['USDT', 'MATIC', 'ETH', 'USDT'], sequence: 'USDT → MATIC → ETH → USDT', description: 'MATIC → ETH Multi-Bridge', steps: [{ pair: 'MATICUSDT', side: 'buy' }, { pair: 'ETHMATIC', side: 'buy' }, { pair: 'ETHUSDT', side: 'sell' }] },
-                { id: 'MEXC_EXT_5', path: ['USDT', 'BTC', 'ETH', 'SOL', 'USDT'], sequence: 'USDT → BTC → ETH → SOL → USDT', description: '4-Leg BTC-ETH-SOL', steps: [{ pair: 'BTCUSDT', side: 'buy' }, { pair: 'ETHBTC', side: 'buy' }, { pair: 'SOLETH', side: 'buy' }, { pair: 'SOLUSDT', side: 'sell' }] },
-                { id: 'MEXC_EXT_6', path: ['USDT', 'ETH', 'BTC', 'XRP', 'USDT'], sequence: 'USDT → ETH → BTC → XRP → USDT', description: '4-Leg ETH-BTC-XRP', steps: [{ pair: 'ETHUSDT', side: 'buy' }, { pair: 'BTCETH', side: 'buy' }, { pair: 'XRPBTC', side: 'buy' }, { pair: 'XRPUSDT', side: 'sell' }] }
+                { id: 'MEXC_EXT_4', path: ['USDT', 'MATIC', 'ETH', 'USDT'], sequence: 'USDT → MATIC → ETH → USDT', description: 'MATIC → ETH Multi-Bridge', steps: [{ pair: 'MATICUSDT', side: 'buy' }, { pair: 'ETHMATIC', side: 'buy' }, { pair: 'ETHUSDT', side: 'sell' }] }
             ]
         };
 
@@ -7069,45 +7067,31 @@ router.get('/mexc/triangular/paths', authenticatedRateLimit, authenticateUser, a
     });
 }));
 
-// ROUTE 4: Execute MEXC Triangular Trade
+// ROUTE 4: Execute MEXC Triangular Trade (Atomic Execution)
 router.post('/mexc/triangular/execute', asyncHandler(async (req, res) => {
-    try {
-        const { apiKey, apiSecret, opportunity, dryRun } = req.body;
+    const { pathId, amount, apiKey, apiSecret } = req.body;
 
-        if (!apiKey || !apiSecret) {
-            return res.status(400).json({
-                success: false,
-                message: 'API credentials required'
-            });
-        }
-
-        if (dryRun) {
-            return res.json({
-                success: true,
-                message: 'DRY RUN - Trade would execute with following parameters',
-                opportunity: opportunity,
-                execution: {
-                    leg1: { status: 'simulated', pair: opportunity.legs[0].pair },
-                    leg2: { status: 'simulated', pair: opportunity.legs[1].pair },
-                    leg3: { status: 'simulated', pair: opportunity.legs[2].pair }
-                }
-            });
-        }
-
-        // Real execution would go here
-        res.json({
-            success: true,
-            message: 'MEXC triangular trade execution endpoint ready',
-            note: 'Full execution logic to be implemented after testing phase'
-        });
-
-    } catch (error) {
-        console.error('MEXC execute error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to execute MEXC triangular trade'
-        });
+    // Validate required parameters
+    if (!pathId || !amount) {
+        throw new APIError('Path ID and amount required', 400);
     }
+
+    if (!apiKey || !apiSecret) {
+        throw new APIError('MEXC API credentials required', 400);
+    }
+
+    // Execute atomic 3-leg trade via TriangularArbService
+    const executionResult = await triangularArbService.execute(
+        'mexc',
+        pathId,
+        amount,
+        { apiKey, apiSecret }
+    );
+
+    res.json({
+        success: executionResult.success,
+        data: executionResult
+    });
 }));
 
 // ROUTE 5: Get MEXC Trade History
