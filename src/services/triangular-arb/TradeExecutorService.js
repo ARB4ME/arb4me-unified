@@ -255,6 +255,10 @@ class TradeExecutorService {
                 // Crypto.com JSON-RPC response format
                 return parseFloat(orderResult.result?.cumulative_quantity || orderResult.cumulative_quantity || 0);
 
+            case 'htx':
+                // HTX response format
+                return parseFloat(orderResult['field-amount'] || orderResult['filled-amount'] || 0);
+
             case 'gateio':
                 // Gate.io response format
                 return parseFloat(orderResult.filled_total || orderResult.amount || 0);
@@ -305,6 +309,12 @@ class TradeExecutorService {
             case 'cryptocom':
                 // Crypto.com JSON-RPC response format
                 return parseFloat(orderResult.result?.avg_price || orderResult.avg_price || 0);
+
+            case 'htx':
+                // HTX provides filled amount and filled cash - calculate average price
+                const filledAmount = parseFloat(orderResult['field-amount'] || 0);
+                const filledCash = parseFloat(orderResult['field-cash-amount'] || 0);
+                return filledAmount > 0 ? filledCash / filledAmount : 0;
 
             case 'gateio':
                 // Gate.io response format

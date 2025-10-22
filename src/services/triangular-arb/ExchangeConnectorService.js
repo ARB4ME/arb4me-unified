@@ -67,7 +67,15 @@ class ExchangeConnectorService {
             okx: { name: 'OKX', baseUrl: 'https://www.okx.com', endpoints: {}, authType: 'api-key' },
             kucoin: { name: 'KuCoin', baseUrl: 'https://api.kucoin.com', endpoints: {}, authType: 'api-key' },
             coinbase: { name: 'Coinbase', baseUrl: 'https://api.coinbase.com', endpoints: {}, authType: 'api-key' },
-            htx: { name: 'HTX', baseUrl: 'https://api.huobi.pro', endpoints: {}, authType: 'api-key' },
+            htx: {
+                name: 'HTX',
+                baseUrl: 'https://api.huobi.pro',
+                endpoints: {
+                    orderBook: '/market/depth',
+                    marketOrder: '/v1/order/orders/place'
+                },
+                authType: 'htx-signature'
+            },
             gateio: {
                 name: 'Gate.io',
                 baseUrl: 'https://api.gateio.ws/api/v4',
@@ -341,6 +349,9 @@ class ExchangeConnectorService {
 
             case 'cryptocom-signature':
                 return this._createCryptocomAuth(apiKey, apiSecret, method, path, body);
+
+            case 'htx-signature':
+                return this._createHtxAuth(apiKey, apiSecret, method, path, body, credentials);
 
             case 'gateio-signature':
                 return this._createGateioAuth(apiKey, apiSecret, method, path, body);
@@ -636,6 +647,52 @@ class ExchangeConnectorService {
     }
 
     /**
+     * HTX (Huobi) authentication (HMAC SHA-256 with query params)
+     * UNIQUE: HTX uses signature in query string with specific format
+     * @private
+     */
+    _createHtxAuth(apiKey, apiSecret, method, path, body, credentials) {
+        const timestamp = new Date().toISOString().replace(/\.\d{3}Z$/, '');
+
+        // Store account ID for use in order payload (HTX specific)
+        if (credentials && credentials.accountId) {
+            this._htxAccountId = credentials.accountId;
+        }
+
+        // Add required signature parameters
+        const signatureParams = {
+            AccessKeyId: apiKey,
+            SignatureMethod: 'HmacSHA256',
+            SignatureVersion: '2',
+            Timestamp: timestamp
+        };
+
+        // Add body params for POST requests
+        const allParams = body ? { ...signatureParams, ...body } : signatureParams;
+
+        // Sort parameters alphabetically
+        const sortedParams = Object.keys(allParams).sort().map(key => {
+            return `${key}=${encodeURIComponent(allParams[key])}`;
+        }).join('&');
+
+        // Create pre-signed text: METHOD\nHOST\nPATH\nPARAMS
+        const preSignedText = `${method.toUpperCase()}\napi.huobi.pro\n${path}\n${sortedParams}`;
+
+        // Generate HMAC-SHA256 signature
+        const signature = crypto
+            .createHmac('sha256', apiSecret)
+            .update(preSignedText)
+            .digest('base64');
+
+        // Store query string for use in URL building (HTX specific)
+        this._htxQueryString = `${sortedParams}&Signature=${encodeURIComponent(signature)}`;
+
+        return {
+            'Content-Type': 'application/json'
+        };
+    }
+
+    /**
      * Gate.io authentication (HMAC SHA-512 with body hash)
      * UNIQUE: Gate.io hashes the request body with SHA512 before signing
      * @private
@@ -721,6 +778,12 @@ class ExchangeConnectorService {
             case 'cryptocom':
                 // Crypto.com uses JSON-RPC - no query params, data in body
                 url = `${config.baseUrl}${config.endpoints.orderBook}`;
+                break;
+
+            case 'htx':
+                // HTX uses lowercase pairs without separator and query params via auth
+                const htxSymbol = pair.toLowerCase().replace(/[_-]/g, '');
+                url = `${url}?symbol=${htxSymbol}&depth=20&type=step0`;
                 break;
 
             case 'gateio':
@@ -852,6 +915,19 @@ class ExchangeConnectorService {
                         type: 'MARKET',
                         quantity: amount.toString()
                     }
+                };
+
+            case 'htx':
+                // HTX uses lowercase pairs without separator (e.g., btcusdt)
+                // Account ID was stored in _createHtxAuth method
+                if (!this._htxAccountId) {
+                    throw new Error('HTX account-id not initialized');
+                }
+                return {
+                    'account-id': this._htxAccountId,
+                    symbol: pair.toLowerCase().replace(/[_-]/g, ''),
+                    type: side === 'buy' ? 'buy-market' : 'sell-market',
+                    amount: amount.toString()
                 };
 
             case 'gateio':

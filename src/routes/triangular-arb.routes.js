@@ -5347,13 +5347,13 @@ router.get('/huobi/triangular/paths', authenticatedRateLimit, authenticateUser, 
         SET_2_MIDCAP_BTC_BRIDGE: { count: 7, description: 'Mid-cap coins via BTC bridge', enabled: true },
         SET_3_HT_NATIVE_BRIDGE: { count: 6, description: 'Using Huobi Token (HT)', enabled: false },
         SET_4_HIGH_VOLATILITY: { count: 6, description: 'High volatility meme/DeFi coins', enabled: false },
-        SET_5_EXTENDED_MULTIBRIDGE: { count: 6, description: 'Extended paths including 4-leg', enabled: false }
+        SET_5_EXTENDED_MULTIBRIDGE: { count: 5, description: 'Extended multi-bridge paths', enabled: false }
     };
 
     res.json({
         success: true,
         exchange: 'huobi',
-        totalPaths: 32,
+        totalPaths: 31,
         pathSets: paths,
         timestamp: new Date().toISOString()
     });
@@ -5478,17 +5478,33 @@ router.post('/huobi/balance', asyncHandler(async (req, res) => {
     }
 }));
 
-// POST /api/v1/trading/huobi/triangular/execute - Execute a triangular arbitrage trade (placeholder)
-router.post('/huobi/triangular/execute', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
-    const { apiKey, apiSecret, opportunity } = req.body;
+// POST /api/v1/trading/huobi/triangular/execute - Execute triangular arbitrage trade
+router.post('/huobi/triangular/execute', asyncHandler(async (req, res) => {
+    const { pathId, amount, apiKey, apiSecret, accountId } = req.body;
 
-    console.log('⚠️ [HUOBI] Execute endpoint called - NOT IMPLEMENTED YET');
-    console.log('🎯 [HUOBI] Opportunity:', opportunity?.pathId);
+    if (!pathId || !amount) {
+        throw new APIError('Path ID and amount required', 400);
+    }
 
-    res.status(501).json({
-        success: false,
-        message: 'Execution not yet implemented - scan mode only',
-        notice: 'This endpoint will be implemented after initial testing phase'
+    if (!apiKey || !apiSecret) {
+        throw new APIError('HTX API credentials required', 400);
+    }
+
+    // HTX requires account-id for trading (spot trading account)
+    if (!accountId) {
+        throw new APIError('HTX account ID required (spot trading account)', 400);
+    }
+
+    const executionResult = await triangularArbService.execute(
+        'htx',
+        pathId,
+        amount,
+        { apiKey, apiSecret, accountId }
+    );
+
+    res.json({
+        success: executionResult.success,
+        data: executionResult
     });
 }));
 

@@ -11272,6 +11272,15 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
         // HUOBI (HTX) TRIANGULAR ARBITRAGE FUNCTIONS
         // ============================================================================
 
+        // Worker variables
+        let htxWorkerInterval = null;
+        let htxWorkerStats = {
+            scansCompleted: 0,
+            opportunitiesFound: 0,
+            tradesExecuted: 0,
+            lastScanTime: null
+        };
+
         function toggleHuobiTriangular() {
             const toggle = document.getElementById('huobiTriangularEnabled');
             const status = document.getElementById('huobiTriangularStatus');
@@ -11282,11 +11291,13 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
                 status.style.color = '#2D6CF8';
                 localStorage.setItem('huobiTriangularEnabled', 'true');
                 console.log('✅ [HUOBI] Live triangular trading enabled');
+                startHtxWorker();  // Start worker
             } else {
                 status.textContent = 'OFF';
                 status.style.color = '#ff6b6b';
                 localStorage.setItem('huobiTriangularEnabled', 'false');
                 console.log('⏸️ [HUOBI] Live triangular trading disabled');
+                stopHtxWorker();  // Stop worker
             }
         }
 
@@ -11801,6 +11812,159 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
                 }
             }
         });
+
+        // ============================================================================
+        // HTX WORKER FUNCTIONS (Sequential Scanning)
+        // ============================================================================
+
+        // Start HTX Worker (Sequential Scanning - One Set at a Time)
+        function startHtxWorker() {
+            console.log('🟢 [HTX] Starting worker with sequential path set scanning...');
+
+            if (htxWorkerInterval) {
+                clearInterval(htxWorkerInterval);
+            }
+
+            htxWorkerStats = {
+                scansCompleted: 0,
+                opportunitiesFound: 0,
+                tradesExecuted: 0,
+                lastScanTime: null
+            };
+
+            let currentSetIndex = 0;
+            const pathSets = ['SET_1_ESSENTIAL_ETH_BRIDGE', 'SET_2_MIDCAP_BTC_BRIDGE', 'SET_3_HT_NATIVE_BRIDGE', 'SET_4_HIGH_VOLATILITY', 'SET_5_EXTENDED_MULTIBRIDGE'];
+
+            htxWorkerInterval = setInterval(async () => {
+                try {
+                    const apiKey = localStorage.getItem('huobi_triangular_api');
+                    const apiSecret = localStorage.getItem('huobi_triangular_secret');
+
+                    if (!apiKey || !apiSecret) {
+                        console.warn('⚠️ [HTX] Missing credentials, worker paused');
+                        return;
+                    }
+
+                    // Get enabled sets from settings
+                    const enabledSets = [];
+                    for (let i = 1; i <= 5; i++) {
+                        const checkbox = document.getElementById(`huobiSet${i}Enabled`);
+                        if (checkbox && checkbox.checked) {
+                            enabledSets.push(pathSets[i - 1]);
+                        }
+                    }
+
+                    if (enabledSets.length === 0) {
+                        console.warn('⚠️ [HTX] No path sets enabled');
+                        return;
+                    }
+
+                    if (currentSetIndex >= enabledSets.length) {
+                        currentSetIndex = 0;
+                    }
+                    const currentSet = enabledSets[currentSetIndex];
+
+                    console.log(`🔍 [HTX] Worker scanning ${currentSet} (${currentSetIndex + 1}/${enabledSets.length})...`);
+
+                    const response = await fetch('/api/v1/trading/huobi/triangular/scan', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                        },
+                        body: JSON.stringify({
+                            apiKey,
+                            apiSecret,
+                            maxTradeAmount: parseFloat(document.getElementById('huobiMaxTrade')?.value || 1000),
+                            portfolioPercent: parseFloat(document.getElementById('huobiPortfolioPercent')?.value || 10),
+                            profitThreshold: parseFloat(document.getElementById('huobiProfitThreshold')?.value || 0.5),
+                            enabledSets: {
+                                [currentSet]: true
+                            }
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success && data.opportunities && data.opportunities.length > 0) {
+                        console.log(`💎 [HTX] Found ${data.opportunities.length} opportunities in ${currentSet}`);
+                        htxWorkerStats.opportunitiesFound += data.opportunities.length;
+                        htxWorkerStats.lastScanTime = new Date().toISOString();
+
+                        displayHuobiOpportunities(data.opportunities);
+
+                        const autoExecute = document.getElementById('huobiAutoExecute')?.checked;
+                        if (autoExecute) {
+                            const bestOpp = data.opportunities[0];
+                            await executeAutoTrade('htx', bestOpp, apiKey, apiSecret);
+                        }
+                    }
+
+                    htxWorkerStats.scansCompleted++;
+                    currentSetIndex++;
+
+                } catch (error) {
+                    console.error('❌ [HTX] Worker error:', error);
+                }
+            }, 8000);  // 8 second intervals
+
+            console.log(`✅ [HTX] Worker started - scanning ${pathSets.length} path sets sequentially`);
+        }
+
+        // Stop HTX Worker
+        function stopHtxWorker() {
+            if (htxWorkerInterval) {
+                clearInterval(htxWorkerInterval);
+                htxWorkerInterval = null;
+                console.log('⏸️ [HTX] Worker stopped');
+                console.log('📊 [HTX] Final stats:', htxWorkerStats);
+            }
+        }
+
+        // Display HTX opportunities
+        function displayHuobiOpportunities(opportunities) {
+            const container = document.getElementById('huobiOpportunities');
+
+            if (!container) return;
+
+            if (opportunities.length === 0) {
+                container.innerHTML = `
+                    <p style="color: #888; text-align: center; padding: 20px;">
+                        No profitable opportunities found.<br>
+                        Try lowering the profit threshold or enabling more path sets.
+                    </p>
+                `;
+                return;
+            }
+
+            let html = '<div style="display: flex; flex-direction: column; gap: 15px;">';
+
+            opportunities.slice(0, 10).forEach((opp, index) => {
+                html += `
+                    <div style="background: rgba(45,108,248,0.1); padding: 15px; border-radius: 8px; border-left: 4px solid #2D6CF8;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <strong style="color: #2D6CF8;">${opp.description}</strong>
+                            <span style="background: #2D6CF8; color: white; padding: 4px 12px; border-radius: 12px; font-weight: 600;">
+                                +${opp.profitPercent}%
+                            </span>
+                        </div>
+                        <div style="font-size: 0.9rem; color: #b8c6db;">
+                            <div>Path: ${opp.path.join(' → ')}</div>
+                            <div>Initial: $${opp.initialAmount} USDT → Final: $${opp.finalAmount.toFixed(2)} USDT</div>
+                            <div>Profit: $${opp.profitAmount.toFixed(2)} USDT</div>
+                            <div style="font-size: 0.8rem; color: #888; margin-top: 5px;">${opp.pathId}</div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            if (opportunities.length > 10) {
+                html += `<p style="text-align: center; color: #888; font-size: 0.9rem;">Showing top 10 of ${opportunities.length} opportunities</p>`;
+            }
+
+            html += '</div>';
+            container.innerHTML = html;
+        }
 
         // ============================================================================
         // GATE.IO TRIANGULAR ARBITRAGE JAVASCRIPT FUNCTIONS
