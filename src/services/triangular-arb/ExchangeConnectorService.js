@@ -73,7 +73,15 @@ class ExchangeConnectorService {
             mexc: { name: 'MEXC', baseUrl: 'https://api.mexc.com', endpoints: {}, authType: 'api-key' },
             xt: { name: 'XT', baseUrl: 'https://api.xt.com', endpoints: {}, authType: 'api-key' },
             ascendex: { name: 'AscendEX', baseUrl: 'https://ascendex.com', endpoints: {}, authType: 'api-key' },
-            bingx: { name: 'BingX', baseUrl: 'https://open-api.bingx.com', endpoints: {}, authType: 'api-key' },
+            bingx: {
+                name: 'BingX',
+                baseUrl: 'https://open-api.bingx.com',
+                endpoints: {
+                    orderBook: '/openApi/spot/v1/market/depth',
+                    marketOrder: '/openApi/spot/v1/trade/order'
+                },
+                authType: 'bingx-signature'
+            },
             bitget: {
                 name: 'Bitget',
                 baseUrl: 'https://api.bitget.com',
@@ -278,6 +286,9 @@ class ExchangeConnectorService {
             case 'bitget-signature':
                 return this._createBitgetAuth(apiKey, apiSecret, passphrase, method, path, body);
 
+            case 'bingx-signature':
+                return this._createBingxAuth(apiKey, apiSecret, method, path, body);
+
             case 'api-key':
             default:
                 return {
@@ -433,6 +444,29 @@ class ExchangeConnectorService {
     }
 
     /**
+     * BingX authentication (HMAC SHA-256)
+     * @private
+     */
+    _createBingxAuth(apiKey, apiSecret, method, path, body) {
+        const timestamp = Date.now();
+
+        // Create query string from body for signature
+        const queryParams = body ? new URLSearchParams(body).toString() : '';
+        const signatureString = queryParams ? `${queryParams}&timestamp=${timestamp}` : `timestamp=${timestamp}`;
+
+        // Create HMAC-SHA256 signature
+        const signature = crypto
+            .createHmac('sha256', apiSecret)
+            .update(signatureString)
+            .digest('hex');
+
+        return {
+            'X-BX-APIKEY': apiKey,
+            'Content-Type': 'application/json'
+        };
+    }
+
+    /**
      * Build order book URL with exchange-specific formatting
      * @private
      */
@@ -462,6 +496,10 @@ class ExchangeConnectorService {
                 break;
 
             case 'bitget':
+                url = `${url}?symbol=${pair}&limit=20`;
+                break;
+
+            case 'bingx':
                 url = `${url}?symbol=${pair}&limit=20`;
                 break;
 
@@ -531,6 +569,14 @@ class ExchangeConnectorService {
                     orderType: 'market',
                     force: 'gtc',
                     size: amount.toString()
+                };
+
+            case 'bingx':
+                return {
+                    symbol: pair,
+                    side: side.toUpperCase(),
+                    type: 'MARKET',
+                    quoteOrderQty: amount
                 };
 
             case 'gemini':

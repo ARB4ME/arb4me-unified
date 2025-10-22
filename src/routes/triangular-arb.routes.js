@@ -8696,75 +8696,28 @@ router.get('/bingx/triangular/paths', authenticatedRateLimit, authenticateUser, 
 
 // ROUTE 4: Execute BingX Triangular Trade
 router.post('/bingx/triangular/execute', asyncHandler(async (req, res) => {
-    try {
-        const { apiKey, apiSecret, opportunity, investmentAmount = 1000 } = req.body;
+    const { pathId, amount, apiKey, apiSecret } = req.body;
 
-        if (!apiKey || !apiSecret || !opportunity) {
-            return res.status(400).json({
-                success: false,
-                message: 'API credentials and opportunity required'
-            });
-        }
-
-        const executionSteps = [];
-        let currentAmount = investmentAmount;
-
-        // Execute each leg sequentially
-        for (let i = 0; i < opportunity.pairs.length; i++) {
-            const pair = opportunity.pairs[i].replace('-', '');
-            const side = i === opportunity.pairs.length - 1 ? 'SELL' : 'BUY';
-
-            const timestamp = Date.now();
-            const orderParams = `symbol=${pair}&side=${side}&type=MARKET&quoteOrderQty=${currentAmount}&timestamp=${timestamp}`;
-            const signature = createBingXTriangularSignature(orderParams, apiSecret);
-
-            const orderResponse = await fetch(`${BINGX_TRIANGULAR_CONFIG.baseUrl}${BINGX_TRIANGULAR_CONFIG.endpoints.placeOrder}?${orderParams}&signature=${signature}`, {
-                method: 'POST',
-                headers: {
-                    'X-BX-APIKEY': apiKey,
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            const orderData = await orderResponse.json();
-
-            if (orderData.code !== 0) {
-                throw new Error(`Leg ${i + 1} failed: ${orderData.msg}`);
-            }
-
-            executionSteps.push({
-                leg: i + 1,
-                pair: pair,
-                side: side,
-                orderId: orderData.data?.orderId,
-                status: 'completed'
-            });
-
-            currentAmount = parseFloat(orderData.data?.executedQty || currentAmount);
-        }
-
-        const finalProfit = currentAmount - investmentAmount;
-        const profitPercent = (finalProfit / investmentAmount) * 100;
-
-        res.json({
-            success: true,
-            execution: {
-                pathId: opportunity.id,
-                investmentAmount,
-                finalAmount: currentAmount,
-                profit: finalProfit,
-                profitPercent: profitPercent.toFixed(4),
-                steps: executionSteps,
-                timestamp: new Date().toISOString()
-            }
-        });
-
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: error.message || 'Failed to execute BingX triangular trade'
-        });
+    if (!pathId || !amount) {
+        throw new APIError('Path ID and amount required', 400);
     }
+
+    if (!apiKey || !apiSecret) {
+        throw new APIError('BingX API credentials required', 400);
+    }
+
+    // ATOMIC EXECUTION with TriangularArbService
+    const executionResult = await triangularArbService.execute(
+        'bingx',
+        pathId,
+        amount,
+        { apiKey, apiSecret }
+    );
+
+    res.json({
+        success: executionResult.success,
+        data: executionResult
+    });
 }));
 
 // ROUTE 5: Get BingX Trade History
