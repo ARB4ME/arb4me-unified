@@ -9265,123 +9265,28 @@ router.get('/bitget/triangular/paths', authenticatedRateLimit, authenticateUser,
 
 // ROUTE 4: Execute Bitget Triangular Trade
 router.post('/bitget/triangular/execute', asyncHandler(async (req, res) => {
-    try {
-        const { apiKey, apiSecret, passphrase, pathId, amount, userId } = req.body;
+    const { pathId, amount, apiKey, apiSecret, passphrase } = req.body;
 
-        if (!apiKey || !apiSecret || !passphrase) {
-            return res.status(400).json({
-                success: false,
-                message: 'API credentials required'
-            });
-        }
-
-        // Find the path configuration
-        const allPaths = [
-            ...BITGET_TRIANGULAR_PATHS.SET_1_ESSENTIAL_ETH_BRIDGE,
-            ...BITGET_TRIANGULAR_PATHS.SET_2_MIDCAP_BTC_BRIDGE,
-            ...BITGET_TRIANGULAR_PATHS.SET_3_BGB_NATIVE_TOKEN,
-            ...BITGET_TRIANGULAR_PATHS.SET_4_HIGH_VOLATILITY,
-            ...BITGET_TRIANGULAR_PATHS.SET_5_EXTENDED_MULTIBRIDGE
-        ];
-
-        const pathConfig = allPaths.find(p => p.id === pathId);
-        if (!pathConfig) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid path ID'
-            });
-        }
-
-        const executionResults = [];
-        let currentAmount = parseFloat(amount);
-
-        // Execute each leg sequentially
-        for (let i = 0; i < pathConfig.pairs.length; i++) {
-            const symbol = pathConfig.pairs[i];
-            const timestamp = Date.now().toString();
-            const method = 'POST';
-            const requestPath = BITGET_TRIANGULAR_CONFIG.endpoints.placeOrder;
-
-            const orderData = {
-                symbol: symbol,
-                side: i % 2 === 0 ? 'buy' : 'sell',
-                orderType: 'market',
-                force: 'gtc',
-                size: currentAmount.toString()
-            };
-
-            const body = JSON.stringify(orderData);
-            const signature = createBitgetTriangularSignature(timestamp, method, requestPath, body, apiSecret);
-
-            const response = await axios.post(
-                `${BITGET_TRIANGULAR_CONFIG.baseUrl}${requestPath}`,
-                orderData,
-                {
-                    headers: {
-                        'ACCESS-KEY': apiKey,
-                        'ACCESS-SIGN': signature,
-                        'ACCESS-TIMESTAMP': timestamp,
-                        'ACCESS-PASSPHRASE': passphrase,
-                        'Content-Type': 'application/json'
-                    }
-                }
-            );
-
-            if (response.data.code !== '00000') {
-                throw new Error(`Order failed at leg ${i + 1}: ${response.data.msg}`);
-            }
-
-            executionResults.push({
-                leg: i + 1,
-                symbol: symbol,
-                orderId: response.data.data?.orderId,
-                status: 'filled'
-            });
-
-            // Update amount for next leg (simplified)
-            currentAmount = response.data.data?.fillSize || currentAmount;
-        }
-
-        // Store trade in database
-        if (userId) {
-            await pool.query(
-                `INSERT INTO triangular_trades
-                (user_id, exchange, path_id, path_description, initial_amount, final_amount, profit, profit_percent, status, execution_details, created_at)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())`,
-                [
-                    userId,
-                    'bitget',
-                    pathConfig.id,
-                    pathConfig.description,
-                    parseFloat(amount),
-                    currentAmount,
-                    currentAmount - parseFloat(amount),
-                    ((currentAmount - parseFloat(amount)) / parseFloat(amount)) * 100,
-                    'completed',
-                    JSON.stringify(executionResults)
-                ]
-            );
-        }
-
-        res.json({
-            success: true,
-            message: 'Triangular arbitrage executed successfully',
-            execution: {
-                pathId: pathConfig.id,
-                initialAmount: parseFloat(amount),
-                finalAmount: currentAmount,
-                profit: currentAmount - parseFloat(amount),
-                profitPercent: ((currentAmount - parseFloat(amount)) / parseFloat(amount)) * 100,
-                legs: executionResults
-            }
-        });
-
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: error.message || 'Failed to execute Bitget triangular trade'
-        });
+    if (!pathId || !amount) {
+        throw new APIError('Path ID and amount are required', 400, 'MISSING_PARAMETERS');
     }
+
+    if (!apiKey || !apiSecret || !passphrase) {
+        throw new APIError('Bitget API credentials required (including passphrase)', 400, 'BITGET_CREDENTIALS_REQUIRED');
+    }
+
+    // Call service layer to execute trade (REAL 3-LEG ATOMIC EXECUTION)
+    const executionResult = await triangularArbService.execute(
+        'bitget',
+        pathId,
+        amount,
+        { apiKey, apiSecret, passphrase }
+    );
+
+    res.json({
+        success: executionResult.success,
+        data: executionResult
+    });
 }));
 
 // ROUTE 5: Get Bitget Trade History (User-Specific)

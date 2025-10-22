@@ -15218,6 +15218,19 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
         // BITGET TRIANGULAR ARBITRAGE FUNCTIONS
         // ═══════════════════════════════════════════════════════════
 
+        // Worker Variables
+        let bitgetWorkerInterval = null;
+        let bitgetWorkerStats = {
+            totalScans: 0,
+            totalOpportunities: 0,
+            totalTrades: 0,
+            successfulTrades: 0,
+            totalProfit: 0,
+            bestProfit: 0,
+            bestPath: null,
+            lastScanTime: null
+        };
+
         // 1. Toggle Bitget Triangular
         function toggleBitgetTriangular() {
             const toggle = document.getElementById('bitgetTriangularEnabled');
@@ -15228,10 +15241,14 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
                 status.textContent = 'ON';
                 status.style.color = '#8A2BE2';
                 localStorage.setItem('bitgetTriangularEnabled', 'true');
+                console.log('💜 [BITGET] Triangular arbitrage enabled - starting worker...');
+                startBitgetWorker();
             } else {
                 status.textContent = 'OFF';
                 status.style.color = '#ff6b6b';
                 localStorage.setItem('bitgetTriangularEnabled', 'false');
+                console.log('💜 [BITGET] Triangular arbitrage disabled - stopping worker...');
+                stopBitgetWorker();
             }
         }
 
@@ -15617,7 +15634,7 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
                             <div style="color: #888;">Time: <span style="color: white;">${new Date(opp.timestamp).toLocaleTimeString()}</span></div>
                         </div>
 
-                        <button onclick="executeBitgetTriangularTrade(${index})"
+                        <button onclick="executeBitgetTriangularTrade('${opp.pathId}')"
                                 style="width: 100%; padding: 8px; background: linear-gradient(135deg, #8A2BE2, #9370DB); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px;">
                             ⚡ Execute Trade
                         </button>
@@ -15633,57 +15650,172 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
         }
 
         // 7. Execute Bitget Triangular Trade
-        async function executeBitgetTriangularTrade(index) {
-            const opportunity = window.bitgetCurrentOpportunities[index];
-            if (!opportunity) {
-                alert('Opportunity data not found');
-                return;
-            }
-
+        async function executeBitgetTriangularTrade(pathId) {
             const apiKey = localStorage.getItem('bitget_api') || '';
             const apiSecret = localStorage.getItem('bitget_secret') || '';
             const passphrase = localStorage.getItem('bitget_passphrase') || '';
-            const userId = localStorage.getItem('userId');
+            const maxTrade = parseFloat(document.getElementById('bitgetMaxTrade').value);
 
-            if (!userId) {
-                alert('User not logged in');
-                return;
-            }
-
-            if (!confirm(`Execute Bitget triangular trade?\n\nPath: ${opportunity.path.join(' → ')}\nExpected Profit: +${opportunity.profitPercent}% ($${opportunity.profitAmount.toFixed(2)})\n\nThis will execute real trades!`)) {
+            // Enhanced real money warning
+            if (!confirm(`⚠️ REAL MONEY TRADING ⚠️\n\nExecute REAL triangular arbitrage trade?\n\nPath: ${pathId}\nAmount: ${maxTrade} USDT\n\nThis will execute REAL market orders on Bitget.\nClick OK to proceed.`)) {
                 return;
             }
 
             try {
                 const response = await fetch('/api/v1/trading/bitget/triangular/execute', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-                    },
-                    body: JSON.stringify({
-                        apiKey,
-                        apiSecret,
-                        passphrase,
-                        userId,
-                        opportunity,
-                        dryRun: false
-                    })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ apiKey, apiSecret, passphrase, pathId, amount: maxTrade })
                 });
 
                 const result = await response.json();
 
-                if (result.success) {
-                    alert(`✅ Bitget Trade Executed!\n\nPath: ${opportunity.path.join(' → ')}\nActual Profit: ${result.actualProfitZAR} USDT (${result.actualProfitPercent}%)\nExecution Time: ${result.executionTime}ms\n\nTrade ID: ${result.tradeId}`);
-                    loadBitgetTradeHistory();
-                    updateBitgetBalance(); // Refresh balance after trade
-                    scanBitgetTriangularPaths(); // Refresh opportunities
+                if (result.success && result.data) {
+                    const execution = result.data;
+
+                    if (execution.status === 'COMPLETED') {
+                        const profit = execution.actualProfit || 0;
+                        const profitPct = execution.actualProfitPercentage || 0;
+
+                        alert(`✅ Trade Executed Successfully!\n\nExecution ID: ${execution.executionId}\nProfit: $${profit.toFixed(2)} (${profitPct.toFixed(3)}%)\nLegs Completed: ${execution.legs?.length || 0}/3\nTotal Time: ${execution.totalExecutionTime}ms\n\nAll legs executed atomically with slippage monitoring.`);
+
+                        // Refresh opportunities and balance
+                        scanBitgetTriangularPaths();
+                        initializeBitgetBalance();
+                    } else {
+                        alert(`❌ Trade Failed!\n\nStatus: ${execution.status}\nError: ${execution.error || 'Unknown error'}\nCompleted Legs: ${execution.legs?.filter(l => l.status === 'COMPLETED').length || 0}/3`);
+                    }
                 } else {
-                    throw new Error(result.message);
+                    alert(`❌ Trade execution failed:\n\n${result.message || 'Unknown error'}`);
                 }
             } catch (error) {
-                console.error('Bitget execution error:', error);
-                alert(`❌ Bitget Trade Failed\n\n${error.message}`);
+                alert(`❌ Trade execution error:\n\n${error.message}`);
+            }
+        }
+
+        // Start Bitget Worker (Sequential Scanning)
+        async function startBitgetWorker() {
+            // Validate credentials
+            const apiKey = localStorage.getItem('bitget_api');
+            const apiSecret = localStorage.getItem('bitget_secret');
+            const passphrase = localStorage.getItem('bitget_passphrase');
+
+            if (!apiKey || !apiSecret || !passphrase) {
+                alert('⚠️ Please configure Bitget API credentials first (including passphrase)!');
+                document.getElementById('bitgetTriangularEnabled').classList.remove('active');
+                document.getElementById('bitgetTriangularStatus').textContent = 'OFF';
+                document.getElementById('bitgetTriangularStatus').style.color = '#ff6b6b';
+                return;
+            }
+
+            // Check if at least one set is selected
+            const set1Enabled = document.getElementById('bitgetSet1Enabled').checked;
+            const set2Enabled = document.getElementById('bitgetSet2Enabled').checked;
+            const set3Enabled = document.getElementById('bitgetSet3Enabled').checked;
+            const set4Enabled = document.getElementById('bitgetSet4Enabled').checked;
+            const set5Enabled = document.getElementById('bitgetSet5Enabled').checked;
+
+            if (!set1Enabled && !set2Enabled && !set3Enabled && !set4Enabled && !set5Enabled) {
+                alert('⚠️ Please enable at least one path set!');
+                document.getElementById('bitgetTriangularEnabled').classList.remove('active');
+                document.getElementById('bitgetTriangularStatus').textContent = 'OFF';
+                document.getElementById('bitgetTriangularStatus').style.color = '#ff6b6b';
+                return;
+            }
+
+            const portfolioPercent = parseFloat(document.getElementById('bitgetPortfolioPercent').value) || 5;
+            const maxTradeAmount = parseFloat(document.getElementById('bitgetMaxTrade').value) || 100;
+            const profitThreshold = parseFloat(document.getElementById('bitgetProfitThreshold').value) || 0.3;
+
+            // Build selected sets array
+            const selectedSets = [];
+            if (set1Enabled) selectedSets.push('SET_1_ESSENTIAL_ETH_BRIDGE');
+            if (set2Enabled) selectedSets.push('SET_2_MIDCAP_BTC_BRIDGE');
+            if (set3Enabled) selectedSets.push('SET_3_BGB_NATIVE_TOKEN');
+            if (set4Enabled) selectedSets.push('SET_4_HIGH_VOLATILITY');
+            if (set5Enabled) selectedSets.push('SET_5_EXTENDED_MULTIBRIDGE');
+
+            console.log(`💜 [BITGET] Worker started - scanning ${selectedSets.length} sets sequentially`);
+            console.log(`💜 [BITGET] Portfolio: ${portfolioPercent}%, Max Trade: $${maxTradeAmount}, Threshold: ${profitThreshold}%`);
+
+            let currentSetIndex = 0;
+
+            // Sequential scan function
+            async function scanAndExecuteSequential() {
+                try {
+                    bitgetWorkerStats.totalScans++;
+                    bitgetWorkerStats.lastScanTime = new Date().toISOString();
+
+                    const currentSet = selectedSets[currentSetIndex];
+                    console.log(`💜 [BITGET] Scanning set ${currentSetIndex + 1}/${selectedSets.length}: ${currentSet}`);
+
+                    // Scan current set only
+                    const response = await fetch('/api/v1/trading/bitget/triangular/scan', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            apiKey,
+                            apiSecret,
+                            passphrase,
+                            selectedSets: [currentSet],
+                            portfolioPercent,
+                            maxTradeAmount
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success && data.opportunities && data.opportunities.length > 0) {
+                        bitgetWorkerStats.totalOpportunities += data.opportunities.length;
+
+                        // Log opportunities above threshold
+                        data.opportunities.forEach(opp => {
+                            if (opp.profitPercentage >= profitThreshold) {
+                                console.log(`💜 [BITGET] Opportunity found: ${opp.pathId} - ${opp.profitPercentage.toFixed(3)}% profit`);
+
+                                // Track best profit
+                                if (opp.profitPercentage > bitgetWorkerStats.bestProfit) {
+                                    bitgetWorkerStats.bestProfit = opp.profitPercentage;
+                                    bitgetWorkerStats.bestPath = opp.pathId;
+                                }
+                            }
+                        });
+                    }
+
+                    // Move to next set (circular)
+                    currentSetIndex = (currentSetIndex + 1) % selectedSets.length;
+
+                    // Update balance after completing full cycle
+                    if (currentSetIndex === 0) {
+                        console.log(`💜 [BITGET] Completed full cycle - updating balance...`);
+                        initializeBitgetBalance();
+                    }
+
+                } catch (error) {
+                    console.error(`💜 [BITGET] Worker scan error:`, error);
+                }
+            }
+
+            // Start sequential interval (8 seconds between scans)
+            scanAndExecuteSequential(); // Run immediately
+            bitgetWorkerInterval = setInterval(scanAndExecuteSequential, 8000);
+
+            console.log(`💜 [BITGET] Worker active - scanning every 8 seconds`);
+        }
+
+        // Stop Bitget Worker
+        function stopBitgetWorker() {
+            if (bitgetWorkerInterval) {
+                clearInterval(bitgetWorkerInterval);
+                bitgetWorkerInterval = null;
+
+                console.log(`💜 [BITGET] Worker stopped`);
+                console.log(`💜 [BITGET] Stats:`, {
+                    totalScans: bitgetWorkerStats.totalScans,
+                    totalOpportunities: bitgetWorkerStats.totalOpportunities,
+                    bestProfit: bitgetWorkerStats.bestProfit?.toFixed(3) + '%',
+                    bestPath: bitgetWorkerStats.bestPath
+                });
             }
         }
 

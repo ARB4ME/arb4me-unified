@@ -74,7 +74,15 @@ class ExchangeConnectorService {
             xt: { name: 'XT', baseUrl: 'https://api.xt.com', endpoints: {}, authType: 'api-key' },
             ascendex: { name: 'AscendEX', baseUrl: 'https://ascendex.com', endpoints: {}, authType: 'api-key' },
             bingx: { name: 'BingX', baseUrl: 'https://open-api.bingx.com', endpoints: {}, authType: 'api-key' },
-            bitget: { name: 'Bitget', baseUrl: 'https://api.bitget.com', endpoints: {}, authType: 'api-key' },
+            bitget: {
+                name: 'Bitget',
+                baseUrl: 'https://api.bitget.com',
+                endpoints: {
+                    orderBook: '/api/spot/v1/market/depth',
+                    marketOrder: '/api/spot/v1/trade/orders'
+                },
+                authType: 'bitget-signature'
+            },
             bitmart: {
                 name: 'BitMart',
                 baseUrl: 'https://api-cloud.bitmart.com',
@@ -267,6 +275,9 @@ class ExchangeConnectorService {
             case 'coincatch-signature':
                 return this._createCoincatchAuth(apiKey, apiSecret, passphrase, method, path, body);
 
+            case 'bitget-signature':
+                return this._createBitgetAuth(apiKey, apiSecret, passphrase, method, path, body);
+
             case 'api-key':
             default:
                 return {
@@ -398,6 +409,30 @@ class ExchangeConnectorService {
     }
 
     /**
+     * Bitget authentication (HMAC SHA-256 + Base64 + Passphrase)
+     * @private
+     */
+    _createBitgetAuth(apiKey, apiSecret, passphrase, method, path, body) {
+        const timestamp = Date.now().toString();
+        const bodyStr = body ? JSON.stringify(body) : '';
+
+        // Create signature: timestamp + method + path + body
+        const message = timestamp + method.toUpperCase() + path + bodyStr;
+        const signature = crypto
+            .createHmac('sha256', apiSecret)
+            .update(message)
+            .digest('base64');  // Important: Bitget uses base64, not hex!
+
+        return {
+            'ACCESS-KEY': apiKey,
+            'ACCESS-SIGN': signature,
+            'ACCESS-TIMESTAMP': timestamp,
+            'ACCESS-PASSPHRASE': passphrase,
+            'Content-Type': 'application/json'
+        };
+    }
+
+    /**
      * Build order book URL with exchange-specific formatting
      * @private
      */
@@ -424,6 +459,10 @@ class ExchangeConnectorService {
 
             case 'bitmart':
                 url = `${url}?symbol=${pair}`;
+                break;
+
+            case 'bitget':
+                url = `${url}?symbol=${pair}&limit=20`;
                 break;
 
             case 'gemini':
@@ -482,6 +521,15 @@ class ExchangeConnectorService {
                     symbol: pair,
                     side: side.toLowerCase(),
                     type: 'market',
+                    size: amount.toString()
+                };
+
+            case 'bitget':
+                return {
+                    symbol: pair,
+                    side: side.toLowerCase(),
+                    orderType: 'market',
+                    force: 'gtc',
                     size: amount.toString()
                 };
 

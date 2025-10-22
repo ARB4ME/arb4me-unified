@@ -232,6 +232,9 @@ class TradeExecutorService {
             case 'bitmart':
                 return parseFloat(orderResult.data?.filled_size || orderResult.filled_size || 0);
 
+            case 'bitget':
+                return parseFloat(orderResult.data?.fillSize || orderResult.fillSize || 0);
+
             case 'gemini':
                 return parseFloat(orderResult.executed_amount || orderResult.original_amount || 0);
 
@@ -261,6 +264,9 @@ class TradeExecutorService {
 
             case 'bitmart':
                 return parseFloat(orderResult.data?.price || orderResult.price || 0);
+
+            case 'bitget':
+                return parseFloat(orderResult.data?.fillPrice || orderResult.fillPrice || orderResult.price || 0);
 
             case 'gemini':
                 return parseFloat(orderResult.avg_execution_price || orderResult.price || 0);
