@@ -71,7 +71,15 @@ class ExchangeConnectorService {
             gateio: { name: 'Gate.io', baseUrl: 'https://api.gateio.ws', endpoints: {}, authType: 'api-key' },
             cryptocom: { name: 'Crypto.com', baseUrl: 'https://api.crypto.com', endpoints: {}, authType: 'api-key' },
             mexc: { name: 'MEXC', baseUrl: 'https://api.mexc.com', endpoints: {}, authType: 'api-key' },
-            xt: { name: 'XT', baseUrl: 'https://api.xt.com', endpoints: {}, authType: 'api-key' },
+            xt: {
+                name: 'XT',
+                baseUrl: 'https://api.xt.com',
+                endpoints: {
+                    orderBook: '/v4/public/depth',
+                    marketOrder: '/v4/order'
+                },
+                authType: 'xt-signature'
+            },
             ascendex: {
                 name: 'AscendEX',
                 baseUrl: 'https://ascendex.com',
@@ -301,6 +309,9 @@ class ExchangeConnectorService {
             case 'ascendex-signature':
                 return this._createAscendexAuth(apiKey, apiSecret, method, path, body);
 
+            case 'xt-signature':
+                return this._createXtAuth(apiKey, apiSecret, method, path, body);
+
             case 'api-key':
             default:
                 return {
@@ -501,6 +512,30 @@ class ExchangeConnectorService {
     }
 
     /**
+     * XT authentication (HMAC SHA-256 with timestamp + method + endpoint + body)
+     * @private
+     */
+    _createXtAuth(apiKey, apiSecret, method, path, body) {
+        const timestamp = Date.now().toString();
+        const bodyStr = body ? JSON.stringify(body) : '';
+
+        // XT signature: timestamp + method + endpoint + body
+        const signaturePayload = timestamp + method.toUpperCase() + path + bodyStr;
+        const signature = crypto
+            .createHmac('sha256', apiSecret)
+            .update(signaturePayload)
+            .digest('hex');
+
+        return {
+            'xt-validate-appkey': apiKey,
+            'xt-validate-timestamp': timestamp,
+            'xt-validate-signature': signature,
+            'xt-validate-algorithms': 'HmacSHA256',
+            'Content-Type': 'application/json'
+        };
+    }
+
+    /**
      * Build order book URL with exchange-specific formatting
      * @private
      */
@@ -538,6 +573,10 @@ class ExchangeConnectorService {
                 break;
 
             case 'ascendex':
+                url = `${url}?symbol=${pair}`;
+                break;
+
+            case 'xt':
                 url = `${url}?symbol=${pair}`;
                 break;
 
@@ -640,6 +679,14 @@ class ExchangeConnectorService {
                     side: side.toLowerCase(),
                     orderType: 'market',
                     orderQty: amount.toString()
+                };
+
+            case 'xt':
+                return {
+                    symbol: pair,
+                    side: side.toUpperCase(),
+                    type: 'MARKET',
+                    quantity: amount.toString()
                 };
 
             default:
