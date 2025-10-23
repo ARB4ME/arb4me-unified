@@ -750,8 +750,9 @@
                 console.log('🔄 Paths response:', data);
 
                 if (data.success) {
-                    document.getElementById('totalPaths').textContent = data.data.count;
-                    console.log(`✅ Found ${data.data.count} possible swap paths`);
+                    // Note: We don't update totalPaths here - it should only show total from tickbox selections
+                    // The filtered count is just for display purposes in the path list
+                    console.log(`✅ Found ${data.data.count} paths matching current filters`);
 
                     const listDiv = document.getElementById('pathsList');
                     if (data.data.paths.length === 0) {
