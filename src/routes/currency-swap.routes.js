@@ -9,6 +9,11 @@ const CurrencySwapSettings = require('../models/CurrencySwapSettings');
 const CurrencySwapCredentials = require('../models/CurrencySwapCredentials');
 const currencySwapService = require('../services/currencySwapExecutionService');
 
+// NEW: Import modular currency-swap services
+const AssetDeclarationService = require('../services/currency-swap/AssetDeclarationService');
+const PathGeneratorService = require('../services/currency-swap/PathGeneratorService');
+const RiskCalculatorService = require('../services/currency-swap/RiskCalculatorService');
+
 /**
  * GET /api/v1/currency-swap/opportunities/:category
  * Get currency swap opportunities for a category
@@ -690,6 +695,390 @@ router.get('/connected-exchanges', async (req, res) => {
         });
     } catch (error) {
         systemLogger.error('Failed to get connected exchanges', {
+            error: error.message
+        });
+
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+// NEW: ASSET DECLARATION ENDPOINTS
+// Users declare which assets they have funded on each exchange
+// ═══════════════════════════════════════════════════════════════════════
+
+/**
+ * POST /api/v1/currency-swap/asset-declarations
+ * Save user's asset declaration for an exchange
+ */
+router.post('/asset-declarations', async (req, res) => {
+    try {
+        const { userId, exchange, fundedAssets, initialBalances } = req.body;
+
+        if (!userId || !exchange || !fundedAssets) {
+            return res.status(400).json({
+                success: false,
+                error: 'Missing required fields: userId, exchange, fundedAssets'
+            });
+        }
+
+        const result = await AssetDeclarationService.saveDeclaration(
+            userId,
+            exchange,
+            fundedAssets,
+            initialBalances
+        );
+
+        res.json({
+            success: true,
+            data: result
+        });
+    } catch (error) {
+        systemLogger.error('Failed to save asset declaration', {
+            exchange: req.body.exchange,
+            error: error.message
+        });
+
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * GET /api/v1/currency-swap/asset-declarations
+ * Get all asset declarations for a user
+ */
+router.get('/asset-declarations', async (req, res) => {
+    try {
+        const userId = req.query.userId || 1;
+        const activeOnly = req.query.activeOnly !== 'false';
+
+        const declarations = await AssetDeclarationService.getUserDeclarations(userId, activeOnly);
+
+        res.json({
+            success: true,
+            data: {
+                declarations,
+                count: declarations.length
+            }
+        });
+    } catch (error) {
+        systemLogger.error('Failed to get asset declarations', {
+            userId: req.query.userId,
+            error: error.message
+        });
+
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * GET /api/v1/currency-swap/asset-declarations/summary
+ * Get summary of user's asset declarations
+ */
+router.get('/asset-declarations/summary', async (req, res) => {
+    try {
+        const userId = req.query.userId || 1;
+
+        const summary = await AssetDeclarationService.getDeclarationSummary(userId);
+
+        res.json({
+            success: true,
+            data: summary
+        });
+    } catch (error) {
+        systemLogger.error('Failed to get declaration summary', {
+            userId: req.query.userId,
+            error: error.message
+        });
+
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * DELETE /api/v1/currency-swap/asset-declarations/:exchange
+ * Delete asset declaration for an exchange
+ */
+router.delete('/asset-declarations/:exchange', async (req, res) => {
+    try {
+        const { exchange } = req.params;
+        const userId = req.query.userId || 1;
+
+        const result = await AssetDeclarationService.deleteDeclaration(userId, exchange);
+
+        res.json({
+            success: result.success,
+            message: result.message
+        });
+    } catch (error) {
+        systemLogger.error('Failed to delete asset declaration', {
+            exchange: req.params.exchange,
+            error: error.message
+        });
+
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+// NEW: PATH GENERATION ENDPOINTS
+// Auto-generate all possible swap paths from user's declared assets
+// ═══════════════════════════════════════════════════════════════════════
+
+/**
+ * GET /api/v1/currency-swap/paths
+ * Get all possible swap paths for a user
+ */
+router.get('/paths', async (req, res) => {
+    try {
+        const userId = req.query.userId || 1;
+
+        // Get filter parameters
+        const filters = {
+            sourceExchange: req.query.sourceExchange,
+            destExchange: req.query.destExchange,
+            sourceAsset: req.query.sourceAsset,
+            destAsset: req.query.destAsset,
+            bridgeAsset: req.query.bridgeAsset
+        };
+
+        // Remove undefined filters
+        Object.keys(filters).forEach(key => {
+            if (!filters[key]) delete filters[key];
+        });
+
+        let paths;
+        if (Object.keys(filters).length > 0) {
+            paths = await PathGeneratorService.getFilteredPaths(userId, filters);
+        } else {
+            paths = await PathGeneratorService.generateAllPaths(userId);
+        }
+
+        res.json({
+            success: true,
+            data: {
+                paths,
+                count: paths.length,
+                filters: Object.keys(filters).length > 0 ? filters : null
+            }
+        });
+    } catch (error) {
+        systemLogger.error('Failed to get paths', {
+            userId: req.query.userId,
+            error: error.message
+        });
+
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * GET /api/v1/currency-swap/paths/stats
+ * Get path statistics for user
+ */
+router.get('/paths/stats', async (req, res) => {
+    try {
+        const userId = req.query.userId || 1;
+
+        const stats = await PathGeneratorService.getPathStatistics(userId);
+
+        res.json({
+            success: true,
+            data: stats
+        });
+    } catch (error) {
+        systemLogger.error('Failed to get path stats', {
+            userId: req.query.userId,
+            error: error.message
+        });
+
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * GET /api/v1/currency-swap/paths/grouped
+ * Get paths grouped by exchange pair
+ */
+router.get('/paths/grouped', async (req, res) => {
+    try {
+        const userId = req.query.userId || 1;
+
+        const grouped = await PathGeneratorService.getPathsByExchangePair(userId);
+
+        res.json({
+            success: true,
+            data: grouped
+        });
+    } catch (error) {
+        systemLogger.error('Failed to get grouped paths', {
+            userId: req.query.userId,
+            error: error.message
+        });
+
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * POST /api/v1/currency-swap/paths/validate
+ * Validate a specific path
+ */
+router.post('/paths/validate', async (req, res) => {
+    try {
+        const { userId, pathId } = req.body;
+
+        if (!userId || !pathId) {
+            return res.status(400).json({
+                success: false,
+                error: 'Missing required fields: userId, pathId'
+            });
+        }
+
+        const validation = await PathGeneratorService.validatePath(userId, pathId);
+
+        res.json({
+            success: true,
+            data: validation
+        });
+    } catch (error) {
+        systemLogger.error('Failed to validate path', {
+            pathId: req.body.pathId,
+            error: error.message
+        });
+
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+// NEW: RISK ASSESSMENT ENDPOINTS
+// Calculate safe trade amounts and assess risk
+// ═══════════════════════════════════════════════════════════════════════
+
+/**
+ * POST /api/v1/currency-swap/risk-assessment
+ * Assess risk for a specific swap path
+ */
+router.post('/risk-assessment', async (req, res) => {
+    try {
+        const { userId, path, prices } = req.body;
+
+        if (!userId || !path) {
+            return res.status(400).json({
+                success: false,
+                error: 'Missing required fields: userId, path'
+            });
+        }
+
+        const assessment = await RiskCalculatorService.assessSwapRisk(
+            userId,
+            path,
+            prices || {}
+        );
+
+        res.json({
+            success: true,
+            data: assessment
+        });
+    } catch (error) {
+        systemLogger.error('Failed to assess swap risk', {
+            userId: req.body.userId,
+            error: error.message
+        });
+
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * POST /api/v1/currency-swap/calculate-trade-amount
+ * Calculate recommended trade amount for a swap
+ */
+router.post('/calculate-trade-amount', async (req, res) => {
+    try {
+        const { userId, sourceExchange, sourceAsset, prices } = req.body;
+
+        if (!userId || !sourceExchange || !sourceAsset) {
+            return res.status(400).json({
+                success: false,
+                error: 'Missing required fields: userId, sourceExchange, sourceAsset'
+            });
+        }
+
+        const calculation = await RiskCalculatorService.calculateTradeAmount(
+            userId,
+            sourceExchange,
+            sourceAsset,
+            prices || {}
+        );
+
+        res.json({
+            success: true,
+            data: calculation
+        });
+    } catch (error) {
+        systemLogger.error('Failed to calculate trade amount', {
+            userId: req.body.userId,
+            sourceExchange: req.body.sourceExchange,
+            sourceAsset: req.body.sourceAsset,
+            error: error.message
+        });
+
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * GET /api/v1/currency-swap/daily-limit-check
+ * Check if user can execute more swaps today
+ */
+router.get('/daily-limit-check', async (req, res) => {
+    try {
+        const userId = req.query.userId || 1;
+
+        const result = await RiskCalculatorService.canExecuteSwap(userId);
+
+        res.json({
+            success: true,
+            data: result
+        });
+    } catch (error) {
+        systemLogger.error('Failed to check daily limit', {
+            userId: req.query.userId,
             error: error.message
         });
 

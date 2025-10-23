@@ -78,6 +78,14 @@ class CurrencySwapSettings {
             );
 
             CREATE INDEX IF NOT EXISTS idx_currency_swap_settings_user_id ON currency_swap_settings(user_id);
+
+            -- Add new columns if they don't exist (for existing installations)
+            ALTER TABLE currency_swap_settings
+            ADD COLUMN IF NOT EXISTS max_concurrent_trades INTEGER DEFAULT 2 CHECK (max_concurrent_trades >= 1 AND max_concurrent_trades <= 5),
+            ADD COLUMN IF NOT EXISTS max_balance_percentage DECIMAL(5,2) DEFAULT 10.0 CHECK (max_balance_percentage > 0 AND max_balance_percentage <= 50),
+            ADD COLUMN IF NOT EXISTS scan_interval_seconds INTEGER DEFAULT 60 CHECK (scan_interval_seconds >= 30 AND scan_interval_seconds <= 300),
+            ADD COLUMN IF NOT EXISTS balance_check_required BOOLEAN DEFAULT true,
+            ADD COLUMN IF NOT EXISTS min_balance_reserve_percent DECIMAL(5,2) DEFAULT 5.0 CHECK (min_balance_reserve_percent >= 0 AND min_balance_reserve_percent <= 20);
         `;
 
         await query(createTableQuery);

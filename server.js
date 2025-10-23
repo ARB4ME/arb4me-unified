@@ -130,9 +130,15 @@ async function startServer() {
                 const CurrencySwap = require('./src/models/CurrencySwap');
                 const CurrencySwapSettings = require('./src/models/CurrencySwapSettings');
                 const CurrencySwapCredentials = require('./src/models/CurrencySwapCredentials');
+                const AssetDeclaration = require('./src/models/AssetDeclaration');
+                const Balance = require('./src/models/Balance');
+
                 await CurrencySwap.createTable();
                 await CurrencySwapSettings.createTable();
                 await CurrencySwapCredentials.createTable();
+                await AssetDeclaration.createTable();
+                await Balance.createTable();
+
                 logger.info('Currency Swap tables verified/created');
             } catch (error) {
                 logger.warn('Currency Swap table creation skipped', { error: error.message });
