@@ -600,6 +600,7 @@
 
                 if (data.success) {
                     document.getElementById('swapsToday').textContent = data.data.dailySwapsToday || 0;
+                    document.getElementById('totalPaths').textContent = data.data.availablePaths || 0;
                     if (data.data.autoTradingEnabled) {
                         document.getElementById('autoTradingToggle').classList.add('active');
                         console.log('🟢 Auto-trading is ENABLED');
@@ -609,6 +610,7 @@
                     console.log('✅ Stats loaded:', {
                         swapsToday: data.data.dailySwapsToday || 0,
                         totalSwaps: data.data.totalSwaps || 0,
+                        availablePaths: data.data.availablePaths || 0,
                         autoTrading: data.data.autoTradingEnabled
                     });
                 }

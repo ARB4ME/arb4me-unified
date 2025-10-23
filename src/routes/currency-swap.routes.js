@@ -531,6 +531,9 @@ router.get('/stats', async (req, res) => {
         const settings = await CurrencySwapSettings.getOrCreate(userId);
         const dailyLimit = await CurrencySwapSettings.canExecuteSwap(userId);
 
+        // Get available paths count from tickbox selections
+        const paths = await PathGeneratorService.generateAllPaths(userId);
+
         res.json({
             success: true,
             data: {
@@ -543,7 +546,8 @@ router.get('/stats', async (req, res) => {
                 recentSwaps: recentSwaps.length,
                 autoTradingEnabled: settings.auto_trading_enabled,
                 dailySwapsToday: dailyLimit.dailyCount,
-                dailySwapsRemaining: dailyLimit.remaining
+                dailySwapsRemaining: dailyLimit.remaining,
+                availablePaths: paths.length // From tickbox selections (exchanges × currencies)
             }
         });
     } catch (error) {
