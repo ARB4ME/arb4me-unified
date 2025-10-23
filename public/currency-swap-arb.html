@@ -362,36 +362,58 @@
                             <option value="">Select exchange...</option>
                             <option value="VALR">VALR</option>
                             <option value="Luno">Luno</option>
-                            <option value="ChainEX">ChainEX</option>
                             <option value="Kraken">Kraken</option>
-                            <option value="Binance">Binance</option>
+                            <option value="ChainEX">ChainEX</option>
                             <option value="Bybit">Bybit</option>
+                            <option value="Binance">Binance</option>
                             <option value="OKX">OKX</option>
+                            <option value="Kucoin">Kucoin</option>
+                            <option value="HTX">HTX</option>
                             <option value="Gate.io">Gate.io</option>
+                            <option value="Crypto.com">Crypto.com</option>
+                            <option value="MEXC">MEXC</option>
+                            <option value="XT">XT</option>
+                            <option value="AscendEX">AscendEX</option>
+                            <option value="BingX">BingX</option>
+                            <option value="Bitget">Bitget</option>
+                            <option value="BitMart">BitMart</option>
+                            <option value="Bitrue">Bitrue</option>
+                            <option value="Gemini">Gemini</option>
+                            <option value="Coincatch">Coincatch</option>
                         </select>
                     </div>
 
                     <div class="form-group">
                         <label>Funded Assets (check all that apply)</label>
                         <div class="checkbox-group" id="assetCheckboxes">
-                            <label><input type="checkbox" value="ZAR"> 🇿🇦 ZAR</label>
-                            <label><input type="checkbox" value="USD"> 🇺🇸 USD</label>
-                            <label><input type="checkbox" value="EUR"> 🇪🇺 EUR</label>
-                            <label><input type="checkbox" value="GBP"> 🇬🇧 GBP</label>
                             <label><input type="checkbox" value="USDT"> 💵 USDT</label>
                             <label><input type="checkbox" value="USDC"> 💵 USDC</label>
+                            <label><input type="checkbox" value="ZAR"> 🇿🇦 ZAR</label>
+                            <label><input type="checkbox" value="XRP"> ⚡ XRP</label>
+                            <label><input type="checkbox" value="USD"> 🇺🇸 USD</label>
+                            <label><input type="checkbox" value="RLUSD"> 💎 RLUSD</label>
+                            <label><input type="checkbox" value="AUD"> 🇦🇺 AUD</label>
+                            <label><input type="checkbox" value="EUR"> 🇪🇺 EUR</label>
+                            <label><input type="checkbox" value="GBP"> 🇬🇧 GBP</label>
+                            <label><input type="checkbox" value="CAD"> 🇨🇦 CAD</label>
+                            <label><input type="checkbox" value="AED"> 🇦🇪 AED</label>
                         </div>
                     </div>
 
                     <div class="form-group">
                         <label>Initial Balances (optional, for profit tracking)</label>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                            <input type="number" id="initialZAR" placeholder="ZAR amount">
-                            <input type="number" id="initialUSD" placeholder="USD amount">
-                            <input type="number" id="initialEUR" placeholder="EUR amount">
-                            <input type="number" id="initialGBP" placeholder="GBP amount">
-                            <input type="number" id="initialUSDT" placeholder="USDT amount">
-                            <input type="number" id="initialUSDC" placeholder="USDC amount">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+                            <input type="number" id="initialUSDT" placeholder="USDT">
+                            <input type="number" id="initialUSDC" placeholder="USDC">
+                            <input type="number" id="initialZAR" placeholder="ZAR">
+                            <input type="number" id="initialXRP" placeholder="XRP">
+                            <input type="number" id="initialUSD" placeholder="USD">
+                            <input type="number" id="initialRLUSD" placeholder="RLUSD">
+                            <input type="number" id="initialAUD" placeholder="AUD">
+                            <input type="number" id="initialEUR" placeholder="EUR">
+                            <input type="number" id="initialGBP" placeholder="GBP">
+                            <input type="number" id="initialCAD" placeholder="CAD">
+                            <input type="number" id="initialAED" placeholder="AED">
                         </div>
                     </div>
 
@@ -430,17 +452,31 @@
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
                         <select id="filterSourceAsset" onchange="loadPaths()">
                             <option value="">All Source Assets</option>
-                            <option value="ZAR">ZAR</option>
-                            <option value="USD">USD</option>
-                            <option value="EUR">EUR</option>
                             <option value="USDT">USDT</option>
+                            <option value="USDC">USDC</option>
+                            <option value="ZAR">ZAR</option>
+                            <option value="XRP">XRP</option>
+                            <option value="USD">USD</option>
+                            <option value="RLUSD">RLUSD</option>
+                            <option value="AUD">AUD</option>
+                            <option value="EUR">EUR</option>
+                            <option value="GBP">GBP</option>
+                            <option value="CAD">CAD</option>
+                            <option value="AED">AED</option>
                         </select>
                         <select id="filterDestAsset" onchange="loadPaths()">
                             <option value="">All Dest Assets</option>
-                            <option value="ZAR">ZAR</option>
-                            <option value="USD">USD</option>
-                            <option value="EUR">EUR</option>
                             <option value="USDT">USDT</option>
+                            <option value="USDC">USDC</option>
+                            <option value="ZAR">ZAR</option>
+                            <option value="XRP">XRP</option>
+                            <option value="USD">USD</option>
+                            <option value="RLUSD">RLUSD</option>
+                            <option value="AUD">AUD</option>
+                            <option value="EUR">EUR</option>
+                            <option value="GBP">GBP</option>
+                            <option value="CAD">CAD</option>
+                            <option value="AED">AED</option>
                         </select>
                     </div>
 
@@ -636,12 +672,17 @@
             }
 
             const initialBalances = {};
-            if (document.getElementById('initialZAR').value) initialBalances.ZAR = parseFloat(document.getElementById('initialZAR').value);
-            if (document.getElementById('initialUSD').value) initialBalances.USD = parseFloat(document.getElementById('initialUSD').value);
-            if (document.getElementById('initialEUR').value) initialBalances.EUR = parseFloat(document.getElementById('initialEUR').value);
-            if (document.getElementById('initialGBP').value) initialBalances.GBP = parseFloat(document.getElementById('initialGBP').value);
             if (document.getElementById('initialUSDT').value) initialBalances.USDT = parseFloat(document.getElementById('initialUSDT').value);
             if (document.getElementById('initialUSDC').value) initialBalances.USDC = parseFloat(document.getElementById('initialUSDC').value);
+            if (document.getElementById('initialZAR').value) initialBalances.ZAR = parseFloat(document.getElementById('initialZAR').value);
+            if (document.getElementById('initialXRP').value) initialBalances.XRP = parseFloat(document.getElementById('initialXRP').value);
+            if (document.getElementById('initialUSD').value) initialBalances.USD = parseFloat(document.getElementById('initialUSD').value);
+            if (document.getElementById('initialRLUSD').value) initialBalances.RLUSD = parseFloat(document.getElementById('initialRLUSD').value);
+            if (document.getElementById('initialAUD').value) initialBalances.AUD = parseFloat(document.getElementById('initialAUD').value);
+            if (document.getElementById('initialEUR').value) initialBalances.EUR = parseFloat(document.getElementById('initialEUR').value);
+            if (document.getElementById('initialGBP').value) initialBalances.GBP = parseFloat(document.getElementById('initialGBP').value);
+            if (document.getElementById('initialCAD').value) initialBalances.CAD = parseFloat(document.getElementById('initialCAD').value);
+            if (document.getElementById('initialAED').value) initialBalances.AED = parseFloat(document.getElementById('initialAED').value);
 
             try {
                 const response = await fetch(`${API_BASE}/asset-declarations`, {
@@ -656,12 +697,17 @@
                     // Reset form
                     document.getElementById('declareExchange').value = '';
                     document.querySelectorAll('#assetCheckboxes input[type="checkbox"]').forEach(cb => cb.checked = false);
-                    document.getElementById('initialZAR').value = '';
-                    document.getElementById('initialUSD').value = '';
-                    document.getElementById('initialEUR').value = '';
-                    document.getElementById('initialGBP').value = '';
                     document.getElementById('initialUSDT').value = '';
                     document.getElementById('initialUSDC').value = '';
+                    document.getElementById('initialZAR').value = '';
+                    document.getElementById('initialXRP').value = '';
+                    document.getElementById('initialUSD').value = '';
+                    document.getElementById('initialRLUSD').value = '';
+                    document.getElementById('initialAUD').value = '';
+                    document.getElementById('initialEUR').value = '';
+                    document.getElementById('initialGBP').value = '';
+                    document.getElementById('initialCAD').value = '';
+                    document.getElementById('initialAED').value = '';
 
                     // Reload data
                     await loadDeclarations();
