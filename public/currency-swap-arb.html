@@ -963,10 +963,14 @@
                         return;
                     }
 
+                    const exchangeCount = Object.keys(stats.bySourceExchange).length;
+                    const assetPairCount = Object.keys(stats.byAssetPair).length;
+                    const pathsPerExchange = exchangeCount > 0 ? Math.round(stats.totalPaths / exchangeCount) : 0;
+
                     console.log('✅ Path statistics loaded:', {
                         totalPaths: stats.totalPaths,
-                        exchanges: Object.keys(stats.bySourceExchange).length,
-                        assetPairs: Object.keys(stats.byAssetPair).length
+                        exchanges: exchangeCount,
+                        assetPairs: assetPairCount
                     });
 
                     statsDiv.innerHTML = `
@@ -974,28 +978,90 @@
                             <div style="font-size: 0.9rem; color: #b8c6db; margin-bottom: 5px;">Total Paths</div>
                             <div style="font-size: 1.5rem; color: #00ff88; font-weight: bold;">${stats.totalPaths}</div>
                         </div>
+
+                        <!-- By Source Exchange Collapsible -->
                         <div style="margin-bottom: 15px;">
-                            <div style="font-size: 0.9rem; color: #b8c6db; margin-bottom: 5px;">By Source Exchange</div>
-                            ${Object.entries(stats.bySourceExchange).map(([ex, count]) =>
-                                `<div style="display: flex; justify-content: space-between; padding: 5px 0;">
-                                    <span>${ex}</span>
-                                    <span style="color: #00d4ff;">${count} paths</span>
-                                </div>`
-                            ).join('')}
+                            <div
+                                onclick="toggleStatsSection('exchangeStats')"
+                                style="
+                                    font-size: 0.9rem;
+                                    color: #00d4ff;
+                                    margin-bottom: 5px;
+                                    cursor: pointer;
+                                    display: flex;
+                                    align-items: center;
+                                    gap: 8px;
+                                    padding: 8px;
+                                    background: rgba(0, 212, 255, 0.1);
+                                    border-radius: 6px;
+                                    transition: all 0.2s;
+                                "
+                                onmouseover="this.style.background='rgba(0, 212, 255, 0.2)'"
+                                onmouseout="this.style.background='rgba(0, 212, 255, 0.1)'"
+                            >
+                                <span id="exchangeStatsIcon">▶</span>
+                                <span>By Source Exchange (${exchangeCount} exchanges × ~${pathsPerExchange} paths)</span>
+                            </div>
+                            <div id="exchangeStats" style="display: none; margin-top: 10px; padding-left: 10px;">
+                                ${Object.entries(stats.bySourceExchange).map(([ex, count]) =>
+                                    `<div style="display: flex; justify-content: space-between; padding: 5px 0;">
+                                        <span>${ex}</span>
+                                        <span style="color: #00d4ff;">${count} paths</span>
+                                    </div>`
+                                ).join('')}
+                            </div>
                         </div>
+
+                        <!-- By Asset Pair Collapsible -->
                         <div>
-                            <div style="font-size: 0.9rem; color: #b8c6db; margin-bottom: 5px;">By Asset Pair</div>
-                            ${Object.entries(stats.byAssetPair).map(([pair, count]) =>
-                                `<div style="display: flex; justify-content: space-between; padding: 5px 0;">
-                                    <span>${pair}</span>
-                                    <span style="color: #ffb347;">${count} paths</span>
-                                </div>`
-                            ).join('')}
+                            <div
+                                onclick="toggleStatsSection('assetPairStats')"
+                                style="
+                                    font-size: 0.9rem;
+                                    color: #ffb347;
+                                    margin-bottom: 5px;
+                                    cursor: pointer;
+                                    display: flex;
+                                    align-items: center;
+                                    gap: 8px;
+                                    padding: 8px;
+                                    background: rgba(255, 179, 71, 0.1);
+                                    border-radius: 6px;
+                                    transition: all 0.2s;
+                                "
+                                onmouseover="this.style.background='rgba(255, 179, 71, 0.2)'"
+                                onmouseout="this.style.background='rgba(255, 179, 71, 0.1)'"
+                            >
+                                <span id="assetPairStatsIcon">▶</span>
+                                <span>By Asset Pair (${assetPairCount} pairs)</span>
+                            </div>
+                            <div id="assetPairStats" style="display: none; margin-top: 10px; padding-left: 10px;">
+                                ${Object.entries(stats.byAssetPair).map(([pair, count]) =>
+                                    `<div style="display: flex; justify-content: space-between; padding: 5px 0;">
+                                        <span>${pair}</span>
+                                        <span style="color: #ffb347;">${count} paths</span>
+                                    </div>`
+                                ).join('')}
+                            </div>
                         </div>
                     `;
                 }
             } catch (error) {
                 console.error('Failed to load path stats:', error);
+            }
+        }
+
+        // Toggle stats section visibility
+        function toggleStatsSection(sectionId) {
+            const section = document.getElementById(sectionId);
+            const icon = document.getElementById(sectionId + 'Icon');
+
+            if (section.style.display === 'none') {
+                section.style.display = 'block';
+                icon.textContent = '▼';
+            } else {
+                section.style.display = 'none';
+                icon.textContent = '▶';
             }
         }
 
