@@ -12,6 +12,7 @@ const currencySwapService = require('../services/currencySwapExecutionService');
 // NEW: Import modular currency-swap services (using tickbox system - no AssetDeclaration needed)
 const PathGeneratorService = require('../services/currency-swap/PathGeneratorService');
 const RiskCalculatorService = require('../services/currency-swap/RiskCalculatorService');
+const CurrencySwapScannerService = require('../services/currency-swap/CurrencySwapScannerService');
 
 // Import database query function for manual table initialization
 const { query } = require('../database/connection');
@@ -640,6 +641,49 @@ router.get('/stats', async (req, res) => {
         });
     } catch (error) {
         systemLogger.error('Failed to get stats', {
+            userId: req.query.userId,
+            error: error.message
+        });
+
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * GET /api/v1/currency-swap/scan
+ * Scan all exchanges and find best profitable arbitrage opportunity
+ */
+router.get('/scan', async (req, res) => {
+    try {
+        const userId = req.query.userId || 1;
+
+        systemLogger.trading('Currency Swap scan initiated', { userId });
+
+        const result = await CurrencySwapScannerService.scanOpportunities(userId);
+
+        if (result.success && result.opportunity) {
+            systemLogger.trading('Opportunity found', {
+                userId,
+                profit: result.opportunity.profitPercent.toFixed(2) + '%',
+                path: result.opportunity.id
+            });
+        } else {
+            systemLogger.trading('No opportunities found', {
+                userId,
+                scannedPaths: result.scannedPaths
+            });
+        }
+
+        res.json({
+            success: true,
+            data: result
+        });
+
+    } catch (error) {
+        systemLogger.error('Currency Swap scan failed', {
             userId: req.query.userId,
             error: error.message
         });
