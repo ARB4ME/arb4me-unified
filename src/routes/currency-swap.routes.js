@@ -24,8 +24,6 @@ const { query } = require('../database/connection');
  */
 router.get('/initialize-tables', async (req, res) => {
     try {
-        systemLogger.info('Manual table initialization started');
-
         // Create asset declarations table
         await query(`
             CREATE TABLE IF NOT EXISTS currency_swap_asset_declarations (
@@ -88,8 +86,6 @@ router.get('/initialize-tables', async (req, res) => {
             ADD COLUMN IF NOT EXISTS min_balance_reserve_percent DECIMAL(5,2) DEFAULT 5.0 CHECK (min_balance_reserve_percent >= 0 AND min_balance_reserve_percent <= 20);
         `);
 
-        systemLogger.info('Manual table initialization completed successfully');
-
         res.json({
             success: true,
             message: 'Currency Swap tables initialized successfully',
@@ -101,10 +97,6 @@ router.get('/initialize-tables', async (req, res) => {
         });
 
     } catch (error) {
-        systemLogger.error('Manual table initialization failed', {
-            error: error.message
-        });
-
         res.status(500).json({
             success: false,
             error: error.message
