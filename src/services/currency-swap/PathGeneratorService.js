@@ -38,9 +38,12 @@ class PathGeneratorService {
             }
 
             // Build assetsByExchange object (tickbox system: all selected currencies available on all selected exchanges)
+            // XRP is excluded - it's only used as bridge, never as source/destination
+            const tradableCurrencies = selectedCurrencies.filter(c => c !== 'XRP');
+
             const assetsByExchange = {};
             selectedExchanges.forEach(exchange => {
-                assetsByExchange[exchange] = [...selectedCurrencies]; // Each exchange gets all selected currencies
+                assetsByExchange[exchange] = [...tradableCurrencies]; // Each exchange gets all selected currencies (except XRP)
             });
 
             // Generate all possible paths
@@ -53,7 +56,9 @@ class PathGeneratorService {
             logger.info(`Generated ${paths.length} possible swap paths`, {
                 userId,
                 exchanges: selectedExchanges.length,
-                currencies: selectedCurrencies.length
+                tradableCurrencies: tradableCurrencies.length,
+                totalCurrencies: selectedCurrencies.length,
+                bridgeAsset: 'XRP'
             });
 
             return paths;
@@ -76,13 +81,8 @@ class PathGeneratorService {
         const paths = [];
         const exchanges = Object.keys(assetsByExchange);
 
-        // Bridge asset (XRP, USDT, or AUTO)
-        const bridgeAsset = settings.preferred_bridge === 'AUTO'
-            ? 'XRP'
-            : settings.preferred_bridge;
-
-        // Get enabled categories
-        const enabledCategories = settings.enabled_categories || { ZAR: true, INTERNATIONAL: false };
+        // Bridge asset is always XRP for Currency Swap
+        const bridgeAsset = 'XRP';
 
         // For each source exchange
         for (const sourceExchange of exchanges) {
@@ -100,15 +100,7 @@ class PathGeneratorService {
                     for (const destAsset of destAssets) {
                         if (destAsset === sourceAsset) continue;
 
-                        // Check category filters
-                        if (!this._isAllowedByCategory(sourceAsset, destAsset, enabledCategories)) {
-                            continue;
-                        }
-
-                        // Check allowed pairs
-                        if (!this._isAllowedPair(sourceAsset, destAsset, settings.allowed_pairs)) {
-                            continue;
-                        }
+                        // No filters - tickbox selections determine valid paths
 
                         // Create path object
                         const path = {
@@ -160,49 +152,8 @@ class PathGeneratorService {
         return paths;
     }
 
-    /**
-     * Check if asset pair is allowed by category settings
-     * @private
-     */
-    static _isAllowedByCategory(sourceAsset, destAsset, enabledCategories) {
-        const zarAssets = ['ZAR'];
-        const internationalAssets = ['USD', 'EUR', 'GBP', 'USDT', 'USDC'];
-
-        // Check if it's a ZAR swap
-        const isZARSwap = zarAssets.includes(sourceAsset) || zarAssets.includes(destAsset);
-
-        // Check if it's an international swap
-        const isInternationalSwap =
-            internationalAssets.includes(sourceAsset) &&
-            internationalAssets.includes(destAsset);
-
-        // Apply category filters
-        if (isZARSwap && !enabledCategories.ZAR) {
-            return false;
-        }
-
-        if (isInternationalSwap && !enabledCategories.INTERNATIONAL) {
-            return false;
-        }
-
-        return true;
-    }
-
-    /**
-     * Check if asset pair is in allowed pairs list
-     * @private
-     */
-    static _isAllowedPair(sourceAsset, destAsset, allowedPairs) {
-        if (!allowedPairs || allowedPairs.length === 0) {
-            return true; // No restrictions
-        }
-
-        // Check both directions
-        const pair1 = `${sourceAsset}-${destAsset}`;
-        const pair2 = `${destAsset}-${sourceAsset}`;
-
-        return allowedPairs.includes(pair1) || allowedPairs.includes(pair2);
-    }
+    // Filters removed - tickbox selections (exchanges + currencies) determine all valid paths
+    // XRP is automatically excluded from source/destination (bridge only)
 
     /**
      * Get paths filtered by specific criteria
