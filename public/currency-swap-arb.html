@@ -1446,49 +1446,97 @@
                 }
 
                 console.log(`💰 Fetching balances for ${exchangeCredentials.length} exchanges with credentials`);
-                console.log(`📤 Sending request:`, {
-                    exchanges: exchangeCredentials.map(e => ({ exchange: e.exchange, hasKey: !!e.apiKey, hasSecret: !!e.apiSecret })),
-                    currencies: selectedCurrencies
-                });
 
-                // Send credentials to server as stateless proxy
-                const response = await fetch(`${API_BASE}/balances`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        exchanges: exchangeCredentials,
-                        currencies: selectedCurrencies
-                    })
-                });
+                // Fetch balances from each exchange using existing trading endpoints (same as Triangular Arb)
+                const balances = {};
+                const errors = {};
 
-                const data = await response.json();
+                for (const credData of exchangeCredentials) {
+                    try {
+                        const { exchange, apiKey, apiSecret, apiPassphrase, memo } = credData;
 
-                console.log('📥 Balances response:', data);
-                console.log('📊 Balances data:', data.data?.balances);
-                console.log('⚠️ Errors:', data.data?.errors);
+                        console.log(`🔄 Fetching ${exchange} balance...`);
 
-                if (!data.success) {
-                    throw new Error(data.error || 'Failed to fetch balances');
+                        // Use trading balance endpoints (same as Strategy API Configuration & Triangular Arb)
+                        const balanceEndpoint = exchange === 'chainex'
+                            ? '/api/v1/trading/chainex/balance'
+                            : `/api/v1/trading/${exchange}/balance`;
+
+                        const requestBody = {
+                            apiKey: apiKey,
+                            apiSecret: apiSecret
+                        };
+
+                        // Add passphrase if provided (for OKX, KuCoin, etc.)
+                        if (apiPassphrase) {
+                            requestBody.passphrase = apiPassphrase;
+                        }
+
+                        // Add memo if provided (for BitMart)
+                        if (memo) {
+                            requestBody.memo = memo;
+                        }
+
+                        const response = await fetch(balanceEndpoint, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(requestBody)
+                        });
+
+                        const result = await response.json();
+
+                        console.log(`📥 ${exchange} response:`, result);
+
+                        // Handle different response formats (same as Triangular Arb)
+                        let rawBalances = null;
+                        if (result.success && result.data) {
+                            rawBalances = result.data.balances || result.data;
+                        } else if (result.success && result.balances) {
+                            rawBalances = result.balances;
+                        } else if (result.balances) {
+                            rawBalances = result.balances;
+                        }
+
+                        if (rawBalances) {
+                            // Find the display name with correct casing
+                            const exchangeDisplay = selectedExchanges.find(e => e.toLowerCase() === exchange) || exchange;
+
+                            // Extract only requested currencies with balance > 0
+                            const exchangeBalances = {};
+                            for (const currency of selectedCurrencies) {
+                                if (rawBalances[currency] && parseFloat(rawBalances[currency]) > 0) {
+                                    exchangeBalances[currency] = {
+                                        free: parseFloat(rawBalances[currency]),
+                                        used: 0,
+                                        total: parseFloat(rawBalances[currency])
+                                    };
+                                }
+                            }
+
+                            if (Object.keys(exchangeBalances).length > 0) {
+                                balances[exchangeDisplay] = exchangeBalances;
+                                console.log(`✅ ${exchange} balances:`, exchangeBalances);
+                            }
+                        } else {
+                            errors[exchange] = 'Invalid response format';
+                        }
+
+                    } catch (error) {
+                        console.error(`❌ Failed to fetch ${credData.exchange} balance:`, error);
+                        errors[credData.exchange] = error.message;
+                    }
                 }
-
-                const { balances, errors } = data.data;
 
                 console.log('💾 Storing balances to localStorage...');
 
-                // Store balances in localStorage (map lowercase backend names to display names)
+                // Store balances in localStorage
                 let storedCount = 0;
-                for (const exchangeLower in balances) {
-                    console.log(`💱 Processing balances for ${exchangeLower}:`, balances[exchangeLower]);
+                for (const exchange in balances) {
+                    console.log(`💱 Processing balances for ${exchange}:`, balances[exchange]);
 
-                    // Find the matching exchange with correct casing from selectedExchanges
-                    const exchangeDisplay = selectedExchanges.find(e => e.toLowerCase() === exchangeLower) || exchangeLower;
-                    console.log(`📝 Mapping ${exchangeLower} → ${exchangeDisplay}`);
-
-                    for (const currency in balances[exchangeLower]) {
-                        const balanceKey = `${exchangeDisplay}_${currency}`;
-                        const total = balances[exchangeLower][currency].total;
+                    for (const currency in balances[exchange]) {
+                        const balanceKey = `${exchange}_${currency}`;
+                        const total = balances[exchange][currency].total;
 
                         // If starting balance doesn't exist, set it now (first time)
                         if (!localStorage.getItem(`${balanceKey}_starting`)) {
@@ -1506,18 +1554,25 @@
                 console.log(`✅ Stored ${storedCount} balance entries to localStorage`);
 
                 // Show errors if any (including missing credentials)
-                const allErrors = { ...errors };
-                missingCredentials.forEach(exchange => {
-                    allErrors[exchange] = 'No credentials in localStorage - connect in Strategy API Configuration';
-                });
+                if (missingCredentials.length > 0 || Object.keys(errors).length > 0) {
+                    const allErrors = { ...errors };
+                    missingCredentials.forEach(exchange => {
+                        allErrors[exchange] = 'No credentials - connect in Strategy API Configuration';
+                    });
 
-                if (Object.keys(allErrors).length > 0) {
                     console.warn('⚠️ Some exchanges had errors:', allErrors);
-                    let errorMessage = 'Balances refreshed with some warnings:\n\n';
-                    for (const exchange in allErrors) {
-                        errorMessage += `${exchange}: ${allErrors[exchange]}\n`;
+
+                    if (storedCount === 0) {
+                        // No balances fetched at all
+                        let errorMessage = 'Failed to fetch balances:\n\n';
+                        for (const exchange in allErrors) {
+                            errorMessage += `${exchange}: ${allErrors[exchange]}\n`;
+                        }
+                        alert(errorMessage);
+                    } else {
+                        // Some balances fetched successfully
+                        console.log(`⚠️ Fetched ${storedCount} balances with ${Object.keys(allErrors).length} errors`);
                     }
-                    alert(errorMessage);
                 }
 
                 console.log('✅ Balances refreshed successfully');

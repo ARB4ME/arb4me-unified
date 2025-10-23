@@ -480,51 +480,71 @@ router.post('/balances', async (req, res) => {
             }
 
             try {
-                const ccxt = require('ccxt');
-                const exchangeClass = ccxt[exchangeLower];
+                // Use existing trading balance endpoints (they already handle each exchange's API)
+                const balanceEndpoint = exchangeLower === 'chainex'
+                    ? '/api/v1/trading/chainex/balance'
+                    : `/api/v1/trading/${exchangeLower}/balance`;
 
-                if (!exchangeClass) {
-                    errors[exchange] = 'Exchange not supported';
-                    continue;
-                }
-
-                const exchangeInstance = new exchangeClass({
+                const requestBody = {
                     apiKey: apiKey,
-                    secret: apiSecret,
-                    password: apiPassphrase || undefined,
-                    options: {
-                        defaultType: 'spot'
-                    }
-                });
+                    apiSecret: apiSecret
+                };
 
-                // Fetch balance
-                const balance = await exchangeInstance.fetchBalance();
-
-                // Extract only the requested currencies (or all if not specified)
-                const exchangeBalances = {};
-                const currenciesToCheck = currencies && currencies.length > 0 ? currencies : Object.keys(balance);
-
-                for (const currency of currenciesToCheck) {
-                    if (balance[currency] && balance[currency].total > 0) {
-                        exchangeBalances[currency] = {
-                            free: balance[currency].free || 0,
-                            used: balance[currency].used || 0,
-                            total: balance[currency].total || 0
-                        };
-                    }
+                // Add passphrase if provided (for exchanges that need it)
+                if (apiPassphrase) {
+                    requestBody.passphrase = apiPassphrase;
                 }
 
-                balances[exchange] = exchangeBalances;
+                // Add memo if provided (for BitMart)
+                if (memo) {
+                    requestBody.memo = memo;
+                }
 
-                systemLogger.trading(`Fetched ${exchange} balance`, {
-                    currencies: Object.keys(exchangeBalances)
+                // Make internal API call to trading endpoint
+                const axios = require('axios');
+                const baseURL = process.env.NODE_ENV === 'production'
+                    ? 'https://arb4me-unified-production.up.railway.app'
+                    : 'http://localhost:3000';
+
+                const response = await axios.post(`${baseURL}${balanceEndpoint}`, requestBody, {
+                    timeout: 15000
                 });
+
+                if (response.data && response.data.success) {
+                    // Extract balances from response
+                    const rawBalances = response.data.balances || {};
+                    const exchangeBalances = {};
+
+                    // Filter to only requested currencies
+                    const currenciesToCheck = currencies && currencies.length > 0 ? currencies : Object.keys(rawBalances);
+
+                    for (const currency of currenciesToCheck) {
+                        if (rawBalances[currency] && rawBalances[currency] > 0) {
+                            exchangeBalances[currency] = {
+                                free: rawBalances[currency],
+                                used: 0,
+                                total: rawBalances[currency]
+                            };
+                        }
+                    }
+
+                    if (Object.keys(exchangeBalances).length > 0) {
+                        balances[exchange] = exchangeBalances;
+                    }
+
+                    systemLogger.trading(`Fetched ${exchange} balance via trading endpoint`, {
+                        currencies: Object.keys(exchangeBalances)
+                    });
+
+                } else {
+                    throw new Error(response.data?.error || 'Failed to fetch balance');
+                }
 
             } catch (error) {
                 systemLogger.error(`Failed to fetch ${exchange} balance`, {
                     error: error.message
                 });
-                errors[exchange] = error.message;
+                errors[exchange] = error.response?.data?.error || error.message;
             }
         }
 
