@@ -484,7 +484,7 @@ router.get('/balances', async (req, res) => {
             const exchangeLower = exchange.toLowerCase();
             const cred = credentials.find(c => c.exchange.toLowerCase() === exchangeLower);
 
-            if (!cred || !cred.api_key || !cred.api_secret) {
+            if (!cred || !cred.apiKey || !cred.apiSecret) {
                 errors[exchange] = 'No credentials saved';
                 continue;
             }
@@ -500,9 +500,9 @@ router.get('/balances', async (req, res) => {
                 }
 
                 const exchangeInstance = new exchangeClass({
-                    apiKey: cred.api_key,
-                    secret: cred.api_secret,
-                    password: cred.api_passphrase || undefined,
+                    apiKey: cred.apiKey,
+                    secret: cred.apiSecret,
+                    password: cred.apiPassphrase || undefined,
                     options: {
                         defaultType: 'spot'
                     }
