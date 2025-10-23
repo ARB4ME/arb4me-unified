@@ -1414,9 +1414,18 @@
                     const apiPassphrase = localStorage.getItem(`${exchangeLower}_currency-swap_passphrase`);
                     const memo = localStorage.getItem(`${exchangeLower}_currency-swap_memo`);
 
+                    console.log(`🔍 Checking credentials for ${exchange}:`, {
+                        exchangeLower,
+                        apiKeyFound: !!apiKey,
+                        apiKeyLength: apiKey ? apiKey.length : 0,
+                        apiSecretFound: !!apiSecret,
+                        apiSecretLength: apiSecret ? apiSecret.length : 0
+                    });
+
                     if (!apiKey || !apiSecret) {
                         missingCredentials.push(exchange);
                         console.warn(`⚠️ No credentials found for ${exchange} in localStorage`);
+                        console.log(`📋 localStorage keys:`, Object.keys(localStorage).filter(k => k.includes(exchangeLower)));
                         continue;
                     }
 
@@ -1434,6 +1443,10 @@
                 }
 
                 console.log(`💰 Fetching balances for ${exchangeCredentials.length} exchanges with credentials`);
+                console.log(`📤 Sending request:`, {
+                    exchanges: exchangeCredentials.map(e => ({ exchange: e.exchange, hasKey: !!e.apiKey, hasSecret: !!e.apiSecret })),
+                    currencies: selectedCurrencies
+                });
 
                 // Send credentials to server as stateless proxy
                 const response = await fetch(`${API_BASE}/balances`, {
@@ -1449,7 +1462,9 @@
 
                 const data = await response.json();
 
-                console.log('🔄 Balances response:', data);
+                console.log('📥 Balances response:', data);
+                console.log('📊 Balances data:', data.data?.balances);
+                console.log('⚠️ Errors:', data.data?.errors);
 
                 if (!data.success) {
                     throw new Error(data.error || 'Failed to fetch balances');
@@ -1457,10 +1472,16 @@
 
                 const { balances, errors } = data.data;
 
+                console.log('💾 Storing balances to localStorage...');
+
                 // Store balances in localStorage (map lowercase backend names to display names)
+                let storedCount = 0;
                 for (const exchangeLower in balances) {
+                    console.log(`💱 Processing balances for ${exchangeLower}:`, balances[exchangeLower]);
+
                     // Find the matching exchange with correct casing from selectedExchanges
                     const exchangeDisplay = selectedExchanges.find(e => e.toLowerCase() === exchangeLower) || exchangeLower;
+                    console.log(`📝 Mapping ${exchangeLower} → ${exchangeDisplay}`);
 
                     for (const currency in balances[exchangeLower]) {
                         const balanceKey = `${exchangeDisplay}_${currency}`;
@@ -1475,8 +1496,11 @@
                         // Update current balance
                         localStorage.setItem(`${balanceKey}_current`, total);
                         console.log(`📊 Updated current balance for ${balanceKey}: ${total}`);
+                        storedCount++;
                     }
                 }
+
+                console.log(`✅ Stored ${storedCount} balance entries to localStorage`);
 
                 // Show errors if any (including missing credentials)
                 const allErrors = { ...errors };
