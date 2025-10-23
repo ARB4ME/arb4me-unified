@@ -1385,6 +1385,15 @@
             try {
                 console.log('🔄 Refreshing balances from exchanges...');
 
+                // Get selected exchanges and currencies
+                const selectedExchanges = getSelectedExchanges();
+                const selectedCurrencies = getSelectedCurrencies();
+
+                if (selectedExchanges.length === 0) {
+                    alert('Please select at least one exchange first');
+                    return;
+                }
+
                 // Show loading indicator
                 document.getElementById('balanceTrackerContent').innerHTML = `
                     <div style="text-align: center; padding: 40px; color: #00d4ff;">
@@ -1394,7 +1403,50 @@
                     </div>
                 `;
 
-                const response = await fetch(`${API_BASE}/balances?userId=${USER_ID}`);
+                // Gather credentials from localStorage for each exchange
+                const exchangeCredentials = [];
+                const missingCredentials = [];
+
+                for (const exchange of selectedExchanges) {
+                    const exchangeLower = exchange.toLowerCase();
+                    const apiKey = localStorage.getItem(`${exchangeLower}_currency-swap_api`);
+                    const apiSecret = localStorage.getItem(`${exchangeLower}_currency-swap_secret`);
+                    const apiPassphrase = localStorage.getItem(`${exchangeLower}_currency-swap_passphrase`);
+                    const memo = localStorage.getItem(`${exchangeLower}_currency-swap_memo`);
+
+                    if (!apiKey || !apiSecret) {
+                        missingCredentials.push(exchange);
+                        console.warn(`⚠️ No credentials found for ${exchange} in localStorage`);
+                        continue;
+                    }
+
+                    exchangeCredentials.push({
+                        exchange: exchangeLower,
+                        apiKey,
+                        apiSecret,
+                        apiPassphrase,
+                        memo
+                    });
+                }
+
+                if (exchangeCredentials.length === 0) {
+                    throw new Error(`No credentials found. Please connect exchanges in Strategy API Configuration first.\n\nMissing: ${missingCredentials.join(', ')}`);
+                }
+
+                console.log(`💰 Fetching balances for ${exchangeCredentials.length} exchanges with credentials`);
+
+                // Send credentials to server as stateless proxy
+                const response = await fetch(`${API_BASE}/balances`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        exchanges: exchangeCredentials,
+                        currencies: selectedCurrencies
+                    })
+                });
+
                 const data = await response.json();
 
                 console.log('🔄 Balances response:', data);
@@ -1405,11 +1457,14 @@
 
                 const { balances, errors } = data.data;
 
-                // Store balances in localStorage
-                for (const exchange in balances) {
-                    for (const currency in balances[exchange]) {
-                        const balanceKey = `${exchange}_${currency}`;
-                        const total = balances[exchange][currency].total;
+                // Store balances in localStorage (map lowercase backend names to display names)
+                for (const exchangeLower in balances) {
+                    // Find the matching exchange with correct casing from selectedExchanges
+                    const exchangeDisplay = selectedExchanges.find(e => e.toLowerCase() === exchangeLower) || exchangeLower;
+
+                    for (const currency in balances[exchangeLower]) {
+                        const balanceKey = `${exchangeDisplay}_${currency}`;
+                        const total = balances[exchangeLower][currency].total;
 
                         // If starting balance doesn't exist, set it now (first time)
                         if (!localStorage.getItem(`${balanceKey}_starting`)) {
@@ -1423,12 +1478,17 @@
                     }
                 }
 
-                // Show errors if any
-                if (errors && Object.keys(errors).length > 0) {
-                    console.warn('⚠️ Some exchanges had errors:', errors);
-                    let errorMessage = 'Balances refreshed with some errors:\n\n';
-                    for (const exchange in errors) {
-                        errorMessage += `${exchange}: ${errors[exchange]}\n`;
+                // Show errors if any (including missing credentials)
+                const allErrors = { ...errors };
+                missingCredentials.forEach(exchange => {
+                    allErrors[exchange] = 'No credentials in localStorage - connect in Strategy API Configuration';
+                });
+
+                if (Object.keys(allErrors).length > 0) {
+                    console.warn('⚠️ Some exchanges had errors:', allErrors);
+                    let errorMessage = 'Balances refreshed with some warnings:\n\n';
+                    for (const exchange in allErrors) {
+                        errorMessage += `${exchange}: ${allErrors[exchange]}\n`;
                     }
                     alert(errorMessage);
                 }

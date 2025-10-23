@@ -444,53 +444,42 @@ router.post('/settings/toggle-auto', async (req, res) => {
 });
 
 /**
- * GET /api/v1/currency-swap/balances
- * Get USDT and XRP balances across all exchanges
+ * POST /api/v1/currency-swap/balances
+ * Stateless proxy to fetch balances from exchanges (credentials sent from frontend localStorage)
  */
-router.get('/balances', async (req, res) => {
+router.post('/balances', async (req, res) => {
     try {
-        const userId = req.query.userId || 1;
+        const { exchanges, currencies } = req.body;
 
-        systemLogger.trading('Fetching Currency Swap balances', { userId });
-
-        // Get user's connected exchanges and currencies from settings
-        const settings = await CurrencySwapSettings.getOrCreate(userId);
-        const selectedExchanges = typeof settings.selected_exchanges === 'string'
-            ? JSON.parse(settings.selected_exchanges)
-            : (settings.selected_exchanges || []);
-
-        const selectedCurrencies = typeof settings.selected_currencies === 'string'
-            ? JSON.parse(settings.selected_currencies)
-            : (settings.selected_currencies || []);
-
-        if (selectedExchanges.length === 0) {
+        if (!exchanges || exchanges.length === 0) {
             return res.json({
                 success: true,
                 data: {
                     balances: {},
-                    message: 'No exchanges selected'
+                    message: 'No exchanges provided'
                 }
             });
         }
 
-        // Get credentials for each exchange
-        const credentials = await CurrencySwapCredentials.getAllCredentials(userId);
+        systemLogger.trading('Fetching balances for exchanges', {
+            exchangeCount: exchanges.length,
+            currencyCount: currencies?.length || 0
+        });
 
-        // Fetch balances from each exchange using trading endpoints
+        // Fetch balances from each exchange using credentials from request
         const balances = {};
         const errors = {};
 
-        for (const exchange of selectedExchanges) {
+        for (const exchangeData of exchanges) {
+            const { exchange, apiKey, apiSecret, apiPassphrase, memo } = exchangeData;
             const exchangeLower = exchange.toLowerCase();
-            const cred = credentials.find(c => c.exchange.toLowerCase() === exchangeLower);
 
-            if (!cred || !cred.apiKey || !cred.apiSecret) {
-                errors[exchange] = 'No credentials saved';
+            if (!apiKey || !apiSecret) {
+                errors[exchange] = 'Missing credentials';
                 continue;
             }
 
             try {
-                // Use the trading balance endpoint (same as Strategy API Configuration)
                 const ccxt = require('ccxt');
                 const exchangeClass = ccxt[exchangeLower];
 
@@ -500,9 +489,9 @@ router.get('/balances', async (req, res) => {
                 }
 
                 const exchangeInstance = new exchangeClass({
-                    apiKey: cred.apiKey,
-                    secret: cred.apiSecret,
-                    password: cred.apiPassphrase || undefined,
+                    apiKey: apiKey,
+                    secret: apiSecret,
+                    password: apiPassphrase || undefined,
                     options: {
                         defaultType: 'spot'
                     }
@@ -511,9 +500,11 @@ router.get('/balances', async (req, res) => {
                 // Fetch balance
                 const balance = await exchangeInstance.fetchBalance();
 
-                // Extract only the currencies user selected
+                // Extract only the requested currencies (or all if not specified)
                 const exchangeBalances = {};
-                for (const currency of selectedCurrencies) {
+                const currenciesToCheck = currencies && currencies.length > 0 ? currencies : Object.keys(balance);
+
+                for (const currency of currenciesToCheck) {
                     if (balance[currency] && balance[currency].total > 0) {
                         exchangeBalances[currency] = {
                             free: balance[currency].free || 0,
@@ -526,13 +517,11 @@ router.get('/balances', async (req, res) => {
                 balances[exchange] = exchangeBalances;
 
                 systemLogger.trading(`Fetched ${exchange} balance`, {
-                    userId,
                     currencies: Object.keys(exchangeBalances)
                 });
 
             } catch (error) {
                 systemLogger.error(`Failed to fetch ${exchange} balance`, {
-                    userId,
                     error: error.message
                 });
                 errors[exchange] = error.message;
