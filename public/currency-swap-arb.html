@@ -349,84 +349,58 @@
         <div class="grid-2">
             <!-- Left Column -->
             <div>
-                <!-- Asset Declaration (NEW!) -->
+                <!-- Currency Swap Setup (NEW SIMPLIFIED!) -->
                 <div class="card">
-                    <h3>📦 Asset Declaration</h3>
+                    <h3>⚙️ Currency Swap Setup</h3>
                     <div class="alert alert-info">
-                        Declare which fiat/stablecoins you have funded on each exchange. The system will auto-generate ALL possible swap paths!
+                        Select exchanges and currencies to scan for arbitrage opportunities. Auto-saves your selections.
                     </div>
 
                     <div class="form-group">
-                        <label>Exchange</label>
-                        <select id="declareExchange">
-                            <option value="">Select exchange...</option>
-                            <option value="VALR">VALR</option>
-                            <option value="Luno">Luno</option>
-                            <option value="Kraken">Kraken</option>
-                            <option value="ChainEX">ChainEX</option>
-                            <option value="Bybit">Bybit</option>
-                            <option value="Binance">Binance</option>
-                            <option value="OKX">OKX</option>
-                            <option value="Kucoin">Kucoin</option>
-                            <option value="HTX">HTX</option>
-                            <option value="Gate.io">Gate.io</option>
-                            <option value="Crypto.com">Crypto.com</option>
-                            <option value="MEXC">MEXC</option>
-                            <option value="XT">XT</option>
-                            <option value="AscendEX">AscendEX</option>
-                            <option value="BingX">BingX</option>
-                            <option value="Bitget">Bitget</option>
-                            <option value="BitMart">BitMart</option>
-                            <option value="Bitrue">Bitrue</option>
-                            <option value="Gemini">Gemini</option>
-                            <option value="Coincatch">Coincatch</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Funded Assets (check all that apply)</label>
-                        <div class="checkbox-group" id="assetCheckboxes">
-                            <label><input type="checkbox" value="USDT"> 💵 USDT</label>
-                            <label><input type="checkbox" value="USDC"> 💵 USDC</label>
-                            <label><input type="checkbox" value="ZAR"> 🇿🇦 ZAR</label>
-                            <label><input type="checkbox" value="XRP"> ⚡ XRP</label>
-                            <label><input type="checkbox" value="USD"> 🇺🇸 USD</label>
-                            <label><input type="checkbox" value="RLUSD"> 💎 RLUSD</label>
-                            <label><input type="checkbox" value="AUD"> 🇦🇺 AUD</label>
-                            <label><input type="checkbox" value="EUR"> 🇪🇺 EUR</label>
-                            <label><input type="checkbox" value="GBP"> 🇬🇧 GBP</label>
-                            <label><input type="checkbox" value="CAD"> 🇨🇦 CAD</label>
-                            <label><input type="checkbox" value="AED"> 🇦🇪 AED</label>
+                        <label>📊 Select Exchanges to Trade</label>
+                        <div class="checkbox-group" id="exchangeCheckboxes" style="max-height: 300px; overflow-y: auto; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 6px;">
+                            <label><input type="checkbox" value="VALR" onchange="saveSetup()"> VALR</label>
+                            <label><input type="checkbox" value="Luno" onchange="saveSetup()"> Luno</label>
+                            <label><input type="checkbox" value="Kraken" onchange="saveSetup()"> Kraken</label>
+                            <label><input type="checkbox" value="ChainEX" onchange="saveSetup()"> ChainEX</label>
+                            <label><input type="checkbox" value="Bybit" onchange="saveSetup()"> Bybit</label>
+                            <label><input type="checkbox" value="Binance" onchange="saveSetup()"> Binance</label>
+                            <label><input type="checkbox" value="OKX" onchange="saveSetup()"> OKX</label>
+                            <label><input type="checkbox" value="Kucoin" onchange="saveSetup()"> Kucoin</label>
+                            <label><input type="checkbox" value="HTX" onchange="saveSetup()"> HTX</label>
+                            <label><input type="checkbox" value="Gate.io" onchange="saveSetup()"> Gate.io</label>
+                            <label><input type="checkbox" value="Crypto.com" onchange="saveSetup()"> Crypto.com</label>
+                            <label><input type="checkbox" value="MEXC" onchange="saveSetup()"> MEXC</label>
+                            <label><input type="checkbox" value="XT" onchange="saveSetup()"> XT</label>
+                            <label><input type="checkbox" value="AscendEX" onchange="saveSetup()"> AscendEX</label>
+                            <label><input type="checkbox" value="BingX" onchange="saveSetup()"> BingX</label>
+                            <label><input type="checkbox" value="Bitget" onchange="saveSetup()"> Bitget</label>
+                            <label><input type="checkbox" value="BitMart" onchange="saveSetup()"> BitMart</label>
+                            <label><input type="checkbox" value="Bitrue" onchange="saveSetup()"> Bitrue</label>
+                            <label><input type="checkbox" value="Gemini" onchange="saveSetup()"> Gemini</label>
+                            <label><input type="checkbox" value="Coincatch" onchange="saveSetup()"> Coincatch</label>
                         </div>
                     </div>
 
                     <div class="form-group">
-                        <label>Initial Balances (optional, for profit tracking)</label>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
-                            <input type="number" id="initialUSDT" placeholder="USDT">
-                            <input type="number" id="initialUSDC" placeholder="USDC">
-                            <input type="number" id="initialZAR" placeholder="ZAR">
-                            <input type="number" id="initialXRP" placeholder="XRP">
-                            <input type="number" id="initialUSD" placeholder="USD">
-                            <input type="number" id="initialRLUSD" placeholder="RLUSD">
-                            <input type="number" id="initialAUD" placeholder="AUD">
-                            <input type="number" id="initialEUR" placeholder="EUR">
-                            <input type="number" id="initialGBP" placeholder="GBP">
-                            <input type="number" id="initialCAD" placeholder="CAD">
-                            <input type="number" id="initialAED" placeholder="AED">
+                        <label>💰 Select Currencies to Scan</label>
+                        <div class="checkbox-group" id="currencyCheckboxes">
+                            <label><input type="checkbox" value="USDT" onchange="saveSetup()"> 💵 USDT</label>
+                            <label><input type="checkbox" value="USDC" onchange="saveSetup()"> 💵 USDC</label>
+                            <label><input type="checkbox" value="ZAR" onchange="saveSetup()"> 🇿🇦 ZAR</label>
+                            <label><input type="checkbox" value="XRP" onchange="saveSetup()"> ⚡ XRP</label>
+                            <label><input type="checkbox" value="USD" onchange="saveSetup()"> 🇺🇸 USD</label>
+                            <label><input type="checkbox" value="RLUSD" onchange="saveSetup()"> 💎 RLUSD</label>
+                            <label><input type="checkbox" value="AUD" onchange="saveSetup()"> 🇦🇺 AUD</label>
+                            <label><input type="checkbox" value="EUR" onchange="saveSetup()"> 🇪🇺 EUR</label>
+                            <label><input type="checkbox" value="GBP" onchange="saveSetup()"> 🇬🇧 GBP</label>
+                            <label><input type="checkbox" value="CAD" onchange="saveSetup()"> 🇨🇦 CAD</label>
+                            <label><input type="checkbox" value="AED" onchange="saveSetup()"> 🇦🇪 AED</label>
                         </div>
                     </div>
 
-                    <button onclick="saveAssetDeclaration()" class="btn btn-success" style="width: 100%;">
-                        + Declare Assets
-                    </button>
-                </div>
-
-                <!-- Current Declarations -->
-                <div class="card">
-                    <h4>Current Declarations</h4>
-                    <div id="declarationsList">
-                        <p style="color: #888; font-size: 0.9rem;">Loading...</p>
+                    <div style="text-align: center; padding: 10px; color: #00ff88; font-size: 0.9rem;">
+                        <span id="saveStatus">✅ Auto-saved</span>
                     </div>
                 </div>
             </div>
@@ -591,7 +565,7 @@
         document.addEventListener('DOMContentLoaded', async function() {
             console.log('💱 Currency Swap v2 loaded');
             await loadStats();
-            await loadDeclarations();
+            await loadSetup();
             await loadPaths();
             await loadPathStats();
 
@@ -620,128 +594,84 @@
             }
         }
 
-        // Load asset declarations
-        async function loadDeclarations() {
+        // Load setup (selected exchanges and currencies)
+        async function loadSetup() {
             try {
-                const response = await fetch(`${API_BASE}/asset-declarations/summary?userId=${USER_ID}`);
+                const response = await fetch(`${API_BASE}/settings?userId=${USER_ID}`);
                 const data = await response.json();
 
                 if (data.success) {
-                    const summary = data.data;
-                    document.getElementById('totalExchanges').textContent = summary.totalExchanges;
-                    document.getElementById('totalAssets').textContent = summary.totalUniqueAssets;
+                    const s = data.data;
 
-                    const listDiv = document.getElementById('declarationsList');
-                    if (summary.declarations.length === 0) {
-                        listDiv.innerHTML = '<p style="color: #888; font-size: 0.9rem;">No declarations yet. Declare your funded assets above.</p>';
-                    } else {
-                        listDiv.innerHTML = summary.declarations.map(decl => `
-                            <div class="declaration-item">
-                                <div class="declaration-info">
-                                    <div style="font-weight: 600; color: #00d4ff; margin-bottom: 5px;">${decl.exchange}</div>
-                                    <div>
-                                        ${decl.fundedAssets.map(asset => `<span class="badge">${asset}</span>`).join('')}
-                                    </div>
-                                </div>
-                                <button onclick="deleteDeclaration('${decl.exchange}')" class="btn btn-danger" style="padding: 8px 16px;">
-                                    Delete
-                                </button>
-                            </div>
-                        `).join('');
-                    }
+                    // Load selected exchanges
+                    const selectedExchanges = s.selected_exchanges || [];
+                    document.querySelectorAll('#exchangeCheckboxes input[type="checkbox"]').forEach(cb => {
+                        cb.checked = selectedExchanges.includes(cb.value);
+                    });
+
+                    // Load selected currencies
+                    const selectedCurrencies = s.selected_currencies || [];
+                    document.querySelectorAll('#currencyCheckboxes input[type="checkbox"]').forEach(cb => {
+                        cb.checked = selectedCurrencies.includes(cb.value);
+                    });
+
+                    // Update stats
+                    document.getElementById('totalExchanges').textContent = selectedExchanges.length;
+                    document.getElementById('totalAssets').textContent = selectedCurrencies.length;
                 }
             } catch (error) {
-                console.error('Failed to load declarations:', error);
+                console.error('Failed to load setup:', error);
             }
         }
 
-        // Save asset declaration
-        async function saveAssetDeclaration() {
-            const exchange = document.getElementById('declareExchange').value;
-            if (!exchange) {
-                alert('Please select an exchange');
-                return;
-            }
-
-            const checkboxes = document.querySelectorAll('#assetCheckboxes input[type="checkbox"]:checked');
-            const fundedAssets = Array.from(checkboxes).map(cb => cb.value);
-
-            if (fundedAssets.length === 0) {
-                alert('Please select at least one funded asset');
-                return;
-            }
-
-            const initialBalances = {};
-            if (document.getElementById('initialUSDT').value) initialBalances.USDT = parseFloat(document.getElementById('initialUSDT').value);
-            if (document.getElementById('initialUSDC').value) initialBalances.USDC = parseFloat(document.getElementById('initialUSDC').value);
-            if (document.getElementById('initialZAR').value) initialBalances.ZAR = parseFloat(document.getElementById('initialZAR').value);
-            if (document.getElementById('initialXRP').value) initialBalances.XRP = parseFloat(document.getElementById('initialXRP').value);
-            if (document.getElementById('initialUSD').value) initialBalances.USD = parseFloat(document.getElementById('initialUSD').value);
-            if (document.getElementById('initialRLUSD').value) initialBalances.RLUSD = parseFloat(document.getElementById('initialRLUSD').value);
-            if (document.getElementById('initialAUD').value) initialBalances.AUD = parseFloat(document.getElementById('initialAUD').value);
-            if (document.getElementById('initialEUR').value) initialBalances.EUR = parseFloat(document.getElementById('initialEUR').value);
-            if (document.getElementById('initialGBP').value) initialBalances.GBP = parseFloat(document.getElementById('initialGBP').value);
-            if (document.getElementById('initialCAD').value) initialBalances.CAD = parseFloat(document.getElementById('initialCAD').value);
-            if (document.getElementById('initialAED').value) initialBalances.AED = parseFloat(document.getElementById('initialAED').value);
-
+        // Save setup (auto-save on checkbox change)
+        async function saveSetup() {
             try {
-                const response = await fetch(`${API_BASE}/asset-declarations`, {
+                // Get selected exchanges
+                const exchangeCheckboxes = document.querySelectorAll('#exchangeCheckboxes input[type="checkbox"]:checked');
+                const selectedExchanges = Array.from(exchangeCheckboxes).map(cb => cb.value);
+
+                // Get selected currencies
+                const currencyCheckboxes = document.querySelectorAll('#currencyCheckboxes input[type="checkbox"]:checked');
+                const selectedCurrencies = Array.from(currencyCheckboxes).map(cb => cb.value);
+
+                // Update UI
+                document.getElementById('totalExchanges').textContent = selectedExchanges.length;
+                document.getElementById('totalAssets').textContent = selectedCurrencies.length;
+
+                // Show saving status
+                const saveStatus = document.getElementById('saveStatus');
+                saveStatus.textContent = '💾 Saving...';
+                saveStatus.style.color = '#ffb347';
+
+                // Save to settings
+                const response = await fetch(`${API_BASE}/settings`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId: USER_ID, exchange, fundedAssets, initialBalances })
+                    body: JSON.stringify({
+                        userId: USER_ID,
+                        selectedExchanges,
+                        selectedCurrencies
+                    })
                 });
 
-                const data = await response.json();
-                if (data.success) {
-                    alert('✅ Assets declared successfully!');
-                    // Reset form
-                    document.getElementById('declareExchange').value = '';
-                    document.querySelectorAll('#assetCheckboxes input[type="checkbox"]').forEach(cb => cb.checked = false);
-                    document.getElementById('initialUSDT').value = '';
-                    document.getElementById('initialUSDC').value = '';
-                    document.getElementById('initialZAR').value = '';
-                    document.getElementById('initialXRP').value = '';
-                    document.getElementById('initialUSD').value = '';
-                    document.getElementById('initialRLUSD').value = '';
-                    document.getElementById('initialAUD').value = '';
-                    document.getElementById('initialEUR').value = '';
-                    document.getElementById('initialGBP').value = '';
-                    document.getElementById('initialCAD').value = '';
-                    document.getElementById('initialAED').value = '';
+                const result = await response.json();
 
-                    // Reload data
-                    await loadDeclarations();
+                if (result.success) {
+                    saveStatus.textContent = '✅ Auto-saved';
+                    saveStatus.style.color = '#00ff88';
+
+                    // Reload paths with new selections
                     await loadPaths();
                     await loadPathStats();
                 } else {
-                    alert('❌ Failed: ' + data.error);
+                    saveStatus.textContent = '❌ Save failed';
+                    saveStatus.style.color = '#ff6b6b';
                 }
             } catch (error) {
-                console.error('Failed to save declaration:', error);
-                alert('❌ Error saving declaration');
-            }
-        }
-
-        // Delete declaration
-        async function deleteDeclaration(exchange) {
-            if (!confirm(`Delete declaration for ${exchange}?`)) return;
-
-            try {
-                const response = await fetch(`${API_BASE}/asset-declarations/${exchange}?userId=${USER_ID}`, {
-                    method: 'DELETE'
-                });
-
-                const data = await response.json();
-                if (data.success) {
-                    alert('✅ Declaration deleted');
-                    await loadDeclarations();
-                    await loadPaths();
-                    await loadPathStats();
-                } else {
-                    alert('❌ Failed: ' + data.message);
-                }
-            } catch (error) {
-                console.error('Failed to delete:', error);
+                console.error('Failed to save setup:', error);
+                document.getElementById('saveStatus').textContent = '❌ Save failed';
+                document.getElementById('saveStatus').style.color = '#ff6b6b';
             }
         }
 
