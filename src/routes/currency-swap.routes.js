@@ -9,8 +9,7 @@ const CurrencySwapSettings = require('../models/CurrencySwapSettings');
 const CurrencySwapCredentials = require('../models/CurrencySwapCredentials');
 const currencySwapService = require('../services/currencySwapExecutionService');
 
-// NEW: Import modular currency-swap services
-const AssetDeclarationService = require('../services/currency-swap/AssetDeclarationService');
+// NEW: Import modular currency-swap services (using tickbox system - no AssetDeclaration needed)
 const PathGeneratorService = require('../services/currency-swap/PathGeneratorService');
 const RiskCalculatorService = require('../services/currency-swap/RiskCalculatorService');
 
@@ -796,134 +795,12 @@ router.get('/connected-exchanges', async (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════════════════
-// NEW: ASSET DECLARATION ENDPOINTS
-// Users declare which assets they have funded on each exchange
+// ASSET DECLARATION ENDPOINTS - DEPRECATED (Using tickbox system now)
+// These endpoints are no longer used since we switched to the tickbox approach
 // ═══════════════════════════════════════════════════════════════════════
 
-/**
- * POST /api/v1/currency-swap/asset-declarations
- * Save user's asset declaration for an exchange
- */
-router.post('/asset-declarations', async (req, res) => {
-    try {
-        const { userId, exchange, fundedAssets, initialBalances } = req.body;
-
-        if (!userId || !exchange || !fundedAssets) {
-            return res.status(400).json({
-                success: false,
-                error: 'Missing required fields: userId, exchange, fundedAssets'
-            });
-        }
-
-        const result = await AssetDeclarationService.saveDeclaration(
-            userId,
-            exchange,
-            fundedAssets,
-            initialBalances
-        );
-
-        res.json({
-            success: true,
-            data: result
-        });
-    } catch (error) {
-        systemLogger.error('Failed to save asset declaration', {
-            exchange: req.body.exchange,
-            error: error.message
-        });
-
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
-    }
-});
-
-/**
- * GET /api/v1/currency-swap/asset-declarations
- * Get all asset declarations for a user
- */
-router.get('/asset-declarations', async (req, res) => {
-    try {
-        const userId = req.query.userId || 1;
-        const activeOnly = req.query.activeOnly !== 'false';
-
-        const declarations = await AssetDeclarationService.getUserDeclarations(userId, activeOnly);
-
-        res.json({
-            success: true,
-            data: {
-                declarations,
-                count: declarations.length
-            }
-        });
-    } catch (error) {
-        systemLogger.error('Failed to get asset declarations', {
-            userId: req.query.userId,
-            error: error.message
-        });
-
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
-    }
-});
-
-/**
- * GET /api/v1/currency-swap/asset-declarations/summary
- * Get summary of user's asset declarations
- */
-router.get('/asset-declarations/summary', async (req, res) => {
-    try {
-        const userId = req.query.userId || 1;
-
-        const summary = await AssetDeclarationService.getDeclarationSummary(userId);
-
-        res.json({
-            success: true,
-            data: summary
-        });
-    } catch (error) {
-        systemLogger.error('Failed to get declaration summary', {
-            userId: req.query.userId,
-            error: error.message
-        });
-
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
-    }
-});
-
-/**
- * DELETE /api/v1/currency-swap/asset-declarations/:exchange
- * Delete asset declaration for an exchange
- */
-router.delete('/asset-declarations/:exchange', async (req, res) => {
-    try {
-        const { exchange } = req.params;
-        const userId = req.query.userId || 1;
-
-        const result = await AssetDeclarationService.deleteDeclaration(userId, exchange);
-
-        res.json({
-            success: result.success,
-            message: result.message
-        });
-    } catch (error) {
-        systemLogger.error('Failed to delete asset declaration', {
-            exchange: req.params.exchange,
-            error: error.message
-        });
-
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
-    }
-});
+// NOTE: Asset declaration system replaced by tickbox system (selected_exchanges + selected_currencies)
+// All path generation now uses settings-based tickbox selections instead of manual asset declarations
 
 // ═══════════════════════════════════════════════════════════════════════
 // NEW: PATH GENERATION ENDPOINTS

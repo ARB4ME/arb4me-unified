@@ -1,8 +1,7 @@
 // Path Generator Service
-// Auto-generates ALL possible currency swap paths from user's declared assets
+// Auto-generates ALL possible currency swap paths from user's selected exchanges + currencies (tickbox system)
 // This is the "smart" feature that beats competitor platforms (no manual path creation)
 
-const AssetDeclaration = require('../../models/AssetDeclaration');
 const CurrencySwapSettings = require('../../models/CurrencySwapSettings');
 const { logger } = require('../../utils/logger');
 
@@ -17,28 +16,44 @@ class PathGeneratorService {
         try {
             logger.info(`Generating swap paths for user ${userId}`);
 
-            // Get user's settings
+            // Get user's settings (includes selected_exchanges and selected_currencies from tickboxes)
             const settings = await CurrencySwapSettings.getOrCreate(userId);
 
-            // Get user's funded assets
-            const fundedAssets = await AssetDeclaration.getAllFundedAssets(userId);
+            // Parse selected exchanges and currencies from settings
+            const selectedExchanges = typeof settings.selected_exchanges === 'string'
+                ? JSON.parse(settings.selected_exchanges)
+                : (settings.selected_exchanges || []);
 
-            if (fundedAssets.uniqueAssets.length === 0) {
-                logger.warn(`User ${userId} has no declared assets`);
+            const selectedCurrencies = typeof settings.selected_currencies === 'string'
+                ? JSON.parse(settings.selected_currencies)
+                : (settings.selected_currencies || []);
+
+            // Validate user has made selections
+            if (selectedExchanges.length === 0 || selectedCurrencies.length === 0) {
+                logger.warn(`User ${userId} has no selected exchanges or currencies`, {
+                    exchanges: selectedExchanges.length,
+                    currencies: selectedCurrencies.length
+                });
                 return [];
             }
 
+            // Build assetsByExchange object (tickbox system: all selected currencies available on all selected exchanges)
+            const assetsByExchange = {};
+            selectedExchanges.forEach(exchange => {
+                assetsByExchange[exchange] = [...selectedCurrencies]; // Each exchange gets all selected currencies
+            });
+
             // Generate all possible paths
             const paths = this._generatePathCombinations(
-                fundedAssets.byExchange,
+                assetsByExchange,
                 settings,
                 options
             );
 
             logger.info(`Generated ${paths.length} possible swap paths`, {
                 userId,
-                exchanges: Object.keys(fundedAssets.byExchange).length,
-                assets: fundedAssets.uniqueAssets.length
+                exchanges: selectedExchanges.length,
+                currencies: selectedCurrencies.length
             });
 
             return paths;
@@ -281,12 +296,22 @@ class PathGeneratorService {
     static async getPathStatistics(userId) {
         try {
             const paths = await this.generateAllPaths(userId);
-            const fundedAssets = await AssetDeclaration.getAllFundedAssets(userId);
+
+            // Get user's settings for selected exchanges and currencies
+            const settings = await CurrencySwapSettings.getOrCreate(userId);
+
+            const selectedExchanges = typeof settings.selected_exchanges === 'string'
+                ? JSON.parse(settings.selected_exchanges)
+                : (settings.selected_exchanges || []);
+
+            const selectedCurrencies = typeof settings.selected_currencies === 'string'
+                ? JSON.parse(settings.selected_currencies)
+                : (settings.selected_currencies || []);
 
             const stats = {
                 totalPaths: paths.length,
-                totalExchanges: Object.keys(fundedAssets.byExchange).length,
-                totalAssets: fundedAssets.uniqueAssets.length,
+                totalExchanges: selectedExchanges.length,
+                totalAssets: selectedCurrencies.length,
 
                 // Count by source exchange
                 bySourceExchange: {},
