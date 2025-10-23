@@ -320,7 +320,6 @@
                 <div class="toggle-switch" id="autoTradingToggle">
                     <div class="toggle-knob"></div>
                 </div>
-                <button onclick="openRiskSettings()" class="btn">⚙️ Risk Settings</button>
                 <button onclick="window.location.href='/'" class="btn btn-danger">← Return</button>
             </div>
         </div>
@@ -419,6 +418,45 @@
 
             <!-- Right Column -->
             <div>
+                <!-- Risk Settings (Always Visible) -->
+                <div class="card">
+                    <h3 style="color: #ff6b6b;">⚙️ Risk Settings</h3>
+                    <div class="alert alert-warning" style="background: rgba(255, 107, 107, 0.1); border-color: #ff6b6b;">
+                        <strong>⚠️ Important:</strong> These settings control your trading limits and risk exposure.
+                    </div>
+
+                    <div class="form-group">
+                        <label>Minimum Net Profit Threshold (%)</label>
+                        <input type="number" id="thresholdPercent" min="0.1" max="10" step="0.1" value="0.5" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: white;">
+                        <small style="color: #888;">Minimum profit percentage AFTER all fees to execute trade</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Max Trade Amount (USDT)</label>
+                        <input type="number" id="maxTradeAmountUsdt" min="10" max="100000" step="10" value="5000" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: white;">
+                        <small style="color: #888;">Maximum amount per trade (in USDT equivalent)</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Daily Swap Limit</label>
+                        <input type="number" id="dailySwapLimit" min="1" max="1000" step="1" value="50" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: white;">
+                        <small style="color: #888;">Maximum number of trades per day</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                            <input type="checkbox" id="enableStopLoss" style="width: 20px; height: 20px;">
+                            <span>Enable Stop-Loss Protection</span>
+                        </label>
+                        <small style="color: #888;">Stop trading if daily loss exceeds threshold</small>
+                    </div>
+
+                    <div style="text-align: center; margin-top: 15px;">
+                        <button onclick="saveRiskSettings()" class="btn btn-success" style="width: 100%;">💾 Save Risk Settings</button>
+                        <div id="riskSaveStatus" style="margin-top: 10px; color: #888; font-size: 0.9rem;">Settings loaded...</div>
+                    </div>
+                </div>
+
                 <!-- Path Statistics (NEW!) -->
                 <div class="card">
                     <h3>📊 Path Statistics</h3>
@@ -523,54 +561,6 @@
         </div>
     </div>
 
-    <!-- Risk Settings Modal (Enhanced) -->
-    <div id="riskSettingsModal" class="modal">
-        <div class="modal-content">
-            <h3 style="color: #00d4ff; margin-bottom: 20px;">⚙️ Currency Swap Risk Settings</h3>
-
-            <div class="form-group">
-                <label>Minimum Net Profit Threshold (%)</label>
-                <input type="number" id="thresholdPercent" min="0.1" max="10" step="0.1" value="0.5">
-                <small style="color: #888;">Profit AFTER all fees</small>
-            </div>
-
-            <div class="form-group">
-                <label>Max Trade Amount (USDT)</label>
-                <input type="number" id="maxTradeAmountUSDT" min="100" max="100000" step="100" value="5000">
-            </div>
-
-            <div class="form-group">
-                <label>Max Balance % Per Trade</label>
-                <input type="number" id="maxBalancePercentage" min="1" max="50" step="1" value="10">
-                <small style="color: #888;">Maximum % of balance to use per trade</small>
-            </div>
-
-            <div class="form-group">
-                <label>Scan Interval (seconds)</label>
-                <input type="number" id="scanIntervalSeconds" min="30" max="300" step="10" value="60">
-                <small style="color: #888;">How often to scan for opportunities in auto-mode</small>
-            </div>
-
-            <div class="form-group">
-                <label>Min Reserve % (Safety Buffer)</label>
-                <input type="number" id="minReservePercent" min="0" max="20" step="1" value="5">
-                <small style="color: #888;">Keep this % in reserve, never trade it</small>
-            </div>
-
-            <div class="form-group">
-                <label style="display: flex; align-items: center; gap: 10px;">
-                    <input type="checkbox" id="balanceCheckRequired" checked style="width: auto;">
-                    Require Balance Check Before Trading
-                </label>
-            </div>
-
-            <div style="display: flex; gap: 10px; margin-top: 20px;">
-                <button onclick="saveRiskSettings()" class="btn btn-success" style="flex: 1;">Save Settings</button>
-                <button onclick="closeRiskSettings()" class="btn btn-danger" style="flex: 1;">Cancel</button>
-            </div>
-        </div>
-    </div>
-
     <!-- Path Details Modal -->
     <div id="pathDetailsModal" class="modal">
         <div class="modal-content">
@@ -607,8 +597,11 @@
             console.log('⏳ Step 4/4: Loading path statistics...');
             await loadPathStats();
 
-            console.log('⏳ Step 5/5: Loading XRP deposit inputs...');
+            console.log('⏳ Step 5/6: Loading XRP deposit inputs...');
             await populateXrpDepositInputs();
+
+            console.log('⏳ Step 6/6: Loading risk settings...');
+            await loadRiskSettings();
 
             console.log('✅ Currency Swap initialization complete!');
 
@@ -1146,16 +1139,7 @@
             alert('🚀 Execution will be implemented in next phase!\n\nThis will execute:\n' + currentPath.description);
         }
 
-        // Risk Settings Modal
-        function openRiskSettings() {
-            document.getElementById('riskSettingsModal').style.display = 'flex';
-            loadRiskSettings();
-        }
-
-        function closeRiskSettings() {
-            document.getElementById('riskSettingsModal').style.display = 'none';
-        }
-
+        // Risk Settings (Inline Form)
         async function loadRiskSettings() {
             try {
                 const response = await fetch(`${API_BASE}/settings?userId=${USER_ID}`);
@@ -1164,27 +1148,40 @@
                 if (data.success) {
                     const s = data.data;
                     document.getElementById('thresholdPercent').value = s.threshold_percent || 0.5;
-                    document.getElementById('maxTradeAmountUSDT').value = s.max_trade_amount_usdt || 5000;
-                    document.getElementById('maxBalancePercentage').value = s.max_balance_percentage || 10;
-                    document.getElementById('scanIntervalSeconds').value = s.scan_interval_seconds || 60;
-                    document.getElementById('minReservePercent').value = s.min_balance_reserve_percent || 5;
-                    document.getElementById('balanceCheckRequired').checked = s.balance_check_required !== false;
+                    document.getElementById('maxTradeAmountUsdt').value = s.max_trade_amount_usdt || 5000;
+                    document.getElementById('dailySwapLimit').value = s.daily_swap_limit || 50;
+                    document.getElementById('enableStopLoss').checked = s.enable_stop_loss || false;
+
+                    const status = document.getElementById('riskSaveStatus');
+                    if (status) {
+                        status.textContent = '✅ Settings loaded';
+                        status.style.color = '#00ff88';
+                    }
                 }
             } catch (error) {
-                console.error('Failed to load settings:', error);
+                console.error('Failed to load risk settings:', error);
+                const status = document.getElementById('riskSaveStatus');
+                if (status) {
+                    status.textContent = '❌ Failed to load settings';
+                    status.style.color = '#ff6b6b';
+                }
             }
         }
 
         async function saveRiskSettings() {
             try {
+                const status = document.getElementById('riskSaveStatus');
+                if (status) {
+                    status.textContent = '💾 Saving...';
+                    status.style.color = '#ffb347';
+                }
+
                 const settings = {
                     userId: USER_ID,
                     thresholdPercent: parseFloat(document.getElementById('thresholdPercent').value),
-                    maxTradeAmountUSDT: parseFloat(document.getElementById('maxTradeAmountUSDT').value),
-                    maxBalancePercentage: parseFloat(document.getElementById('maxBalancePercentage').value),
-                    scanIntervalSeconds: parseInt(document.getElementById('scanIntervalSeconds').value),
-                    minReservePercent: parseFloat(document.getElementById('minReservePercent').value),
-                    balanceCheckRequired: document.getElementById('balanceCheckRequired').checked
+                    maxTradeAmountUsdt: parseFloat(document.getElementById('maxTradeAmountUsdt').value),
+                    dailySwapLimit: parseInt(document.getElementById('dailySwapLimit').value),
+                    enableStopLoss: document.getElementById('enableStopLoss').checked
                 };
 
                 const response = await fetch(`${API_BASE}/settings`, {
@@ -1195,15 +1192,24 @@
 
                 const data = await response.json();
                 if (data.success) {
-                    alert('✅ Settings saved successfully!');
-                    closeRiskSettings();
+                    if (status) {
+                        status.textContent = '✅ Settings saved successfully!';
+                        status.style.color = '#00ff88';
+                    }
                     await loadPaths(); // Reload paths with new settings
                 } else {
-                    alert('❌ Failed to save settings: ' + data.error);
+                    if (status) {
+                        status.textContent = '❌ Failed to save: ' + data.error;
+                        status.style.color = '#ff6b6b';
+                    }
                 }
             } catch (error) {
-                console.error('Failed to save settings:', error);
-                alert('❌ Error saving settings');
+                console.error('Failed to save risk settings:', error);
+                const status = document.getElementById('riskSaveStatus');
+                if (status) {
+                    status.textContent = '❌ Error saving settings';
+                    status.style.color = '#ff6b6b';
+                }
             }
         }
 
