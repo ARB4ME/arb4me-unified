@@ -564,10 +564,22 @@
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', async function() {
             console.log('💱 Currency Swap v2 loaded');
+            console.log('📍 API Base:', API_BASE);
+            console.log('👤 User ID:', USER_ID);
+
+            console.log('⏳ Step 1/4: Loading stats...');
             await loadStats();
+
+            console.log('⏳ Step 2/4: Loading setup (exchanges & currencies)...');
             await loadSetup();
+
+            console.log('⏳ Step 3/4: Loading swap paths...');
             await loadPaths();
+
+            console.log('⏳ Step 4/4: Loading path statistics...');
             await loadPathStats();
+
+            console.log('✅ Currency Swap initialization complete!');
 
             // Auto-trading toggle
             const toggle = document.getElementById('autoTradingToggle');
@@ -580,37 +592,53 @@
         // Load overall stats
         async function loadStats() {
             try {
+                console.log('📊 Fetching stats from:', `${API_BASE}/stats?userId=${USER_ID}`);
                 const response = await fetch(`${API_BASE}/stats?userId=${USER_ID}`);
                 const data = await response.json();
+
+                console.log('📊 Stats response:', data);
 
                 if (data.success) {
                     document.getElementById('swapsToday').textContent = data.data.dailySwapsToday || 0;
                     if (data.data.autoTradingEnabled) {
                         document.getElementById('autoTradingToggle').classList.add('active');
+                        console.log('🟢 Auto-trading is ENABLED');
+                    } else {
+                        console.log('🔴 Auto-trading is DISABLED');
                     }
+                    console.log('✅ Stats loaded:', {
+                        swapsToday: data.data.dailySwapsToday || 0,
+                        totalSwaps: data.data.totalSwaps || 0,
+                        autoTrading: data.data.autoTradingEnabled
+                    });
                 }
             } catch (error) {
-                console.error('Failed to load stats:', error);
+                console.error('❌ Failed to load stats:', error);
             }
         }
 
         // Load setup (selected exchanges and currencies)
         async function loadSetup() {
             try {
+                console.log('⚙️ Fetching setup from:', `${API_BASE}/settings?userId=${USER_ID}`);
                 const response = await fetch(`${API_BASE}/settings?userId=${USER_ID}`);
                 const data = await response.json();
+
+                console.log('⚙️ Setup response:', data);
 
                 if (data.success) {
                     const s = data.data;
 
                     // Load selected exchanges
                     const selectedExchanges = s.selected_exchanges || [];
+                    console.log('🏦 Selected exchanges:', selectedExchanges);
                     document.querySelectorAll('#exchangeCheckboxes input[type="checkbox"]').forEach(cb => {
                         cb.checked = selectedExchanges.includes(cb.value);
                     });
 
                     // Load selected currencies
                     const selectedCurrencies = s.selected_currencies || [];
+                    console.log('💰 Selected currencies:', selectedCurrencies);
                     document.querySelectorAll('#currencyCheckboxes input[type="checkbox"]').forEach(cb => {
                         cb.checked = selectedCurrencies.includes(cb.value);
                     });
@@ -618,9 +646,14 @@
                     // Update stats
                     document.getElementById('totalExchanges').textContent = selectedExchanges.length;
                     document.getElementById('totalAssets').textContent = selectedCurrencies.length;
+
+                    console.log('✅ Setup loaded:', {
+                        exchanges: selectedExchanges.length,
+                        currencies: selectedCurrencies.length
+                    });
                 }
             } catch (error) {
-                console.error('Failed to load setup:', error);
+                console.error('❌ Failed to load setup:', error);
             }
         }
 
@@ -634,6 +667,11 @@
                 // Get selected currencies
                 const currencyCheckboxes = document.querySelectorAll('#currencyCheckboxes input[type="checkbox"]:checked');
                 const selectedCurrencies = Array.from(currencyCheckboxes).map(cb => cb.value);
+
+                console.log('💾 Saving setup:', {
+                    exchanges: selectedExchanges,
+                    currencies: selectedCurrencies
+                });
 
                 // Update UI
                 document.getElementById('totalExchanges').textContent = selectedExchanges.length;
@@ -656,20 +694,24 @@
                 });
 
                 const result = await response.json();
+                console.log('💾 Save response:', result);
 
                 if (result.success) {
                     saveStatus.textContent = '✅ Auto-saved';
                     saveStatus.style.color = '#00ff88';
+                    console.log('✅ Setup saved successfully!');
 
                     // Reload paths with new selections
+                    console.log('🔄 Regenerating paths with new selections...');
                     await loadPaths();
                     await loadPathStats();
                 } else {
                     saveStatus.textContent = '❌ Save failed';
                     saveStatus.style.color = '#ff6b6b';
+                    console.error('❌ Save failed:', result.error);
                 }
             } catch (error) {
-                console.error('Failed to save setup:', error);
+                console.error('❌ Failed to save setup:', error);
                 document.getElementById('saveStatus').textContent = '❌ Save failed';
                 document.getElementById('saveStatus').style.color = '#ff6b6b';
             }
@@ -685,16 +727,22 @@
                 if (sourceAsset) url += `&sourceAsset=${sourceAsset}`;
                 if (destAsset) url += `&destAsset=${destAsset}`;
 
+                console.log('🔄 Fetching paths from:', url);
                 const response = await fetch(url);
                 const data = await response.json();
 
+                console.log('🔄 Paths response:', data);
+
                 if (data.success) {
                     document.getElementById('totalPaths').textContent = data.data.count;
+                    console.log(`✅ Found ${data.data.count} possible swap paths`);
 
                     const listDiv = document.getElementById('pathsList');
                     if (data.data.paths.length === 0) {
-                        listDiv.innerHTML = '<p style="color: #888;">No paths available. Declare assets on 2+ exchanges to generate paths.</p>';
+                        listDiv.innerHTML = '<p style="color: #888;">No paths available. Select 2+ exchanges and currencies to generate paths.</p>';
+                        console.log('⚠️ No paths generated. Need 2+ exchanges and currencies selected.');
                     } else {
+                        console.log('📋 Displaying paths:', data.data.paths.map(p => p.description));
                         listDiv.innerHTML = data.data.paths.map((path, idx) => `
                             <div class="path-card">
                                 <div class="path-header">
@@ -716,24 +764,34 @@
                     }
                 }
             } catch (error) {
-                console.error('Failed to load paths:', error);
+                console.error('❌ Failed to load paths:', error);
             }
         }
 
         // Load path statistics
         async function loadPathStats() {
             try {
+                console.log('📊 Fetching path statistics from:', `${API_BASE}/paths/stats?userId=${USER_ID}`);
                 const response = await fetch(`${API_BASE}/paths/stats?userId=${USER_ID}`);
                 const data = await response.json();
+
+                console.log('📊 Path stats response:', data);
 
                 if (data.success) {
                     const stats = data.data;
                     const statsDiv = document.getElementById('pathStats');
 
                     if (stats.totalPaths === 0) {
-                        statsDiv.innerHTML = '<p style="color: #888;">Declare assets to see statistics...</p>';
+                        statsDiv.innerHTML = '<p style="color: #888;">Select exchanges & currencies to see statistics...</p>';
+                        console.log('⚠️ No path statistics available yet');
                         return;
                     }
+
+                    console.log('✅ Path statistics loaded:', {
+                        totalPaths: stats.totalPaths,
+                        exchanges: Object.keys(stats.bySourceExchange).length,
+                        assetPairs: Object.keys(stats.byAssetPair).length
+                    });
 
                     statsDiv.innerHTML = `
                         <div style="margin-bottom: 15px;">
@@ -767,10 +825,17 @@
 
         // Show path details
         async function showPathDetails(path) {
+            console.log('🔍 Showing path details:', path.description);
+            console.log('📊 Path info:', path);
             currentPath = path;
 
             // Calculate trade amount
             try {
+                console.log('💰 Calculating trade amount for:', {
+                    sourceExchange: path.sourceExchange,
+                    sourceAsset: path.sourceAsset
+                });
+
                 const response = await fetch(`${API_BASE}/calculate-trade-amount`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -782,6 +847,7 @@
                 });
 
                 const data = await response.json();
+                console.log('💰 Trade amount response:', data);
 
                 const content = document.getElementById('pathDetailsContent');
                 content.innerHTML = `
@@ -919,6 +985,8 @@
             const toggle = document.getElementById('autoTradingToggle');
             const enabled = toggle.classList.contains('active');
 
+            console.log(`🔄 Toggling auto-trading to: ${enabled ? 'ON' : 'OFF'}`);
+
             try {
                 const response = await fetch(`${API_BASE}/settings/toggle-auto`, {
                     method: 'POST',
@@ -927,11 +995,15 @@
                 });
 
                 const data = await response.json();
+                console.log('🔄 Toggle response:', data);
+
                 if (data.success) {
-                    console.log(`Auto-trading ${enabled ? 'enabled' : 'disabled'}`);
+                    console.log(`✅ Auto-trading ${enabled ? 'ENABLED' : 'DISABLED'} successfully!`);
+                } else {
+                    console.error('❌ Failed to toggle auto-trading:', data.error);
                 }
             } catch (error) {
-                console.error('Failed to toggle auto-trading:', error);
+                console.error('❌ Failed to toggle auto-trading:', error);
             }
         }
     </script>
