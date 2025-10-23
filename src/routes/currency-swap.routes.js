@@ -13,6 +13,7 @@ const currencySwapService = require('../services/currencySwapExecutionService');
 const PathGeneratorService = require('../services/currency-swap/PathGeneratorService');
 const RiskCalculatorService = require('../services/currency-swap/RiskCalculatorService');
 const CurrencySwapScannerService = require('../services/currency-swap/CurrencySwapScannerService');
+const CurrencySwapExecutionService = require('../services/currency-swap/CurrencySwapExecutionService');
 
 // Import database query function for manual table initialization
 const { query } = require('../database/connection');
@@ -685,6 +686,59 @@ router.get('/scan', async (req, res) => {
     } catch (error) {
         systemLogger.error('Currency Swap scan failed', {
             userId: req.query.userId,
+            error: error.message
+        });
+
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * POST /api/v1/currency-swap/execute
+ * Execute a currency swap opportunity (live trading)
+ */
+router.post('/execute', async (req, res) => {
+    try {
+        const { userId, path, amount } = req.body;
+
+        if (!userId || !path || !amount) {
+            return res.status(400).json({
+                success: false,
+                error: 'Missing required fields: userId, path, amount'
+            });
+        }
+
+        systemLogger.trading('Currency Swap execution initiated', {
+            userId,
+            pathId: path.id,
+            amount
+        });
+
+        const result = await CurrencySwapExecutionService.executePath(userId, path, amount);
+
+        if (result.success) {
+            systemLogger.trading('Currency Swap execution successful', {
+                userId,
+                pathId: path.id,
+                profit: result.execution.profit,
+                profitPercent: result.execution.profitPercent
+            });
+        } else {
+            systemLogger.error('Currency Swap execution failed', {
+                userId,
+                pathId: path.id,
+                error: result.error
+            });
+        }
+
+        res.json(result);
+
+    } catch (error) {
+        systemLogger.error('Currency Swap execution error', {
+            userId: req.body.userId,
             error: error.message
         });
 

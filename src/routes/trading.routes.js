@@ -1536,7 +1536,8 @@ const LUNO_CONFIG = {
         ticker: '/api/1/ticker',
         tickers: '/api/1/tickers',
         order: '/api/1/marketorder',
-        orderbook: '/api/1/orderbook_top'
+        orderbook: '/api/1/orderbook_top',
+        withdraw: '/api/1/send'
     }
 };
 
@@ -2046,6 +2047,136 @@ router.post('/luno/sell-order', tradingRateLimit, optionalAuth, [
     }
 }));
 
+// LUNO Crypto Withdraw Endpoint
+router.post('/luno/withdraw', tradingRateLimit, optionalAuth, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('currency').notEmpty().withMessage('Currency is required'),
+    body('amount').isFloat({ min: 0.000001 }).withMessage('Amount must be a positive number'),
+    body('address').notEmpty().withMessage('Withdrawal address is required'),
+    body('tag').optional().isString().withMessage('Tag must be a string')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const { apiKey, apiSecret, currency, amount, address, tag } = req.body;
+
+    try {
+        systemLogger.trading('LUNO crypto withdrawal initiated', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'luno',
+            endpoint: 'withdraw',
+            currency,
+            amount,
+            address: address.substring(0, 10) + '...'
+        });
+
+        const auth = createLunoAuth(apiKey, apiSecret);
+
+        const withdrawData = {
+            type: currency.toUpperCase(),
+            amount: amount.toString(),
+            address: address
+        };
+
+        // Add tag/memo if provided (for XRP, XLM, etc.)
+        if (tag) {
+            withdrawData.destination_tag = tag;
+        }
+
+        const response = await fetch(`${LUNO_CONFIG.baseUrl}${LUNO_CONFIG.endpoints.withdraw}`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Basic ${auth}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(withdrawData)
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+
+        const withdrawalResult = await response.json();
+
+        systemLogger.trading('LUNO crypto withdrawal initiated successfully', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'luno',
+            withdrawalId: withdrawalResult.withdrawal_id,
+            currency,
+            amount
+        });
+
+        // Record withdrawal attempt in database
+        if (req.user?.id) {
+            await query(
+                'INSERT INTO user_activity (user_id, activity_type, activity_details, ip_address, user_agent) VALUES ($1, $2, $3, $4, $5)',
+                [req.user.id, 'luno_crypto_withdrawal', {
+                    withdrawalId: withdrawalResult.withdrawal_id,
+                    currency,
+                    amount,
+                    address: address.substring(0, 10) + '...',
+                    timestamp: new Date()
+                }, req.ip, req.get('User-Agent')]
+            );
+        }
+
+        // Notify admins of withdrawal activity
+        broadcastToAdmins('user_crypto_withdrawal', {
+            userId: req.user?.id || 'anonymous',
+            userName: req.user ? `${req.user.first_name} ${req.user.last_name}` : 'Anonymous',
+            exchange: 'LUNO',
+            currency,
+            amount,
+            address: address.substring(0, 10) + '...',
+            withdrawalId: withdrawalResult.withdrawal_id,
+            timestamp: new Date()
+        });
+
+        res.json({
+            success: true,
+            data: {
+                withdrawal: {
+                    id: withdrawalResult.withdrawal_id,
+                    currency,
+                    amount,
+                    address: address.substring(0, 10) + '...',
+                    timestamp: new Date()
+                }
+            },
+            message: 'LUNO crypto withdrawal initiated successfully'
+        });
+
+    } catch (error) {
+        systemLogger.error('LUNO crypto withdrawal failed', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'luno',
+            error: error.message,
+            currency,
+            amount
+        });
+
+        // Record failed withdrawal attempt
+        if (req.user?.id) {
+            await query(
+                'INSERT INTO user_activity (user_id, activity_type, activity_details, ip_address, user_agent) VALUES ($1, $2, $3, $4, $5)',
+                [req.user.id, 'luno_crypto_withdrawal_failed', {
+                    currency,
+                    amount,
+                    address: address.substring(0, 10) + '...',
+                    error: error.message,
+                    timestamp: new Date()
+                }, req.ip, req.get('User-Agent')]
+            );
+        }
+
+        throw new APIError(`LUNO crypto withdrawal failed: ${error.message}`, 500, 'LUNO_WITHDRAW_ERROR');
+    }
+}));
+
 // LUNO Triangular Arbitrage Endpoint - Execute single triangular trade step
 router.post('/luno/triangular', tradingRateLimit, optionalAuth, [
     body('apiKey').notEmpty().withMessage('API key is required'),
@@ -2174,12 +2305,13 @@ const VALR_CONFIG = {
     baseUrl: 'https://api.valr.com',
     endpoints: {
         balance: '/v1/account/balances',
-        ticker: '/v1/public/marketsummary', 
+        ticker: '/v1/public/marketsummary',
         simpleBuyOrder: '/v1/orders/market',  // Use working market order endpoint
         simpleSellOrder: '/v1/orders/market', // Same endpoint for both buy and sell
         pairs: '/v1/public/pairs',
         orderStatus: '/v1/orders/:orderId',
-        orderBook: '/v1/public/:pair/orderbook'
+        orderBook: '/v1/public/:pair/orderbook',
+        cryptoWithdraw: '/v1/wallet/crypto/withdraw'
     }
 };
 
@@ -2830,6 +2962,133 @@ router.post('/valr/sell-order', tradingRateLimit, optionalAuth, [
         );
         
         throw new APIError(`VALR sell order failed: ${error.message}`, 500, 'VALR_SELL_ORDER_ERROR');
+    }
+}));
+
+// VALR Crypto Withdraw Endpoint
+router.post('/valr/withdraw', tradingRateLimit, optionalAuth, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('currency').notEmpty().withMessage('Currency is required'),
+    body('amount').isFloat({ min: 0.000001 }).withMessage('Amount must be a positive number'),
+    body('address').notEmpty().withMessage('Withdrawal address is required'),
+    body('tag').optional().isString().withMessage('Tag must be a string')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const { apiKey, apiSecret, currency, amount, address, tag } = req.body;
+
+    try {
+        systemLogger.trading('VALR crypto withdrawal initiated', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'valr',
+            endpoint: 'withdraw',
+            currency,
+            amount,
+            address: address.substring(0, 10) + '...' // Partial address for security
+        });
+
+        // Prepare withdrawal payload
+        const withdrawalPayload = {
+            currency: currency.toUpperCase(),
+            amount: parseFloat(amount).toString(),
+            address: address
+        };
+
+        // Add tag/memo if provided (for XRP, XLM, etc.)
+        if (tag) {
+            withdrawalPayload.paymentReference = tag;
+        }
+
+        // Call VALR API
+        const withdrawalData = await makeValrRequest(
+            VALR_CONFIG.endpoints.cryptoWithdraw,
+            'POST',
+            apiKey,
+            apiSecret,
+            withdrawalPayload
+        );
+
+        // Log successful withdrawal
+        systemLogger.trading('VALR crypto withdrawal initiated successfully', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'valr',
+            withdrawalId: withdrawalData.id,
+            currency,
+            amount,
+            status: withdrawalData.status
+        });
+
+        // Record withdrawal attempt in database
+        if (req.user?.id) {
+            await query(
+                'INSERT INTO user_activity (user_id, activity_type, activity_details, ip_address, user_agent) VALUES ($1, $2, $3, $4, $5)',
+                [req.user.id, 'valr_crypto_withdrawal', {
+                    withdrawalId: withdrawalData.id,
+                    currency,
+                    amount,
+                    address: address.substring(0, 10) + '...',
+                    status: withdrawalData.status,
+                    timestamp: new Date()
+                }, req.ip, req.get('User-Agent')]
+            );
+        }
+
+        // Notify admins of withdrawal activity
+        broadcastToAdmins('user_crypto_withdrawal', {
+            userId: req.user?.id || 'anonymous',
+            userName: req.user ? `${req.user.first_name} ${req.user.last_name}` : 'Anonymous',
+            exchange: 'VALR',
+            currency,
+            amount,
+            address: address.substring(0, 10) + '...',
+            withdrawalId: withdrawalData.id,
+            status: withdrawalData.status,
+            timestamp: new Date()
+        });
+
+        res.json({
+            success: true,
+            data: {
+                withdrawal: {
+                    id: withdrawalData.id,
+                    currency,
+                    amount,
+                    address: address.substring(0, 10) + '...',
+                    status: withdrawalData.status,
+                    createdAt: withdrawalData.createdAt || new Date()
+                }
+            },
+            message: 'VALR crypto withdrawal initiated successfully'
+        });
+
+    } catch (error) {
+        systemLogger.error('VALR crypto withdrawal failed', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'valr',
+            error: error.message,
+            currency,
+            amount
+        });
+
+        // Record failed withdrawal attempt
+        if (req.user?.id) {
+            await query(
+                'INSERT INTO user_activity (user_id, activity_type, activity_details, ip_address, user_agent) VALUES ($1, $2, $3, $4, $5)',
+                [req.user.id, 'valr_crypto_withdrawal_failed', {
+                    currency,
+                    amount,
+                    address: address.substring(0, 10) + '...',
+                    error: error.message,
+                    timestamp: new Date()
+                }, req.ip, req.get('User-Agent')]
+            );
+        }
+
+        throw new APIError(`VALR crypto withdrawal failed: ${error.message}`, 500, 'VALR_WITHDRAW_ERROR');
     }
 }));
 
@@ -4561,7 +4820,8 @@ const BINANCE_PROXY_CONFIG = {
         ticker: '/api/v3/ticker/price',
         ticker24hr: '/api/v3/ticker/24hr',
         order: '/api/v3/order',
-        time: '/api/v3/time'
+        time: '/api/v3/time',
+        withdraw: '/sapi/v1/capital/withdraw/apply'
     }
 };
 
@@ -4997,6 +5257,144 @@ router.post('/binance/sell-order', tradingRateLimit, optionalAuth, [
         });
         
         throw new APIError(`Binance sell order failed: ${error.message}`, 500, 'BINANCE_SELL_ORDER_ERROR');
+    }
+}));
+
+// Binance Crypto Withdraw Endpoint
+router.post('/binance/withdraw', tradingRateLimit, optionalAuth, [
+    body('apiKey').notEmpty().withMessage('API key is required'),
+    body('apiSecret').notEmpty().withMessage('API secret is required'),
+    body('currency').notEmpty().withMessage('Currency is required'),
+    body('amount').isFloat({ min: 0.000001 }).withMessage('Amount must be a positive number'),
+    body('address').notEmpty().withMessage('Withdrawal address is required'),
+    body('tag').optional().isString().withMessage('Tag must be a string')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR');
+    }
+
+    const { apiKey, apiSecret, currency, amount, address, tag } = req.body;
+
+    try {
+        systemLogger.trading('Binance crypto withdrawal initiated', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'binance',
+            endpoint: 'withdraw',
+            currency,
+            amount,
+            address: address.substring(0, 10) + '...'
+        });
+
+        const timestamp = Date.now();
+        const withdrawData = {
+            coin: currency.toUpperCase(),
+            address: address,
+            amount: amount.toString(),
+            timestamp: timestamp.toString()
+        };
+
+        // Add tag/memo if provided (for XRP, XLM, etc.)
+        if (tag) {
+            withdrawData.addressTag = tag;
+        }
+
+        const queryString = new URLSearchParams(withdrawData).toString();
+        const signature = crypto
+            .createHmac('sha256', apiSecret)
+            .update(queryString)
+            .digest('hex');
+
+        withdrawData.signature = signature;
+
+        const response = await fetch(`${BINANCE_PROXY_CONFIG.baseUrl}${BINANCE_PROXY_CONFIG.endpoints.withdraw}`, {
+            method: 'POST',
+            headers: {
+                'X-MBX-APIKEY': apiKey,
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: new URLSearchParams(withdrawData).toString()
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+
+        const withdrawalResult = await response.json();
+
+        systemLogger.trading('Binance crypto withdrawal initiated successfully', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'binance',
+            withdrawalId: withdrawalResult.id,
+            currency,
+            amount
+        });
+
+        // Record withdrawal attempt in database
+        if (req.user?.id) {
+            await query(
+                'INSERT INTO user_activity (user_id, activity_type, activity_details, ip_address, user_agent) VALUES ($1, $2, $3, $4, $5)',
+                [req.user.id, 'binance_crypto_withdrawal', {
+                    withdrawalId: withdrawalResult.id,
+                    currency,
+                    amount,
+                    address: address.substring(0, 10) + '...',
+                    timestamp: new Date()
+                }, req.ip, req.get('User-Agent')]
+            );
+        }
+
+        // Notify admins of withdrawal activity
+        broadcastToAdmins('user_crypto_withdrawal', {
+            userId: req.user?.id || 'anonymous',
+            userName: req.user ? `${req.user.first_name} ${req.user.last_name}` : 'Anonymous',
+            exchange: 'BINANCE',
+            currency,
+            amount,
+            address: address.substring(0, 10) + '...',
+            withdrawalId: withdrawalResult.id,
+            timestamp: new Date()
+        });
+
+        res.json({
+            success: true,
+            data: {
+                withdrawal: {
+                    id: withdrawalResult.id,
+                    currency,
+                    amount,
+                    address: address.substring(0, 10) + '...',
+                    timestamp: new Date()
+                }
+            },
+            message: 'Binance crypto withdrawal initiated successfully'
+        });
+
+    } catch (error) {
+        systemLogger.error('Binance crypto withdrawal failed', {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'binance',
+            error: error.message,
+            currency,
+            amount
+        });
+
+        // Record failed withdrawal attempt
+        if (req.user?.id) {
+            await query(
+                'INSERT INTO user_activity (user_id, activity_type, activity_details, ip_address, user_agent) VALUES ($1, $2, $3, $4, $5)',
+                [req.user.id, 'binance_crypto_withdrawal_failed', {
+                    currency,
+                    amount,
+                    address: address.substring(0, 10) + '...',
+                    error: error.message,
+                    timestamp: new Date()
+                }, req.ip, req.get('User-Agent')]
+            );
+        }
+
+        throw new APIError(`Binance crypto withdrawal failed: ${error.message}`, 500, 'BINANCE_WITHDRAW_ERROR');
     }
 }));
 
