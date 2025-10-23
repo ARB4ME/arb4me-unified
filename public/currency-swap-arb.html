@@ -419,12 +419,12 @@
                 <div class="card">
                     <h3>🔄 Auto-Generated Swap Paths</h3>
                     <div class="alert alert-warning">
-                        These paths are automatically generated based on your asset declarations. No manual setup needed!
+                        These paths are automatically generated based on your selections. No manual setup needed!
                     </div>
 
                     <!-- Filters -->
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
-                        <select id="filterSourceAsset" onchange="loadPaths()">
+                        <select id="filterSourceAsset" onchange="saveFilters()">
                             <option value="">All Source Assets</option>
                             <option value="USDT">USDT</option>
                             <option value="USDC">USDC</option>
@@ -438,7 +438,7 @@
                             <option value="CAD">CAD</option>
                             <option value="AED">AED</option>
                         </select>
-                        <select id="filterDestAsset" onchange="loadPaths()">
+                        <select id="filterDestAsset" onchange="saveFilters()">
                             <option value="">All Dest Assets</option>
                             <option value="USDT">USDT</option>
                             <option value="USDC">USDC</option>
@@ -651,6 +651,20 @@
                         exchanges: selectedExchanges.length,
                         currencies: selectedCurrencies.length
                     });
+
+                    // Restore saved filter selections from localStorage
+                    const savedSourceFilter = localStorage.getItem('currencySwap_filterSourceAsset');
+                    const savedDestFilter = localStorage.getItem('currencySwap_filterDestAsset');
+
+                    if (savedSourceFilter) {
+                        document.getElementById('filterSourceAsset').value = savedSourceFilter;
+                        console.log('🔍 Restored source filter:', savedSourceFilter);
+                    }
+
+                    if (savedDestFilter) {
+                        document.getElementById('filterDestAsset').value = savedDestFilter;
+                        console.log('🔍 Restored dest filter:', savedDestFilter);
+                    }
                 }
             } catch (error) {
                 console.error('❌ Failed to load setup:', error);
@@ -766,6 +780,23 @@
             } catch (error) {
                 console.error('❌ Failed to load paths:', error);
             }
+        }
+
+        // Save filter selections to localStorage and reload paths
+        function saveFilters() {
+            const sourceAsset = document.getElementById('filterSourceAsset').value;
+            const destAsset = document.getElementById('filterDestAsset').value;
+
+            console.log('🔍 Saving filter selections:', { sourceAsset, destAsset });
+
+            // Save to localStorage
+            localStorage.setItem('currencySwap_filterSourceAsset', sourceAsset);
+            localStorage.setItem('currencySwap_filterDestAsset', destAsset);
+
+            console.log('✅ Filters saved, reloading paths...');
+
+            // Reload paths with new filters
+            loadPaths();
         }
 
         // Load path statistics
