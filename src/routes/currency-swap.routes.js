@@ -263,7 +263,7 @@ router.post('/execute', async (req, res) => {
             status: 'pending'
         });
 
-        systemLogger.info('Currency swap initiated', {
+        systemLogger.trading('Currency swap initiated', {
             swapId: swap.id,
             userId,
             from: fromCurrency,
@@ -382,7 +382,7 @@ router.post('/settings', async (req, res) => {
 
         const updatedSettings = await CurrencySwapSettings.update(userId, settings);
 
-        systemLogger.info('Currency swap settings updated', {
+        systemLogger.trading('Currency swap settings updated', {
             userId,
             autoTrading: settings.autoTradingEnabled
         });
@@ -421,7 +421,7 @@ router.post('/settings/toggle-auto', async (req, res) => {
 
         const settings = await CurrencySwapSettings.toggleAutoTrading(userId, enabled);
 
-        systemLogger.info(`Auto-trading ${enabled ? 'enabled' : 'disabled'}`, { userId });
+        systemLogger.trading(`Auto-trading ${enabled ? 'enabled' : 'disabled'}`, { userId });
 
         res.json({
             success: true,
