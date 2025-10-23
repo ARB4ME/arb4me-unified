@@ -1197,8 +1197,106 @@
                     return;
                 }
 
-                // Generate balance cards for each exchange
-                let html = '';
+                // Calculate totals per currency across all exchanges
+                const currencyTotals = {};
+                for (const currency of selectedCurrencies) {
+                    let totalStarting = 0;
+                    let totalCurrent = 0;
+
+                    for (const exchange of selectedExchanges) {
+                        const balanceKey = `${exchange}_${currency}`;
+                        totalStarting += parseFloat(localStorage.getItem(`${balanceKey}_starting`) || 0);
+                        totalCurrent += parseFloat(localStorage.getItem(`${balanceKey}_current`) || 0);
+                    }
+
+                    const change = totalCurrent - totalStarting;
+                    const changePercent = totalStarting > 0 ? ((change / totalStarting) * 100) : 0;
+
+                    currencyTotals[currency] = {
+                        starting: totalStarting,
+                        current: totalCurrent,
+                        change: change,
+                        changePercent: changePercent
+                    };
+                }
+
+                console.log('💰 Currency totals:', currencyTotals);
+
+                // Build HTML starting with Total Overview
+                let html = `
+                    <!-- Total Overview Section -->
+                    <div style="background: linear-gradient(135deg, rgba(0,255,136,0.1) 0%, rgba(0,212,255,0.1) 100%); padding: 20px; border-radius: 12px; margin-bottom: 25px; border: 2px solid rgba(0,255,136,0.3);">
+                        <h4 style="color: #00ff88; margin: 0 0 15px 0; display: flex; align-items: center; gap: 10px;">
+                            📊 Total Movement Across All Exchanges
+                        </h4>
+
+                        <!-- Period Tabs -->
+                        <div style="display: flex; gap: 5px; margin-bottom: 15px; background: rgba(0,0,0,0.3); padding: 5px; border-radius: 8px;">
+                            <button class="period-tab-btn active" data-period="total" style="flex: 1; padding: 8px 10px; background: rgba(0,255,136,0.15); border: 1px solid #00ff88; border-radius: 6px; color: #00ff88; cursor: pointer; font-weight: bold; font-size: 0.85rem;">
+                                All Time
+                            </button>
+                            <button class="period-tab-btn" data-period="daily" style="flex: 1; padding: 8px 10px; background: rgba(255,255,255,0.03); border: 1px solid transparent; border-radius: 6px; color: #888; cursor: pointer; font-weight: bold; font-size: 0.85rem;">
+                                Daily
+                            </button>
+                            <button class="period-tab-btn" data-period="weekly" style="flex: 1; padding: 8px 10px; background: rgba(255,255,255,0.03); border: 1px solid transparent; border-radius: 6px; color: #888; cursor: pointer; font-weight: bold; font-size: 0.85rem;">
+                                Weekly
+                            </button>
+                            <button class="period-tab-btn" data-period="monthly" style="flex: 1; padding: 8px 10px; background: rgba(255,255,255,0.03); border: 1px solid transparent; border-radius: 6px; color: #888; cursor: pointer; font-weight: bold; font-size: 0.85rem;">
+                                Monthly
+                            </button>
+                        </div>
+
+                        <!-- Currency Summary Cards -->
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+                `;
+
+                // Add a card for each currency showing total movement
+                for (const currency of selectedCurrencies) {
+                    const totals = currencyTotals[currency];
+                    const isProfit = totals.change >= 0;
+
+                    html += `
+                        <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; border-left: 4px solid ${isProfit ? '#00ff88' : '#ff6b6b'};">
+                            <div style="font-weight: bold; color: #00d4ff; font-size: 1.1rem; margin-bottom: 12px;">${currency}</div>
+                            <div style="display: flex; flex-direction: column; gap: 8px; font-size: 0.9rem;">
+                                <div style="display: flex; justify-content: space-between;">
+                                    <span style="color: #888;">Starting:</span>
+                                    <span style="color: #00d4ff; font-weight: bold;">${totals.starting.toFixed(2)}</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between;">
+                                    <span style="color: #888;">Current:</span>
+                                    <span style="color: #00d4ff; font-weight: bold;">${totals.current.toFixed(2)}</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
+                                    <span style="color: #888; font-weight: bold;">P/L:</span>
+                                    <span style="color: ${isProfit ? '#00ff88' : '#ff6b6b'}; font-weight: bold; font-size: 1.1rem;">
+                                        ${isProfit ? '+' : ''}${totals.change.toFixed(2)}
+                                    </span>
+                                </div>
+                                <div style="text-align: right;">
+                                    <span style="color: ${isProfit ? '#00ff88' : '#ff6b6b'}; font-weight: bold; font-size: 0.95rem;">
+                                        (${isProfit ? '+' : ''}${totals.changePercent.toFixed(2)}%)
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                html += `
+                        </div>
+                        <div style="margin-top: 12px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 6px; text-align: center; color: #888; font-size: 0.85rem;">
+                            💡 Shows combined balance across all selected exchanges
+                        </div>
+                    </div>
+
+                    <!-- Individual Exchange Cards -->
+                    <h4 style="color: #00d4ff; margin: 20px 0 15px 0; padding-bottom: 10px; border-bottom: 1px solid rgba(0,212,255,0.3);">
+                        Per Exchange Breakdown
+                    </h4>
+                `;
+
+                // Generate individual exchange balance cards
                 for (const exchange of selectedExchanges) {
                     html += `
                         <div style="margin-bottom: 25px; background: rgba(0,212,255,0.05); padding: 15px; border-radius: 10px; border: 1px solid rgba(0,212,255,0.3);">
@@ -1242,7 +1340,25 @@
                 document.getElementById('balanceTrackerContent').innerHTML = html;
                 document.getElementById('balanceLastUpdate').textContent = new Date().toLocaleString();
 
-                console.log('✅ Balance tracker loaded');
+                // Add tab switching for period tabs (placeholder for future daily/weekly/monthly tracking)
+                document.querySelectorAll('.period-tab-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        document.querySelectorAll('.period-tab-btn').forEach(b => {
+                            b.style.background = 'rgba(255,255,255,0.03)';
+                            b.style.border = '1px solid transparent';
+                            b.style.color = '#888';
+                        });
+                        this.style.background = 'rgba(0,255,136,0.15)';
+                        this.style.border = '1px solid #00ff88';
+                        this.style.color = '#00ff88';
+
+                        const period = this.dataset.period;
+                        console.log(`📊 Selected period: ${period}`);
+                        // TODO: Implement period filtering (requires timestamp tracking)
+                    });
+                });
+
+                console.log('✅ Balance tracker loaded with totals');
             } catch (error) {
                 console.error('❌ Failed to load balance tracker:', error);
             }
