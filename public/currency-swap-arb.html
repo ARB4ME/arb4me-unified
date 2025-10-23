@@ -618,6 +618,12 @@
                 this.classList.toggle('active');
                 toggleAutoTrading();
             });
+
+            // Auto-start worker loop if auto-trading is already enabled
+            if (toggle.classList.contains('active')) {
+                console.log('🚀 Auto-trading is enabled - starting worker loop...');
+                startWorkerLoop();
+            }
         });
 
         // Load overall stats
@@ -1135,6 +1141,10 @@
             }
         }
 
+        // Worker loop variables
+        let workerLoopActive = false;
+        let workerLoopTimeout = null;
+
         async function toggleAutoTrading() {
             const toggle = document.getElementById('autoTradingToggle');
             const enabled = toggle.classList.contains('active');
@@ -1153,12 +1163,134 @@
 
                 if (data.success) {
                     console.log(`✅ Auto-trading ${enabled ? 'ENABLED' : 'DISABLED'} successfully!`);
+
+                    // Start or stop the worker loop
+                    if (enabled) {
+                        startWorkerLoop();
+                    } else {
+                        stopWorkerLoop();
+                    }
                 } else {
                     console.error('❌ Failed to toggle auto-trading:', data.error);
                 }
             } catch (error) {
                 console.error('❌ Failed to toggle auto-trading:', error);
             }
+        }
+
+        // Start the scan-execute-pause worker loop
+        function startWorkerLoop() {
+            if (workerLoopActive) {
+                console.log('⚠️ Worker loop already active');
+                return;
+            }
+
+            workerLoopActive = true;
+            console.log('🚀 Starting worker loop...');
+            runWorkerCycle();
+        }
+
+        // Stop the worker loop
+        function stopWorkerLoop() {
+            workerLoopActive = false;
+            if (workerLoopTimeout) {
+                clearTimeout(workerLoopTimeout);
+                workerLoopTimeout = null;
+            }
+            console.log('⏹️ Worker loop stopped');
+        }
+
+        // Run a single worker cycle: scan → execute → wait 15s → repeat
+        async function runWorkerCycle() {
+            if (!workerLoopActive) {
+                console.log('⏹️ Worker loop not active, stopping');
+                return;
+            }
+
+            console.log('🔄 [Worker] Starting cycle...');
+
+            try {
+                // Step 1: Scan for best opportunity
+                console.log('🔍 [Worker] Scanning for opportunities...');
+                const scanResponse = await fetch(`${API_BASE}/scan?userId=${USER_ID}`);
+                const scanData = await scanResponse.json();
+
+                if (!scanData.success) {
+                    console.warn('⚠️ [Worker] Scan failed:', scanData.message);
+                    scheduleNextCycle();
+                    return;
+                }
+
+                const opportunity = scanData.data.opportunity;
+
+                if (!opportunity) {
+                    console.log('ℹ️ [Worker] No profitable paths found, waiting...');
+                    scheduleNextCycle();
+                    return;
+                }
+
+                console.log(`✅ [Worker] Found opportunity: ${opportunity.id} (${opportunity.profitPercent.toFixed(2)}% profit)`);
+
+                // Step 2: Execute the opportunity
+                console.log('⚡ [Worker] Executing trade...');
+                const executeResponse = await fetch(`${API_BASE}/execute`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: USER_ID,
+                        path: opportunity,
+                        amount: opportunity.inputAmount || 1000 // Use path's input amount or default
+                    })
+                });
+
+                const executeData = await executeResponse.json();
+
+                if (executeData.success) {
+                    const execution = executeData.execution;
+                    console.log(`✅ [Worker] Trade executed successfully!`);
+                    console.log(`💰 [Worker] Profit: ${execution.profit} (${execution.profitPercent.toFixed(2)}%)`);
+                    console.log(`⏱️ [Worker] Duration: ${execution.duration}ms`);
+
+                    // Update UI with execution results
+                    updateExecutionStats(execution);
+                } else {
+                    console.error('❌ [Worker] Trade execution failed:', executeData.error);
+                }
+
+            } catch (error) {
+                console.error('❌ [Worker] Cycle error:', error);
+            }
+
+            // Step 3: Wait 15 seconds and repeat
+            scheduleNextCycle();
+        }
+
+        // Schedule the next worker cycle after 15 seconds
+        function scheduleNextCycle() {
+            if (!workerLoopActive) return;
+
+            const delaySeconds = 15;
+            console.log(`⏰ [Worker] Next cycle in ${delaySeconds} seconds...`);
+
+            workerLoopTimeout = setTimeout(() => {
+                runWorkerCycle();
+            }, delaySeconds * 1000);
+        }
+
+        // Update UI with execution stats
+        function updateExecutionStats(execution) {
+            // Update swaps today count
+            const swapsTodayEl = document.getElementById('swapsToday');
+            if (swapsTodayEl) {
+                const currentCount = parseInt(swapsTodayEl.textContent) || 0;
+                swapsTodayEl.textContent = currentCount + 1;
+            }
+
+            // Reload stats and paths to reflect changes
+            setTimeout(() => {
+                loadStats();
+                loadPaths();
+            }, 1000);
         }
 
         // ═══════════════════════════════════════════════════════════
