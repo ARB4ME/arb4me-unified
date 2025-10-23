@@ -1385,9 +1385,12 @@
             try {
                 console.log('🔄 Refreshing balances from exchanges...');
 
-                // Get selected exchanges and currencies
-                const selectedExchanges = getSelectedExchanges();
-                const selectedCurrencies = getSelectedCurrencies();
+                // Get selected exchanges and currencies from checkboxes
+                const exchangeCheckboxes = document.querySelectorAll('#exchangeCheckboxes input[type="checkbox"]:checked');
+                const selectedExchanges = Array.from(exchangeCheckboxes).map(cb => cb.value);
+
+                const currencyCheckboxes = document.querySelectorAll('#currencyCheckboxes input[type="checkbox"]:checked');
+                const selectedCurrencies = Array.from(currencyCheckboxes).map(cb => cb.value);
 
                 if (selectedExchanges.length === 0) {
                     alert('Please select at least one exchange first');
