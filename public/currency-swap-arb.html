@@ -496,9 +496,14 @@
                             <div style="color: #888; font-size: 0.85rem;">
                                 Last Updated: <span id="balanceLastUpdate">Never</span>
                             </div>
-                            <button onclick="resetAllBalances()" style="padding: 6px 12px; background: rgba(255,255,255,0.1); color: #00d4ff; border: 1px solid #00d4ff; border-radius: 5px; cursor: pointer; font-size: 0.85rem;">
-                                🔄 Reset All Starting Balances
-                            </button>
+                            <div style="display: flex; gap: 10px;">
+                                <button onclick="refreshBalances()" style="padding: 6px 12px; background: rgba(0,255,136,0.1); color: #00ff88; border: 1px solid #00ff88; border-radius: 5px; cursor: pointer; font-size: 0.85rem;">
+                                    🔄 Refresh from Exchanges
+                                </button>
+                                <button onclick="resetAllBalances()" style="padding: 6px 12px; background: rgba(255,255,255,0.1); color: #00d4ff; border: 1px solid #00d4ff; border-radius: 5px; cursor: pointer; font-size: 0.85rem;">
+                                    🔄 Reset Starting Balances
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1361,6 +1366,75 @@
                 console.log('✅ Balance tracker loaded with totals');
             } catch (error) {
                 console.error('❌ Failed to load balance tracker:', error);
+            }
+        }
+
+        // Refresh balances from exchanges
+        async function refreshBalances() {
+            try {
+                console.log('🔄 Refreshing balances from exchanges...');
+
+                // Show loading indicator
+                document.getElementById('balanceTrackerContent').innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #00d4ff;">
+                        <div style="font-size: 2rem; margin-bottom: 10px;">⏳</div>
+                        <div>Fetching live balances from exchanges...</div>
+                        <div style="font-size: 0.85rem; color: #888; margin-top: 10px;">This may take a few seconds</div>
+                    </div>
+                `;
+
+                const response = await fetch(`${API_BASE}/balances?userId=${USER_ID}`);
+                const data = await response.json();
+
+                console.log('🔄 Balances response:', data);
+
+                if (!data.success) {
+                    throw new Error(data.error || 'Failed to fetch balances');
+                }
+
+                const { balances, errors } = data.data;
+
+                // Store balances in localStorage
+                for (const exchange in balances) {
+                    for (const currency in balances[exchange]) {
+                        const balanceKey = `${exchange}_${currency}`;
+                        const total = balances[exchange][currency].total;
+
+                        // If starting balance doesn't exist, set it now (first time)
+                        if (!localStorage.getItem(`${balanceKey}_starting`)) {
+                            localStorage.setItem(`${balanceKey}_starting`, total);
+                            console.log(`📊 Set starting balance for ${balanceKey}: ${total}`);
+                        }
+
+                        // Update current balance
+                        localStorage.setItem(`${balanceKey}_current`, total);
+                        console.log(`📊 Updated current balance for ${balanceKey}: ${total}`);
+                    }
+                }
+
+                // Show errors if any
+                if (errors && Object.keys(errors).length > 0) {
+                    console.warn('⚠️ Some exchanges had errors:', errors);
+                    let errorMessage = 'Balances refreshed with some errors:\n\n';
+                    for (const exchange in errors) {
+                        errorMessage += `${exchange}: ${errors[exchange]}\n`;
+                    }
+                    alert(errorMessage);
+                }
+
+                console.log('✅ Balances refreshed successfully');
+
+                // Reload the balance tracker display
+                await loadBalanceTracker();
+
+                alert('✅ Balances refreshed from exchanges!');
+
+            } catch (error) {
+                console.error('❌ Failed to refresh balances:', error);
+                alert(`Failed to refresh balances: ${error.message}`);
+
+                // Reload anyway to show what we have
+                await loadBalanceTracker();
             }
         }
 

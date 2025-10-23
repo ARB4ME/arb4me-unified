@@ -449,26 +449,105 @@ router.post('/settings/toggle-auto', async (req, res) => {
  */
 router.get('/balances', async (req, res) => {
     try {
-        const userId = req.query.userId || 1; // TODO: Get from auth middleware
+        const userId = req.query.userId || 1;
 
-        // TODO: Fetch real balances from exchanges
-        // For now, return mock data
+        systemLogger.trading('Fetching Currency Swap balances', { userId });
 
-        const mockBalances = {
-            VALR: { USDT: 2500, XRP: 1000, ZAR: 50000 },
-            Luno: { USDT: 3000, XRP: 1200, ZAR: 75000 },
-            ChainEX: { USDT: 1000, XRP: 500, ZAR: 25000 },
-            Kraken: { USDT: 8000, XRP: 3000, USD: 10000 },
-            Bybit: { USDT: 4500, XRP: 2000, EUR: 5000 }
-        };
+        // Get user's connected exchanges and currencies from settings
+        const settings = await CurrencySwapSettings.getOrCreate(userId);
+        const selectedExchanges = typeof settings.selected_exchanges === 'string'
+            ? JSON.parse(settings.selected_exchanges)
+            : (settings.selected_exchanges || []);
+
+        const selectedCurrencies = typeof settings.selected_currencies === 'string'
+            ? JSON.parse(settings.selected_currencies)
+            : (settings.selected_currencies || []);
+
+        if (selectedExchanges.length === 0) {
+            return res.json({
+                success: true,
+                data: {
+                    balances: {},
+                    message: 'No exchanges selected'
+                }
+            });
+        }
+
+        // Get credentials for each exchange
+        const credentials = await CurrencySwapCredentials.getCredentials(userId);
+
+        // Fetch balances from each exchange using trading endpoints
+        const balances = {};
+        const errors = {};
+
+        for (const exchange of selectedExchanges) {
+            const exchangeLower = exchange.toLowerCase();
+            const cred = credentials.find(c => c.exchange.toLowerCase() === exchangeLower);
+
+            if (!cred || !cred.api_key || !cred.api_secret) {
+                errors[exchange] = 'No credentials saved';
+                continue;
+            }
+
+            try {
+                // Use the trading balance endpoint (same as Strategy API Configuration)
+                const ccxt = require('ccxt');
+                const exchangeClass = ccxt[exchangeLower];
+
+                if (!exchangeClass) {
+                    errors[exchange] = 'Exchange not supported';
+                    continue;
+                }
+
+                const exchangeInstance = new exchangeClass({
+                    apiKey: cred.api_key,
+                    secret: cred.api_secret,
+                    password: cred.api_passphrase || undefined,
+                    options: {
+                        defaultType: 'spot'
+                    }
+                });
+
+                // Fetch balance
+                const balance = await exchangeInstance.fetchBalance();
+
+                // Extract only the currencies user selected
+                const exchangeBalances = {};
+                for (const currency of selectedCurrencies) {
+                    if (balance[currency] && balance[currency].total > 0) {
+                        exchangeBalances[currency] = {
+                            free: balance[currency].free || 0,
+                            used: balance[currency].used || 0,
+                            total: balance[currency].total || 0
+                        };
+                    }
+                }
+
+                balances[exchange] = exchangeBalances;
+
+                systemLogger.trading(`Fetched ${exchange} balance`, {
+                    userId,
+                    currencies: Object.keys(exchangeBalances)
+                });
+
+            } catch (error) {
+                systemLogger.error(`Failed to fetch ${exchange} balance`, {
+                    userId,
+                    error: error.message
+                });
+                errors[exchange] = error.message;
+            }
+        }
 
         res.json({
             success: true,
             data: {
-                balances: mockBalances,
+                balances,
+                errors: Object.keys(errors).length > 0 ? errors : undefined,
                 lastUpdated: new Date().toISOString()
             }
         });
+
     } catch (error) {
         systemLogger.error('Failed to get balances', {
             userId: req.query.userId,
