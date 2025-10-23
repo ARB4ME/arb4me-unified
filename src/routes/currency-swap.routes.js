@@ -769,6 +769,60 @@ router.get('/credentials/:exchange', async (req, res) => {
 });
 
 /**
+ * POST /api/v1/currency-swap/credentials/:exchange/xrp-deposit
+ * Update XRP deposit address and tag for an exchange (auto-save from frontend)
+ */
+router.post('/credentials/:exchange/xrp-deposit', async (req, res) => {
+    try {
+        const { exchange } = req.params;
+        const { userId, xrpDepositAddress, xrpDepositTag } = req.body;
+
+        if (!userId) {
+            return res.status(400).json({
+                success: false,
+                error: 'Missing required field: userId'
+            });
+        }
+
+        const updated = await CurrencySwapCredentials.updateXrpDepositInfo(
+            userId,
+            exchange,
+            xrpDepositAddress || null,
+            xrpDepositTag || null
+        );
+
+        if (updated) {
+            systemLogger.trading('XRP deposit info updated', {
+                userId,
+                exchange,
+                hasAddress: !!xrpDepositAddress,
+                hasTag: !!xrpDepositTag
+            });
+
+            res.json({
+                success: true,
+                message: 'XRP deposit info updated'
+            });
+        } else {
+            res.status(404).json({
+                success: false,
+                error: 'Exchange credentials not found. Please connect exchange first.'
+            });
+        }
+    } catch (error) {
+        systemLogger.error('Failed to update XRP deposit info', {
+            exchange: req.params.exchange,
+            error: error.message
+        });
+
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
  * POST /api/v1/currency-swap/credentials/:exchange/deposit-addresses
  * Update deposit addresses for an exchange
  */

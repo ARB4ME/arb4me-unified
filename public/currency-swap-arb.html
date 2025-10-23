@@ -399,6 +399,18 @@
                         </div>
                     </div>
 
+                    <div class="form-group" id="xrpDepositSection" style="display: none;">
+                        <label>⚡ XRP Deposit Addresses</label>
+                        <div style="background: rgba(255,179,71,0.1); border: 1px solid #ffb347; border-radius: 8px; padding: 12px; margin-bottom: 10px;">
+                            <div style="font-size: 0.85rem; color: #ffb347; margin-bottom: 8px;">
+                                💡 Provide your XRP deposit address & tag for each exchange to enable automatic transfers
+                            </div>
+                        </div>
+                        <div id="xrpDepositInputs" style="display: grid; gap: 15px; max-height: 400px; overflow-y: auto; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 6px;">
+                            <!-- XRP inputs will be dynamically added here -->
+                        </div>
+                    </div>
+
                     <div style="text-align: center; padding: 10px; color: #00ff88; font-size: 0.9rem;">
                         <span id="saveStatus">✅ Auto-saved</span>
                     </div>
@@ -528,18 +540,6 @@
             </div>
 
             <div class="form-group">
-                <label>Max Daily Swaps</label>
-                <input type="number" id="maxDailySwaps" min="1" max="100" value="10">
-            </div>
-
-            <!-- NEW FIELDS -->
-            <div class="form-group">
-                <label>Max Concurrent Trades</label>
-                <input type="number" id="maxConcurrentTrades" min="1" max="5" value="2">
-                <small style="color: #888;">Execute multiple swaps simultaneously (1-5)</small>
-            </div>
-
-            <div class="form-group">
                 <label>Max Balance % Per Trade</label>
                 <input type="number" id="maxBalancePercentage" min="1" max="50" step="1" value="10">
                 <small style="color: #888;">Maximum % of balance to use per trade</small>
@@ -562,27 +562,6 @@
                     <input type="checkbox" id="balanceCheckRequired" checked style="width: auto;">
                     Require Balance Check Before Trading
                 </label>
-            </div>
-
-            <div class="form-group">
-                <label>Preferred Bridge Currency</label>
-                <select id="preferredBridge">
-                    <option value="AUTO">Auto (Best Rate)</option>
-                    <option value="XRP">XRP (Fastest, Cheapest)</option>
-                    <option value="USDT">USDT (Most Liquid)</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label>Enable Categories</label>
-                <div style="display: flex; gap: 15px; margin-top: 5px;">
-                    <label style="display: flex; align-items: center; gap: 5px;">
-                        <input type="checkbox" id="enableZAR" checked style="width: auto;"> ZAR Conversions
-                    </label>
-                    <label style="display: flex; align-items: center; gap: 5px;">
-                        <input type="checkbox" id="enableInternational" style="width: auto;"> International
-                    </label>
-                </div>
             </div>
 
             <div style="display: flex; gap: 10px; margin-top: 20px;">
@@ -627,6 +606,9 @@
 
             console.log('⏳ Step 4/4: Loading path statistics...');
             await loadPathStats();
+
+            console.log('⏳ Step 5/5: Loading XRP deposit inputs...');
+            await populateXrpDepositInputs();
 
             console.log('✅ Currency Swap initialization complete!');
 
@@ -770,6 +752,9 @@
                     console.log('🔄 Regenerating paths with new selections...');
                     await loadPaths();
                     await loadPathStats();
+
+                    // Update XRP deposit inputs
+                    await populateXrpDepositInputs();
                 } else {
                     saveStatus.textContent = '❌ Save failed';
                     saveStatus.style.color = '#ff6b6b';
@@ -779,6 +764,108 @@
                 console.error('❌ Failed to save setup:', error);
                 document.getElementById('saveStatus').textContent = '❌ Save failed';
                 document.getElementById('saveStatus').style.color = '#ff6b6b';
+            }
+        }
+
+        // Populate XRP deposit inputs for selected exchanges
+        async function populateXrpDepositInputs() {
+            const exchangeCheckboxes = document.querySelectorAll('#exchangeCheckboxes input[type="checkbox"]:checked');
+            const selectedExchanges = Array.from(exchangeCheckboxes).map(cb => cb.value);
+
+            const xrpSection = document.getElementById('xrpDepositSection');
+            const xrpInputsDiv = document.getElementById('xrpDepositInputs');
+
+            if (selectedExchanges.length === 0) {
+                xrpSection.style.display = 'none';
+                return;
+            }
+
+            xrpSection.style.display = 'block';
+
+            // Fetch existing XRP deposit info from backend
+            let existingXrpData = {};
+            try {
+                const response = await fetch(`${API_BASE}/credentials?userId=${USER_ID}`);
+                const data = await response.json();
+                if (data.success) {
+                    data.data.forEach(cred => {
+                        existingXrpData[cred.exchange] = {
+                            address: cred.xrpDepositAddress || '',
+                            tag: cred.xrpDepositTag || ''
+                        };
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to load XRP deposit data:', error);
+            }
+
+            // Build input fields for each selected exchange
+            xrpInputsDiv.innerHTML = selectedExchanges.map(exchange => `
+                <div style="background: rgba(255,255,255,0.05); padding: 12px; border-radius: 6px; border-left: 3px solid #00d4ff;">
+                    <div style="font-weight: bold; color: #00d4ff; margin-bottom: 8px;">${exchange}</div>
+                    <div style="display: grid; gap: 8px;">
+                        <div>
+                            <label style="font-size: 0.85rem; color: #b8c6db; display: block; margin-bottom: 4px;">Deposit Address</label>
+                            <input
+                                type="text"
+                                id="xrp_address_${exchange}"
+                                placeholder="r......"
+                                value="${existingXrpData[exchange]?.address || ''}"
+                                onchange="saveXrpDepositInfo('${exchange}')"
+                                style="width: 100%; padding: 8px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; color: white; font-family: monospace; font-size: 0.9rem;"
+                            >
+                        </div>
+                        <div>
+                            <label style="font-size: 0.85rem; color: #b8c6db; display: block; margin-bottom: 4px;">Destination Tag (optional)</label>
+                            <input
+                                type="text"
+                                id="xrp_tag_${exchange}"
+                                placeholder="12345678"
+                                value="${existingXrpData[exchange]?.tag || ''}"
+                                onchange="saveXrpDepositInfo('${exchange}')"
+                                style="width: 100%; padding: 8px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; color: white; font-family: monospace; font-size: 0.9rem;"
+                            >
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Auto-save XRP deposit info when user types
+        async function saveXrpDepositInfo(exchange) {
+            try {
+                const address = document.getElementById(`xrp_address_${exchange}`).value.trim();
+                const tag = document.getElementById(`xrp_tag_${exchange}`).value.trim();
+
+                console.log(`💾 Saving XRP deposit info for ${exchange}:`, { address, tag });
+
+                const response = await fetch(`${API_BASE}/credentials/${exchange}/xrp-deposit`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: USER_ID,
+                        xrpDepositAddress: address || null,
+                        xrpDepositTag: tag || null
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    console.log(`✅ XRP deposit info saved for ${exchange}`);
+                    // Show brief success feedback
+                    const saveStatus = document.getElementById('saveStatus');
+                    const oldText = saveStatus.textContent;
+                    saveStatus.textContent = `✅ ${exchange} XRP info saved`;
+                    setTimeout(() => {
+                        saveStatus.textContent = oldText;
+                    }, 2000);
+                } else {
+                    console.error(`❌ Failed to save XRP info for ${exchange}:`, data.error);
+                    alert(`Failed to save XRP info for ${exchange}: ${data.error}`);
+                }
+            } catch (error) {
+                console.error(`❌ Error saving XRP info for ${exchange}:`, error);
             }
         }
 
@@ -1006,19 +1093,10 @@
                     const s = data.data;
                     document.getElementById('thresholdPercent').value = s.threshold_percent || 0.5;
                     document.getElementById('maxTradeAmountUSDT').value = s.max_trade_amount_usdt || 5000;
-                    document.getElementById('maxDailySwaps').value = s.max_daily_swaps || 10;
-                    document.getElementById('maxConcurrentTrades').value = s.max_concurrent_trades || 2;
                     document.getElementById('maxBalancePercentage').value = s.max_balance_percentage || 10;
                     document.getElementById('scanIntervalSeconds').value = s.scan_interval_seconds || 60;
                     document.getElementById('minReservePercent').value = s.min_balance_reserve_percent || 5;
                     document.getElementById('balanceCheckRequired').checked = s.balance_check_required !== false;
-                    document.getElementById('preferredBridge').value = s.preferred_bridge || 'AUTO';
-
-                    const categories = typeof s.enabled_categories === 'string'
-                        ? JSON.parse(s.enabled_categories)
-                        : s.enabled_categories;
-                    document.getElementById('enableZAR').checked = categories?.ZAR !== false;
-                    document.getElementById('enableInternational').checked = categories?.INTERNATIONAL === true;
                 }
             } catch (error) {
                 console.error('Failed to load settings:', error);
@@ -1031,17 +1109,10 @@
                     userId: USER_ID,
                     thresholdPercent: parseFloat(document.getElementById('thresholdPercent').value),
                     maxTradeAmountUSDT: parseFloat(document.getElementById('maxTradeAmountUSDT').value),
-                    maxDailySwaps: parseInt(document.getElementById('maxDailySwaps').value),
-                    maxConcurrentTrades: parseInt(document.getElementById('maxConcurrentTrades').value),
                     maxBalancePercentage: parseFloat(document.getElementById('maxBalancePercentage').value),
                     scanIntervalSeconds: parseInt(document.getElementById('scanIntervalSeconds').value),
                     minReservePercent: parseFloat(document.getElementById('minReservePercent').value),
-                    balanceCheckRequired: document.getElementById('balanceCheckRequired').checked,
-                    preferredBridge: document.getElementById('preferredBridge').value,
-                    enabledCategories: {
-                        ZAR: document.getElementById('enableZAR').checked,
-                        INTERNATIONAL: document.getElementById('enableInternational').checked
-                    }
+                    balanceCheckRequired: document.getElementById('balanceCheckRequired').checked
                 };
 
                 const response = await fetch(`${API_BASE}/settings`, {

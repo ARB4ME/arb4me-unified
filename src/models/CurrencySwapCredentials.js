@@ -23,6 +23,10 @@ class CurrencySwapCredentials {
                 -- Deposit addresses for this exchange
                 deposit_addresses JSONB DEFAULT '{}',
 
+                -- XRP deposit info (for receiving XRP transfers)
+                xrp_deposit_address VARCHAR(100),
+                xrp_deposit_tag VARCHAR(50),
+
                 -- Connection status
                 is_connected BOOLEAN DEFAULT false,
                 last_connected_at TIMESTAMP,
@@ -52,21 +56,25 @@ class CurrencySwapCredentials {
             apiSecret,
             apiPassphrase = null,
             memo = null,
-            depositAddresses = {}
+            depositAddresses = {},
+            xrpDepositAddress = null,
+            xrpDepositTag = null
         } = credentials;
 
         const upsertQuery = `
             INSERT INTO currency_swap_credentials (
                 user_id, exchange, api_key, api_secret, api_passphrase, memo,
-                deposit_addresses, is_connected, last_connected_at
+                deposit_addresses, xrp_deposit_address, xrp_deposit_tag, is_connected, last_connected_at
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
             ON CONFLICT (user_id, exchange) DO UPDATE SET
                 api_key = EXCLUDED.api_key,
                 api_secret = EXCLUDED.api_secret,
                 api_passphrase = EXCLUDED.api_passphrase,
                 memo = EXCLUDED.memo,
                 deposit_addresses = EXCLUDED.deposit_addresses,
+                xrp_deposit_address = EXCLUDED.xrp_deposit_address,
+                xrp_deposit_tag = EXCLUDED.xrp_deposit_tag,
                 is_connected = EXCLUDED.is_connected,
                 last_connected_at = NOW(),
                 updated_at = NOW()
@@ -81,6 +89,8 @@ class CurrencySwapCredentials {
             apiPassphrase,
             memo,
             JSON.stringify(depositAddresses),
+            xrpDepositAddress,
+            xrpDepositTag,
             true
         ];
 
@@ -147,6 +157,8 @@ class CurrencySwapCredentials {
             depositAddresses: typeof cred.deposit_addresses === 'string'
                 ? JSON.parse(cred.deposit_addresses)
                 : cred.deposit_addresses,
+            xrpDepositAddress: cred.xrp_deposit_address,
+            xrpDepositTag: cred.xrp_deposit_tag,
             isConnected: cred.is_connected,
             lastConnectedAt: cred.last_connected_at,
             lastBalanceCheck: cred.last_balance_check
@@ -167,6 +179,29 @@ class CurrencySwapCredentials {
 
         const result = await query(updateQuery, [
             JSON.stringify(depositAddresses),
+            userId,
+            exchange
+        ]);
+
+        return result.rows.length > 0;
+    }
+
+    /**
+     * Update XRP deposit info for an exchange (for auto-save from frontend)
+     */
+    static async updateXrpDepositInfo(userId, exchange, xrpDepositAddress, xrpDepositTag) {
+        const updateQuery = `
+            UPDATE currency_swap_credentials
+            SET xrp_deposit_address = $1,
+                xrp_deposit_tag = $2,
+                updated_at = NOW()
+            WHERE user_id = $3 AND exchange = $4
+            RETURNING id
+        `;
+
+        const result = await query(updateQuery, [
+            xrpDepositAddress,
+            xrpDepositTag,
             userId,
             exchange
         ]);
