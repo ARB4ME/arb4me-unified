@@ -14,6 +14,104 @@ const AssetDeclarationService = require('../services/currency-swap/AssetDeclarat
 const PathGeneratorService = require('../services/currency-swap/PathGeneratorService');
 const RiskCalculatorService = require('../services/currency-swap/RiskCalculatorService');
 
+// Import database query function for manual table initialization
+const { query } = require('../database/connection');
+
+/**
+ * GET /api/v1/currency-swap/initialize-tables
+ * One-time endpoint to manually create Currency Swap tables
+ * Call this once if auto-migration fails during deployment
+ */
+router.get('/initialize-tables', async (req, res) => {
+    try {
+        systemLogger.info('Manual table initialization started');
+
+        // Create asset declarations table
+        await query(`
+            CREATE TABLE IF NOT EXISTS currency_swap_asset_declarations (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                exchange VARCHAR(50) NOT NULL,
+                funded_assets JSONB NOT NULL DEFAULT '[]',
+                initial_balances JSONB DEFAULT '{}',
+                is_active BOOLEAN DEFAULT true,
+                last_updated TIMESTAMP DEFAULT NOW(),
+                notes TEXT,
+                created_at TIMESTAMP DEFAULT NOW(),
+                updated_at TIMESTAMP DEFAULT NOW(),
+                CONSTRAINT unique_user_exchange_declaration UNIQUE(user_id, exchange)
+            );
+        `);
+
+        await query(`
+            CREATE INDEX IF NOT EXISTS idx_asset_declarations_user_id ON currency_swap_asset_declarations(user_id);
+            CREATE INDEX IF NOT EXISTS idx_asset_declarations_exchange ON currency_swap_asset_declarations(exchange);
+            CREATE INDEX IF NOT EXISTS idx_asset_declarations_active ON currency_swap_asset_declarations(is_active);
+        `);
+
+        // Create balances table
+        await query(`
+            CREATE TABLE IF NOT EXISTS currency_swap_balances (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                exchange VARCHAR(50) NOT NULL,
+                asset VARCHAR(10) NOT NULL,
+                available_balance DECIMAL(20, 8) NOT NULL DEFAULT 0,
+                locked_balance DECIMAL(20, 8) NOT NULL DEFAULT 0,
+                total_balance DECIMAL(20, 8) GENERATED ALWAYS AS (available_balance + locked_balance) STORED,
+                last_synced_at TIMESTAMP DEFAULT NOW(),
+                sync_source VARCHAR(20) DEFAULT 'api',
+                sync_error TEXT,
+                initial_balance DECIMAL(20, 8),
+                total_profit DECIMAL(20, 8) DEFAULT 0,
+                profit_percent DECIMAL(10, 4) DEFAULT 0,
+                created_at TIMESTAMP DEFAULT NOW(),
+                updated_at TIMESTAMP DEFAULT NOW(),
+                CONSTRAINT unique_user_exchange_asset UNIQUE(user_id, exchange, asset)
+            );
+        `);
+
+        await query(`
+            CREATE INDEX IF NOT EXISTS idx_balances_user_exchange ON currency_swap_balances(user_id, exchange);
+            CREATE INDEX IF NOT EXISTS idx_balances_user_asset ON currency_swap_balances(user_id, asset);
+            CREATE INDEX IF NOT EXISTS idx_balances_asset ON currency_swap_balances(asset);
+            CREATE INDEX IF NOT EXISTS idx_balances_synced ON currency_swap_balances(last_synced_at);
+        `);
+
+        // Enhance currency_swap_settings table
+        await query(`
+            ALTER TABLE currency_swap_settings
+            ADD COLUMN IF NOT EXISTS max_concurrent_trades INTEGER DEFAULT 2 CHECK (max_concurrent_trades >= 1 AND max_concurrent_trades <= 5),
+            ADD COLUMN IF NOT EXISTS max_balance_percentage DECIMAL(5,2) DEFAULT 10.0 CHECK (max_balance_percentage > 0 AND max_balance_percentage <= 50),
+            ADD COLUMN IF NOT EXISTS scan_interval_seconds INTEGER DEFAULT 60 CHECK (scan_interval_seconds >= 30 AND scan_interval_seconds <= 300),
+            ADD COLUMN IF NOT EXISTS balance_check_required BOOLEAN DEFAULT true,
+            ADD COLUMN IF NOT EXISTS min_balance_reserve_percent DECIMAL(5,2) DEFAULT 5.0 CHECK (min_balance_reserve_percent >= 0 AND min_balance_reserve_percent <= 20);
+        `);
+
+        systemLogger.info('Manual table initialization completed successfully');
+
+        res.json({
+            success: true,
+            message: 'Currency Swap tables initialized successfully',
+            tables: [
+                'currency_swap_asset_declarations',
+                'currency_swap_balances',
+                'currency_swap_settings (enhanced)'
+            ]
+        });
+
+    } catch (error) {
+        systemLogger.error('Manual table initialization failed', {
+            error: error.message
+        });
+
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
 /**
  * GET /api/v1/currency-swap/opportunities/:category
  * Get currency swap opportunities for a category
