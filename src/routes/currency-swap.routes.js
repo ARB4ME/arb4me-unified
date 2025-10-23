@@ -474,7 +474,7 @@ router.get('/balances', async (req, res) => {
         }
 
         // Get credentials for each exchange
-        const credentials = await CurrencySwapCredentials.getCredentials(userId);
+        const credentials = await CurrencySwapCredentials.getAllCredentials(userId);
 
         // Fetch balances from each exchange using trading endpoints
         const balances = {};

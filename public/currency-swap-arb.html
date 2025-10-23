@@ -1122,7 +1122,18 @@
                     loadRecentSwaps();
                 } else if (tab === 'balances') {
                     document.getElementById('activityTabBalances').style.display = 'block';
-                    loadBalanceTracker();
+
+                    // Check if we have any balances in localStorage
+                    const hasBalances = Object.keys(localStorage).some(key => key.includes('_current'));
+
+                    if (!hasBalances) {
+                        // First time opening - auto-refresh from exchanges
+                        console.log('💰 First time opening Balance Tracker - auto-refreshing...');
+                        refreshBalances();
+                    } else {
+                        // Show cached balances
+                        loadBalanceTracker();
+                    }
                 }
             }
         });
