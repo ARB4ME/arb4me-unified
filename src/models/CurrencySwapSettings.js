@@ -85,7 +85,9 @@ class CurrencySwapSettings {
             ADD COLUMN IF NOT EXISTS max_balance_percentage DECIMAL(5,2) DEFAULT 10.0 CHECK (max_balance_percentage > 0 AND max_balance_percentage <= 50),
             ADD COLUMN IF NOT EXISTS scan_interval_seconds INTEGER DEFAULT 60 CHECK (scan_interval_seconds >= 30 AND scan_interval_seconds <= 300),
             ADD COLUMN IF NOT EXISTS balance_check_required BOOLEAN DEFAULT true,
-            ADD COLUMN IF NOT EXISTS min_balance_reserve_percent DECIMAL(5,2) DEFAULT 5.0 CHECK (min_balance_reserve_percent >= 0 AND min_balance_reserve_percent <= 20);
+            ADD COLUMN IF NOT EXISTS min_balance_reserve_percent DECIMAL(5,2) DEFAULT 5.0 CHECK (min_balance_reserve_percent >= 0 AND min_balance_reserve_percent <= 20),
+            ADD COLUMN IF NOT EXISTS selected_exchanges JSONB DEFAULT '[]',
+            ADD COLUMN IF NOT EXISTS selected_currencies JSONB DEFAULT '[]';
         `;
 
         await query(createTableQuery);
@@ -126,7 +128,9 @@ class CurrencySwapSettings {
             enabledCategories,
             allowedPairs,
             exchangePreferences,
-            useSeparateCredentials
+            useSeparateCredentials,
+            selectedExchanges,
+            selectedCurrencies
         } = settings;
 
         const updateQuery = `
@@ -140,8 +144,10 @@ class CurrencySwapSettings {
                 allowed_pairs = COALESCE($7, allowed_pairs),
                 exchange_preferences = COALESCE($8, exchange_preferences),
                 use_separate_credentials = COALESCE($9, use_separate_credentials),
+                selected_exchanges = COALESCE($10, selected_exchanges),
+                selected_currencies = COALESCE($11, selected_currencies),
                 updated_at = NOW()
-            WHERE user_id = $10
+            WHERE user_id = $12
             RETURNING *
         `;
 
@@ -155,6 +161,8 @@ class CurrencySwapSettings {
             allowedPairs,
             exchangePreferences ? JSON.stringify(exchangePreferences) : null,
             useSeparateCredentials,
+            selectedExchanges ? JSON.stringify(selectedExchanges) : null,
+            selectedCurrencies ? JSON.stringify(selectedCurrencies) : null,
             userId
         ];
 
