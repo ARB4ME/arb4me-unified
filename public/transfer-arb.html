@@ -432,10 +432,10 @@
                     <h4 style="color: #667eea; margin-bottom: 25px;">💳 Send Crypto Payment</h4>
 
                     <!-- Row 1: From, Crypto, Amount -->
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 30px; margin-bottom: 20px;">
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; margin-bottom: 20px;">
                         <div class="form-group">
                             <label>From Exchange (Source)</label>
-                            <select id="paymentFromExchange">
+                            <select id="paymentFromExchange" onchange="savePaymentField('fromExchange', this.value)">
                                 <option value="">Select Source Exchange</option>
                                 <option value="chainex">ChainEX</option>
                                 <option value="valr">VALR</option>
@@ -461,7 +461,7 @@
 
                         <div class="form-group">
                             <label>Cryptocurrency to Send</label>
-                            <select id="paymentCrypto">
+                            <select id="paymentCrypto" onchange="savePaymentField('crypto', this.value)">
                                 <option value="XRP">XRP (Fast, Low Fees)</option>
                                 <option value="XLM">XLM (Fast, Low Fees)</option>
                                 <option value="TRX">TRX (Fast, Low Fees)</option>
@@ -474,7 +474,7 @@
 
                         <div class="form-group">
                             <label>Amount (in crypto units)</label>
-                            <input type="number" id="paymentAmount" placeholder="e.g., 500 USDT" min="1" step="0.01">
+                            <input type="number" id="paymentAmount" placeholder="e.g., 500 USDT" min="1" step="0.01" oninput="savePaymentField('amount', this.value)">
                             <div style="color: #888; font-size: 0.7rem; margin-top: 4px;">
                                 Enter amount in the cryptocurrency selected above
                             </div>
@@ -482,15 +482,15 @@
                     </div>
 
                     <!-- Row 2: Recipient Address, Tag, Description -->
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 30px;">
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px;">
                         <div class="form-group">
                             <label>Recipient Address</label>
-                            <input type="text" id="paymentAddress" placeholder="Enter recipient's wallet address">
+                            <input type="text" id="paymentAddress" placeholder="Enter recipient's wallet address" oninput="savePaymentField('address', this.value)">
                         </div>
 
                         <div class="form-group">
                             <label>Recipient Tag/Memo (Optional)</label>
-                            <input type="text" id="paymentTag" placeholder="Required for XRP, XLM">
+                            <input type="text" id="paymentTag" placeholder="Required for XRP, XLM" oninput="savePaymentField('tag', this.value)">
                             <div style="color: #888; font-size: 0.7rem; margin-top: 4px;">
                                 Required for XRP and XLM transfers
                             </div>
@@ -498,7 +498,7 @@
 
                         <div class="form-group">
                             <label>Payment Description (Optional)</label>
-                            <input type="text" id="paymentDescription" placeholder="e.g., Invoice #123 - Contractor payment">
+                            <input type="text" id="paymentDescription" placeholder="e.g., Invoice #123 - Contractor payment" oninput="savePaymentField('description', this.value)">
                             <div style="color: #888; font-size: 0.7rem; margin-top: 4px;">
                                 For your records only
                             </div>
@@ -1750,6 +1750,41 @@
                 paymentTab.style.background = 'linear-gradient(45deg, #667eea 0%, #764ba2 100%)';
                 rebalanceForm.style.display = 'none';
                 paymentForm.style.display = 'block';
+
+                // Load saved payment fields
+                loadPaymentFields();
+            }
+        }
+
+        // Save payment field to localStorage
+        function savePaymentField(field, value) {
+            localStorage.setItem(`payment_${field}`, value);
+            console.log(`💾 Auto-saved payment field: ${field}`);
+        }
+
+        // Load saved payment fields from localStorage
+        function loadPaymentFields() {
+            const fields = {
+                'fromExchange': 'paymentFromExchange',
+                'crypto': 'paymentCrypto',
+                'amount': 'paymentAmount',
+                'address': 'paymentAddress',
+                'tag': 'paymentTag',
+                'description': 'paymentDescription'
+            };
+
+            let loadedCount = 0;
+            Object.keys(fields).forEach(field => {
+                const value = localStorage.getItem(`payment_${field}`);
+                const element = document.getElementById(fields[field]);
+                if (value && element) {
+                    element.value = value;
+                    loadedCount++;
+                }
+            });
+
+            if (loadedCount > 0) {
+                console.log(`✅ Loaded ${loadedCount} saved payment fields`);
             }
         }
 
