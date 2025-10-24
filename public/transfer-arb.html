@@ -477,27 +477,23 @@
                     </div>
 
                     <div class="selection-summary" style="background: rgba(0,212,255,0.1); border: 1px solid #00d4ff; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
-                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 20px;">
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
                             <div style="text-align: center;">
                                 <span style="display: block; font-size: 2rem; font-weight: bold; color: #00ff88;" id="selected-count">0</span>
-                                <span style="display: block; font-size: 0.85rem; color: #b8c6db;">Selected</span>
+                                <span style="display: block; font-size: 0.85rem; color: #b8c6db;">Cryptocurrencies Selected</span>
                             </div>
                             <div style="text-align: center;">
-                                <span style="display: block; font-size: 2rem; font-weight: bold; color: #00ff88;" id="deposit-count">0</span>
+                                <span style="display: block; font-size: 2rem; font-weight: bold; color: #00d4ff;" id="exchanges-count">0</span>
+                                <span style="display: block; font-size: 0.85rem; color: #b8c6db;">Exchanges Connected</span>
+                            </div>
+                            <div style="text-align: center;">
+                                <span style="display: block; font-size: 2rem; font-weight: bold; color: #ffb347;" id="deposit-count">0</span>
                                 <span style="display: block; font-size: 0.85rem; color: #b8c6db;">Deposit Addresses Needed</span>
                             </div>
                             <div style="text-align: center;">
-                                <span style="display: block; font-size: 2rem; font-weight: bold; color: #00ff88;" id="routes-count">0</span>
+                                <span style="display: block; font-size: 2rem; font-weight: bold; color: #ff6b6b;" id="routes-count">0</span>
                                 <span style="display: block; font-size: 0.85rem; color: #b8c6db;">Possible Routes</span>
                             </div>
-                        </div>
-                        <div style="display: flex; gap: 15px; justify-content: center;">
-                            <button onclick="clearCryptoSelection()" style="padding: 12px 30px; background: rgba(255,107,107,0.2); border: 1px solid #ff6b6b; color: #ff6b6b; border-radius: 8px; cursor: pointer;">
-                                🗑️ Clear All
-                            </button>
-                            <button onclick="saveCryptoSelection()" style="padding: 12px 30px; background: linear-gradient(45deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; cursor: pointer;">
-                                💾 Save & Configure Addresses
-                            </button>
                         </div>
                     </div>
                 </div>
@@ -562,6 +558,16 @@
             });
 
             updateSelectionSummary();
+
+            // Auto-save to localStorage
+            console.log('💾 Auto-saving preset selection:', selectedCryptos);
+            localStorage.setItem('cryptos_transfer', JSON.stringify(selectedCryptos));
+
+            // Auto-trigger deposit section if exchanges are connected
+            if (selectedCryptos.length > 0 && getConnectedExchanges().length > 0) {
+                console.log('📬 Auto-generating deposit address section...');
+                generateDepositAddressSection();
+            }
         }
 
         function toggleCryptoSelection(symbol) {
@@ -581,48 +587,26 @@
             }
 
             updateSelectionSummary();
+
+            // Auto-save to localStorage
+            console.log('💾 Auto-saving crypto selection:', selectedCryptos);
+            localStorage.setItem('cryptos_transfer', JSON.stringify(selectedCryptos));
+
+            // Auto-trigger deposit section if exchanges are connected and cryptos selected
+            if (selectedCryptos.length > 0 && getConnectedExchanges().length > 0) {
+                console.log('📬 Auto-generating deposit address section...');
+                generateDepositAddressSection();
+            }
         }
 
         function updateSelectionSummary() {
             const connectedExchanges = getConnectedExchanges().length;
-            console.log(`📊 Updating summary with ${connectedExchanges} connected exchanges`);
+            console.log(`📊 Updating summary: ${selectedCryptos.length} cryptos, ${connectedExchanges} exchanges`);
 
             document.getElementById('selected-count').textContent = selectedCryptos.length;
+            document.getElementById('exchanges-count').textContent = connectedExchanges;
             document.getElementById('deposit-count').textContent = selectedCryptos.length * connectedExchanges;
             document.getElementById('routes-count').textContent = (connectedExchanges * (connectedExchanges - 1)) * selectedCryptos.length;
-        }
-
-        function clearCryptoSelection() {
-            if (confirm('Clear all selected cryptocurrencies?')) {
-                selectedCryptos = [];
-                document.querySelectorAll('.crypto-item input[type="checkbox"]').forEach(cb => {
-                    cb.checked = false;
-                    cb.closest('.crypto-item').style.background = 'rgba(255,255,255,0.05)';
-                    cb.closest('.crypto-item').style.borderColor = 'transparent';
-                });
-                updateSelectionSummary();
-            }
-        }
-
-        function saveCryptoSelection() {
-            if (selectedCryptos.length === 0) {
-                alert('⚠️ Please select at least one cryptocurrency');
-                return;
-            }
-
-            console.log('💾 Saving crypto selection:', selectedCryptos);
-            localStorage.setItem('cryptos_transfer', JSON.stringify(selectedCryptos));
-            console.log('✅ Saved to localStorage: cryptos_transfer');
-
-            alert(`✅ Saved ${selectedCryptos.length} cryptocurrencies for Transfer ARB
-
-${selectedCryptos.join(', ')}
-
-Next: Configure deposit addresses for these cryptos`);
-
-            // Show deposit address section
-            console.log('📬 Generating deposit address section...');
-            generateDepositAddressSection();
         }
 
         // Scan for transfer opportunities
