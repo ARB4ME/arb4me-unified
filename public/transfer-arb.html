@@ -699,30 +699,28 @@ Next: Configure deposit addresses for these cryptos`);
             }
         }
 
-        // Get REAL opportunities from backend
+        // Get REAL opportunities from backend scanner
         async function getMockOpportunities(connectedExchanges) {
             console.log('📊 Fetching REAL opportunities for', connectedExchanges.length, 'exchanges');
 
             try {
                 // Get risk settings
-                const minProfitPercent = parseFloat(document.getElementById('minPriceDiff').value);
-                const maxTransferAmount = parseFloat(document.getElementById('maxTransferAmount').value);
-                const maxTransferTime = parseFloat(document.getElementById('maxTransferTime').value);
+                const minProfit = parseFloat(document.getElementById('minPriceDiff').value);
 
-                // Call REAL backend scanner API
-                const response = await fetch('/api/v1/transfer-arb/scan-realtime', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        exchanges: connectedExchanges,
-                        cryptos: selectedCryptos,
-                        minProfitPercent,
-                        maxTransferAmount,
-                        maxTransferTime
-                    })
+                // Build query params
+                const params = new URLSearchParams({
+                    cryptos: JSON.stringify(selectedCryptos),
+                    exchanges: JSON.stringify(connectedExchanges),
+                    minProfit: minProfit
                 });
+
+                console.log('🔍 Calling real scanner API...');
+                console.log('   Cryptos:', selectedCryptos);
+                console.log('   Exchanges:', connectedExchanges);
+                console.log('   Min Profit:', minProfit + '%');
+
+                // Call REAL backend scanner API with GET
+                const response = await fetch(`/api/v1/transfer-arb/scan?${params.toString()}`);
 
                 if (!response.ok) {
                     throw new Error(`Scanner API error: ${response.status}`);
@@ -733,6 +731,12 @@ Next: Configure deposit addresses for these cryptos`);
                 if (data.success) {
                     console.log(`✅ Found ${data.data.opportunities.length} REAL opportunities`);
                     console.log(`📊 Scanned ${data.data.routesScanned} routes`);
+
+                    if (data.data.opportunities.length > 0) {
+                        console.log(`💎 Best opportunity: ${data.data.opportunities[0].crypto} from ${data.data.opportunities[0].fromExchange} → ${data.data.opportunities[0].toExchange}`);
+                        console.log(`   Profit: $${data.data.opportunities[0].netProfit.toFixed(2)} (${data.data.opportunities[0].netProfitPercent.toFixed(2)}%)`);
+                    }
+
                     return data.data.opportunities;
                 } else {
                     throw new Error(data.error || 'Scanner failed');

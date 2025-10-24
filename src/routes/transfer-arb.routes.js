@@ -14,6 +14,10 @@ const https = require('https');
 // Import execution service
 const transferExecutionService = require('../services/transferExecutionService');
 
+// Import scanner service
+const TransferArbScanner = require('../services/transfer-arb-scanner');
+const fetch = require('node-fetch');
+
 const router = express.Router();
 
 // =============================================================================
@@ -646,6 +650,126 @@ router.get('/active-transfers', tradingRateLimit, optionalAuth, asyncHandler(asy
             isExecuting: transferExecutionService.isTransferInProgress()
         }
     });
+}));
+
+/**
+ * GET /api/v1/transfer-arb/scan
+ * Scan for transfer arbitrage opportunities with real prices
+ */
+router.get('/scan', tradingRateLimit, optionalAuth, asyncHandler(async (req, res) => {
+    try {
+        // Get selected cryptos and exchanges from query params
+        const selectedCryptos = req.query.cryptos ? JSON.parse(req.query.cryptos) : [];
+        const selectedExchanges = req.query.exchanges ? JSON.parse(req.query.exchanges) : [];
+        const minProfit = parseFloat(req.query.minProfit) || 2.0; // Default 2%
+
+        systemLogger.trading('Transfer ARB scan initiated', {
+            userId: req.user?.id || 'anonymous',
+            cryptos: selectedCryptos.length,
+            exchanges: selectedExchanges.length,
+            minProfit: minProfit + '%'
+        });
+
+        if (selectedCryptos.length === 0 || selectedExchanges.length < 2) {
+            return res.json({
+                success: false,
+                error: 'Need at least 1 crypto and 2 exchanges selected',
+                data: {
+                    opportunities: [],
+                    routesScanned: 0
+                }
+            });
+        }
+
+        // Fetch real prices from all selected exchanges
+        const baseURL = process.env.NODE_ENV === 'production'
+            ? 'https://arb4me-unified-production.up.railway.app'
+            : 'http://localhost:3000';
+
+        const exchangePrices = {};
+
+        for (const exchange of selectedExchanges) {
+            exchangePrices[exchange] = {};
+
+            for (const crypto of selectedCryptos) {
+                try {
+                    const pair = `${crypto}/USDT`;
+                    const exchangeLower = exchange.toLowerCase();
+
+                    const response = await fetch(`${baseURL}/api/v1/trading/${exchangeLower}/ticker`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ pair })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success && data.data) {
+                        const price = data.data;
+                        exchangePrices[exchange][crypto] = {
+                            bid: parseFloat(price.bid || price.bidPrice || price.buy || 0),
+                            ask: parseFloat(price.ask || price.askPrice || price.sell || 0),
+                            last: parseFloat(price.last || price.lastPrice || price.price || 0)
+                        };
+                    }
+                } catch (error) {
+                    systemLogger.warn(`Failed to fetch ${exchange} ${crypto} price`, {
+                        error: error.message
+                    });
+                }
+            }
+        }
+
+        // Mock user balances (assume user has $5000 USDT on each exchange)
+        // In production, this should fetch real balances from exchanges
+        const userBalances = {};
+        selectedExchanges.forEach(exchange => {
+            userBalances[exchange] = { USDT: 5000 };
+        });
+
+        // Create scanner and run
+        const scanner = new TransferArbScanner();
+        const allOpportunities = await scanner.scanOpportunities(exchangePrices, userBalances);
+
+        // Filter by selected exchanges and cryptos
+        const filteredOpportunities = allOpportunities.filter(opp => {
+            return selectedExchanges.includes(opp.fromExchange) &&
+                   selectedExchanges.includes(opp.toExchange) &&
+                   selectedCryptos.includes(opp.crypto) &&
+                   opp.netProfitPercent >= minProfit;
+        });
+
+        const routesScanned = selectedExchanges.length * (selectedExchanges.length - 1) * selectedCryptos.length;
+
+        systemLogger.trading('Transfer ARB scan complete', {
+            userId: req.user?.id || 'anonymous',
+            routesScanned,
+            opportunitiesFound: filteredOpportunities.length,
+            bestProfit: filteredOpportunities[0]?.netProfitPercent.toFixed(2) + '%' || 'N/A'
+        });
+
+        res.json({
+            success: true,
+            data: {
+                opportunities: filteredOpportunities,
+                routesScanned,
+                totalOpportunities: allOpportunities.length,
+                scannedAt: new Date()
+            }
+        });
+
+    } catch (error) {
+        systemLogger.error('Transfer ARB scan error', {
+            userId: req.user?.id || 'anonymous',
+            error: error.message,
+            stack: error.stack
+        });
+
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
 }));
 
 /**
