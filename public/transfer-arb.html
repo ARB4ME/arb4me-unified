@@ -349,7 +349,7 @@
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 30px;">
                         <div class="form-group">
                             <label>From Exchange (Source)</label>
-                            <select id="rebalanceFromExchange">
+                            <select id="rebalanceFromExchange" onchange="autoCalculateTransfer()">
                                 <option value="">Select Source Exchange</option>
                                 <option value="chainex">ChainEX</option>
                                 <option value="valr">VALR</option>
@@ -375,7 +375,7 @@
 
                         <div class="form-group">
                             <label>To Exchange (Destination)</label>
-                            <select id="rebalanceToExchange">
+                            <select id="rebalanceToExchange" onchange="autoCalculateTransfer()">
                                 <option value="">Select Destination Exchange</option>
                                 <option value="chainex">ChainEX</option>
                                 <option value="valr">VALR</option>
@@ -401,7 +401,7 @@
 
                         <div class="form-group">
                             <label>Cryptocurrency to Transfer</label>
-                            <select id="rebalanceCrypto">
+                            <select id="rebalanceCrypto" onchange="autoCalculateTransfer()">
                                 <option value="XRP">XRP (Fast, Low Fees)</option>
                                 <option value="XLM">XLM (Fast, Low Fees)</option>
                                 <option value="TRX">TRX (Fast, Low Fees)</option>
@@ -415,7 +415,7 @@
 
                         <div class="form-group">
                             <label>Amount (in crypto units)</label>
-                            <input type="number" id="rebalanceAmount" placeholder="e.g., 1000 XRP" min="1" step="0.01">
+                            <input type="number" id="rebalanceAmount" placeholder="e.g., 1000 XRP" min="1" step="0.01" oninput="autoCalculateTransfer()">
                             <div style="color: #888; font-size: 0.7rem; margin-top: 4px;">
                                 Enter amount in the cryptocurrency selected above
                             </div>
@@ -542,30 +542,42 @@
                 </div>
             </div>
 
-            <!-- Transfer Calculator -->
+            <!-- Transfer Calculator - Auto-calculating -->
             <div class="stat-card">
-                <h4 style="color: #00d4ff; margin-bottom: 15px;">🧮 Quick Transfer Calculator</h4>
+                <h4 style="color: #00d4ff; margin-bottom: 15px;">🧮 Live Transfer Calculator</h4>
+                <div id="calculatorSource" style="color: #888; font-size: 0.85rem; margin-bottom: 15px; padding: 10px; background: rgba(0,212,255,0.1); border-radius: 6px; display: none;">
+                    <!-- Will show active calculation source -->
+                </div>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
                     <div class="form-group">
                         <label>Buy Price (Source)</label>
-                        <input type="number" id="buyPrice" placeholder="$50000" step="0.01">
+                        <input type="number" id="buyPrice" placeholder="Auto-fetching..." step="0.01" readonly style="background: rgba(255,255,255,0.05); cursor: not-allowed;">
+                        <div style="color: #888; font-size: 0.7rem; margin-top: 4px;">
+                            Live price from source exchange
+                        </div>
                     </div>
                     <div class="form-group">
                         <label>Sell Price (Destination)</label>
-                        <input type="number" id="sellPrice" placeholder="$51500" step="0.01">
+                        <input type="number" id="sellPrice" placeholder="Auto-fetching..." step="0.01" readonly style="background: rgba(255,255,255,0.05); cursor: not-allowed;">
+                        <div style="color: #888; font-size: 0.7rem; margin-top: 4px;">
+                            Live price from destination exchange
+                        </div>
                     </div>
                     <div class="form-group">
-                        <label>Amount (USDT)</label>
-                        <input type="number" id="calcAmount" placeholder="1000" step="1">
+                        <label>Amount</label>
+                        <input type="number" id="calcAmount" placeholder="Enter amount above" step="1" readonly style="background: rgba(255,255,255,0.05); cursor: not-allowed;">
+                        <div style="color: #888; font-size: 0.7rem; margin-top: 4px;">
+                            From transfer form above
+                        </div>
                     </div>
                     <div class="form-group">
-                        <label>Network Fee</label>
-                        <input type="number" id="networkFee" placeholder="5" step="0.01">
+                        <label>Network Fee (Est.)</label>
+                        <input type="number" id="networkFee" placeholder="Auto-calculating..." step="0.01" readonly style="background: rgba(255,255,255,0.05); cursor: not-allowed;">
+                        <div style="color: #888; font-size: 0.7rem; margin-top: 4px;">
+                            Estimated withdrawal fee
+                        </div>
                     </div>
                 </div>
-                <button onclick="quickCalculate()" class="btn" style="width: 100%; margin-top: 15px;">
-                    Calculate Potential Profit
-                </button>
                 <div id="calculationResult" style="margin-top: 15px; padding: 15px; background: rgba(0,255,136,0.1); border-radius: 8px; display: none;">
                     <!-- Results will appear here -->
                 </div>
@@ -1785,6 +1797,136 @@
 
             if (loadedCount > 0) {
                 console.log(`✅ Loaded ${loadedCount} saved payment fields`);
+            }
+        }
+
+        // Auto-calculate transfer profit from Rebalance form
+        async function autoCalculateTransfer() {
+            // Get rebalance form values
+            const fromExchange = document.getElementById('rebalanceFromExchange').value;
+            const toExchange = document.getElementById('rebalanceToExchange').value;
+            const crypto = document.getElementById('rebalanceCrypto').value;
+            const amount = parseFloat(document.getElementById('rebalanceAmount').value);
+
+            const calculatorSource = document.getElementById('calculatorSource');
+            const resultDiv = document.getElementById('calculationResult');
+
+            // Reset if incomplete
+            if (!fromExchange || !toExchange || !crypto || !amount || amount <= 0) {
+                calculatorSource.style.display = 'none';
+                resultDiv.style.display = 'none';
+                document.getElementById('buyPrice').value = '';
+                document.getElementById('sellPrice').value = '';
+                document.getElementById('calcAmount').value = '';
+                document.getElementById('networkFee').value = '';
+                return;
+            }
+
+            // Show calculation source
+            calculatorSource.style.display = 'block';
+            calculatorSource.innerHTML = `
+                📊 Calculating: <strong>${amount} ${crypto}</strong> |
+                ${fromExchange.toUpperCase()} → ${toExchange.toUpperCase()}
+            `;
+
+            console.log('🧮 Auto-calculating transfer profit...', { fromExchange, toExchange, crypto, amount });
+
+            try {
+                // Fetch live prices from both exchanges
+                const baseURL = window.location.hostname === 'localhost'
+                    ? 'http://localhost:3000'
+                    : 'https://arb4me-unified-production.up.railway.app';
+
+                const pair = `${crypto}USDT`; // Most common pair
+
+                // Fetch source exchange price (where we buy/withdraw from)
+                let buyPrice = 0;
+                try {
+                    const buyResponse = await fetch(`${baseURL}/api/v1/trading/${fromExchange}/ticker?symbol=${pair}`);
+                    const buyData = await buyResponse.json();
+                    buyPrice = buyData.success ? parseFloat(buyData.data.lastPrice || buyData.data.last || 0) : 0;
+                } catch (error) {
+                    console.warn(`⚠️ Could not fetch ${fromExchange} price:`, error.message);
+                }
+
+                // Fetch destination exchange price (where we sell/deposit to)
+                let sellPrice = 0;
+                try {
+                    const sellResponse = await fetch(`${baseURL}/api/v1/trading/${toExchange}/ticker?symbol=${pair}`);
+                    const sellData = await sellResponse.json();
+                    sellPrice = sellData.success ? parseFloat(sellData.data.lastPrice || sellData.data.last || 0) : 0;
+                } catch (error) {
+                    console.warn(`⚠️ Could not fetch ${toExchange} price:`, error.message);
+                }
+
+                // Estimate network fee based on crypto
+                const networkFees = {
+                    'XRP': 0.25,    // XRP network fee ~0.25 XRP
+                    'XLM': 0.01,    // XLM network fee ~0.01 XLM
+                    'TRX': 1,       // TRX network fee ~1 TRX
+                    'USDT': 1,      // USDT (TRC20) ~1 USDT
+                    'USDC': 1,      // USDC ~1 USDC
+                    'BTC': 0.0005,  // BTC ~0.0005 BTC
+                    'ETH': 0.002,   // ETH ~0.002 ETH
+                    'BNB': 0.001,   // BNB ~0.001 BNB
+                    'SOL': 0.000005,// SOL ~0.000005 SOL
+                    'LTC': 0.001    // LTC ~0.001 LTC
+                };
+
+                const networkFee = networkFees[crypto] || 0;
+                const networkFeeUSD = networkFee * (buyPrice || sellPrice || 0);
+
+                // Update calculator inputs
+                document.getElementById('buyPrice').value = buyPrice > 0 ? buyPrice.toFixed(6) : '';
+                document.getElementById('sellPrice').value = sellPrice > 0 ? sellPrice.toFixed(6) : '';
+                document.getElementById('calcAmount').value = amount;
+                document.getElementById('networkFee').value = networkFeeUSD.toFixed(2);
+
+                // Calculate profit if we have prices
+                if (buyPrice > 0 && sellPrice > 0) {
+                    const valueAtSource = amount * buyPrice;
+                    const valueAtDestination = amount * sellPrice;
+                    const profit = valueAtDestination - valueAtSource - networkFeeUSD;
+                    const profitPercent = (profit / valueAtSource) * 100;
+
+                    resultDiv.style.display = 'block';
+                    resultDiv.innerHTML = `
+                        <h5 style="color: #00ff88; margin-bottom: 10px;">📊 Live Calculation</h5>
+                        <div style="display: grid; grid-template-columns: 1fr auto; gap: 10px; font-size: 0.9rem;">
+                            <span style="color: #b8c6db;">Amount:</span>
+                            <span style="color: #fff;">${amount} ${crypto}</span>
+
+                            <span style="color: #b8c6db;">Value at ${fromExchange.toUpperCase()}:</span>
+                            <span style="color: #fff;">$${valueAtSource.toFixed(2)}</span>
+
+                            <span style="color: #b8c6db;">Value at ${toExchange.toUpperCase()}:</span>
+                            <span style="color: #fff;">$${valueAtDestination.toFixed(2)}</span>
+
+                            <span style="color: #b8c6db;">Network Fee:</span>
+                            <span style="color: #ff6b6b;">-$${networkFeeUSD.toFixed(2)} (~${networkFee} ${crypto})</span>
+
+                            <span style="color: #b8c6db; font-weight: bold;">Net Profit/Loss:</span>
+                            <span style="color: ${profit > 0 ? '#00ff88' : '#ff6b6b'}; font-weight: bold;">
+                                ${profit > 0 ? '+' : ''}$${profit.toFixed(2)} (${profitPercent.toFixed(2)}%)
+                            </span>
+                        </div>
+                        ${profit <= 0 ? '<p style="color: #ff6b6b; margin-top: 10px; font-size: 0.85rem;">⚠️ This transfer would result in a loss. Only proceed if rebalancing is necessary.</p>' : ''}
+                        ${profitPercent > 0 && profitPercent < 1 ? '<p style="color: #ffb347; margin-top: 10px; font-size: 0.85rem;">💡 Low profit margin detected</p>' : ''}
+                        ${profitPercent > 1 ? '<p style="color: #00ff88; margin-top: 10px; font-size: 0.85rem;">✅ Profitable arbitrage opportunity!</p>' : ''}
+                    `;
+                } else {
+                    resultDiv.style.display = 'block';
+                    resultDiv.innerHTML = `
+                        <p style="color: #ffb347; text-align: center;">⚠️ Unable to fetch live prices. Please check exchange connection.</p>
+                    `;
+                }
+
+            } catch (error) {
+                console.error('❌ Auto-calculation error:', error);
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = `
+                    <p style="color: #ff6b6b; text-align: center;">❌ Calculation failed: ${error.message}</p>
+                `;
             }
         }
 
