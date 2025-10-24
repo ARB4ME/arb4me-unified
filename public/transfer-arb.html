@@ -376,6 +376,35 @@
                         </div>
                     </div>
 
+                    <!-- Transfer Risk/Constraint Settings -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.2);">
+                        <div class="form-group">
+                            <label>Min Acceptable Profit (%)</label>
+                            <input type="number" id="smartMinProfit" placeholder="e.g., 0 or -1" min="-10" max="10" step="0.5" value="0">
+                            <div style="color: #888; font-size: 0.75rem; margin-top: 5px;">
+                                Can be 0% or negative (you need to transfer anyway)
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Max Transfer Time (minutes)</label>
+                            <input type="number" id="smartMaxTime" placeholder="e.g., 60" min="10" max="180" step="10" value="60">
+                            <div style="color: #888; font-size: 0.75rem; margin-top: 5px;">
+                                Longer times OK for non-urgent transfers
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Include Network Fees</label>
+                            <div style="display: flex; align-items: center; gap: 10px; margin-top: 8px;">
+                                <div class="toggle-switch active" id="smartIncludeFeesToggle">
+                                    <div class="toggle-knob"></div>
+                                </div>
+                                <span style="font-size: 0.85rem; color: #b8c6db;">Calculate fees in result</span>
+                            </div>
+                        </div>
+                    </div>
+
                     <button onclick="findBestTransferRoute()" class="btn" style="width: 100%; margin-top: 20px; background: linear-gradient(45deg, #00d4ff 0%, #00ff88 100%); font-size: 1.1rem; padding: 15px;">
                         🔍 Find Best Transfer Route
                     </button>
@@ -1260,6 +1289,18 @@
                 document.getElementById('includeFeesToggle').classList.add('active');
             }
 
+            // Smart Transfer Fees Toggle
+            document.getElementById('smartIncludeFeesToggle').addEventListener('click', function() {
+                this.classList.toggle('active');
+                localStorage.setItem('smartTransferIncludeFees', this.classList.contains('active'));
+                console.log('💸 Smart Transfer fees toggle:', this.classList.contains('active') ? 'ON' : 'OFF');
+            });
+
+            // Load smart transfer toggle state (default ON)
+            if (localStorage.getItem('smartTransferIncludeFees') !== 'false') {
+                document.getElementById('smartIncludeFeesToggle').classList.add('active');
+            }
+
             // Auto-Execute Toggle
             const autoExecuteToggle = document.getElementById('autoExecuteToggle');
             const autoExecuteLabel = document.getElementById('autoExecuteLabel');
@@ -1631,11 +1672,19 @@
                 return;
             }
 
+            // Get smart transfer risk settings
+            const minProfit = parseFloat(document.getElementById('smartMinProfit').value) || 0;
+            const maxTime = parseFloat(document.getElementById('smartMaxTime').value) || 60;
+            const includeFees = document.getElementById('smartIncludeFeesToggle').classList.contains('active');
+
             console.log('📊 Smart Transfer Request:', {
                 from: fromExchange,
                 to: toExchange,
                 amount: amount,
-                crypto: preferredCrypto || 'auto'
+                crypto: preferredCrypto || 'auto',
+                minProfit: minProfit + '%',
+                maxTime: maxTime + ' mins',
+                includeFees: includeFees
             });
 
             // Show loading state
@@ -1657,11 +1706,11 @@
 
                 console.log('🔍 Checking cryptos:', cryptosToCheck);
 
-                // Call scanner API for this specific route
+                // Call scanner API for this specific route (use user's minProfit setting)
                 const params = new URLSearchParams({
                     cryptos: JSON.stringify(cryptosToCheck),
                     exchanges: JSON.stringify([fromExchange, toExchange]),
-                    minProfit: -10 // Allow negative profit since user needs to transfer anyway
+                    minProfit: minProfit // Use smart transfer min profit setting
                 });
 
                 const response = await fetch(`/api/v1/transfer-arb/scan?${params.toString()}`);
@@ -1672,11 +1721,18 @@
                 }
 
                 // Filter opportunities for this specific route (from → to)
-                const routes = data.data.opportunities.filter(opp =>
+                let routes = data.data.opportunities.filter(opp =>
                     opp.fromExchange === fromExchange && opp.toExchange === toExchange
                 );
 
-                console.log(`✅ Found ${routes.length} possible routes`);
+                // Apply additional filters based on smart transfer settings
+                routes = routes.filter(opp => {
+                    const meetsProfit = opp.netProfitPercent >= minProfit;
+                    const meetsTime = opp.estimatedTransferTime <= maxTime;
+                    return meetsProfit && meetsTime;
+                });
+
+                console.log(`✅ Found ${routes.length} routes meeting criteria (min profit: ${minProfit}%, max time: ${maxTime} mins)`);
 
                 // Display results
                 displaySmartTransferResults(routes, fromExchange, toExchange, amount);
