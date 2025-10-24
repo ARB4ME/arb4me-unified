@@ -301,9 +301,9 @@
                 </div>
 
                 <div class="stat-card">
-                    <h4 style="color: #00d4ff; margin-bottom: 15px;">💸 Smart Transfer Configuration</h4>
+                    <h4 style="color: #00d4ff; margin-bottom: 20px;">💸 Smart Transfer Configuration</h4>
 
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px;">
                         <div class="form-group">
                             <label>From Exchange (Source)</label>
                             <select id="smartFromExchange">
@@ -377,24 +377,24 @@
                     </div>
 
                     <!-- Transfer Risk/Constraint Settings -->
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.2);">
-                        <div class="form-group">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; margin-top: 25px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.2);">
+                        <div class="form-group" style="margin-bottom: 0;">
                             <label>Min Acceptable Profit (%)</label>
                             <input type="number" id="smartMinProfit" placeholder="e.g., 0 or -1" min="-10" max="10" step="0.5" value="0">
-                            <div style="color: #888; font-size: 0.75rem; margin-top: 5px;">
+                            <div style="color: #888; font-size: 0.7rem; margin-top: 4px; line-height: 1.3;">
                                 Can be 0% or negative (you need to transfer anyway)
                             </div>
                         </div>
 
-                        <div class="form-group">
+                        <div class="form-group" style="margin-bottom: 0;">
                             <label>Max Transfer Time (minutes)</label>
                             <input type="number" id="smartMaxTime" placeholder="e.g., 60" min="10" max="180" step="10" value="60">
-                            <div style="color: #888; font-size: 0.75rem; margin-top: 5px;">
+                            <div style="color: #888; font-size: 0.7rem; margin-top: 4px; line-height: 1.3;">
                                 Longer times OK for non-urgent transfers
                             </div>
                         </div>
 
-                        <div class="form-group">
+                        <div class="form-group" style="margin-bottom: 0;">
                             <label>Include Network Fees</label>
                             <div style="display: flex; align-items: center; gap: 10px; margin-top: 8px;">
                                 <div class="toggle-switch active" id="smartIncludeFeesToggle">
@@ -405,7 +405,7 @@
                         </div>
                     </div>
 
-                    <button onclick="findBestTransferRoute()" class="btn" style="width: 100%; margin-top: 20px; background: linear-gradient(45deg, #00d4ff 0%, #00ff88 100%); font-size: 1.1rem; padding: 15px;">
+                    <button onclick="findBestTransferRoute()" class="btn" style="width: 100%; margin-top: 18px; background: linear-gradient(45deg, #00d4ff 0%, #00ff88 100%); font-size: 1rem; padding: 12px;">
                         🔍 Find Best Transfer Route
                     </button>
                 </div>
