@@ -135,6 +135,24 @@
     </style>
 </head>
 <body>
+    <!-- Deposit Address Modal -->
+    <div id="depositAddressModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; overflow-y: auto;">
+        <div style="max-width: 900px; margin: 50px auto; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); border-radius: 15px; padding: 30px; box-shadow: 0 10px 40px rgba(0,0,0,0.5);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="color: #00ff88; margin: 0;">📬 Configure Deposit Addresses</h2>
+                <button onclick="closeDepositAddressModal()" style="background: rgba(255,107,107,0.2); border: 1px solid #ff6b6b; color: #ff6b6b; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: bold;">
+                    ✕ Close
+                </button>
+            </div>
+            <p style="color: #b8c6db; margin-bottom: 25px;">
+                Enter deposit addresses for your selected cryptocurrencies. Changes are saved automatically.
+            </p>
+            <div id="modal-deposit-fields" style="max-height: 60vh; overflow-y: auto; padding-right: 10px;">
+                <!-- Will be populated dynamically -->
+            </div>
+        </div>
+    </div>
+
     <div class="transfer-container">
         <!-- Return to Platform Button -->
         <div style="margin-bottom: 20px; text-align: center;">
@@ -955,18 +973,32 @@
                     <div style="background: rgba(255,107,107,0.2); border: 1px solid #ff6b6b; border-radius: 8px; padding: 20px; margin-top: 15px;">
                         <p style="color: #ff6b6b; margin-bottom: 10px;">⚠️ No exchanges connected for Transfer ARB</p>
                         <p style="color: #b8c6db; margin-bottom: 15px;">Please configure your exchanges in Strategy API Setup first.</p>
-                        <button onclick="window.location.href='/strategy-api-setup.html?strategy=transfer'"
-                                style="padding: 10px 20px; background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
-                                       color: white; border: none; border-radius: 8px; cursor: pointer;">
-                            🔧 Configure Exchanges
-                        </button>
+                        <div style="display: flex; gap: 15px;">
+                            <button onclick="window.location.href='/strategy-api-setup.html?strategy=transfer'"
+                                    style="padding: 10px 20px; background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+                                           color: white; border: none; border-radius: 8px; cursor: pointer; flex: 1;">
+                                🔧 Configure Exchanges
+                            </button>
+                            <button onclick="openDepositAddressModal()"
+                                    style="padding: 10px 20px; background: linear-gradient(45deg, #00d4ff 0%, #00ff88 100%);
+                                           color: white; border: none; border-radius: 8px; cursor: pointer; flex: 1;">
+                                📬 Configure Deposit Addresses
+                            </button>
+                        </div>
                     </div>
                 `;
                 return;
             }
 
             section.innerHTML = `
-                <h3 style="color: #00ff88;">📬 Deposit Address Configuration</h3>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 style="color: #00ff88; margin: 0;">📬 Deposit Address Configuration</h3>
+                    <button onclick="openDepositAddressModal()"
+                            style="padding: 10px 20px; background: linear-gradient(45deg, #00d4ff 0%, #00ff88 100%);
+                                   color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">
+                        📬 Configure Deposit Addresses
+                    </button>
+                </div>
                 <p style="color: #b8c6db; margin-bottom: 20px;">
                     Provide deposit addresses for selected cryptocurrencies on ${connectedExchanges.length} connected exchange(s)
                 </p>
@@ -1046,6 +1078,120 @@
                     }
                 });
             });
+        }
+
+        // Open deposit address modal
+        function openDepositAddressModal() {
+            console.log('📬 Opening deposit address modal...');
+
+            const modal = document.getElementById('depositAddressModal');
+            const modalFields = document.getElementById('modal-deposit-fields');
+
+            // Check if we have selected cryptos
+            if (selectedCryptos.length === 0) {
+                alert('⚠️ Please select cryptocurrencies first');
+                return;
+            }
+
+            const connectedExchanges = getConnectedExchanges();
+
+            if (connectedExchanges.length === 0) {
+                // Show message to connect exchanges
+                modalFields.innerHTML = `
+                    <div style="background: rgba(255,107,107,0.2); border: 1px solid #ff6b6b; border-radius: 8px; padding: 30px; text-align: center;">
+                        <h3 style="color: #ff6b6b; margin-bottom: 15px;">⚠️ No Exchanges Connected</h3>
+                        <p style="color: #b8c6db; margin-bottom: 20px;">
+                            You need to connect exchanges in Strategy API Setup before configuring deposit addresses.
+                        </p>
+                        <button onclick="window.location.href='/strategy-api-setup.html?strategy=transfer'"
+                                style="padding: 12px 24px; background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+                                       color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">
+                            🔧 Go to Strategy API Setup
+                        </button>
+                    </div>
+                `;
+            } else {
+                // Populate modal with deposit address fields
+                modalFields.innerHTML = connectedExchanges.map(exchange => `
+                    <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; padding: 20px; margin-bottom: 20px;">
+                        <h4 style="color: #ffb347; text-transform: uppercase; margin-bottom: 15px;">
+                            ${exchange}
+                            <span style="color: #00ff88; font-size: 0.8rem; font-weight: normal;">✓ Connected</span>
+                        </h4>
+                        ${selectedCryptos.map(crypto => `
+                            <div style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <label style="display: block; color: #b8c6db; margin-bottom: 8px; font-weight: 600;">
+                                    ${crypto} Deposit Address
+                                </label>
+                                <input type="text" id="modal-${exchange}-${crypto}-deposit"
+                                       placeholder="${exchange} ${crypto} deposit address"
+                                       oninput="saveDepositAddress('${exchange}', '${crypto}', 'deposit', this.value)"
+                                       style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.3);
+                                              border-radius: 6px; padding: 10px; color: white; width: 100%; font-size: 0.9rem;">
+                                ${['XRP', 'XLM'].includes(crypto) ? `
+                                    <input type="text" id="modal-${exchange}-${crypto}-tag"
+                                           placeholder="Memo/Tag (if required)"
+                                           oninput="saveDepositAddress('${exchange}', '${crypto}', 'tag', this.value)"
+                                           style="margin-top: 8px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.3);
+                                                  border-radius: 6px; padding: 10px; color: white; width: 100%; font-size: 0.9rem;">
+                                ` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                `).join('');
+
+                // Load saved values into modal fields
+                setTimeout(() => loadModalDepositAddresses(), 100);
+            }
+
+            // Show modal
+            modal.style.display = 'block';
+            console.log('✅ Modal opened');
+        }
+
+        // Load saved deposit addresses into modal
+        function loadModalDepositAddresses() {
+            console.log('🔄 Loading saved addresses into modal...');
+
+            const connectedExchanges = getConnectedExchanges();
+
+            connectedExchanges.forEach(exchange => {
+                selectedCryptos.forEach(crypto => {
+                    // Load deposit address
+                    const depositKey = `deposit_${exchange}_${crypto}_deposit`;
+                    const depositValue = localStorage.getItem(depositKey);
+                    const depositInput = document.getElementById(`modal-${exchange}-${crypto}-deposit`);
+
+                    if (depositValue && depositInput) {
+                        depositInput.value = depositValue;
+                        console.log(`✅ Loaded ${exchange} ${crypto} deposit into modal`);
+                    }
+
+                    // Load tag/memo for XRP and XLM
+                    if (['XRP', 'XLM'].includes(crypto)) {
+                        const tagKey = `deposit_${exchange}_${crypto}_tag`;
+                        const tagValue = localStorage.getItem(tagKey);
+                        const tagInput = document.getElementById(`modal-${exchange}-${crypto}-tag`);
+
+                        if (tagValue && tagInput) {
+                            tagInput.value = tagValue;
+                            console.log(`✅ Loaded ${exchange} ${crypto} tag into modal`);
+                        }
+                    }
+                });
+            });
+        }
+
+        // Close deposit address modal
+        function closeDepositAddressModal() {
+            console.log('📬 Closing deposit address modal...');
+            const modal = document.getElementById('depositAddressModal');
+            modal.style.display = 'none';
+
+            // Refresh the main deposit section to show updated values
+            if (selectedCryptos.length > 0 && getConnectedExchanges().length > 0) {
+                generateDepositAddressSection();
+            }
         }
 
         // Load saved settings
