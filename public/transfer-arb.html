@@ -219,73 +219,8 @@
                 <!-- Dynamically generated deposit address fields -->
             </div>
 
-            <!-- Scanner Control -->
-            <div style="margin-bottom: 30px;">
-                <button id="scanOpportunitiesBtn" onclick="scanTransferOpportunities()"
-                        style="width: 100%; padding: 20px; background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
-                               color: white; border: none; border-radius: 10px; font-size: 1.1rem; cursor: pointer; font-weight: bold;">
-                    🔍 Scan Transfer Opportunities
-                </button>
-            </div>
-
-            <!-- Opportunities Display -->
-            <div id="opportunities-section" style="display: none; margin-bottom: 30px;">
-                <h3 style="color: #00ff88; margin-bottom: 15px;">💎 Transfer Opportunities</h3>
-                <div id="opportunities-list">
-                    <!-- Will be populated with opportunities -->
-                </div>
-            </div>
-
-            <!-- Transfer History -->
-            <div id="transfer-history-section" style="display: none; margin-bottom: 30px;">
-                <h3 style="color: #ffb347; margin-bottom: 15px;">📊 Transfer History</h3>
-                <div id="transfer-history-list">
-                    <!-- Will be populated with transfer history -->
-                </div>
-            </div>
-
-            <!-- Transfer Configuration -->
+            <!-- Auto-Trading Configuration -->
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 20px;">
-                <!-- Route Configuration -->
-                <div class="stat-card">
-                    <h4 style="color: #ffb347; margin-bottom: 15px;">🛤️ Transfer Routes</h4>
-                    <div class="form-group">
-                        <label>Source Exchange</label>
-                        <select id="sourceExchange">
-                            <option value="">Select Exchange</option>
-                            <option value="valr">VALR</option>
-                            <option value="luno">Luno</option>
-                            <option value="altcointrader">AltCoinTrader</option>
-                            <option value="binance">Binance</option>
-                            <option value="kraken">Kraken</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Destination Exchange</label>
-                        <select id="destExchange">
-                            <option value="">Select Exchange</option>
-                            <option value="valr">VALR</option>
-                            <option value="luno">Luno</option>
-                            <option value="altcointrader">AltCoinTrader</option>
-                            <option value="binance">Binance</option>
-                            <option value="kraken">Kraken</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Preferred Cryptocurrency</label>
-                        <select id="transferCrypto">
-                            <option value="">Select Crypto</option>
-                            <option value="XRP">XRP (Fast, Low Fees)</option>
-                            <option value="XLM">XLM (Fast, Low Fees)</option>
-                            <option value="LTC">LTC (Medium Speed)</option>
-                            <option value="TRX">TRX (Fast, Low Fees)</option>
-                            <option value="USDT">USDT-TRC20 (Stable)</option>
-                            <option value="BTC">BTC (Slow, High Fees)</option>
-                            <option value="ETH">ETH (Variable Fees)</option>
-                        </select>
-                    </div>
-                </div>
-
                 <!-- Auto-Trading Risk Settings -->
                 <div class="stat-card">
                     <h4 style="color: #ffb347; margin-bottom: 15px;">🤖 Auto-Trading Risk Settings</h4>
@@ -452,20 +387,20 @@
                 </div>
             </div>
 
-            <!-- Control Buttons -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
-                <button onclick="scanTransferOpportunities()" class="btn">
-                    🔍 Scan Opportunities
-                </button>
-                <button onclick="calculateTransferProfit()" class="btn">
-                    💰 Calculate Profit
-                </button>
-                <button onclick="viewTransferHistory()" class="btn">
-                    📊 Transfer History
-                </button>
-                <button onclick="testTransferRoute()" class="btn">
-                    🧪 Test Route
-                </button>
+            <!-- Opportunities Display -->
+            <div id="opportunities-section" style="display: none; margin-bottom: 30px;">
+                <h3 style="color: #00ff88; margin-bottom: 15px;">💎 Transfer Opportunities</h3>
+                <div id="opportunities-list">
+                    <!-- Will be populated with opportunities -->
+                </div>
+            </div>
+
+            <!-- Transfer History -->
+            <div id="transfer-history-section" style="display: none; margin-bottom: 30px;">
+                <h3 style="color: #ffb347; margin-bottom: 15px;">📊 Transfer History</h3>
+                <div id="transfer-history-list">
+                    <!-- Will be populated with transfer history -->
+                </div>
             </div>
 
             <!-- Active Transfers Monitor -->
