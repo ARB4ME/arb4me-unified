@@ -990,6 +990,19 @@
                 return;
             }
 
+            // Calculate how many addresses are configured
+            let configuredCount = 0;
+            let totalNeeded = selectedCryptos.length * connectedExchanges.length;
+
+            connectedExchanges.forEach(exchange => {
+                selectedCryptos.forEach(crypto => {
+                    const depositKey = `deposit_${exchange}_${crypto}_deposit`;
+                    if (localStorage.getItem(depositKey)) {
+                        configuredCount++;
+                    }
+                });
+            });
+
             section.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                     <h3 style="color: #00ff88; margin: 0;">📬 Deposit Address Configuration</h3>
@@ -999,45 +1012,30 @@
                         📬 Configure Deposit Addresses
                     </button>
                 </div>
-                <p style="color: #b8c6db; margin-bottom: 20px;">
-                    Provide deposit addresses for selected cryptocurrencies on ${connectedExchanges.length} connected exchange(s)
-                </p>
-                <div id="deposit-fields">
-                    <!-- Will be populated per exchange -->
+                <div style="background: rgba(0,212,255,0.1); border: 1px solid #00d4ff; border-radius: 8px; padding: 20px;">
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 15px;">
+                        <div style="text-align: center;">
+                            <div style="font-size: 2rem; font-weight: bold; color: #00ff88;">${selectedCryptos.length}</div>
+                            <div style="font-size: 0.85rem; color: #b8c6db;">Cryptocurrencies</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 2rem; font-weight: bold; color: #00d4ff;">${connectedExchanges.length}</div>
+                            <div style="font-size: 0.85rem; color: #b8c6db;">Exchanges Connected</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 2rem; font-weight: bold; color: ${configuredCount === totalNeeded ? '#00ff88' : '#ffb347'};">
+                                ${configuredCount}/${totalNeeded}
+                            </div>
+                            <div style="font-size: 0.85rem; color: #b8c6db;">Addresses Configured</div>
+                        </div>
+                    </div>
+                    <p style="color: #b8c6db; text-align: center; margin: 0;">
+                        ${configuredCount === totalNeeded
+                            ? '✅ All deposit addresses configured!'
+                            : `⚠️ ${totalNeeded - configuredCount} deposit address(es) still needed. Click "Configure Deposit Addresses" above to set them up.`}
+                    </p>
                 </div>
             `;
-
-            connectedExchanges.forEach(exchange => {
-                const html = `
-                    <div class="stat-card" style="margin-bottom: 20px;">
-                        <h4 style="color: #ffb347; text-transform: uppercase;">
-                            ${exchange}
-                            <span style="color: #00ff88; font-size: 0.8rem; font-weight: normal;">✓ Connected</span>
-                        </h4>
-                        ${selectedCryptos.map(crypto => `
-                            <div class="form-group">
-                                <label>${crypto} Deposit Address</label>
-                                <input type="text" id="${exchange}-${crypto}-deposit"
-                                       placeholder="${exchange} ${crypto} deposit address"
-                                       oninput="saveDepositAddress('${exchange}', '${crypto}', 'deposit', this.value)"
-                                       style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2);
-                                              border-radius: 5px; padding: 10px; color: white; width: 100%;">
-                                ${['XRP', 'XLM'].includes(crypto) ? `
-                                    <input type="text" id="${exchange}-${crypto}-tag"
-                                           placeholder="Memo/Tag (if required)"
-                                           oninput="saveDepositAddress('${exchange}', '${crypto}', 'tag', this.value)"
-                                           style="margin-top: 5px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2);
-                                                  border-radius: 5px; padding: 10px; color: white; width: 100%;">
-                                ` : ''}
-                            </div>
-                        `).join('')}
-                    </div>
-                `;
-                document.getElementById('deposit-fields').innerHTML += html;
-            });
-
-            // Load saved deposit addresses after generating fields
-            setTimeout(() => loadDepositAddresses(), 100);
         }
 
         // Save deposit address to localStorage
