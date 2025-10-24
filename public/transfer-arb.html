@@ -940,19 +940,6 @@ Next: Configure deposit addresses for these cryptos`);
             `).join('');
         }
 
-        // Execute transfer (placeholder)
-        function executeTransfer(opportunity) {
-            console.log('🚀 Execute transfer:', opportunity);
-
-            if (opportunity.isPlaceholder) {
-                alert('⚠️ This is placeholder data.\n\nTo execute real transfers:\n1. Configure API keys in Strategy API Setup\n2. Configure deposit addresses\n3. Scan for real opportunities');
-                return;
-            }
-
-            // TODO: Integrate with execution-queue.js
-            alert(`Transfer execution coming soon!\n\nWill execute:\n${opportunity.crypto} from ${opportunity.fromExchange} → ${opportunity.toExchange}\nExpected profit: $${opportunity.netProfit.toFixed(2)}`);
-        }
-
         // Get connected exchanges from Strategy API Setup
         function getConnectedExchanges() {
             console.log('🔍 Checking for connected Transfer ARB exchanges...');
