@@ -435,7 +435,7 @@
                     <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; margin-bottom: 20px;">
                         <div class="form-group">
                             <label>From Exchange (Source)</label>
-                            <select id="paymentFromExchange" onchange="savePaymentField('fromExchange', this.value)">
+                            <select id="paymentFromExchange" onchange="savePaymentField('fromExchange', this.value); autoCalculateTransfer();">
                                 <option value="">Select Source Exchange</option>
                                 <option value="chainex">ChainEX</option>
                                 <option value="valr">VALR</option>
@@ -461,7 +461,7 @@
 
                         <div class="form-group">
                             <label>Cryptocurrency to Send</label>
-                            <select id="paymentCrypto" onchange="savePaymentField('crypto', this.value)">
+                            <select id="paymentCrypto" onchange="savePaymentField('crypto', this.value); autoCalculateTransfer();">
                                 <option value="XRP">XRP (Fast, Low Fees)</option>
                                 <option value="XLM">XLM (Fast, Low Fees)</option>
                                 <option value="TRX">TRX (Fast, Low Fees)</option>
@@ -474,7 +474,7 @@
 
                         <div class="form-group">
                             <label>Amount (in crypto units)</label>
-                            <input type="number" id="paymentAmount" placeholder="e.g., 500 USDT" min="1" step="0.01" oninput="savePaymentField('amount', this.value)">
+                            <input type="number" id="paymentAmount" placeholder="e.g., 500 USDT" min="1" step="0.01" oninput="savePaymentField('amount', this.value); autoCalculateTransfer();">
                             <div style="color: #888; font-size: 0.7rem; margin-top: 4px;">
                                 Enter amount in the cryptocurrency selected above
                             </div>
@@ -1800,19 +1800,36 @@
             }
         }
 
-        // Auto-calculate transfer profit from Rebalance form
+        // Auto-calculate transfer/payment cost
         async function autoCalculateTransfer() {
-            // Get rebalance form values
-            const fromExchange = document.getElementById('rebalanceFromExchange').value;
-            const toExchange = document.getElementById('rebalanceToExchange').value;
-            const crypto = document.getElementById('rebalanceCrypto').value;
-            const amount = parseFloat(document.getElementById('rebalanceAmount').value);
-
             const calculatorSource = document.getElementById('calculatorSource');
             const resultDiv = document.getElementById('calculationResult');
 
+            // Detect which tab is active
+            const rebalanceForm = document.getElementById('rebalance-form');
+            const paymentForm = document.getElementById('payment-form');
+            const isRebalanceActive = rebalanceForm.style.display !== 'none';
+            const isPaymentActive = paymentForm.style.display !== 'none';
+
+            // Get values based on active tab
+            let fromExchange, toExchange, crypto, amount;
+
+            if (isRebalanceActive) {
+                fromExchange = document.getElementById('rebalanceFromExchange').value;
+                toExchange = document.getElementById('rebalanceToExchange').value;
+                crypto = document.getElementById('rebalanceCrypto').value;
+                amount = parseFloat(document.getElementById('rebalanceAmount').value);
+            } else if (isPaymentActive) {
+                fromExchange = document.getElementById('paymentFromExchange').value;
+                crypto = document.getElementById('paymentCrypto').value;
+                amount = parseFloat(document.getElementById('paymentAmount').value);
+                toExchange = null; // Payment doesn't have destination exchange
+            } else {
+                return; // No active tab
+            }
+
             // Reset if incomplete
-            if (!fromExchange || !toExchange || !crypto || !amount || amount <= 0) {
+            if (!fromExchange || !crypto || !amount || amount <= 0 || (isRebalanceActive && !toExchange)) {
                 calculatorSource.style.display = 'none';
                 resultDiv.style.display = 'none';
                 document.getElementById('buyPrice').value = '';
@@ -1824,22 +1841,37 @@
 
             // Show calculation source
             calculatorSource.style.display = 'block';
-            calculatorSource.innerHTML = `
-                📊 Calculating: <strong>${amount} ${crypto}</strong> |
-                ${fromExchange.toUpperCase()} → ${toExchange.toUpperCase()}
-            `;
+            if (isRebalanceActive) {
+                calculatorSource.innerHTML = `
+                    📊 Calculating: <strong>${amount} ${crypto}</strong> |
+                    ${fromExchange.toUpperCase()} → ${toExchange.toUpperCase()}
+                `;
+            } else {
+                calculatorSource.innerHTML = `
+                    💳 Payment Cost: <strong>${amount} ${crypto}</strong> |
+                    From ${fromExchange.toUpperCase()}
+                `;
+            }
 
-            console.log('🧮 Auto-calculating transfer profit...', { fromExchange, toExchange, crypto, amount });
+            console.log('🧮 Auto-calculating...', { fromExchange, toExchange, crypto, amount, mode: isRebalanceActive ? 'rebalance' : 'payment' });
 
             try {
-                // Fetch live prices from both exchanges
                 const baseURL = window.location.hostname === 'localhost'
                     ? 'http://localhost:3000'
                     : 'https://arb4me-unified-production.up.railway.app';
 
-                const pair = `${crypto}USDT`; // Most common pair
+                const pair = `${crypto}USDT`;
 
-                // Fetch source exchange price (where we buy/withdraw from)
+                // Network fee estimates
+                const networkFees = {
+                    'XRP': 0.25,    'XLM': 0.01,    'TRX': 1,       'USDT': 1,
+                    'USDC': 1,      'BTC': 0.0005,  'ETH': 0.002,   'BNB': 0.001,
+                    'SOL': 0.000005,'LTC': 0.001
+                };
+
+                const networkFee = networkFees[crypto] || 0;
+
+                // Fetch source exchange price
                 let buyPrice = 0;
                 try {
                     const buyResponse = await fetch(`${baseURL}/api/v1/trading/${fromExchange}/ticker?symbol=${pair}`);
@@ -1849,84 +1881,99 @@
                     console.warn(`⚠️ Could not fetch ${fromExchange} price:`, error.message);
                 }
 
-                // Fetch destination exchange price (where we sell/deposit to)
-                let sellPrice = 0;
-                try {
-                    const sellResponse = await fetch(`${baseURL}/api/v1/trading/${toExchange}/ticker?symbol=${pair}`);
-                    const sellData = await sellResponse.json();
-                    sellPrice = sellData.success ? parseFloat(sellData.data.lastPrice || sellData.data.last || 0) : 0;
-                } catch (error) {
-                    console.warn(`⚠️ Could not fetch ${toExchange} price:`, error.message);
-                }
-
-                // Estimate network fee based on crypto
-                const networkFees = {
-                    'XRP': 0.25,    // XRP network fee ~0.25 XRP
-                    'XLM': 0.01,    // XLM network fee ~0.01 XLM
-                    'TRX': 1,       // TRX network fee ~1 TRX
-                    'USDT': 1,      // USDT (TRC20) ~1 USDT
-                    'USDC': 1,      // USDC ~1 USDC
-                    'BTC': 0.0005,  // BTC ~0.0005 BTC
-                    'ETH': 0.002,   // ETH ~0.002 ETH
-                    'BNB': 0.001,   // BNB ~0.001 BNB
-                    'SOL': 0.000005,// SOL ~0.000005 SOL
-                    'LTC': 0.001    // LTC ~0.001 LTC
-                };
-
-                const networkFee = networkFees[crypto] || 0;
-                const networkFeeUSD = networkFee * (buyPrice || sellPrice || 0);
+                const networkFeeUSD = networkFee * buyPrice;
 
                 // Update calculator inputs
                 document.getElementById('buyPrice').value = buyPrice > 0 ? buyPrice.toFixed(6) : '';
-                document.getElementById('sellPrice').value = sellPrice > 0 ? sellPrice.toFixed(6) : '';
                 document.getElementById('calcAmount').value = amount;
                 document.getElementById('networkFee').value = networkFeeUSD.toFixed(2);
 
-                // Calculate profit if we have prices
-                if (buyPrice > 0 && sellPrice > 0) {
-                    const valueAtSource = amount * buyPrice;
-                    const valueAtDestination = amount * sellPrice;
-                    const profit = valueAtDestination - valueAtSource - networkFeeUSD;
-                    const profitPercent = (profit / valueAtSource) * 100;
+                if (isRebalanceActive) {
+                    // REBALANCE MODE: Compare two exchanges for arbitrage
+                    let sellPrice = 0;
+                    try {
+                        const sellResponse = await fetch(`${baseURL}/api/v1/trading/${toExchange}/ticker?symbol=${pair}`);
+                        const sellData = await sellResponse.json();
+                        sellPrice = sellData.success ? parseFloat(sellData.data.lastPrice || sellData.data.last || 0) : 0;
+                    } catch (error) {
+                        console.warn(`⚠️ Could not fetch ${toExchange} price:`, error.message);
+                    }
 
-                    resultDiv.style.display = 'block';
-                    resultDiv.innerHTML = `
-                        <h5 style="color: #00ff88; margin-bottom: 10px;">📊 Live Calculation</h5>
-                        <div style="display: grid; grid-template-columns: 1fr auto; gap: 10px; font-size: 0.9rem;">
-                            <span style="color: #b8c6db;">Amount:</span>
-                            <span style="color: #fff;">${amount} ${crypto}</span>
+                    document.getElementById('sellPrice').value = sellPrice > 0 ? sellPrice.toFixed(6) : '';
 
-                            <span style="color: #b8c6db;">Value at ${fromExchange.toUpperCase()}:</span>
-                            <span style="color: #fff;">$${valueAtSource.toFixed(2)}</span>
+                    if (buyPrice > 0 && sellPrice > 0) {
+                        const valueAtSource = amount * buyPrice;
+                        const valueAtDestination = amount * sellPrice;
+                        const profit = valueAtDestination - valueAtSource - networkFeeUSD;
+                        const profitPercent = (profit / valueAtSource) * 100;
 
-                            <span style="color: #b8c6db;">Value at ${toExchange.toUpperCase()}:</span>
-                            <span style="color: #fff;">$${valueAtDestination.toFixed(2)}</span>
+                        resultDiv.style.display = 'block';
+                        resultDiv.innerHTML = `
+                            <h5 style="color: #00ff88; margin-bottom: 10px;">📊 Arbitrage Analysis</h5>
+                            <div style="display: grid; grid-template-columns: 1fr auto; gap: 10px; font-size: 0.9rem;">
+                                <span style="color: #b8c6db;">Amount:</span>
+                                <span style="color: #fff;">${amount} ${crypto}</span>
 
-                            <span style="color: #b8c6db;">Network Fee:</span>
-                            <span style="color: #ff6b6b;">-$${networkFeeUSD.toFixed(2)} (~${networkFee} ${crypto})</span>
+                                <span style="color: #b8c6db;">Value at ${fromExchange.toUpperCase()}:</span>
+                                <span style="color: #fff;">$${valueAtSource.toFixed(2)}</span>
 
-                            <span style="color: #b8c6db; font-weight: bold;">Net Profit/Loss:</span>
-                            <span style="color: ${profit > 0 ? '#00ff88' : '#ff6b6b'}; font-weight: bold;">
-                                ${profit > 0 ? '+' : ''}$${profit.toFixed(2)} (${profitPercent.toFixed(2)}%)
-                            </span>
-                        </div>
-                        ${profit <= 0 ? '<p style="color: #ff6b6b; margin-top: 10px; font-size: 0.85rem;">⚠️ This transfer would result in a loss. Only proceed if rebalancing is necessary.</p>' : ''}
-                        ${profitPercent > 0 && profitPercent < 1 ? '<p style="color: #ffb347; margin-top: 10px; font-size: 0.85rem;">💡 Low profit margin detected</p>' : ''}
-                        ${profitPercent > 1 ? '<p style="color: #00ff88; margin-top: 10px; font-size: 0.85rem;">✅ Profitable arbitrage opportunity!</p>' : ''}
-                    `;
+                                <span style="color: #b8c6db;">Value at ${toExchange.toUpperCase()}:</span>
+                                <span style="color: #fff;">$${valueAtDestination.toFixed(2)}</span>
+
+                                <span style="color: #b8c6db;">Network Fee:</span>
+                                <span style="color: #ff6b6b;">-$${networkFeeUSD.toFixed(2)} (~${networkFee} ${crypto})</span>
+
+                                <span style="color: #b8c6db; font-weight: bold;">Net Profit/Loss:</span>
+                                <span style="color: ${profit > 0 ? '#00ff88' : '#ff6b6b'}; font-weight: bold;">
+                                    ${profit > 0 ? '+' : ''}$${profit.toFixed(2)} (${profitPercent.toFixed(2)}%)
+                                </span>
+                            </div>
+                            ${profit <= 0 ? '<p style="color: #ff6b6b; margin-top: 10px; font-size: 0.85rem;">⚠️ This transfer would result in a loss. Only proceed if rebalancing is necessary.</p>' : ''}
+                            ${profitPercent > 0 && profitPercent < 1 ? '<p style="color: #ffb347; margin-top: 10px; font-size: 0.85rem;">💡 Low profit margin detected</p>' : ''}
+                            ${profitPercent > 1 ? '<p style="color: #00ff88; margin-top: 10px; font-size: 0.85rem;">✅ Profitable arbitrage opportunity!</p>' : ''}
+                        `;
+                    } else {
+                        resultDiv.style.display = 'block';
+                        resultDiv.innerHTML = `<p style="color: #ffb347; text-align: center;">⚠️ Unable to fetch live prices. Please check exchange connection.</p>`;
+                    }
+
                 } else {
-                    resultDiv.style.display = 'block';
-                    resultDiv.innerHTML = `
-                        <p style="color: #ffb347; text-align: center;">⚠️ Unable to fetch live prices. Please check exchange connection.</p>
-                    `;
+                    // PAYMENT MODE: Simple cost calculation
+                    document.getElementById('sellPrice').value = ''; // Not applicable for payments
+
+                    if (buyPrice > 0) {
+                        const paymentValue = amount * buyPrice;
+                        const recipientReceives = amount - networkFee;
+                        const recipientValueUSD = recipientReceives * buyPrice;
+
+                        resultDiv.style.display = 'block';
+                        resultDiv.innerHTML = `
+                            <h5 style="color: #667eea; margin-bottom: 10px;">💳 Payment Cost Breakdown</h5>
+                            <div style="display: grid; grid-template-columns: 1fr auto; gap: 10px; font-size: 0.9rem;">
+                                <span style="color: #b8c6db;">You Send:</span>
+                                <span style="color: #fff; font-weight: bold;">${amount} ${crypto}</span>
+
+                                <span style="color: #b8c6db;">Current Value:</span>
+                                <span style="color: #fff;">$${paymentValue.toFixed(2)} USD</span>
+
+                                <span style="color: #b8c6db;">Network Fee:</span>
+                                <span style="color: #ff6b6b;">-${networkFee} ${crypto} ($${networkFeeUSD.toFixed(2)})</span>
+
+                                <span style="color: #b8c6db; font-weight: bold;">Recipient Receives:</span>
+                                <span style="color: #00ff88; font-weight: bold;">${recipientReceives.toFixed(8)} ${crypto} (~$${recipientValueUSD.toFixed(2)})</span>
+                            </div>
+                            <p style="color: #888; margin-top: 10px; font-size: 0.85rem;">💡 Price: $${buyPrice.toFixed(6)} per ${crypto} at ${fromExchange.toUpperCase()}</p>
+                        `;
+                    } else {
+                        resultDiv.style.display = 'block';
+                        resultDiv.innerHTML = `<p style="color: #ffb347; text-align: center;">⚠️ Unable to fetch live price from ${fromExchange.toUpperCase()}</p>`;
+                    }
                 }
 
             } catch (error) {
                 console.error('❌ Auto-calculation error:', error);
                 resultDiv.style.display = 'block';
-                resultDiv.innerHTML = `
-                    <p style="color: #ff6b6b; text-align: center;">❌ Calculation failed: ${error.message}</p>
-                `;
+                resultDiv.innerHTML = `<p style="color: #ff6b6b; text-align: center;">❌ Calculation failed: ${error.message}</p>`;
             }
         }
 
