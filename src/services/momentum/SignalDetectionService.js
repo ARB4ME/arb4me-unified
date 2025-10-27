@@ -218,8 +218,10 @@ class SignalDetectionService {
             // Calculate current P&L percentage
             const pnlPercent = ((currentPrice - entryPrice) / entryPrice) * 100;
 
-            // Check Take Profit
-            if (exitRules.takeProfitPercent && pnlPercent >= exitRules.takeProfitPercent) {
+            // Check Take Profit (only in Auto mode, skip if Manual mode)
+            const takeProfitMode = exitRules.takeProfitMode || 'auto'; // Default to 'auto' for backward compatibility
+
+            if (takeProfitMode === 'auto' && exitRules.takeProfitPercent && pnlPercent >= exitRules.takeProfitPercent) {
                 return {
                     shouldExit: true,
                     reason: 'take_profit',

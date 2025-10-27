@@ -688,23 +688,44 @@
                 <div class="form-group">
                     <label>Exit Rules</label>
 
+                    <!-- Take Profit Mode Selection -->
+                    <div style="margin-bottom: 15px; background: rgba(0, 0, 0, 0.2); padding: 12px; border-radius: 6px;">
+                        <label style="font-size: 0.9rem; margin-bottom: 8px; display: block;">Take Profit Mode</label>
+                        <div style="display: flex; gap: 15px;">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                <input type="radio" name="takeProfitMode" value="auto" checked onchange="toggleTakeProfitMode()">
+                                <span>🎯 Auto Take Profit %</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                <input type="radio" name="takeProfitMode" value="manual" onchange="toggleTakeProfitMode()">
+                                <span>👤 Manual Only (I'll close manually)</span>
+                            </label>
+                        </div>
+                        <small style="display: block; margin-top: 5px; color: #888;">
+                            Auto: Closes automatically at profit target. Manual: You decide when to close.
+                        </small>
+                    </div>
+
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
-                        <div>
+                        <!-- Take Profit % (shown only in Auto mode) -->
+                        <div id="takeProfitContainer">
                             <label style="font-size: 0.85rem;">Take Profit (%)</label>
                             <input type="number" id="takeProfit" value="3" min="0.5" max="20" step="0.1">
                             <small>Exit when profit reaches this %</small>
                         </div>
+
+                        <!-- Stop Loss (always shown) -->
                         <div>
                             <label style="font-size: 0.85rem;">Stop Loss (%)</label>
                             <input type="number" id="stopLoss" value="2" min="0.5" max="10" step="0.1">
-                            <small>Exit when loss reaches this %</small>
+                            <small>Exit when loss reaches this % (always active)</small>
                         </div>
                     </div>
 
                     <div>
                         <label style="font-size: 0.85rem;">Max Hold Time (hours)</label>
                         <input type="number" id="maxHoldTime" value="24" min="1" max="168">
-                        <small>Force exit after this many hours regardless of P&L</small>
+                        <small>Force exit after this many hours (safety timeout)</small>
                     </div>
                 </div>
 
@@ -1067,6 +1088,18 @@
             }
         }
 
+        // Toggle Take Profit mode (Auto % vs Manual)
+        function toggleTakeProfitMode() {
+            const mode = document.querySelector('input[name="takeProfitMode"]:checked').value;
+            const takeProfitContainer = document.getElementById('takeProfitContainer');
+
+            if (mode === 'auto') {
+                takeProfitContainer.style.display = 'block';
+            } else {
+                takeProfitContainer.style.display = 'none';
+            }
+        }
+
         // Toggle indicator settings
         function toggleIndicatorSettings(indicator) {
             // Map indicator names to checkbox IDs
@@ -1135,6 +1168,7 @@
                     }
                 },
                 exitRules: {
+                    takeProfitMode: document.querySelector('input[name="takeProfitMode"]:checked').value,
                     takeProfitPercent: parseFloat(document.getElementById('takeProfit').value),
                     stopLossPercent: parseFloat(document.getElementById('stopLoss').value),
                     maxHoldTimeHours: parseInt(document.getElementById('maxHoldTime').value)
