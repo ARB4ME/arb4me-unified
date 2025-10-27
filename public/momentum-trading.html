@@ -537,11 +537,12 @@
                 <div class="form-group">
                     <label>Entry Logic</label>
                     <select id="entryLogic">
-                        <option value="2_out_of_3">2 out of 3 indicators must trigger</option>
-                        <option value="all">All indicators must trigger</option>
-                        <option value="any_1">Any 1 indicator triggers</option>
+                        <option value="any_1">Any 1 indicator triggers (Most signals)</option>
+                        <option value="2_out_of_3" selected>At least 2 indicators trigger (Balanced)</option>
+                        <option value="3_out_of_4">At least 3 indicators trigger (Moderate)</option>
+                        <option value="all">All enabled indicators must trigger (Most strict)</option>
                     </select>
-                    <small>How many indicators must signal before opening a position</small>
+                    <small>How many indicators must signal before opening a position (applies to enabled indicators only)</small>
                 </div>
 
                 <!-- Entry Indicators -->
@@ -612,6 +613,73 @@
                                 </div>
                             </div>
                             <small>Triggers on bullish MACD crossover (MACD line crosses above signal line)</small>
+                        </div>
+                    </div>
+
+                    <!-- EMA Crossover -->
+                    <div class="indicator-config">
+                        <div class="indicator-header">
+                            <span class="indicator-name">📊 EMA Crossover (Exponential Moving Average)</span>
+                            <input type="checkbox" id="useEMA" onchange="toggleIndicatorSettings('ema')">
+                        </div>
+                        <div id="emaSettings" style="display: none;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                <div>
+                                    <label style="font-size: 0.85rem;">Fast EMA Period</label>
+                                    <input type="number" id="emaFast" value="9" min="5" max="20">
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.85rem;">Slow EMA Period</label>
+                                    <input type="number" id="emaSlow" value="21" min="15" max="50">
+                                </div>
+                            </div>
+                            <small>Triggers when fast EMA crosses above slow EMA (bullish momentum shift)</small>
+                        </div>
+                    </div>
+
+                    <!-- Bollinger Bands -->
+                    <div class="indicator-config">
+                        <div class="indicator-header">
+                            <span class="indicator-name">📏 Bollinger Bands</span>
+                            <input type="checkbox" id="useBollinger" onchange="toggleIndicatorSettings('bollinger')">
+                        </div>
+                        <div id="bollingerSettings" style="display: none;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                <div>
+                                    <label style="font-size: 0.85rem;">Period</label>
+                                    <input type="number" id="bollingerPeriod" value="20" min="10" max="50">
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.85rem;">Standard Deviations</label>
+                                    <input type="number" id="bollingerStdDev" value="2" min="1" max="3" step="0.1">
+                                </div>
+                            </div>
+                            <small>Triggers when price is near lower band (potential bounce/reversal)</small>
+                        </div>
+                    </div>
+
+                    <!-- Stochastic Oscillator -->
+                    <div class="indicator-config">
+                        <div class="indicator-header">
+                            <span class="indicator-name">⚡ Stochastic Oscillator</span>
+                            <input type="checkbox" id="useStochastic" onchange="toggleIndicatorSettings('stochastic')">
+                        </div>
+                        <div id="stochasticSettings" style="display: none;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+                                <div>
+                                    <label style="font-size: 0.85rem;">%K Period</label>
+                                    <input type="number" id="stochasticPeriod" value="14" min="5" max="30">
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.85rem;">%K Smoothing</label>
+                                    <input type="number" id="stochasticSmoothK" value="3" min="1" max="5">
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.85rem;">%D Smoothing</label>
+                                    <input type="number" id="stochasticSmoothD" value="3" min="1" max="5">
+                                </div>
+                            </div>
+                            <small>Triggers when %K is oversold (< 20) indicating potential upward reversal</small>
                         </div>
                     </div>
                 </div>
@@ -1021,6 +1089,22 @@
                         fast: parseInt(document.getElementById('macdFast').value),
                         slow: parseInt(document.getElementById('macdSlow').value),
                         signal: parseInt(document.getElementById('macdSignal').value)
+                    },
+                    ema: {
+                        enabled: document.getElementById('useEMA').checked,
+                        fast: parseInt(document.getElementById('emaFast').value),
+                        slow: parseInt(document.getElementById('emaSlow').value)
+                    },
+                    bollinger: {
+                        enabled: document.getElementById('useBollinger').checked,
+                        period: parseInt(document.getElementById('bollingerPeriod').value),
+                        stdDev: parseFloat(document.getElementById('bollingerStdDev').value)
+                    },
+                    stochastic: {
+                        enabled: document.getElementById('useStochastic').checked,
+                        period: parseInt(document.getElementById('stochasticPeriod').value),
+                        smoothK: parseInt(document.getElementById('stochasticSmoothK').value),
+                        smoothD: parseInt(document.getElementById('stochasticSmoothD').value)
                     }
                 },
                 exitRules: {

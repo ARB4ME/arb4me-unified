@@ -241,7 +241,7 @@ class SignalDetectionService {
      * Evaluate entry logic based on triggered indicators
      * @private
      * @param {Object} indicatorResults - Object with indicator results {rsi: true/false, volume: true/false, ...}
-     * @param {string} entryLogic - Entry logic type ('2_out_of_3', 'all', 'any_1')
+     * @param {string} entryLogic - Entry logic type ('2_out_of_3', '3_out_of_4', 'all', 'any_1')
      * @returns {boolean} Should enter position
      */
     static _evaluateEntryLogic(indicatorResults, entryLogic) {
@@ -257,6 +257,19 @@ class SignalDetectionService {
             case 'any_1':
                 // Any one indicator triggers
                 return triggeredCount >= 1;
+
+            case '3_out_of_4':
+                // At least 3 indicators must trigger
+                if (totalCount >= 4) {
+                    return triggeredCount >= 3;
+                } else if (totalCount === 3) {
+                    return triggeredCount >= 3; // All 3 must trigger if only 3 enabled
+                } else if (totalCount === 2) {
+                    return triggeredCount >= 2; // Both must trigger if only 2 enabled
+                } else if (totalCount === 1) {
+                    return triggeredCount >= 1; // Must trigger if only 1 enabled
+                }
+                return false;
 
             case '2_out_of_3':
             default:
