@@ -859,11 +859,23 @@
             container.innerHTML = strategies.map(strategy => `
                 <div class="strategy-card ${!strategy.is_active ? 'inactive' : ''}">
                     <div class="strategy-header">
-                        <div class="strategy-title">${strategy.strategy_name}</div>
+                        <div class="strategy-title">
+                            ${strategy.strategy_name}
+                            <span style="margin-left: 10px; padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; ${strategy.is_active ? 'background: rgba(0, 255, 136, 0.2); color: #00ff88;' : 'background: rgba(255, 107, 107, 0.2); color: #ff6b6b;'}">
+                                ${strategy.is_active ? '🟢 ACTIVE' : '⚪ INACTIVE'}
+                            </span>
+                        </div>
                         <div class="strategy-controls">
-                            <div class="toggle-switch ${strategy.is_active ? 'active' : ''}"
-                                 onclick="toggleStrategy(${strategy.id})">
-                                <div class="toggle-knob"></div>
+                            <div style="display: flex; align-items: center; gap: 8px; margin-right: 10px;">
+                                <span style="font-size: 0.85rem; color: #888;">Trading:</span>
+                                <div class="toggle-switch ${strategy.is_active ? 'active' : ''}"
+                                     onclick="toggleStrategy(${strategy.id})"
+                                     title="${strategy.is_active ? 'Click to DEACTIVATE trading' : 'Click to ACTIVATE trading'}">
+                                    <div class="toggle-knob"></div>
+                                </div>
+                                <span style="font-size: 0.8rem; font-weight: bold; min-width: 35px; ${strategy.is_active ? 'color: #00ff88;' : 'color: #ff6b6b;'}">
+                                    ${strategy.is_active ? 'ON' : 'OFF'}
+                                </span>
                             </div>
                             <button class="btn btn-small" onclick="editStrategy(${strategy.id})">Edit</button>
                             <button class="btn btn-danger btn-small" onclick="deleteStrategy(${strategy.id})">Delete</button>
