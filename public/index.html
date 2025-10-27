@@ -22318,11 +22318,24 @@ ARB4ME Security Team`
             }
         }
 
+        // Safety: Restore scroll if modal isn't visible but body scroll is locked
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                const modal = document.getElementById('momentumModal');
+                if (modal && modal.style.display !== 'block' && document.body.style.overflow === 'hidden') {
+                    console.log('⚠️ Restoring scroll - modal not visible but body scroll was locked');
+                    document.body.style.overflow = 'auto';
+                }
+            }, 500);
+        });
+
         // Check for hash navigation on page load
         window.addEventListener('load', function() {
             const hash = window.location.hash;
             if (hash === '#setup-momentum') {
                 console.log('🎯 Detected #setup-momentum hash, opening momentum modal...');
+                // Remove hash from URL to prevent re-opening on refresh
+                history.replaceState(null, null, '/');
                 // Switch to setup tab first
                 switchTab('setup');
                 // Then open momentum modal after a brief delay
