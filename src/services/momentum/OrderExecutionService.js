@@ -16,6 +16,27 @@ class OrderExecutionService {
                 }
             }
         };
+
+        // Rate limiting: Max 5 requests per second (200ms between requests)
+        this.minRequestInterval = 200; // milliseconds
+        this.lastRequestTime = 0;
+    }
+
+    /**
+     * Rate limiter: Ensures minimum delay between API requests
+     * Prevents hitting VALR's rate limits
+     * @private
+     */
+    async _rateLimitDelay() {
+        const now = Date.now();
+        const timeSinceLastRequest = now - this.lastRequestTime;
+
+        if (timeSinceLastRequest < this.minRequestInterval) {
+            const delayNeeded = this.minRequestInterval - timeSinceLastRequest;
+            await new Promise(resolve => setTimeout(resolve, delayNeeded));
+        }
+
+        this.lastRequestTime = Date.now();
     }
 
     /**
@@ -136,6 +157,9 @@ class OrderExecutionService {
      */
     async _executeValrBuy(pair, amountUSDT, credentials) {
         try {
+            // Apply rate limiting
+            await this._rateLimitDelay();
+
             const config = this.exchangeConfigs.valr;
             const path = config.endpoints.marketOrder;
 
@@ -211,6 +235,9 @@ class OrderExecutionService {
      */
     async _executeValrSell(pair, quantity, credentials) {
         try {
+            // Apply rate limiting
+            await this._rateLimitDelay();
+
             const config = this.exchangeConfigs.valr;
             const path = config.endpoints.marketOrder;
 
@@ -286,6 +313,9 @@ class OrderExecutionService {
      */
     async _getValrOrderStatus(orderId, credentials) {
         try {
+            // Apply rate limiting
+            await this._rateLimitDelay();
+
             const config = this.exchangeConfigs.valr;
             const path = `/v1/orders/${orderId}`;
             const url = `${config.baseUrl}${path}`;
@@ -337,6 +367,9 @@ class OrderExecutionService {
      */
     async _getValrBalances(credentials) {
         try {
+            // Apply rate limiting
+            await this._rateLimitDelay();
+
             const config = this.exchangeConfigs.valr;
             const path = config.endpoints.balances;
             const url = `${config.baseUrl}${path}`;

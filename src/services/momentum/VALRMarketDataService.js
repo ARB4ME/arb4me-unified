@@ -7,6 +7,27 @@ const { logger } = require('../../utils/logger');
 class VALRMarketDataService {
     constructor() {
         this.baseUrl = 'https://api.valr.com';
+
+        // Rate limiting: Max 5 requests per second (200ms between requests)
+        this.minRequestInterval = 200; // milliseconds
+        this.lastRequestTime = 0;
+    }
+
+    /**
+     * Rate limiter: Ensures minimum delay between API requests
+     * Prevents hitting VALR's rate limits
+     * @private
+     */
+    async _rateLimitDelay() {
+        const now = Date.now();
+        const timeSinceLastRequest = now - this.lastRequestTime;
+
+        if (timeSinceLastRequest < this.minRequestInterval) {
+            const delayNeeded = this.minRequestInterval - timeSinceLastRequest;
+            await new Promise(resolve => setTimeout(resolve, delayNeeded));
+        }
+
+        this.lastRequestTime = Date.now();
     }
 
     /**
@@ -19,6 +40,9 @@ class VALRMarketDataService {
      */
     async fetchCandles(pair, interval = '1h', limit = 100, credentials) {
         try {
+            // Apply rate limiting
+            await this._rateLimitDelay();
+
             // VALR uses specific interval format
             const valrInterval = this._convertInterval(interval);
 
@@ -79,6 +103,9 @@ class VALRMarketDataService {
      */
     async fetchCurrentPrice(pair, credentials) {
         try {
+            // Apply rate limiting
+            await this._rateLimitDelay();
+
             // Use VALR ticker endpoint
             const path = `/v1/marketdata/${pair}/marketsummary`;
             const url = `${this.baseUrl}${path}`;
@@ -129,6 +156,9 @@ class VALRMarketDataService {
      */
     async fetchOrderBook(pair, credentials) {
         try {
+            // Apply rate limiting
+            await this._rateLimitDelay();
+
             const path = `/v1/marketdata/${pair}/orderbook`;
             const url = `${this.baseUrl}${path}`;
 
@@ -175,6 +205,9 @@ class VALRMarketDataService {
      */
     async testConnection(credentials) {
         try {
+            // Apply rate limiting
+            await this._rateLimitDelay();
+
             const path = '/v1/account/balances';
             const url = `${this.baseUrl}${path}`;
 
