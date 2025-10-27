@@ -795,31 +795,30 @@
             const testResultEl = document.getElementById('testResult');
 
             try {
-                // First, check if credentials exist
-                const credResponse = await fetch(`${API_BASE}/credentials?userId=${USER_ID}&exchange=${EXCHANGE}`);
-                const credResult = await credResponse.json();
+                // Check if credentials exist
+                const response = await fetch(`${API_BASE}/credentials?userId=${USER_ID}&exchange=${EXCHANGE}`);
+                const result = await response.json();
 
-                if (!credResult.success || !credResult.data.hasApiKey || !credResult.data.hasApiSecret) {
+                if (result.success && result.data.hasApiKey && result.data.hasApiSecret) {
+                    // Credentials exist
+                    statusEl.className = 'connection-status connected';
+                    statusEl.textContent = '✅ Credentials Configured';
+                    if (testResultEl) {
+                        testResultEl.innerHTML = '<span style="color: #00ff88;">✅ API credentials are configured</span>';
+                    }
+                } else {
                     // No credentials configured
                     statusEl.className = 'connection-status disconnected';
                     statusEl.textContent = '⚠️ Not Connected';
                     if (testResultEl) {
                         testResultEl.innerHTML = '<span style="color: #ffa500;">ℹ️ No API credentials configured</span>';
                     }
-                    return;
-                }
-
-                // Credentials exist, show as connected (we can't test without revealing the secret)
-                statusEl.className = 'connection-status connected';
-                statusEl.textContent = '✅ Credentials Configured';
-                if (testResultEl) {
-                    testResultEl.innerHTML = '<span style="color: #00ff88;">✅ API credentials are configured</span>';
                 }
 
             } catch (error) {
                 console.error('Connection check failed:', error);
                 statusEl.className = 'connection-status disconnected';
-                statusEl.textContent = '⚠️ Not Connected';
+                statusEl.textContent = '⚠️ Error';
                 if (testResultEl) {
                     testResultEl.innerHTML = '<span style="color: #ff6b6b;">❌ Failed to check credentials</span>';
                 }

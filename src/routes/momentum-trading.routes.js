@@ -161,9 +161,16 @@ router.get('/credentials', async (req, res) => {
         const credentials = await MomentumCredentials.getCredentials(userId, exchange);
 
         if (!credentials) {
-            return res.status(404).json({
-                success: false,
-                error: 'No credentials found for this exchange'
+            // Return 200 with empty data instead of 404 to avoid console errors
+            return res.json({
+                success: true,
+                data: {
+                    exchange: exchange,
+                    hasApiKey: false,
+                    hasApiSecret: false,
+                    isConnected: false,
+                    lastConnectedAt: null
+                }
             });
         }
 
