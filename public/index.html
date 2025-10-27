@@ -22329,7 +22329,9 @@ ARB4ME Security Team`
             }, 500);
         });
 
-        // Query parameter navigation: Open momentum modal if requested
+        // DISABLED: Query parameter navigation was causing invisible modal to block page
+        // User will navigate to setup page and click the button directly
+        /*
         window.addEventListener('load', function() {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('openMomentumModal') === 'true') {
@@ -22346,6 +22348,7 @@ ARB4ME Security Team`
                 }, 500);
             }
         });
+        */
 
         // DISABLED: Hash navigation was causing invisible modal to block page
         // Replaced with query parameter navigation above
