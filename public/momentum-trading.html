@@ -622,7 +622,7 @@
                             <span class="indicator-name">📊 EMA Crossover (Exponential Moving Average)</span>
                             <input type="checkbox" id="useEMA" onchange="toggleIndicatorSettings('ema')">
                         </div>
-                        <div id="emaSettings" style="display: none;">
+                        <div id="emaSettings">
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                                 <div>
                                     <label style="font-size: 0.85rem;">Fast EMA Period</label>
@@ -643,7 +643,7 @@
                             <span class="indicator-name">📏 Bollinger Bands</span>
                             <input type="checkbox" id="useBollinger" onchange="toggleIndicatorSettings('bollinger')">
                         </div>
-                        <div id="bollingerSettings" style="display: none;">
+                        <div id="bollingerSettings">
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                                 <div>
                                     <label style="font-size: 0.85rem;">Period</label>
@@ -664,7 +664,7 @@
                             <span class="indicator-name">⚡ Stochastic Oscillator</span>
                             <input type="checkbox" id="useStochastic" onchange="toggleIndicatorSettings('stochastic')">
                         </div>
-                        <div id="stochasticSettings" style="display: none;">
+                        <div id="stochasticSettings">
                             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
                                 <div>
                                     <label style="font-size: 0.85rem;">%K Period</label>
@@ -751,11 +751,22 @@
             console.log('👤 User ID:', USER_ID);
             console.log('🏦 Exchange:', EXCHANGE);
 
+            // Initialize indicator settings visibility
+            initializeIndicatorSettings();
+
             await testConnection();
             await loadStrategies();
             await loadPositions();
             startPositionRefresh();
         });
+
+        // Initialize indicator settings based on checkbox state
+        function initializeIndicatorSettings() {
+            const indicators = ['rsi', 'volume', 'macd', 'ema', 'bollinger', 'stochastic'];
+            indicators.forEach(indicator => {
+                toggleIndicatorSettings(indicator);
+            });
+        }
 
         // Test API connection
         async function testConnection() {
