@@ -1058,9 +1058,25 @@
 
         // Toggle indicator settings
         function toggleIndicatorSettings(indicator) {
-            const checkbox = document.getElementById(`use${indicator.charAt(0).toUpperCase() + indicator.slice(1)}`);
+            // Map indicator names to checkbox IDs
+            const checkboxIdMap = {
+                'rsi': 'useRSI',
+                'volume': 'useVolume',
+                'macd': 'useMACD',
+                'ema': 'useEMA',
+                'bollinger': 'useBollinger',
+                'stochastic': 'useStochastic'
+            };
+
+            const checkboxId = checkboxIdMap[indicator.toLowerCase()];
+            const checkbox = document.getElementById(checkboxId);
             const settings = document.getElementById(`${indicator}Settings`);
-            settings.style.display = checkbox.checked ? 'block' : 'none';
+
+            if (checkbox && settings) {
+                settings.style.display = checkbox.checked ? 'block' : 'none';
+            } else {
+                console.error(`Toggle failed: checkbox=${checkboxId}, settings=${indicator}Settings`);
+            }
         }
 
         // Save strategy
