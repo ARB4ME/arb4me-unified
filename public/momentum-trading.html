@@ -900,7 +900,16 @@
             document.querySelectorAll('.preset-btn').forEach(btn => {
                 btn.classList.remove('selected');
             });
-            event.target.closest('.preset-btn').classList.add('selected');
+
+            // Find and highlight the clicked preset button
+            const presetBtns = document.querySelectorAll('.preset-btn');
+            presetBtns.forEach(btn => {
+                const btnText = btn.textContent.toLowerCase();
+                if (btnText.includes(preset)) {
+                    btn.classList.add('selected');
+                }
+            });
+
             document.getElementById('selectedPreset').value = preset;
 
             // Apply preset values
@@ -938,6 +947,27 @@
             document.getElementById('stopLoss').value = values.stopLoss;
             document.getElementById('maxTradeAmount').value = values.maxTradeAmount;
             document.getElementById('maxOpenPositions').value = values.maxOpenPositions;
+
+            // Visual feedback - briefly highlight updated fields
+            const updatedFields = [
+                'rsiOversold', 'volumeMultiplier', 'takeProfit',
+                'stopLoss', 'maxTradeAmount', 'maxOpenPositions'
+            ];
+
+            updatedFields.forEach(fieldId => {
+                const field = document.getElementById(fieldId);
+                field.style.transition = 'all 0.3s';
+                field.style.background = 'rgba(102, 126, 234, 0.3)';
+                field.style.borderColor = '#667eea';
+
+                setTimeout(() => {
+                    field.style.background = '';
+                    field.style.borderColor = '';
+                }, 800);
+            });
+
+            // Show preset name
+            console.log(`✅ Applied ${preset.toUpperCase()} preset:`, values);
         }
 
         // Quick select asset
