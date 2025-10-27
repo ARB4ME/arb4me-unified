@@ -2826,9 +2826,32 @@
             document.querySelectorAll('.strategy-tab').forEach(tab => tab.classList.remove('active'));
             document.querySelectorAll('.strategy-content').forEach(content => content.classList.remove('active'));
 
-            // Add active class to selected tab and content
-            event.target.classList.add('active');
-            document.getElementById(strategy + '-content').classList.add('active');
+            // Add active class to selected tab
+            // Handle both click events and programmatic calls
+            if (typeof event !== 'undefined' && event.target) {
+                event.target.classList.add('active');
+            } else {
+                // Programmatic call - find the tab button by strategy name
+                const strategyNames = {
+                    'cross-exchange': 'Cross-Exchange',
+                    'triangular': 'Triangular',
+                    'transfer': 'Transfer',
+                    'currency-swap': 'Currency Swap',
+                    'momentum': 'Momentum'
+                };
+                const tabButtons = document.querySelectorAll('.strategy-tab');
+                tabButtons.forEach(tab => {
+                    if (tab.textContent.trim() === strategyNames[strategy]) {
+                        tab.classList.add('active');
+                    }
+                });
+            }
+
+            // Add active class to content
+            const contentElement = document.getElementById(strategy + '-content');
+            if (contentElement) {
+                contentElement.classList.add('active');
+            }
         }
 
         // Connect Currency Swap Exchange (independent API)
