@@ -18,6 +18,17 @@ class MomentumWorkerService {
         this.positionMonitor = new PositionMonitorService();
         this.isRunning = false;
         this.workerInterval = null;
+
+        // Asset rotation configuration
+        // For strategies with many coins, check a subset each cycle
+        this.assetRotationConfig = {
+            enabled: true,
+            batchSize: 25, // Check 25 coins per cycle
+            threshold: 30  // Enable rotation if strategy has 30+ coins
+        };
+
+        // Track rotation state per strategy: Map<strategyId, { lastIndex: number }>
+        this.assetRotationState = new Map();
     }
 
     /**
@@ -183,6 +194,51 @@ class MomentumWorkerService {
     }
 
     /**
+     * Get asset batch for this cycle (implements asset rotation)
+     * For strategies with many coins, rotates through subsets to reduce API calls
+     * @private
+     * @param {object} strategy - Strategy configuration
+     * @returns {Array} Assets to check this cycle
+     */
+    _getAssetBatch(strategy) {
+        const { assets } = strategy;
+        const totalAssets = assets.length;
+
+        // If strategy has few assets or rotation disabled, check all
+        if (!this.assetRotationConfig.enabled ||
+            totalAssets <= this.assetRotationConfig.threshold) {
+            return assets;
+        }
+
+        // Get or initialize rotation state for this strategy
+        if (!this.assetRotationState.has(strategy.id)) {
+            this.assetRotationState.set(strategy.id, { lastIndex: 0 });
+        }
+
+        const state = this.assetRotationState.get(strategy.id);
+        const batchSize = this.assetRotationConfig.batchSize;
+        const startIndex = state.lastIndex;
+        const endIndex = Math.min(startIndex + batchSize, totalAssets);
+
+        // Get the batch for this cycle
+        const batch = assets.slice(startIndex, endIndex);
+
+        // Update rotation state for next cycle
+        const nextIndex = endIndex >= totalAssets ? 0 : endIndex;
+        this.assetRotationState.set(strategy.id, { lastIndex: nextIndex });
+
+        logger.debug('Asset rotation batch', {
+            strategyId: strategy.id,
+            totalAssets,
+            batchSize: batch.length,
+            checking: `${startIndex + 1}-${endIndex} of ${totalAssets}`,
+            nextCycleStarts: nextIndex
+        });
+
+        return batch;
+    }
+
+    /**
      * Check entry signals for all assets in a strategy
      * @private
      * @param {object} strategy - Strategy configuration
@@ -207,8 +263,18 @@ class MomentumWorkerService {
                 return results;
             }
 
-            // Check each asset in the strategy
-            for (const asset of strategy.assets) {
+            // Get asset batch for this cycle (uses rotation for large coin lists)
+            const assetBatch = this._getAssetBatch(strategy);
+
+            logger.debug('Checking entry signals', {
+                strategyId: strategy.id,
+                strategyName: strategy.strategy_name,
+                totalAssets: strategy.assets.length,
+                checkingThisCycle: assetBatch.length
+            });
+
+            // Check each asset in the batch
+            for (const asset of assetBatch) {
                 try {
                     // Build trading pair (asset + USDT)
                     const pair = `${asset}USDT`;
