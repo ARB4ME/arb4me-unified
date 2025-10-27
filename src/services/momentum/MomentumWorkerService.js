@@ -30,11 +30,18 @@ class MomentumWorkerService {
         // Track rotation state per strategy: Map<strategyId, { lastIndex: number }>
         this.assetRotationState = new Map();
 
-        // Parallel processing configuration
+        // Parallel processing configuration (for assets/coins)
         // Process multiple coins simultaneously to speed up execution
         this.parallelBatchingConfig = {
             enabled: true,
             batchSize: 5 // Process 5 coins in parallel at a time
+        };
+
+        // Parallel strategy processing configuration
+        // Process multiple strategies simultaneously to handle 100-200 strategies efficiently
+        this.parallelStrategyConfig = {
+            enabled: true,
+            batchSize: 10 // Process 10 strategies in parallel at a time
         };
     }
 
@@ -110,50 +117,52 @@ class MomentumWorkerService {
 
             logger.info(`Found ${activeStrategies.length} active strategies`);
 
-            // Process each strategy
-            for (const strategy of activeStrategies) {
-                try {
-                    stats.strategiesChecked++;
+            // Process strategies in parallel batches for efficiency
+            if (this.parallelStrategyConfig.enabled && activeStrategies.length > 1) {
+                const batchSize = this.parallelStrategyConfig.batchSize;
 
-                    // Get credentials for this user/exchange
-                    const credentials = await MomentumCredentials.getCredentials(
-                        strategy.user_id,
-                        strategy.exchange
-                    );
+                logger.info(`Processing strategies in parallel batches of ${batchSize}`);
 
-                    if (!credentials) {
-                        logger.warn('No credentials found for strategy', {
-                            strategyId: strategy.id,
-                            userId: strategy.user_id,
-                            exchange: strategy.exchange
-                        });
-                        continue;
-                    }
+                // Split strategies into parallel batches
+                for (let i = 0; i < activeStrategies.length; i += batchSize) {
+                    const batch = activeStrategies.slice(i, Math.min(i + batchSize, activeStrategies.length));
 
-                    // Monitor existing positions (check exits)
-                    const closedPositions = await this.positionMonitor.monitorPositions(
-                        strategy.user_id,
-                        strategy.exchange,
-                        credentials
-                    );
-
-                    stats.positionsClosed += closedPositions.length;
-
-                    // Check for new entry signals
-                    const entryResults = await this._checkEntrySignals(
-                        strategy,
-                        credentials
-                    );
-
-                    stats.signalsDetected += entryResults.signalsDetected;
-                    stats.positionsOpened += entryResults.positionsOpened;
-
-                } catch (error) {
-                    stats.errors++;
-                    logger.error('Failed to process strategy', {
-                        strategyId: strategy.id,
-                        error: error.message
+                    logger.debug(`Processing strategy batch ${Math.floor(i / batchSize) + 1}`, {
+                        batchStart: i + 1,
+                        batchEnd: i + batch.length,
+                        total: activeStrategies.length
                     });
+
+                    // Process batch in parallel
+                    const batchResults = await Promise.all(
+                        batch.map(strategy => this._processStrategy(strategy))
+                    );
+
+                    // Aggregate results
+                    batchResults.forEach(result => {
+                        stats.strategiesChecked++;
+                        stats.signalsDetected += result.signalsDetected;
+                        stats.positionsOpened += result.positionsOpened;
+                        stats.positionsClosed += result.positionsClosed;
+                    });
+
+                    logger.info(`Completed strategy batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(activeStrategies.length / batchSize)}`, {
+                        signals: batchResults.reduce((sum, r) => sum + r.signalsDetected, 0),
+                        opened: batchResults.reduce((sum, r) => sum + r.positionsOpened, 0),
+                        closed: batchResults.reduce((sum, r) => sum + r.positionsClosed, 0)
+                    });
+                }
+            } else {
+                // Sequential processing (parallel disabled or single strategy)
+                logger.info('Processing strategies sequentially');
+
+                for (const strategy of activeStrategies) {
+                    const result = await this._processStrategy(strategy);
+
+                    stats.strategiesChecked++;
+                    stats.signalsDetected += result.signalsDetected;
+                    stats.positionsOpened += result.positionsOpened;
+                    stats.positionsClosed += result.positionsClosed;
                 }
             }
 
@@ -197,6 +206,64 @@ class MomentumWorkerService {
                 error: error.message
             });
             throw error;
+        }
+    }
+
+    /**
+     * Process a single strategy (check positions and signals)
+     * @private
+     * @param {object} strategy - Strategy configuration
+     * @returns {Promise<object>} { signalsDetected, positionsOpened, positionsClosed }
+     */
+    async _processStrategy(strategy) {
+        const results = {
+            signalsDetected: 0,
+            positionsOpened: 0,
+            positionsClosed: 0
+        };
+
+        try {
+            // Get credentials for this user/exchange
+            const credentials = await MomentumCredentials.getCredentials(
+                strategy.user_id,
+                strategy.exchange
+            );
+
+            if (!credentials) {
+                logger.warn('No credentials found for strategy', {
+                    strategyId: strategy.id,
+                    userId: strategy.user_id,
+                    exchange: strategy.exchange
+                });
+                return results;
+            }
+
+            // Monitor existing positions (check exits)
+            const closedPositions = await this.positionMonitor.monitorPositions(
+                strategy.user_id,
+                strategy.exchange,
+                credentials
+            );
+
+            results.positionsClosed = closedPositions.length;
+
+            // Check for new entry signals
+            const entryResults = await this._checkEntrySignals(
+                strategy,
+                credentials
+            );
+
+            results.signalsDetected = entryResults.signalsDetected;
+            results.positionsOpened = entryResults.positionsOpened;
+
+            return results;
+
+        } catch (error) {
+            logger.error('Failed to process strategy', {
+                strategyId: strategy.id,
+                error: error.message
+            });
+            return results;
         }
     }
 
