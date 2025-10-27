@@ -29,6 +29,13 @@ class MomentumWorkerService {
 
         // Track rotation state per strategy: Map<strategyId, { lastIndex: number }>
         this.assetRotationState = new Map();
+
+        // Parallel processing configuration
+        // Process multiple coins simultaneously to speed up execution
+        this.parallelBatchingConfig = {
+            enabled: true,
+            batchSize: 5 // Process 5 coins in parallel at a time
+        };
     }
 
     /**
@@ -239,6 +246,59 @@ class MomentumWorkerService {
     }
 
     /**
+     * Check signals for a single asset
+     * @private
+     * @param {string} asset - Asset symbol (e.g., 'BTC', 'ETH')
+     * @param {object} strategy - Strategy configuration
+     * @param {object} credentials - Exchange credentials
+     * @returns {Promise<object>} { asset, pair, candles, signalResult, hasSignal }
+     */
+    async _checkAssetSignal(asset, strategy, credentials) {
+        try {
+            // Build trading pair (asset + USDT)
+            const pair = `${asset}USDT`;
+
+            // Fetch candle data for indicator calculation
+            const candles = await this.valrService.fetchCandles(
+                pair,
+                '1h', // Use 1-hour candles
+                100,  // Fetch 100 candles for indicators
+                credentials
+            );
+
+            if (!candles || candles.length < 50) {
+                logger.warn('Insufficient candle data', {
+                    pair,
+                    candlesCount: candles?.length || 0
+                });
+                return { asset, pair, hasSignal: false };
+            }
+
+            // Check entry signals using SignalDetectionService
+            const signalResult = await SignalDetectionService.checkEntrySignals(
+                candles,
+                strategy
+            );
+
+            return {
+                asset,
+                pair,
+                candles,
+                signalResult,
+                hasSignal: signalResult.shouldEnter
+            };
+
+        } catch (error) {
+            logger.error('Failed to check entry signal for asset', {
+                strategyId: strategy.id,
+                asset,
+                error: error.message
+            });
+            return { asset, hasSignal: false, error };
+        }
+    }
+
+    /**
      * Check entry signals for all assets in a strategy
      * @private
      * @param {object} strategy - Strategy configuration
@@ -273,76 +333,73 @@ class MomentumWorkerService {
                 checkingThisCycle: assetBatch.length
             });
 
-            // Check each asset in the batch
-            for (const asset of assetBatch) {
-                try {
-                    // Build trading pair (asset + USDT)
-                    const pair = `${asset}USDT`;
+            // Process assets in parallel batches for faster execution
+            const allSignals = [];
 
-                    // Fetch candle data for indicator calculation
-                    const candles = await this.valrService.fetchCandles(
-                        pair,
-                        '1h', // Use 1-hour candles
-                        100,  // Fetch 100 candles for indicators
-                        credentials
+            if (this.parallelBatchingConfig.enabled && assetBatch.length > 1) {
+                const batchSize = this.parallelBatchingConfig.batchSize;
+
+                // Split assets into parallel batches
+                for (let i = 0; i < assetBatch.length; i += batchSize) {
+                    const batch = assetBatch.slice(i, Math.min(i + batchSize, assetBatch.length));
+
+                    // Process batch in parallel
+                    const batchResults = await Promise.all(
+                        batch.map(asset => this._checkAssetSignal(asset, strategy, credentials))
                     );
 
-                    if (!candles || candles.length < 50) {
-                        logger.warn('Insufficient candle data', {
-                            pair,
-                            candlesCount: candles?.length || 0
-                        });
-                        continue;
-                    }
+                    allSignals.push(...batchResults);
 
-                    // Check entry signals using SignalDetectionService
-                    const signalResult = await SignalDetectionService.checkEntrySignals(
-                        candles,
-                        strategy
-                    );
-
-                    if (signalResult.shouldEnter) {
-                        results.signalsDetected++;
-
-                        logger.info('🎯 Entry signal detected', {
-                            strategyId: strategy.id,
-                            strategyName: strategy.strategy_name,
-                            pair,
-                            triggeredIndicators: signalResult.triggeredIndicators,
-                            triggeredCount: signalResult.triggeredCount,
-                            totalEnabled: signalResult.totalEnabled
-                        });
-
-                        // Open position
-                        const opened = await this._openPosition(
-                            strategy,
-                            asset,
-                            pair,
-                            candles[candles.length - 1].close, // Current price
-                            signalResult.triggeredIndicators,
-                            credentials
-                        );
-
-                        if (opened) {
-                            results.positionsOpened++;
-
-                            // Re-check if can open more positions
-                            const stillCanOpen = await MomentumStrategy.canOpenPosition(strategy.id);
-                            if (!stillCanOpen) {
-                                logger.info('Strategy reached max positions, stopping entry checks', {
-                                    strategyId: strategy.id
-                                });
-                                break; // Stop checking more assets for this strategy
-                            }
-                        }
-                    }
-
-                } catch (error) {
-                    logger.error('Failed to check entry signal for asset', {
+                    logger.debug('Parallel batch processed', {
                         strategyId: strategy.id,
-                        asset,
-                        error: error.message
+                        batch: `${i + 1}-${i + batch.length}`,
+                        total: assetBatch.length
                     });
+                }
+            } else {
+                // Sequential processing (parallel batching disabled)
+                for (const asset of assetBatch) {
+                    const signal = await this._checkAssetSignal(asset, strategy, credentials);
+                    allSignals.push(signal);
+                }
+            }
+
+            // Filter signals that triggered
+            const triggeredSignals = allSignals.filter(s => s.hasSignal);
+            results.signalsDetected = triggeredSignals.length;
+
+            // Open positions for triggered signals (sequentially to avoid race conditions)
+            for (const signal of triggeredSignals) {
+                logger.info('🎯 Entry signal detected', {
+                    strategyId: strategy.id,
+                    strategyName: strategy.strategy_name,
+                    pair: signal.pair,
+                    triggeredIndicators: signal.signalResult.triggeredIndicators,
+                    triggeredCount: signal.signalResult.triggeredCount,
+                    totalEnabled: signal.signalResult.totalEnabled
+                });
+
+                // Open position
+                const opened = await this._openPosition(
+                    strategy,
+                    signal.asset,
+                    signal.pair,
+                    signal.candles[signal.candles.length - 1].close, // Current price
+                    signal.signalResult.triggeredIndicators,
+                    credentials
+                );
+
+                if (opened) {
+                    results.positionsOpened++;
+
+                    // Re-check if can open more positions
+                    const stillCanOpen = await MomentumStrategy.canOpenPosition(strategy.id);
+                    if (!stillCanOpen) {
+                        logger.info('Strategy reached max positions, stopping entry checks', {
+                            strategyId: strategy.id
+                        });
+                        break; // Stop checking more assets for this strategy
+                    }
                 }
             }
 
