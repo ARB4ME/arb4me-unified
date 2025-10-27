@@ -6,9 +6,16 @@ const router = express.Router();
 const { systemLogger } = require('../utils/logger');
 const MomentumStrategy = require('../models/MomentumStrategy');
 const MomentumPosition = require('../models/MomentumPosition');
+const MomentumCredentials = require('../models/MomentumCredentials');
+const VALRMarketDataService = require('../services/momentum/VALRMarketDataService');
+const PositionMonitorService = require('../services/momentum/PositionMonitorService');
 
 // Import database query function for manual table initialization
 const { query } = require('../database/connection');
+
+// Initialize services
+const valrService = new VALRMarketDataService();
+const positionMonitor = new PositionMonitorService();
 
 /**
  * GET /api/v1/momentum/initialize-tables
@@ -43,20 +50,25 @@ router.get('/initialize-tables', async (req, res) => {
  */
 router.post('/test-connection', async (req, res) => {
     try {
-        const { userId, exchange } = req.body;
+        const { userId, exchange, apiKey, apiSecret } = req.body;
 
-        if (!userId || !exchange) {
+        if (!userId || !exchange || !apiKey || !apiSecret) {
             return res.status(400).json({
                 success: false,
-                error: 'userId and exchange are required'
+                error: 'userId, exchange, apiKey, and apiSecret are required'
             });
         }
 
-        // TODO: Import and use appropriate exchange service
-        // For now, return success as placeholder
-        // When implementing VALR, import VALRService and test actual connection
-
         systemLogger.info('Testing momentum trading connection', { userId, exchange });
+
+        const credentials = { apiKey, apiSecret };
+
+        // Test connection based on exchange
+        if (exchange.toLowerCase() === 'valr') {
+            await valrService.testConnection(credentials);
+        } else {
+            throw new Error(`Exchange not supported: ${exchange}`);
+        }
 
         res.json({
             success: true,
@@ -66,6 +78,154 @@ router.post('/test-connection', async (req, res) => {
 
     } catch (error) {
         systemLogger.error('Failed to test momentum trading connection', {
+            userId: req.body.userId,
+            exchange: req.body.exchange,
+            error: error.message
+        });
+
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * POST /api/v1/momentum/credentials
+ * Save API credentials for an exchange
+ */
+router.post('/credentials', async (req, res) => {
+    try {
+        const { userId, exchange, apiKey, apiSecret, apiPassphrase } = req.body;
+
+        if (!userId || !exchange || !apiKey || !apiSecret) {
+            return res.status(400).json({
+                success: false,
+                error: 'userId, exchange, apiKey, and apiSecret are required'
+            });
+        }
+
+        // Test connection before saving
+        const credentials = { apiKey, apiSecret, apiPassphrase };
+
+        if (exchange.toLowerCase() === 'valr') {
+            await valrService.testConnection(credentials);
+        } else {
+            throw new Error(`Exchange not supported: ${exchange}`);
+        }
+
+        // Save credentials
+        const saved = await MomentumCredentials.saveCredentials(userId, exchange, credentials);
+
+        systemLogger.info('Momentum credentials saved', { userId, exchange });
+
+        res.json({
+            success: true,
+            message: `Credentials saved for ${exchange.toUpperCase()}`,
+            data: {
+                exchange: saved.exchange,
+                isConnected: saved.is_connected,
+                lastConnectedAt: saved.last_connected_at
+            }
+        });
+
+    } catch (error) {
+        systemLogger.error('Failed to save momentum credentials', {
+            userId: req.body.userId,
+            exchange: req.body.exchange,
+            error: error.message
+        });
+
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * GET /api/v1/momentum/credentials
+ * Get saved credentials for user and exchange (apiSecret is excluded)
+ */
+router.get('/credentials', async (req, res) => {
+    try {
+        const { userId, exchange } = req.query;
+
+        if (!userId || !exchange) {
+            return res.status(400).json({
+                success: false,
+                error: 'userId and exchange are required'
+            });
+        }
+
+        const credentials = await MomentumCredentials.getCredentials(userId, exchange);
+
+        if (!credentials) {
+            return res.status(404).json({
+                success: false,
+                error: 'No credentials found for this exchange'
+            });
+        }
+
+        // Return credentials without apiSecret for security
+        res.json({
+            success: true,
+            data: {
+                exchange: credentials.exchange,
+                hasApiKey: !!credentials.api_key,
+                hasApiSecret: !!credentials.api_secret,
+                isConnected: credentials.is_connected,
+                lastConnectedAt: credentials.last_connected_at
+            }
+        });
+
+    } catch (error) {
+        systemLogger.error('Failed to get momentum credentials', {
+            userId: req.query.userId,
+            exchange: req.query.exchange,
+            error: error.message
+        });
+
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * DELETE /api/v1/momentum/credentials
+ * Delete credentials for an exchange
+ */
+router.delete('/credentials', async (req, res) => {
+    try {
+        const { userId, exchange } = req.body;
+
+        if (!userId || !exchange) {
+            return res.status(400).json({
+                success: false,
+                error: 'userId and exchange are required'
+            });
+        }
+
+        const deleted = await MomentumCredentials.deleteCredentials(userId, exchange);
+
+        if (!deleted) {
+            return res.status(404).json({
+                success: false,
+                error: 'No credentials found for this exchange'
+            });
+        }
+
+        systemLogger.info('Momentum credentials deleted', { userId, exchange });
+
+        res.json({
+            success: true,
+            message: `Credentials deleted for ${exchange.toUpperCase()}`
+        });
+
+    } catch (error) {
+        systemLogger.error('Failed to delete momentum credentials', {
             userId: req.body.userId,
             exchange: req.body.exchange,
             error: error.message
@@ -417,9 +577,15 @@ router.post('/positions/:id/close', async (req, res) => {
             });
         }
 
-        // TODO: Execute actual sell order on exchange
-        // For now, we'll use entry price as exit price (placeholder)
-        // When VALR service is implemented, this will execute real market sell order
+        // Get credentials for this user/exchange
+        const credentials = await MomentumCredentials.getCredentials(userId, position.exchange);
+
+        if (!credentials) {
+            return res.status(400).json({
+                success: false,
+                error: `No API credentials found for ${position.exchange}. Please configure credentials first.`
+            });
+        }
 
         systemLogger.info('Manually closing momentum position', {
             userId,
@@ -428,15 +594,13 @@ router.post('/positions/:id/close', async (req, res) => {
             exchange: position.exchange
         });
 
-        // Placeholder exit data - will be replaced with real exchange execution
-        const exitData = {
-            exitPrice: position.entry_price, // TODO: Get current market price
-            exitQuantity: position.entry_quantity,
-            exitReason: reason || 'manual_close',
-            exitOrderId: `MANUAL_${Date.now()}` // TODO: Real order ID from exchange
-        };
-
-        const closedPosition = await MomentumPosition.close(id, exitData);
+        // Use PositionMonitorService to close position with real exchange execution
+        const closedPosition = await positionMonitor.manualClosePosition(
+            id,
+            userId,
+            position.exchange,
+            credentials
+        );
 
         systemLogger.info('Momentum position closed', {
             userId,
