@@ -22318,6 +22318,20 @@ ARB4ME Security Team`
             }
         }
 
+        // Check for hash navigation on page load
+        window.addEventListener('load', function() {
+            const hash = window.location.hash;
+            if (hash === '#setup-momentum') {
+                console.log('🎯 Detected #setup-momentum hash, opening momentum modal...');
+                // Switch to setup tab first
+                switchTab('setup');
+                // Then open momentum modal after a brief delay
+                setTimeout(() => {
+                    openMomentumModal();
+                }, 300);
+            }
+        });
+
         // Close modal when clicking outside the content
         window.addEventListener('click', function(event) {
             const modal = document.getElementById('momentumModal');
