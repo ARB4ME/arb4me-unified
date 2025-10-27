@@ -315,6 +315,22 @@ router.post('/strategies', async (req, res) => {
             });
         }
 
+        // Validate assets format (basic check - uppercase, alphanumeric)
+        const invalidAssets = assets.filter(asset => {
+            // Check if asset is valid format (uppercase letters, 2-10 chars)
+            return !/^[A-Z0-9]{2,10}$/.test(asset);
+        });
+
+        if (invalidAssets.length > 0) {
+            return res.status(400).json({
+                success: false,
+                error: `Invalid asset format: ${invalidAssets.join(', ')}. Assets must be uppercase symbols (e.g., BTC, ETH, XRP)`
+            });
+        }
+
+        // Warning: We cannot validate if pair exists on VALR without API call
+        // Worker will handle invalid pairs gracefully with error logging
+
         // Create strategy
         const strategy = await MomentumStrategy.create({
             userId,

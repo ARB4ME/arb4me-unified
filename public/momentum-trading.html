@@ -529,8 +529,11 @@
                         <span class="quick-select-btn" onclick="quickSelectAsset('ADA')">ADA</span>
                         <span class="quick-select-btn" onclick="quickSelectAsset('DOT')">DOT</span>
                     </div>
-                    <input type="text" id="assetInput" placeholder="e.g., BTC, ETH, XRP" required>
-                    <small>Comma-separated. Will be traded against USDT (e.g., BTC → BTC/USDT)</small>
+                    <input type="text" id="assetInput" placeholder="e.g., BTC, ETH, XRP" required style="text-transform: uppercase;">
+                    <small>
+                        Comma-separated uppercase symbols. Will be traded against USDT (e.g., BTC → BTCUSDT).
+                        <br><strong style="color: #ffb347;">⚠️ Only use assets with USDT pairs on VALR</strong> (BTC, ETH, XRP, SOL, ADA, DOT, MATIC, LINK, etc.)
+                    </small>
                 </div>
 
                 <!-- Entry Logic -->
