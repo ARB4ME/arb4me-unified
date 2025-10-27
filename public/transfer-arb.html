@@ -1533,6 +1533,28 @@
                 // Start continuous scan after page loads
                 setTimeout(() => startContinuousScan(), 2000);
             }
+
+            // Handle URL hash navigation from dashboard buttons
+            const urlHash = window.location.hash.substring(1); // Remove # character
+            if (urlHash === 'rebalance') {
+                console.log('🔗 Navigated from dashboard - opening Rebalance tab');
+                // Scroll to Smart Money section
+                const smartMoneySection = document.querySelector('h3[style*="SMART MONEY TRANSFER"]')?.parentElement?.parentElement;
+                if (smartMoneySection) {
+                    smartMoneySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+                // Switch to rebalance tab after a short delay to ensure DOM is ready
+                setTimeout(() => switchTab('rebalance'), 300);
+            } else if (urlHash === 'payment') {
+                console.log('🔗 Navigated from dashboard - opening Payment Gateway tab');
+                // Scroll to Smart Money section
+                const smartMoneySection = document.querySelector('h3[style*="SMART MONEY TRANSFER"]')?.parentElement?.parentElement;
+                if (smartMoneySection) {
+                    smartMoneySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+                // Switch to payment tab after a short delay to ensure DOM is ready
+                setTimeout(() => switchTab('payment'), 300);
+            }
         });
 
         // Save settings when changed

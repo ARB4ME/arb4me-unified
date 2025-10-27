@@ -2543,33 +2543,43 @@
                 <button class="tab" data-tab="arbinfo">📚 ARB INFO</button>
                 <button class="tab" data-tab="apiinfo">🔑 API INFO</button>
             </div>
+            <!-- Strategy Navigation Row 1 -->
             <div class="strategy-selection-row">
-                <div class="strategy-toggle">
+                <div class="strategy-toggle" style="cursor: pointer;" onclick="window.location.href='/index.html'">
                     <span class="strategy-label">Cross Exchange ARB</span>
-                    <div class="toggle-switch active" id="crossExchangeToggle">
-                        <div class="toggle-knob"></div>
-                    </div>
                 </div>
 
-                <div class="strategy-toggle" style="cursor: pointer;" id="triangularPageButton">
+                <div class="strategy-toggle" style="cursor: pointer;" onclick="window.location.href='/triangular-arb.html'">
                     <span class="strategy-label">🔺 Triangular ARB</span>
-                    <div class="toggle-switch" id="triangularPageToggle">
-                        <div class="toggle-knob"></div>
-                    </div>
                 </div>
 
-                <div class="strategy-toggle">
+                <div class="strategy-toggle" style="cursor: pointer;" onclick="window.location.href='/transfer-arb.html'">
                     <span class="strategy-label">📦 Transfer ARB</span>
-                    <div class="toggle-switch" id="transferToggle">
-                        <div class="toggle-knob"></div>
-                    </div>
                 </div>
 
-                <div class="strategy-toggle">
+                <div class="strategy-toggle" style="cursor: pointer;" onclick="window.location.href='/currency-swap-arb.html'">
                     <span class="strategy-label">💱 Currency Swap ARB</span>
-                    <div class="toggle-switch" id="currencySwapToggle">
-                        <div class="toggle-knob"></div>
-                    </div>
+                </div>
+            </div>
+
+            <!-- Strategy Navigation Row 2 -->
+            <div class="strategy-selection-row">
+                <div class="strategy-toggle" style="opacity: 0.5; cursor: not-allowed;" title="Coming Soon">
+                    <span class="strategy-label">🎯 Momentum Trading</span>
+                    <span style="font-size: 0.65rem; color: #888; margin-top: 4px;">Coming Soon</span>
+                </div>
+
+                <div class="strategy-toggle" style="cursor: pointer;" onclick="window.location.href='/transfer-arb.html#rebalance'">
+                    <span class="strategy-label">📊 REBALANCE</span>
+                </div>
+
+                <div class="strategy-toggle" style="cursor: pointer;" onclick="window.location.href='/transfer-arb.html#payment'">
+                    <span class="strategy-label">💳 PAYMENT GATEWAY</span>
+                </div>
+
+                <div class="strategy-toggle" style="opacity: 0.5; cursor: not-allowed;" title="Placeholder for Future Strategy">
+                    <span class="strategy-label">🔮 Future Strategy</span>
+                    <span style="font-size: 0.65rem; color: #888; margin-top: 4px;">Placeholder</span>
                 </div>
             </div>
         </div>
