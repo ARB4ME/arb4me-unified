@@ -13733,19 +13733,39 @@ Please help recover this stuck asset.`;
             const maxPrice = opportunity.buyPrice * 1.01; // 1% slippage protection
             
             try {
-                // Use backend trading endpoint for real orders - ALL 5 EXCHANGES SUPPORTED
+                // STRATEGY-SPECIFIC CREDENTIALS: Try Cross-Exchange credentials first, fall back to general
+                const strategyApi = state.strategyApis?.crossExchange?.[exchange];
                 const exchangeData = state.exchanges[exchange];
-                if (!exchangeData.api) {
-                    throw new Error(`${exchange} API credentials not available`);
+
+                let apiKey, apiSecret, apiPassphrase;
+
+                if (strategyApi) {
+                    // Use Cross-Exchange specific credentials
+                    apiKey = strategyApi.apiKey;
+                    apiSecret = strategyApi.apiSecret;
+                    apiPassphrase = strategyApi.passphrase;
+                    console.log(`🔑 Using Cross-Exchange specific credentials for ${exchange}`);
+                } else if (exchangeData?.api) {
+                    // Fall back to general credentials (for backwards compatibility)
+                    apiKey = exchangeData.api.key;
+                    apiSecret = exchangeData.api.secret;
+                    apiPassphrase = exchangeData.api.passphrase;
+                    console.log(`🔑 Using general credentials for ${exchange} (no Cross-Exchange specific found)`);
+                } else {
+                    throw new Error(`${exchange} API credentials not available - please configure in Strategic API page or Setup page`);
                 }
-                
+
+                if (!apiKey || !apiSecret) {
+                    throw new Error(`${exchange} API credentials incomplete`);
+                }
+
                 // Format order data for VALR vs other exchanges
                 let orderData;
                 if (exchange === 'valr') {
                     // VALR uses different parameter names
                     orderData = {
-                        apiKey: exchangeData.api.key,
-                        apiSecret: exchangeData.api.secret,
+                        apiKey: apiKey,
+                        apiSecret: apiSecret,
                         pair: opportunity.asset,
                         payInCurrency: 'ZAR', // VALR requires specifying the pay-in currency
                         payAmount: (amount * opportunity.buyPrice).toString() // VALR wants the ZAR amount to spend
@@ -13753,8 +13773,9 @@ Please help recover this stuck asset.`;
                 } else {
                     // Other exchanges use the old format
                     orderData = {
-                        apiKey: exchangeData.api.key,
-                        apiSecret: exchangeData.api.secret,
+                        apiKey: apiKey,
+                        apiSecret: apiSecret,
+                        ...(apiPassphrase && { apiPassphrase: apiPassphrase }),
                         side: 'BUY',
                         pair: opportunity.asset,
                         amount: amount.toString(),
@@ -13882,27 +13903,48 @@ Please help recover this stuck asset.`;
             const minPrice = opportunity.sellPrice * 0.99; // 1% slippage protection
             
             try {
-                // Use backend trading endpoint for real orders - ALL 5 EXCHANGES SUPPORTED
+                // STRATEGY-SPECIFIC CREDENTIALS: Try Cross-Exchange credentials first, fall back to general
+                const strategyApi = state.strategyApis?.crossExchange?.[exchange];
                 const exchangeData = state.exchanges[exchange];
-                if (!exchangeData.api) {
-                    throw new Error(`${exchange} API credentials not available`);
+
+                let apiKey, apiSecret, apiPassphrase;
+
+                if (strategyApi) {
+                    // Use Cross-Exchange specific credentials
+                    apiKey = strategyApi.apiKey;
+                    apiSecret = strategyApi.apiSecret;
+                    apiPassphrase = strategyApi.passphrase;
+                    console.log(`🔑 Using Cross-Exchange specific credentials for ${exchange}`);
+                } else if (exchangeData?.api) {
+                    // Fall back to general credentials (for backwards compatibility)
+                    apiKey = exchangeData.api.key;
+                    apiSecret = exchangeData.api.secret;
+                    apiPassphrase = exchangeData.api.passphrase;
+                    console.log(`🔑 Using general credentials for ${exchange} (no Cross-Exchange specific found)`);
+                } else {
+                    throw new Error(`${exchange} API credentials not available - please configure in Strategic API page or Setup page`);
                 }
-                
+
+                if (!apiKey || !apiSecret) {
+                    throw new Error(`${exchange} API credentials incomplete`);
+                }
+
                 // Format order data for VALR vs other exchanges
                 let orderData;
                 if (exchange === 'valr') {
                     // VALR uses different parameter names for sell orders
                     orderData = {
-                        apiKey: exchangeData.api.key,
-                        apiSecret: exchangeData.api.secret,
+                        apiKey: apiKey,
+                        apiSecret: apiSecret,
                         pair: opportunity.asset,
                         payAmount: amount.toString() // VALR wants the crypto amount to sell
                     };
                 } else {
                     // Other exchanges use the old format
                     orderData = {
-                        apiKey: exchangeData.api.key,
-                        apiSecret: exchangeData.api.secret,
+                        apiKey: apiKey,
+                        apiSecret: apiSecret,
+                        ...(apiPassphrase && { apiPassphrase: apiPassphrase }),
                         side: 'SELL',
                         pair: opportunity.asset,
                         amount: amount.toString(),
@@ -20230,12 +20272,74 @@ ARB4ME Security Team`
                 setTimeout(() => {
                     updateTradeHistoryDisplay();
                 }, 100);
-                
+
+                // Load strategy-specific API credentials
+                loadStrategySpecificCredentials();
+
                 console.log('✅ Settings loaded from localStorage');
                 return true;
             } catch (error) {
                 console.error('❌ Failed to load from localStorage:', error);
                 return false;
+            }
+        }
+
+        // Load strategy-specific API credentials from localStorage
+        function loadStrategySpecificCredentials() {
+            console.log('🔑 Loading strategy-specific credentials...');
+
+            const strategies = ['cross-exchange', 'triangular', 'transfer', 'currency-swap'];
+            const exchanges = [
+                'chainex', 'valr', 'luno', 'altcointrader', 'xago',
+                'bybit', 'okx', 'mexc', 'kucoin', 'htx', 'bitget',
+                'bitmart', 'bitrue', 'gemini', 'coincatch', 'bingx',
+                'ascendex', 'gateio', 'binance', 'kraken', 'cryptocom', 'xt'
+            ];
+
+            let totalLoaded = 0;
+
+            strategies.forEach(strategy => {
+                exchanges.forEach(exchange => {
+                    const apiKey = localStorage.getItem(`${exchange}_${strategy}_api`);
+                    const apiSecret = localStorage.getItem(`${exchange}_${strategy}_secret`);
+                    const passphrase = localStorage.getItem(`${exchange}_${strategy}_passphrase`);
+                    const memo = localStorage.getItem(`${exchange}_${strategy}_memo`);
+
+                    if (apiKey && apiSecret) {
+                        // Convert strategy name to camelCase for state object
+                        const strategyKey = strategy === 'cross-exchange' ? 'crossExchange'
+                                          : strategy === 'currency-swap' ? 'currencySwap'
+                                          : strategy;
+
+                        // Initialize strategy object if needed
+                        if (!state.strategyApis[strategyKey]) {
+                            state.strategyApis[strategyKey] = {};
+                        }
+
+                        // Store credentials
+                        state.strategyApis[strategyKey][exchange] = {
+                            apiKey: apiKey,
+                            apiSecret: apiSecret
+                        };
+
+                        if (passphrase) {
+                            state.strategyApis[strategyKey][exchange].passphrase = passphrase;
+                        }
+
+                        if (memo) {
+                            state.strategyApis[strategyKey][exchange].memo = memo;
+                        }
+
+                        totalLoaded++;
+                        console.log(`✅ Loaded ${strategy} credentials for ${exchange}`);
+                    }
+                });
+            });
+
+            if (totalLoaded > 0) {
+                console.log(`🎉 Loaded ${totalLoaded} strategy-specific credential sets`);
+            } else {
+                console.log('ℹ️ No strategy-specific credentials found in localStorage');
             }
         }
 
@@ -21507,6 +21611,13 @@ ARB4ME Security Team`
                 triangular: false,        // Will replace triangularArbitrage
                 transfer: false,          // New strategy
                 currencySwap: false       // New strategy
+            },
+            // Strategy-specific API credentials (independent per strategy)
+            strategyApis: {
+                crossExchange: {},   // Will hold: { valr: {apiKey, apiSecret}, luno: {}, etc. }
+                triangular: {},      // Will hold: { valr: {apiKey, apiSecret}, etc. }
+                transfer: {},        // Will hold: { valr: {apiKey, apiSecret}, etc. }
+                currencySwap: {}     // Will hold: { valr: {apiKey, apiSecret}, etc. }
             },
             exchanges: {
                 valr: { connected: false, api: null, credentials: null },
