@@ -22329,21 +22329,21 @@ ARB4ME Security Team`
             }, 500);
         });
 
-        // Check for hash navigation on page load
+        // DISABLED: Hash navigation was causing invisible modal to block page
+        // Will implement proper navigation in next update
+        /*
         window.addEventListener('load', function() {
             const hash = window.location.hash;
             if (hash === '#setup-momentum') {
                 console.log('🎯 Detected #setup-momentum hash, opening momentum modal...');
-                // Remove hash from URL to prevent re-opening on refresh
                 history.replaceState(null, null, '/');
-                // Switch to setup tab first
                 switchTab('setup');
-                // Then open momentum modal after a brief delay
                 setTimeout(() => {
                     openMomentumModal();
                 }, 300);
             }
         });
+        */
 
         // Close modal when clicking outside the content
         window.addEventListener('click', function(event) {
