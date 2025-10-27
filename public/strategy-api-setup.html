@@ -328,6 +328,53 @@
             font-size: 0.85rem;
         }
 
+        #momentum-content.active {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            #momentum-content.active {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 480px) {
+            #momentum-content.active {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        #momentum-content .exchange-card {
+            height: auto;
+        }
+
+        #momentum-content .exchange-name {
+            font-size: 1.1rem;
+        }
+
+        #momentum-content .form-group {
+            margin-bottom: 12px;
+        }
+
+        #momentum-content .form-label {
+            font-size: 0.85rem;
+        }
+
+        #momentum-content .form-input {
+            padding: 8px;
+        }
+
+        #momentum-content .button-group {
+            gap: 8px;
+        }
+
+        #momentum-content .btn {
+            padding: 8px 12px;
+            font-size: 0.85rem;
+        }
+
         .exchange-header {
             display: flex;
             justify-content: space-between;
@@ -530,6 +577,7 @@
             <button class="strategy-tab" onclick="switchStrategyTab('triangular')">Triangular</button>
             <button class="strategy-tab" onclick="switchStrategyTab('transfer')">Transfer</button>
             <button class="strategy-tab" onclick="switchStrategyTab('currency-swap')">Currency Swap</button>
+            <button class="strategy-tab" onclick="switchStrategyTab('momentum')">Momentum</button>
         </div>
 
         <!-- Cross-Exchange Strategy -->
@@ -2564,6 +2612,47 @@
             </form>
 
         </div>
+
+        <!-- Momentum Trading Strategy (5th Strategic API Configuration) -->
+        <div id="momentum-content" class="strategy-content">
+            <form autocomplete="off" onsubmit="return false;">
+
+            <div class="info-box" style="background: rgba(0,212,255,0.1); border-left: 4px solid #00d4ff; padding: 15px; margin-bottom: 20px; border-radius: 8px;">
+                <h3 style="color: #00d4ff; margin-bottom: 10px;">📈 5th Strategic API Configuration - Momentum Trading</h3>
+                <p style="color: rgba(255,255,255,0.9); line-height: 1.6;">
+                    Configure separate API credentials for <strong>Momentum Trading</strong> strategy. This strategy uses technical indicators (RSI, MACD, Volume Spike) to automatically enter and exit spot trading positions.
+                </p>
+                <ul style="color: rgba(255,255,255,0.85); margin-top: 10px; line-height: 1.8; padding-left: 20px;">
+                    <li><strong>Spot Trading Only:</strong> Buy and hold actual crypto assets (no leverage)</li>
+                    <li><strong>Indicator-Based:</strong> Automated entry/exit based on RSI, MACD, Volume signals</li>
+                    <li><strong>Risk Management:</strong> Take Profit %, Stop Loss %, Max Hold Time</li>
+                    <li><strong>Multi-Asset:</strong> Trade multiple assets (BTC, ETH, XRP, etc.) simultaneously</li>
+                </ul>
+            </div>
+
+            <!-- VALR - Momentum -->
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">VALR - Momentum Trading Strategy</div>
+                    <div id="valr-momentum-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">API Key</label>
+                    <input type="text" id="valr-momentum-api" class="form-input" placeholder="Enter VALR API Key for Momentum Trading">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">API Secret</label>
+                    <input type="password" id="valr-momentum-secret" class="form-input" placeholder="Enter API Secret">
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('valr', 'momentum')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('valr', 'momentum')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('valr', 'momentum')">Disconnect</button>
+                </div>
+            </div>
+
+            </form>
+        </div>
     </div>
 
     <script>
@@ -4153,6 +4242,12 @@
             loadStrategyCredentials();
             // Currency Swap now uses localStorage like other strategies (no database loading needed)
             setupAutoSave();
+
+            // Check for hash navigation (e.g., #momentum)
+            const hash = window.location.hash.replace('#', '');
+            if (hash && ['cross-exchange', 'triangular', 'transfer', 'currency-swap', 'momentum'].includes(hash)) {
+                switchStrategyTab(hash);
+            }
 
             // Force re-load VALR credentials after delay to override browser autofill
             setTimeout(() => {
