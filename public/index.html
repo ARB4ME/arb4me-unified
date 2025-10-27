@@ -22857,10 +22857,28 @@ ARB4ME Security Team`
         // Execute a single Luno triangular trade via backend API
         async function executeLunoTriangularTrade(pair, side, amount, expectedPrice) {
             try {
-                // Get Luno API credentials from state (same as working cross-exchange system)
+                // STRATEGY-SPECIFIC CREDENTIALS: Try Triangular credentials first, fall back to general
+                const strategyApi = state.strategyApis?.triangular?.luno;
                 const lunoData = state.exchanges?.luno;
-                if (!lunoData?.api?.key || !lunoData?.api?.secret) {
-                    throw new Error('Luno API credentials not found in state');
+
+                let apiKey, apiSecret;
+
+                if (strategyApi) {
+                    // Use Triangular-specific credentials
+                    apiKey = strategyApi.apiKey;
+                    apiSecret = strategyApi.apiSecret;
+                    console.log(`🔑 Using Triangular-specific credentials for Luno`);
+                } else if (lunoData?.api) {
+                    // Fall back to general credentials
+                    apiKey = lunoData.api.key;
+                    apiSecret = lunoData.api.secret;
+                    console.log(`🔑 Using general credentials for Luno (no Triangular-specific found)`);
+                } else {
+                    throw new Error('Luno API credentials not found - configure in Strategic API page or Setup page');
+                }
+
+                if (!apiKey || !apiSecret) {
+                    throw new Error('Luno API credentials incomplete');
                 }
 
                 const response = await fetch('https://arb4me-unified-production.up.railway.app/api/v1/trading/luno/triangular', {
@@ -22870,8 +22888,8 @@ ARB4ME Security Team`
                         'Authorization': `Bearer ${localStorage.getItem('arb4me_jwt_token')}`
                     },
                     body: JSON.stringify({
-                        apiKey: lunoData.api.key,
-                        apiSecret: lunoData.api.secret,
+                        apiKey: apiKey,
+                        apiSecret: apiSecret,
                         pair: pair,
                         side: side.toLowerCase(), // 'buy' or 'sell'
                         amount: amount,
@@ -22940,27 +22958,42 @@ ARB4ME Security Team`
                 // Route to correct exchange API
                 let tradeResult;
                 if (exchange === 'valr') {
-                    // Use same credential pattern as working balance calls
-                    console.log('🔍 Getting VALR credentials from state (same as balance calls)...');
-                    
+                    // STRATEGY-SPECIFIC CREDENTIALS: Try Triangular credentials first, fall back to general
+                    const strategyApi = state.strategyApis?.triangular?.valr;
                     const valrData = state.exchanges?.valr;
-                    if (!valrData?.api?.key || !valrData?.api?.secret) {
-                        throw new Error('VALR API credentials not found in state.exchanges.valr.api');
+
+                    let apiKey, apiSecret;
+
+                    if (strategyApi) {
+                        // Use Triangular-specific credentials
+                        apiKey = strategyApi.apiKey;
+                        apiSecret = strategyApi.apiSecret;
+                        console.log('🔑 Using Triangular-specific credentials for VALR');
+                    } else if (valrData?.api) {
+                        // Fall back to general credentials
+                        apiKey = valrData.api.key;
+                        apiSecret = valrData.api.secret;
+                        console.log('🔑 Using general credentials for VALR (no Triangular-specific found)');
+                    } else {
+                        throw new Error('VALR API credentials not found - configure in Strategic API page or Setup page');
                     }
-                    
-                    console.log('✅ Found VALR credentials in state.exchanges.valr.api');
-                    console.log(`🔑 Using API Key: ${valrData.api.key.substring(0, 8)}...`);
-                    
-                    // Use VALR triangular API with state credentials (same pattern as balance endpoint)
+
+                    if (!apiKey || !apiSecret) {
+                        throw new Error('VALR API credentials incomplete');
+                    }
+
+                    console.log(`✅ Found VALR credentials, using API Key: ${apiKey.substring(0, 8)}...`);
+
+                    // Use VALR triangular API with strategy-specific credentials
                     const normalizedSide = side.toLowerCase(); // Convert BUY/SELL to buy/sell
                     console.log('📤 Sending VALR triangular request:', { pair, side: normalizedSide, amount, expectedPrice });
-                    
+
                     tradeResult = await fetch('/api/v1/trading/valr/triangular', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            apiKey: valrData.api.key,
-                            apiSecret: valrData.api.secret,
+                            apiKey: apiKey,
+                            apiSecret: apiSecret,
                             pair: pair,
                             side: normalizedSide,              // Use lowercase buy/sell
                             amount: parseFloat(amount),        // Ensure it's a number
