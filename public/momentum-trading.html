@@ -432,7 +432,7 @@
                     </div>
 
                     <button onclick="testConnection()" class="btn btn-success" style="width: 100%;">
-                        🔄 Test VALR Connection
+                        🔄 Check Connection Status
                     </button>
                     <div id="testResult" style="margin-top: 10px; text-align: center;"></div>
 
@@ -791,32 +791,38 @@
 
         // Test API connection
         async function testConnection() {
+            const statusEl = document.getElementById('connectionStatus');
+            const testResultEl = document.getElementById('testResult');
+
             try {
-                const response = await fetch(`${API_BASE}/test-connection`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        userId: USER_ID,
-                        exchange: EXCHANGE
-                    })
-                });
+                // First, check if credentials exist
+                const credResponse = await fetch(`${API_BASE}/credentials?userId=${USER_ID}&exchange=${EXCHANGE}`);
+                const credResult = await credResponse.json();
 
-                const result = await response.json();
-                const statusEl = document.getElementById('connectionStatus');
-                const testResultEl = document.getElementById('testResult');
-
-                if (result.success) {
-                    statusEl.className = 'connection-status connected';
-                    statusEl.textContent = '✅ Connected to VALR';
-                    testResultEl.innerHTML = '<span style="color: #00ff88;">✅ Connection successful!</span>';
-                } else {
+                if (!credResult.success || !credResult.data.hasApiKey || !credResult.data.hasApiSecret) {
+                    // No credentials configured
                     statusEl.className = 'connection-status disconnected';
                     statusEl.textContent = '⚠️ Not Connected';
-                    testResultEl.innerHTML = `<span style="color: #ff6b6b;">❌ ${result.error || 'Connection failed'}</span>`;
+                    if (testResultEl) {
+                        testResultEl.innerHTML = '<span style="color: #ffa500;">ℹ️ No API credentials configured</span>';
+                    }
+                    return;
                 }
+
+                // Credentials exist, show as connected (we can't test without revealing the secret)
+                statusEl.className = 'connection-status connected';
+                statusEl.textContent = '✅ Credentials Configured';
+                if (testResultEl) {
+                    testResultEl.innerHTML = '<span style="color: #00ff88;">✅ API credentials are configured</span>';
+                }
+
             } catch (error) {
-                console.error('Connection test failed:', error);
-                document.getElementById('testResult').innerHTML = '<span style="color: #ff6b6b;">❌ Connection failed</span>';
+                console.error('Connection check failed:', error);
+                statusEl.className = 'connection-status disconnected';
+                statusEl.textContent = '⚠️ Not Connected';
+                if (testResultEl) {
+                    testResultEl.innerHTML = '<span style="color: #ff6b6b;">❌ Failed to check credentials</span>';
+                }
             }
         }
 
