@@ -152,6 +152,33 @@ class SignalDetectionService {
                 }
             }
 
+            // Stochastic Oscillator
+            if (entry_indicators.stochastic && entry_indicators.stochastic.enabled) {
+                try {
+                    const stochastic = IndicatorService.calculateStochastic(
+                        candles,
+                        entry_indicators.stochastic.period,
+                        entry_indicators.stochastic.smoothK,
+                        entry_indicators.stochastic.smoothD
+                    );
+                    indicatorValues.stochastic = stochastic;
+
+                    if (stochastic.oversold) {
+                        indicatorResults.stochastic = true;
+                        triggeredIndicators.push({
+                            name: 'Stochastic',
+                            value: `%K: ${stochastic.k}`,
+                            condition: 'Oversold (< 20)'
+                        });
+                    } else {
+                        indicatorResults.stochastic = false;
+                    }
+                } catch (error) {
+                    logger.warn('Stochastic calculation failed for signal detection', { error: error.message });
+                    indicatorResults.stochastic = false;
+                }
+            }
+
             // Determine if entry signal is triggered based on entry logic
             const shouldEnter = this._evaluateEntryLogic(
                 indicatorResults,
