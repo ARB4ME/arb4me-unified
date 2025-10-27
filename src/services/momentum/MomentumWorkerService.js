@@ -368,6 +368,33 @@ class MomentumWorkerService {
             const triggeredSignals = allSignals.filter(s => s.hasSignal);
             results.signalsDetected = triggeredSignals.length;
 
+            // Prioritize signals: strongest signals first (more indicators triggered)
+            // This ensures we execute the best opportunities when we hit max positions
+            triggeredSignals.sort((a, b) => {
+                const aStrength = a.signalResult.triggeredCount / a.signalResult.totalEnabled;
+                const bStrength = b.signalResult.triggeredCount / b.signalResult.totalEnabled;
+
+                // Sort by signal strength (descending)
+                if (bStrength !== aStrength) {
+                    return bStrength - aStrength;
+                }
+
+                // If tied, sort by asset name (ascending) for consistent ordering
+                return a.asset.localeCompare(b.asset);
+            });
+
+            if (triggeredSignals.length > 0) {
+                logger.info('Prioritized signals ready for execution', {
+                    strategyId: strategy.id,
+                    signalCount: triggeredSignals.length,
+                    topSignals: triggeredSignals.slice(0, 3).map(s => ({
+                        asset: s.asset,
+                        strength: `${s.signalResult.triggeredCount}/${s.signalResult.totalEnabled}`,
+                        indicators: s.signalResult.triggeredIndicators.map(i => i.name).join(', ')
+                    }))
+                });
+            }
+
             // Open positions for triggered signals (sequentially to avoid race conditions)
             for (const signal of triggeredSignals) {
                 logger.info('🎯 Entry signal detected', {
