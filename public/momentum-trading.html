@@ -398,7 +398,33 @@
                 <h1 style="margin: 0; color: #00d4ff;">📈 Momentum Trading</h1>
                 <p style="margin: 5px 0 0 0; color: #888;">Automated technical indicator-based spot trading</p>
             </div>
-            <div style="display: flex; gap: 15px; align-items: center;">
+            <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                <!-- Exchange Selector -->
+                <div style="display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.05); padding: 8px 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">
+                    <label style="color: #888; font-size: 0.9rem; white-space: nowrap;">🏦 Exchange:</label>
+                    <select id="exchangeSelector" onchange="handleExchangeChange()" style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); padding: 8px 12px; border-radius: 6px; font-size: 0.9rem; cursor: pointer; min-width: 150px;">
+                        <option value="valr">VALR</option>
+                        <option value="luno">Luno</option>
+                        <option value="chainex">ChainEX</option>
+                        <option value="kraken">Kraken</option>
+                        <option value="binance">Binance</option>
+                        <option value="bybit">BYBIT</option>
+                        <option value="gateio">Gate.io</option>
+                        <option value="okx">OKX</option>
+                        <option value="mexc">MEXC</option>
+                        <option value="kucoin">KuCoin</option>
+                        <option value="xt">XT.com</option>
+                        <option value="ascendex">AscendEX</option>
+                        <option value="htx">HTX (Huobi)</option>
+                        <option value="bingx">BingX</option>
+                        <option value="bitget">Bitget</option>
+                        <option value="bitmart">BitMart</option>
+                        <option value="bitrue">Bitrue</option>
+                        <option value="gemini">Gemini</option>
+                        <option value="cryptocom">Crypto.com</option>
+                        <option value="coincatch">Coincatch</option>
+                    </select>
+                </div>
                 <span id="connectionStatus" class="connection-status disconnected">⚠️ Not Connected</span>
                 <button onclick="window.location.href='/'" class="btn">🏠 Home</button>
             </div>
@@ -426,7 +452,7 @@
             <div>
                 <!-- API Connection Card -->
                 <div class="card">
-                    <h3>🔌 VALR API Connection</h3>
+                    <h3 id="apiConnectionTitle">🔌 API Connection</h3>
                     <div class="alert alert-info">
                         <strong>ℹ️ Strategy-Specific Credentials:</strong> Use your 5th Strategic API Configuration for Momentum Trading.
                     </div>
@@ -762,18 +788,73 @@
     <script>
         const API_BASE = '/api/v1/momentum';
         const USER_ID = 1; // TODO: Get from auth
-        const EXCHANGE = 'valr'; // Hardcoded for Phase 1
+        let selectedExchange = 'valr'; // Phase 2: Universal - Can be changed via dropdown
 
         let strategies = [];
         let openPositions = [];
         let closedPositions = [];
+
+        // Get current selected exchange
+        function getSelectedExchange() {
+            return selectedExchange;
+        }
+
+        // Get exchange display name
+        function getExchangeDisplayName(exchange) {
+            const names = {
+                'valr': 'VALR',
+                'luno': 'Luno',
+                'chainex': 'ChainEX',
+                'kraken': 'Kraken',
+                'binance': 'Binance',
+                'bybit': 'BYBIT',
+                'gateio': 'Gate.io',
+                'okx': 'OKX',
+                'mexc': 'MEXC',
+                'kucoin': 'KuCoin',
+                'xt': 'XT.com',
+                'ascendex': 'AscendEX',
+                'htx': 'HTX (Huobi)',
+                'bingx': 'BingX',
+                'bitget': 'Bitget',
+                'bitmart': 'BitMart',
+                'bitrue': 'Bitrue',
+                'gemini': 'Gemini',
+                'cryptocom': 'Crypto.com',
+                'coincatch': 'Coincatch'
+            };
+            return names[exchange] || exchange.toUpperCase();
+        }
+
+        // Handle exchange change
+        async function handleExchangeChange() {
+            const selector = document.getElementById('exchangeSelector');
+            selectedExchange = selector.value;
+
+            console.log('🔄 Switching to exchange:', selectedExchange);
+
+            // Update UI
+            document.getElementById('apiConnectionTitle').textContent = `🔌 ${getExchangeDisplayName(selectedExchange)} API Connection`;
+
+            // Reload all data for new exchange
+            await testConnection();
+            await loadStrategies();
+            await loadPositions();
+            await loadStats();
+        }
 
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', async function() {
             console.log('📈 Momentum Trading loaded');
             console.log('📍 API Base:', API_BASE);
             console.log('👤 User ID:', USER_ID);
-            console.log('🏦 Exchange:', EXCHANGE);
+            console.log('🏦 Exchange:', selectedExchange);
+
+            // Set initial exchange selector value
+            document.getElementById('exchangeSelector').value = selectedExchange;
+
+            // Update initial API connection title
+            document.getElementById('apiConnectionTitle').textContent = `🔌 ${getExchangeDisplayName(selectedExchange)} API Connection`;
 
             // Initialize indicator settings visibility
             initializeIndicatorSettings();
@@ -781,6 +862,7 @@
             await testConnection();
             await loadStrategies();
             await loadPositions();
+            await loadStats();
             startPositionRefresh();
         });
 
@@ -799,7 +881,7 @@
 
             try {
                 // Check if credentials exist
-                const response = await fetch(`${API_BASE}/credentials?userId=${USER_ID}&exchange=${EXCHANGE}`);
+                const response = await fetch(`${API_BASE}/credentials?userId=${USER_ID}&exchange=${selectedExchange}`);
                 const result = await response.json();
 
                 if (result.success && result.data.hasApiKey && result.data.hasApiSecret) {
@@ -831,7 +913,7 @@
         // Load strategies
         async function loadStrategies() {
             try {
-                const response = await fetch(`${API_BASE}/strategies?userId=${USER_ID}&exchange=${EXCHANGE}`);
+                const response = await fetch(`${API_BASE}/strategies?userId=${USER_ID}&exchange=${selectedExchange}`);
                 const result = await response.json();
 
                 if (result.success) {
@@ -897,7 +979,7 @@
         // Load positions
         async function loadPositions() {
             try {
-                const response = await fetch(`${API_BASE}/positions?userId=${USER_ID}&exchange=${EXCHANGE}`);
+                const response = await fetch(`${API_BASE}/positions?userId=${USER_ID}&exchange=${selectedExchange}`);
                 const result = await response.json();
 
                 if (result.success) {
@@ -985,7 +1067,7 @@
             }
         }
 
-        // Update stats
+        // Update stats (local calculation from positions)
         function updateStats() {
             const activeStrategies = strategies.filter(s => s.is_active).length;
             document.getElementById('totalStrategies').textContent = activeStrategies;
@@ -1000,6 +1082,29 @@
             const pnlEl = document.getElementById('totalPnL');
             pnlEl.textContent = `R${todayPnL.toFixed(2)}`;
             pnlEl.className = todayPnL >= 0 ? 'stat-value pnl-positive' : 'stat-value pnl-negative';
+        }
+
+        // Load stats from backend
+        async function loadStats() {
+            try {
+                const response = await fetch(`${API_BASE}/stats?userId=${USER_ID}&exchange=${selectedExchange}`);
+                const result = await response.json();
+
+                if (result.success && result.data) {
+                    const stats = result.data;
+
+                    // Update stats display with backend data
+                    if (stats.total_pnl !== undefined) {
+                        const pnlEl = document.getElementById('totalPnL');
+                        pnlEl.textContent = `R${stats.total_pnl.toFixed(2)}`;
+                        pnlEl.className = stats.total_pnl >= 0 ? 'stat-value pnl-positive' : 'stat-value pnl-negative';
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load stats:', error);
+                // Fallback to local calculation
+                updateStats();
+            }
         }
 
         // Open strategy creator
@@ -1149,7 +1254,7 @@
 
             const strategyData = {
                 userId: USER_ID,
-                exchange: EXCHANGE,
+                exchange: selectedExchange,
                 strategyName: document.getElementById('strategyName').value,
                 assets: document.getElementById('assetInput').value.split(',').map(s => s.trim()),
                 entryLogic: document.getElementById('entryLogic').value,
