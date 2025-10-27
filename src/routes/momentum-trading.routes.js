@@ -3,7 +3,7 @@
 
 const express = require('express');
 const router = express.Router();
-const { systemLogger } = require('../utils/logger');
+const { logger } = require('../utils/logger');
 const MomentumStrategy = require('../models/MomentumStrategy');
 const MomentumPosition = require('../models/MomentumPosition');
 const MomentumCredentials = require('../models/MomentumCredentials');
@@ -59,7 +59,7 @@ router.post('/test-connection', async (req, res) => {
             });
         }
 
-        systemLogger.info('Testing momentum trading connection', { userId, exchange });
+        logger.info('Testing momentum trading connection', { userId, exchange });
 
         const credentials = { apiKey, apiSecret };
 
@@ -77,7 +77,7 @@ router.post('/test-connection', async (req, res) => {
         });
 
     } catch (error) {
-        systemLogger.error('Failed to test momentum trading connection', {
+        logger.error('Failed to test momentum trading connection', {
             userId: req.body.userId,
             exchange: req.body.exchange,
             error: error.message
@@ -117,7 +117,7 @@ router.post('/credentials', async (req, res) => {
         // Save credentials
         const saved = await MomentumCredentials.saveCredentials(userId, exchange, credentials);
 
-        systemLogger.info('Momentum credentials saved', { userId, exchange });
+        logger.info('Momentum credentials saved', { userId, exchange });
 
         res.json({
             success: true,
@@ -130,7 +130,7 @@ router.post('/credentials', async (req, res) => {
         });
 
     } catch (error) {
-        systemLogger.error('Failed to save momentum credentials', {
+        logger.error('Failed to save momentum credentials', {
             userId: req.body.userId,
             exchange: req.body.exchange,
             error: error.message
@@ -180,7 +180,7 @@ router.get('/credentials', async (req, res) => {
         });
 
     } catch (error) {
-        systemLogger.error('Failed to get momentum credentials', {
+        logger.error('Failed to get momentum credentials', {
             userId: req.query.userId,
             exchange: req.query.exchange,
             error: error.message
@@ -217,7 +217,7 @@ router.delete('/credentials', async (req, res) => {
             });
         }
 
-        systemLogger.info('Momentum credentials deleted', { userId, exchange });
+        logger.info('Momentum credentials deleted', { userId, exchange });
 
         res.json({
             success: true,
@@ -225,7 +225,7 @@ router.delete('/credentials', async (req, res) => {
         });
 
     } catch (error) {
-        systemLogger.error('Failed to delete momentum credentials', {
+        logger.error('Failed to delete momentum credentials', {
             userId: req.body.userId,
             exchange: req.body.exchange,
             error: error.message
@@ -261,7 +261,7 @@ router.get('/strategies', async (req, res) => {
         });
 
     } catch (error) {
-        systemLogger.error('Failed to get momentum strategies', {
+        logger.error('Failed to get momentum strategies', {
             userId: req.query.userId,
             exchange: req.query.exchange,
             error: error.message
@@ -321,7 +321,7 @@ router.post('/strategies', async (req, res) => {
             maxOpenPositions
         });
 
-        systemLogger.info('Momentum strategy created', {
+        logger.info('Momentum strategy created', {
             userId,
             strategyId: strategy.id,
             strategyName
@@ -334,7 +334,7 @@ router.post('/strategies', async (req, res) => {
         });
 
     } catch (error) {
-        systemLogger.error('Failed to create momentum strategy', {
+        logger.error('Failed to create momentum strategy', {
             userId: req.body.userId,
             strategyName: req.body.strategyName,
             error: error.message
@@ -372,7 +372,7 @@ router.post('/strategies/:id/toggle', async (req, res) => {
             });
         }
 
-        systemLogger.info('Momentum strategy toggled', {
+        logger.info('Momentum strategy toggled', {
             userId,
             strategyId: id,
             isActive: strategy.is_active
@@ -385,7 +385,7 @@ router.post('/strategies/:id/toggle', async (req, res) => {
         });
 
     } catch (error) {
-        systemLogger.error('Failed to toggle momentum strategy', {
+        logger.error('Failed to toggle momentum strategy', {
             strategyId: req.params.id,
             userId: req.body.userId,
             error: error.message
@@ -423,7 +423,7 @@ router.put('/strategies/:id', async (req, res) => {
             });
         }
 
-        systemLogger.info('Momentum strategy updated', {
+        logger.info('Momentum strategy updated', {
             userId,
             strategyId: id
         });
@@ -435,7 +435,7 @@ router.put('/strategies/:id', async (req, res) => {
         });
 
     } catch (error) {
-        systemLogger.error('Failed to update momentum strategy', {
+        logger.error('Failed to update momentum strategy', {
             strategyId: req.params.id,
             userId: req.body.userId,
             error: error.message
@@ -473,7 +473,7 @@ router.delete('/strategies/:id', async (req, res) => {
             });
         }
 
-        systemLogger.info('Momentum strategy deleted', {
+        logger.info('Momentum strategy deleted', {
             userId,
             strategyId: id
         });
@@ -484,7 +484,7 @@ router.delete('/strategies/:id', async (req, res) => {
         });
 
     } catch (error) {
-        systemLogger.error('Failed to delete momentum strategy', {
+        logger.error('Failed to delete momentum strategy', {
             strategyId: req.params.id,
             userId: req.body.userId,
             error: error.message
@@ -524,7 +524,7 @@ router.get('/positions', async (req, res) => {
         });
 
     } catch (error) {
-        systemLogger.error('Failed to get momentum positions', {
+        logger.error('Failed to get momentum positions', {
             userId: req.query.userId,
             exchange: req.query.exchange,
             error: error.message
@@ -587,7 +587,7 @@ router.post('/positions/:id/close', async (req, res) => {
             });
         }
 
-        systemLogger.info('Manually closing momentum position', {
+        logger.info('Manually closing momentum position', {
             userId,
             positionId: id,
             asset: position.asset,
@@ -602,7 +602,7 @@ router.post('/positions/:id/close', async (req, res) => {
             credentials
         );
 
-        systemLogger.info('Momentum position closed', {
+        logger.info('Momentum position closed', {
             userId,
             positionId: id,
             pnlUsdt: closedPosition.exit_pnl_usdt,
@@ -616,7 +616,7 @@ router.post('/positions/:id/close', async (req, res) => {
         });
 
     } catch (error) {
-        systemLogger.error('Failed to close momentum position', {
+        logger.error('Failed to close momentum position', {
             positionId: req.params.id,
             userId: req.body.userId,
             error: error.message
@@ -652,7 +652,7 @@ router.get('/stats', async (req, res) => {
         });
 
     } catch (error) {
-        systemLogger.error('Failed to get momentum stats', {
+        logger.error('Failed to get momentum stats', {
             userId: req.query.userId,
             exchange: req.query.exchange,
             error: error.message
