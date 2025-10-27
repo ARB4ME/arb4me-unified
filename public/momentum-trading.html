@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Momentum Trading - ARB4ME</title>
+    <style>
+        body {
+            background: linear-gradient(135deg, #0c0c1e 0%, #161632 100%);
+            color: #b8c6db;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .card h3 {
+            margin: 0 0 15px 0;
+            color: #00d4ff;
+        }
+
+        .card h4 {
+            margin: 0 0 10px 0;
+            color: #ffb347;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        .stat-box {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #b8c6db;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(45deg, #ff6b6b 0%, #ee5a24 100%);
+        }
+
+        .btn-success {
+            background: linear-gradient(45deg, #00ff88 0%, #00cc6a 100%);
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 0.8rem;
+        }
+
+        .toggle-switch {
+            width: 50px;
+            height: 25px;
+            background: #ff6b6b;
+            border-radius: 25px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .toggle-switch.active {
+            background: #00ff88;
+        }
+
+        .toggle-knob {
+            width: 21px;
+            height: 21px;
+            background: white;
+            border-radius: 50%;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            transition: all 0.3s;
+        }
+
+        .toggle-switch.active .toggle-knob {
+            left: 27px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #b8c6db;
+            font-size: 0.9rem;
+        }
+
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 6px;
+            color: #fff;
+            font-size: 0.9rem;
+            box-sizing: border-box;
+        }
+
+        .form-group select option {
+            background: #1a1a2e;
+            color: #fff;
+            padding: 10px;
+        }
+
+        .form-group small {
+            display: block;
+            margin-top: 5px;
+            color: #888;
+            font-size: 0.85rem;
+        }
+
+        .alert {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border: 1px solid;
+        }
+
+        .alert-warning {
+            background: rgba(255, 179, 71, 0.1);
+            border-color: #ffb347;
+            color: #ffb347;
+        }
+
+        .alert-info {
+            background: rgba(0, 212, 255, 0.1);
+            border-color: #00d4ff;
+            color: #00d4ff;
+        }
+
+        .alert-success {
+            background: rgba(0, 255, 136, 0.1);
+            border-color: #00ff88;
+            color: #00ff88;
+        }
+
+        .strategy-card {
+            background: rgba(0, 212, 255, 0.05);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            position: relative;
+        }
+
+        .strategy-card.inactive {
+            opacity: 0.6;
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .strategy-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .strategy-title {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #00d4ff;
+        }
+
+        .strategy-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .position-card {
+            background: rgba(0, 255, 136, 0.05);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .position-card.losing {
+            background: rgba(255, 107, 107, 0.05);
+            border-color: rgba(255, 107, 107, 0.3);
+        }
+
+        .position-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .position-asset {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #00ff88;
+        }
+
+        .position-card.losing .position-asset {
+            color: #ff6b6b;
+        }
+
+        .pnl-positive {
+            color: #00ff88;
+        }
+
+        .pnl-negative {
+            color: #ff6b6b;
+        }
+
+        .quick-select-btn {
+            display: inline-block;
+            padding: 6px 12px;
+            margin: 5px 5px 5px 0;
+            background: rgba(102, 126, 234, 0.2);
+            border: 1px solid #667eea;
+            border-radius: 6px;
+            color: #667eea;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .quick-select-btn:hover {
+            background: rgba(102, 126, 234, 0.4);
+        }
+
+        .quick-select-btn.selected {
+            background: rgba(102, 126, 234, 0.4);
+            border-color: #00d4ff;
+            color: #00d4ff;
+        }
+
+        .indicator-config {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
+
+        .indicator-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .indicator-name {
+            font-weight: bold;
+            color: #ffb347;
+        }
+
+        .preset-btn {
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            color: #fff;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .preset-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: #667eea;
+        }
+
+        .preset-btn.selected {
+            background: rgba(102, 126, 234, 0.3);
+            border-color: #667eea;
+            color: #667eea;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            overflow-y: auto;
+        }
+
+        .modal-content {
+            background: #1a1a2e;
+            margin: 50px auto;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 800px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .close-modal {
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #888;
+        }
+
+        .close-modal:hover {
+            color: #fff;
+        }
+
+        .connection-status {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+
+        .connection-status.connected {
+            background: rgba(0, 255, 136, 0.2);
+            color: #00ff88;
+        }
+
+        .connection-status.disconnected {
+            background: rgba(255, 107, 107, 0.2);
+            color: #ff6b6b;
+        }
+
+        @media (max-width: 768px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div>
+                <h1 style="margin: 0; color: #00d4ff;">📈 Momentum Trading</h1>
+                <p style="margin: 5px 0 0 0; color: #888;">Automated technical indicator-based spot trading</p>
+            </div>
+            <div style="display: flex; gap: 15px; align-items: center;">
+                <span id="connectionStatus" class="connection-status disconnected">⚠️ Not Connected</span>
+                <button onclick="window.location.href='/'" class="btn">🏠 Home</button>
+            </div>
+        </div>
+
+        <!-- Stats Overview -->
+        <div class="grid-3" style="margin-bottom: 30px;">
+            <div class="stat-box">
+                <div class="stat-value" id="totalStrategies">0</div>
+                <div class="stat-label">Active Strategies</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="openPositions">0</div>
+                <div class="stat-label">Open Positions</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value pnl-positive" id="totalPnL">R 0.00</div>
+                <div class="stat-label">Total P&L (Today)</div>
+            </div>
+        </div>
+
+        <!-- Main Grid -->
+        <div class="grid-2">
+            <!-- Left Column: Strategy Management -->
+            <div>
+                <!-- API Connection Card -->
+                <div class="card">
+                    <h3>🔌 VALR API Connection</h3>
+                    <div class="alert alert-info">
+                        <strong>ℹ️ Strategy-Specific Credentials:</strong> Use your 5th Strategic API Configuration for Momentum Trading.
+                    </div>
+
+                    <button onclick="testConnection()" class="btn btn-success" style="width: 100%;">
+                        🔄 Test VALR Connection
+                    </button>
+                    <div id="testResult" style="margin-top: 10px; text-align: center;"></div>
+
+                    <div style="margin-top: 15px; padding: 12px; background: rgba(255, 179, 71, 0.1); border-radius: 8px; border: 1px solid #ffb347;">
+                        <strong style="color: #ffb347;">💡 Note:</strong> Configure your VALR Momentum Trading API credentials in <a href="/strategy-api-setup.html" style="color: #00d4ff;">Strategy API Setup</a>.
+                    </div>
+                </div>
+
+                <!-- Strategy List Card -->
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h3 style="margin: 0;">⚙️ Your Strategies</h3>
+                        <button onclick="openStrategyCreator()" class="btn btn-success">+ New Strategy</button>
+                    </div>
+
+                    <div id="strategiesList">
+                        <div style="text-align: center; color: #888; padding: 40px 20px;">
+                            <p>No strategies created yet.</p>
+                            <p>Click "New Strategy" to get started.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Open Positions -->
+            <div>
+                <!-- Open Positions Card -->
+                <div class="card">
+                    <h3>💼 Open Positions</h3>
+                    <div id="positionsList">
+                        <div style="text-align: center; color: #888; padding: 40px 20px;">
+                            <p>No open positions.</p>
+                            <p>Positions will appear here when strategies trigger entries.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Closed Positions Summary -->
+                <div class="card">
+                    <h3>📊 Recent Closed Positions</h3>
+                    <div id="closedPositionsList">
+                        <div style="text-align: center; color: #888; padding: 20px;">
+                            No closed positions yet.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Strategy Creator Modal -->
+    <div id="strategyModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeStrategyCreator()">&times;</span>
+            <h3 style="color: #00d4ff; margin-bottom: 20px;">✨ Create Momentum Strategy</h3>
+
+            <form id="strategyForm" onsubmit="saveStrategy(event)">
+                <!-- Strategy Name -->
+                <div class="form-group">
+                    <label>Strategy Name</label>
+                    <input type="text" id="strategyName" placeholder="e.g., Conservative BTC/ETH" required>
+                    <small>Give your strategy a memorable name</small>
+                </div>
+
+                <!-- Preset Selection -->
+                <div class="form-group">
+                    <label>Choose Preset</label>
+                    <div style="display: flex; gap: 10px; margin-top: 10px;">
+                        <div class="preset-btn selected" onclick="selectPreset('conservative')">
+                            🛡️ Conservative<br>
+                            <small style="font-size: 0.75rem;">Low risk, slow gains</small>
+                        </div>
+                        <div class="preset-btn" onclick="selectPreset('balanced')">
+                            ⚖️ Balanced<br>
+                            <small style="font-size: 0.75rem;">Moderate risk/reward</small>
+                        </div>
+                        <div class="preset-btn" onclick="selectPreset('aggressive')">
+                            🚀 Aggressive<br>
+                            <small style="font-size: 0.75rem;">High risk, fast gains</small>
+                        </div>
+                    </div>
+                    <input type="hidden" id="selectedPreset" value="conservative">
+                </div>
+
+                <!-- Asset Selection -->
+                <div class="form-group">
+                    <label>Select Assets to Trade</label>
+                    <small>Quick select popular assets or type your own</small>
+                    <div style="margin: 10px 0;">
+                        <span class="quick-select-btn" onclick="quickSelectAsset('BTC')">BTC</span>
+                        <span class="quick-select-btn" onclick="quickSelectAsset('ETH')">ETH</span>
+                        <span class="quick-select-btn" onclick="quickSelectAsset('XRP')">XRP</span>
+                        <span class="quick-select-btn" onclick="quickSelectAsset('SOL')">SOL</span>
+                        <span class="quick-select-btn" onclick="quickSelectAsset('ADA')">ADA</span>
+                        <span class="quick-select-btn" onclick="quickSelectAsset('DOT')">DOT</span>
+                    </div>
+                    <input type="text" id="assetInput" placeholder="e.g., BTC, ETH, XRP" required>
+                    <small>Comma-separated. Will be traded against USDT (e.g., BTC → BTC/USDT)</small>
+                </div>
+
+                <!-- Entry Logic -->
+                <div class="form-group">
+                    <label>Entry Logic</label>
+                    <select id="entryLogic">
+                        <option value="2_out_of_3">2 out of 3 indicators must trigger</option>
+                        <option value="all">All indicators must trigger</option>
+                        <option value="any_1">Any 1 indicator triggers</option>
+                    </select>
+                    <small>How many indicators must signal before opening a position</small>
+                </div>
+
+                <!-- Entry Indicators -->
+                <div class="form-group">
+                    <label>Entry Indicators (Select indicators to use)</label>
+
+                    <!-- RSI -->
+                    <div class="indicator-config">
+                        <div class="indicator-header">
+                            <span class="indicator-name">📊 RSI (Relative Strength Index)</span>
+                            <input type="checkbox" id="useRSI" checked onchange="toggleIndicatorSettings('rsi')">
+                        </div>
+                        <div id="rsiSettings">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                <div>
+                                    <label style="font-size: 0.85rem;">Period</label>
+                                    <input type="number" id="rsiPeriod" value="14" min="5" max="30">
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.85rem;">Oversold Threshold</label>
+                                    <input type="number" id="rsiOversold" value="30" min="10" max="40">
+                                </div>
+                            </div>
+                            <small>Triggers when RSI drops below oversold threshold (indicates buying opportunity)</small>
+                        </div>
+                    </div>
+
+                    <!-- Volume Spike -->
+                    <div class="indicator-config">
+                        <div class="indicator-header">
+                            <span class="indicator-name">📈 Volume Spike</span>
+                            <input type="checkbox" id="useVolume" checked onchange="toggleIndicatorSettings('volume')">
+                        </div>
+                        <div id="volumeSettings">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                <div>
+                                    <label style="font-size: 0.85rem;">Lookback Period</label>
+                                    <input type="number" id="volumePeriod" value="20" min="10" max="50">
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.85rem;">Spike Multiplier</label>
+                                    <input type="number" id="volumeMultiplier" value="2" min="1.5" max="5" step="0.1">
+                                </div>
+                            </div>
+                            <small>Triggers when volume exceeds average by multiplier (indicates strong interest)</small>
+                        </div>
+                    </div>
+
+                    <!-- MACD -->
+                    <div class="indicator-config">
+                        <div class="indicator-header">
+                            <span class="indicator-name">📉 MACD (Moving Average Convergence Divergence)</span>
+                            <input type="checkbox" id="useMACD" checked onchange="toggleIndicatorSettings('macd')">
+                        </div>
+                        <div id="macdSettings">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+                                <div>
+                                    <label style="font-size: 0.85rem;">Fast Period</label>
+                                    <input type="number" id="macdFast" value="12" min="5" max="20">
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.85rem;">Slow Period</label>
+                                    <input type="number" id="macdSlow" value="26" min="20" max="40">
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.85rem;">Signal Period</label>
+                                    <input type="number" id="macdSignal" value="9" min="5" max="15">
+                                </div>
+                            </div>
+                            <small>Triggers on bullish MACD crossover (MACD line crosses above signal line)</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Exit Rules -->
+                <div class="form-group">
+                    <label>Exit Rules</label>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                        <div>
+                            <label style="font-size: 0.85rem;">Take Profit (%)</label>
+                            <input type="number" id="takeProfit" value="3" min="0.5" max="20" step="0.1">
+                            <small>Exit when profit reaches this %</small>
+                        </div>
+                        <div>
+                            <label style="font-size: 0.85rem;">Stop Loss (%)</label>
+                            <input type="number" id="stopLoss" value="2" min="0.5" max="10" step="0.1">
+                            <small>Exit when loss reaches this %</small>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label style="font-size: 0.85rem;">Max Hold Time (hours)</label>
+                        <input type="number" id="maxHoldTime" value="24" min="1" max="168">
+                        <small>Force exit after this many hours regardless of P&L</small>
+                    </div>
+                </div>
+
+                <!-- Risk Management -->
+                <div class="form-group">
+                    <label>Risk Management</label>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <div>
+                            <label style="font-size: 0.85rem;">Max Trade Amount (USDT)</label>
+                            <input type="number" id="maxTradeAmount" value="500" min="10" max="10000" step="10">
+                            <small>Maximum USDT per position</small>
+                        </div>
+                        <div>
+                            <label style="font-size: 0.85rem;">Max Open Positions</label>
+                            <input type="number" id="maxOpenPositions" value="3" min="1" max="20">
+                            <small>Maximum simultaneous positions</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit Buttons -->
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="submit" class="btn btn-success" style="flex: 1;">💾 Save Strategy</button>
+                    <button type="button" onclick="closeStrategyCreator()" class="btn" style="flex: 1;">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api/v1/momentum';
+        const USER_ID = 1; // TODO: Get from auth
+        const EXCHANGE = 'valr'; // Hardcoded for Phase 1
+
+        let strategies = [];
+        let openPositions = [];
+        let closedPositions = [];
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('📈 Momentum Trading loaded');
+            console.log('📍 API Base:', API_BASE);
+            console.log('👤 User ID:', USER_ID);
+            console.log('🏦 Exchange:', EXCHANGE);
+
+            await testConnection();
+            await loadStrategies();
+            await loadPositions();
+            startPositionRefresh();
+        });
+
+        // Test API connection
+        async function testConnection() {
+            try {
+                const response = await fetch(`${API_BASE}/test-connection`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: USER_ID,
+                        exchange: EXCHANGE
+                    })
+                });
+
+                const result = await response.json();
+                const statusEl = document.getElementById('connectionStatus');
+                const testResultEl = document.getElementById('testResult');
+
+                if (result.success) {
+                    statusEl.className = 'connection-status connected';
+                    statusEl.textContent = '✅ Connected to VALR';
+                    testResultEl.innerHTML = '<span style="color: #00ff88;">✅ Connection successful!</span>';
+                } else {
+                    statusEl.className = 'connection-status disconnected';
+                    statusEl.textContent = '⚠️ Not Connected';
+                    testResultEl.innerHTML = `<span style="color: #ff6b6b;">❌ ${result.error || 'Connection failed'}</span>`;
+                }
+            } catch (error) {
+                console.error('Connection test failed:', error);
+                document.getElementById('testResult').innerHTML = '<span style="color: #ff6b6b;">❌ Connection failed</span>';
+            }
+        }
+
+        // Load strategies
+        async function loadStrategies() {
+            try {
+                const response = await fetch(`${API_BASE}/strategies?userId=${USER_ID}&exchange=${EXCHANGE}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    strategies = result.data;
+                    renderStrategies();
+                    updateStats();
+                }
+            } catch (error) {
+                console.error('Failed to load strategies:', error);
+            }
+        }
+
+        // Render strategies list
+        function renderStrategies() {
+            const container = document.getElementById('strategiesList');
+
+            if (strategies.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; color: #888; padding: 40px 20px;">
+                        <p>No strategies created yet.</p>
+                        <p>Click "New Strategy" to get started.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = strategies.map(strategy => `
+                <div class="strategy-card ${!strategy.is_active ? 'inactive' : ''}">
+                    <div class="strategy-header">
+                        <div class="strategy-title">${strategy.strategy_name}</div>
+                        <div class="strategy-controls">
+                            <div class="toggle-switch ${strategy.is_active ? 'active' : ''}"
+                                 onclick="toggleStrategy(${strategy.id})">
+                                <div class="toggle-knob"></div>
+                            </div>
+                            <button class="btn btn-small" onclick="editStrategy(${strategy.id})">Edit</button>
+                            <button class="btn btn-danger btn-small" onclick="deleteStrategy(${strategy.id})">Delete</button>
+                        </div>
+                    </div>
+                    <div style="font-size: 0.85rem; color: #888;">
+                        <div><strong>Assets:</strong> ${strategy.assets.join(', ')}</div>
+                        <div><strong>Entry Logic:</strong> ${strategy.entry_logic.replace('_', ' ')}</div>
+                        <div><strong>Max Trade:</strong> R${strategy.max_trade_amount.toLocaleString()}</div>
+                        <div><strong>Max Positions:</strong> ${strategy.max_open_positions}</div>
+                        <div><strong>Take Profit:</strong> ${strategy.exit_rules.takeProfitPercent}% | <strong>Stop Loss:</strong> ${strategy.exit_rules.stopLossPercent}%</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Load positions
+        async function loadPositions() {
+            try {
+                const response = await fetch(`${API_BASE}/positions?userId=${USER_ID}&exchange=${EXCHANGE}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    openPositions = result.data.open || [];
+                    closedPositions = result.data.closed || [];
+                    renderPositions();
+                    updateStats();
+                }
+            } catch (error) {
+                console.error('Failed to load positions:', error);
+            }
+        }
+
+        // Render positions
+        function renderPositions() {
+            const openContainer = document.getElementById('positionsList');
+            const closedContainer = document.getElementById('closedPositionsList');
+
+            // Render open positions
+            if (openPositions.length === 0) {
+                openContainer.innerHTML = `
+                    <div style="text-align: center; color: #888; padding: 40px 20px;">
+                        <p>No open positions.</p>
+                        <p>Positions will appear here when strategies trigger entries.</p>
+                    </div>
+                `;
+            } else {
+                openContainer.innerHTML = openPositions.map(pos => {
+                    const currentPnL = pos.current_pnl_usdt || 0;
+                    const currentPnLPercent = pos.current_pnl_percent || 0;
+                    const isLosing = currentPnL < 0;
+
+                    return `
+                        <div class="position-card ${isLosing ? 'losing' : ''}">
+                            <div class="position-header">
+                                <div class="position-asset">${pos.asset}</div>
+                                <button class="btn btn-danger btn-small" onclick="closePosition(${pos.id})">
+                                    Close Position
+                                </button>
+                            </div>
+                            <div style="font-size: 0.85rem;">
+                                <div><strong>Entry:</strong> R${pos.entry_price.toFixed(6)} | <strong>Quantity:</strong> ${pos.entry_quantity.toFixed(4)}</div>
+                                <div><strong>Entry Value:</strong> R${pos.entry_value_usdt.toFixed(2)}</div>
+                                <div><strong>Current P&L:</strong>
+                                    <span class="${currentPnL >= 0 ? 'pnl-positive' : 'pnl-negative'}">
+                                        R${currentPnL.toFixed(2)} (${currentPnLPercent >= 0 ? '+' : ''}${currentPnLPercent.toFixed(2)}%)
+                                    </span>
+                                </div>
+                                <div><strong>Time Open:</strong> ${getTimeDiff(pos.entry_time)}</div>
+                                <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
+                                    <strong>Strategy:</strong> ${pos.strategy_name}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            // Render closed positions (last 5)
+            if (closedPositions.length === 0) {
+                closedContainer.innerHTML = `
+                    <div style="text-align: center; color: #888; padding: 20px;">
+                        No closed positions yet.
+                    </div>
+                `;
+            } else {
+                closedContainer.innerHTML = closedPositions.slice(0, 5).map(pos => {
+                    const pnl = pos.exit_pnl_usdt || 0;
+                    const isProfit = pnl > 0;
+
+                    return `
+                        <div style="padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); font-size: 0.85rem;">
+                            <div style="display: flex; justify-content: space-between;">
+                                <strong>${pos.asset}</strong>
+                                <span class="${isProfit ? 'pnl-positive' : 'pnl-negative'}">
+                                    ${isProfit ? '+' : ''}R${pnl.toFixed(2)}
+                                </span>
+                            </div>
+                            <div style="color: #888; font-size: 0.8rem;">
+                                ${pos.exit_reason} | ${new Date(pos.exit_time).toLocaleString()}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        // Update stats
+        function updateStats() {
+            const activeStrategies = strategies.filter(s => s.is_active).length;
+            document.getElementById('totalStrategies').textContent = activeStrategies;
+            document.getElementById('openPositions').textContent = openPositions.length;
+
+            // Calculate today's P&L
+            const today = new Date().toDateString();
+            const todayPnL = closedPositions
+                .filter(pos => new Date(pos.exit_time).toDateString() === today)
+                .reduce((sum, pos) => sum + (pos.exit_pnl_usdt || 0), 0);
+
+            const pnlEl = document.getElementById('totalPnL');
+            pnlEl.textContent = `R${todayPnL.toFixed(2)}`;
+            pnlEl.className = todayPnL >= 0 ? 'stat-value pnl-positive' : 'stat-value pnl-negative';
+        }
+
+        // Open strategy creator
+        function openStrategyCreator() {
+            document.getElementById('strategyModal').style.display = 'block';
+            document.getElementById('strategyForm').reset();
+            selectPreset('conservative'); // Set default preset
+        }
+
+        // Close strategy creator
+        function closeStrategyCreator() {
+            document.getElementById('strategyModal').style.display = 'none';
+        }
+
+        // Select preset
+        function selectPreset(preset) {
+            // Update visual selection
+            document.querySelectorAll('.preset-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            event.target.closest('.preset-btn').classList.add('selected');
+            document.getElementById('selectedPreset').value = preset;
+
+            // Apply preset values
+            const presets = {
+                conservative: {
+                    rsiOversold: 30,
+                    volumeMultiplier: 2.5,
+                    takeProfit: 2,
+                    stopLoss: 1.5,
+                    maxTradeAmount: 500,
+                    maxOpenPositions: 3
+                },
+                balanced: {
+                    rsiOversold: 35,
+                    volumeMultiplier: 2,
+                    takeProfit: 3,
+                    stopLoss: 2,
+                    maxTradeAmount: 1000,
+                    maxOpenPositions: 5
+                },
+                aggressive: {
+                    rsiOversold: 40,
+                    volumeMultiplier: 1.5,
+                    takeProfit: 5,
+                    stopLoss: 3,
+                    maxTradeAmount: 2000,
+                    maxOpenPositions: 10
+                }
+            };
+
+            const values = presets[preset];
+            document.getElementById('rsiOversold').value = values.rsiOversold;
+            document.getElementById('volumeMultiplier').value = values.volumeMultiplier;
+            document.getElementById('takeProfit').value = values.takeProfit;
+            document.getElementById('stopLoss').value = values.stopLoss;
+            document.getElementById('maxTradeAmount').value = values.maxTradeAmount;
+            document.getElementById('maxOpenPositions').value = values.maxOpenPositions;
+        }
+
+        // Quick select asset
+        function quickSelectAsset(asset) {
+            const input = document.getElementById('assetInput');
+            const current = input.value.split(',').map(s => s.trim()).filter(s => s);
+            const btn = event.target;
+
+            if (current.includes(asset)) {
+                // Remove if already selected
+                input.value = current.filter(a => a !== asset).join(', ');
+                btn.classList.remove('selected');
+            } else {
+                // Add to selection
+                current.push(asset);
+                input.value = current.join(', ');
+                btn.classList.add('selected');
+            }
+        }
+
+        // Toggle indicator settings
+        function toggleIndicatorSettings(indicator) {
+            const checkbox = document.getElementById(`use${indicator.charAt(0).toUpperCase() + indicator.slice(1)}`);
+            const settings = document.getElementById(`${indicator}Settings`);
+            settings.style.display = checkbox.checked ? 'block' : 'none';
+        }
+
+        // Save strategy
+        async function saveStrategy(event) {
+            event.preventDefault();
+
+            const strategyData = {
+                userId: USER_ID,
+                exchange: EXCHANGE,
+                strategyName: document.getElementById('strategyName').value,
+                assets: document.getElementById('assetInput').value.split(',').map(s => s.trim()),
+                entryLogic: document.getElementById('entryLogic').value,
+                entryIndicators: {
+                    rsi: {
+                        enabled: document.getElementById('useRSI').checked,
+                        period: parseInt(document.getElementById('rsiPeriod').value),
+                        oversold: parseInt(document.getElementById('rsiOversold').value)
+                    },
+                    volume: {
+                        enabled: document.getElementById('useVolume').checked,
+                        period: parseInt(document.getElementById('volumePeriod').value),
+                        multiplier: parseFloat(document.getElementById('volumeMultiplier').value)
+                    },
+                    macd: {
+                        enabled: document.getElementById('useMACD').checked,
+                        fast: parseInt(document.getElementById('macdFast').value),
+                        slow: parseInt(document.getElementById('macdSlow').value),
+                        signal: parseInt(document.getElementById('macdSignal').value)
+                    }
+                },
+                exitRules: {
+                    takeProfitPercent: parseFloat(document.getElementById('takeProfit').value),
+                    stopLossPercent: parseFloat(document.getElementById('stopLoss').value),
+                    maxHoldTimeHours: parseInt(document.getElementById('maxHoldTime').value)
+                },
+                maxTradeAmount: parseFloat(document.getElementById('maxTradeAmount').value),
+                maxOpenPositions: parseInt(document.getElementById('maxOpenPositions').value)
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/strategies`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(strategyData)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('✅ Strategy saved successfully!');
+                    closeStrategyCreator();
+                    await loadStrategies();
+                } else {
+                    alert('❌ Failed to save strategy: ' + (result.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Failed to save strategy:', error);
+                alert('❌ Failed to save strategy');
+            }
+        }
+
+        // Toggle strategy ON/OFF
+        async function toggleStrategy(strategyId) {
+            try {
+                const response = await fetch(`${API_BASE}/strategies/${strategyId}/toggle`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: USER_ID })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    await loadStrategies();
+                } else {
+                    alert('Failed to toggle strategy: ' + (result.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Failed to toggle strategy:', error);
+                alert('Failed to toggle strategy');
+            }
+        }
+
+        // Close position manually
+        async function closePosition(positionId) {
+            if (!confirm('Are you sure you want to close this position?')) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/positions/${positionId}/close`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: USER_ID,
+                        reason: 'manual_close'
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('✅ Position closed successfully!');
+                    await loadPositions();
+                } else {
+                    alert('❌ Failed to close position: ' + (result.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Failed to close position:', error);
+                alert('❌ Failed to close position');
+            }
+        }
+
+        // Delete strategy
+        async function deleteStrategy(strategyId) {
+            if (!confirm('Are you sure you want to delete this strategy?')) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/strategies/${strategyId}`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: USER_ID })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    await loadStrategies();
+                } else {
+                    alert('Failed to delete strategy: ' + (result.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Failed to delete strategy:', error);
+                alert('Failed to delete strategy');
+            }
+        }
+
+        // Edit strategy (placeholder)
+        function editStrategy(strategyId) {
+            alert('Edit functionality coming soon! For now, please delete and recreate the strategy.');
+        }
+
+        // Helper: Get time difference
+        function getTimeDiff(timestamp) {
+            const diff = Date.now() - new Date(timestamp).getTime();
+            const hours = Math.floor(diff / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            return `${hours}h ${minutes}m`;
+        }
+
+        // Auto-refresh positions every 30 seconds
+        function startPositionRefresh() {
+            setInterval(async () => {
+                await loadPositions();
+            }, 30000);
+        }
+
+        // Close modal on outside click
+        window.onclick = function(event) {
+            const modal = document.getElementById('strategyModal');
+            if (event.target === modal) {
+                closeStrategyCreator();
+            }
+        }
+    </script>
+</body>
+</html>

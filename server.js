@@ -32,6 +32,7 @@ const analyticsRoutes = require('./src/routes/analytics.routes');
 const settingsRoutes = require('./src/routes/settings.routes');
 const transferArbRoutes = require('./src/routes/transfer-arb.routes');
 const currencySwapRoutes = require('./src/routes/currency-swap.routes');
+const momentumTradingRoutes = require('./src/routes/momentum-trading.routes');
 
 // Initialize Express app
 const app = express();
@@ -90,6 +91,7 @@ app.use(`${API_PREFIX}/analytics`, analyticsRoutes);
 app.use(`${API_PREFIX}/settings`, settingsRoutes);
 app.use(`${API_PREFIX}/transfer-arb`, transferArbRoutes);
 app.use(`${API_PREFIX}/currency-swap`, currencySwapRoutes);
+app.use(`${API_PREFIX}/momentum`, momentumTradingRoutes);
 
 // Serve PWA static files
 app.use(express.static('public'));
@@ -142,6 +144,20 @@ async function startServer() {
                 logger.info('Currency Swap tables verified/created');
             } catch (error) {
                 logger.warn('Currency Swap table creation skipped', { error: error.message });
+                // Don't crash if tables already exist
+            }
+
+            // Auto-create Momentum Trading tables if they don't exist
+            try {
+                const MomentumStrategy = require('./src/models/MomentumStrategy');
+                const MomentumPosition = require('./src/models/MomentumPosition');
+
+                await MomentumStrategy.createTable();
+                await MomentumPosition.createTable();
+
+                logger.info('Momentum Trading tables verified/created');
+            } catch (error) {
+                logger.warn('Momentum Trading table creation skipped', { error: error.message });
                 // Don't crash if tables already exist
             }
 
