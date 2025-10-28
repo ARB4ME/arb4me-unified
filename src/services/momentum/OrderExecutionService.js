@@ -57,6 +57,8 @@ class OrderExecutionService {
                 return await this._executeLunoBuy(pair, amountUSDT, credentials);
             } else if (exchangeLower === 'chainex') {
                 return await this._executeChainEXBuy(pair, amountUSDT, credentials);
+            } else if (exchangeLower === 'kraken') {
+                return await this._executeKrakenBuy(pair, amountUSDT, credentials);
             }
 
             throw new Error(`Exchange not supported: ${exchange}`);
@@ -90,6 +92,8 @@ class OrderExecutionService {
                 return await this._executeLunoSell(pair, quantity, credentials);
             } else if (exchangeLower === 'chainex') {
                 return await this._executeChainEXSell(pair, quantity, credentials);
+            } else if (exchangeLower === 'kraken') {
+                return await this._executeKrakenSell(pair, quantity, credentials);
             }
 
             throw new Error(`Exchange not supported: ${exchange}`);
@@ -783,6 +787,238 @@ class OrderExecutionService {
         return {
             'X-API-KEY': apiKey,
             'Content-Type': 'application/json'
+        };
+    }
+
+    // ===== KRAKEN-SPECIFIC METHODS =====
+
+    /**
+     * Execute Kraken market BUY order
+     * @private
+     */
+    async _executeKrakenBuy(pair, amountUSDT, credentials) {
+        try {
+            // Apply rate limiting
+            await this._rateLimitDelay();
+
+            const config = {
+                baseUrl: 'https://api.kraken.com',
+                endpoint: '/0/private/AddOrder'
+            };
+
+            // Convert pair to Kraken format (BTCUSDT → XBTUSDT)
+            const krakenPair = this._convertPairToKraken(pair);
+
+            // Kraken nonce (must be increasing)
+            const nonce = Date.now() * 1000;
+
+            // Kraken market order payload
+            // For market buy: use 'volume' field with quote currency amount
+            const orderParams = {
+                nonce: nonce,
+                ordertype: 'market',
+                type: 'buy',
+                volume: amountUSDT.toFixed(2), // For market buy, volume is in quote currency (USDT)
+                pair: krakenPair,
+                oflags: 'viqc' // viqc = volume in quote currency
+            };
+
+            const postData = new URLSearchParams(orderParams).toString();
+
+            const authHeaders = this._createKrakenAuth(
+                credentials.apiKey,
+                credentials.apiSecret,
+                config.endpoint,
+                nonce,
+                postData
+            );
+
+            const url = `${config.baseUrl}${config.endpoint}`;
+
+            logger.info('Executing Kraken market BUY order', {
+                pair: krakenPair,
+                amountUSDT,
+                postData
+            });
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    ...authHeaders
+                },
+                body: postData
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Kraken BUY order failed: ${response.status} - ${errorText}`);
+            }
+
+            const data = await response.json();
+
+            // Check for Kraken API errors
+            if (data.error && data.error.length > 0) {
+                throw new Error(`Kraken API error: ${data.error.join(', ')}`);
+            }
+
+            // Transform Kraken response to standard format
+            const result = {
+                orderId: data.result?.txid?.[0] || 'unknown',
+                executedPrice: 0, // Kraken doesn't return price immediately for market orders
+                executedQuantity: 0, // Will be filled after order executes
+                executedValue: amountUSDT,
+                fee: 0, // Kraken calculates fee after execution
+                status: 'SUBMITTED',
+                timestamp: Date.now(),
+                rawResponse: data
+            };
+
+            logger.info('Kraken BUY order submitted successfully', {
+                orderId: result.orderId,
+                amountUSDT: amountUSDT
+            });
+
+            return result;
+
+        } catch (error) {
+            logger.error('Kraken BUY order failed', {
+                pair,
+                amountUSDT,
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Execute Kraken market SELL order
+     * @private
+     */
+    async _executeKrakenSell(pair, quantity, credentials) {
+        try {
+            // Apply rate limiting
+            await this._rateLimitDelay();
+
+            const config = {
+                baseUrl: 'https://api.kraken.com',
+                endpoint: '/0/private/AddOrder'
+            };
+
+            // Convert pair to Kraken format (BTCUSDT → XBTUSDT)
+            const krakenPair = this._convertPairToKraken(pair);
+
+            // Kraken nonce (must be increasing)
+            const nonce = Date.now() * 1000;
+
+            // Kraken market order payload
+            // For market sell: use 'volume' field with base currency amount
+            const orderParams = {
+                nonce: nonce,
+                ordertype: 'market',
+                type: 'sell',
+                volume: quantity.toFixed(8), // Amount of base currency (crypto)
+                pair: krakenPair
+            };
+
+            const postData = new URLSearchParams(orderParams).toString();
+
+            const authHeaders = this._createKrakenAuth(
+                credentials.apiKey,
+                credentials.apiSecret,
+                config.endpoint,
+                nonce,
+                postData
+            );
+
+            const url = `${config.baseUrl}${config.endpoint}`;
+
+            logger.info('Executing Kraken market SELL order', {
+                pair: krakenPair,
+                quantity,
+                postData
+            });
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    ...authHeaders
+                },
+                body: postData
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Kraken SELL order failed: ${response.status} - ${errorText}`);
+            }
+
+            const data = await response.json();
+
+            // Check for Kraken API errors
+            if (data.error && data.error.length > 0) {
+                throw new Error(`Kraken API error: ${data.error.join(', ')}`);
+            }
+
+            // Transform Kraken response to standard format
+            const result = {
+                orderId: data.result?.txid?.[0] || 'unknown',
+                executedPrice: 0, // Kraken doesn't return price immediately for market orders
+                executedQuantity: quantity,
+                executedValue: 0, // Will be calculated after execution
+                fee: 0, // Kraken calculates fee after execution
+                status: 'SUBMITTED',
+                timestamp: Date.now(),
+                rawResponse: data
+            };
+
+            logger.info('Kraken SELL order submitted successfully', {
+                orderId: result.orderId,
+                quantity: quantity
+            });
+
+            return result;
+
+        } catch (error) {
+            logger.error('Kraken SELL order failed', {
+                pair,
+                quantity,
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Convert pair to Kraken format (BTCUSDT → XBTUSDT)
+     * @private
+     */
+    _convertPairToKraken(pair) {
+        // Kraken uses XBT instead of BTC
+        if (pair.startsWith('BTC')) {
+            return pair.replace('BTC', 'XBT');
+        }
+        return pair;
+    }
+
+    /**
+     * Create Kraken authentication headers (API-Key + API-Sign)
+     * Uses HMAC-SHA512 signature
+     * @private
+     */
+    _createKrakenAuth(apiKey, apiSecret, path, nonce, postData) {
+        // Kraken signature: HMAC-SHA512 of (URI path + SHA256(nonce + POST data))
+        // using base64-decoded API secret as the key
+        const message = nonce + postData;
+        const secret = Buffer.from(apiSecret, 'base64');
+        const hash = crypto.createHash('sha256').update(message).digest();
+        const hmac = crypto.createHmac('sha512', secret)
+            .update(Buffer.concat([Buffer.from(path, 'utf8'), hash]))
+            .digest('base64');
+
+        return {
+            'API-Key': apiKey,
+            'API-Sign': hmac
         };
     }
 }
