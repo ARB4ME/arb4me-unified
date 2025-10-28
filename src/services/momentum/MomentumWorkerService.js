@@ -26,6 +26,7 @@ const BitMartMarketDataService = require('./BitMartMarketDataService');
 const BitrueMarketDataService = require('./BitrueMarketDataService');
 const GeminiMarketDataService = require('./GeminiMarketDataService');
 const CryptoComMarketDataService = require('./CryptoComMarketDataService');
+const CoincatchMarketDataService = require('./CoincatchMarketDataService');
 const OrderExecutionService = require('./OrderExecutionService');
 const { logger } = require('../../utils/logger');
 
@@ -55,8 +56,9 @@ class MomentumWorkerService {
             'bitrue': new BitrueMarketDataService(),
             'gemini': new GeminiMarketDataService(),
             'crypto.com': new CryptoComMarketDataService(),
-            'cryptocom': new CryptoComMarketDataService()
-            // More exchanges will be added here (coincatch)
+            'cryptocom': new CryptoComMarketDataService(),
+            'coincatch': new CoincatchMarketDataService()
+            // All 20 exchanges now implemented!
         };
 
         this.orderService = new OrderExecutionService();

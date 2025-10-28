@@ -89,6 +89,8 @@ class OrderExecutionService {
                 return await this._executeGeminiBuy(pair, amountUSDT, credentials);
             } else if (exchangeLower === 'crypto.com' || exchangeLower === 'cryptocom') {
                 return await this._executeCryptoComBuy(pair, amountUSDT, credentials);
+            } else if (exchangeLower === 'coincatch') {
+                return await this._executeCoincatchBuy(pair, amountUSDT, credentials);
             }
 
             throw new Error(`Exchange not supported: ${exchange}`);
@@ -154,6 +156,8 @@ class OrderExecutionService {
                 return await this._executeGeminiSell(pair, quantity, credentials);
             } else if (exchangeLower === 'crypto.com' || exchangeLower === 'cryptocom') {
                 return await this._executeCryptoComSell(pair, quantity, credentials);
+            } else if (exchangeLower === 'coincatch') {
+                return await this._executeCoincatchSell(pair, quantity, credentials);
             }
 
             throw new Error(`Exchange not supported: ${exchange}`);
@@ -4168,6 +4172,223 @@ class OrderExecutionService {
             return `${baseCurrency}_${quoteCurrency}`;
         }
         return pair;
+    }
+
+    // ============================================================================
+    // COINCATCH ORDER EXECUTION
+    // ============================================================================
+
+    /**
+     * Execute Coincatch buy order (market order)
+     * @private
+     */
+    async _executeCoincatchBuy(pair, amountUSDT, credentials) {
+        try {
+            // Fetch current price to calculate quantity
+            const currentPrice = await this._fetchCoincatchPrice(pair);
+
+            // Calculate quantity (base currency amount)
+            const quantity = (amountUSDT / currentPrice).toFixed(8);
+
+            // Coincatch order creation (OKX-compatible API)
+            const timestamp = Date.now().toString();
+            const method = 'POST';
+            const requestPath = '/api/v5/trade/order';
+            const orderData = {
+                instId: pair,
+                tdMode: 'cash',
+                side: 'buy',
+                ordType: 'market',
+                sz: quantity
+            };
+            const requestBody = JSON.stringify(orderData);
+
+            const signaturePayload = timestamp + method + requestPath + requestBody;
+            const signature = crypto.createHmac('sha256', credentials.apiSecret)
+                .update(signaturePayload)
+                .digest('base64');
+
+            const url = `${this.baseUrl || 'https://api.coincatch.com'}${requestPath}`;
+
+            logger.info('Executing Coincatch buy order', {
+                pair,
+                quantity,
+                currentPrice,
+                amountUSDT
+            });
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'OK-ACCESS-KEY': credentials.apiKey,
+                    'OK-ACCESS-SIGN': signature,
+                    'OK-ACCESS-TIMESTAMP': timestamp,
+                    'OK-ACCESS-PASSPHRASE': credentials.passphrase || credentials.apiSecret
+                },
+                body: requestBody
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Coincatch API error: ${response.status} - ${errorText}`);
+            }
+
+            const result = await response.json();
+
+            // Check for Coincatch API error (code !== '0' means error)
+            if (result.code !== '0') {
+                throw new Error(`Coincatch order failed: ${result.code} - ${result.msg}`);
+            }
+
+            const orderResult = result.data?.[0];
+
+            logger.info('Coincatch buy order executed successfully', {
+                orderId: orderResult?.ordId,
+                pair,
+                quantity,
+                status: orderResult?.sCode
+            });
+
+            return {
+                success: true,
+                orderId: orderResult?.ordId,
+                executedQty: parseFloat(quantity),
+                executedPrice: currentPrice,
+                pair: pair,
+                side: 'BUY',
+                status: orderResult?.sCode || 'filled'
+            };
+
+        } catch (error) {
+            logger.error('Coincatch buy order failed', {
+                pair,
+                amountUSDT,
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Execute Coincatch sell order (market order)
+     * @private
+     */
+    async _executeCoincatchSell(pair, quantity, credentials) {
+        try {
+            // Format quantity to 8 decimal places
+            const formattedQuantity = parseFloat(quantity).toFixed(8);
+
+            // Coincatch order creation (OKX-compatible API)
+            const timestamp = Date.now().toString();
+            const method = 'POST';
+            const requestPath = '/api/v5/trade/order';
+            const orderData = {
+                instId: pair,
+                tdMode: 'cash',
+                side: 'sell',
+                ordType: 'market',
+                sz: formattedQuantity
+            };
+            const requestBody = JSON.stringify(orderData);
+
+            const signaturePayload = timestamp + method + requestPath + requestBody;
+            const signature = crypto.createHmac('sha256', credentials.apiSecret)
+                .update(signaturePayload)
+                .digest('base64');
+
+            const url = `${this.baseUrl || 'https://api.coincatch.com'}${requestPath}`;
+
+            logger.info('Executing Coincatch sell order', {
+                pair,
+                quantity: formattedQuantity
+            });
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'OK-ACCESS-KEY': credentials.apiKey,
+                    'OK-ACCESS-SIGN': signature,
+                    'OK-ACCESS-TIMESTAMP': timestamp,
+                    'OK-ACCESS-PASSPHRASE': credentials.passphrase || credentials.apiSecret
+                },
+                body: requestBody
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Coincatch API error: ${response.status} - ${errorText}`);
+            }
+
+            const result = await response.json();
+
+            // Check for Coincatch API error (code !== '0' means error)
+            if (result.code !== '0') {
+                throw new Error(`Coincatch order failed: ${result.code} - ${result.msg}`);
+            }
+
+            const orderResult = result.data?.[0];
+
+            logger.info('Coincatch sell order executed successfully', {
+                orderId: orderResult?.ordId,
+                pair,
+                quantity: formattedQuantity,
+                status: orderResult?.sCode
+            });
+
+            return {
+                success: true,
+                orderId: orderResult?.ordId,
+                executedQty: parseFloat(formattedQuantity),
+                pair: pair,
+                side: 'SELL',
+                status: orderResult?.sCode || 'filled'
+            };
+
+        } catch (error) {
+            logger.error('Coincatch sell order failed', {
+                pair,
+                quantity,
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Fetch current Coincatch price for a pair
+     * @private
+     */
+    async _fetchCoincatchPrice(pair) {
+        try {
+            const url = `https://api.coincatch.com/api/v1/market/ticker?symbol=${pair}`;
+
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Coincatch price fetch error: ${response.status} - ${errorText}`);
+            }
+
+            const result = await response.json();
+
+            // Coincatch ticker format: { data: { close: "96234.50" } }
+            return parseFloat(result.data?.close || 0);
+
+        } catch (error) {
+            logger.error('Failed to fetch Coincatch price', {
+                pair,
+                error: error.message
+            });
+            throw error;
+        }
     }
 }
 
