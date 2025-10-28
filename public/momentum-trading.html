@@ -850,20 +850,36 @@
             console.log('👤 User ID:', USER_ID);
             console.log('🏦 Exchange:', selectedExchange);
 
-            // Set initial exchange selector value
-            document.getElementById('exchangeSelector').value = selectedExchange;
+            try {
+                // Set initial exchange selector value
+                document.getElementById('exchangeSelector').value = selectedExchange;
 
-            // Update initial API connection title
-            document.getElementById('apiConnectionTitle').textContent = `🔌 ${getExchangeDisplayName(selectedExchange)} API Connection`;
+                // Update initial API connection title
+                document.getElementById('apiConnectionTitle').textContent = `🔌 ${getExchangeDisplayName(selectedExchange)} API Connection`;
 
-            // Initialize indicator settings visibility
-            initializeIndicatorSettings();
+                // Initialize indicator settings visibility
+                console.log('🔧 Initializing indicator settings...');
+                initializeIndicatorSettings();
 
-            await testConnection();
-            await loadStrategies();
-            await loadPositions();
-            await loadStats();
-            startPositionRefresh();
+                console.log('🔌 Testing connection...');
+                await testConnection();
+
+                console.log('📋 Loading strategies...');
+                await loadStrategies();
+
+                console.log('📊 Loading positions...');
+                await loadPositions();
+
+                console.log('📈 Loading stats...');
+                await loadStats();
+
+                console.log('⏰ Starting position refresh...');
+                startPositionRefresh();
+
+                console.log('✅ Initialization complete');
+            } catch (error) {
+                console.error('❌ Initialization failed:', error);
+            }
         });
 
         // Initialize indicator settings based on checkbox state
