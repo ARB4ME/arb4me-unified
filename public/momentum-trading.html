@@ -1094,10 +1094,12 @@
                     const stats = result.data;
 
                     // Update stats display with backend data
-                    if (stats.total_pnl !== undefined) {
+                    // Convert PostgreSQL numeric/decimal strings to numbers
+                    if (stats.total_pnl !== undefined && stats.total_pnl !== null) {
+                        const totalPnl = parseFloat(stats.total_pnl) || 0;
                         const pnlEl = document.getElementById('totalPnL');
-                        pnlEl.textContent = `R${stats.total_pnl.toFixed(2)}`;
-                        pnlEl.className = stats.total_pnl >= 0 ? 'stat-value pnl-positive' : 'stat-value pnl-negative';
+                        pnlEl.textContent = `R${totalPnl.toFixed(2)}`;
+                        pnlEl.className = totalPnl >= 0 ? 'stat-value pnl-positive' : 'stat-value pnl-negative';
                     }
                 }
             } catch (error) {
