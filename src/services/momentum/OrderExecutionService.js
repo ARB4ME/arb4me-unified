@@ -81,6 +81,8 @@ class OrderExecutionService {
                 return await this._executeBingXBuy(pair, amountUSDT, credentials);
             } else if (exchangeLower === 'bitget') {
                 return await this._executeBitgetBuy(pair, amountUSDT, credentials);
+            } else if (exchangeLower === 'bitmart') {
+                return await this._executeBitMartBuy(pair, amountUSDT, credentials);
             }
 
             throw new Error(`Exchange not supported: ${exchange}`);
@@ -138,6 +140,8 @@ class OrderExecutionService {
                 return await this._executeBingXSell(pair, quantity, credentials);
             } else if (exchangeLower === 'bitget') {
                 return await this._executeBitgetSell(pair, quantity, credentials);
+            } else if (exchangeLower === 'bitmart') {
+                return await this._executeBitMartSell(pair, quantity, credentials);
             }
 
             throw new Error(`Exchange not supported: ${exchange}`);
@@ -3242,6 +3246,243 @@ class OrderExecutionService {
         // Bitget signature: base64(HMAC-SHA256(timestamp + method + requestPath + body, apiSecret))
         const message = timestamp + method.toUpperCase() + requestPath + (body || '');
         return crypto.createHmac('sha256', apiSecret).update(message).digest('base64');
+    }
+
+    // ============================================================================
+    // BITMART ORDER EXECUTION
+    // ============================================================================
+
+    /**
+     * Execute BitMart buy order (market order)
+     * @param {string} pair - Trading pair (e.g., 'BTCUSDT')
+     * @param {number} amountUSDT - Amount in USDT to spend
+     * @param {object} credentials - { apiKey, apiSecret, memo }
+     * @returns {Promise<object>} Order result
+     * @private
+     */
+    async _executeBitMartBuy(pair, amountUSDT, credentials) {
+        try {
+            // Convert pair to BitMart format (BTCUSDT → BTC_USDT)
+            const bitmartPair = this._convertPairToBitMart(pair);
+
+            // Get current price to calculate quantity
+            const currentPrice = await this._fetchBitMartPrice(bitmartPair);
+            const quantity = (amountUSDT / currentPrice).toFixed(8);
+
+            // BitMart requires timestamp + '#' + memo + '#' + body for signature
+            const timestamp = Date.now().toString();
+
+            // Order payload
+            const orderData = {
+                symbol: bitmartPair,
+                side: 'buy',
+                type: 'market',
+                size: quantity
+            };
+
+            const body = JSON.stringify(orderData);
+            // For POST requests with body, the queryString is the body itself
+            const signature = this._createBitMartSignature(timestamp, credentials.memo || '', body, credentials.apiSecret);
+
+            const url = `${this.baseUrl}/spot/v2/submit_order`;
+
+            logger.info('Executing BitMart buy order', {
+                pair: bitmartPair,
+                amountUSDT,
+                quantity,
+                currentPrice
+            });
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-BM-KEY': credentials.apiKey,
+                    'X-BM-SIGN': signature,
+                    'X-BM-TIMESTAMP': timestamp,
+                    'X-BM-MEMO': credentials.memo || ''
+                },
+                body: body
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`BitMart API error: ${response.status} - ${errorText}`);
+            }
+
+            const result = await response.json();
+
+            // Check for BitMart API error
+            if (result.code !== 1000) {
+                throw new Error(`BitMart order error: ${result.code} - ${result.message}`);
+            }
+
+            logger.info('BitMart buy order executed successfully', {
+                pair: bitmartPair,
+                orderId: result.data?.order_id
+            });
+
+            return {
+                success: true,
+                exchange: 'bitmart',
+                orderId: result.data?.order_id,
+                pair: bitmartPair,
+                side: 'buy',
+                quantity: parseFloat(quantity),
+                price: currentPrice,
+                timestamp: Date.now()
+            };
+
+        } catch (error) {
+            logger.error('BitMart buy order failed', {
+                pair,
+                amountUSDT,
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Execute BitMart sell order (market order)
+     * @param {string} pair - Trading pair (e.g., 'BTCUSDT')
+     * @param {number} quantity - Quantity of base currency to sell
+     * @param {object} credentials - { apiKey, apiSecret, memo }
+     * @returns {Promise<object>} Order result
+     * @private
+     */
+    async _executeBitMartSell(pair, quantity, credentials) {
+        try {
+            // Convert pair to BitMart format (BTCUSDT → BTC_USDT)
+            const bitmartPair = this._convertPairToBitMart(pair);
+
+            // BitMart requires timestamp + '#' + memo + '#' + body for signature
+            const timestamp = Date.now().toString();
+
+            // Order payload
+            const orderData = {
+                symbol: bitmartPair,
+                side: 'sell',
+                type: 'market',
+                size: quantity.toFixed(8)
+            };
+
+            const body = JSON.stringify(orderData);
+            // For POST requests with body, the queryString is the body itself
+            const signature = this._createBitMartSignature(timestamp, credentials.memo || '', body, credentials.apiSecret);
+
+            const url = `https://api-cloud.bitmart.com/spot/v2/submit_order`;
+
+            logger.info('Executing BitMart sell order', {
+                pair: bitmartPair,
+                quantity
+            });
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-BM-KEY': credentials.apiKey,
+                    'X-BM-SIGN': signature,
+                    'X-BM-TIMESTAMP': timestamp,
+                    'X-BM-MEMO': credentials.memo || ''
+                },
+                body: body
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`BitMart API error: ${response.status} - ${errorText}`);
+            }
+
+            const result = await response.json();
+
+            // Check for BitMart API error
+            if (result.code !== 1000) {
+                throw new Error(`BitMart order error: ${result.code} - ${result.message}`);
+            }
+
+            // Get current price for logging
+            const currentPrice = await this._fetchBitMartPrice(bitmartPair);
+
+            logger.info('BitMart sell order executed successfully', {
+                pair: bitmartPair,
+                orderId: result.data?.order_id
+            });
+
+            return {
+                success: true,
+                exchange: 'bitmart',
+                orderId: result.data?.order_id,
+                pair: bitmartPair,
+                side: 'sell',
+                quantity: parseFloat(quantity),
+                price: currentPrice,
+                timestamp: Date.now()
+            };
+
+        } catch (error) {
+            logger.error('BitMart sell order failed', {
+                pair,
+                quantity,
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Fetch current price from BitMart
+     * @param {string} bitmartPair - Trading pair in BitMart format (e.g., 'BTC_USDT')
+     * @returns {Promise<number>} Current price
+     * @private
+     */
+    async _fetchBitMartPrice(bitmartPair) {
+        const response = await fetch(`https://api-cloud.bitmart.com/spot/v1/ticker?symbol=${bitmartPair}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to fetch BitMart price: ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        if (result.code !== 1000) {
+            throw new Error(`BitMart price error: ${result.code} - ${result.message}`);
+        }
+
+        return parseFloat(result.data?.last_price || 0);
+    }
+
+    /**
+     * Convert pair to BitMart format (BTCUSDT → BTC_USDT)
+     * BitMart uses underscore separator
+     * @private
+     */
+    _convertPairToBitMart(pair) {
+        // Convert BTCUSDT to BTC_USDT format
+        const quoteCurrency = 'USDT';
+        if (pair.endsWith(quoteCurrency)) {
+            const baseCurrency = pair.slice(0, -quoteCurrency.length);
+            return `${baseCurrency}_${quoteCurrency}`;
+        }
+        return pair;
+    }
+
+    /**
+     * Create BitMart signature for authentication
+     * Format: timestamp + '#' + memo + '#' + queryString
+     * Uses HMAC-SHA256 signature (hex)
+     * @private
+     */
+    _createBitMartSignature(timestamp, memo, queryString, apiSecret) {
+        // BitMart signature: hex(HMAC-SHA256(timestamp + '#' + memo + '#' + queryString, apiSecret))
+        const message = timestamp + '#' + (memo || '') + '#' + (queryString || '');
+        return crypto.createHmac('sha256', apiSecret).update(message).digest('hex');
     }
 }
 
