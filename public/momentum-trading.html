@@ -426,6 +426,10 @@
                     </select>
                 </div>
                 <span id="connectionStatus" class="connection-status disconnected">⚠️ Not Connected</span>
+                <!-- Worker Controls -->
+                <button id="startWorkerBtn" onclick="startWorker()" class="btn btn-success">▶️ Start Worker</button>
+                <button id="stopWorkerBtn" onclick="stopWorker()" class="btn btn-danger" style="display: none;">⏹️ Stop Worker</button>
+                <span id="workerStatus" style="color: #888; font-size: 0.9rem;">⚪ Worker: Stopped</span>
                 <button onclick="window.location.href='/'" class="btn">🏠 Home</button>
             </div>
         </div>
@@ -785,6 +789,13 @@
         </div>
     </div>
 
+    <!-- Momentum Trading Worker Scripts -->
+    <!-- Load in dependency order: Indicators → SignalDetection → PositionMonitor → MomentumWorker -->
+    <script src="/js/momentum/Indicators.js"></script>
+    <script src="/js/momentum/SignalDetection.js"></script>
+    <script src="/js/momentum/PositionMonitor.js"></script>
+    <script src="/js/momentum/MomentumWorker.js"></script>
+
     <script>
         const API_BASE = '/api/v1/momentum';
         const USER_ID = 1; // TODO: Get from auth
@@ -888,6 +899,35 @@
             indicators.forEach(indicator => {
                 toggleIndicatorSettings(indicator);
             });
+        }
+
+        // Worker Control Functions
+        function startWorker() {
+            console.log('🚀 Starting Momentum Worker...');
+
+            // Call the frontend worker's start method
+            MomentumWorker.start();
+
+            // Update UI
+            document.getElementById('startWorkerBtn').style.display = 'none';
+            document.getElementById('stopWorkerBtn').style.display = 'inline-block';
+            document.getElementById('workerStatus').innerHTML = '🟢 Worker: <span style="color: #00ff88; font-weight: 600;">Running</span>';
+
+            console.log('✅ Momentum Worker started successfully');
+        }
+
+        function stopWorker() {
+            console.log('🛑 Stopping Momentum Worker...');
+
+            // Call the frontend worker's stop method
+            MomentumWorker.stop();
+
+            // Update UI
+            document.getElementById('startWorkerBtn').style.display = 'inline-block';
+            document.getElementById('stopWorkerBtn').style.display = 'none';
+            document.getElementById('workerStatus').innerHTML = '⚪ Worker: <span style="color: #888;">Stopped</span>';
+
+            console.log('✅ Momentum Worker stopped successfully');
         }
 
         // Test API connection
