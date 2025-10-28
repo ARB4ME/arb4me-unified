@@ -23,6 +23,7 @@ const HTXMarketDataService = require('./HTXMarketDataService');
 const BingXMarketDataService = require('./BingXMarketDataService');
 const BitgetMarketDataService = require('./BitgetMarketDataService');
 const BitMartMarketDataService = require('./BitMartMarketDataService');
+const BitrueMarketDataService = require('./BitrueMarketDataService');
 const OrderExecutionService = require('./OrderExecutionService');
 const { logger } = require('../../utils/logger');
 
@@ -48,8 +49,9 @@ class MomentumWorkerService {
             'huobi': new HTXMarketDataService(),
             'bingx': new BingXMarketDataService(),
             'bitget': new BitgetMarketDataService(),
-            'bitmart': new BitMartMarketDataService()
-            // More exchanges will be added here (bitrue, gemini, crypto.com, coincatch)
+            'bitmart': new BitMartMarketDataService(),
+            'bitrue': new BitrueMarketDataService()
+            // More exchanges will be added here (gemini, crypto.com, coincatch)
         };
 
         this.orderService = new OrderExecutionService();

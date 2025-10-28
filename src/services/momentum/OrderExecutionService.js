@@ -83,6 +83,8 @@ class OrderExecutionService {
                 return await this._executeBitgetBuy(pair, amountUSDT, credentials);
             } else if (exchangeLower === 'bitmart') {
                 return await this._executeBitMartBuy(pair, amountUSDT, credentials);
+            } else if (exchangeLower === 'bitrue') {
+                return await this._executeBitrueBuy(pair, amountUSDT, credentials);
             }
 
             throw new Error(`Exchange not supported: ${exchange}`);
@@ -142,6 +144,8 @@ class OrderExecutionService {
                 return await this._executeBitgetSell(pair, quantity, credentials);
             } else if (exchangeLower === 'bitmart') {
                 return await this._executeBitMartSell(pair, quantity, credentials);
+            } else if (exchangeLower === 'bitrue') {
+                return await this._executeBitrueSell(pair, quantity, credentials);
             }
 
             throw new Error(`Exchange not supported: ${exchange}`);
@@ -3483,6 +3487,215 @@ class OrderExecutionService {
         // BitMart signature: hex(HMAC-SHA256(timestamp + '#' + memo + '#' + queryString, apiSecret))
         const message = timestamp + '#' + (memo || '') + '#' + (queryString || '');
         return crypto.createHmac('sha256', apiSecret).update(message).digest('hex');
+    }
+
+    // ============================================================================
+    // BITRUE ORDER EXECUTION
+    // ============================================================================
+
+    /**
+     * Execute Bitrue buy order (market order)
+     * @param {string} pair - Trading pair (e.g., 'BTCUSDT')
+     * @param {number} amountUSDT - Amount in USDT to spend
+     * @param {object} credentials - { apiKey, apiSecret }
+     * @returns {Promise<object>} Order result
+     * @private
+     */
+    async _executeBitrueBuy(pair, amountUSDT, credentials) {
+        try {
+            // Get current price to calculate quantity
+            const currentPrice = await this._fetchBitruePrice(pair);
+            const quantity = (amountUSDT / currentPrice).toFixed(8);
+
+            // Bitrue uses Binance-compatible API
+            const timestamp = Date.now();
+
+            // Order parameters
+            const orderParams = {
+                symbol: pair,
+                side: 'BUY',
+                type: 'MARKET',
+                quantity: quantity,
+                timestamp: timestamp.toString()
+            };
+
+            const queryString = new URLSearchParams(orderParams).toString();
+            const signature = this._createBitrueSignature(queryString, credentials.apiSecret);
+
+            const url = `https://openapi.bitrue.com/api/v1/order?${queryString}&signature=${signature}`;
+
+            logger.info('Executing Bitrue buy order', {
+                pair,
+                amountUSDT,
+                quantity,
+                currentPrice
+            });
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-MBX-APIKEY': credentials.apiKey
+                }
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Bitrue API error: ${response.status} - ${errorText}`);
+            }
+
+            const result = await response.json();
+
+            // Check for Bitrue API error
+            if (result.code && result.code < 0) {
+                throw new Error(`Bitrue order error: ${result.code} - ${result.msg}`);
+            }
+
+            logger.info('Bitrue buy order executed successfully', {
+                pair,
+                orderId: result.orderId,
+                executedQty: result.executedQty
+            });
+
+            return {
+                success: true,
+                exchange: 'bitrue',
+                orderId: result.orderId,
+                pair: pair,
+                side: 'buy',
+                quantity: parseFloat(result.executedQty || quantity),
+                price: currentPrice,
+                timestamp: Date.now()
+            };
+
+        } catch (error) {
+            logger.error('Bitrue buy order failed', {
+                pair,
+                amountUSDT,
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Execute Bitrue sell order (market order)
+     * @param {string} pair - Trading pair (e.g., 'BTCUSDT')
+     * @param {number} quantity - Quantity of base currency to sell
+     * @param {object} credentials - { apiKey, apiSecret }
+     * @returns {Promise<object>} Order result
+     * @private
+     */
+    async _executeBitrueSell(pair, quantity, credentials) {
+        try {
+            // Bitrue uses Binance-compatible API
+            const timestamp = Date.now();
+
+            // Order parameters
+            const orderParams = {
+                symbol: pair,
+                side: 'SELL',
+                type: 'MARKET',
+                quantity: quantity.toFixed(8),
+                timestamp: timestamp.toString()
+            };
+
+            const queryString = new URLSearchParams(orderParams).toString();
+            const signature = this._createBitrueSignature(queryString, credentials.apiSecret);
+
+            const url = `https://openapi.bitrue.com/api/v1/order?${queryString}&signature=${signature}`;
+
+            logger.info('Executing Bitrue sell order', {
+                pair,
+                quantity
+            });
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-MBX-APIKEY': credentials.apiKey
+                }
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Bitrue API error: ${response.status} - ${errorText}`);
+            }
+
+            const result = await response.json();
+
+            // Check for Bitrue API error
+            if (result.code && result.code < 0) {
+                throw new Error(`Bitrue order error: ${result.code} - ${result.msg}`);
+            }
+
+            // Get current price for logging
+            const currentPrice = await this._fetchBitruePrice(pair);
+
+            logger.info('Bitrue sell order executed successfully', {
+                pair,
+                orderId: result.orderId,
+                executedQty: result.executedQty
+            });
+
+            return {
+                success: true,
+                exchange: 'bitrue',
+                orderId: result.orderId,
+                pair: pair,
+                side: 'sell',
+                quantity: parseFloat(result.executedQty || quantity),
+                price: currentPrice,
+                timestamp: Date.now()
+            };
+
+        } catch (error) {
+            logger.error('Bitrue sell order failed', {
+                pair,
+                quantity,
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Fetch current price from Bitrue
+     * @param {string} pair - Trading pair (e.g., 'BTCUSDT')
+     * @returns {Promise<number>} Current price
+     * @private
+     */
+    async _fetchBitruePrice(pair) {
+        const response = await fetch(`https://openapi.bitrue.com/api/v1/ticker/24hr?symbol=${pair}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to fetch Bitrue price: ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        // Check for error
+        if (result.code && result.code < 0) {
+            throw new Error(`Bitrue price error: ${result.code} - ${result.msg}`);
+        }
+
+        return parseFloat(result.lastPrice || 0);
+    }
+
+    /**
+     * Create Bitrue signature for authentication
+     * Uses HMAC-SHA256 signature (hex) - Binance-compatible
+     * @private
+     */
+    _createBitrueSignature(queryString, apiSecret) {
+        // Bitrue signature: HMAC-SHA256 of query string, lowercase hex (Binance-compatible)
+        return crypto.createHmac('sha256', apiSecret).update(queryString).digest('hex');
     }
 }
 
