@@ -4,14 +4,26 @@
 const MomentumPosition = require('../../models/MomentumPosition');
 const MomentumStrategy = require('../../models/MomentumStrategy');
 const SignalDetectionService = require('./SignalDetectionService');
-const VALRMarketDataService = require('./VALRMarketDataService');
 const OrderExecutionService = require('./OrderExecutionService');
 const { logger } = require('../../utils/logger');
 
 class PositionMonitorService {
     constructor() {
-        this.valrService = new VALRMarketDataService();
         this.orderService = new OrderExecutionService();
+        // Market services are obtained dynamically per exchange
+        // No hardcoded exchange service
+    }
+
+    /**
+     * Get market data service for specific exchange
+     * @private
+     * @param {string} exchange - Exchange name
+     * @returns {object} Market data service for the exchange
+     */
+    _getMarketService(exchange) {
+        // Import MomentumWorkerService to access its market services
+        const MomentumWorkerService = require('./MomentumWorkerService');
+        return MomentumWorkerService.getMarketService(exchange);
     }
 
     /**
@@ -23,8 +35,8 @@ class PositionMonitorService {
      */
     async monitorPositions(userId, exchange, credentials) {
         try {
-            // Get all open positions for user
-            const openPositions = await MomentumPosition.getOpenByUser(userId, exchange);
+            // Get all open positions for user and exchange
+            const openPositions = await MomentumPosition.getOpenByUserAndExchange(userId, exchange);
 
             if (!openPositions || openPositions.length === 0) {
                 logger.debug('No open positions to monitor', { userId, exchange });
@@ -107,8 +119,11 @@ class PositionMonitorService {
                 throw new Error(`Strategy not found: ${position.strategy_id}`);
             }
 
-            // Get current market price
-            const currentPrice = await this.valrService.fetchCurrentPrice(
+            // Get market data service for this exchange
+            const marketService = this._getMarketService(exchange);
+
+            // Get current market price from the correct exchange
+            const currentPrice = await marketService.fetchCurrentPrice(
                 position.pair,
                 credentials
             );
@@ -222,8 +237,11 @@ class PositionMonitorService {
                 throw new Error('Position is already closed');
             }
 
-            // Get current price
-            const currentPrice = await this.valrService.fetchCurrentPrice(
+            // Get market data service for this exchange
+            const marketService = this._getMarketService(exchange);
+
+            // Get current price from the correct exchange
+            const currentPrice = await marketService.fetchCurrentPrice(
                 position.pair,
                 credentials
             );
@@ -268,8 +286,11 @@ class PositionMonitorService {
                 throw new Error('Position is already closed');
             }
 
-            // Get current price
-            const currentPrice = await this.valrService.fetchCurrentPrice(
+            // Get market data service for this exchange
+            const marketService = this._getMarketService(exchange);
+
+            // Get current price from the correct exchange
+            const currentPrice = await marketService.fetchCurrentPrice(
                 position.pair,
                 credentials
             );
