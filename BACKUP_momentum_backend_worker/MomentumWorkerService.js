@@ -32,6 +32,9 @@ const { logger } = require('../../utils/logger');
 
 class MomentumWorkerService {
     constructor() {
+        // Socket.io instance for real-time updates
+        this.io = null;
+
         // Create market data services for all supported exchanges
         this.marketDataServices = {
             'valr': new VALRMarketDataService(),

@@ -189,18 +189,6 @@ async function startServer() {
             // Don't crash the server if price cache fails
         }
 
-        // Start Momentum Trading Worker
-        if (dbConnection) {
-            try {
-                const momentumWorker = require('./src/services/momentum/MomentumWorkerService');
-                momentumWorker.start();
-                logger.info('Momentum Trading Worker started - monitoring active strategies');
-            } catch (error) {
-                logger.warn('Momentum Trading Worker failed to start', { error: error.message });
-                // Don't crash the server if worker fails
-            }
-        }
-
         // Start HTTP server
         const PORT = process.env.PORT || 3000;
         httpServer.listen(PORT, () => {
@@ -229,15 +217,6 @@ process.on('unhandledRejection', (error) => {
 // Graceful shutdown
 process.on('SIGTERM', async () => {
     logger.info('SIGTERM received, shutting down gracefully');
-
-    // Stop Momentum Worker
-    try {
-        const momentumWorker = require('./src/services/momentum/MomentumWorkerService');
-        momentumWorker.stop();
-        logger.info('Momentum Worker stopped');
-    } catch (error) {
-        logger.warn('Failed to stop Momentum Worker', { error: error.message });
-    }
 
     httpServer.close(() => {
         logger.info('HTTP server closed');
