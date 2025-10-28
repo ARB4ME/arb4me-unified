@@ -2811,6 +2811,168 @@ class OrderExecutionService {
         const meta = [method, host, path, sortedParams].join('\n');
         return crypto.createHmac('sha256', apiSecret).update(meta).digest('base64');
     }
+
+    /**
+     * Execute a buy order on BingX
+     * BingX uses simple HMAC-SHA256 signature with hyphen pair format
+     * @private
+     */
+    async _executeBingXBuy(pair, amountUSDT, credentials) {
+        try {
+            // Convert pair to BingX format (BTCUSDT → BTC-USDT)
+            const bingxPair = this._convertPairToBingX(pair);
+
+            // Prepare order data
+            const timestamp = Date.now();
+            const orderParams = {
+                symbol: bingxPair,
+                side: 'BUY',
+                type: 'MARKET',
+                quoteOrderQty: amountUSDT.toFixed(2),
+                timestamp: timestamp
+            };
+
+            const queryString = Object.keys(orderParams).map(key => `${key}=${orderParams[key]}`).join('&');
+            const signature = this._createBingXSignature(queryString, credentials.apiSecret);
+
+            const url = `https://open-api.bingx.com/openApi/spot/v1/trade/order?${queryString}&signature=${signature}`;
+
+            logger.info('Executing BingX buy order', { pair: bingxPair, amountUSDT });
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-BX-APIKEY': credentials.apiKey
+                }
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`BingX buy order failed: ${response.status} - ${errorText}`);
+            }
+
+            const result = await response.json();
+
+            // Check for BingX API error
+            if (result.code !== 0) {
+                throw new Error(`BingX buy order failed: ${result.code} - ${result.msg}`);
+            }
+
+            logger.info('BingX buy order executed successfully', {
+                pair: bingxPair,
+                orderId: result.data?.orderId
+            });
+
+            return {
+                orderId: result.data?.orderId,
+                status: 'filled',
+                pair: bingxPair
+            };
+
+        } catch (error) {
+            logger.error('Failed to execute BingX buy order', {
+                pair,
+                amountUSDT,
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Execute a sell order on BingX
+     * @private
+     */
+    async _executeBingXSell(pair, quantity, credentials) {
+        try {
+            // Convert pair to BingX format (BTCUSDT → BTC-USDT)
+            const bingxPair = this._convertPairToBingX(pair);
+
+            // Prepare order data
+            const timestamp = Date.now();
+            const orderParams = {
+                symbol: bingxPair,
+                side: 'SELL',
+                type: 'MARKET',
+                quantity: quantity.toString(),
+                timestamp: timestamp
+            };
+
+            const queryString = Object.keys(orderParams).map(key => `${key}=${orderParams[key]}`).join('&');
+            const signature = this._createBingXSignature(queryString, credentials.apiSecret);
+
+            const url = `https://open-api.bingx.com/openApi/spot/v1/trade/order?${queryString}&signature=${signature}`;
+
+            logger.info('Executing BingX sell order', { pair: bingxPair, quantity });
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-BX-APIKEY': credentials.apiKey
+                }
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`BingX sell order failed: ${response.status} - ${errorText}`);
+            }
+
+            const result = await response.json();
+
+            // Check for BingX API error
+            if (result.code !== 0) {
+                throw new Error(`BingX sell order failed: ${result.code} - ${result.msg}`);
+            }
+
+            logger.info('BingX sell order executed successfully', {
+                pair: bingxPair,
+                orderId: result.data?.orderId
+            });
+
+            return {
+                orderId: result.data?.orderId,
+                status: 'filled',
+                pair: bingxPair
+            };
+
+        } catch (error) {
+            logger.error('Failed to execute BingX sell order', {
+                pair,
+                quantity,
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Convert pair to BingX format (BTCUSDT → BTC-USDT)
+     * BingX uses hyphen separator
+     * @private
+     */
+    _convertPairToBingX(pair) {
+        // Convert BTCUSDT to BTC-USDT format
+        const quoteCurrency = 'USDT';
+        if (pair.endsWith(quoteCurrency)) {
+            const baseCurrency = pair.slice(0, -quoteCurrency.length);
+            return `${baseCurrency}-${quoteCurrency}`;
+        }
+        return pair;
+    }
+
+    /**
+     * Create BingX signature for authentication
+     * Uses HMAC-SHA256 signature (lowercase hex)
+     * @private
+     */
+    _createBingXSignature(queryString, apiSecret) {
+        // BingX signature: HMAC-SHA256 of query string, lowercase hex
+        return crypto.createHmac('sha256', apiSecret).update(queryString).digest('hex');
+    }
 }
 
 module.exports = OrderExecutionService;
