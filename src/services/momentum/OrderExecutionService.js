@@ -61,6 +61,8 @@ class OrderExecutionService {
                 return await this._executeKrakenBuy(pair, amountUSDT, credentials);
             } else if (exchangeLower === 'binance') {
                 return await this._executeBinanceBuy(pair, amountUSDT, credentials);
+            } else if (exchangeLower === 'bybit') {
+                return await this._executeBYBITBuy(pair, amountUSDT, credentials);
             }
 
             throw new Error(`Exchange not supported: ${exchange}`);
@@ -98,6 +100,8 @@ class OrderExecutionService {
                 return await this._executeKrakenSell(pair, quantity, credentials);
             } else if (exchangeLower === 'binance') {
                 return await this._executeBinanceSell(pair, quantity, credentials);
+            } else if (exchangeLower === 'bybit') {
+                return await this._executeBYBITSell(pair, quantity, credentials);
             }
 
             throw new Error(`Exchange not supported: ${exchange}`);
@@ -1195,6 +1199,219 @@ class OrderExecutionService {
             });
             throw error;
         }
+    }
+
+    // ===== BYBIT-SPECIFIC METHODS =====
+
+    /**
+     * Execute BYBIT market BUY order
+     * @private
+     */
+    async _executeBYBITBuy(pair, amountUSDT, credentials) {
+        try {
+            // Apply rate limiting
+            await this._rateLimitDelay();
+
+            const config = {
+                baseUrl: 'https://api.bybit.com',
+                endpoint: '/v5/order/create'
+            };
+
+            // BYBIT requires timestamp
+            const timestamp = Date.now().toString();
+
+            // BYBIT market order payload
+            const orderData = {
+                category: 'spot',
+                symbol: pair,
+                side: 'Buy',
+                orderType: 'Market',
+                marketUnit: 'quoteCoin', // Use quote currency (USDT) for market buy
+                qty: amountUSDT.toFixed(2) // Amount in USDT
+            };
+
+            const requestBody = JSON.stringify(orderData);
+            const recvWindow = '5000';
+
+            // Create authentication headers
+            const authHeaders = this._createBYBITAuth(
+                credentials.apiKey,
+                credentials.apiSecret,
+                timestamp,
+                recvWindow + requestBody
+            );
+
+            const url = `${config.baseUrl}${config.endpoint}`;
+
+            logger.info('Executing BYBIT market BUY order', {
+                pair,
+                amountUSDT,
+                orderData
+            });
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...authHeaders,
+                    'X-BAPI-RECV-WINDOW': recvWindow
+                },
+                body: requestBody
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`BYBIT BUY order failed: ${response.status} - ${errorText}`);
+            }
+
+            const data = await response.json();
+
+            // Check for BYBIT API errors
+            if (data.retCode !== 0) {
+                throw new Error(`BYBIT API error: ${data.retMsg}`);
+            }
+
+            // Transform BYBIT response to standard format
+            const result = {
+                orderId: data.result?.orderId || 'unknown',
+                executedPrice: 0, // BYBIT doesn't return price immediately for market orders
+                executedQuantity: 0, // Will be filled after order executes
+                executedValue: amountUSDT,
+                fee: 0, // BYBIT calculates fee after execution
+                status: 'SUBMITTED',
+                timestamp: Date.now(),
+                rawResponse: data
+            };
+
+            logger.info('BYBIT BUY order submitted successfully', {
+                orderId: result.orderId,
+                amountUSDT: amountUSDT
+            });
+
+            return result;
+
+        } catch (error) {
+            logger.error('BYBIT BUY order failed', {
+                pair,
+                amountUSDT,
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Execute BYBIT market SELL order
+     * @private
+     */
+    async _executeBYBITSell(pair, quantity, credentials) {
+        try {
+            // Apply rate limiting
+            await this._rateLimitDelay();
+
+            const config = {
+                baseUrl: 'https://api.bybit.com',
+                endpoint: '/v5/order/create'
+            };
+
+            // BYBIT requires timestamp
+            const timestamp = Date.now().toString();
+
+            // BYBIT market order payload
+            const orderData = {
+                category: 'spot',
+                symbol: pair,
+                side: 'Sell',
+                orderType: 'Market',
+                qty: quantity.toFixed(8) // Amount of base currency (crypto)
+            };
+
+            const requestBody = JSON.stringify(orderData);
+            const recvWindow = '5000';
+
+            // Create authentication headers
+            const authHeaders = this._createBYBITAuth(
+                credentials.apiKey,
+                credentials.apiSecret,
+                timestamp,
+                recvWindow + requestBody
+            );
+
+            const url = `${config.baseUrl}${config.endpoint}`;
+
+            logger.info('Executing BYBIT market SELL order', {
+                pair,
+                quantity,
+                orderData
+            });
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...authHeaders,
+                    'X-BAPI-RECV-WINDOW': recvWindow
+                },
+                body: requestBody
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`BYBIT SELL order failed: ${response.status} - ${errorText}`);
+            }
+
+            const data = await response.json();
+
+            // Check for BYBIT API errors
+            if (data.retCode !== 0) {
+                throw new Error(`BYBIT API error: ${data.retMsg}`);
+            }
+
+            // Transform BYBIT response to standard format
+            const result = {
+                orderId: data.result?.orderId || 'unknown',
+                executedPrice: 0, // BYBIT doesn't return price immediately for market orders
+                executedQuantity: quantity,
+                executedValue: 0, // Will be calculated after execution
+                fee: 0, // BYBIT calculates fee after execution
+                status: 'SUBMITTED',
+                timestamp: Date.now(),
+                rawResponse: data
+            };
+
+            logger.info('BYBIT SELL order submitted successfully', {
+                orderId: result.orderId,
+                quantity: quantity
+            });
+
+            return result;
+
+        } catch (error) {
+            logger.error('BYBIT SELL order failed', {
+                pair,
+                quantity,
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Create BYBIT authentication headers
+     * Uses HMAC-SHA256 signature
+     * @private
+     */
+    _createBYBITAuth(apiKey, apiSecret, timestamp, params) {
+        // BYBIT signature: HMAC-SHA256 of (timestamp + apiKey + recv_window + params)
+        const paramString = timestamp + apiKey + params;
+        const signature = crypto.createHmac('sha256', apiSecret).update(paramString).digest('hex');
+
+        return {
+            'X-BAPI-API-KEY': apiKey,
+            'X-BAPI-SIGN': signature,
+            'X-BAPI-TIMESTAMP': timestamp,
+            'X-BAPI-SIGN-TYPE': '2'
+        };
     }
 }
 
