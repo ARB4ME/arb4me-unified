@@ -65,6 +65,22 @@ class OrderExecutionService {
                 return await this._executeBYBITBuy(pair, amountUSDT, credentials);
             } else if (exchangeLower === 'gate.io' || exchangeLower === 'gateio') {
                 return await this._executeGateioBuy(pair, amountUSDT, credentials);
+            } else if (exchangeLower === 'okx') {
+                return await this._executeOKXBuy(pair, amountUSDT, credentials);
+            } else if (exchangeLower === 'mexc') {
+                return await this._executeMEXCBuy(pair, amountUSDT, credentials);
+            } else if (exchangeLower === 'kucoin') {
+                return await this._executeKuCoinBuy(pair, amountUSDT, credentials);
+            } else if (exchangeLower === 'xt.com' || exchangeLower === 'xt') {
+                return await this._executeXTBuy(pair, amountUSDT, credentials);
+            } else if (exchangeLower === 'ascendex') {
+                return await this._executeAscendEXBuy(pair, amountUSDT, credentials);
+            } else if (exchangeLower === 'htx' || exchangeLower === 'huobi') {
+                return await this._executeHTXBuy(pair, amountUSDT, credentials);
+            } else if (exchangeLower === 'bingx') {
+                return await this._executeBingXBuy(pair, amountUSDT, credentials);
+            } else if (exchangeLower === 'bitget') {
+                return await this._executeBitgetBuy(pair, amountUSDT, credentials);
             }
 
             throw new Error(`Exchange not supported: ${exchange}`);
@@ -106,6 +122,22 @@ class OrderExecutionService {
                 return await this._executeBYBITSell(pair, quantity, credentials);
             } else if (exchangeLower === 'gate.io' || exchangeLower === 'gateio') {
                 return await this._executeGateioSell(pair, quantity, credentials);
+            } else if (exchangeLower === 'okx') {
+                return await this._executeOKXSell(pair, quantity, credentials);
+            } else if (exchangeLower === 'mexc') {
+                return await this._executeMEXCSell(pair, quantity, credentials);
+            } else if (exchangeLower === 'kucoin') {
+                return await this._executeKuCoinSell(pair, quantity, credentials);
+            } else if (exchangeLower === 'xt.com' || exchangeLower === 'xt') {
+                return await this._executeXTSell(pair, quantity, credentials);
+            } else if (exchangeLower === 'ascendex') {
+                return await this._executeAscendEXSell(pair, quantity, credentials);
+            } else if (exchangeLower === 'htx' || exchangeLower === 'huobi') {
+                return await this._executeHTXSell(pair, quantity, credentials);
+            } else if (exchangeLower === 'bingx') {
+                return await this._executeBingXSell(pair, quantity, credentials);
+            } else if (exchangeLower === 'bitget') {
+                return await this._executeBitgetSell(pair, quantity, credentials);
             }
 
             throw new Error(`Exchange not supported: ${exchange}`);
@@ -2972,6 +3004,244 @@ class OrderExecutionService {
     _createBingXSignature(queryString, apiSecret) {
         // BingX signature: HMAC-SHA256 of query string, lowercase hex
         return crypto.createHmac('sha256', apiSecret).update(queryString).digest('hex');
+    }
+
+    // ============================================================================
+    // BITGET ORDER EXECUTION
+    // ============================================================================
+
+    /**
+     * Execute Bitget buy order (market order)
+     * @param {string} pair - Trading pair (e.g., 'BTCUSDT')
+     * @param {number} amountUSDT - Amount in USDT to spend
+     * @param {object} credentials - { apiKey, apiSecret, passphrase }
+     * @returns {Promise<object>} Order result
+     * @private
+     */
+    async _executeBitgetBuy(pair, amountUSDT, credentials) {
+        try {
+            // Convert pair to Bitget format (BTCUSDT → BTCUSDT_SPBL)
+            const bitgetPair = this._convertPairToBitget(pair);
+
+            // Get current price to calculate quantity
+            const currentPrice = await this._fetchBitgetPrice(bitgetPair);
+            const quantity = (amountUSDT / currentPrice).toFixed(8);
+
+            // Bitget requires timestamp + method + requestPath + body for signature
+            const timestamp = Date.now().toString();
+            const method = 'POST';
+            const requestPath = '/api/spot/v1/trade/orders';
+
+            // Order payload
+            const orderData = {
+                symbol: bitgetPair,
+                side: 'buy',
+                orderType: 'market',
+                force: 'gtc',
+                size: quantity
+            };
+
+            const body = JSON.stringify(orderData);
+            const signature = this._createBitgetSignature(timestamp, method, requestPath, body, credentials.apiSecret);
+
+            const url = `https://api.bitget.com${requestPath}`;
+
+            logger.info('Executing Bitget buy order', {
+                pair: bitgetPair,
+                amountUSDT,
+                quantity,
+                currentPrice
+            });
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'ACCESS-KEY': credentials.apiKey,
+                    'ACCESS-SIGN': signature,
+                    'ACCESS-TIMESTAMP': timestamp,
+                    'ACCESS-PASSPHRASE': credentials.passphrase
+                },
+                body: body
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Bitget API error: ${response.status} - ${errorText}`);
+            }
+
+            const result = await response.json();
+
+            // Check for Bitget API error
+            if (result.code !== '00000') {
+                throw new Error(`Bitget order error: ${result.code} - ${result.msg}`);
+            }
+
+            logger.info('Bitget buy order executed successfully', {
+                pair: bitgetPair,
+                orderId: result.data?.orderId,
+                fillSize: result.data?.fillSize
+            });
+
+            return {
+                success: true,
+                exchange: 'bitget',
+                orderId: result.data?.orderId,
+                pair: bitgetPair,
+                side: 'buy',
+                quantity: parseFloat(result.data?.fillSize || quantity),
+                price: currentPrice,
+                timestamp: Date.now()
+            };
+
+        } catch (error) {
+            logger.error('Bitget buy order failed', {
+                pair,
+                amountUSDT,
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Execute Bitget sell order (market order)
+     * @param {string} pair - Trading pair (e.g., 'BTCUSDT')
+     * @param {number} quantity - Quantity of base currency to sell
+     * @param {object} credentials - { apiKey, apiSecret, passphrase }
+     * @returns {Promise<object>} Order result
+     * @private
+     */
+    async _executeBitgetSell(pair, quantity, credentials) {
+        try {
+            // Convert pair to Bitget format (BTCUSDT → BTCUSDT_SPBL)
+            const bitgetPair = this._convertPairToBitget(pair);
+
+            // Bitget requires timestamp + method + requestPath + body for signature
+            const timestamp = Date.now().toString();
+            const method = 'POST';
+            const requestPath = '/api/spot/v1/trade/orders';
+
+            // Order payload
+            const orderData = {
+                symbol: bitgetPair,
+                side: 'sell',
+                orderType: 'market',
+                force: 'gtc',
+                size: quantity.toFixed(8)
+            };
+
+            const body = JSON.stringify(orderData);
+            const signature = this._createBitgetSignature(timestamp, method, requestPath, body, credentials.apiSecret);
+
+            const url = `https://api.bitget.com${requestPath}`;
+
+            logger.info('Executing Bitget sell order', {
+                pair: bitgetPair,
+                quantity
+            });
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'ACCESS-KEY': credentials.apiKey,
+                    'ACCESS-SIGN': signature,
+                    'ACCESS-TIMESTAMP': timestamp,
+                    'ACCESS-PASSPHRASE': credentials.passphrase
+                },
+                body: body
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Bitget API error: ${response.status} - ${errorText}`);
+            }
+
+            const result = await response.json();
+
+            // Check for Bitget API error
+            if (result.code !== '00000') {
+                throw new Error(`Bitget order error: ${result.code} - ${result.msg}`);
+            }
+
+            // Get current price for logging
+            const currentPrice = await this._fetchBitgetPrice(bitgetPair);
+
+            logger.info('Bitget sell order executed successfully', {
+                pair: bitgetPair,
+                orderId: result.data?.orderId,
+                fillSize: result.data?.fillSize
+            });
+
+            return {
+                success: true,
+                exchange: 'bitget',
+                orderId: result.data?.orderId,
+                pair: bitgetPair,
+                side: 'sell',
+                quantity: parseFloat(result.data?.fillSize || quantity),
+                price: currentPrice,
+                timestamp: Date.now()
+            };
+
+        } catch (error) {
+            logger.error('Bitget sell order failed', {
+                pair,
+                quantity,
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Fetch current price from Bitget
+     * @param {string} bitgetPair - Trading pair in Bitget format (e.g., 'BTCUSDT_SPBL')
+     * @returns {Promise<number>} Current price
+     * @private
+     */
+    async _fetchBitgetPrice(bitgetPair) {
+        const response = await fetch(`https://api.bitget.com/api/spot/v1/market/ticker?symbol=${bitgetPair}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to fetch Bitget price: ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        if (result.code !== '00000') {
+            throw new Error(`Bitget price error: ${result.code} - ${result.msg}`);
+        }
+
+        return parseFloat(result.data?.close || 0);
+    }
+
+    /**
+     * Convert pair to Bitget format (BTCUSDT → BTCUSDT_SPBL)
+     * Bitget uses _SPBL suffix for spot balance pairs
+     * @private
+     */
+    _convertPairToBitget(pair) {
+        // Add _SPBL suffix for Bitget spot trading
+        return `${pair}_SPBL`;
+    }
+
+    /**
+     * Create Bitget signature for authentication
+     * Format: timestamp + method + requestPath + body
+     * Uses HMAC-SHA256 signature (base64)
+     * @private
+     */
+    _createBitgetSignature(timestamp, method, requestPath, body, apiSecret) {
+        // Bitget signature: base64(HMAC-SHA256(timestamp + method + requestPath + body, apiSecret))
+        const message = timestamp + method.toUpperCase() + requestPath + (body || '');
+        return crypto.createHmac('sha256', apiSecret).update(message).digest('base64');
     }
 }
 

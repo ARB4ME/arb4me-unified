@@ -21,6 +21,7 @@ const XTMarketDataService = require('./XTMarketDataService');
 const AscendEXMarketDataService = require('./AscendEXMarketDataService');
 const HTXMarketDataService = require('./HTXMarketDataService');
 const BingXMarketDataService = require('./BingXMarketDataService');
+const BitgetMarketDataService = require('./BitgetMarketDataService');
 const OrderExecutionService = require('./OrderExecutionService');
 const { logger } = require('../../utils/logger');
 
@@ -44,8 +45,9 @@ class MomentumWorkerService {
             'ascendex': new AscendEXMarketDataService(),
             'htx': new HTXMarketDataService(),
             'huobi': new HTXMarketDataService(),
-            'bingx': new BingXMarketDataService()
-            // More exchanges will be added here (bitget, bitmart, bitrue, gemini, crypto.com, etc.)
+            'bingx': new BingXMarketDataService(),
+            'bitget': new BitgetMarketDataService()
+            // More exchanges will be added here (bitmart, bitrue, gemini, crypto.com, etc.)
         };
 
         this.orderService = new OrderExecutionService();
