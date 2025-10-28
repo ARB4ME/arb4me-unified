@@ -218,20 +218,21 @@ const MomentumWorker = {
         try {
             console.log(`\n   🔍 Processing Strategy ID: ${strategy.id} (${strategy.exchange.toUpperCase()}) - ${strategy.name || 'Unnamed'}`);
 
-            // Get credentials for this user/exchange via API
-            const credResponse = await fetch(`/api/momentum/credentials?userId=${strategy.user_id}&exchange=${strategy.exchange}`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
+            // Get credentials from localStorage (like triangular arb)
+            const apiKey = localStorage.getItem(`${strategy.exchange}_momentum_api`);
+            const apiSecret = localStorage.getItem(`${strategy.exchange}_momentum_secret`);
+            const apiPassphrase = localStorage.getItem(`${strategy.exchange}_momentum_passphrase`);
 
-            if (!credResponse.ok) {
-                console.log(`      ⚠️  No credentials found - skipping`);
+            if (!apiKey || !apiSecret) {
+                console.log(`      ⚠️  No credentials found for ${strategy.exchange} - skipping`);
                 return results;
             }
 
-            const { data: credentials } = await credResponse.json();
+            const credentials = {
+                apiKey,
+                apiSecret,
+                ...(apiPassphrase && { apiPassphrase })
+            };
 
             // Monitor existing positions (check exits)
             const closedPositions = await PositionMonitor.monitorPositions(

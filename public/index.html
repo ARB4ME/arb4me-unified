@@ -22318,6 +22318,61 @@ ARB4ME Security Team`
             }
         }
 
+        // Connect Momentum Trading Exchange API
+        async function connectMomentumExchange(exchangeName) {
+            console.log(`🎯 [Momentum] Connecting ${exchangeName}...`);
+
+            // Get input fields (they have same IDs as main dashboard but are inside momentum modal)
+            const apiKey = document.querySelector('#momentumModal #' + exchangeName + 'ApiKey')?.value;
+            const secretKey = document.querySelector('#momentumModal #' + exchangeName + 'SecretKey')?.value;
+            const passphrase = exchangeName === 'okx' ? document.querySelector('#momentumModal #okxPassphrase')?.value :
+                              exchangeName === 'kucoin' ? document.querySelector('#momentumModal #kucoinPassphrase')?.value :
+                              exchangeName === 'bitget' ? document.querySelector('#momentumModal #bitgetPassphrase')?.value :
+                              exchangeName === 'coincatch' ? document.querySelector('#momentumModal #coincatchPassphrase')?.value :
+                              exchangeName === 'bitmart' ? document.querySelector('#momentumModal #bitmartMemo')?.value : null;
+
+            if (!apiKey || !secretKey || apiKey.trim() === '' || secretKey.trim() === '') {
+                alert(`❌ Please enter both API Key and Secret for ${exchangeName.toUpperCase()}`);
+                return;
+            }
+
+            // Additional validation for exchanges requiring passphrase/memo
+            if ((exchangeName === 'okx' || exchangeName === 'kucoin' || exchangeName === 'bitget' || exchangeName === 'coincatch') && (!passphrase || passphrase.trim() === '')) {
+                alert(`❌ ${exchangeName.toUpperCase()} requires a passphrase`);
+                return;
+            }
+
+            if (exchangeName === 'bitmart' && (!passphrase || passphrase.trim() === '')) {
+                alert(`❌ BitMart requires a memo`);
+                return;
+            }
+
+            try {
+                // Store credentials in localStorage with momentum strategy suffix
+                localStorage.setItem(`${exchangeName}_momentum_api`, apiKey);
+                localStorage.setItem(`${exchangeName}_momentum_secret`, secretKey);
+                if (passphrase) {
+                    localStorage.setItem(`${exchangeName}_momentum_passphrase`, passphrase);
+                }
+
+                console.log(`✅ [Momentum] ${exchangeName} credentials saved to localStorage`);
+                alert(`✅ ${exchangeName.toUpperCase()} credentials saved successfully for Momentum Trading!\n\nYou can now use this exchange in your momentum strategies.`);
+
+                // Optionally update button text
+                const connectText = document.querySelector('#momentumModal #' + exchangeName + 'ConnectText');
+                if (connectText) {
+                    connectText.textContent = `✅ ${exchangeName.toUpperCase()} Credentials Saved`;
+                    setTimeout(() => {
+                        connectText.textContent = `🔗 Connect ${exchangeName.toUpperCase()} (Real Mode)`;
+                    }, 3000);
+                }
+
+            } catch (error) {
+                console.error(`❌ [Momentum] Failed to save ${exchangeName} credentials:`, error);
+                alert(`❌ Failed to save credentials: ${error.message}`);
+            }
+        }
+
         // Safety: Restore scroll if modal isn't visible but body scroll is locked
         window.addEventListener('load', function() {
             setTimeout(() => {
@@ -26194,29 +26249,29 @@ ARB4ME Security Team`
             document.getElementById('transferToggle').addEventListener('click', toggleTransfer);
             document.getElementById('currencySwapToggle').addEventListener('click', toggleCurrencySwap);
 
-            // Connect buttons
-            document.getElementById('valrConnectBtn').addEventListener('click', () => connectExchange('valr'));
-            document.getElementById('lunoConnectBtn').addEventListener('click', () => connectExchange('luno'));
-            document.getElementById('altcointraderConnectBtn').addEventListener('click', () => connectExchange('altcointrader'));
-            document.getElementById('xagoConnectBtn').addEventListener('click', () => connectExchange('xago'));
-            document.getElementById('chainexConnectBtn').addEventListener('click', () => connectExchange('chainex'));
-            document.getElementById('krakenConnectBtn').addEventListener('click', () => connectExchange('kraken'));
-            document.getElementById('binanceConnectBtn').addEventListener('click', () => connectExchange('binance'));
-            document.getElementById('bybitConnectBtn').addEventListener('click', () => connectExchange('bybit'));
-            document.getElementById('gateioConnectBtn').addEventListener('click', () => connectExchange('gateio'));
-            document.getElementById('okxConnectBtn').addEventListener('click', () => connectExchange('okx'));
-            document.getElementById('mexcConnectBtn').addEventListener('click', () => connectExchange('mexc'));
-            document.getElementById('kucoinConnectBtn').addEventListener('click', () => connectExchange('kucoin'));
-            document.getElementById('xtConnectBtn').addEventListener('click', () => connectExchange('xt'));
-            document.getElementById('ascendexConnectBtn').addEventListener('click', () => connectExchange('ascendex'));
-            document.getElementById('htxConnectBtn').addEventListener('click', () => connectExchange('htx'));
-            document.getElementById('bingxConnectBtn').addEventListener('click', () => connectExchange('bingx'));
-            document.getElementById('bitgetConnectBtn').addEventListener('click', () => connectExchange('bitget'));
-            document.getElementById('bitmartConnectBtn').addEventListener('click', () => connectExchange('bitmart'));
-            document.getElementById('bitrueConnectBtn').addEventListener('click', () => connectExchange('bitrue'));
-            document.getElementById('geminiConnectBtn').addEventListener('click', () => connectExchange('gemini'));
-            document.getElementById('cryptocomConnectBtn').addEventListener('click', () => connectExchange('cryptocom'));
-            document.getElementById('coincatchConnectBtn').addEventListener('click', () => connectExchange('coincatch'));
+            // Connect buttons (these attach to Momentum Modal buttons as they appear first in HTML)
+            document.getElementById('valrConnectBtn').addEventListener('click', () => connectMomentumExchange('valr'));
+            document.getElementById('lunoConnectBtn').addEventListener('click', () => connectMomentumExchange('luno'));
+            document.getElementById('altcointraderConnectBtn').addEventListener('click', () => connectMomentumExchange('altcointrader'));
+            document.getElementById('xagoConnectBtn').addEventListener('click', () => connectMomentumExchange('xago'));
+            document.getElementById('chainexConnectBtn').addEventListener('click', () => connectMomentumExchange('chainex'));
+            document.getElementById('krakenConnectBtn').addEventListener('click', () => connectMomentumExchange('kraken'));
+            document.getElementById('binanceConnectBtn').addEventListener('click', () => connectMomentumExchange('binance'));
+            document.getElementById('bybitConnectBtn').addEventListener('click', () => connectMomentumExchange('bybit'));
+            document.getElementById('gateioConnectBtn').addEventListener('click', () => connectMomentumExchange('gateio'));
+            document.getElementById('okxConnectBtn').addEventListener('click', () => connectMomentumExchange('okx'));
+            document.getElementById('mexcConnectBtn').addEventListener('click', () => connectMomentumExchange('mexc'));
+            document.getElementById('kucoinConnectBtn').addEventListener('click', () => connectMomentumExchange('kucoin'));
+            document.getElementById('xtConnectBtn').addEventListener('click', () => connectMomentumExchange('xt'));
+            document.getElementById('ascendexConnectBtn').addEventListener('click', () => connectMomentumExchange('ascendex'));
+            document.getElementById('htxConnectBtn').addEventListener('click', () => connectMomentumExchange('htx'));
+            document.getElementById('bingxConnectBtn').addEventListener('click', () => connectMomentumExchange('bingx'));
+            document.getElementById('bitgetConnectBtn').addEventListener('click', () => connectMomentumExchange('bitget'));
+            document.getElementById('bitmartConnectBtn').addEventListener('click', () => connectMomentumExchange('bitmart'));
+            document.getElementById('bitrueConnectBtn').addEventListener('click', () => connectMomentumExchange('bitrue'));
+            document.getElementById('geminiConnectBtn').addEventListener('click', () => connectMomentumExchange('gemini'));
+            document.getElementById('cryptocomConnectBtn').addEventListener('click', () => connectMomentumExchange('cryptocom'));
+            document.getElementById('coincatchConnectBtn').addEventListener('click', () => connectMomentumExchange('coincatch'));
 
 
             // API Key input field event listeners for persistent storage
