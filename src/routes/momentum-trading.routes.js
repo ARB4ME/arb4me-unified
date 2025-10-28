@@ -8,14 +8,14 @@ const MomentumStrategy = require('../models/MomentumStrategy');
 const MomentumPosition = require('../models/MomentumPosition');
 const MomentumCredentials = require('../models/MomentumCredentials');
 const VALRMarketDataService = require('../services/momentum/VALRMarketDataService');
-const PositionMonitorService = require('../services/momentum/PositionMonitorService');
+const OrderExecutionService = require('../services/momentum/OrderExecutionService');
 
 // Import database query function for manual table initialization
 const { query } = require('../database/connection');
 
 // Initialize services
 const valrService = new VALRMarketDataService();
-const positionMonitor = new PositionMonitorService();
+const orderExecutionService = new OrderExecutionService();
 
 /**
  * GET /api/v1/momentum/initialize-tables
@@ -678,6 +678,179 @@ router.get('/stats', async (req, res) => {
         logger.error('Failed to get momentum stats', {
             userId: req.query.userId,
             exchange: req.query.exchange,
+            error: error.message
+        });
+
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * POST /api/v1/momentum/market/candles
+ * Fetch candle data for a trading pair (accepts credentials in body)
+ */
+router.post('/market/candles', async (req, res) => {
+    try {
+        const { exchange, pair, interval, limit, credentials } = req.body;
+
+        if (!exchange || !pair || !credentials) {
+            return res.status(400).json({
+                success: false,
+                error: 'exchange, pair, and credentials are required'
+            });
+        }
+
+        // Get the market data service for the exchange
+        const marketService = orderExecutionService.getMarketService(exchange);
+
+        // Fetch candles
+        const candles = await marketService.fetchCandles(
+            pair,
+            interval || '1h',
+            limit || 100,
+            credentials
+        );
+
+        res.json({
+            success: true,
+            data: candles
+        });
+
+    } catch (error) {
+        logger.error('Failed to fetch candles', {
+            exchange: req.body.exchange,
+            pair: req.body.pair,
+            error: error.message
+        });
+
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * POST /api/v1/momentum/market/current-price
+ * Get current market price for a trading pair
+ */
+router.post('/market/current-price', async (req, res) => {
+    try {
+        const { exchange, pair, credentials } = req.body;
+
+        if (!exchange || !pair || !credentials) {
+            return res.status(400).json({
+                success: false,
+                error: 'exchange, pair, and credentials are required'
+            });
+        }
+
+        // Get the market data service for the exchange
+        const marketService = orderExecutionService.getMarketService(exchange);
+
+        // Fetch current price
+        const price = await marketService.getCurrentPrice(pair, credentials);
+
+        res.json({
+            success: true,
+            data: price
+        });
+
+    } catch (error) {
+        logger.error('Failed to fetch current price', {
+            exchange: req.body.exchange,
+            pair: req.body.pair,
+            error: error.message
+        });
+
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * POST /api/v1/momentum/order/buy
+ * Execute a buy order (accepts credentials in body)
+ */
+router.post('/order/buy', async (req, res) => {
+    try {
+        const { exchange, pair, amountUSDT, credentials } = req.body;
+
+        if (!exchange || !pair || !amountUSDT || !credentials) {
+            return res.status(400).json({
+                success: false,
+                error: 'exchange, pair, amountUSDT, and credentials are required'
+            });
+        }
+
+        logger.info('Executing buy order', { exchange, pair, amountUSDT });
+
+        // Execute buy order
+        const orderResult = await orderExecutionService.executeBuyOrder(
+            exchange,
+            pair,
+            amountUSDT,
+            credentials
+        );
+
+        res.json({
+            success: true,
+            data: orderResult
+        });
+
+    } catch (error) {
+        logger.error('Failed to execute buy order', {
+            exchange: req.body.exchange,
+            pair: req.body.pair,
+            error: error.message
+        });
+
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * POST /api/v1/momentum/order/sell
+ * Execute a sell order (accepts credentials in body)
+ */
+router.post('/order/sell', async (req, res) => {
+    try {
+        const { exchange, pair, quantity, credentials } = req.body;
+
+        if (!exchange || !pair || !quantity || !credentials) {
+            return res.status(400).json({
+                success: false,
+                error: 'exchange, pair, quantity, and credentials are required'
+            });
+        }
+
+        logger.info('Executing sell order', { exchange, pair, quantity });
+
+        // Execute sell order
+        const orderResult = await orderExecutionService.executeSellOrder(
+            exchange,
+            pair,
+            quantity,
+            credentials
+        );
+
+        res.json({
+            success: true,
+            data: orderResult
+        });
+
+    } catch (error) {
+        logger.error('Failed to execute sell order', {
+            exchange: req.body.exchange,
+            pair: req.body.pair,
             error: error.message
         });
 
