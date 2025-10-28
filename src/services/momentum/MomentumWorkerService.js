@@ -16,6 +16,7 @@ const BYBITMarketDataService = require('./BYBITMarketDataService');
 const GateioMarketDataService = require('./GateioMarketDataService');
 const OKXMarketDataService = require('./OKXMarketDataService');
 const MEXCMarketDataService = require('./MEXCMarketDataService');
+const KuCoinMarketDataService = require('./KuCoinMarketDataService');
 const OrderExecutionService = require('./OrderExecutionService');
 const { logger } = require('../../utils/logger');
 
@@ -32,8 +33,9 @@ class MomentumWorkerService {
             'gate.io': new GateioMarketDataService(),
             'gateio': new GateioMarketDataService(),
             'okx': new OKXMarketDataService(),
-            'mexc': new MEXCMarketDataService()
-            // More exchanges will be added here (kucoin, xt, ascendex, htx, etc.)
+            'mexc': new MEXCMarketDataService(),
+            'kucoin': new KuCoinMarketDataService()
+            // More exchanges will be added here (xt, ascendex, htx, bingx, bitget, etc.)
         };
 
         this.orderService = new OrderExecutionService();

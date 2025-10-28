@@ -1992,6 +1992,201 @@ class OrderExecutionService {
         // MEXC signature: HMAC-SHA256 of query string, lowercase hex
         return crypto.createHmac('sha256', apiSecret).update(queryString).digest('hex');
     }
+
+    /**
+     * Execute a buy order on KuCoin
+     * KuCoin requires passphrase and uses hyphen pair format
+     * @private
+     */
+    async _executeKuCoinBuy(pair, amountUSDT, credentials) {
+        try {
+            // Convert pair to KuCoin format (BTCUSDT → BTC-USDT)
+            const kucoinPair = this._convertPairToKuCoin(pair);
+
+            // Prepare order data
+            const timestamp = Date.now().toString();
+            const method = 'POST';
+            const endpoint = '/api/v1/orders';
+
+            const orderData = {
+                clientOid: `${Date.now()}`, // Client order ID
+                side: 'buy',
+                symbol: kucoinPair,
+                type: 'market',
+                funds: amountUSDT.toFixed(2) // Use funds for market buy (quote currency)
+            };
+
+            const requestBody = JSON.stringify(orderData);
+
+            // Create authentication headers
+            const signature = this._createKuCoinSignature(timestamp, method, endpoint, requestBody, credentials.apiSecret);
+            const passphrase = this._createKuCoinPassphrase(credentials.passphrase, credentials.apiSecret);
+
+            const url = `https://api.kucoin.com${endpoint}`;
+
+            logger.info('Executing KuCoin buy order', { pair: kucoinPair, amountUSDT });
+
+            const response = await fetch(url, {
+                method: method,
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'KC-API-KEY': credentials.apiKey,
+                    'KC-API-SIGN': signature,
+                    'KC-API-TIMESTAMP': timestamp,
+                    'KC-API-PASSPHRASE': passphrase,
+                    'KC-API-KEY-VERSION': '2'
+                },
+                body: requestBody
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`KuCoin buy order failed: ${response.status} - ${errorText}`);
+            }
+
+            const result = await response.json();
+
+            // Check for KuCoin API error
+            if (result.code !== '200000') {
+                throw new Error(`KuCoin buy order failed: ${result.code} - ${result.msg}`);
+            }
+
+            logger.info('KuCoin buy order executed successfully', {
+                pair: kucoinPair,
+                orderId: result.data.orderId
+            });
+
+            return {
+                orderId: result.data.orderId,
+                status: 'filled',
+                pair: kucoinPair
+            };
+
+        } catch (error) {
+            logger.error('Failed to execute KuCoin buy order', {
+                pair,
+                amountUSDT,
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Execute a sell order on KuCoin
+     * @private
+     */
+    async _executeKuCoinSell(pair, quantity, credentials) {
+        try {
+            // Convert pair to KuCoin format (BTCUSDT → BTC-USDT)
+            const kucoinPair = this._convertPairToKuCoin(pair);
+
+            // Prepare order data
+            const timestamp = Date.now().toString();
+            const method = 'POST';
+            const endpoint = '/api/v1/orders';
+
+            const orderData = {
+                clientOid: `${Date.now()}`, // Client order ID
+                side: 'sell',
+                symbol: kucoinPair,
+                type: 'market',
+                size: quantity.toString() // Use size for sell (base currency)
+            };
+
+            const requestBody = JSON.stringify(orderData);
+
+            // Create authentication headers
+            const signature = this._createKuCoinSignature(timestamp, method, endpoint, requestBody, credentials.apiSecret);
+            const passphrase = this._createKuCoinPassphrase(credentials.passphrase, credentials.apiSecret);
+
+            const url = `https://api.kucoin.com${endpoint}`;
+
+            logger.info('Executing KuCoin sell order', { pair: kucoinPair, quantity });
+
+            const response = await fetch(url, {
+                method: method,
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'KC-API-KEY': credentials.apiKey,
+                    'KC-API-SIGN': signature,
+                    'KC-API-TIMESTAMP': timestamp,
+                    'KC-API-PASSPHRASE': passphrase,
+                    'KC-API-KEY-VERSION': '2'
+                },
+                body: requestBody
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`KuCoin sell order failed: ${response.status} - ${errorText}`);
+            }
+
+            const result = await response.json();
+
+            // Check for KuCoin API error
+            if (result.code !== '200000') {
+                throw new Error(`KuCoin sell order failed: ${result.code} - ${result.msg}`);
+            }
+
+            logger.info('KuCoin sell order executed successfully', {
+                pair: kucoinPair,
+                orderId: result.data.orderId
+            });
+
+            return {
+                orderId: result.data.orderId,
+                status: 'filled',
+                pair: kucoinPair
+            };
+
+        } catch (error) {
+            logger.error('Failed to execute KuCoin sell order', {
+                pair,
+                quantity,
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Convert pair to KuCoin format (BTCUSDT → BTC-USDT)
+     * KuCoin uses hyphen separator
+     * @private
+     */
+    _convertPairToKuCoin(pair) {
+        // Convert BTCUSDT to BTC-USDT format
+        const quoteCurrency = 'USDT';
+        if (pair.endsWith(quoteCurrency)) {
+            const baseCurrency = pair.slice(0, -quoteCurrency.length);
+            return `${baseCurrency}-${quoteCurrency}`;
+        }
+        return pair;
+    }
+
+    /**
+     * Create KuCoin signature for authentication
+     * Uses HMAC-SHA256 with base64 encoding
+     * @private
+     */
+    _createKuCoinSignature(timestamp, method, endpoint, body, apiSecret) {
+        // KuCoin signature: base64(HMAC-SHA256(timestamp + method + endpoint + body, apiSecret))
+        const strForSign = timestamp + method + endpoint + (body || '');
+        return crypto.createHmac('sha256', apiSecret).update(strForSign).digest('base64');
+    }
+
+    /**
+     * Create KuCoin passphrase
+     * KuCoin v2 requires passphrase to be encrypted with apiSecret
+     * @private
+     */
+    _createKuCoinPassphrase(passphrase, apiSecret) {
+        // KuCoin API v2: passphrase = base64(HMAC-SHA256(passphrase, apiSecret))
+        return crypto.createHmac('sha256', apiSecret).update(passphrase).digest('base64');
+    }
 }
 
 module.exports = OrderExecutionService;
