@@ -59,6 +59,8 @@ class OrderExecutionService {
                 return await this._executeChainEXBuy(pair, amountUSDT, credentials);
             } else if (exchangeLower === 'kraken') {
                 return await this._executeKrakenBuy(pair, amountUSDT, credentials);
+            } else if (exchangeLower === 'binance') {
+                return await this._executeBinanceBuy(pair, amountUSDT, credentials);
             }
 
             throw new Error(`Exchange not supported: ${exchange}`);
@@ -94,6 +96,8 @@ class OrderExecutionService {
                 return await this._executeChainEXSell(pair, quantity, credentials);
             } else if (exchangeLower === 'kraken') {
                 return await this._executeKrakenSell(pair, quantity, credentials);
+            } else if (exchangeLower === 'binance') {
+                return await this._executeBinanceSell(pair, quantity, credentials);
             }
 
             throw new Error(`Exchange not supported: ${exchange}`);
@@ -1020,6 +1024,177 @@ class OrderExecutionService {
             'API-Key': apiKey,
             'API-Sign': hmac
         };
+    }
+
+    // ===== BINANCE-SPECIFIC METHODS =====
+
+    /**
+     * Execute Binance market BUY order
+     * @private
+     */
+    async _executeBinanceBuy(pair, amountUSDT, credentials) {
+        try {
+            // Apply rate limiting
+            await this._rateLimitDelay();
+
+            const config = {
+                baseUrl: 'https://api.binance.com',
+                endpoint: '/api/v3/order'
+            };
+
+            // Binance requires timestamp
+            const timestamp = Date.now();
+
+            // Binance market order payload
+            // For market buy with USDT amount, use quoteOrderQty
+            const orderParams = {
+                symbol: pair,
+                side: 'BUY',
+                type: 'MARKET',
+                quoteOrderQty: amountUSDT.toFixed(2), // Amount in USDT (quote currency)
+                timestamp: timestamp
+            };
+
+            // Create query string and signature
+            const queryString = new URLSearchParams(orderParams).toString();
+            const signature = crypto.createHmac('sha256', credentials.apiSecret).update(queryString).digest('hex');
+
+            const url = `${config.baseUrl}${config.endpoint}?${queryString}&signature=${signature}`;
+
+            logger.info('Executing Binance market BUY order', {
+                pair,
+                amountUSDT,
+                orderParams
+            });
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-MBX-APIKEY': credentials.apiKey
+                }
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Binance BUY order failed: ${response.status} - ${errorText}`);
+            }
+
+            const data = await response.json();
+
+            // Transform Binance response to standard format
+            // Binance response: { orderId, symbol, status, executedQty, cummulativeQuoteQty, fills: [...] }
+            const result = {
+                orderId: data.orderId?.toString() || 'unknown',
+                executedPrice: parseFloat(data.fills?.[0]?.price || 0),
+                executedQuantity: parseFloat(data.executedQty || 0),
+                executedValue: parseFloat(data.cummulativeQuoteQty || amountUSDT),
+                fee: data.fills?.reduce((sum, fill) => sum + parseFloat(fill.commission || 0), 0) || 0,
+                status: data.status || 'FILLED',
+                timestamp: data.transactTime || Date.now(),
+                rawResponse: data
+            };
+
+            logger.info('Binance BUY order executed successfully', {
+                orderId: result.orderId,
+                executedPrice: result.executedPrice,
+                executedQuantity: result.executedQuantity
+            });
+
+            return result;
+
+        } catch (error) {
+            logger.error('Binance BUY order failed', {
+                pair,
+                amountUSDT,
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Execute Binance market SELL order
+     * @private
+     */
+    async _executeBinanceSell(pair, quantity, credentials) {
+        try {
+            // Apply rate limiting
+            await this._rateLimitDelay();
+
+            const config = {
+                baseUrl: 'https://api.binance.com',
+                endpoint: '/api/v3/order'
+            };
+
+            // Binance requires timestamp
+            const timestamp = Date.now();
+
+            // Binance market order payload
+            // For market sell, use quantity (base currency amount)
+            const orderParams = {
+                symbol: pair,
+                side: 'SELL',
+                type: 'MARKET',
+                quantity: quantity.toFixed(8), // Amount of base currency (crypto)
+                timestamp: timestamp
+            };
+
+            // Create query string and signature
+            const queryString = new URLSearchParams(orderParams).toString();
+            const signature = crypto.createHmac('sha256', credentials.apiSecret).update(queryString).digest('hex');
+
+            const url = `${config.baseUrl}${config.endpoint}?${queryString}&signature=${signature}`;
+
+            logger.info('Executing Binance market SELL order', {
+                pair,
+                quantity,
+                orderParams
+            });
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-MBX-APIKEY': credentials.apiKey
+                }
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Binance SELL order failed: ${response.status} - ${errorText}`);
+            }
+
+            const data = await response.json();
+
+            // Transform Binance response to standard format
+            const result = {
+                orderId: data.orderId?.toString() || 'unknown',
+                executedPrice: parseFloat(data.fills?.[0]?.price || 0),
+                executedQuantity: parseFloat(data.executedQty || quantity),
+                executedValue: parseFloat(data.cummulativeQuoteQty || 0),
+                fee: data.fills?.reduce((sum, fill) => sum + parseFloat(fill.commission || 0), 0) || 0,
+                status: data.status || 'FILLED',
+                timestamp: data.transactTime || Date.now(),
+                rawResponse: data
+            };
+
+            logger.info('Binance SELL order executed successfully', {
+                orderId: result.orderId,
+                executedPrice: result.executedPrice,
+                executedValue: result.executedValue
+            });
+
+            return result;
+
+        } catch (error) {
+            logger.error('Binance SELL order failed', {
+                pair,
+                quantity,
+                error: error.message
+            });
+            throw error;
+        }
     }
 }
 
