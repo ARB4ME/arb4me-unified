@@ -8,12 +8,19 @@ const MomentumCredentials = require('../../models/MomentumCredentials');
 const SignalDetectionService = require('./SignalDetectionService');
 const PositionMonitorService = require('./PositionMonitorService');
 const VALRMarketDataService = require('./VALRMarketDataService');
+const LunoMarketDataService = require('./LunoMarketDataService');
 const OrderExecutionService = require('./OrderExecutionService');
 const { logger } = require('../../utils/logger');
 
 class MomentumWorkerService {
     constructor() {
-        this.valrService = new VALRMarketDataService();
+        // Create market data services for all supported exchanges
+        this.marketDataServices = {
+            'valr': new VALRMarketDataService(),
+            'luno': new LunoMarketDataService()
+            // More exchanges will be added here (chainex, binance, okx, etc.)
+        };
+
         this.orderService = new OrderExecutionService();
         this.positionMonitor = new PositionMonitorService();
         this.isRunning = false;
@@ -43,6 +50,22 @@ class MomentumWorkerService {
             enabled: true,
             batchSize: 10 // Process 10 strategies in parallel at a time
         };
+    }
+
+    /**
+     * Get market data service for a specific exchange
+     * @param {string} exchange - Exchange name ('valr', 'luno', 'binance', etc.)
+     * @returns {object} Market data service instance
+     */
+    getMarketService(exchange) {
+        const exchangeLower = exchange.toLowerCase();
+        const service = this.marketDataServices[exchangeLower];
+
+        if (!service) {
+            throw new Error(`Market data service not available for exchange: ${exchange}. Supported exchanges: ${Object.keys(this.marketDataServices).join(', ')}`);
+        }
+
+        return service;
     }
 
     /**
@@ -325,8 +348,11 @@ class MomentumWorkerService {
             // Build trading pair (asset + USDT)
             const pair = `${asset}USDT`;
 
+            // Get market data service for the strategy's exchange
+            const marketService = this.getMarketService(strategy.exchange);
+
             // Fetch candle data for indicator calculation
-            const candles = await this.valrService.fetchCandles(
+            const candles = await marketService.fetchCandles(
                 pair,
                 '1h', // Use 1-hour candles
                 100,  // Fetch 100 candles for indicators

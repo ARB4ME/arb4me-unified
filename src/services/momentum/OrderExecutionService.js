@@ -53,6 +53,8 @@ class OrderExecutionService {
 
             if (exchangeLower === 'valr') {
                 return await this._executeValrBuy(pair, amountUSDT, credentials);
+            } else if (exchangeLower === 'luno') {
+                return await this._executeLunoBuy(pair, amountUSDT, credentials);
             }
 
             throw new Error(`Exchange not supported: ${exchange}`);
@@ -82,6 +84,8 @@ class OrderExecutionService {
 
             if (exchangeLower === 'valr') {
                 return await this._executeValrSell(pair, quantity, credentials);
+            } else if (exchangeLower === 'luno') {
+                return await this._executeLunoSell(pair, quantity, credentials);
             }
 
             throw new Error(`Exchange not supported: ${exchange}`);
@@ -427,6 +431,174 @@ class OrderExecutionService {
             'X-VALR-API-KEY': apiKey,
             'X-VALR-SIGNATURE': signature,
             'X-VALR-TIMESTAMP': timestamp.toString(),
+            'Content-Type': 'application/json'
+        };
+    }
+
+    // ===== LUNO-SPECIFIC METHODS =====
+
+    /**
+     * Execute Luno market BUY order
+     * @private
+     */
+    async _executeLunoBuy(pair, amountUSDT, credentials) {
+        try {
+            // Apply rate limiting
+            await this._rateLimitDelay();
+
+            // Convert BTC to XBT for Luno
+            const lunoPair = pair.replace('BTC', 'XBT');
+
+            const config = {
+                baseUrl: 'https://api.luno.com',
+                endpoint: '/api/1/marketorder'
+            };
+
+            // Luno market order payload
+            const payload = {
+                pair: lunoPair,
+                type: 'BUY',
+                counter_volume: amountUSDT.toFixed(2) // Amount in USDT (counter currency)
+            };
+
+            const url = `${config.baseUrl}${config.endpoint}`;
+
+            logger.info('Executing Luno market BUY order', {
+                pair: lunoPair,
+                amountUSDT,
+                payload
+            });
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: this._createLunoAuth(credentials.apiKey, credentials.apiSecret),
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Luno BUY order failed: ${response.status} - ${errorText}`);
+            }
+
+            const data = await response.json();
+
+            // Transform Luno response to standard format
+            const result = {
+                orderId: data.order_id,
+                executedPrice: parseFloat(data.counter / data.base), // Calculate average price
+                executedQuantity: parseFloat(data.base),
+                executedValue: parseFloat(data.counter),
+                fee: parseFloat(data.fee_counter || 0),
+                status: 'COMPLETE',
+                timestamp: Date.now(),
+                rawResponse: data
+            };
+
+            logger.info('Luno BUY order executed successfully', {
+                orderId: result.orderId,
+                executedPrice: result.executedPrice,
+                executedQuantity: result.executedQuantity
+            });
+
+            return result;
+
+        } catch (error) {
+            logger.error('Luno BUY order failed', {
+                pair,
+                amountUSDT,
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Execute Luno market SELL order
+     * @private
+     */
+    async _executeLunoSell(pair, quantity, credentials) {
+        try {
+            // Apply rate limiting
+            await this._rateLimitDelay();
+
+            // Convert BTC to XBT for Luno
+            const lunoPair = pair.replace('BTC', 'XBT');
+
+            const config = {
+                baseUrl: 'https://api.luno.com',
+                endpoint: '/api/1/marketorder'
+            };
+
+            // Luno market order payload
+            const payload = {
+                pair: lunoPair,
+                type: 'SELL',
+                base_volume: quantity.toFixed(8) // Amount of base currency (crypto)
+            };
+
+            const url = `${config.baseUrl}${config.endpoint}`;
+
+            logger.info('Executing Luno market SELL order', {
+                pair: lunoPair,
+                quantity,
+                payload
+            });
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: this._createLunoAuth(credentials.apiKey, credentials.apiSecret),
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Luno SELL order failed: ${response.status} - ${errorText}`);
+            }
+
+            const data = await response.json();
+
+            // Transform Luno response to standard format
+            const result = {
+                orderId: data.order_id,
+                executedPrice: parseFloat(data.counter / data.base), // Calculate average price
+                executedQuantity: parseFloat(data.base),
+                executedValue: parseFloat(data.counter),
+                fee: parseFloat(data.fee_counter || 0),
+                status: 'COMPLETE',
+                timestamp: Date.now(),
+                rawResponse: data
+            };
+
+            logger.info('Luno SELL order executed successfully', {
+                orderId: result.orderId,
+                executedPrice: result.executedPrice,
+                executedValue: result.executedValue
+            });
+
+            return result;
+
+        } catch (error) {
+            logger.error('Luno SELL order failed', {
+                pair,
+                quantity,
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Create Luno authentication headers (HTTP Basic Auth)
+     * @private
+     */
+    _createLunoAuth(apiKey, apiSecret) {
+        // Luno uses HTTP Basic Authentication
+        // Username: API Key ID
+        // Password: API Secret
+        const credentials = Buffer.from(`${apiKey}:${apiSecret}`).toString('base64');
+
+        return {
+            'Authorization': `Basic ${credentials}`,
             'Content-Type': 'application/json'
         };
     }
