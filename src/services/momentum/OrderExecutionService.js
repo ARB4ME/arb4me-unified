@@ -87,6 +87,8 @@ class OrderExecutionService {
                 return await this._executeBitrueBuy(pair, amountUSDT, credentials);
             } else if (exchangeLower === 'gemini') {
                 return await this._executeGeminiBuy(pair, amountUSDT, credentials);
+            } else if (exchangeLower === 'crypto.com' || exchangeLower === 'cryptocom') {
+                return await this._executeCryptoComBuy(pair, amountUSDT, credentials);
             }
 
             throw new Error(`Exchange not supported: ${exchange}`);
@@ -150,6 +152,8 @@ class OrderExecutionService {
                 return await this._executeBitrueSell(pair, quantity, credentials);
             } else if (exchangeLower === 'gemini') {
                 return await this._executeGeminiSell(pair, quantity, credentials);
+            } else if (exchangeLower === 'crypto.com' || exchangeLower === 'cryptocom') {
+                return await this._executeCryptoComSell(pair, quantity, credentials);
             }
 
             throw new Error(`Exchange not supported: ${exchange}`);
@@ -3926,6 +3930,244 @@ class OrderExecutionService {
     _createGeminiSignature(payload, apiSecret) {
         // Gemini signature: HMAC-SHA384 of base64 payload, lowercase hex
         return crypto.createHmac('sha384', apiSecret).update(payload).digest('hex');
+    }
+
+    // ============================================================================
+    // CRYPTO.COM ORDER EXECUTION
+    // ============================================================================
+
+    /**
+     * Execute Crypto.com buy order (market order)
+     * @private
+     */
+    async _executeCryptoComBuy(pair, amountUSDT, credentials) {
+        try {
+            // Convert pair to Crypto.com format (BTCUSDT → BTC_USDT)
+            const cryptocomPair = this._convertPairToCryptoCom(pair);
+
+            // Fetch current price to calculate quantity
+            const currentPrice = await this._fetchCryptoComPrice(cryptocomPair);
+
+            // Calculate quantity (base currency amount)
+            const quantity = (amountUSDT / currentPrice).toFixed(8);
+
+            // Crypto.com order creation
+            const nonce = Date.now();
+            const method = 'POST';
+            const requestPath = '/v2/private/create-order';
+            const orderData = {
+                instrument_name: cryptocomPair,
+                side: 'BUY',
+                type: 'MARKET',
+                quantity: quantity
+            };
+            const requestBody = JSON.stringify(orderData);
+
+            const signaturePayload = method + requestPath + requestBody + nonce;
+            const signature = crypto.createHmac('sha256', credentials.apiSecret)
+                .update(signaturePayload)
+                .digest('hex');
+
+            const url = `https://api.crypto.com${requestPath}`;
+
+            logger.info('Executing Crypto.com buy order', {
+                pair: cryptocomPair,
+                quantity,
+                currentPrice,
+                amountUSDT
+            });
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'api-key': credentials.apiKey,
+                    'signature': signature,
+                    'nonce': nonce.toString()
+                },
+                body: requestBody
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Crypto.com API error: ${response.status} - ${errorText}`);
+            }
+
+            const result = await response.json();
+
+            // Check for Crypto.com API error (code !== 0 means error)
+            if (result.code !== 0) {
+                throw new Error(`Crypto.com order failed: ${result.code} - ${result.message}`);
+            }
+
+            const orderResult = result.result;
+
+            logger.info('Crypto.com buy order executed successfully', {
+                orderId: orderResult?.order_id,
+                pair: cryptocomPair,
+                quantity,
+                status: orderResult?.status
+            });
+
+            return {
+                success: true,
+                orderId: orderResult?.order_id,
+                executedQty: parseFloat(quantity),
+                executedPrice: currentPrice,
+                pair: cryptocomPair,
+                side: 'BUY',
+                status: orderResult?.status || 'FILLED'
+            };
+
+        } catch (error) {
+            logger.error('Crypto.com buy order failed', {
+                pair,
+                amountUSDT,
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Execute Crypto.com sell order (market order)
+     * @private
+     */
+    async _executeCryptoComSell(pair, quantity, credentials) {
+        try {
+            // Convert pair to Crypto.com format (BTCUSDT → BTC_USDT)
+            const cryptocomPair = this._convertPairToCryptoCom(pair);
+
+            // Format quantity to 8 decimal places
+            const formattedQuantity = parseFloat(quantity).toFixed(8);
+
+            // Crypto.com order creation
+            const nonce = Date.now();
+            const method = 'POST';
+            const requestPath = '/v2/private/create-order';
+            const orderData = {
+                instrument_name: cryptocomPair,
+                side: 'SELL',
+                type: 'MARKET',
+                quantity: formattedQuantity
+            };
+            const requestBody = JSON.stringify(orderData);
+
+            const signaturePayload = method + requestPath + requestBody + nonce;
+            const signature = crypto.createHmac('sha256', credentials.apiSecret)
+                .update(signaturePayload)
+                .digest('hex');
+
+            const url = `https://api.crypto.com${requestPath}`;
+
+            logger.info('Executing Crypto.com sell order', {
+                pair: cryptocomPair,
+                quantity: formattedQuantity
+            });
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'api-key': credentials.apiKey,
+                    'signature': signature,
+                    'nonce': nonce.toString()
+                },
+                body: requestBody
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Crypto.com API error: ${response.status} - ${errorText}`);
+            }
+
+            const result = await response.json();
+
+            // Check for Crypto.com API error (code !== 0 means error)
+            if (result.code !== 0) {
+                throw new Error(`Crypto.com order failed: ${result.code} - ${result.message}`);
+            }
+
+            const orderResult = result.result;
+
+            logger.info('Crypto.com sell order executed successfully', {
+                orderId: orderResult?.order_id,
+                pair: cryptocomPair,
+                quantity: formattedQuantity,
+                status: orderResult?.status
+            });
+
+            return {
+                success: true,
+                orderId: orderResult?.order_id,
+                executedQty: parseFloat(formattedQuantity),
+                pair: cryptocomPair,
+                side: 'SELL',
+                status: orderResult?.status || 'FILLED'
+            };
+
+        } catch (error) {
+            logger.error('Crypto.com sell order failed', {
+                pair,
+                quantity,
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Fetch current Crypto.com price for a pair
+     * @private
+     */
+    async _fetchCryptoComPrice(cryptocomPair) {
+        try {
+            const url = `https://api.crypto.com/v2/public/get-ticker?instrument_name=${cryptocomPair}`;
+
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Crypto.com price fetch error: ${response.status} - ${errorText}`);
+            }
+
+            const result = await response.json();
+
+            if (result.code !== 0) {
+                throw new Error(`Crypto.com price fetch failed: ${result.code} - ${result.message}`);
+            }
+
+            // Crypto.com ticker format: { a: "96234.50" } (a = last traded price)
+            const tickerData = result.result?.data?.[0];
+            return parseFloat(tickerData?.a || 0);
+
+        } catch (error) {
+            logger.error('Failed to fetch Crypto.com price', {
+                pair: cryptocomPair,
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Convert pair to Crypto.com format (BTCUSDT → BTC_USDT)
+     * @private
+     */
+    _convertPairToCryptoCom(pair) {
+        // Convert BTCUSDT to BTC_USDT format
+        const quoteCurrency = 'USDT';
+        if (pair.endsWith(quoteCurrency)) {
+            const baseCurrency = pair.slice(0, -quoteCurrency.length);
+            return `${baseCurrency}_${quoteCurrency}`;
+        }
+        return pair;
     }
 }
 
