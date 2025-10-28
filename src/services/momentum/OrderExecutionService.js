@@ -2576,6 +2576,241 @@ class OrderExecutionService {
         const prehashString = timestamp + '+' + path;
         return crypto.createHmac('sha256', apiSecret).update(prehashString).digest('base64');
     }
+
+    /**
+     * Execute a buy order on HTX (Huobi)
+     * HTX requires account ID and uses unique signature format with hostname
+     * @private
+     */
+    async _executeHTXBuy(pair, amountUSDT, credentials) {
+        try {
+            // Step 1: Get account ID
+            const accountId = await this._getHTXAccountId(credentials);
+
+            // Convert pair to HTX format (BTCUSDT → btcusdt)
+            const htxPair = this._convertPairToHTX(pair);
+
+            // Prepare order data
+            const timestamp = new Date().toISOString().replace(/\.\d{3}Z$/, '');
+            const orderData = {
+                'account-id': accountId,
+                'symbol': htxPair,
+                'type': 'buy-market',
+                'amount': amountUSDT.toFixed(2)
+            };
+
+            const params = {
+                'AccessKeyId': credentials.apiKey,
+                'SignatureMethod': 'HmacSHA256',
+                'SignatureVersion': '2',
+                'Timestamp': timestamp
+            };
+
+            const signature = this._createHTXSignature('POST', 'api.huobi.pro', '/v1/order/orders/place', params, credentials.apiSecret);
+            params['Signature'] = signature;
+
+            const queryString = Object.keys(params).map(key => `${key}=${encodeURIComponent(params[key])}`).join('&');
+            const url = `https://api.huobi.pro/v1/order/orders/place?${queryString}`;
+
+            logger.info('Executing HTX buy order', { pair: htxPair, amountUSDT });
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(orderData)
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`HTX buy order failed: ${response.status} - ${errorText}`);
+            }
+
+            const result = await response.json();
+
+            // Check for HTX API error
+            if (result.status !== 'ok') {
+                throw new Error(`HTX buy order failed: ${result.status} - ${result['err-msg']}`);
+            }
+
+            logger.info('HTX buy order executed successfully', {
+                pair: htxPair,
+                orderId: result.data
+            });
+
+            return {
+                orderId: result.data,
+                status: 'filled',
+                pair: htxPair
+            };
+
+        } catch (error) {
+            logger.error('Failed to execute HTX buy order', {
+                pair,
+                amountUSDT,
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Execute a sell order on HTX (Huobi)
+     * @private
+     */
+    async _executeHTXSell(pair, quantity, credentials) {
+        try {
+            // Step 1: Get account ID
+            const accountId = await this._getHTXAccountId(credentials);
+
+            // Convert pair to HTX format (BTCUSDT → btcusdt)
+            const htxPair = this._convertPairToHTX(pair);
+
+            // Prepare order data
+            const timestamp = new Date().toISOString().replace(/\.\d{3}Z$/, '');
+            const orderData = {
+                'account-id': accountId,
+                'symbol': htxPair,
+                'type': 'sell-market',
+                'amount': quantity.toString()
+            };
+
+            const params = {
+                'AccessKeyId': credentials.apiKey,
+                'SignatureMethod': 'HmacSHA256',
+                'SignatureVersion': '2',
+                'Timestamp': timestamp
+            };
+
+            const signature = this._createHTXSignature('POST', 'api.huobi.pro', '/v1/order/orders/place', params, credentials.apiSecret);
+            params['Signature'] = signature;
+
+            const queryString = Object.keys(params).map(key => `${key}=${encodeURIComponent(params[key])}`).join('&');
+            const url = `https://api.huobi.pro/v1/order/orders/place?${queryString}`;
+
+            logger.info('Executing HTX sell order', { pair: htxPair, quantity });
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(orderData)
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`HTX sell order failed: ${response.status} - ${errorText}`);
+            }
+
+            const result = await response.json();
+
+            // Check for HTX API error
+            if (result.status !== 'ok') {
+                throw new Error(`HTX sell order failed: ${result.status} - ${result['err-msg']}`);
+            }
+
+            logger.info('HTX sell order executed successfully', {
+                pair: htxPair,
+                orderId: result.data
+            });
+
+            return {
+                orderId: result.data,
+                status: 'filled',
+                pair: htxPair
+            };
+
+        } catch (error) {
+            logger.error('Failed to execute HTX sell order', {
+                pair,
+                quantity,
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Get HTX account ID
+     * Required before placing orders
+     * @private
+     */
+    async _getHTXAccountId(credentials) {
+        try {
+            const timestamp = new Date().toISOString().replace(/\.\d{3}Z$/, '');
+            const params = {
+                'AccessKeyId': credentials.apiKey,
+                'SignatureMethod': 'HmacSHA256',
+                'SignatureVersion': '2',
+                'Timestamp': timestamp
+            };
+
+            const signature = this._createHTXSignature('GET', 'api.huobi.pro', '/v1/account/accounts', params, credentials.apiSecret);
+            params['Signature'] = signature;
+
+            const queryString = Object.keys(params).map(key => `${key}=${encodeURIComponent(params[key])}`).join('&');
+            const url = `https://api.huobi.pro/v1/account/accounts?${queryString}`;
+
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Failed to get HTX account ID: ${response.status} - ${errorText}`);
+            }
+
+            const result = await response.json();
+
+            if (result.status !== 'ok') {
+                throw new Error(`Failed to get HTX account ID: ${result.status} - ${result['err-msg']}`);
+            }
+
+            // Find spot account
+            const spotAccount = result.data.find(account => account.type === 'spot');
+            if (!spotAccount) {
+                throw new Error('HTX spot account not found');
+            }
+
+            return spotAccount.id;
+
+        } catch (error) {
+            logger.error('Failed to get HTX account ID', {
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Convert pair to HTX format (BTCUSDT → btcusdt)
+     * HTX uses lowercase without separator
+     * @private
+     */
+    _convertPairToHTX(pair) {
+        // Convert to lowercase
+        return pair.toLowerCase();
+    }
+
+    /**
+     * Create HTX signature for authentication
+     * Format: method\nhost\npath\nsorted_params
+     * @private
+     */
+    _createHTXSignature(method, host, path, params, apiSecret) {
+        // HTX signature: base64(HMAC-SHA256(method\nhost\npath\nsorted_params, apiSecret))
+        const sortedParams = Object.keys(params).sort().map(key => `${key}=${encodeURIComponent(params[key])}`).join('&');
+        const meta = [method, host, path, sortedParams].join('\n');
+        return crypto.createHmac('sha256', apiSecret).update(meta).digest('base64');
+    }
 }
 
 module.exports = OrderExecutionService;
