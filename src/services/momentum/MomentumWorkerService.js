@@ -115,21 +115,31 @@ class MomentumWorkerService {
     start() {
         if (this.isRunning) {
             logger.warn('Momentum worker is already running');
+            console.log('⚠️  Momentum worker is already running');
             return;
         }
 
         this.isRunning = true;
         logger.info('Starting Momentum Worker (60-second intervals)');
 
+        console.log('\n╔═══════════════════════════════════════════════════════════════╗');
+        console.log('║         🚀 MOMENTUM TRADING WORKER STARTED                   ║');
+        console.log('╚═══════════════════════════════════════════════════════════════╝');
+        console.log(`📅 Started at: ${new Date().toLocaleString()}`);
+        console.log('⏱️  Cycle Interval: 60 seconds');
+        console.log('🔄 Running first cycle immediately...\n');
+
         // Run immediately on start
         this.runCycle().catch(error => {
             logger.error('Momentum worker cycle failed', { error: error.message });
+            console.error('❌ Momentum worker cycle failed:', error.message);
         });
 
         // Then run every 60 seconds
         this.workerInterval = setInterval(() => {
             this.runCycle().catch(error => {
                 logger.error('Momentum worker cycle failed', { error: error.message });
+                console.error('❌ Momentum worker cycle failed:', error.message);
             });
         }, 60000); // 60 seconds
     }
@@ -140,6 +150,7 @@ class MomentumWorkerService {
     stop() {
         if (!this.isRunning) {
             logger.warn('Momentum worker is not running');
+            console.log('⚠️  Momentum worker is not running');
             return;
         }
 
@@ -150,6 +161,11 @@ class MomentumWorkerService {
         }
 
         logger.info('Momentum Worker stopped');
+
+        console.log('\n╔═══════════════════════════════════════════════════════════════╗');
+        console.log('║         🛑 MOMENTUM TRADING WORKER STOPPED                   ║');
+        console.log('╚═══════════════════════════════════════════════════════════════╝');
+        console.log(`📅 Stopped at: ${new Date().toLocaleString()}\n`);
     }
 
     /**
@@ -170,21 +186,30 @@ class MomentumWorkerService {
         try {
             logger.info('🔄 Momentum Worker Cycle Started');
 
+            console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            console.log('🔄 MOMENTUM WORKER CYCLE STARTED');
+            console.log(`⏰ Time: ${new Date().toLocaleString()}`);
+            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
             // Get all active strategies (across all users and exchanges)
             const activeStrategies = await this._getAllActiveStrategies();
 
             if (!activeStrategies || activeStrategies.length === 0) {
                 logger.info('No active strategies found');
+                console.log('📭 No active strategies found');
+                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
                 return stats;
             }
 
             logger.info(`Found ${activeStrategies.length} active strategies`);
+            console.log(`📊 Found ${activeStrategies.length} active strategy(ies)`);
 
             // Process strategies in parallel batches for efficiency
             if (this.parallelStrategyConfig.enabled && activeStrategies.length > 1) {
                 const batchSize = this.parallelStrategyConfig.batchSize;
 
                 logger.info(`Processing strategies in parallel batches of ${batchSize}`);
+                console.log(`⚡ Processing strategies in parallel (batch size: ${batchSize})`);
 
                 // Split strategies into parallel batches
                 for (let i = 0; i < activeStrategies.length; i += batchSize) {
@@ -209,15 +234,22 @@ class MomentumWorkerService {
                         stats.positionsClosed += result.positionsClosed;
                     });
 
+                    const batchSignals = batchResults.reduce((sum, r) => sum + r.signalsDetected, 0);
+                    const batchOpened = batchResults.reduce((sum, r) => sum + r.positionsOpened, 0);
+                    const batchClosed = batchResults.reduce((sum, r) => sum + r.positionsClosed, 0);
+
                     logger.info(`Completed strategy batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(activeStrategies.length / batchSize)}`, {
-                        signals: batchResults.reduce((sum, r) => sum + r.signalsDetected, 0),
-                        opened: batchResults.reduce((sum, r) => sum + r.positionsOpened, 0),
-                        closed: batchResults.reduce((sum, r) => sum + r.positionsClosed, 0)
+                        signals: batchSignals,
+                        opened: batchOpened,
+                        closed: batchClosed
                     });
+
+                    console.log(`   ✓ Batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(activeStrategies.length / batchSize)} complete - Signals: ${batchSignals}, Opened: ${batchOpened}, Closed: ${batchClosed}`);
                 }
             } else {
                 // Sequential processing (parallel disabled or single strategy)
                 logger.info('Processing strategies sequentially');
+                console.log('📝 Processing strategies sequentially');
 
                 for (const strategy of activeStrategies) {
                     const result = await this._processStrategy(strategy);
@@ -235,6 +267,14 @@ class MomentumWorkerService {
                 duration: `${cycleDuration}ms`,
                 ...stats
             });
+
+            console.log('\n✅ CYCLE COMPLETED');
+            console.log(`⏱️  Duration: ${(cycleDuration / 1000).toFixed(2)}s`);
+            console.log(`📈 Strategies Checked: ${stats.strategiesChecked}`);
+            console.log(`🎯 Signals Detected: ${stats.signalsDetected}`);
+            console.log(`📥 Positions Opened: ${stats.positionsOpened}`);
+            console.log(`📤 Positions Closed: ${stats.positionsClosed}`);
+            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
             return stats;
 
@@ -286,6 +326,8 @@ class MomentumWorkerService {
         };
 
         try {
+            console.log(`\n   🔍 Processing Strategy ID: ${strategy.id} (${strategy.exchange.toUpperCase()}) - ${strategy.name || 'Unnamed'}`);
+
             // Get credentials for this user/exchange
             const credentials = await MomentumCredentials.getCredentials(
                 strategy.user_id,
@@ -298,6 +340,7 @@ class MomentumWorkerService {
                     userId: strategy.user_id,
                     exchange: strategy.exchange
                 });
+                console.log(`      ⚠️  No credentials found - skipping`);
                 return results;
             }
 
@@ -310,6 +353,13 @@ class MomentumWorkerService {
 
             results.positionsClosed = closedPositions.length;
 
+            if (closedPositions.length > 0) {
+                console.log(`      📤 Closed ${closedPositions.length} position(s)`);
+                closedPositions.forEach(pos => {
+                    console.log(`         ✓ ${pos.pair}: ${pos.exit_reason} (${pos.pnl_percentage > 0 ? '+' : ''}${pos.pnl_percentage?.toFixed(2)}%)`);
+                });
+            }
+
             // Check for new entry signals
             const entryResults = await this._checkEntrySignals(
                 strategy,
@@ -318,6 +368,18 @@ class MomentumWorkerService {
 
             results.signalsDetected = entryResults.signalsDetected;
             results.positionsOpened = entryResults.positionsOpened;
+
+            if (entryResults.signalsDetected > 0) {
+                console.log(`      🎯 Detected ${entryResults.signalsDetected} signal(s)`);
+            }
+
+            if (entryResults.positionsOpened > 0) {
+                console.log(`      📥 Opened ${entryResults.positionsOpened} position(s)`);
+            }
+
+            if (results.positionsClosed === 0 && results.signalsDetected === 0 && results.positionsOpened === 0) {
+                console.log(`      ✓ No activity`);
+            }
 
             return results;
 
@@ -539,6 +601,9 @@ class MomentumWorkerService {
                     totalEnabled: signal.signalResult.totalEnabled
                 });
 
+                const indicatorNames = signal.signalResult.triggeredIndicators.map(i => i.name).join(', ');
+                console.log(`         🎯 Signal: ${signal.pair} (${signal.signalResult.triggeredCount}/${signal.signalResult.totalEnabled}) - ${indicatorNames}`);
+
                 // Open position
                 const opened = await this._openPosition(
                     strategy,
@@ -558,6 +623,7 @@ class MomentumWorkerService {
                         logger.info('Strategy reached max positions, stopping entry checks', {
                             strategyId: strategy.id
                         });
+                        console.log(`         ⚠️  Max positions reached - stopping entry checks`);
                         break; // Stop checking more assets for this strategy
                     }
                 }
@@ -622,6 +688,8 @@ class MomentumWorkerService {
                 quantity: position.entry_quantity
             });
 
+            console.log(`         ✅ Position opened: ${pair} @ $${position.entry_price} (Qty: ${position.entry_quantity})`);
+
             return position;
 
         } catch (error) {
@@ -630,6 +698,7 @@ class MomentumWorkerService {
                 pair,
                 error: error.message
             });
+            console.error(`         ❌ Failed to open position for ${pair}: ${error.message}`);
             return null;
         }
     }
