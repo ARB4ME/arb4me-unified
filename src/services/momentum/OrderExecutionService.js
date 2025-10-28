@@ -1845,6 +1845,153 @@ class OrderExecutionService {
             'OK-ACCESS-PASSPHRASE': passphrase
         };
     }
+
+    /**
+     * Execute a buy order on MEXC
+     * MEXC uses Binance-compatible v3 API
+     * @private
+     */
+    async _executeMEXCBuy(pair, amountUSDT, credentials) {
+        try {
+            // Prepare order data
+            const timestamp = Date.now();
+            const orderParams = {
+                symbol: pair,
+                side: 'BUY',
+                type: 'MARKET',
+                quoteOrderQty: amountUSDT.toFixed(2), // Buy with USDT amount
+                timestamp: timestamp
+            };
+
+            const queryString = new URLSearchParams(orderParams).toString();
+            const signature = this._createMEXCSignature(queryString, credentials.apiSecret);
+
+            const url = `https://api.mexc.com/api/v3/order?${queryString}&signature=${signature}`;
+
+            logger.info('Executing MEXC buy order', { pair, amountUSDT });
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-MEXC-APIKEY': credentials.apiKey
+                }
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`MEXC buy order failed: ${response.status} - ${errorText}`);
+            }
+
+            const orderData = await response.json();
+
+            // Check for MEXC API error
+            if (orderData.code && orderData.code !== 200) {
+                throw new Error(`MEXC buy order failed: ${orderData.code} - ${orderData.msg}`);
+            }
+
+            logger.info('MEXC buy order executed successfully', {
+                pair,
+                orderId: orderData.orderId,
+                clientOrderId: orderData.clientOrderId,
+                executedQty: orderData.executedQty
+            });
+
+            return {
+                orderId: orderData.orderId,
+                clientOrderId: orderData.clientOrderId,
+                status: 'filled',
+                executedQty: orderData.executedQty,
+                pair
+            };
+
+        } catch (error) {
+            logger.error('Failed to execute MEXC buy order', {
+                pair,
+                amountUSDT,
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Execute a sell order on MEXC
+     * @private
+     */
+    async _executeMEXCSell(pair, quantity, credentials) {
+        try {
+            // Prepare order data
+            const timestamp = Date.now();
+            const orderParams = {
+                symbol: pair,
+                side: 'SELL',
+                type: 'MARKET',
+                quantity: quantity.toString(), // Sell base currency quantity
+                timestamp: timestamp
+            };
+
+            const queryString = new URLSearchParams(orderParams).toString();
+            const signature = this._createMEXCSignature(queryString, credentials.apiSecret);
+
+            const url = `https://api.mexc.com/api/v3/order?${queryString}&signature=${signature}`;
+
+            logger.info('Executing MEXC sell order', { pair, quantity });
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-MEXC-APIKEY': credentials.apiKey
+                }
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`MEXC sell order failed: ${response.status} - ${errorText}`);
+            }
+
+            const orderData = await response.json();
+
+            // Check for MEXC API error
+            if (orderData.code && orderData.code !== 200) {
+                throw new Error(`MEXC sell order failed: ${orderData.code} - ${orderData.msg}`);
+            }
+
+            logger.info('MEXC sell order executed successfully', {
+                pair,
+                orderId: orderData.orderId,
+                clientOrderId: orderData.clientOrderId,
+                executedQty: orderData.executedQty
+            });
+
+            return {
+                orderId: orderData.orderId,
+                clientOrderId: orderData.clientOrderId,
+                status: 'filled',
+                executedQty: orderData.executedQty,
+                pair
+            };
+
+        } catch (error) {
+            logger.error('Failed to execute MEXC sell order', {
+                pair,
+                quantity,
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Create MEXC signature for authentication
+     * Uses HMAC-SHA256 signature (lowercase hex)
+     * @private
+     */
+    _createMEXCSignature(queryString, apiSecret) {
+        // MEXC signature: HMAC-SHA256 of query string, lowercase hex
+        return crypto.createHmac('sha256', apiSecret).update(queryString).digest('hex');
+    }
 }
 
 module.exports = OrderExecutionService;
