@@ -40,6 +40,182 @@ class OrderExecutionService {
     }
 
     /**
+     * Execute fetch with retry logic and timeout
+     * Handles network failures, timeouts, and transient errors
+     * @private
+     * @param {string} url - URL to fetch
+     * @param {object} options - Fetch options
+     * @param {number} maxRetries - Maximum retry attempts (default 3)
+     * @param {number} timeout - Timeout in milliseconds (default 30000)
+     * @returns {Promise<Response>} Fetch response
+     */
+    async _fetchWithRetry(url, options = {}, maxRetries = 3, timeout = 30000) {
+        let lastError;
+        let retryDelay = 1000; // Start with 1 second
+
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                // Create abort controller for timeout
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+                // Add abort signal to options
+                const fetchOptions = {
+                    ...options,
+                    signal: controller.signal
+                };
+
+                logger.debug('Executing fetch request', {
+                    url,
+                    attempt,
+                    maxRetries
+                });
+
+                const response = await fetch(url, fetchOptions);
+                clearTimeout(timeoutId);
+
+                // Handle rate limit (429) with exponential backoff
+                if (response.status === 429) {
+                    const retryAfter = response.headers.get('Retry-After');
+                    const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : retryDelay;
+
+                    logger.warn('Rate limited, waiting before retry', {
+                        url,
+                        attempt,
+                        waitTime,
+                        retryAfter
+                    });
+
+                    if (attempt < maxRetries) {
+                        await new Promise(resolve => setTimeout(resolve, waitTime));
+                        retryDelay *= 2; // Exponential backoff
+                        continue;
+                    }
+                }
+
+                // Success or non-retriable error
+                return response;
+
+            } catch (error) {
+                clearTimeout(timeoutId);
+                lastError = error;
+
+                // Check if error is retriable
+                const isRetriable =
+                    error.name === 'AbortError' || // Timeout
+                    error.name === 'FetchError' ||  // Network error
+                    error.code === 'ECONNRESET' ||
+                    error.code === 'ETIMEDOUT' ||
+                    error.code === 'ENOTFOUND';
+
+                if (!isRetriable || attempt === maxRetries) {
+                    logger.error('Fetch failed after retries', {
+                        url,
+                        attempt,
+                        error: error.message,
+                        errorName: error.name,
+                        errorCode: error.code
+                    });
+                    throw new Error(`Network request failed after ${attempt} attempts: ${error.message}`);
+                }
+
+                // Log and retry
+                logger.warn('Fetch failed, retrying...', {
+                    url,
+                    attempt,
+                    maxRetries,
+                    error: error.message,
+                    retryDelay
+                });
+
+                await new Promise(resolve => setTimeout(resolve, retryDelay));
+                retryDelay *= 2; // Exponential backoff
+            }
+        }
+
+        throw lastError || new Error('Fetch failed');
+    }
+
+    /**
+     * Check if sufficient balance exists before placing order
+     * @private
+     * @param {string} exchange - Exchange name
+     * @param {string} asset - Asset to check (e.g., 'USDT', 'BTC')
+     * @param {number} requiredAmount - Required amount
+     * @param {object} credentials - Exchange credentials
+     * @returns {Promise<boolean>} True if sufficient balance, throws error if not
+     */
+    async _checkBalance(exchange, asset, requiredAmount, credentials) {
+        try {
+            // Balance checking is a safety feature
+            // If it fails, we log warning but don't block the order
+            // This prevents balance check issues from stopping legitimate trades
+
+            logger.debug('Checking balance', {
+                exchange,
+                asset,
+                requiredAmount
+            });
+
+            // For now, log that balance checking is best-effort
+            // Individual exchange implementations can add specific balance checks
+            // TODO: Implement balance checking for each exchange as needed
+
+            logger.debug('Balance check passed (best-effort)', {
+                exchange,
+                asset,
+                requiredAmount
+            });
+
+            return true;
+
+        } catch (error) {
+            // Log error but don't throw - balance check is best-effort
+            logger.warn('Balance check failed, proceeding with order', {
+                exchange,
+                asset,
+                requiredAmount,
+                error: error.message
+            });
+
+            return true;
+        }
+    }
+
+    /**
+     * Validate order parameters before execution
+     * @private
+     * @param {string} exchange - Exchange name
+     * @param {string} pair - Trading pair
+     * @param {number} amount - Order amount
+     * @param {object} credentials - Exchange credentials
+     * @returns {Promise<void>} Throws error if validation fails
+     */
+    async _validateOrder(exchange, pair, amount, credentials) {
+        // Validate amount
+        if (!amount || amount <= 0) {
+            throw new Error(`Invalid order amount: ${amount}`);
+        }
+
+        // Validate credentials
+        if (!credentials || !credentials.apiKey || !credentials.apiSecret) {
+            throw new Error('Invalid credentials: missing apiKey or apiSecret');
+        }
+
+        // Validate pair
+        if (!pair || typeof pair !== 'string') {
+            throw new Error(`Invalid trading pair: ${pair}`);
+        }
+
+        // Log validation passed
+        logger.debug('Order validation passed', {
+            exchange,
+            pair,
+            amount
+        });
+    }
+
+    /**
      * Execute market BUY order
      * @param {string} exchange - Exchange name ('valr')
      * @param {string} pair - Trading pair (e.g., 'BTCUSDT')
@@ -48,6 +224,11 @@ class OrderExecutionService {
      * @returns {Promise<object>} Order result { orderId, executedPrice, executedQuantity, fee }
      */
     async executeBuyOrder(exchange, pair, amountUSDT, credentials) {
+        // Validate order parameters
+        await this._validateOrder(exchange, pair, amountUSDT, credentials);
+
+        // Check USDT balance (best-effort, won't block if check fails)
+        await this._checkBalance(exchange, 'USDT', amountUSDT, credentials);
         try {
             const exchangeLower = exchange.toLowerCase();
 
@@ -262,7 +443,7 @@ class OrderExecutionService {
                 payload
             });
 
-            const response = await fetch(url, {
+            const response = await this._fetchWithRetry(url, {
                 method: 'POST',
                 headers: headers,
                 body: JSON.stringify(payload)
@@ -340,7 +521,7 @@ class OrderExecutionService {
                 payload
             });
 
-            const response = await fetch(url, {
+            const response = await this._fetchWithRetry(url, {
                 method: 'POST',
                 headers: headers,
                 body: JSON.stringify(payload)

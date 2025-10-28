@@ -666,6 +666,10 @@ class MomentumWorkerService {
                 executedQuantity: buyOrder.executedQuantity
             });
 
+            // Extract entry fee from order (estimate 0.1% if not provided)
+            const entryValueUSDT = buyOrder.executedValue || strategy.max_trade_amount;
+            const entryFee = buyOrder.fee || (entryValueUSDT * 0.001); // 0.1% conservative estimate
+
             // Create position in database
             const position = await MomentumPosition.create({
                 userId: strategy.user_id,
@@ -675,7 +679,8 @@ class MomentumWorkerService {
                 pair: pair,
                 entryPrice: buyOrder.executedPrice,
                 entryQuantity: buyOrder.executedQuantity,
-                entryValueUSDT: buyOrder.executedValue || strategy.max_trade_amount,
+                entryValueUSDT: entryValueUSDT,
+                entryFee: entryFee,
                 entrySignals: triggeredIndicators,
                 entryOrderId: buyOrder.orderId
             });

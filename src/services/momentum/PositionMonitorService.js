@@ -178,11 +178,27 @@ class PositionMonitorService {
                 credentials
             );
 
-            // Calculate P&L
+            // Calculate P&L with proper fee handling
             const exitPrice = sellOrder.executedPrice || currentPrice;
             const exitValue = sellOrder.executedValue || (exitPrice * position.entry_quantity);
-            const pnlUSDT = exitValue - position.entry_value_usdt - sellOrder.fee;
+
+            // Handle fees - use actual fees if available, otherwise estimate 0.1% (conservative)
+            const entryFee = position.entry_fee || (position.entry_value_usdt * 0.001); // 0.1% entry fee estimate
+            const exitFee = sellOrder.fee || (exitValue * 0.001); // 0.1% exit fee estimate
+
+            // Calculate P&L: Exit value - Entry value - Entry fee - Exit fee
+            const pnlUSDT = exitValue - position.entry_value_usdt - entryFee - exitFee;
             const pnlPercent = (pnlUSDT / position.entry_value_usdt) * 100;
+
+            logger.debug('P&L calculated with fees', {
+                positionId: position.id,
+                exitValue,
+                entryValue: position.entry_value_usdt,
+                entryFee: entryFee.toFixed(4),
+                exitFee: exitFee.toFixed(4),
+                pnlUSDT: pnlUSDT.toFixed(4),
+                pnlPercent: pnlPercent.toFixed(2)
+            });
 
             // Close position in database
             const closedPosition = await MomentumPosition.close(position.id, {

@@ -16,6 +16,7 @@ const { query } = require('../database/connection');
  *   entry_price DECIMAL(18,8) NOT NULL,
  *   entry_quantity DECIMAL(18,8) NOT NULL,
  *   entry_value_usdt DECIMAL(12,2) NOT NULL,
+ *   entry_fee DECIMAL(12,4) DEFAULT 0,
  *   entry_time TIMESTAMP NOT NULL,
  *   entry_signals JSONB,
  *   entry_order_id VARCHAR(100),
@@ -53,6 +54,7 @@ class MomentumPosition {
                 entry_price DECIMAL(18,8) NOT NULL,
                 entry_quantity DECIMAL(18,8) NOT NULL,
                 entry_value_usdt DECIMAL(12,2) NOT NULL,
+                entry_fee DECIMAL(12,4) DEFAULT 0,
                 entry_time TIMESTAMP NOT NULL,
                 entry_signals JSONB,
                 entry_order_id VARCHAR(100),
@@ -90,6 +92,7 @@ class MomentumPosition {
             entryPrice,
             entryQuantity,
             entryValueUsdt,
+            entryFee,
             entrySignals,
             entryOrderId
         } = positionData;
@@ -97,10 +100,10 @@ class MomentumPosition {
         const insertQuery = `
             INSERT INTO momentum_positions (
                 user_id, strategy_id, exchange, asset, pair,
-                entry_price, entry_quantity, entry_value_usdt,
+                entry_price, entry_quantity, entry_value_usdt, entry_fee,
                 entry_time, entry_signals, entry_order_id, status
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), $9, $10, 'OPEN')
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), $10, $11, 'OPEN')
             RETURNING *
         `;
 
@@ -113,6 +116,7 @@ class MomentumPosition {
             entryPrice,
             entryQuantity,
             entryValueUsdt,
+            entryFee || 0, // Default to 0 if not provided
             entrySignals ? JSON.stringify(entrySignals) : null,
             entryOrderId
         ];
