@@ -18,6 +18,7 @@ const OKXMarketDataService = require('./OKXMarketDataService');
 const MEXCMarketDataService = require('./MEXCMarketDataService');
 const KuCoinMarketDataService = require('./KuCoinMarketDataService');
 const XTMarketDataService = require('./XTMarketDataService');
+const AscendEXMarketDataService = require('./AscendEXMarketDataService');
 const OrderExecutionService = require('./OrderExecutionService');
 const { logger } = require('../../utils/logger');
 
@@ -37,8 +38,9 @@ class MomentumWorkerService {
             'mexc': new MEXCMarketDataService(),
             'kucoin': new KuCoinMarketDataService(),
             'xt.com': new XTMarketDataService(),
-            'xt': new XTMarketDataService()
-            // More exchanges will be added here (ascendex, htx, bingx, bitget, etc.)
+            'xt': new XTMarketDataService(),
+            'ascendex': new AscendEXMarketDataService()
+            // More exchanges will be added here (htx, bingx, bitget, bitmart, bitrue, etc.)
         };
 
         this.orderService = new OrderExecutionService();

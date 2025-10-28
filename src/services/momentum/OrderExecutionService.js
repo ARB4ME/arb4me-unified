@@ -2356,6 +2356,226 @@ class OrderExecutionService {
         const signString = apiKey + "#" + apiSecret + "#" + timestamp;
         return crypto.createHmac('sha256', apiSecret).update(signString).digest('hex');
     }
+
+    /**
+     * Execute a buy order on AscendEX
+     * AscendEX requires account group and uses slash pair format
+     * @private
+     */
+    async _executeAscendEXBuy(pair, amountUSDT, credentials) {
+        try {
+            // Step 1: Get account group
+            const accountGroup = await this._getAscendEXAccountGroup(credentials);
+
+            // Convert pair to AscendEX format (BTCUSDT → BTC/USDT)
+            const ascendexPair = this._convertPairToAscendEX(pair);
+
+            // Prepare order data
+            const timestamp = Date.now().toString();
+            const path = `/${accountGroup}/api/pro/v1/cash/order`;
+            const orderData = {
+                symbol: ascendexPair,
+                orderQty: amountUSDT.toFixed(2),
+                orderType: 'market',
+                side: 'buy',
+                respInst: 'ACCEPT'
+            };
+
+            const signature = this._createAscendEXSignature(timestamp, path, credentials.apiSecret);
+
+            const url = `https://ascendex.com${path}`;
+
+            logger.info('Executing AscendEX buy order', { pair: ascendexPair, amountUSDT });
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'x-auth-key': credentials.apiKey,
+                    'x-auth-timestamp': timestamp,
+                    'x-auth-signature': signature
+                },
+                body: JSON.stringify(orderData)
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`AscendEX buy order failed: ${response.status} - ${errorText}`);
+            }
+
+            const result = await response.json();
+
+            // Check for AscendEX API error
+            if (result.code !== 0) {
+                throw new Error(`AscendEX buy order failed: ${result.code} - ${result.message}`);
+            }
+
+            logger.info('AscendEX buy order executed successfully', {
+                pair: ascendexPair,
+                orderId: result.data?.orderId
+            });
+
+            return {
+                orderId: result.data?.orderId,
+                status: 'filled',
+                pair: ascendexPair
+            };
+
+        } catch (error) {
+            logger.error('Failed to execute AscendEX buy order', {
+                pair,
+                amountUSDT,
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Execute a sell order on AscendEX
+     * @private
+     */
+    async _executeAscendEXSell(pair, quantity, credentials) {
+        try {
+            // Step 1: Get account group
+            const accountGroup = await this._getAscendEXAccountGroup(credentials);
+
+            // Convert pair to AscendEX format (BTCUSDT → BTC/USDT)
+            const ascendexPair = this._convertPairToAscendEX(pair);
+
+            // Prepare order data
+            const timestamp = Date.now().toString();
+            const path = `/${accountGroup}/api/pro/v1/cash/order`;
+            const orderData = {
+                symbol: ascendexPair,
+                orderQty: quantity.toString(),
+                orderType: 'market',
+                side: 'sell',
+                respInst: 'ACCEPT'
+            };
+
+            const signature = this._createAscendEXSignature(timestamp, path, credentials.apiSecret);
+
+            const url = `https://ascendex.com${path}`;
+
+            logger.info('Executing AscendEX sell order', { pair: ascendexPair, quantity });
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'x-auth-key': credentials.apiKey,
+                    'x-auth-timestamp': timestamp,
+                    'x-auth-signature': signature
+                },
+                body: JSON.stringify(orderData)
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`AscendEX sell order failed: ${response.status} - ${errorText}`);
+            }
+
+            const result = await response.json();
+
+            // Check for AscendEX API error
+            if (result.code !== 0) {
+                throw new Error(`AscendEX sell order failed: ${result.code} - ${result.message}`);
+            }
+
+            logger.info('AscendEX sell order executed successfully', {
+                pair: ascendexPair,
+                orderId: result.data?.orderId
+            });
+
+            return {
+                orderId: result.data?.orderId,
+                status: 'filled',
+                pair: ascendexPair
+            };
+
+        } catch (error) {
+            logger.error('Failed to execute AscendEX sell order', {
+                pair,
+                quantity,
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Get AscendEX account group
+     * Required before making authenticated requests
+     * @private
+     */
+    async _getAscendEXAccountGroup(credentials) {
+        try {
+            const timestamp = Date.now().toString();
+            const path = '/api/pro/v1/info';
+            const signature = this._createAscendEXSignature(timestamp, path, credentials.apiSecret);
+
+            const url = `https://ascendex.com${path}`;
+
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'x-auth-key': credentials.apiKey,
+                    'x-auth-timestamp': timestamp,
+                    'x-auth-signature': signature
+                }
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Failed to get AscendEX account group: ${response.status} - ${errorText}`);
+            }
+
+            const result = await response.json();
+
+            if (result.code !== 0) {
+                throw new Error(`Failed to get AscendEX account group: ${result.code} - ${result.message}`);
+            }
+
+            return result.data.accountGroup;
+
+        } catch (error) {
+            logger.error('Failed to get AscendEX account group', {
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Convert pair to AscendEX format (BTCUSDT → BTC/USDT)
+     * AscendEX uses slash separator
+     * @private
+     */
+    _convertPairToAscendEX(pair) {
+        // Convert BTCUSDT to BTC/USDT format
+        const quoteCurrency = 'USDT';
+        if (pair.endsWith(quoteCurrency)) {
+            const baseCurrency = pair.slice(0, -quoteCurrency.length);
+            return `${baseCurrency}/${quoteCurrency}`;
+        }
+        return pair;
+    }
+
+    /**
+     * Create AscendEX signature for authentication
+     * Format: timestamp + "+" + api_path
+     * @private
+     */
+    _createAscendEXSignature(timestamp, path, apiSecret) {
+        // AscendEX signature: base64(HMAC-SHA256(timestamp + "+" + path, apiSecret))
+        const prehashString = timestamp + '+' + path;
+        return crypto.createHmac('sha256', apiSecret).update(prehashString).digest('base64');
+    }
 }
 
 module.exports = OrderExecutionService;
