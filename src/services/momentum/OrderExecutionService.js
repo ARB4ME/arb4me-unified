@@ -2187,6 +2187,175 @@ class OrderExecutionService {
         // KuCoin API v2: passphrase = base64(HMAC-SHA256(passphrase, apiSecret))
         return crypto.createHmac('sha256', apiSecret).update(passphrase).digest('base64');
     }
+
+    /**
+     * Execute a buy order on XT.com
+     * XT.com uses unique signature format with lowercase underscore pairs
+     * @private
+     */
+    async _executeXTBuy(pair, amountUSDT, credentials) {
+        try {
+            // Convert pair to XT.com format (BTCUSDT → btc_usdt)
+            const xtPair = this._convertPairToXT(pair);
+
+            // Prepare order data
+            const timestamp = Date.now().toString();
+            const orderData = {
+                symbol: xtPair,
+                side: 'BUY',
+                type: 'MARKET',
+                quoteQty: amountUSDT.toFixed(2) // Use quoteQty for market buy (USDT amount)
+            };
+
+            const signature = this._createXTSignature(credentials.apiKey, timestamp, credentials.apiSecret);
+
+            const url = `https://sapi.xt.com/v4/order`;
+
+            logger.info('Executing XT.com buy order', { pair: xtPair, amountUSDT });
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'validate-algorithms': 'HmacSHA256',
+                    'validate-appkey': credentials.apiKey,
+                    'validate-recvwindow': '60000',
+                    'validate-timestamp': timestamp,
+                    'validate-signature': signature
+                },
+                body: JSON.stringify(orderData)
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`XT.com buy order failed: ${response.status} - ${errorText}`);
+            }
+
+            const result = await response.json();
+
+            // Check for XT.com API error
+            if (result.rc !== 0) {
+                throw new Error(`XT.com buy order failed: ${result.rc} - ${result.msg}`);
+            }
+
+            logger.info('XT.com buy order executed successfully', {
+                pair: xtPair,
+                orderId: result.result?.orderId
+            });
+
+            return {
+                orderId: result.result?.orderId,
+                status: 'filled',
+                pair: xtPair
+            };
+
+        } catch (error) {
+            logger.error('Failed to execute XT.com buy order', {
+                pair,
+                amountUSDT,
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Execute a sell order on XT.com
+     * @private
+     */
+    async _executeXTSell(pair, quantity, credentials) {
+        try {
+            // Convert pair to XT.com format (BTCUSDT → btc_usdt)
+            const xtPair = this._convertPairToXT(pair);
+
+            // Prepare order data
+            const timestamp = Date.now().toString();
+            const orderData = {
+                symbol: xtPair,
+                side: 'SELL',
+                type: 'MARKET',
+                quantity: quantity.toString() // Use quantity for sell (base currency)
+            };
+
+            const signature = this._createXTSignature(credentials.apiKey, timestamp, credentials.apiSecret);
+
+            const url = `https://sapi.xt.com/v4/order`;
+
+            logger.info('Executing XT.com sell order', { pair: xtPair, quantity });
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'validate-algorithms': 'HmacSHA256',
+                    'validate-appkey': credentials.apiKey,
+                    'validate-recvwindow': '60000',
+                    'validate-timestamp': timestamp,
+                    'validate-signature': signature
+                },
+                body: JSON.stringify(orderData)
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`XT.com sell order failed: ${response.status} - ${errorText}`);
+            }
+
+            const result = await response.json();
+
+            // Check for XT.com API error
+            if (result.rc !== 0) {
+                throw new Error(`XT.com sell order failed: ${result.rc} - ${result.msg}`);
+            }
+
+            logger.info('XT.com sell order executed successfully', {
+                pair: xtPair,
+                orderId: result.result?.orderId
+            });
+
+            return {
+                orderId: result.result?.orderId,
+                status: 'filled',
+                pair: xtPair
+            };
+
+        } catch (error) {
+            logger.error('Failed to execute XT.com sell order', {
+                pair,
+                quantity,
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Convert pair to XT.com format (BTCUSDT → btc_usdt)
+     * XT.com uses lowercase with underscore separator
+     * @private
+     */
+    _convertPairToXT(pair) {
+        // Convert BTCUSDT to btc_usdt format
+        const quoteCurrency = 'USDT';
+        if (pair.endsWith(quoteCurrency)) {
+            const baseCurrency = pair.slice(0, -quoteCurrency.length);
+            return `${baseCurrency.toLowerCase()}_${quoteCurrency.toLowerCase()}`;
+        }
+        return pair.toLowerCase();
+    }
+
+    /**
+     * Create XT.com signature for authentication
+     * Unique signature format: apiKey + "#" + apiSecret + "#" + timestamp
+     * @private
+     */
+    _createXTSignature(apiKey, timestamp, apiSecret) {
+        // XT signature: HMAC-SHA256(apiKey + "#" + apiSecret + "#" + timestamp, apiSecret)
+        const signString = apiKey + "#" + apiSecret + "#" + timestamp;
+        return crypto.createHmac('sha256', apiSecret).update(signString).digest('hex');
+    }
 }
 
 module.exports = OrderExecutionService;
