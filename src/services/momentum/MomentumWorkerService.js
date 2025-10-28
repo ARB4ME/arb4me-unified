@@ -13,6 +13,7 @@ const ChainEXMarketDataService = require('./ChainEXMarketDataService');
 const KrakenMarketDataService = require('./KrakenMarketDataService');
 const BinanceMarketDataService = require('./BinanceMarketDataService');
 const BYBITMarketDataService = require('./BYBITMarketDataService');
+const GateioMarketDataService = require('./GateioMarketDataService');
 const OrderExecutionService = require('./OrderExecutionService');
 const { logger } = require('../../utils/logger');
 
@@ -25,8 +26,10 @@ class MomentumWorkerService {
             'chainex': new ChainEXMarketDataService(),
             'kraken': new KrakenMarketDataService(),
             'binance': new BinanceMarketDataService(),
-            'bybit': new BYBITMarketDataService()
-            // More exchanges will be added here (okx, gate.io, mexc, etc.)
+            'bybit': new BYBITMarketDataService(),
+            'gate.io': new GateioMarketDataService(),
+            'gateio': new GateioMarketDataService()
+            // More exchanges will be added here (okx, mexc, kucoin, etc.)
         };
 
         this.orderService = new OrderExecutionService();

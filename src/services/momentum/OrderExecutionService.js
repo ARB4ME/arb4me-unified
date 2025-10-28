@@ -63,6 +63,8 @@ class OrderExecutionService {
                 return await this._executeBinanceBuy(pair, amountUSDT, credentials);
             } else if (exchangeLower === 'bybit') {
                 return await this._executeBYBITBuy(pair, amountUSDT, credentials);
+            } else if (exchangeLower === 'gate.io' || exchangeLower === 'gateio') {
+                return await this._executeGateioBuy(pair, amountUSDT, credentials);
             }
 
             throw new Error(`Exchange not supported: ${exchange}`);
@@ -102,6 +104,8 @@ class OrderExecutionService {
                 return await this._executeBinanceSell(pair, quantity, credentials);
             } else if (exchangeLower === 'bybit') {
                 return await this._executeBYBITSell(pair, quantity, credentials);
+            } else if (exchangeLower === 'gate.io' || exchangeLower === 'gateio') {
+                return await this._executeGateioSell(pair, quantity, credentials);
             }
 
             throw new Error(`Exchange not supported: ${exchange}`);
@@ -1412,6 +1416,222 @@ class OrderExecutionService {
             'X-BAPI-TIMESTAMP': timestamp,
             'X-BAPI-SIGN-TYPE': '2'
         };
+    }
+
+    // ===== GATE.IO-SPECIFIC METHODS =====
+
+    /**
+     * Execute Gate.io market BUY order
+     * @private
+     */
+    async _executeGateioBuy(pair, amountUSDT, credentials) {
+        try {
+            // Apply rate limiting
+            await this._rateLimitDelay();
+
+            const config = {
+                baseUrl: 'https://api.gateio.ws',
+                endpoint: '/api/v4/spot/orders'
+            };
+
+            // Convert pair to Gate.io format (BTCUSDT → BTC_USDT)
+            const gateioPair = this._convertPairToGateio(pair);
+
+            // Gate.io requires timestamp
+            const timestamp = Math.floor(Date.now() / 1000).toString();
+
+            // Gate.io market order payload
+            const orderData = {
+                currency_pair: gateioPair,
+                side: 'buy',
+                type: 'market',
+                amount: amountUSDT.toFixed(2), // Amount in quote currency (USDT) for market buy
+                time_in_force: 'ioc' // Immediate or cancel
+            };
+
+            const requestBody = JSON.stringify(orderData);
+            const method = 'POST';
+            const url = config.endpoint;
+            const queryString = '';
+
+            // Create authentication signature
+            const signature = this._createGateioSignature(method, url, queryString, requestBody, timestamp, credentials.apiSecret);
+
+            const fullUrl = `${config.baseUrl}${config.endpoint}`;
+
+            logger.info('Executing Gate.io market BUY order', {
+                pair: gateioPair,
+                amountUSDT,
+                orderData
+            });
+
+            const response = await fetch(fullUrl, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'KEY': credentials.apiKey,
+                    'Timestamp': timestamp,
+                    'SIGN': signature
+                },
+                body: requestBody
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Gate.io BUY order failed: ${response.status} - ${errorText}`);
+            }
+
+            const data = await response.json();
+
+            // Transform Gate.io response to standard format
+            const result = {
+                orderId: data.id || 'unknown',
+                executedPrice: parseFloat(data.avg_deal_price || data.price || 0),
+                executedQuantity: parseFloat(data.filled_total || 0),
+                executedValue: parseFloat(data.amount || amountUSDT),
+                fee: parseFloat(data.fee || 0),
+                status: data.status || 'open',
+                timestamp: Date.now(),
+                rawResponse: data
+            };
+
+            logger.info('Gate.io BUY order executed successfully', {
+                orderId: result.orderId,
+                executedPrice: result.executedPrice,
+                executedQuantity: result.executedQuantity
+            });
+
+            return result;
+
+        } catch (error) {
+            logger.error('Gate.io BUY order failed', {
+                pair,
+                amountUSDT,
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Execute Gate.io market SELL order
+     * @private
+     */
+    async _executeGateioSell(pair, quantity, credentials) {
+        try {
+            // Apply rate limiting
+            await this._rateLimitDelay();
+
+            const config = {
+                baseUrl: 'https://api.gateio.ws',
+                endpoint: '/api/v4/spot/orders'
+            };
+
+            // Convert pair to Gate.io format (BTCUSDT → BTC_USDT)
+            const gateioPair = this._convertPairToGateio(pair);
+
+            // Gate.io requires timestamp
+            const timestamp = Math.floor(Date.now() / 1000).toString();
+
+            // Gate.io market order payload
+            const orderData = {
+                currency_pair: gateioPair,
+                side: 'sell',
+                type: 'market',
+                amount: quantity.toFixed(8), // Amount of base currency (crypto)
+                time_in_force: 'ioc' // Immediate or cancel
+            };
+
+            const requestBody = JSON.stringify(orderData);
+            const method = 'POST';
+            const url = config.endpoint;
+            const queryString = '';
+
+            // Create authentication signature
+            const signature = this._createGateioSignature(method, url, queryString, requestBody, timestamp, credentials.apiSecret);
+
+            const fullUrl = `${config.baseUrl}${config.endpoint}`;
+
+            logger.info('Executing Gate.io market SELL order', {
+                pair: gateioPair,
+                quantity,
+                orderData
+            });
+
+            const response = await fetch(fullUrl, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'KEY': credentials.apiKey,
+                    'Timestamp': timestamp,
+                    'SIGN': signature
+                },
+                body: requestBody
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Gate.io SELL order failed: ${response.status} - ${errorText}`);
+            }
+
+            const data = await response.json();
+
+            // Transform Gate.io response to standard format
+            const result = {
+                orderId: data.id || 'unknown',
+                executedPrice: parseFloat(data.avg_deal_price || data.price || 0),
+                executedQuantity: parseFloat(data.amount || quantity),
+                executedValue: parseFloat(data.filled_total || 0),
+                fee: parseFloat(data.fee || 0),
+                status: data.status || 'open',
+                timestamp: Date.now(),
+                rawResponse: data
+            };
+
+            logger.info('Gate.io SELL order executed successfully', {
+                orderId: result.orderId,
+                executedPrice: result.executedPrice,
+                executedValue: result.executedValue
+            });
+
+            return result;
+
+        } catch (error) {
+            logger.error('Gate.io SELL order failed', {
+                pair,
+                quantity,
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Convert pair to Gate.io format (BTCUSDT → BTC_USDT)
+     * @private
+     */
+    _convertPairToGateio(pair) {
+        const quoteCurrency = 'USDT';
+        if (pair.endsWith(quoteCurrency)) {
+            const baseCurrency = pair.slice(0, -quoteCurrency.length);
+            return `${baseCurrency}_${quoteCurrency}`;
+        }
+        return pair;
+    }
+
+    /**
+     * Create Gate.io signature for authentication
+     * Uses HMAC-SHA512 signature
+     * @private
+     */
+    _createGateioSignature(method, url, queryString, body, timestamp, apiSecret) {
+        // Gate.io signature: HMAC-SHA512 of signing string
+        // Signing string format: METHOD\nURL\nQUERY_STRING\nHASHED_PAYLOAD\nTIMESTAMP
+        const hashedPayload = crypto.createHash('sha512').update(body || '').digest('hex');
+        const signingString = `${method}\n${url}\n${queryString}\n${hashedPayload}\n${timestamp}`;
+        return crypto.createHmac('sha512', apiSecret).update(signingString).digest('hex');
     }
 }
 
