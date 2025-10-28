@@ -1633,6 +1633,218 @@ class OrderExecutionService {
         const signingString = `${method}\n${url}\n${queryString}\n${hashedPayload}\n${timestamp}`;
         return crypto.createHmac('sha512', apiSecret).update(signingString).digest('hex');
     }
+
+    /**
+     * Execute a buy order on OKX
+     * OKX uses REST API v5 with spot trading
+     * @private
+     */
+    async _executeOKXBuy(pair, amountUSDT, credentials) {
+        try {
+            // Convert pair to OKX format (BTCUSDT → BTC-USDT)
+            const okxPair = this._convertPairToOKX(pair);
+
+            // Prepare order data
+            const timestamp = new Date().toISOString();
+            const method = 'POST';
+            const requestPath = '/api/v5/trade/order';
+
+            const orderData = {
+                instId: okxPair,
+                tdMode: 'cash', // Cash trading mode (spot)
+                side: 'buy',
+                ordType: 'market',
+                sz: amountUSDT.toFixed(2), // Order quantity (in USDT for market buy)
+                tgtCcy: 'quote_ccy' // Target currency is quote currency (USDT)
+            };
+
+            const requestBody = JSON.stringify(orderData);
+
+            // Create authentication headers
+            const authHeaders = this._createOKXAuth(
+                credentials.apiKey,
+                credentials.apiSecret,
+                credentials.passphrase,
+                timestamp,
+                method,
+                requestPath,
+                requestBody
+            );
+
+            const url = `https://www.okx.com${requestPath}`;
+
+            logger.info('Executing OKX buy order', { pair: okxPair, amountUSDT });
+
+            const response = await fetch(url, {
+                method: method,
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    ...authHeaders
+                },
+                body: requestBody
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`OKX buy order failed: ${response.status} - ${errorText}`);
+            }
+
+            const result = await response.json();
+
+            // Check for API error in response
+            if (result.code !== '0') {
+                throw new Error(`OKX buy order failed: ${result.code} - ${result.msg}`);
+            }
+
+            const orderResult = result.data[0];
+
+            logger.info('OKX buy order executed successfully', {
+                pair: okxPair,
+                orderId: orderResult.ordId,
+                clientOrderId: orderResult.clOrdId,
+                sCode: orderResult.sCode
+            });
+
+            return {
+                orderId: orderResult.ordId,
+                clientOrderId: orderResult.clOrdId,
+                status: 'filled',
+                pair: okxPair
+            };
+
+        } catch (error) {
+            logger.error('Failed to execute OKX buy order', {
+                pair,
+                amountUSDT,
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Execute a sell order on OKX
+     * @private
+     */
+    async _executeOKXSell(pair, quantity, credentials) {
+        try {
+            // Convert pair to OKX format (BTCUSDT → BTC-USDT)
+            const okxPair = this._convertPairToOKX(pair);
+
+            // Prepare order data
+            const timestamp = new Date().toISOString();
+            const method = 'POST';
+            const requestPath = '/api/v5/trade/order';
+
+            const orderData = {
+                instId: okxPair,
+                tdMode: 'cash', // Cash trading mode (spot)
+                side: 'sell',
+                ordType: 'market',
+                sz: quantity.toString(), // Order quantity (in base currency for sell)
+                tgtCcy: 'base_ccy' // Target currency is base currency
+            };
+
+            const requestBody = JSON.stringify(orderData);
+
+            // Create authentication headers
+            const authHeaders = this._createOKXAuth(
+                credentials.apiKey,
+                credentials.apiSecret,
+                credentials.passphrase,
+                timestamp,
+                method,
+                requestPath,
+                requestBody
+            );
+
+            const url = `https://www.okx.com${requestPath}`;
+
+            logger.info('Executing OKX sell order', { pair: okxPair, quantity });
+
+            const response = await fetch(url, {
+                method: method,
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    ...authHeaders
+                },
+                body: requestBody
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`OKX sell order failed: ${response.status} - ${errorText}`);
+            }
+
+            const result = await response.json();
+
+            // Check for API error in response
+            if (result.code !== '0') {
+                throw new Error(`OKX sell order failed: ${result.code} - ${result.msg}`);
+            }
+
+            const orderResult = result.data[0];
+
+            logger.info('OKX sell order executed successfully', {
+                pair: okxPair,
+                orderId: orderResult.ordId,
+                clientOrderId: orderResult.clOrdId,
+                sCode: orderResult.sCode
+            });
+
+            return {
+                orderId: orderResult.ordId,
+                clientOrderId: orderResult.clOrdId,
+                status: 'filled',
+                pair: okxPair
+            };
+
+        } catch (error) {
+            logger.error('Failed to execute OKX sell order', {
+                pair,
+                quantity,
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Convert pair to OKX format (BTCUSDT → BTC-USDT)
+     * OKX uses hyphen separator
+     * @private
+     */
+    _convertPairToOKX(pair) {
+        // Convert BTCUSDT to BTC-USDT format
+        const quoteCurrency = 'USDT';
+        if (pair.endsWith(quoteCurrency)) {
+            const baseCurrency = pair.slice(0, -quoteCurrency.length);
+            return `${baseCurrency}-${quoteCurrency}`;
+        }
+        return pair;
+    }
+
+    /**
+     * Create OKX authentication headers
+     * OKX requires passphrase in addition to API key and secret
+     * Uses HMAC-SHA256 signature with base64 encoding
+     * @private
+     */
+    _createOKXAuth(apiKey, apiSecret, passphrase, timestamp, method, requestPath, body = '') {
+        // OKX signature: HMAC-SHA256 of signing string, base64 encoded
+        // Signing string format: timestamp + method + requestPath + body
+        const signingString = timestamp + method + requestPath + body;
+        const signature = crypto.createHmac('sha256', apiSecret).update(signingString).digest('base64');
+
+        return {
+            'OK-ACCESS-KEY': apiKey,
+            'OK-ACCESS-SIGN': signature,
+            'OK-ACCESS-TIMESTAMP': timestamp,
+            'OK-ACCESS-PASSPHRASE': passphrase
+        };
+    }
 }
 
 module.exports = OrderExecutionService;
