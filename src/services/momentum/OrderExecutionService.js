@@ -85,6 +85,8 @@ class OrderExecutionService {
                 return await this._executeBitMartBuy(pair, amountUSDT, credentials);
             } else if (exchangeLower === 'bitrue') {
                 return await this._executeBitrueBuy(pair, amountUSDT, credentials);
+            } else if (exchangeLower === 'gemini') {
+                return await this._executeGeminiBuy(pair, amountUSDT, credentials);
             }
 
             throw new Error(`Exchange not supported: ${exchange}`);
@@ -146,6 +148,8 @@ class OrderExecutionService {
                 return await this._executeBitMartSell(pair, quantity, credentials);
             } else if (exchangeLower === 'bitrue') {
                 return await this._executeBitrueSell(pair, quantity, credentials);
+            } else if (exchangeLower === 'gemini') {
+                return await this._executeGeminiSell(pair, quantity, credentials);
             }
 
             throw new Error(`Exchange not supported: ${exchange}`);
@@ -3696,6 +3700,232 @@ class OrderExecutionService {
     _createBitrueSignature(queryString, apiSecret) {
         // Bitrue signature: HMAC-SHA256 of query string, lowercase hex (Binance-compatible)
         return crypto.createHmac('sha256', apiSecret).update(queryString).digest('hex');
+    }
+
+    // ============================================================================
+    // GEMINI ORDER EXECUTION
+    // ============================================================================
+
+    /**
+     * Execute Gemini buy order (market order)
+     * @param {string} pair - Trading pair (e.g., 'BTCUSD', 'BTCUSDT')
+     * @param {number} amountUSD - Amount in USD/USDT to spend
+     * @param {object} credentials - { apiKey, apiSecret }
+     * @returns {Promise<object>} Order result
+     * @private
+     */
+    async _executeGeminiBuy(pair, amountUSD, credentials) {
+        try {
+            // Convert pair to Gemini format (BTCUSD → btcusd)
+            const geminiPair = this._convertPairToGemini(pair);
+
+            // Get current price to calculate quantity
+            const currentPrice = await this._fetchGeminiPrice(geminiPair);
+            const quantity = (amountUSD / currentPrice).toFixed(8);
+
+            // Gemini requires base64 encoded JSON payload with nonce
+            const nonce = Date.now();
+            const payload = {
+                request: '/v1/order/new',
+                nonce: nonce,
+                symbol: geminiPair,
+                amount: quantity,
+                price: currentPrice.toString(),
+                side: 'buy',
+                type: 'exchange market',  // Market order on exchange (not auction)
+                options: ['immediate-or-cancel']  // Fill immediately or cancel
+            };
+
+            const payloadBase64 = Buffer.from(JSON.stringify(payload)).toString('base64');
+            const signature = this._createGeminiSignature(payloadBase64, credentials.apiSecret);
+
+            const url = 'https://api.gemini.com/v1/order/new';
+
+            logger.info('Executing Gemini buy order', {
+                pair: geminiPair,
+                amountUSD,
+                quantity,
+                currentPrice
+            });
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'text/plain',
+                    'X-GEMINI-APIKEY': credentials.apiKey,
+                    'X-GEMINI-PAYLOAD': payloadBase64,
+                    'X-GEMINI-SIGNATURE': signature
+                }
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
+            }
+
+            const result = await response.json();
+
+            // Check for Gemini error response
+            if (result.result === 'error') {
+                throw new Error(`Gemini order error: ${result.reason} - ${result.message}`);
+            }
+
+            logger.info('Gemini buy order executed successfully', {
+                pair: geminiPair,
+                orderId: result.order_id,
+                executedAmount: result.executed_amount
+            });
+
+            return {
+                success: true,
+                exchange: 'gemini',
+                orderId: result.order_id,
+                pair: geminiPair,
+                side: 'buy',
+                quantity: parseFloat(result.executed_amount || quantity),
+                price: parseFloat(result.avg_execution_price || currentPrice),
+                timestamp: Date.now()
+            };
+
+        } catch (error) {
+            logger.error('Gemini buy order failed', {
+                pair,
+                amountUSD,
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Execute Gemini sell order (market order)
+     * @param {string} pair - Trading pair (e.g., 'BTCUSD', 'BTCUSDT')
+     * @param {number} quantity - Quantity of base currency to sell
+     * @param {object} credentials - { apiKey, apiSecret }
+     * @returns {Promise<object>} Order result
+     * @private
+     */
+    async _executeGeminiSell(pair, quantity, credentials) {
+        try {
+            // Convert pair to Gemini format (BTCUSD → btcusd)
+            const geminiPair = this._convertPairToGemini(pair);
+
+            // Get current price for order
+            const currentPrice = await this._fetchGeminiPrice(geminiPair);
+
+            // Gemini requires base64 encoded JSON payload with nonce
+            const nonce = Date.now();
+            const payload = {
+                request: '/v1/order/new',
+                nonce: nonce,
+                symbol: geminiPair,
+                amount: quantity.toFixed(8),
+                price: currentPrice.toString(),
+                side: 'sell',
+                type: 'exchange market',  // Market order on exchange (not auction)
+                options: ['immediate-or-cancel']  // Fill immediately or cancel
+            };
+
+            const payloadBase64 = Buffer.from(JSON.stringify(payload)).toString('base64');
+            const signature = this._createGeminiSignature(payloadBase64, credentials.apiSecret);
+
+            const url = 'https://api.gemini.com/v1/order/new';
+
+            logger.info('Executing Gemini sell order', {
+                pair: geminiPair,
+                quantity
+            });
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'text/plain',
+                    'X-GEMINI-APIKEY': credentials.apiKey,
+                    'X-GEMINI-PAYLOAD': payloadBase64,
+                    'X-GEMINI-SIGNATURE': signature
+                }
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
+            }
+
+            const result = await response.json();
+
+            // Check for Gemini error response
+            if (result.result === 'error') {
+                throw new Error(`Gemini order error: ${result.reason} - ${result.message}`);
+            }
+
+            logger.info('Gemini sell order executed successfully', {
+                pair: geminiPair,
+                orderId: result.order_id,
+                executedAmount: result.executed_amount
+            });
+
+            return {
+                success: true,
+                exchange: 'gemini',
+                orderId: result.order_id,
+                pair: geminiPair,
+                side: 'sell',
+                quantity: parseFloat(result.executed_amount || quantity),
+                price: parseFloat(result.avg_execution_price || currentPrice),
+                timestamp: Date.now()
+            };
+
+        } catch (error) {
+            logger.error('Gemini sell order failed', {
+                pair,
+                quantity,
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Fetch current price from Gemini
+     * @param {string} geminiPair - Trading pair in Gemini format (e.g., 'btcusd')
+     * @returns {Promise<number>} Current price
+     * @private
+     */
+    async _fetchGeminiPrice(geminiPair) {
+        const response = await fetch(`https://api.gemini.com/v1/pubticker/${geminiPair}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to fetch Gemini price: ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        return parseFloat(result.last || 0);
+    }
+
+    /**
+     * Convert pair to Gemini format (BTCUSD → btcusd)
+     * Gemini uses lowercase without separator
+     * @private
+     */
+    _convertPairToGemini(pair) {
+        // Convert to lowercase
+        return pair.toLowerCase();
+    }
+
+    /**
+     * Create Gemini signature for authentication
+     * Uses HMAC-SHA384 signature (hex) - unique to Gemini
+     * @private
+     */
+    _createGeminiSignature(payload, apiSecret) {
+        // Gemini signature: HMAC-SHA384 of base64 payload, lowercase hex
+        return crypto.createHmac('sha384', apiSecret).update(payload).digest('hex');
     }
 }
 
