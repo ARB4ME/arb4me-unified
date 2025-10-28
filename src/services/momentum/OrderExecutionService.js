@@ -55,6 +55,8 @@ class OrderExecutionService {
                 return await this._executeValrBuy(pair, amountUSDT, credentials);
             } else if (exchangeLower === 'luno') {
                 return await this._executeLunoBuy(pair, amountUSDT, credentials);
+            } else if (exchangeLower === 'chainex') {
+                return await this._executeChainEXBuy(pair, amountUSDT, credentials);
             }
 
             throw new Error(`Exchange not supported: ${exchange}`);
@@ -86,6 +88,8 @@ class OrderExecutionService {
                 return await this._executeValrSell(pair, quantity, credentials);
             } else if (exchangeLower === 'luno') {
                 return await this._executeLunoSell(pair, quantity, credentials);
+            } else if (exchangeLower === 'chainex') {
+                return await this._executeChainEXSell(pair, quantity, credentials);
             }
 
             throw new Error(`Exchange not supported: ${exchange}`);
@@ -599,6 +603,185 @@ class OrderExecutionService {
 
         return {
             'Authorization': `Basic ${credentials}`,
+            'Content-Type': 'application/json'
+        };
+    }
+
+    // ===== CHAINEX-SPECIFIC METHODS =====
+
+    /**
+     * Execute ChainEX market BUY order
+     * @private
+     */
+    async _executeChainEXBuy(pair, amountUSDT, credentials) {
+        try {
+            // Apply rate limiting
+            await this._rateLimitDelay();
+
+            const config = {
+                baseUrl: 'https://api.chainex.io',
+                endpoint: '/trading/order'
+            };
+
+            // Convert pair format (BTCUSDT → BTC_USDT)
+            const chainexPair = this._convertPairToChainEX(pair);
+
+            // ChainEX market order payload
+            const payload = {
+                type: 'market',
+                side: 'buy',
+                pair: chainexPair,
+                quote_amount: amountUSDT.toFixed(2) // Amount in USDT (quote currency)
+            };
+
+            const url = `${config.baseUrl}${config.endpoint}`;
+
+            logger.info('Executing ChainEX market BUY order', {
+                pair: chainexPair,
+                amountUSDT,
+                payload
+            });
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: this._createChainEXAuth(credentials.apiKey),
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`ChainEX BUY order failed: ${response.status} - ${errorText}`);
+            }
+
+            const data = await response.json();
+
+            // Transform ChainEX response to standard format
+            const result = {
+                orderId: data.id || data.order_id,
+                executedPrice: parseFloat(data.average_price || data.price || 0),
+                executedQuantity: parseFloat(data.filled_amount || data.amount || 0),
+                executedValue: parseFloat(data.filled_value || amountUSDT),
+                fee: parseFloat(data.fee || 0),
+                status: data.status || 'COMPLETE',
+                timestamp: data.created_at || Date.now(),
+                rawResponse: data
+            };
+
+            logger.info('ChainEX BUY order executed successfully', {
+                orderId: result.orderId,
+                executedPrice: result.executedPrice,
+                executedQuantity: result.executedQuantity
+            });
+
+            return result;
+
+        } catch (error) {
+            logger.error('ChainEX BUY order failed', {
+                pair,
+                amountUSDT,
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Execute ChainEX market SELL order
+     * @private
+     */
+    async _executeChainEXSell(pair, quantity, credentials) {
+        try {
+            // Apply rate limiting
+            await this._rateLimitDelay();
+
+            const config = {
+                baseUrl: 'https://api.chainex.io',
+                endpoint: '/trading/order'
+            };
+
+            // Convert pair format (BTCUSDT → BTC_USDT)
+            const chainexPair = this._convertPairToChainEX(pair);
+
+            // ChainEX market order payload
+            const payload = {
+                type: 'market',
+                side: 'sell',
+                pair: chainexPair,
+                base_amount: quantity.toFixed(8) // Amount of base currency (crypto)
+            };
+
+            const url = `${config.baseUrl}${config.endpoint}`;
+
+            logger.info('Executing ChainEX market SELL order', {
+                pair: chainexPair,
+                quantity,
+                payload
+            });
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: this._createChainEXAuth(credentials.apiKey),
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`ChainEX SELL order failed: ${response.status} - ${errorText}`);
+            }
+
+            const data = await response.json();
+
+            // Transform ChainEX response to standard format
+            const result = {
+                orderId: data.id || data.order_id,
+                executedPrice: parseFloat(data.average_price || data.price || 0),
+                executedQuantity: parseFloat(data.filled_amount || data.amount || 0),
+                executedValue: parseFloat(data.filled_value || 0),
+                fee: parseFloat(data.fee || 0),
+                status: data.status || 'COMPLETE',
+                timestamp: data.created_at || Date.now(),
+                rawResponse: data
+            };
+
+            logger.info('ChainEX SELL order executed successfully', {
+                orderId: result.orderId,
+                executedPrice: result.executedPrice,
+                executedValue: result.executedValue
+            });
+
+            return result;
+
+        } catch (error) {
+            logger.error('ChainEX SELL order failed', {
+                pair,
+                quantity,
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Convert pair to ChainEX format (BTCUSDT → BTC_USDT)
+     * @private
+     */
+    _convertPairToChainEX(pair) {
+        const quoteCurrency = 'USDT';
+        if (pair.endsWith(quoteCurrency)) {
+            const baseCurrency = pair.slice(0, -quoteCurrency.length);
+            return `${baseCurrency}_${quoteCurrency}`;
+        }
+        return pair;
+    }
+
+    /**
+     * Create ChainEX authentication headers (Simple API Key)
+     * @private
+     */
+    _createChainEXAuth(apiKey) {
+        // ChainEX uses simple X-API-KEY header authentication
+        return {
+            'X-API-KEY': apiKey,
             'Content-Type': 'application/json'
         };
     }
