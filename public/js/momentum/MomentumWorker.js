@@ -341,6 +341,8 @@ const MomentumWorker = {
             const pair = `${asset}USDT`;
 
             // Fetch candle data via API
+            // Use 5-minute candles for momentum trading (faster signals, recent data)
+            // Request 50 candles = 250 minutes = ~4 hours of data (sufficient for RSI, volume analysis)
             const candleResponse = await fetch('/api/v1/momentum/market/candles', {
                 method: 'POST',
                 headers: {
@@ -349,8 +351,8 @@ const MomentumWorker = {
                 body: JSON.stringify({
                     exchange: strategy.exchange,
                     pair,
-                    interval: '1h',
-                    limit: 100,
+                    interval: '5m',
+                    limit: 50,
                     credentials
                 })
             });
@@ -361,10 +363,12 @@ const MomentumWorker = {
 
             const { data: candles } = await candleResponse.json();
 
-            if (!candles || candles.length < 50) {
+            // Need minimum 20 candles for RSI-14 calculation plus some history
+            if (!candles || candles.length < 20) {
                 console.warn('Insufficient candle data', {
                     pair,
-                    candlesCount: candles?.length || 0
+                    candlesCount: candles?.length || 0,
+                    minimumRequired: 20
                 });
                 return { asset, pair, hasSignal: false };
             }
