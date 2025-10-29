@@ -389,9 +389,14 @@ const MomentumWorker = {
                 console.log(`      📊 RSI: ${signalResult.indicatorValues.rsi?.toFixed(2) || 'N/A'}`);
                 console.log(`      📈 Volume: ${signalResult.indicatorValues.volume?.volumeRatio?.toFixed(2) || 'N/A'}x avg`);
                 console.log(`      📉 MACD: ${signalResult.indicatorValues.macd?.histogram?.toFixed(4) || 'N/A'}`);
+                console.log(`      🔄 EMA: Fast ${signalResult.indicatorValues.ema?.fastEMA?.toFixed(2) || 'N/A'} / Slow ${signalResult.indicatorValues.ema?.slowEMA?.toFixed(2) || 'N/A'}`);
+                console.log(`      📏 Bollinger: %B ${signalResult.indicatorValues.bollinger?.percentB?.toFixed(2) || 'N/A'}`);
+                console.log(`      ⚡ Stochastic: %K ${signalResult.indicatorValues.stochastic?.k?.toFixed(2) || 'N/A'}`);
             }
             if (signalResult.triggeredIndicators.length > 0) {
                 console.log(`      ✅ Triggered:`, signalResult.triggeredIndicators.map(i => i.name).join(', '));
+            } else {
+                console.log(`      ❌ No indicators triggered`);
             }
 
             return {
