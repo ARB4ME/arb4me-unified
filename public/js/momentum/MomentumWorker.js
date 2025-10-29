@@ -341,9 +341,9 @@ const MomentumWorker = {
             const pair = `${asset}USDT`;
 
             // Fetch candle data via API
-            // Use 1-minute candles for momentum trading (faster signals, works with VALR's limited trade history)
-            // VALR's public trades endpoint returns ~100 recent trades covering 30-40 minutes
-            // Request 50 candles = 50 minutes of data (sufficient for RSI-14 with buffer)
+            // Use 1-minute candles for momentum trading (faster signals, responsive)
+            // Binance allows up to 1000 candles - request maximum for best indicator accuracy
+            // 1000 candles at 1-minute = ~16.7 hours of historical data
             const candleResponse = await fetch('/api/v1/momentum/market/candles', {
                 method: 'POST',
                 headers: {
@@ -353,7 +353,7 @@ const MomentumWorker = {
                     exchange: strategy.exchange,
                     pair,
                     interval: '1m',
-                    limit: 50,
+                    limit: 1000,
                     credentials
                 })
             });
