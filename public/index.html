@@ -22390,6 +22390,7 @@ ARB4ME Security Team`
         // Update button state to show connected/disconnected
         function updateMomentumButtonState(exchangeName) {
             const isConnected = localStorage.getItem(`${exchangeName}_momentum_connected`) === 'true';
+            const hasCredentials = localStorage.getItem(`${exchangeName}_momentum_api`) !== null;
             const btn = document.getElementById(`${exchangeName}ConnectBtn`);
 
             if (!btn) return;
@@ -22398,6 +22399,10 @@ ARB4ME Security Team`
                 btn.innerHTML = `✅ ${exchangeName.toUpperCase()} Connected - Click to Disconnect`;
                 btn.style.background = 'linear-gradient(45deg, #00ff88 0%, #00cc66 100%)';
                 btn.setAttribute('data-connected', 'true');
+            } else if (hasCredentials) {
+                btn.innerHTML = `🔗 Reconnect ${exchangeName.toUpperCase()}`;
+                btn.style.background = 'linear-gradient(45deg, #667eea 0%, #764ba2 100%)';
+                btn.removeAttribute('data-connected');
             } else {
                 btn.innerHTML = `<span id="${exchangeName}ConnectText">🔗 Connect ${exchangeName.toUpperCase()} (Real Mode)</span>`;
                 btn.style.background = '';
@@ -22418,33 +22423,24 @@ ARB4ME Security Team`
             }
         }
 
-        // Disconnect momentum exchange
+        // Disconnect momentum exchange (keeps credentials saved)
         function disconnectMomentumExchange(exchangeName) {
             console.log(`🔌 [Momentum] Disconnecting ${exchangeName}...`);
 
-            if (!confirm(`Are you sure you want to disconnect ${exchangeName.toUpperCase()} from Momentum Trading?\n\nThis will remove your saved credentials.`)) {
+            if (!confirm(`Disconnect ${exchangeName.toUpperCase()} from Momentum Trading?\n\nYour credentials will be saved for quick reconnection.`)) {
                 return;
             }
 
             try {
-                // Remove credentials from localStorage
-                localStorage.removeItem(`${exchangeName}_momentum_api`);
-                localStorage.removeItem(`${exchangeName}_momentum_secret`);
-                localStorage.removeItem(`${exchangeName}_momentum_passphrase`);
-                localStorage.removeItem(`${exchangeName}_momentum_connected`);
+                // Just mark as disconnected - DO NOT remove credentials
+                localStorage.setItem(`${exchangeName}_momentum_connected`, 'false');
 
-                console.log(`✅ [Momentum] ${exchangeName} disconnected and credentials removed`);
+                console.log(`✅ [Momentum] ${exchangeName} disconnected (credentials preserved)`);
 
                 // Update button state
                 updateMomentumButtonState(exchangeName);
 
-                // Clear input fields
-                const apiKeyInput = document.querySelector(`#momentumModal #${exchangeName}ApiKey`);
-                const secretKeyInput = document.querySelector(`#momentumModal #${exchangeName}SecretKey`);
-                if (apiKeyInput) apiKeyInput.value = '';
-                if (secretKeyInput) secretKeyInput.value = '';
-
-                alert(`✅ ${exchangeName.toUpperCase()} disconnected successfully from Momentum Trading.`);
+                alert(`✅ ${exchangeName.toUpperCase()} disconnected.\n\nYour credentials are saved - click Connect to reconnect instantly.`);
 
             } catch (error) {
                 console.error(`❌ [Momentum] Failed to disconnect ${exchangeName}:`, error);
