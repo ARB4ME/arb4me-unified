@@ -448,6 +448,34 @@ router.post('/strategies/:id/toggle', async (req, res) => {
 });
 
 /**
+ * GET /api/v1/momentum/strategies/:id/can-open-position
+ * Check if strategy can open new position (not at max positions limit)
+ */
+router.get('/strategies/:id/can-open-position', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const canOpen = await MomentumStrategy.canOpenPosition(id);
+
+        res.json({
+            success: true,
+            data: canOpen
+        });
+
+    } catch (error) {
+        logger.error('Failed to check if strategy can open position', {
+            strategyId: req.params.id,
+            error: error.message
+        });
+
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
  * PUT /api/v1/momentum/strategies/:id
  * Update a strategy
  */

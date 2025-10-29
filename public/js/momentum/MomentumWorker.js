@@ -216,7 +216,7 @@ const MomentumWorker = {
         };
 
         try {
-            console.log(`\n   🔍 Processing Strategy ID: ${strategy.id} (${strategy.exchange.toUpperCase()}) - ${strategy.name || 'Unnamed'}`);
+            console.log(`\n   🔍 Processing Strategy ID: ${strategy.id} (${strategy.exchange.toUpperCase()}) - ${strategy.strategy_name || 'Unnamed'}`);
 
             // Get credentials from localStorage (like triangular arb)
             const apiKey = localStorage.getItem(`${strategy.exchange}_momentum_api`);
