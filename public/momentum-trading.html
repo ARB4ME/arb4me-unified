@@ -1008,7 +1008,7 @@
                     <div style="font-size: 0.85rem; color: #888;">
                         <div><strong>Assets:</strong> ${strategy.assets.join(', ')}</div>
                         <div><strong>Entry Logic:</strong> ${strategy.entry_logic.replace('_', ' ')}</div>
-                        <div><strong>Max Trade:</strong> R${strategy.max_trade_amount.toLocaleString()}</div>
+                        <div><strong>Max Trade:</strong> ${strategy.max_trade_amount.toLocaleString()} USDT</div>
                         <div><strong>Max Positions:</strong> ${strategy.max_open_positions}</div>
                         <div><strong>Take Profit:</strong> ${strategy.exit_rules.takeProfitPercent}% | <strong>Stop Loss:</strong> ${strategy.exit_rules.stopLossPercent}%</div>
                     </div>
