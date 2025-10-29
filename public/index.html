@@ -22298,7 +22298,7 @@ ARB4ME Security Team`
 
         // Load Momentum Credentials from localStorage
         function loadMomentumCredentials() {
-            console.log('📥 Loading saved Momentum credentials from localStorage');
+            console.log('📥 Loading Momentum-specific credentials from localStorage');
 
             const exchanges = [
                 'valr', 'luno', 'altcointrader', 'xago', 'chainex', 'kraken',
@@ -22307,39 +22307,29 @@ ARB4ME Security Team`
                 'bitrue', 'gemini', 'cryptocom', 'coincatch'
             ];
 
+            let loadedCount = 0;
+
             exchanges.forEach(exchange => {
-                // Load API key - check both old and new localStorage key patterns
-                // Old pattern: {exchange}ApiKey (e.g., valrApiKey, binanceApiKey)
-                // New pattern: {exchange}_momentum_api (e.g., valr_momentum_api)
-                let apiKey = localStorage.getItem(`${exchange}_momentum_api`);
-                if (!apiKey) {
-                    // Fallback to old key pattern
-                    apiKey = localStorage.getItem(`${exchange}ApiKey`);
-                }
+                // Load ONLY momentum-specific credentials (no fallback to other strategies)
+                const apiKey = localStorage.getItem(`${exchange}_momentum_api`);
+                const secretKey = localStorage.getItem(`${exchange}_momentum_secret`);
+
                 const apiKeyInput = document.querySelector(`#momentumModal #${exchange}ApiKey`);
+                const secretKeyInput = document.querySelector(`#momentumModal #${exchange}SecretKey`);
+
                 if (apiKeyInput && apiKey) {
                     apiKeyInput.value = apiKey;
+                    loadedCount++;
                     console.log(`  ✓ Loaded ${exchange} API key`);
                 }
 
-                // Load secret key - check both old and new patterns
-                let secretKey = localStorage.getItem(`${exchange}_momentum_secret`);
-                if (!secretKey) {
-                    // Fallback to old key pattern
-                    secretKey = localStorage.getItem(`${exchange}SecretKey`);
-                }
-                const secretKeyInput = document.querySelector(`#momentumModal #${exchange}SecretKey`);
                 if (secretKeyInput && secretKey) {
                     secretKeyInput.value = secretKey;
                 }
 
                 // Load passphrase (OKX, KuCoin, Bitget, Coincatch)
                 if (['okx', 'kucoin', 'bitget', 'coincatch'].includes(exchange)) {
-                    let passphrase = localStorage.getItem(`${exchange}_momentum_passphrase`);
-                    if (!passphrase) {
-                        // Fallback to old pattern
-                        passphrase = localStorage.getItem(`${exchange}Passphrase`);
-                    }
+                    const passphrase = localStorage.getItem(`${exchange}_momentum_passphrase`);
                     const passphraseInput = document.querySelector(`#momentumModal #${exchange}Passphrase`);
                     if (passphraseInput && passphrase) {
                         passphraseInput.value = passphrase;
@@ -22348,11 +22338,7 @@ ARB4ME Security Team`
 
                 // Load memo (BitMart)
                 if (exchange === 'bitmart') {
-                    let memo = localStorage.getItem(`${exchange}_momentum_passphrase`);
-                    if (!memo) {
-                        // Fallback to old pattern
-                        memo = localStorage.getItem(`${exchange}Memo`);
-                    }
+                    const memo = localStorage.getItem(`${exchange}_momentum_passphrase`);
                     const memoInput = document.querySelector(`#momentumModal #bitmartMemo`);
                     if (memoInput && memo) {
                         memoInput.value = memo;
@@ -22360,7 +22346,7 @@ ARB4ME Security Team`
                 }
             });
 
-            console.log('✅ Momentum credentials loaded from localStorage');
+            console.log(`✅ Loaded ${loadedCount} Momentum credentials (independent from other strategies)`);
         }
 
         // Open Momentum Trading Modal
@@ -22417,21 +22403,17 @@ ARB4ME Security Team`
             }
 
             try {
-                // Store credentials in BOTH localStorage patterns for backward compatibility
-                // New pattern (momentum-specific): {exchange}_momentum_api
+                // Store credentials ONLY for Momentum strategy (independent from other strategies)
                 localStorage.setItem(`${exchangeName}_momentum_api`, apiKey);
                 localStorage.setItem(`${exchangeName}_momentum_secret`, secretKey);
-
-                // Old pattern (legacy): {exchange}ApiKey
-                localStorage.setItem(`${exchangeName}ApiKey`, apiKey);
-                localStorage.setItem(`${exchangeName}SecretKey`, secretKey);
+                localStorage.setItem(`${exchangeName}_momentum_connected`, 'true');
 
                 if (passphrase) {
                     localStorage.setItem(`${exchangeName}_momentum_passphrase`, passphrase);
-                    localStorage.setItem(`${exchangeName}Passphrase`, passphrase); // Also save old pattern
                 }
 
-                console.log(`✅ [Momentum] ${exchangeName} credentials saved to localStorage (both patterns)`);
+                console.log(`✅ [Momentum] ${exchangeName} credentials saved to localStorage`);
+                console.log(`   Pattern: ${exchangeName}_momentum_api / ${exchangeName}_momentum_secret`);
                 alert(`✅ ${exchangeName.toUpperCase()} credentials saved successfully for Momentum Trading!\n\nYou can now use this exchange in your momentum strategies.`);
 
                 // Optionally update button text
