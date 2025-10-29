@@ -46,10 +46,10 @@ class VALRMarketDataService {
             // VALR uses specific interval format
             const valrInterval = this._convertInterval(interval);
 
-            // VALR endpoint: GET /v1/marketdata/:currencyPair/tradehistory
-            // For candles, we use aggregated trades endpoint
-            const path = `/v1/marketdata/${pair}/candles`;
-            const url = `${this.baseUrl}${path}?period=${valrInterval}&limit=${limit}`;
+            // VALR endpoint: GET /v1/marketdata/:currencyPair/candles
+            // Note: Query parameters must be included in signature path
+            const path = `/v1/marketdata/${pair}/candles?period=${valrInterval}&limit=${limit}`;
+            const url = `${this.baseUrl}${path}`;
 
             const headers = this._createValrAuth(
                 credentials.apiKey,
