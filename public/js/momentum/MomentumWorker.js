@@ -494,6 +494,9 @@ const MomentumWorker = {
                 }
             }
 
+            // Save indicator results to localStorage for UI display
+            this._saveIndicatorResults(strategy.id, allSignals);
+
             // Filter signals that triggered
             const triggeredSignals = allSignals.filter(s => s.hasSignal);
             results.signalsDetected = triggeredSignals.length;
@@ -668,6 +671,65 @@ const MomentumWorker = {
             });
             console.error(`         ❌ Failed to open position for ${pair}: ${error.message}`);
             return null;
+        }
+    },
+
+    /**
+     * Save indicator results to localStorage for UI display
+     * @private
+     */
+    _saveIndicatorResults(strategyId, allSignals) {
+        try {
+            // Get existing stored results
+            const storedResults = JSON.parse(localStorage.getItem('momentum_indicator_results') || '{}');
+
+            // Build indicator summary for this strategy
+            const strategyData = {
+                lastUpdate: Date.now(),
+                assets: {}
+            };
+
+            // Process each asset's signal results
+            allSignals.forEach(signal => {
+                if (signal && signal.signalResult) {
+                    const { asset, pair, signalResult } = signal;
+
+                    strategyData.assets[asset] = {
+                        pair,
+                        indicators: {
+                            rsi: signalResult.indicatorValues?.rsi || null,
+                            volume: signalResult.indicatorValues?.volume?.volumeRatio || null,
+                            macd: signalResult.indicatorValues?.macd?.histogram || null,
+                            ema: {
+                                fast: signalResult.indicatorValues?.ema?.fastEMA || null,
+                                slow: signalResult.indicatorValues?.ema?.slowEMA || null
+                            },
+                            bollinger: signalResult.indicatorValues?.bollinger?.percentB || null,
+                            stochastic: signalResult.indicatorValues?.stochastic?.k || null
+                        },
+                        triggeredCount: signalResult.triggeredCount || 0,
+                        totalEnabled: signalResult.totalEnabled || 0,
+                        triggeredIndicators: signalResult.triggeredIndicators || []
+                    };
+                }
+            });
+
+            // Store results for this strategy
+            storedResults[strategyId] = strategyData;
+
+            // Save to localStorage
+            localStorage.setItem('momentum_indicator_results', JSON.stringify(storedResults));
+
+            console.debug('Saved indicator results to localStorage', {
+                strategyId,
+                assetsCount: Object.keys(strategyData.assets).length
+            });
+
+        } catch (error) {
+            console.error('Failed to save indicator results', {
+                strategyId,
+                error: error.message
+            });
         }
     },
 

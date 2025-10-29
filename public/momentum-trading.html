@@ -958,7 +958,7 @@
 
                 if (result.success) {
                     strategies = result.data;
-                    renderStrategies();
+                    renderStrategiesWithIndicators();
                     updateStats();
                 }
             } catch (error) {
@@ -1012,8 +1012,112 @@
                         <div><strong>Max Positions:</strong> ${strategy.max_open_positions}</div>
                         <div><strong>Take Profit:</strong> ${strategy.exit_rules.takeProfitPercent}% | <strong>Stop Loss:</strong> ${strategy.exit_rules.stopLossPercent}%</div>
                     </div>
+
+                    <!-- Live Indicators (updated by worker) -->
+                    <div id="indicators-${strategy.id}" style="margin-top: 15px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 5px; font-size: 0.85rem;">
+                        <div style="font-weight: bold; margin-bottom: 8px; color: #00bfff;">
+                            📊 LIVE INDICATORS
+                            <span id="lastUpdate-${strategy.id}" style="float: right; font-size: 0.75rem; color: #888; font-weight: normal;"></span>
+                        </div>
+                        <div id="indicatorValues-${strategy.id}" style="color: #ccc;">
+                            <div style="padding: 5px 0;">Waiting for first scan...</div>
+                        </div>
+                    </div>
                 </div>
             `).join('');
+        }
+
+        // Update live indicators from worker results
+        function updateLiveIndicators() {
+            try {
+                // Read indicator results from localStorage (saved by worker)
+                const storedResults = JSON.parse(localStorage.getItem('momentum_indicator_results') || '{}');
+
+                // Update each strategy's indicator display
+                strategies.forEach(strategy => {
+                    const strategyData = storedResults[strategy.id];
+                    const indicatorDiv = document.getElementById(`indicatorValues-${strategy.id}`);
+                    const lastUpdateSpan = document.getElementById(`lastUpdate-${strategy.id}`);
+
+                    if (!indicatorDiv || !lastUpdateSpan) return;
+
+                    if (!strategyData || !strategyData.assets || Object.keys(strategyData.assets).length === 0) {
+                        indicatorDiv.innerHTML = '<div style="padding: 5px 0; color: #888;">Waiting for first scan...</div>';
+                        lastUpdateSpan.textContent = '';
+                        return;
+                    }
+
+                    // Get first asset's data (for single-asset strategies like XRP)
+                    const firstAsset = Object.keys(strategyData.assets)[0];
+                    const assetData = strategyData.assets[firstAsset];
+
+                    if (!assetData) return;
+
+                    // Format last update time
+                    const timeAgo = Math.floor((Date.now() - strategyData.lastUpdate) / 1000);
+                    lastUpdateSpan.textContent = timeAgo < 60 ? `${timeAgo}s ago` : `${Math.floor(timeAgo / 60)}m ago`;
+
+                    // Build indicator display
+                    let html = '';
+
+                    // Show each indicator that's enabled (has a value)
+                    if (assetData.indicators.rsi !== null) {
+                        const rsiValue = assetData.indicators.rsi.toFixed(2);
+                        const rsiThreshold = strategy.entry_indicators?.rsi?.oversold || 30;
+                        const rsiStatus = assetData.indicators.rsi < rsiThreshold ? '✅' : '❌';
+                        html += `<div>📊 RSI: ${rsiValue} (need <${rsiThreshold}) ${rsiStatus}</div>`;
+                    }
+
+                    if (assetData.indicators.volume !== null) {
+                        const volumeValue = assetData.indicators.volume.toFixed(2);
+                        const volumeThreshold = strategy.entry_indicators?.volume?.multiplier || 2;
+                        const volumeStatus = assetData.indicators.volume > volumeThreshold ? '✅' : '❌';
+                        html += `<div>📈 Volume: ${volumeValue}x avg (need >${volumeThreshold}x) ${volumeStatus}</div>`;
+                    }
+
+                    if (assetData.indicators.macd !== null) {
+                        const macdValue = assetData.indicators.macd.toFixed(4);
+                        html += `<div>📉 MACD: ${macdValue}</div>`;
+                    }
+
+                    if (assetData.indicators.ema?.fast !== null && assetData.indicators.ema?.slow !== null) {
+                        const emaFast = assetData.indicators.ema.fast.toFixed(2);
+                        const emaSlow = assetData.indicators.ema.slow.toFixed(2);
+                        html += `<div>🔄 EMA: ${emaFast} / ${emaSlow}</div>`;
+                    }
+
+                    if (assetData.indicators.bollinger !== null) {
+                        const bbValue = assetData.indicators.bollinger.toFixed(2);
+                        html += `<div>📏 Bollinger: %B ${bbValue}</div>`;
+                    }
+
+                    if (assetData.indicators.stochastic !== null) {
+                        const stochValue = assetData.indicators.stochastic.toFixed(2);
+                        html += `<div>⚡ Stochastic: %K ${stochValue}</div>`;
+                    }
+
+                    // Show triggered count
+                    const statusColor = assetData.triggeredCount >= 2 ? '#00ff88' : '#ffa500';
+                    html += `<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #333; color: ${statusColor};">
+                        <strong>Status:</strong> ${assetData.triggeredCount}/${assetData.totalEnabled} triggered
+                        ${assetData.triggeredCount >= 2 ? '🎯 SIGNAL!' : '(need 2+)'}
+                    </div>`;
+
+                    indicatorDiv.innerHTML = html;
+                });
+
+            } catch (error) {
+                console.error('Failed to update live indicators:', error);
+            }
+        }
+
+        // Auto-refresh indicators every 5 seconds
+        setInterval(updateLiveIndicators, 5000);
+
+        // Also update immediately when strategies are loaded
+        function renderStrategiesWithIndicators() {
+            renderStrategies();
+            setTimeout(updateLiveIndicators, 500); // Give DOM time to render
         }
 
         // Load positions
