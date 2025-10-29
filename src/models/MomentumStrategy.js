@@ -17,6 +17,7 @@ const { query } = require('../database/connection');
  *   exit_rules JSONB NOT NULL,
  *   max_trade_amount DECIMAL(12,2) NOT NULL,
  *   max_open_positions INTEGER NOT NULL,
+ *   timeframe VARCHAR(5) DEFAULT '5m' CHECK (timeframe IN ('1m', '5m', '15m')),
  *   is_active BOOLEAN DEFAULT false,
  *   created_at TIMESTAMP DEFAULT NOW(),
  *   updated_at TIMESTAMP DEFAULT NOW()
@@ -43,6 +44,7 @@ class MomentumStrategy {
                 exit_rules JSONB NOT NULL,
                 max_trade_amount DECIMAL(12,2) NOT NULL,
                 max_open_positions INTEGER NOT NULL,
+                timeframe VARCHAR(5) DEFAULT '5m' CHECK (timeframe IN ('1m', '5m', '15m')),
                 is_active BOOLEAN DEFAULT false,
                 created_at TIMESTAMP DEFAULT NOW(),
                 updated_at TIMESTAMP DEFAULT NOW()
@@ -50,6 +52,15 @@ class MomentumStrategy {
 
             CREATE INDEX IF NOT EXISTS idx_momentum_strategies_user_exchange ON momentum_strategies(user_id, exchange);
             CREATE INDEX IF NOT EXISTS idx_momentum_strategies_active ON momentum_strategies(is_active);
+
+            -- Add timeframe column to existing tables (safe to run multiple times)
+            DO $$
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                              WHERE table_name='momentum_strategies' AND column_name='timeframe') THEN
+                    ALTER TABLE momentum_strategies ADD COLUMN timeframe VARCHAR(5) DEFAULT '5m' CHECK (timeframe IN ('1m', '5m', '15m'));
+                END IF;
+            END $$;
         `;
 
         await query(createTableQuery);
@@ -68,16 +79,17 @@ class MomentumStrategy {
             entryLogic,
             exitRules,
             maxTradeAmount,
-            maxOpenPositions
+            maxOpenPositions,
+            timeframe
         } = strategyData;
 
         const insertQuery = `
             INSERT INTO momentum_strategies (
                 user_id, exchange, strategy_name, assets,
                 entry_indicators, entry_logic, exit_rules,
-                max_trade_amount, max_open_positions
+                max_trade_amount, max_open_positions, timeframe
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             RETURNING *
         `;
 
@@ -90,7 +102,8 @@ class MomentumStrategy {
             entryLogic,
             JSON.stringify(exitRules),
             maxTradeAmount,
-            maxOpenPositions
+            maxOpenPositions,
+            timeframe || '5m'
         ];
 
         const result = await query(insertQuery, values);
@@ -180,7 +193,8 @@ class MomentumStrategy {
             entryLogic,
             exitRules,
             maxTradeAmount,
-            maxOpenPositions
+            maxOpenPositions,
+            timeframe
         } = updates;
 
         const updateQuery = `
@@ -192,8 +206,9 @@ class MomentumStrategy {
                 exit_rules = COALESCE($5, exit_rules),
                 max_trade_amount = COALESCE($6, max_trade_amount),
                 max_open_positions = COALESCE($7, max_open_positions),
+                timeframe = COALESCE($8, timeframe),
                 updated_at = NOW()
-            WHERE id = $8 AND user_id = $9
+            WHERE id = $9 AND user_id = $10
             RETURNING *
         `;
 
@@ -205,6 +220,7 @@ class MomentumStrategy {
             exitRules ? JSON.stringify(exitRules) : null,
             maxTradeAmount,
             maxOpenPositions,
+            timeframe,
             strategyId,
             userId
         ];

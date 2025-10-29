@@ -341,9 +341,10 @@ const MomentumWorker = {
             const pair = `${asset}USDT`;
 
             // Fetch candle data via API
-            // Use 1-minute candles for momentum trading (faster signals, responsive)
+            // Use strategy's configured timeframe (1m/5m/15m)
             // Binance allows up to 1000 candles - request maximum for best indicator accuracy
-            // 1000 candles at 1-minute = ~16.7 hours of historical data
+            // 1000 candles: 1m = ~16.7 hours, 5m = ~3.5 days, 15m = ~10.4 days of historical data
+            const timeframe = strategy.timeframe || '5m'; // Default to 5m if not set
             const candleResponse = await fetch('/api/v1/momentum/market/candles', {
                 method: 'POST',
                 headers: {
@@ -352,7 +353,7 @@ const MomentumWorker = {
                 body: JSON.stringify({
                     exchange: strategy.exchange,
                     pair,
-                    interval: '1m',
+                    interval: timeframe,
                     limit: 1000,
                     credentials
                 })
