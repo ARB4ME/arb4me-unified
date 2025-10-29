@@ -22296,6 +22296,54 @@ ARB4ME Security Team`
             }
         }
 
+        // Load Momentum Credentials from localStorage
+        function loadMomentumCredentials() {
+            console.log('📥 Loading saved Momentum credentials from localStorage');
+
+            const exchanges = [
+                'valr', 'luno', 'altcointrader', 'xago', 'chainex', 'kraken',
+                'binance', 'bybit', 'gateio', 'okx', 'mexc', 'kucoin',
+                'xt', 'ascendex', 'htx', 'bingx', 'bitget', 'bitmart',
+                'bitrue', 'gemini', 'cryptocom', 'coincatch'
+            ];
+
+            exchanges.forEach(exchange => {
+                // Load API key
+                const apiKey = localStorage.getItem(`${exchange}_momentum_api`);
+                const apiKeyInput = document.querySelector(`#momentumModal #${exchange}ApiKey`);
+                if (apiKeyInput && apiKey) {
+                    apiKeyInput.value = apiKey;
+                }
+
+                // Load secret key
+                const secretKey = localStorage.getItem(`${exchange}_momentum_secret`);
+                const secretKeyInput = document.querySelector(`#momentumModal #${exchange}SecretKey`);
+                if (secretKeyInput && secretKey) {
+                    secretKeyInput.value = secretKey;
+                }
+
+                // Load passphrase (OKX, KuCoin, Bitget, Coincatch)
+                if (['okx', 'kucoin', 'bitget', 'coincatch'].includes(exchange)) {
+                    const passphrase = localStorage.getItem(`${exchange}_momentum_passphrase`);
+                    const passphraseInput = document.querySelector(`#momentumModal #${exchange}Passphrase`);
+                    if (passphraseInput && passphrase) {
+                        passphraseInput.value = passphrase;
+                    }
+                }
+
+                // Load memo (BitMart)
+                if (exchange === 'bitmart') {
+                    const memo = localStorage.getItem(`${exchange}_momentum_passphrase`);
+                    const memoInput = document.querySelector(`#momentumModal #bitmartMemo`);
+                    if (memoInput && memo) {
+                        memoInput.value = memo;
+                    }
+                }
+            });
+
+            console.log('✅ Momentum credentials loaded');
+        }
+
         // Open Momentum Trading Modal
         function openMomentumModal() {
             console.log('🎯 Opening Momentum Trading API Configuration modal');
@@ -22304,6 +22352,8 @@ ARB4ME Security Team`
                 modal.style.display = 'block';
                 // Prevent body scroll when modal is open
                 document.body.style.overflow = 'hidden';
+                // Load existing credentials
+                loadMomentumCredentials();
             }
         }
 
