@@ -3634,8 +3634,8 @@
                         <input type="password" id="bitmartSecretKey" placeholder="Enter your BitMart API secret" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" name="bitmart-momentum-secret">
                     </div>
                     <div class="form-group">
-                        <label>BitMart Memo (Required for live trading)</label>
-                        <input type="password" id="bitmartMemo" placeholder="Enter your BitMart memo">
+                        <label>BitMart Memo (Optional)</label>
+                        <input type="password" id="bitmartMemo" placeholder="Enter BitMart Memo (Optional)" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" name="bitmart-momentum-memo">
                     </div>
                     <button class="btn" id="bitmartConnectBtn">
                         <span id="bitmartConnectText">🔗 Connect BitMart (Real Mode)</span>
@@ -22471,14 +22471,9 @@ ARB4ME Security Team`
                 return;
             }
 
-            // Additional validation for exchanges requiring passphrase/memo
+            // Additional validation for exchanges requiring passphrase (BitMart memo is optional)
             if ((exchangeName === 'okx' || exchangeName === 'kucoin' || exchangeName === 'bitget' || exchangeName === 'coincatch') && (!passphrase || passphrase.trim() === '')) {
                 alert(`❌ ${exchangeName.toUpperCase()} requires a passphrase`);
-                return;
-            }
-
-            if (exchangeName === 'bitmart' && (!passphrase || passphrase.trim() === '')) {
-                alert(`❌ BitMart requires a memo`);
                 return;
             }
 
@@ -22504,7 +22499,7 @@ ARB4ME Security Team`
                 };
 
                 if (passphrase) requestBody.passphrase = passphrase;
-                if (exchangeName === 'bitmart' && passphrase) requestBody.memo = passphrase;
+                if (exchangeName === 'bitmart') requestBody.memo = passphrase || ''; // Always send memo field, even if empty (BitMart API optional)
 
                 console.log(`📡 [Momentum] POST ${balanceEndpoint}`);
                 console.log(`   API Key length: ${apiKey.length}`);
