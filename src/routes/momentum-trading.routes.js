@@ -758,7 +758,12 @@ router.post('/market/candles', async (req, res) => {
         }
 
         // Get the market data service for the exchange
-        const marketService = orderExecutionService.getMarketService(exchange);
+        let marketService;
+        if (exchange.toLowerCase() === 'valr') {
+            marketService = valrService;
+        } else {
+            throw new Error(`Exchange not supported for market data: ${exchange}`);
+        }
 
         // Fetch candles
         const candles = await marketService.fetchCandles(
@@ -803,10 +808,15 @@ router.post('/market/current-price', async (req, res) => {
         }
 
         // Get the market data service for the exchange
-        const marketService = orderExecutionService.getMarketService(exchange);
+        let marketService;
+        if (exchange.toLowerCase() === 'valr') {
+            marketService = valrService;
+        } else {
+            throw new Error(`Exchange not supported for market data: ${exchange}`);
+        }
 
         // Fetch current price
-        const price = await marketService.getCurrentPrice(pair, credentials);
+        const price = await marketService.fetchCurrentPrice(pair, credentials);
 
         res.json({
             success: true,
