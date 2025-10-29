@@ -22375,6 +22375,7 @@ ARB4ME Security Team`
             ];
 
             exchanges.forEach(exchange => {
+                // Attach connect button listener
                 const btn = document.getElementById(`${exchange}ConnectBtn`);
                 if (btn && !btn.hasAttribute('data-listener-attached')) {
                     btn.addEventListener('click', () => handleMomentumConnection(exchange));
@@ -22384,7 +22385,81 @@ ARB4ME Security Team`
                     // Update button state based on connection status
                     updateMomentumButtonState(exchange);
                 }
+
+                // Attach auto-save listeners to credential input fields
+                const apiKeyInput = document.querySelector(`#momentumModal #${exchange}ApiKey`);
+                const secretKeyInput = document.querySelector(`#momentumModal #${exchange}SecretKey`);
+
+                if (apiKeyInput && !apiKeyInput.hasAttribute('data-autosave-attached')) {
+                    apiKeyInput.addEventListener('input', () => autoSaveMomentumCredential(exchange, 'api', apiKeyInput.value));
+                    apiKeyInput.setAttribute('data-autosave-attached', 'true');
+                }
+
+                if (secretKeyInput && !secretKeyInput.hasAttribute('data-autosave-attached')) {
+                    secretKeyInput.addEventListener('input', () => autoSaveMomentumCredential(exchange, 'secret', secretKeyInput.value));
+                    secretKeyInput.setAttribute('data-autosave-attached', 'true');
+                }
+
+                // Attach auto-save for passphrase fields (OKX, KuCoin, Bitget, Coincatch, BitMart memo)
+                if (exchange === 'okx') {
+                    const passphraseInput = document.querySelector('#momentumModal #okxPassphrase');
+                    if (passphraseInput && !passphraseInput.hasAttribute('data-autosave-attached')) {
+                        passphraseInput.addEventListener('input', () => autoSaveMomentumCredential(exchange, 'passphrase', passphraseInput.value));
+                        passphraseInput.setAttribute('data-autosave-attached', 'true');
+                    }
+                } else if (exchange === 'kucoin') {
+                    const passphraseInput = document.querySelector('#momentumModal #kucoinPassphrase');
+                    if (passphraseInput && !passphraseInput.hasAttribute('data-autosave-attached')) {
+                        passphraseInput.addEventListener('input', () => autoSaveMomentumCredential(exchange, 'passphrase', passphraseInput.value));
+                        passphraseInput.setAttribute('data-autosave-attached', 'true');
+                    }
+                } else if (exchange === 'bitget') {
+                    const passphraseInput = document.querySelector('#momentumModal #bitgetPassphrase');
+                    if (passphraseInput && !passphraseInput.hasAttribute('data-autosave-attached')) {
+                        passphraseInput.addEventListener('input', () => autoSaveMomentumCredential(exchange, 'passphrase', passphraseInput.value));
+                        passphraseInput.setAttribute('data-autosave-attached', 'true');
+                    }
+                } else if (exchange === 'coincatch') {
+                    const passphraseInput = document.querySelector('#momentumModal #coincatchPassphrase');
+                    if (passphraseInput && !passphraseInput.hasAttribute('data-autosave-attached')) {
+                        passphraseInput.addEventListener('input', () => autoSaveMomentumCredential(exchange, 'passphrase', passphraseInput.value));
+                        passphraseInput.setAttribute('data-autosave-attached', 'true');
+                    }
+                } else if (exchange === 'bitmart') {
+                    const memoInput = document.querySelector('#momentumModal #bitmartMemo');
+                    if (memoInput && !memoInput.hasAttribute('data-autosave-attached')) {
+                        memoInput.addEventListener('input', () => autoSaveMomentumCredential(exchange, 'passphrase', memoInput.value));
+                        memoInput.setAttribute('data-autosave-attached', 'true');
+                    }
+                }
             });
+        }
+
+        // Auto-save Momentum credentials to localStorage (debounced)
+        let momentumAutoSaveTimeout = {};
+        function autoSaveMomentumCredential(exchange, field, value) {
+            const timeoutKey = `${exchange}-${field}`;
+
+            // Clear existing timeout for this field
+            if (momentumAutoSaveTimeout[timeoutKey]) {
+                clearTimeout(momentumAutoSaveTimeout[timeoutKey]);
+            }
+
+            // Set new timeout to save 2 seconds after user stops typing
+            momentumAutoSaveTimeout[timeoutKey] = setTimeout(() => {
+                console.log(`💾 [Momentum] Auto-saving ${field} for ${exchange}...`);
+
+                // Save to localStorage with momentum-specific pattern
+                if (field === 'api') {
+                    localStorage.setItem(`${exchange}_momentum_api`, value);
+                } else if (field === 'secret') {
+                    localStorage.setItem(`${exchange}_momentum_secret`, value);
+                } else if (field === 'passphrase') {
+                    localStorage.setItem(`${exchange}_momentum_passphrase`, value);
+                }
+
+                console.log(`✅ [Momentum] ${field} auto-saved for ${exchange}`);
+            }, 2000); // 2 second debounce
         }
 
         // Update button state to show connected/disconnected
