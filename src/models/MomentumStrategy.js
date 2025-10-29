@@ -126,6 +126,21 @@ class MomentumStrategy {
     }
 
     /**
+     * Get all active strategies (across all users and exchanges)
+     * Used by the momentum worker to process all active strategies
+     */
+    static async getAllActive() {
+        const selectQuery = `
+            SELECT * FROM momentum_strategies
+            WHERE is_active = true
+            ORDER BY user_id, exchange, created_at DESC
+        `;
+
+        const result = await query(selectQuery);
+        return result.rows;
+    }
+
+    /**
      * Get strategy by ID
      */
     static async getById(strategyId) {

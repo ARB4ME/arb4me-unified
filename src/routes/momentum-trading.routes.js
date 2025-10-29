@@ -282,6 +282,32 @@ router.get('/strategies', async (req, res) => {
 });
 
 /**
+ * GET /api/v1/momentum/strategies/active
+ * Get all active strategies (across all users and exchanges)
+ * Used by the momentum worker
+ */
+router.get('/strategies/active', async (req, res) => {
+    try {
+        const strategies = await MomentumStrategy.getAllActive();
+
+        res.json({
+            success: true,
+            data: strategies
+        });
+
+    } catch (error) {
+        logger.error('Failed to get active momentum strategies', {
+            error: error.message
+        });
+
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
  * POST /api/v1/momentum/strategies
  * Create a new momentum trading strategy
  */
