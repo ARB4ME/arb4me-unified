@@ -22359,7 +22359,29 @@ ARB4ME Security Team`
                 document.body.style.overflow = 'hidden';
                 // Load existing credentials
                 loadMomentumCredentials();
+                // Attach event listeners when modal opens (ensures buttons exist)
+                attachMomentumEventListeners();
             }
+        }
+
+        // Attach event listeners to all momentum connect buttons
+        function attachMomentumEventListeners() {
+            console.log('🔗 Attaching momentum event listeners...');
+            const exchanges = [
+                'valr', 'luno', 'altcointrader', 'xago', 'chainex', 'kraken',
+                'binance', 'bybit', 'gateio', 'okx', 'mexc', 'kucoin',
+                'xt', 'ascendex', 'htx', 'bingx', 'bitget', 'bitmart',
+                'bitrue', 'gemini', 'cryptocom', 'coincatch'
+            ];
+
+            exchanges.forEach(exchange => {
+                const btn = document.getElementById(`${exchange}ConnectBtn`);
+                if (btn && !btn.hasAttribute('data-listener-attached')) {
+                    btn.addEventListener('click', () => connectMomentumExchange(exchange));
+                    btn.setAttribute('data-listener-attached', 'true');
+                    console.log(`  ✓ Attached listener to ${exchange}`);
+                }
+            });
         }
 
         // Close Momentum Trading Modal
@@ -26372,29 +26394,8 @@ ARB4ME Security Team`
             document.getElementById('transferToggle').addEventListener('click', toggleTransfer);
             document.getElementById('currencySwapToggle').addEventListener('click', toggleCurrencySwap);
 
-            // Connect buttons (these attach to Momentum Modal buttons as they appear first in HTML)
-            document.getElementById('valrConnectBtn').addEventListener('click', () => connectMomentumExchange('valr'));
-            document.getElementById('lunoConnectBtn').addEventListener('click', () => connectMomentumExchange('luno'));
-            document.getElementById('altcointraderConnectBtn').addEventListener('click', () => connectMomentumExchange('altcointrader'));
-            document.getElementById('xagoConnectBtn').addEventListener('click', () => connectMomentumExchange('xago'));
-            document.getElementById('chainexConnectBtn').addEventListener('click', () => connectMomentumExchange('chainex'));
-            document.getElementById('krakenConnectBtn').addEventListener('click', () => connectMomentumExchange('kraken'));
-            document.getElementById('binanceConnectBtn').addEventListener('click', () => connectMomentumExchange('binance'));
-            document.getElementById('bybitConnectBtn').addEventListener('click', () => connectMomentumExchange('bybit'));
-            document.getElementById('gateioConnectBtn').addEventListener('click', () => connectMomentumExchange('gateio'));
-            document.getElementById('okxConnectBtn').addEventListener('click', () => connectMomentumExchange('okx'));
-            document.getElementById('mexcConnectBtn').addEventListener('click', () => connectMomentumExchange('mexc'));
-            document.getElementById('kucoinConnectBtn').addEventListener('click', () => connectMomentumExchange('kucoin'));
-            document.getElementById('xtConnectBtn').addEventListener('click', () => connectMomentumExchange('xt'));
-            document.getElementById('ascendexConnectBtn').addEventListener('click', () => connectMomentumExchange('ascendex'));
-            document.getElementById('htxConnectBtn').addEventListener('click', () => connectMomentumExchange('htx'));
-            document.getElementById('bingxConnectBtn').addEventListener('click', () => connectMomentumExchange('bingx'));
-            document.getElementById('bitgetConnectBtn').addEventListener('click', () => connectMomentumExchange('bitget'));
-            document.getElementById('bitmartConnectBtn').addEventListener('click', () => connectMomentumExchange('bitmart'));
-            document.getElementById('bitrueConnectBtn').addEventListener('click', () => connectMomentumExchange('bitrue'));
-            document.getElementById('geminiConnectBtn').addEventListener('click', () => connectMomentumExchange('gemini'));
-            document.getElementById('cryptocomConnectBtn').addEventListener('click', () => connectMomentumExchange('cryptocom'));
-            document.getElementById('coincatchConnectBtn').addEventListener('click', () => connectMomentumExchange('coincatch'));
+            // Momentum connect buttons event listeners are now attached when modal opens
+            // See attachMomentumEventListeners() function called by openMomentumModal()
 
 
             // API Key input field event listeners for persistent storage
