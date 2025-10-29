@@ -341,8 +341,9 @@ const MomentumWorker = {
             const pair = `${asset}USDT`;
 
             // Fetch candle data via API
-            // Use 5-minute candles for momentum trading (faster signals, recent data)
-            // Request 50 candles = 250 minutes = ~4 hours of data (sufficient for RSI, volume analysis)
+            // Use 1-minute candles for momentum trading (faster signals, works with VALR's limited trade history)
+            // VALR's public trades endpoint returns ~100 recent trades covering 30-40 minutes
+            // Request 50 candles = 50 minutes of data (sufficient for RSI-14 with buffer)
             const candleResponse = await fetch('/api/v1/momentum/market/candles', {
                 method: 'POST',
                 headers: {
@@ -351,7 +352,7 @@ const MomentumWorker = {
                 body: JSON.stringify({
                     exchange: strategy.exchange,
                     pair,
-                    interval: '5m',
+                    interval: '1m',
                     limit: 50,
                     credentials
                 })
