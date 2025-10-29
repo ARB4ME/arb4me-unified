@@ -946,12 +946,16 @@ router.post('/order/sell', async (req, res) => {
         logger.error('Failed to execute sell order', {
             exchange: req.body.exchange,
             pair: req.body.pair,
-            error: error.message
+            quantity: req.body.quantity,
+            error: error.message,
+            stack: error.stack,
+            errorType: error.constructor.name
         });
 
         res.status(500).json({
             success: false,
-            error: error.message
+            error: error.message || 'Unknown error executing sell order',
+            details: error.stack
         });
     }
 });
