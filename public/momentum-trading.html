@@ -1108,11 +1108,30 @@
                         html += `<div>⚡ Stochastic: %K ${stochValue}</div>`;
                     }
 
-                    // Show triggered count
-                    const statusColor = assetData.triggeredCount >= 2 ? '#00ff88' : '#ffa500';
+                    // Show triggered count - Calculate required threshold from entry_logic
+                    let requiredCount = 2; // Default
+                    let thresholdText = '2+';
+
+                    if (strategy.entry_logic === 'any_1') {
+                        requiredCount = 1;
+                        thresholdText = '1+';
+                    } else if (strategy.entry_logic === '2_out_of_3') {
+                        requiredCount = 2;
+                        thresholdText = '2+';
+                    } else if (strategy.entry_logic === '3_out_of_4') {
+                        requiredCount = 3;
+                        thresholdText = '3+';
+                    } else if (strategy.entry_logic === 'all') {
+                        requiredCount = assetData.totalEnabled;
+                        thresholdText = 'all';
+                    }
+
+                    const hasSignal = assetData.triggeredCount >= requiredCount;
+                    const statusColor = hasSignal ? '#00ff88' : '#ffa500';
+
                     html += `<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #333; color: ${statusColor};">
                         <strong>Status:</strong> ${assetData.triggeredCount}/${assetData.totalEnabled} triggered
-                        ${assetData.triggeredCount >= 2 ? '🎯 SIGNAL!' : '(need 2+)'}
+                        ${hasSignal ? '🎯 SIGNAL!' : `(need ${thresholdText})`}
                     </div>`;
 
                     indicatorDiv.innerHTML = html;
