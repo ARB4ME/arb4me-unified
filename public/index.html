@@ -22427,20 +22427,14 @@ ARB4ME Security Team`
         function disconnectMomentumExchange(exchangeName) {
             console.log(`🔌 [Momentum] Disconnecting ${exchangeName}...`);
 
-            if (!confirm(`Disconnect ${exchangeName.toUpperCase()} from Momentum Trading?\n\nYour credentials will be saved for quick reconnection.`)) {
-                return;
-            }
-
             try {
                 // Just mark as disconnected - DO NOT remove credentials
                 localStorage.setItem(`${exchangeName}_momentum_connected`, 'false');
 
                 console.log(`✅ [Momentum] ${exchangeName} disconnected (credentials preserved)`);
 
-                // Update button state
+                // Update button state (visual feedback is enough - no popup needed)
                 updateMomentumButtonState(exchangeName);
-
-                alert(`✅ ${exchangeName.toUpperCase()} disconnected.\n\nYour credentials are saved - click Connect to reconnect instantly.`);
 
             } catch (error) {
                 console.error(`❌ [Momentum] Failed to disconnect ${exchangeName}:`, error);
@@ -22556,13 +22550,11 @@ ARB4ME Security Team`
                 console.log(`💾 [Momentum] ${exchangeName} credentials saved to localStorage`);
                 console.log(`   Pattern: ${exchangeName}_momentum_api / ${exchangeName}_momentum_secret`);
 
-                // Update button to persistent connected state
+                // Update button to persistent connected state (visual feedback is enough - no popup needed)
                 if (connectBtn) {
                     connectBtn.disabled = false;
                 }
                 updateMomentumButtonState(exchangeName);
-
-                alert(`✅ ${exchangeName.toUpperCase()} connected successfully for Momentum Trading!\n\nCredentials verified and saved.\n\nButton will now show "Connected - Click to Disconnect"`);
 
             } catch (error) {
                 console.error(`❌ [Momentum] Failed to connect ${exchangeName}:`, error);
