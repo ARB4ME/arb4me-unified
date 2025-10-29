@@ -383,6 +383,17 @@ const MomentumWorker = {
                 strategy
             );
 
+            // Debug: Show indicator values and which ones triggered
+            console.log(`   🔍 Indicators: ${signalResult.triggeredCount}/${signalResult.totalEnabled} triggered (need 2+)`);
+            if (signalResult.indicatorValues) {
+                console.log(`      📊 RSI: ${signalResult.indicatorValues.rsi?.toFixed(2) || 'N/A'}`);
+                console.log(`      📈 Volume: ${signalResult.indicatorValues.volume?.volumeRatio?.toFixed(2) || 'N/A'}x avg`);
+                console.log(`      📉 MACD: ${signalResult.indicatorValues.macd?.histogram?.toFixed(4) || 'N/A'}`);
+            }
+            if (signalResult.triggeredIndicators.length > 0) {
+                console.log(`      ✅ Triggered:`, signalResult.triggeredIndicators.map(i => i.name).join(', '));
+            }
+
             return {
                 asset,
                 pair,
