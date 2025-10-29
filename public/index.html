@@ -22364,7 +22364,7 @@ ARB4ME Security Team`
             }
         }
 
-        // Attach event listeners to all momentum connect buttons
+        // Attach event listeners to all momentum connect buttons and update their states
         function attachMomentumEventListeners() {
             console.log('🔗 Attaching momentum event listeners...');
             const exchanges = [
@@ -22377,11 +22377,79 @@ ARB4ME Security Team`
             exchanges.forEach(exchange => {
                 const btn = document.getElementById(`${exchange}ConnectBtn`);
                 if (btn && !btn.hasAttribute('data-listener-attached')) {
-                    btn.addEventListener('click', () => connectMomentumExchange(exchange));
+                    btn.addEventListener('click', () => handleMomentumConnection(exchange));
                     btn.setAttribute('data-listener-attached', 'true');
                     console.log(`  ✓ Attached listener to ${exchange}`);
+
+                    // Update button state based on connection status
+                    updateMomentumButtonState(exchange);
                 }
             });
+        }
+
+        // Update button state to show connected/disconnected
+        function updateMomentumButtonState(exchangeName) {
+            const isConnected = localStorage.getItem(`${exchangeName}_momentum_connected`) === 'true';
+            const btn = document.getElementById(`${exchangeName}ConnectBtn`);
+
+            if (!btn) return;
+
+            if (isConnected) {
+                btn.innerHTML = `✅ ${exchangeName.toUpperCase()} Connected - Click to Disconnect`;
+                btn.style.background = 'linear-gradient(45deg, #00ff88 0%, #00cc66 100%)';
+                btn.setAttribute('data-connected', 'true');
+            } else {
+                btn.innerHTML = `<span id="${exchangeName}ConnectText">🔗 Connect ${exchangeName.toUpperCase()} (Real Mode)</span>`;
+                btn.style.background = '';
+                btn.removeAttribute('data-connected');
+            }
+        }
+
+        // Handle connect/disconnect based on current state
+        function handleMomentumConnection(exchangeName) {
+            const isConnected = localStorage.getItem(`${exchangeName}_momentum_connected`) === 'true';
+
+            if (isConnected) {
+                // Disconnect
+                disconnectMomentumExchange(exchangeName);
+            } else {
+                // Connect
+                connectMomentumExchange(exchangeName);
+            }
+        }
+
+        // Disconnect momentum exchange
+        function disconnectMomentumExchange(exchangeName) {
+            console.log(`🔌 [Momentum] Disconnecting ${exchangeName}...`);
+
+            if (!confirm(`Are you sure you want to disconnect ${exchangeName.toUpperCase()} from Momentum Trading?\n\nThis will remove your saved credentials.`)) {
+                return;
+            }
+
+            try {
+                // Remove credentials from localStorage
+                localStorage.removeItem(`${exchangeName}_momentum_api`);
+                localStorage.removeItem(`${exchangeName}_momentum_secret`);
+                localStorage.removeItem(`${exchangeName}_momentum_passphrase`);
+                localStorage.removeItem(`${exchangeName}_momentum_connected`);
+
+                console.log(`✅ [Momentum] ${exchangeName} disconnected and credentials removed`);
+
+                // Update button state
+                updateMomentumButtonState(exchangeName);
+
+                // Clear input fields
+                const apiKeyInput = document.querySelector(`#momentumModal #${exchangeName}ApiKey`);
+                const secretKeyInput = document.querySelector(`#momentumModal #${exchangeName}SecretKey`);
+                if (apiKeyInput) apiKeyInput.value = '';
+                if (secretKeyInput) secretKeyInput.value = '';
+
+                alert(`✅ ${exchangeName.toUpperCase()} disconnected successfully from Momentum Trading.`);
+
+            } catch (error) {
+                console.error(`❌ [Momentum] Failed to disconnect ${exchangeName}:`, error);
+                alert(`❌ Failed to disconnect: ${error.message}`);
+            }
         }
 
         // Close Momentum Trading Modal
@@ -22492,27 +22560,22 @@ ARB4ME Security Team`
                 console.log(`💾 [Momentum] ${exchangeName} credentials saved to localStorage`);
                 console.log(`   Pattern: ${exchangeName}_momentum_api / ${exchangeName}_momentum_secret`);
 
-                // Update button to show success
+                // Update button to persistent connected state
                 if (connectBtn) {
-                    connectBtn.innerHTML = '✅ Connected Successfully!';
-                    connectBtn.style.background = 'linear-gradient(45deg, #00ff88 0%, #00cc66 100%)';
-                    setTimeout(() => {
-                        connectBtn.innerHTML = originalBtnText;
-                        connectBtn.style.background = '';
-                        connectBtn.disabled = false;
-                    }, 3000);
+                    connectBtn.disabled = false;
                 }
+                updateMomentumButtonState(exchangeName);
 
-                alert(`✅ ${exchangeName.toUpperCase()} connected successfully for Momentum Trading!\n\nCredentials verified and saved.`);
+                alert(`✅ ${exchangeName.toUpperCase()} connected successfully for Momentum Trading!\n\nCredentials verified and saved.\n\nButton will now show "Connected - Click to Disconnect"`);
 
             } catch (error) {
                 console.error(`❌ [Momentum] Failed to connect ${exchangeName}:`, error);
 
-                // Restore button
+                // Restore button to disconnected state
                 if (connectBtn) {
-                    connectBtn.innerHTML = originalBtnText;
                     connectBtn.disabled = false;
                 }
+                updateMomentumButtonState(exchangeName);
 
                 alert(`❌ Failed to connect ${exchangeName.toUpperCase()}:\n\n${error.message}\n\nPlease check your credentials and try again.`);
             }
