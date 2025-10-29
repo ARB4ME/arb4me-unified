@@ -22402,7 +22402,62 @@ ARB4ME Security Team`
                 return;
             }
 
+            // Show connecting status
+            const connectBtn = document.querySelector('#momentumModal #' + exchangeName + 'ConnectBtn');
+            const originalBtnText = connectBtn ? connectBtn.innerHTML : '';
+            if (connectBtn) {
+                connectBtn.disabled = true;
+                connectBtn.innerHTML = '⏳ Testing Connection...';
+            }
+
             try {
+                console.log(`🔌 [Momentum] Testing ${exchangeName} connection by fetching balances...`);
+
+                // Test connection by fetching balances (same as ARB strategies)
+                const balanceEndpoint = exchangeName === 'chainex'
+                    ? '/api/v1/trading/chainex/balance'
+                    : `/api/v1/trading/${exchangeName}/balance`;
+
+                const requestBody = {
+                    apiKey: apiKey,
+                    apiSecret: secretKey
+                };
+
+                if (passphrase) requestBody.passphrase = passphrase;
+                if (exchangeName === 'bitmart' && passphrase) requestBody.memo = passphrase;
+
+                console.log(`📡 [Momentum] POST ${balanceEndpoint}`);
+                console.log(`   API Key length: ${apiKey.length}`);
+                console.log(`   Secret Key length: ${secretKey.length}`);
+
+                const response = await fetch(balanceEndpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                const result = await response.json();
+                console.log(`📊 [Momentum] ${exchangeName} response:`, result);
+
+                if (!response.ok || result.success === false) {
+                    const errorMsg = result.error?.message || result.message || result.error || 'Connection failed';
+                    console.error(`❌ [Momentum] ${exchangeName} connection failed:`, errorMsg);
+                    throw new Error(errorMsg);
+                }
+
+                // Extract balances
+                let balances;
+                if (result.success === true && result.data) {
+                    balances = result.data.balances || result.data;
+                } else {
+                    balances = result.balances || result.data?.balances || result.data || result;
+                }
+
+                console.log(`✅ [Momentum] ${exchangeName} connected successfully!`);
+                console.log(`💰 [Momentum] Balances:`, balances);
+
                 // Store credentials ONLY for Momentum strategy (independent from other strategies)
                 localStorage.setItem(`${exchangeName}_momentum_api`, apiKey);
                 localStorage.setItem(`${exchangeName}_momentum_secret`, secretKey);
@@ -22412,22 +22467,32 @@ ARB4ME Security Team`
                     localStorage.setItem(`${exchangeName}_momentum_passphrase`, passphrase);
                 }
 
-                console.log(`✅ [Momentum] ${exchangeName} credentials saved to localStorage`);
+                console.log(`💾 [Momentum] ${exchangeName} credentials saved to localStorage`);
                 console.log(`   Pattern: ${exchangeName}_momentum_api / ${exchangeName}_momentum_secret`);
-                alert(`✅ ${exchangeName.toUpperCase()} credentials saved successfully for Momentum Trading!\n\nYou can now use this exchange in your momentum strategies.`);
 
-                // Optionally update button text
-                const connectText = document.querySelector('#momentumModal #' + exchangeName + 'ConnectText');
-                if (connectText) {
-                    connectText.textContent = `✅ ${exchangeName.toUpperCase()} Credentials Saved`;
+                // Update button to show success
+                if (connectBtn) {
+                    connectBtn.innerHTML = '✅ Connected Successfully!';
+                    connectBtn.style.background = 'linear-gradient(45deg, #00ff88 0%, #00cc66 100%)';
                     setTimeout(() => {
-                        connectText.textContent = `🔗 Connect ${exchangeName.toUpperCase()} (Real Mode)`;
+                        connectBtn.innerHTML = originalBtnText;
+                        connectBtn.style.background = '';
+                        connectBtn.disabled = false;
                     }, 3000);
                 }
 
+                alert(`✅ ${exchangeName.toUpperCase()} connected successfully for Momentum Trading!\n\nCredentials verified and saved.`);
+
             } catch (error) {
-                console.error(`❌ [Momentum] Failed to save ${exchangeName} credentials:`, error);
-                alert(`❌ Failed to save credentials: ${error.message}`);
+                console.error(`❌ [Momentum] Failed to connect ${exchangeName}:`, error);
+
+                // Restore button
+                if (connectBtn) {
+                    connectBtn.innerHTML = originalBtnText;
+                    connectBtn.disabled = false;
+                }
+
+                alert(`❌ Failed to connect ${exchangeName.toUpperCase()}:\n\n${error.message}\n\nPlease check your credentials and try again.`);
             }
         }
 
