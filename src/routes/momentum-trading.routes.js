@@ -750,6 +750,14 @@ router.post('/market/candles', async (req, res) => {
     try {
         const { exchange, pair, interval, limit, credentials } = req.body;
 
+        logger.info('Candles request received', {
+            exchange,
+            pair,
+            interval,
+            limit,
+            hasCredentials: !!credentials
+        });
+
         if (!exchange || !pair || !credentials) {
             return res.status(400).json({
                 success: false,
@@ -765,6 +773,8 @@ router.post('/market/candles', async (req, res) => {
             throw new Error(`Exchange not supported for market data: ${exchange}`);
         }
 
+        logger.info('Fetching candles from service', { exchange, pair });
+
         // Fetch candles
         const candles = await marketService.fetchCandles(
             pair,
@@ -772,6 +782,12 @@ router.post('/market/candles', async (req, res) => {
             limit || 100,
             credentials
         );
+
+        logger.info('Candles fetched successfully', {
+            exchange,
+            pair,
+            candleCount: candles?.length
+        });
 
         res.json({
             success: true,
@@ -782,12 +798,13 @@ router.post('/market/candles', async (req, res) => {
         logger.error('Failed to fetch candles', {
             exchange: req.body.exchange,
             pair: req.body.pair,
-            error: error.message
+            error: error.message,
+            stack: error.stack
         });
 
         res.status(500).json({
             success: false,
-            error: error.message
+            error: error.message || 'Failed to fetch candles'
         });
     }
 });
