@@ -898,12 +898,16 @@ router.post('/order/buy', async (req, res) => {
         logger.error('Failed to execute buy order', {
             exchange: req.body.exchange,
             pair: req.body.pair,
-            error: error.message
+            amountUSDT: req.body.amountUSDT,
+            error: error.message,
+            stack: error.stack,
+            errorType: error.constructor.name
         });
 
         res.status(500).json({
             success: false,
-            error: error.message
+            error: error.message || 'Unknown error executing buy order',
+            details: error.stack
         });
     }
 });
