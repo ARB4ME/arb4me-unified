@@ -182,7 +182,7 @@ const MomentumWorker = {
      */
     async _getAllActiveStrategies() {
         try {
-            const response = await fetch('/api/momentum/strategies/active', {
+            const response = await fetch('/api/v1/momentum/strategies/active', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json'
@@ -341,7 +341,7 @@ const MomentumWorker = {
             const pair = `${asset}USDT`;
 
             // Fetch candle data via API
-            const candleResponse = await fetch('/api/momentum/market/candles', {
+            const candleResponse = await fetch('/api/v1/momentum/market/candles', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -408,7 +408,7 @@ const MomentumWorker = {
 
         try {
             // Check if strategy can open more positions via API
-            const canOpenResponse = await fetch(`/api/momentum/strategies/${strategy.id}/can-open-position`, {
+            const canOpenResponse = await fetch(`/api/v1/momentum/strategies/${strategy.id}/can-open-position`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json'
@@ -528,7 +528,7 @@ const MomentumWorker = {
                     results.positionsOpened++;
 
                     // Re-check if can open more positions
-                    const stillCanOpenResponse = await fetch(`/api/momentum/strategies/${strategy.id}/can-open-position`, {
+                    const stillCanOpenResponse = await fetch(`/api/v1/momentum/strategies/${strategy.id}/can-open-position`, {
                         method: 'GET',
                         headers: {
                             'Content-Type': 'application/json'
@@ -568,7 +568,7 @@ const MomentumWorker = {
             });
 
             // Execute market BUY order via API
-            const orderResponse = await fetch('/api/momentum/order/buy', {
+            const orderResponse = await fetch('/api/v1/momentum/order/buy', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -598,7 +598,7 @@ const MomentumWorker = {
             const entryFee = buyOrder.fee || (entryValueUSDT * 0.001); // 0.1% conservative estimate
 
             // Create position in database via API
-            const positionResponse = await fetch('/api/momentum/positions', {
+            const positionResponse = await fetch('/api/v1/momentum/positions', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'

@@ -13,7 +13,7 @@ const PositionMonitor = {
     async monitorPositions(userId, exchange, credentials) {
         try {
             // Get all open positions for user and exchange via API
-            const response = await fetch(`/api/momentum/positions/open?userId=${userId}&exchange=${exchange}`, {
+            const response = await fetch(`/api/v1/momentum/positions?userId=${userId}&exchange=${exchange}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json'
@@ -24,7 +24,8 @@ const PositionMonitor = {
                 throw new Error(`Failed to fetch open positions: ${response.statusText}`);
             }
 
-            const { data: openPositions } = await response.json();
+            const result = await response.json();
+            const openPositions = result.data?.open || [];
 
             if (!openPositions || openPositions.length === 0) {
                 console.debug('No open positions to monitor', { userId, exchange });
@@ -101,7 +102,7 @@ const PositionMonitor = {
     async _checkExitConditions(position, exchange, credentials) {
         try {
             // Get strategy configuration via API
-            const strategyResponse = await fetch(`/api/momentum/strategies/${position.strategy_id}`, {
+            const strategyResponse = await fetch(`/api/v1/momentum/strategies/${position.strategy_id}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json'
@@ -115,7 +116,7 @@ const PositionMonitor = {
             const { data: strategy } = await strategyResponse.json();
 
             // Get current market price via API
-            const priceResponse = await fetch('/api/momentum/market/current-price', {
+            const priceResponse = await fetch('/api/v1/momentum/market/current-price', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -176,7 +177,7 @@ const PositionMonitor = {
             });
 
             // Execute market SELL order via API
-            const orderResponse = await fetch('/api/momentum/order/sell', {
+            const orderResponse = await fetch('/api/v1/momentum/order/sell', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -218,7 +219,7 @@ const PositionMonitor = {
             });
 
             // Close position in database via API
-            const closeResponse = await fetch(`/api/momentum/positions/${position.id}/close`, {
+            const closeResponse = await fetch(`/api/v1/momentum/positions/${position.id}/close`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json'
@@ -269,7 +270,7 @@ const PositionMonitor = {
     async manualClosePosition(positionId, userId, exchange, credentials) {
         try {
             // Get position via API
-            const positionResponse = await fetch(`/api/momentum/positions/${positionId}`, {
+            const positionResponse = await fetch(`/api/v1/momentum/positions/${positionId}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json'
@@ -291,7 +292,7 @@ const PositionMonitor = {
             }
 
             // Get current price via API
-            const priceResponse = await fetch('/api/momentum/market/current-price', {
+            const priceResponse = await fetch('/api/v1/momentum/market/current-price', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -340,7 +341,7 @@ const PositionMonitor = {
     async getCurrentPnL(positionId, exchange, credentials) {
         try {
             // Get position via API
-            const positionResponse = await fetch(`/api/momentum/positions/${positionId}`, {
+            const positionResponse = await fetch(`/api/v1/momentum/positions/${positionId}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json'
@@ -358,7 +359,7 @@ const PositionMonitor = {
             }
 
             // Get current price via API
-            const priceResponse = await fetch('/api/momentum/market/current-price', {
+            const priceResponse = await fetch('/api/v1/momentum/market/current-price', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
