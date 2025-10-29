@@ -8,6 +8,7 @@ const MomentumStrategy = require('../models/MomentumStrategy');
 const MomentumPosition = require('../models/MomentumPosition');
 const MomentumCredentials = require('../models/MomentumCredentials');
 const VALRMarketDataService = require('../services/momentum/VALRMarketDataService');
+const BinanceMarketDataService = require('../services/momentum/BinanceMarketDataService');
 const OrderExecutionService = require('../services/momentum/OrderExecutionService');
 
 // Import database query function for manual table initialization
@@ -15,6 +16,7 @@ const { query } = require('../database/connection');
 
 // Initialize services
 const valrService = new VALRMarketDataService();
+const binanceService = new BinanceMarketDataService();
 const orderExecutionService = new OrderExecutionService();
 
 /**
@@ -751,42 +753,44 @@ router.post('/market/candles', async (req, res) => {
         const { exchange, pair, interval, limit, credentials } = req.body;
 
         logger.info('Candles request received', {
-            exchange,
+            targetExchange: exchange,
             pair,
             interval,
-            limit,
-            hasCredentials: !!credentials
+            limit
         });
 
-        if (!exchange || !pair || !credentials) {
+        if (!exchange || !pair) {
             return res.status(400).json({
                 success: false,
-                error: 'exchange, pair, and credentials are required'
+                error: 'exchange and pair are required'
             });
         }
 
-        // Get the market data service for the exchange
-        let marketService;
-        if (exchange.toLowerCase() === 'valr') {
-            marketService = valrService;
-        } else {
-            throw new Error(`Exchange not supported for market data: ${exchange}`);
-        }
+        // Use Binance as universal data source for ALL exchanges
+        // XRP/USDT price is identical across all exchanges due to arbitrage
+        // This gives us unlimited historical data for analysis
+        // Actual trades will execute on the target exchange (VALR, Bybit, etc.)
+        logger.info('Fetching candles from Binance (universal data source)', {
+            targetExchange: exchange,
+            pair,
+            dataSource: 'Binance'
+        });
 
-        logger.info('Fetching candles from service', { exchange, pair });
-
-        // Fetch candles
-        const candles = await marketService.fetchCandles(
+        // Fetch candles from Binance (no credentials needed - public endpoint)
+        const candles = await binanceService.fetchCandles(
             pair,
             interval || '1h',
-            limit || 100,
-            credentials
+            limit || 100
         );
 
-        logger.info('Candles fetched successfully', {
-            exchange,
+        logger.info('Candles fetched successfully from Binance', {
+            targetExchange: exchange,
             pair,
-            candleCount: candles?.length
+            candleCount: candles?.length,
+            dataRange: candles.length > 0 ? {
+                from: new Date(candles[0].timestamp).toISOString(),
+                to: new Date(candles[candles.length - 1].timestamp).toISOString()
+            } : 'N/A'
         });
 
         res.json({
@@ -815,25 +819,31 @@ router.post('/market/candles', async (req, res) => {
  */
 router.post('/market/current-price', async (req, res) => {
     try {
-        const { exchange, pair, credentials } = req.body;
+        const { exchange, pair } = req.body;
 
-        if (!exchange || !pair || !credentials) {
+        if (!exchange || !pair) {
             return res.status(400).json({
                 success: false,
-                error: 'exchange, pair, and credentials are required'
+                error: 'exchange and pair are required'
             });
         }
 
-        // Get the market data service for the exchange
-        let marketService;
-        if (exchange.toLowerCase() === 'valr') {
-            marketService = valrService;
-        } else {
-            throw new Error(`Exchange not supported for market data: ${exchange}`);
-        }
+        // Use Binance as universal data source for current price
+        // Price is identical across all exchanges due to arbitrage
+        logger.info('Fetching current price from Binance', {
+            targetExchange: exchange,
+            pair,
+            dataSource: 'Binance'
+        });
 
-        // Fetch current price
-        const price = await marketService.fetchCurrentPrice(pair, credentials);
+        // Fetch current price from Binance (no credentials needed)
+        const price = await binanceService.fetchCurrentPrice(pair);
+
+        logger.info('Current price fetched from Binance', {
+            targetExchange: exchange,
+            pair,
+            price
+        });
 
         res.json({
             success: true,

@@ -364,15 +364,18 @@ const MomentumWorker = {
 
             const { data: candles } = await candleResponse.json();
 
-            // Need minimum 20 candles for RSI-14 calculation plus some history
-            if (!candles || candles.length < 20) {
+            // Need minimum 8 candles for RSI-7 calculation (period + 1)
+            // VALR's public trades endpoint only provides ~8 minutes of recent data
+            if (!candles || candles.length < 8) {
                 console.warn('Insufficient candle data', {
                     pair,
                     candlesCount: candles?.length || 0,
-                    minimumRequired: 20
+                    minimumRequired: 8
                 });
                 return { asset, pair, hasSignal: false };
             }
+
+            console.log(`   📊 Candles fetched: ${candles.length} (${candles[0].timestamp} to ${candles[candles.length - 1].timestamp})`);
 
             // Check entry signals using SignalDetection
             const signalResult = await SignalDetection.checkEntrySignals(
