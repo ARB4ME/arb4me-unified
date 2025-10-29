@@ -32,9 +32,10 @@ class VALRMarketDataService {
 
     /**
      * Fetch historical candles (OHLCV data) for indicator calculations
+     * NOTE: VALR doesn't have a dedicated candles endpoint, so we build them from recent trades
      * @param {string} pair - Trading pair (e.g., 'BTCUSDT', 'ETHUSDT')
      * @param {string} interval - Candle interval ('1m', '5m', '15m', '30m', '1h', '4h', '1d')
-     * @param {number} limit - Number of candles to fetch (default 100, max 500)
+     * @param {number} limit - Number of candles to fetch (default 100, but may return less based on available trades)
      * @param {object} credentials - { apiKey, apiSecret }
      * @returns {Promise<Array>} Array of candles [{open, high, low, close, volume, timestamp}]
      */
@@ -43,27 +44,18 @@ class VALRMarketDataService {
             // Apply rate limiting
             await this._rateLimitDelay();
 
-            // VALR uses specific interval format
-            const valrInterval = this._convertInterval(interval);
-
-            // VALR endpoint: GET /v1/marketdata/:currencyPair/candles
-            // Note: Query parameters must be included in signature path
-            const path = `/v1/marketdata/${pair}/candles?period=${valrInterval}&limit=${limit}`;
+            // VALR doesn't have a candles endpoint - we need to build candles from recent trades
+            // Use the public trades endpoint: /v1/public/:currencyPair/trades
+            const path = `/v1/public/${pair}/trades`;
             const url = `${this.baseUrl}${path}`;
 
-            const headers = this._createValrAuth(
-                credentials.apiKey,
-                credentials.apiSecret,
-                'GET',
-                path,
-                null
-            );
-
-            logger.info('Fetching VALR candles', { pair, interval: valrInterval, limit });
+            logger.info('Fetching VALR trades to build candles', { pair, interval, limit });
 
             const response = await fetch(url, {
                 method: 'GET',
-                headers: headers
+                headers: {
+                    'Content-Type': 'application/json'
+                }
             });
 
             if (!response.ok) {
@@ -71,13 +63,17 @@ class VALRMarketDataService {
                 throw new Error(`VALR API error: ${response.status} - ${errorText}`);
             }
 
-            const data = await response.json();
+            const trades = await response.json();
 
-            // Transform VALR response to standard format
-            const candles = this._transformCandles(data);
+            // Convert interval to milliseconds
+            const intervalMs = this._convertIntervalToMs(interval);
 
-            logger.info('VALR candles fetched successfully', {
+            // Build candles from trades
+            const candles = this._buildCandlesFromTrades(trades, intervalMs, limit);
+
+            logger.info('VALR candles built from trades', {
                 pair,
+                tradesCount: trades.length,
                 candlesCount: candles.length,
                 firstCandle: candles[0]?.timestamp,
                 lastCandle: candles[candles.length - 1]?.timestamp
@@ -282,6 +278,98 @@ class VALRMarketDataService {
         };
 
         return intervalMap[interval] || 'ONE_HOUR';
+    }
+
+    /**
+     * Convert interval string to milliseconds
+     * @private
+     */
+    _convertIntervalToMs(interval) {
+        const intervalMap = {
+            '1m': 60 * 1000,
+            '5m': 5 * 60 * 1000,
+            '15m': 15 * 60 * 1000,
+            '30m': 30 * 60 * 1000,
+            '1h': 60 * 60 * 1000,
+            '4h': 4 * 60 * 60 * 1000,
+            '1d': 24 * 60 * 60 * 1000
+        };
+
+        return intervalMap[interval] || (60 * 60 * 1000); // Default 1 hour
+    }
+
+    /**
+     * Build OHLCV candles from trade data
+     * Aggregates trades into time-based candles
+     * @private
+     */
+    _buildCandlesFromTrades(trades, intervalMs, limit) {
+        if (!Array.isArray(trades) || trades.length === 0) {
+            return [];
+        }
+
+        // Sort trades by timestamp (oldest first)
+        const sortedTrades = [...trades].sort((a, b) => {
+            return new Date(a.tradedAt).getTime() - new Date(b.tradedAt).getTime();
+        });
+
+        // Get time range
+        const firstTradeTime = new Date(sortedTrades[0].tradedAt).getTime();
+        const lastTradeTime = new Date(sortedTrades[sortedTrades.length - 1].tradedAt).getTime();
+
+        // Calculate candle boundaries
+        const firstCandleStart = Math.floor(firstTradeTime / intervalMs) * intervalMs;
+        const lastCandleStart = Math.floor(lastTradeTime / intervalMs) * intervalMs;
+
+        // Build candles map
+        const candlesMap = {};
+
+        for (const trade of sortedTrades) {
+            const tradeTime = new Date(trade.tradedAt).getTime();
+            const candleStart = Math.floor(tradeTime / intervalMs) * intervalMs;
+
+            if (!candlesMap[candleStart]) {
+                candlesMap[candleStart] = {
+                    timestamp: candleStart,
+                    open: parseFloat(trade.price),
+                    high: parseFloat(trade.price),
+                    low: parseFloat(trade.price),
+                    close: parseFloat(trade.price),
+                    volume: 0,
+                    trades: []
+                };
+            }
+
+            const candle = candlesMap[candleStart];
+            const price = parseFloat(trade.price);
+            const volume = parseFloat(trade.quantity);
+
+            // Update OHLC
+            candle.high = Math.max(candle.high, price);
+            candle.low = Math.min(candle.low, price);
+            candle.close = price; // Last price in the candle
+            candle.volume += volume;
+            candle.trades.push(trade);
+        }
+
+        // Convert map to array and sort by timestamp (oldest first)
+        let candles = Object.values(candlesMap)
+            .sort((a, b) => a.timestamp - b.timestamp)
+            .map(candle => ({
+                timestamp: candle.timestamp,
+                open: candle.open,
+                high: candle.high,
+                low: candle.low,
+                close: candle.close,
+                volume: candle.volume
+            }));
+
+        // Limit to requested number of candles (most recent)
+        if (candles.length > limit) {
+            candles = candles.slice(-limit);
+        }
+
+        return candles;
     }
 
     /**
