@@ -456,13 +456,26 @@ class OrderExecutionService {
 
             const data = await response.json();
 
+            // Log raw VALR response for debugging
+            logger.info('Raw VALR BUY response', {
+                pair,
+                rawResponse: JSON.stringify(data)
+            });
+
             // Transform VALR response to standard format
+            // VALR returns: baseAmount (quantity), quoteAmount (USDT spent), feeInBase
+            const baseAmount = parseFloat(data.baseAmount || data.originalQuantity || data.quantity || 0);
+            const quoteAmount = parseFloat(data.quoteAmount || data.total || amountUSDT);
+            const averagePrice = baseAmount > 0 ? quoteAmount / baseAmount : parseFloat(data.averagePrice || 0);
+            const feeInBase = parseFloat(data.feeInBase || data.baseFee || 0);
+            const feeInQuote = feeInBase * averagePrice; // Convert fee from XRP to USDT
+
             const result = {
                 orderId: data.id || data.orderId,
-                executedPrice: parseFloat(data.averagePrice || 0),
-                executedQuantity: parseFloat(data.originalQuantity || data.quantity || 0),
-                executedValue: parseFloat(data.total || amountUSDT),
-                fee: parseFloat(data.totalFee || 0),
+                executedPrice: averagePrice,
+                executedQuantity: baseAmount,
+                executedValue: quoteAmount,
+                fee: feeInQuote,
                 status: data.orderStatus || data.status,
                 timestamp: data.createdAt || Date.now(),
                 rawResponse: data
@@ -471,7 +484,9 @@ class OrderExecutionService {
             logger.info('VALR BUY order executed successfully', {
                 orderId: result.orderId,
                 executedPrice: result.executedPrice,
-                executedQuantity: result.executedQuantity
+                executedQuantity: result.executedQuantity,
+                executedValue: result.executedValue,
+                fee: result.fee
             });
 
             return result;
@@ -534,13 +549,25 @@ class OrderExecutionService {
 
             const data = await response.json();
 
+            // Log raw VALR response for debugging
+            logger.info('Raw VALR SELL response', {
+                pair,
+                rawResponse: JSON.stringify(data)
+            });
+
             // Transform VALR response to standard format
+            // VALR returns: baseAmount (quantity sold), quoteAmount (USDT received), feeInQuote
+            const baseAmount = parseFloat(data.baseAmount || data.originalQuantity || data.quantity || quantity);
+            const quoteAmount = parseFloat(data.quoteAmount || data.total || 0);
+            const averagePrice = baseAmount > 0 ? quoteAmount / baseAmount : parseFloat(data.averagePrice || 0);
+            const feeInQuote = parseFloat(data.feeInQuote || data.quoteFee || data.totalFee || 0);
+
             const result = {
                 orderId: data.id || data.orderId,
-                executedPrice: parseFloat(data.averagePrice || 0),
-                executedQuantity: parseFloat(data.originalQuantity || data.quantity || 0),
-                executedValue: parseFloat(data.total || 0),
-                fee: parseFloat(data.totalFee || 0),
+                executedPrice: averagePrice,
+                executedQuantity: baseAmount,
+                executedValue: quoteAmount,
+                fee: feeInQuote,
                 status: data.orderStatus || data.status,
                 timestamp: data.createdAt || Date.now(),
                 rawResponse: data
