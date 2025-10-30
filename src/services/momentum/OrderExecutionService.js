@@ -425,8 +425,8 @@ class OrderExecutionService {
                 // Apply rate limiting
                 await this._rateLimitDelay();
 
-                // VALR uses specific endpoint format
-                const path = `/v1/orders/${orderId}/orderbook`;
+                // VALR uses specific endpoint format for order history
+                const path = `/v1/orders/history/summary/orderid/${orderId}`;
 
                 const headers = this._createValrAuth(
                     credentials.apiKey,
