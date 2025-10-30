@@ -734,12 +734,19 @@ router.post('/positions', async (req, res) => {
 router.post('/positions/:id/close', async (req, res) => {
     try {
         const { id } = req.params;
-        const { userId, reason } = req.body;
+        const { userId, reason, credentials } = req.body;
 
         if (!userId) {
             return res.status(400).json({
                 success: false,
                 error: 'userId is required'
+            });
+        }
+
+        if (!credentials || !credentials.apiKey || !credentials.apiSecret) {
+            return res.status(400).json({
+                success: false,
+                error: 'credentials are required (apiKey and apiSecret)'
             });
         }
 
@@ -768,16 +775,6 @@ router.post('/positions/:id/close', async (req, res) => {
             });
         }
 
-        // Get credentials for this user/exchange (convert userId to string for consistency)
-        const credentials = await MomentumCredentials.getCredentials(String(userId), position.exchange);
-
-        if (!credentials) {
-            return res.status(400).json({
-                success: false,
-                error: `No API credentials found for ${position.exchange}. Please configure credentials first.`
-            });
-        }
-
         logger.info('Manually closing momentum position', {
             userId,
             positionId: id,
@@ -786,6 +783,7 @@ router.post('/positions/:id/close', async (req, res) => {
         });
 
         // Use PositionMonitorService to close position with real exchange execution
+        // Credentials passed from frontend (localStorage)
         const closedPosition = await positionMonitor.manualClosePosition(
             id,
             userId,

@@ -1629,12 +1629,29 @@
             if (!confirm('Are you sure you want to close this position?')) return;
 
             try {
+                // Get credentials from localStorage (like MomentumWorker does)
+                const apiKey = localStorage.getItem(`${selectedExchange}_momentum_api`);
+                const apiSecret = localStorage.getItem(`${selectedExchange}_momentum_secret`);
+                const apiPassphrase = localStorage.getItem(`${selectedExchange}_momentum_passphrase`);
+
+                if (!apiKey || !apiSecret) {
+                    alert('❌ No API credentials found. Please connect your exchange first.');
+                    return;
+                }
+
+                const credentials = {
+                    apiKey,
+                    apiSecret,
+                    ...(apiPassphrase && { apiPassphrase })
+                };
+
                 const response = await fetch(`${API_BASE}/positions/${positionId}/close`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         userId: USER_ID,
-                        reason: 'manual_close'
+                        reason: 'manual_close',
+                        credentials
                     })
                 });
 
