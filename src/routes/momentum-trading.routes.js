@@ -321,6 +321,7 @@ router.post('/strategies', async (req, res) => {
             strategyName,
             assets,
             entryLogic,
+            timeframe,
             entryIndicators,
             exitRules,
             maxTradeAmount,
@@ -369,7 +370,8 @@ router.post('/strategies', async (req, res) => {
             entryLogic,
             exitRules,
             maxTradeAmount,
-            maxOpenPositions
+            maxOpenPositions,
+            timeframe: timeframe || '5m'  // Default to 5m if not provided
         });
 
         logger.info('Momentum strategy created', {
