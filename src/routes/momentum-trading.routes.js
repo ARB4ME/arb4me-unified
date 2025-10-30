@@ -779,17 +779,35 @@ router.post('/positions/:id/close', async (req, res) => {
             userId,
             positionId: id,
             asset: position.asset,
-            exchange: position.exchange
+            pair: position.pair,
+            exchange: position.exchange,
+            quantity: position.entry_quantity
         });
 
-        // Use PositionMonitorService to close position with real exchange execution
-        // Credentials passed from frontend (localStorage)
-        const closedPosition = await positionMonitor.manualClosePosition(
-            id,
-            userId,
+        // Execute sell order on exchange
+        const sellResult = await orderExecutionService.executeSellOrder(
             position.exchange,
+            position.pair,
+            parseFloat(position.entry_quantity),
             credentials
         );
+
+        logger.info('Sell order executed', {
+            positionId: id,
+            orderId: sellResult.orderId,
+            executedPrice: sellResult.executedPrice,
+            executedQuantity: sellResult.executedQuantity,
+            fee: sellResult.fee
+        });
+
+        // Close position in database with actual execution details
+        const closedPosition = await MomentumPosition.close(id, {
+            exitPrice: sellResult.executedPrice,
+            exitQuantity: sellResult.executedQuantity,
+            exitFee: sellResult.fee || 0,
+            exitReason: reason || 'manual_close',
+            exitOrderId: sellResult.orderId
+        });
 
         logger.info('Momentum position closed', {
             userId,
