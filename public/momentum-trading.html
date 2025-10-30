@@ -1195,21 +1195,24 @@
                         <div class="position-card ${isLosing ? 'losing' : ''}">
                             <div class="position-header">
                                 <div class="position-asset">${pos.asset}</div>
-                                <button class="btn btn-danger btn-small" onclick="closePosition(${pos.id})">
-                                    Close Position
+                                <button class="btn btn-danger btn-small" onclick="closePosition(${pos.id})" style="font-weight: 600;">
+                                    🔴 Manual Close
                                 </button>
                             </div>
                             <div style="font-size: 0.85rem;">
-                                <div><strong>Entry:</strong> R${pos.entry_price.toFixed(6)} | <strong>Quantity:</strong> ${pos.entry_quantity.toFixed(4)}</div>
-                                <div><strong>Entry Value:</strong> R${pos.entry_value_usdt.toFixed(2)}</div>
+                                <div><strong>Entry:</strong> $${pos.entry_price.toFixed(6)} | <strong>Quantity:</strong> ${pos.entry_quantity.toFixed(4)}</div>
+                                <div><strong>Entry Value:</strong> $${pos.entry_value_usdt.toFixed(2)} USDT</div>
                                 <div><strong>Current P&L:</strong>
                                     <span class="${currentPnL >= 0 ? 'pnl-positive' : 'pnl-negative'}">
-                                        R${currentPnL.toFixed(2)} (${currentPnLPercent >= 0 ? '+' : ''}${currentPnLPercent.toFixed(2)}%)
+                                        $${currentPnL.toFixed(2)} (${currentPnLPercent >= 0 ? '+' : ''}${currentPnLPercent.toFixed(2)}%)
                                     </span>
                                 </div>
                                 <div><strong>Time Open:</strong> ${getTimeDiff(pos.entry_time)}</div>
                                 <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
                                     <strong>Strategy:</strong> ${pos.strategy_name}
+                                </div>
+                                <div style="margin-top: 5px; padding: 6px; background: rgba(255,255,255,0.05); border-radius: 4px; font-size: 0.8rem; color: #888;">
+                                    ℹ️ You can manually close this position anytime, regardless of auto-close settings
                                 </div>
                             </div>
                         </div>
