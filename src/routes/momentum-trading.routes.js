@@ -617,6 +617,72 @@ router.get('/positions', async (req, res) => {
 });
 
 /**
+ * POST /api/v1/momentum/positions
+ * Create a new position (after successful buy order)
+ */
+router.post('/positions', async (req, res) => {
+    try {
+        const {
+            userId,
+            strategyId,
+            exchange,
+            asset,
+            pair,
+            entryPrice,
+            entryQuantity,
+            entryValueUSDT,
+            entryFee,
+            entrySignals,
+            entryOrderId
+        } = req.body;
+
+        if (!userId || !strategyId || !exchange || !pair || !entryPrice || !entryQuantity) {
+            return res.status(400).json({
+                success: false,
+                error: 'Missing required fields'
+            });
+        }
+
+        const position = await MomentumPosition.create({
+            userId,
+            strategyId,
+            exchange,
+            asset,
+            pair,
+            entryPrice,
+            entryQuantity,
+            entryValueUsdt: entryValueUSDT,
+            entryFee: entryFee || 0,
+            entrySignals,
+            entryOrderId
+        });
+
+        logger.info('Position created successfully', {
+            positionId: position.id,
+            strategyId,
+            pair,
+            entryPrice
+        });
+
+        res.json({
+            success: true,
+            data: position
+        });
+
+    } catch (error) {
+        logger.error('Failed to create position', {
+            error: error.message,
+            stack: error.stack
+        });
+
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
  * POST /api/v1/momentum/positions/:id/close
  * Manually close a position
  */
