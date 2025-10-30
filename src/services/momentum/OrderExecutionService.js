@@ -373,6 +373,10 @@ class OrderExecutionService {
                 return await this._getLunoOrderStatus(orderId, credentials);
             }
 
+            if (exchangeLower === 'chainex') {
+                return await this._getChainEXOrderStatus(orderId, credentials);
+            }
+
             throw new Error(`Exchange not supported: ${exchange}`);
 
         } catch (error) {
@@ -401,6 +405,10 @@ class OrderExecutionService {
 
             if (exchangeLower === 'luno') {
                 return await this._getLunoBalances(credentials);
+            }
+
+            if (exchangeLower === 'chainex') {
+                return await this._getChainEXBalances(credentials);
             }
 
             throw new Error(`Exchange not supported: ${exchange}`);
@@ -1192,6 +1200,144 @@ class OrderExecutionService {
     }
 
     /**
+     * Get ChainEX balances
+     * @private
+     */
+    async _getChainEXBalances(credentials) {
+        try {
+            // Apply rate limiting
+            await this._rateLimitDelay();
+
+            const url = 'https://api.chainex.io/wallet/balances';
+
+            // ChainEX uses query string authentication
+            const time = Math.floor(Date.now() / 1000);
+            const params = new URLSearchParams({
+                time: time.toString(),
+                key: credentials.apiKey
+            });
+
+            const fullUrl = `${url}?${params.toString()}`;
+
+            // Create HMAC signature of full URL
+            const crypto = require('crypto');
+            const hash = crypto
+                .createHmac('sha256', credentials.apiSecret)
+                .update(fullUrl)
+                .digest('hex');
+
+            // Add hash to params
+            params.append('hash', hash);
+
+            const authenticatedUrl = `${url}?${params.toString()}`;
+
+            logger.info('Fetching ChainEX balances');
+
+            const response = await fetch(authenticatedUrl, {
+                method: 'GET'
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`ChainEX balance request failed: ${response.status} - ${errorText}`);
+            }
+
+            const data = await response.json();
+
+            if (data.status !== 'success') {
+                throw new Error(`ChainEX API error: ${data.message || 'Unknown error'}`);
+            }
+
+            // Transform ChainEX response to standard format
+            // ChainEX returns {status, count, data: [{code, balance_available, balance_held}]}
+            return data.data.map(balance => ({
+                currency: balance.code,
+                available: parseFloat(balance.balance_available || 0),
+                reserved: parseFloat(balance.balance_held || 0),
+                total: parseFloat(balance.balance_available || 0) + parseFloat(balance.balance_held || 0)
+            }));
+
+        } catch (error) {
+            logger.error('ChainEX balance request failed', {
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Get ChainEX order status
+     * @private
+     */
+    async _getChainEXOrderStatus(orderId, credentials) {
+        try {
+            // Apply rate limiting
+            await this._rateLimitDelay();
+
+            const url = 'https://api.chainex.io/trading/order';
+
+            // ChainEX uses query string authentication
+            const time = Math.floor(Date.now() / 1000);
+            const params = new URLSearchParams({
+                time: time.toString(),
+                key: credentials.apiKey,
+                order_id: orderId
+            });
+
+            const fullUrl = `${url}?${params.toString()}`;
+
+            // Create HMAC signature of full URL
+            const crypto = require('crypto');
+            const hash = crypto
+                .createHmac('sha256', credentials.apiSecret)
+                .update(fullUrl)
+                .digest('hex');
+
+            // Add hash to params
+            params.append('hash', hash);
+
+            const authenticatedUrl = `${url}?${params.toString()}`;
+
+            const response = await fetch(authenticatedUrl, {
+                method: 'GET'
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`ChainEX order status failed: ${response.status} - ${errorText}`);
+            }
+
+            const data = await response.json();
+
+            if (data.status !== 'success') {
+                throw new Error(`ChainEX API error: ${data.message || 'Unknown error'}`);
+            }
+
+            // Transform ChainEX response to standard format
+            const orderData = data.data;
+            return {
+                orderId: orderData.id,
+                status: orderData.status, // pending, processing, complete, cancelled
+                type: orderData.side, // buy or sell
+                pair: orderData.pair,
+                createdAt: orderData.created_at,
+                completedAt: orderData.updated_at,
+                baseAmount: parseFloat(orderData.filled_amount || 0),
+                counterAmount: parseFloat(orderData.filled_value || 0),
+                fee: parseFloat(orderData.fee || 0),
+                executedPrice: parseFloat(orderData.average_price || orderData.price || 0)
+            };
+
+        } catch (error) {
+            logger.error('ChainEX order status failed', {
+                orderId,
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
      * Execute Luno limit BUY order (fallback for market orders)
      * @private
      */
@@ -1393,7 +1539,7 @@ class OrderExecutionService {
                 type: 'market',
                 side: 'buy',
                 pair: chainexPair,
-                quote_amount: amountUSDT.toFixed(2) // Amount in USDT (quote currency)
+                quote_amount: parseFloat(amountUSDT).toFixed(2) // Amount in USDT (quote currency)
             };
 
             const url = `${config.baseUrl}${config.endpoint}`;
@@ -1469,7 +1615,7 @@ class OrderExecutionService {
                 type: 'market',
                 side: 'sell',
                 pair: chainexPair,
-                base_amount: quantity.toFixed(8) // Amount of base currency (crypto)
+                base_amount: parseFloat(quantity).toFixed(8) // Amount of base currency (crypto)
             };
 
             const url = `${config.baseUrl}${config.endpoint}`;
