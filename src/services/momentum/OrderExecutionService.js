@@ -369,6 +369,10 @@ class OrderExecutionService {
                 return await this._getValrOrderStatus(orderId, credentials);
             }
 
+            if (exchangeLower === 'luno') {
+                return await this._getLunoOrderStatus(orderId, credentials);
+            }
+
             throw new Error(`Exchange not supported: ${exchange}`);
 
         } catch (error) {
@@ -393,6 +397,10 @@ class OrderExecutionService {
 
             if (exchangeLower === 'valr') {
                 return await this._getValrBalances(credentials);
+            }
+
+            if (exchangeLower === 'luno') {
+                return await this._getLunoBalances(credentials);
             }
 
             throw new Error(`Exchange not supported: ${exchange}`);
@@ -950,7 +958,7 @@ class OrderExecutionService {
             const payload = {
                 pair: lunoPair,
                 type: 'SELL',
-                base_volume: quantity.toFixed(8) // Amount of base currency (crypto)
+                base_volume: parseFloat(quantity).toFixed(8) // Amount of base currency (crypto)
             };
 
             const url = `${config.baseUrl}${config.endpoint}`;
@@ -1018,6 +1026,103 @@ class OrderExecutionService {
             'Authorization': `Basic ${credentials}`,
             'Content-Type': 'application/json'
         };
+    }
+
+    /**
+     * Get Luno account balances
+     * @private
+     */
+    async _getLunoBalances(credentials) {
+        try {
+            // Apply rate limiting
+            await this._rateLimitDelay();
+
+            const config = {
+                baseUrl: 'https://api.luno.com',
+                endpoint: '/api/1/balance'
+            };
+
+            const url = `${config.baseUrl}${config.endpoint}`;
+
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: this._createLunoAuth(credentials.apiKey, credentials.apiSecret)
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Luno balances fetch failed: ${response.status} - ${errorText}`);
+            }
+
+            const data = await response.json();
+
+            // Transform Luno balances to standard format
+            // Luno returns: { balance: [{ account_id, asset, balance, reserved, unconfirmed }] }
+            return data.balance.map(balance => ({
+                currency: balance.asset,
+                available: parseFloat(balance.balance || 0) - parseFloat(balance.reserved || 0),
+                reserved: parseFloat(balance.reserved || 0),
+                total: parseFloat(balance.balance || 0)
+            }));
+
+        } catch (error) {
+            logger.error('Luno balances fetch failed', {
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Get Luno order status
+     * @private
+     */
+    async _getLunoOrderStatus(orderId, credentials) {
+        try {
+            // Apply rate limiting
+            await this._rateLimitDelay();
+
+            const config = {
+                baseUrl: 'https://api.luno.com',
+                endpoint: `/api/1/orders/${orderId}`
+            };
+
+            const url = `${config.baseUrl}${config.endpoint}`;
+
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: this._createLunoAuth(credentials.apiKey, credentials.apiSecret)
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Luno order status failed: ${response.status} - ${errorText}`);
+            }
+
+            const data = await response.json();
+
+            return {
+                orderId: data.order_id,
+                status: data.state, // PENDING, COMPLETE, CANCELLED
+                type: data.type, // BID (buy) or ASK (sell)
+                pair: data.pair,
+                createdAt: data.creation_timestamp,
+                completedAt: data.completed_timestamp,
+                baseAmount: parseFloat(data.base || 0),
+                counterAmount: parseFloat(data.counter || 0),
+                feeBase: parseFloat(data.fee_base || 0),
+                feeCounter: parseFloat(data.fee_counter || 0),
+                limitPrice: parseFloat(data.limit_price || 0),
+                limitVolume: parseFloat(data.limit_volume || 0)
+            };
+
+        } catch (error) {
+            logger.error('Luno order status failed', {
+                orderId,
+                error: error.message
+            });
+            throw error;
+        }
     }
 
     // ===== CHAINEX-SPECIFIC METHODS =====
