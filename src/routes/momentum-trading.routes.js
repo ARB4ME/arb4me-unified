@@ -753,7 +753,8 @@ router.post('/positions/:id/close', async (req, res) => {
             });
         }
 
-        if (position.user_id !== userId) {
+        // Convert both to strings for comparison (DB stores as VARCHAR, frontend may send as number)
+        if (String(position.user_id) !== String(userId)) {
             return res.status(403).json({
                 success: false,
                 error: 'Unauthorized'
