@@ -1280,8 +1280,8 @@
                 `;
             } else {
                 openContainer.innerHTML = openPositions.map(pos => {
-                    const currentPnL = pos.current_pnl_usdt || 0;
-                    const currentPnLPercent = pos.current_pnl_percent || 0;
+                    const currentPnL = parseFloat(pos.current_pnl_usdt || 0);
+                    const currentPnLPercent = parseFloat(pos.current_pnl_percent || 0);
                     const isLosing = currentPnL < 0;
 
                     return `
@@ -1293,8 +1293,8 @@
                                 </button>
                             </div>
                             <div style="font-size: 0.85rem;">
-                                <div><strong>Entry:</strong> $${pos.entry_price.toFixed(6)} | <strong>Quantity:</strong> ${pos.entry_quantity.toFixed(4)}</div>
-                                <div><strong>Entry Value:</strong> $${pos.entry_value_usdt.toFixed(2)} USDT</div>
+                                <div><strong>Entry:</strong> $${parseFloat(pos.entry_price).toFixed(6)} | <strong>Quantity:</strong> ${parseFloat(pos.entry_quantity).toFixed(4)}</div>
+                                <div><strong>Entry Value:</strong> $${parseFloat(pos.entry_value_usdt).toFixed(2)} USDT</div>
                                 <div><strong>Current P&L:</strong>
                                     <span class="${currentPnL >= 0 ? 'pnl-positive' : 'pnl-negative'}">
                                         $${currentPnL.toFixed(2)} (${currentPnLPercent >= 0 ? '+' : ''}${currentPnLPercent.toFixed(2)}%)
@@ -1322,7 +1322,7 @@
                 `;
             } else {
                 closedContainer.innerHTML = closedPositions.slice(0, 5).map(pos => {
-                    const pnl = pos.exit_pnl_usdt || 0;
+                    const pnl = parseFloat(pos.exit_pnl_usdt || 0);
                     const isProfit = pnl > 0;
 
                     return `
@@ -1330,7 +1330,7 @@
                             <div style="display: flex; justify-content: space-between;">
                                 <strong>${pos.asset}</strong>
                                 <span class="${isProfit ? 'pnl-positive' : 'pnl-negative'}">
-                                    ${isProfit ? '+' : ''}R${pnl.toFixed(2)}
+                                    ${isProfit ? '+' : ''}$${pnl.toFixed(2)}
                                 </span>
                             </div>
                             <div style="color: #888; font-size: 0.8rem;">
