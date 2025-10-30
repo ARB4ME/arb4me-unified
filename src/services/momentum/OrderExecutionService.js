@@ -409,6 +409,102 @@ class OrderExecutionService {
     // ===== VALR-SPECIFIC METHODS =====
 
     /**
+     * Poll VALR order status until filled
+     * @private
+     */
+    async _pollValrOrderStatus(orderId, credentials, maxAttempts = 10) {
+        const config = this.exchangeConfigs.valr;
+
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+                // Wait 1 second between attempts
+                if (attempt > 1) {
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+
+                // Apply rate limiting
+                await this._rateLimitDelay();
+
+                // VALR uses specific endpoint format
+                const path = `/v1/orders/${orderId}/orderbook`;
+
+                const headers = this._createValrAuth(
+                    credentials.apiKey,
+                    credentials.apiSecret,
+                    'GET',
+                    path
+                );
+
+                const url = `${config.baseUrl}${path}`;
+
+                logger.debug('Polling VALR order status', {
+                    orderId,
+                    attempt,
+                    maxAttempts
+                });
+
+                const response = await this._fetchWithRetry(url, {
+                    method: 'GET',
+                    headers: headers
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    logger.warn('VALR order status check failed', {
+                        orderId,
+                        status: response.status,
+                        error: errorText
+                    });
+                    continue; // Try again
+                }
+
+                const orderData = await response.json();
+
+                logger.debug('VALR order status response', {
+                    orderId,
+                    status: orderData.orderStatusType,
+                    rawResponse: JSON.stringify(orderData)
+                });
+
+                // Check if order is filled
+                if (orderData.orderStatusType === 'Filled' || orderData.orderStatusType === 'Instantly Filled') {
+                    logger.info('VALR order filled', {
+                        orderId,
+                        attempt
+                    });
+                    return orderData;
+                }
+
+                // If order failed or cancelled, throw error
+                if (orderData.orderStatusType === 'Failed' || orderData.orderStatusType === 'Cancelled') {
+                    throw new Error(`Order ${orderId} ${orderData.orderStatusType}`);
+                }
+
+                // Otherwise continue polling
+                logger.debug('VALR order not yet filled, continuing to poll', {
+                    orderId,
+                    status: orderData.orderStatusType,
+                    attempt
+                });
+
+            } catch (error) {
+                logger.error('Error polling VALR order status', {
+                    orderId,
+                    attempt,
+                    error: error.message
+                });
+
+                // If last attempt, throw error
+                if (attempt === maxAttempts) {
+                    throw new Error(`Failed to get order status after ${maxAttempts} attempts: ${error.message}`);
+                }
+            }
+        }
+
+        throw new Error(`Order ${orderId} did not fill within ${maxAttempts} seconds`);
+    }
+
+    /**
      * Execute VALR market BUY order
      * @private
      */
@@ -457,28 +553,43 @@ class OrderExecutionService {
             const data = await response.json();
 
             // Log raw VALR response for debugging
-            logger.info('Raw VALR BUY response', {
+            logger.info('Raw VALR BUY response (initial)', {
                 pair,
                 rawResponse: JSON.stringify(data)
             });
 
+            // VALR returns only order ID initially - need to poll for execution details
+            const orderId = data.id || data.orderId;
+
+            if (!orderId) {
+                throw new Error('VALR did not return order ID');
+            }
+
+            logger.info('Polling VALR order status for execution details', {
+                orderId,
+                pair
+            });
+
+            // Poll order status until filled (max 10 attempts = 10 seconds)
+            const orderDetails = await this._pollValrOrderStatus(orderId, credentials, 10);
+
             // Transform VALR response to standard format
             // VALR returns: baseAmount (quantity), quoteAmount (USDT spent), feeInBase
-            const baseAmount = parseFloat(data.baseAmount || data.originalQuantity || data.quantity || 0);
-            const quoteAmount = parseFloat(data.quoteAmount || data.total || amountUSDT);
-            const averagePrice = baseAmount > 0 ? quoteAmount / baseAmount : parseFloat(data.averagePrice || 0);
-            const feeInBase = parseFloat(data.feeInBase || data.baseFee || 0);
+            const baseAmount = parseFloat(orderDetails.baseAmount || orderDetails.originalQuantity || orderDetails.quantity || 0);
+            const quoteAmount = parseFloat(orderDetails.quoteAmount || orderDetails.total || amountUSDT);
+            const averagePrice = parseFloat(orderDetails.averagePrice || (baseAmount > 0 ? quoteAmount / baseAmount : 0));
+            const feeInBase = parseFloat(orderDetails.feeInBase || orderDetails.baseFee || 0);
             const feeInQuote = feeInBase * averagePrice; // Convert fee from XRP to USDT
 
             const result = {
-                orderId: data.id || data.orderId,
+                orderId: orderId,
                 executedPrice: averagePrice,
                 executedQuantity: baseAmount,
                 executedValue: quoteAmount,
                 fee: feeInQuote,
-                status: data.orderStatus || data.status,
-                timestamp: data.createdAt || Date.now(),
-                rawResponse: data
+                status: orderDetails.orderStatus || orderDetails.status,
+                timestamp: orderDetails.createdAt || orderDetails.orderUpdatedAt || Date.now(),
+                rawResponse: orderDetails
             };
 
             logger.info('VALR BUY order executed successfully', {
@@ -550,33 +661,49 @@ class OrderExecutionService {
             const data = await response.json();
 
             // Log raw VALR response for debugging
-            logger.info('Raw VALR SELL response', {
+            logger.info('Raw VALR SELL response (initial)', {
                 pair,
                 rawResponse: JSON.stringify(data)
             });
 
+            // VALR returns only order ID initially - need to poll for execution details
+            const orderId = data.id || data.orderId;
+
+            if (!orderId) {
+                throw new Error('VALR did not return order ID');
+            }
+
+            logger.info('Polling VALR order status for execution details', {
+                orderId,
+                pair
+            });
+
+            // Poll order status until filled (max 10 attempts = 10 seconds)
+            const orderDetails = await this._pollValrOrderStatus(orderId, credentials, 10);
+
             // Transform VALR response to standard format
             // VALR returns: baseAmount (quantity sold), quoteAmount (USDT received), feeInQuote
-            const baseAmount = parseFloat(data.baseAmount || data.originalQuantity || data.quantity || quantity);
-            const quoteAmount = parseFloat(data.quoteAmount || data.total || 0);
-            const averagePrice = baseAmount > 0 ? quoteAmount / baseAmount : parseFloat(data.averagePrice || 0);
-            const feeInQuote = parseFloat(data.feeInQuote || data.quoteFee || data.totalFee || 0);
+            const baseAmount = parseFloat(orderDetails.baseAmount || orderDetails.originalQuantity || orderDetails.quantity || quantity);
+            const quoteAmount = parseFloat(orderDetails.quoteAmount || orderDetails.total || 0);
+            const averagePrice = parseFloat(orderDetails.averagePrice || (baseAmount > 0 ? quoteAmount / baseAmount : 0));
+            const feeInQuote = parseFloat(orderDetails.feeInQuote || orderDetails.quoteFee || orderDetails.totalFee || 0);
 
             const result = {
-                orderId: data.id || data.orderId,
+                orderId: orderId,
                 executedPrice: averagePrice,
                 executedQuantity: baseAmount,
                 executedValue: quoteAmount,
                 fee: feeInQuote,
-                status: data.orderStatus || data.status,
-                timestamp: data.createdAt || Date.now(),
-                rawResponse: data
+                status: orderDetails.orderStatus || orderDetails.status,
+                timestamp: orderDetails.createdAt || orderDetails.orderUpdatedAt || Date.now(),
+                rawResponse: orderDetails
             };
 
             logger.info('VALR SELL order executed successfully', {
                 orderId: result.orderId,
                 executedPrice: result.executedPrice,
-                executedValue: result.executedValue
+                executedValue: result.executedValue,
+                fee: result.fee
             });
 
             return result;
