@@ -553,6 +553,23 @@
                         <strong>ℹ️ Strategy-Specific Credentials:</strong> Use your 5th Strategic API Configuration for Momentum Trading.
                     </div>
 
+                    <!-- USDT Balance Display -->
+                    <div id="balanceDisplay" style="margin-top: 15px; padding: 15px; background: rgba(0, 212, 255, 0.1); border-radius: 8px; border: 1px solid #00d4ff;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <div style="font-size: 0.85rem; color: #888; margin-bottom: 5px;">💰 Available USDT Balance</div>
+                                <div id="usdtBalanceValue" style="font-size: 1.5rem; font-weight: 600; color: #00d4ff;">
+                                    Loading...
+                                </div>
+                            </div>
+                            <button onclick="refreshBalance()" class="btn btn-secondary" style="font-size: 0.85rem;">
+                                🔄 Refresh
+                            </button>
+                        </div>
+                        <div id="balanceError" style="display: none; margin-top: 10px; padding: 8px; background: rgba(255, 0, 0, 0.1); border-radius: 4px; color: #ff6b6b; font-size: 0.85rem;">
+                        </div>
+                    </div>
+
                     <div style="margin-top: 15px; padding: 12px; background: rgba(255, 179, 71, 0.1); border-radius: 8px; border: 1px solid #ffb347;">
                         <strong style="color: #ffb347;">💡 Note:</strong> Configure your Momentum Trading API credentials: Go to <a href="/" style="color: #00d4ff; text-decoration: underline;">Home Page</a> → API Setup tab → Click "Configure Momentum Trading APIs" button.
                     </div>
@@ -947,6 +964,7 @@
 
             // Reload all data for new exchange
             await testConnection();
+            await fetchBalance();
             await loadStrategies();
             await loadPositions();
             await loadStats();
@@ -972,6 +990,9 @@
 
                 console.log('🔌 Testing connection...');
                 await testConnection();
+
+                console.log('💰 Fetching USDT balance...');
+                await fetchBalance();
 
                 console.log('📋 Loading strategies...');
                 await loadStrategies();
@@ -1050,6 +1071,78 @@
                     testResultEl.innerHTML = '<span style="color: #ff6b6b;">❌ Failed to check credentials</span>';
                 }
             }
+        }
+
+        // Fetch and display USDT balance
+        async function fetchBalance() {
+            const balanceValueEl = document.getElementById('usdtBalanceValue');
+            const balanceErrorEl = document.getElementById('balanceError');
+
+            try {
+                // Get credentials from localStorage
+                const apiKey = localStorage.getItem(`${selectedExchange}_momentum_api`);
+                const apiSecret = localStorage.getItem(`${selectedExchange}_momentum_secret`);
+                const apiPassphrase = localStorage.getItem(`${selectedExchange}_momentum_passphrase`);
+
+                if (!apiKey || !apiSecret) {
+                    balanceValueEl.textContent = 'Not Connected';
+                    balanceValueEl.style.color = '#888';
+                    return;
+                }
+
+                balanceValueEl.textContent = 'Loading...';
+                balanceValueEl.style.color = '#888';
+                balanceErrorEl.style.display = 'none';
+
+                // Call balance endpoint
+                const response = await fetch(`/api/v1/trading/${selectedExchange}/balance`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        apiKey,
+                        apiSecret,
+                        ...(apiPassphrase && { passphrase: apiPassphrase })
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch balance: ${response.statusText}`);
+                }
+
+                const result = await response.json();
+
+                // Extract USDT balance from response
+                let usdtBalance = 0;
+                if (result.balances && typeof result.balances === 'object') {
+                    // Handle different response formats
+                    if (result.balances.USDT) {
+                        usdtBalance = parseFloat(result.balances.USDT.total || result.balances.USDT.available || result.balances.USDT || 0);
+                    } else if (result.balances.usdt) {
+                        usdtBalance = parseFloat(result.balances.usdt.total || result.balances.usdt.available || result.balances.usdt || 0);
+                    }
+                }
+
+                // Display balance
+                balanceValueEl.textContent = `$${usdtBalance.toFixed(2)} USDT`;
+                balanceValueEl.style.color = usdtBalance > 0 ? '#00d4ff' : '#888';
+
+                if (usdtBalance === 0) {
+                    balanceErrorEl.textContent = '⚠️ No USDT balance found. You may need to deposit USDT to trade.';
+                    balanceErrorEl.style.display = 'block';
+                }
+
+            } catch (error) {
+                console.error('Failed to fetch balance:', error);
+                balanceValueEl.textContent = 'Error';
+                balanceValueEl.style.color = '#ff6b6b';
+                balanceErrorEl.textContent = `❌ Failed to fetch balance: ${error.message}`;
+                balanceErrorEl.style.display = 'block';
+            }
+        }
+
+        // Refresh balance (button click handler)
+        async function refreshBalance() {
+            await fetchBalance();
         }
 
         // Load strategies
