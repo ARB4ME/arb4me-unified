@@ -1350,11 +1350,73 @@
                 if (result.success) {
                     openPositions = result.data.open || [];
                     closedPositions = result.data.closed || [];
+
+                    // Calculate live P&L for open positions
+                    await updateLivePnL();
+
                     renderPositions();
                     updateStats();
                 }
             } catch (error) {
                 console.error('Failed to load positions:', error);
+            }
+        }
+
+        // Fetch live prices and calculate P&L for open positions
+        async function updateLivePnL() {
+            if (!openPositions || openPositions.length === 0) return;
+
+            try {
+                // Get credentials for price fetching
+                const apiKey = localStorage.getItem(`${selectedExchange}_momentum_api`);
+                const apiSecret = localStorage.getItem(`${selectedExchange}_momentum_secret`);
+                const apiPassphrase = localStorage.getItem(`${selectedExchange}_momentum_passphrase`);
+
+                if (!apiKey || !apiSecret) return;
+
+                const credentials = {
+                    apiKey,
+                    apiSecret,
+                    ...(apiPassphrase && { apiPassphrase })
+                };
+
+                // Fetch current price for each position's pair
+                for (const position of openPositions) {
+                    try {
+                        const priceResponse = await fetch(`${API_BASE}/market/current-price`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                exchange: position.exchange,
+                                pair: position.pair
+                            })
+                        });
+
+                        if (priceResponse.ok) {
+                            const { data: currentPrice } = await priceResponse.json();
+
+                            // Calculate P&L
+                            const entryPrice = parseFloat(position.entry_price);
+                            const quantity = parseFloat(position.entry_quantity);
+                            const entryValue = parseFloat(position.entry_value_usdt);
+                            const entryFee = parseFloat(position.entry_fee || 0);
+
+                            const currentValue = currentPrice * quantity;
+                            const pnlUsdt = currentValue - (entryValue + entryFee);
+                            const pnlPercent = (pnlUsdt / entryValue) * 100;
+
+                            // Add live P&L to position object
+                            position.current_pnl_usdt = pnlUsdt;
+                            position.current_pnl_percent = pnlPercent;
+                            position.current_price = currentPrice;
+                        }
+                    } catch (error) {
+                        console.warn(`Failed to fetch price for ${position.pair}:`, error.message);
+                        // Keep existing P&L values (0) if fetch fails
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to update live P&L:', error);
             }
         }
 
