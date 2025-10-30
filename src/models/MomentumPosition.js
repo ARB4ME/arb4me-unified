@@ -23,6 +23,7 @@ const { query } = require('../database/connection');
  *   status VARCHAR(20) DEFAULT 'OPEN' CHECK (status IN ('OPEN', 'CLOSED')),
  *   exit_price DECIMAL(18,8),
  *   exit_quantity DECIMAL(18,8),
+ *   exit_fee DECIMAL(12,4) DEFAULT 0,
  *   exit_time TIMESTAMP,
  *   exit_reason VARCHAR(50),
  *   exit_pnl_usdt DECIMAL(12,2),
@@ -61,6 +62,7 @@ class MomentumPosition {
                 status VARCHAR(20) DEFAULT 'OPEN' CHECK (status IN ('OPEN', 'CLOSED')),
                 exit_price DECIMAL(18,8),
                 exit_quantity DECIMAL(18,8),
+                exit_fee DECIMAL(12,4) DEFAULT 0,
                 exit_time TIMESTAMP,
                 exit_reason VARCHAR(50),
                 exit_pnl_usdt DECIMAL(12,2),
@@ -74,6 +76,15 @@ class MomentumPosition {
             CREATE INDEX IF NOT EXISTS idx_momentum_positions_strategy ON momentum_positions(strategy_id);
             CREATE INDEX IF NOT EXISTS idx_momentum_positions_status ON momentum_positions(status);
             CREATE INDEX IF NOT EXISTS idx_momentum_positions_entry_time ON momentum_positions(entry_time);
+
+            -- Add exit_fee column to existing tables (safe to run multiple times)
+            DO $$
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                              WHERE table_name='momentum_positions' AND column_name='exit_fee') THEN
+                    ALTER TABLE momentum_positions ADD COLUMN exit_fee DECIMAL(12,4) DEFAULT 0;
+                END IF;
+            END $$;
         `;
 
         await query(createTableQuery);
@@ -187,18 +198,24 @@ class MomentumPosition {
         const {
             exitPrice,
             exitQuantity,
+            exitFee,
             exitReason,
             exitOrderId
         } = exitData;
 
-        // Calculate P&L
+        // Calculate P&L with ACTUAL fees (from exchange responses)
         const position = await this.getById(positionId);
         if (!position) {
             throw new Error('Position not found');
         }
 
         const exitValueUsdt = exitPrice * exitQuantity;
-        const pnlUsdt = exitValueUsdt - position.entry_value_usdt;
+
+        // TRUE P&L = (Exit Value - Exit Fee) - (Entry Value + Entry Fee)
+        // This gives the ACTUAL net profit after all exchange fees
+        const entryFee = position.entry_fee || 0;
+        const exitFeeAmount = exitFee || 0;
+        const pnlUsdt = (exitValueUsdt - exitFeeAmount) - (position.entry_value_usdt + entryFee);
         const pnlPercent = (pnlUsdt / position.entry_value_usdt) * 100;
 
         const updateQuery = `
@@ -206,19 +223,21 @@ class MomentumPosition {
             SET status = 'CLOSED',
                 exit_price = $1,
                 exit_quantity = $2,
+                exit_fee = $3,
                 exit_time = NOW(),
-                exit_reason = $3,
-                exit_pnl_usdt = $4,
-                exit_pnl_percent = $5,
-                exit_order_id = $6,
+                exit_reason = $4,
+                exit_pnl_usdt = $5,
+                exit_pnl_percent = $6,
+                exit_order_id = $7,
                 updated_at = NOW()
-            WHERE id = $7
+            WHERE id = $8
             RETURNING *
         `;
 
         const values = [
             exitPrice,
             exitQuantity,
+            exitFeeAmount,
             exitReason,
             pnlUsdt,
             pnlPercent,

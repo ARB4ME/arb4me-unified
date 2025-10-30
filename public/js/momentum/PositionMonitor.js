@@ -196,29 +196,23 @@ const PositionMonitor = {
 
             const { data: sellOrder } = await orderResponse.json();
 
-            // Calculate P&L with proper fee handling
+            // Extract sell order data
             const exitPrice = sellOrder.executedPrice || currentPrice;
             const exitValue = sellOrder.executedValue || (exitPrice * position.entry_quantity);
 
-            // Handle fees - use actual fees if available, otherwise estimate 0.1% (conservative)
-            const entryFee = position.entry_fee || (position.entry_value_usdt * 0.001); // 0.1% entry fee estimate
-            const exitFee = sellOrder.fee || (exitValue * 0.001); // 0.1% exit fee estimate
+            // Get actual exit fee from exchange (or estimate 0.1% if not provided)
+            const exitFee = sellOrder.fee || (exitValue * 0.001); // 0.1% conservative estimate
 
-            // Calculate P&L: Exit value - Entry value - Entry fee - Exit fee
-            const pnlUSDT = exitValue - position.entry_value_usdt - entryFee - exitFee;
-            const pnlPercent = (pnlUSDT / position.entry_value_usdt) * 100;
-
-            console.debug('P&L calculated with fees', {
+            console.debug('Closing position with actual fees', {
                 positionId: position.id,
+                exitPrice,
                 exitValue,
-                entryValue: position.entry_value_usdt,
-                entryFee: entryFee.toFixed(4),
                 exitFee: exitFee.toFixed(4),
-                pnlUSDT: pnlUSDT.toFixed(4),
-                pnlPercent: pnlPercent.toFixed(2)
+                entryFee: (position.entry_fee || 0).toFixed(4)
             });
 
             // Close position in database via API
+            // The backend will calculate P&L using: (Exit Value - Exit Fee) - (Entry Value + Entry Fee)
             const closeResponse = await fetch(`/api/v1/momentum/positions/${position.id}/close`, {
                 method: 'PUT',
                 headers: {
@@ -227,10 +221,9 @@ const PositionMonitor = {
                 body: JSON.stringify({
                     exitPrice: exitPrice,
                     exitQuantity: position.entry_quantity,
+                    exitFee: exitFee,
                     exitReason: reason,
-                    exitOrderId: sellOrder.orderId,
-                    exitPnLUSDT: pnlUSDT,
-                    exitPnLPercent: pnlPercent
+                    exitOrderId: sellOrder.orderId
                 })
             });
 
@@ -240,11 +233,13 @@ const PositionMonitor = {
 
             const { data: closedPosition } = await closeResponse.json();
 
-            console.log('Position closed successfully', {
+            console.log('Position closed successfully with accurate P&L', {
                 positionId: position.id,
                 exitPrice,
-                pnlUSDT: pnlUSDT.toFixed(2),
-                pnlPercent: pnlPercent.toFixed(2),
+                exitFee: exitFee.toFixed(4),
+                entryFee: (position.entry_fee || 0).toFixed(4),
+                netPnLUSDT: closedPosition.exit_pnl_usdt.toFixed(2),
+                netPnLPercent: closedPosition.exit_pnl_percent.toFixed(2),
                 reason
             });
 

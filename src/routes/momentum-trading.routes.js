@@ -709,6 +709,66 @@ router.post('/positions/:id/close', async (req, res) => {
 });
 
 /**
+ * PUT /api/v1/momentum/positions/:id/close
+ * Close a position (called by PositionMonitor after executing sell order)
+ */
+router.put('/positions/:id/close', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { exitPrice, exitQuantity, exitFee, exitReason, exitOrderId } = req.body;
+
+        if (!exitPrice || !exitQuantity) {
+            return res.status(400).json({
+                success: false,
+                error: 'exitPrice and exitQuantity are required'
+            });
+        }
+
+        // Close position in database with actual fees
+        const closedPosition = await MomentumPosition.close(id, {
+            exitPrice,
+            exitQuantity,
+            exitFee: exitFee || 0,
+            exitReason: exitReason || 'unknown',
+            exitOrderId
+        });
+
+        if (!closedPosition) {
+            return res.status(404).json({
+                success: false,
+                error: 'Position not found'
+            });
+        }
+
+        logger.info('Position closed in database with accurate P&L', {
+            positionId: id,
+            exitPrice,
+            exitFee: exitFee || 0,
+            netPnL: closedPosition.exit_pnl_usdt,
+            netPnLPercent: closedPosition.exit_pnl_percent
+        });
+
+        res.json({
+            success: true,
+            data: closedPosition,
+            message: 'Position closed successfully'
+        });
+
+    } catch (error) {
+        logger.error('Failed to close position in database', {
+            positionId: req.params.id,
+            error: error.message,
+            stack: error.stack
+        });
+
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
  * GET /api/v1/momentum/stats
  * Get daily statistics
  */
