@@ -2545,7 +2545,7 @@
             </div>
             <!-- Strategy Navigation Row 1 -->
             <div class="strategy-selection-row">
-                <div class="strategy-toggle" style="cursor: pointer;" onclick="window.location.href='/cross-exchange-arb.html'">
+                <div class="strategy-toggle" style="cursor: pointer;" onclick="console.log('Cross Exchange clicked'); window.location.href='/cross-exchange-arb.html';">
                     <span class="strategy-label">Cross Exchange ARB</span>
                 </div>
 
@@ -26478,10 +26478,15 @@ ARB4ME Security Team`
 
 
             // NEW STRATEGY TOGGLES (Dashboard)
-            document.getElementById('crossExchangeToggle').addEventListener('click', toggleCrossExchange);
+            const crossExchangeToggle = document.getElementById('crossExchangeToggle');
+            if (crossExchangeToggle) {
+                crossExchangeToggle.addEventListener('click', toggleCrossExchange);
+            }
             // TRIANGULAR PAGE TOGGLE - DIRECT NAVIGATION
-            document.getElementById('triangularPageButton').addEventListener('click', function() {
-                const toggleSwitch = document.getElementById('triangularPageToggle');
+            const triangularPageButton = document.getElementById('triangularPageButton');
+            if (triangularPageButton) {
+                triangularPageButton.addEventListener('click', function() {
+                    const toggleSwitch = document.getElementById('triangularPageToggle');
 
                 // Toggle the state
                 state.triangularPageActive = !state.triangularPageActive;
@@ -26511,9 +26516,16 @@ ARB4ME Security Team`
                     addActivity('🔺 Triangular ARB page closed', 'info');
                     console.log('✅ Triangular toggle OFF');
                 }
-            });
-            document.getElementById('transferToggle').addEventListener('click', toggleTransfer);
-            document.getElementById('currencySwapToggle').addEventListener('click', toggleCurrencySwap);
+                });
+            }
+            const transferToggle = document.getElementById('transferToggle');
+            if (transferToggle) {
+                transferToggle.addEventListener('click', toggleTransfer);
+            }
+            const currencySwapToggle = document.getElementById('currencySwapToggle');
+            if (currencySwapToggle) {
+                currencySwapToggle.addEventListener('click', toggleCurrencySwap);
+            }
 
             // Momentum connect buttons event listeners are now attached when modal opens
             // See attachMomentumEventListeners() function called by openMomentumModal()
