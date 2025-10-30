@@ -77,6 +77,15 @@ class MomentumPosition {
             CREATE INDEX IF NOT EXISTS idx_momentum_positions_status ON momentum_positions(status);
             CREATE INDEX IF NOT EXISTS idx_momentum_positions_entry_time ON momentum_positions(entry_time);
 
+            -- Add entry_fee column to existing tables (safe to run multiple times)
+            DO $$
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                              WHERE table_name='momentum_positions' AND column_name='entry_fee') THEN
+                    ALTER TABLE momentum_positions ADD COLUMN entry_fee DECIMAL(12,4) DEFAULT 0;
+                END IF;
+            END $$;
+
             -- Add exit_fee column to existing tables (safe to run multiple times)
             DO $$
             BEGIN

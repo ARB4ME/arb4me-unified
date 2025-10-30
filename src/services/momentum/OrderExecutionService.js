@@ -574,11 +574,11 @@ class OrderExecutionService {
             const orderDetails = await this._pollValrOrderStatus(orderId, credentials, 10);
 
             // Transform VALR response to standard format
-            // VALR returns: baseAmount (quantity), quoteAmount (USDT spent), feeInBase
-            const baseAmount = parseFloat(orderDetails.baseAmount || orderDetails.originalQuantity || orderDetails.quantity || 0);
-            const quoteAmount = parseFloat(orderDetails.quoteAmount || orderDetails.total || amountUSDT);
+            // VALR returns: totalFee (in base currency like XRP), originalQuantity, total, averagePrice
+            const baseAmount = parseFloat(orderDetails.originalQuantity || orderDetails.totalExecutedQuantity || orderDetails.quantity || 0);
+            const quoteAmount = parseFloat(orderDetails.total || amountUSDT);
             const averagePrice = parseFloat(orderDetails.averagePrice || (baseAmount > 0 ? quoteAmount / baseAmount : 0));
-            const feeInBase = parseFloat(orderDetails.feeInBase || orderDetails.baseFee || 0);
+            const feeInBase = parseFloat(orderDetails.totalFee || orderDetails.feeInBase || orderDetails.baseFee || 0);
             const feeInQuote = feeInBase * averagePrice; // Convert fee from XRP to USDT
 
             const result = {
@@ -682,11 +682,21 @@ class OrderExecutionService {
             const orderDetails = await this._pollValrOrderStatus(orderId, credentials, 10);
 
             // Transform VALR response to standard format
-            // VALR returns: baseAmount (quantity sold), quoteAmount (USDT received), feeInQuote
-            const baseAmount = parseFloat(orderDetails.baseAmount || orderDetails.originalQuantity || orderDetails.quantity || quantity);
-            const quoteAmount = parseFloat(orderDetails.quoteAmount || orderDetails.total || 0);
+            // VALR returns: totalFee (in base currency), originalQuantity, total, averagePrice
+            const baseAmount = parseFloat(orderDetails.originalQuantity || orderDetails.totalExecutedQuantity || orderDetails.quantity || quantity);
+            const quoteAmount = parseFloat(orderDetails.total || 0);
             const averagePrice = parseFloat(orderDetails.averagePrice || (baseAmount > 0 ? quoteAmount / baseAmount : 0));
-            const feeInQuote = parseFloat(orderDetails.feeInQuote || orderDetails.quoteFee || orderDetails.totalFee || 0);
+
+            // Check if fee is in quote or base currency
+            let feeInQuote;
+            if (orderDetails.feeCurrency === 'USDT' || orderDetails.feeCurrency === pair.split('USDT')[0]) {
+                // If fee is in USDT or quote currency, use directly
+                feeInQuote = parseFloat(orderDetails.totalFee || 0);
+            } else {
+                // If fee is in base currency (XRP), convert to USDT
+                const feeInBase = parseFloat(orderDetails.totalFee || 0);
+                feeInQuote = feeInBase * averagePrice;
+            }
 
             const result = {
                 orderId: orderId,
