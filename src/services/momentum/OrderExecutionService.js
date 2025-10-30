@@ -1552,7 +1552,7 @@ class OrderExecutionService {
 
             const response = await fetch(url, {
                 method: 'POST',
-                headers: this._createChainEXAuth(credentials.apiKey),
+                headers: this._createChainEXAuth(credentials.apiKey, credentials.apiSecret, payload),
                 body: JSON.stringify(payload)
             });
 
@@ -1628,7 +1628,7 @@ class OrderExecutionService {
 
             const response = await fetch(url, {
                 method: 'POST',
-                headers: this._createChainEXAuth(credentials.apiKey),
+                headers: this._createChainEXAuth(credentials.apiKey, credentials.apiSecret, payload),
                 body: JSON.stringify(payload)
             });
 
@@ -1686,10 +1686,23 @@ class OrderExecutionService {
      * Create ChainEX authentication headers (Simple API Key)
      * @private
      */
-    _createChainEXAuth(apiKey) {
-        // ChainEX uses simple X-API-KEY header authentication
+    _createChainEXAuth(apiKey, apiSecret, payload) {
+        // ChainEX trading endpoints use timestamp + signature authentication
+        const timestamp = Date.now().toString();
+
+        // Create signature: HMAC-SHA256 of timestamp + JSON body
+        const bodyString = JSON.stringify(payload);
+        const message = timestamp + bodyString;
+
+        const signature = crypto
+            .createHmac('sha256', apiSecret)
+            .update(message)
+            .digest('hex');
+
         return {
             'X-API-KEY': apiKey,
+            'X-TIMESTAMP': timestamp,
+            'X-SIGNATURE': signature,
             'Content-Type': 'application/json'
         };
     }
