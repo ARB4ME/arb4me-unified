@@ -700,10 +700,14 @@ const MomentumWorker = {
                         indicators: {
                             rsi: signalResult.indicatorValues?.rsi || null,
                             volume: signalResult.indicatorValues?.volume?.volumeRatio || null,
-                            macd: signalResult.indicatorValues?.macd?.histogram || null,
+                            macd: signalResult.indicatorValues?.macd ? {
+                                histogram: signalResult.indicatorValues.macd.histogram,
+                                crossover: signalResult.indicatorValues.macd.crossover
+                            } : null,
                             ema: {
                                 fast: signalResult.indicatorValues?.ema?.fastEMA || null,
-                                slow: signalResult.indicatorValues?.ema?.slowEMA || null
+                                slow: signalResult.indicatorValues?.ema?.slowEMA || null,
+                                crossover: signalResult.indicatorValues?.ema?.crossover || false
                             },
                             bollinger: signalResult.indicatorValues?.bollinger?.percentB || null,
                             stochastic: signalResult.indicatorValues?.stochastic?.k || null

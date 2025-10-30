@@ -1088,16 +1088,18 @@
                     }
 
                     if (assetData.indicators.macd !== null) {
-                        const macdValue = assetData.indicators.macd.toFixed(4);
-                        const macdStatus = assetData.indicators.macd > 0 ? '✅' : '❌';
-                        html += `<div>📉 MACD: ${macdValue} (need >0 bullish crossover) ${macdStatus}</div>`;
+                        const macdValue = assetData.indicators.macd.histogram?.toFixed(4) || assetData.indicators.macd.toFixed(4);
+                        const macdCrossover = assetData.indicators.macd.crossover || false;
+                        const macdStatus = macdCrossover ? '✅' : '❌';
+                        html += `<div>📉 MACD: ${macdValue} (need fresh bullish crossover) ${macdStatus}</div>`;
                     }
 
                     if (assetData.indicators.ema?.fast !== null && assetData.indicators.ema?.slow !== null) {
                         const emaFast = assetData.indicators.ema.fast.toFixed(2);
                         const emaSlow = assetData.indicators.ema.slow.toFixed(2);
-                        const emaStatus = emaFast > emaSlow ? '✅' : '❌';
-                        html += `<div>🔄 EMA: Fast ${emaFast} / Slow ${emaSlow} (need fast > slow) ${emaStatus}</div>`;
+                        const emaCrossover = assetData.indicators.ema.crossover || false;
+                        const emaStatus = emaCrossover ? '✅' : '❌';
+                        html += `<div>🔄 EMA: Fast ${emaFast} / Slow ${emaSlow} (need fresh crossover) ${emaStatus}</div>`;
                     }
 
                     if (assetData.indicators.bollinger !== null) {
