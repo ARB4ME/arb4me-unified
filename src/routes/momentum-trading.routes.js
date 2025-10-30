@@ -768,8 +768,8 @@ router.post('/positions/:id/close', async (req, res) => {
             });
         }
 
-        // Get credentials for this user/exchange
-        const credentials = await MomentumCredentials.getCredentials(userId, position.exchange);
+        // Get credentials for this user/exchange (convert userId to string for consistency)
+        const credentials = await MomentumCredentials.getCredentials(String(userId), position.exchange);
 
         if (!credentials) {
             return res.status(400).json({
