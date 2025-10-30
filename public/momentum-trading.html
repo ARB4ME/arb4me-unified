@@ -1089,23 +1089,27 @@
 
                     if (assetData.indicators.macd !== null) {
                         const macdValue = assetData.indicators.macd.toFixed(4);
-                        html += `<div>📉 MACD: ${macdValue}</div>`;
+                        const macdStatus = assetData.indicators.macd > 0 ? '✅' : '❌';
+                        html += `<div>📉 MACD: ${macdValue} (need >0 bullish crossover) ${macdStatus}</div>`;
                     }
 
                     if (assetData.indicators.ema?.fast !== null && assetData.indicators.ema?.slow !== null) {
                         const emaFast = assetData.indicators.ema.fast.toFixed(2);
                         const emaSlow = assetData.indicators.ema.slow.toFixed(2);
-                        html += `<div>🔄 EMA: ${emaFast} / ${emaSlow}</div>`;
+                        const emaStatus = emaFast > emaSlow ? '✅' : '❌';
+                        html += `<div>🔄 EMA: Fast ${emaFast} / Slow ${emaSlow} (need fast > slow) ${emaStatus}</div>`;
                     }
 
                     if (assetData.indicators.bollinger !== null) {
                         const bbValue = assetData.indicators.bollinger.toFixed(2);
-                        html += `<div>📏 Bollinger: %B ${bbValue}</div>`;
+                        const bbStatus = assetData.indicators.bollinger < 0.2 ? '✅' : '❌';
+                        html += `<div>📏 Bollinger: %B ${bbValue} (need <0.2 near lower band) ${bbStatus}</div>`;
                     }
 
                     if (assetData.indicators.stochastic !== null) {
                         const stochValue = assetData.indicators.stochastic.toFixed(2);
-                        html += `<div>⚡ Stochastic: %K ${stochValue}</div>`;
+                        const stochStatus = assetData.indicators.stochastic < 20 ? '✅' : '❌';
+                        html += `<div>⚡ Stochastic: %K ${stochValue} (need <20 oversold) ${stochStatus}</div>`;
                     }
 
                     // Show triggered count - Calculate required threshold from entry_logic
