@@ -1216,7 +1216,7 @@ class OrderExecutionService {
             };
 
             const payload = {
-                pair: lunoPair,
+                market_id: lunoPair, // Luno uses market_id for limit orders
                 type: 'BID', // BID = buy limit order
                 volume: quantity.toFixed(8), // Amount of base currency
                 price: limitPrice.toFixed(2) // Price per unit
@@ -1303,7 +1303,7 @@ class OrderExecutionService {
             };
 
             const payload = {
-                pair: lunoPair,
+                market_id: lunoPair, // Luno uses market_id for limit orders
                 type: 'ASK', // ASK = sell limit order
                 volume: parseFloat(quantity).toFixed(8),
                 price: limitPrice.toFixed(2)
