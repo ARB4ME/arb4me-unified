@@ -222,10 +222,12 @@ class MomentumPosition {
 
         // TRUE P&L = (Exit Value - Exit Fee) - (Entry Value + Entry Fee)
         // This gives the ACTUAL net profit after all exchange fees
-        const entryFee = position.entry_fee || 0;
-        const exitFeeAmount = exitFee || 0;
-        const pnlUsdt = (exitValueUsdt - exitFeeAmount) - (position.entry_value_usdt + entryFee);
-        const pnlPercent = (pnlUsdt / position.entry_value_usdt) * 100;
+        // Parse all values to ensure they're numbers (DB returns decimals as strings)
+        const entryFee = parseFloat(position.entry_fee || 0);
+        const exitFeeAmount = parseFloat(exitFee || 0);
+        const entryValueUsdt = parseFloat(position.entry_value_usdt);
+        const pnlUsdt = (exitValueUsdt - exitFeeAmount) - (entryValueUsdt + entryFee);
+        const pnlPercent = (pnlUsdt / entryValueUsdt) * 100;
 
         const updateQuery = `
             UPDATE momentum_positions
