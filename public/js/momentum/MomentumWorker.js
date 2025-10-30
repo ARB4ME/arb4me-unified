@@ -384,8 +384,19 @@ const MomentumWorker = {
                 strategy
             );
 
+            // Get requirement text based on entry logic
+            const getRequirementText = (entryLogic) => {
+                switch(entryLogic) {
+                    case 'any_1': return '1+';
+                    case 'all': return 'all';
+                    case '3_out_of_4': return '3+';
+                    case '2_out_of_3':
+                    default: return '2+';
+                }
+            };
+
             // Debug: Show indicator values and which ones triggered
-            console.log(`   🔍 Indicators: ${signalResult.triggeredCount}/${signalResult.totalEnabled} triggered (need 2+)`);
+            console.log(`   🔍 Indicators: ${signalResult.triggeredCount}/${signalResult.totalEnabled} triggered (need ${getRequirementText(strategy.entry_logic)})`);
             if (signalResult.indicatorValues) {
                 console.log(`      📊 RSI: ${signalResult.indicatorValues.rsi?.toFixed(2) || 'N/A'}`);
                 console.log(`      📈 Volume: ${signalResult.indicatorValues.volume?.volumeRatio?.toFixed(2) || 'N/A'}x avg`);
