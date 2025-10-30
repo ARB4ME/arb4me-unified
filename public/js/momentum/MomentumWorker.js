@@ -613,12 +613,18 @@ const MomentumWorker = {
                 throw new Error(`Failed to execute buy order: ${orderResponse.statusText}`);
             }
 
-            const { data: buyOrder } = await orderResponse.json();
+            const responseData = await orderResponse.json();
+            const buyOrder = responseData.data;
 
+            // Log COMPLETE response for debugging
+            console.log('🔍 RAW BUY ORDER RESPONSE:', JSON.stringify(responseData, null, 2));
             console.log('Buy order executed', {
                 orderId: buyOrder.orderId,
                 executedPrice: buyOrder.executedPrice,
-                executedQuantity: buyOrder.executedQuantity
+                executedQuantity: buyOrder.executedQuantity,
+                executedValue: buyOrder.executedValue,
+                fee: buyOrder.fee,
+                rawResponse: buyOrder.rawResponse
             });
 
             // Extract entry fee from order (estimate 0.1% if not provided)
