@@ -310,6 +310,49 @@ router.get('/strategies/active', async (req, res) => {
 });
 
 /**
+ * GET /api/v1/momentum/strategies/:id
+ * Get a single strategy by ID (regardless of active status)
+ * Used by PositionMonitor to fetch exit rules for open positions
+ */
+router.get('/strategies/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        if (!id) {
+            return res.status(400).json({
+                success: false,
+                error: 'Strategy ID is required'
+            });
+        }
+
+        const strategy = await MomentumStrategy.getById(id);
+
+        if (!strategy) {
+            return res.status(404).json({
+                success: false,
+                error: `Strategy not found: ${id}`
+            });
+        }
+
+        res.json({
+            success: true,
+            data: strategy
+        });
+
+    } catch (error) {
+        logger.error('Failed to get strategy by ID', {
+            strategyId: req.params.id,
+            error: error.message
+        });
+
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
  * POST /api/v1/momentum/strategies
  * Create a new momentum trading strategy
  */
