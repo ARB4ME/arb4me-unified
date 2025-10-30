@@ -875,7 +875,7 @@ class OrderExecutionService {
             const payload = {
                 pair: lunoPair,
                 type: 'BUY',
-                counter_volume: amountUSDT.toFixed(2) // Amount in USDT (counter currency)
+                counter_volume: parseFloat(amountUSDT).toFixed(2) // Amount in USDT (counter currency)
             };
 
             const url = `${config.baseUrl}${config.endpoint}`;
