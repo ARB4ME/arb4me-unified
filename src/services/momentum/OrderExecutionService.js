@@ -879,16 +879,16 @@ class OrderExecutionService {
                 endpoint: '/api/1/marketorder'
             };
 
-            // Luno market order payload
+            // Try market order first
             const payload = {
                 pair: lunoPair,
                 type: 'BUY',
-                counter_volume: parseFloat(amountUSDT).toFixed(2) // Amount in USDT (counter currency)
+                counter_volume: parseFloat(amountUSDT).toFixed(2)
             };
 
             const url = `${config.baseUrl}${config.endpoint}`;
 
-            logger.info('Executing Luno market BUY order', {
+            logger.info('Attempting Luno market BUY order', {
                 pair: lunoPair,
                 amountUSDT,
                 payload
@@ -900,8 +900,21 @@ class OrderExecutionService {
                 body: JSON.stringify(payload)
             });
 
+            // Check if market order failed with "Market not available"
             if (!response.ok) {
                 const errorText = await response.text();
+
+                // If market not available, fall back to limit order
+                if (errorText.includes('ErrMarketUnavailable') || errorText.includes('Market not available')) {
+                    logger.info('Market order not available, falling back to limit order', {
+                        pair: lunoPair,
+                        amountUSDT
+                    });
+
+                    return await this._executeLunoLimitBuy(pair, amountUSDT, credentials);
+                }
+
+                // Other errors - throw
                 throw new Error(`Luno BUY order failed: ${response.status} - ${errorText}`);
             }
 
@@ -910,7 +923,7 @@ class OrderExecutionService {
             // Transform Luno response to standard format
             const result = {
                 orderId: data.order_id,
-                executedPrice: parseFloat(data.counter / data.base), // Calculate average price
+                executedPrice: parseFloat(data.counter / data.base),
                 executedQuantity: parseFloat(data.base),
                 executedValue: parseFloat(data.counter),
                 fee: parseFloat(data.fee_counter || 0),
@@ -919,7 +932,7 @@ class OrderExecutionService {
                 rawResponse: data
             };
 
-            logger.info('Luno BUY order executed successfully', {
+            logger.info('Luno market BUY order executed successfully', {
                 orderId: result.orderId,
                 executedPrice: result.executedPrice,
                 executedQuantity: result.executedQuantity
@@ -954,16 +967,16 @@ class OrderExecutionService {
                 endpoint: '/api/1/marketorder'
             };
 
-            // Luno market order payload
+            // Try market order first
             const payload = {
                 pair: lunoPair,
                 type: 'SELL',
-                base_volume: parseFloat(quantity).toFixed(8) // Amount of base currency (crypto)
+                base_volume: parseFloat(quantity).toFixed(8)
             };
 
             const url = `${config.baseUrl}${config.endpoint}`;
 
-            logger.info('Executing Luno market SELL order', {
+            logger.info('Attempting Luno market SELL order', {
                 pair: lunoPair,
                 quantity,
                 payload
@@ -975,8 +988,21 @@ class OrderExecutionService {
                 body: JSON.stringify(payload)
             });
 
+            // Check if market order failed with "Market not available"
             if (!response.ok) {
                 const errorText = await response.text();
+
+                // If market not available, fall back to limit order
+                if (errorText.includes('ErrMarketUnavailable') || errorText.includes('Market not available')) {
+                    logger.info('Market order not available, falling back to limit order', {
+                        pair: lunoPair,
+                        quantity
+                    });
+
+                    return await this._executeLunoLimitSell(pair, quantity, credentials);
+                }
+
+                // Other errors - throw
                 throw new Error(`Luno SELL order failed: ${response.status} - ${errorText}`);
             }
 
@@ -985,7 +1011,7 @@ class OrderExecutionService {
             // Transform Luno response to standard format
             const result = {
                 orderId: data.order_id,
-                executedPrice: parseFloat(data.counter / data.base), // Calculate average price
+                executedPrice: parseFloat(data.counter / data.base),
                 executedQuantity: parseFloat(data.base),
                 executedValue: parseFloat(data.counter),
                 fee: parseFloat(data.fee_counter || 0),
@@ -994,7 +1020,7 @@ class OrderExecutionService {
                 rawResponse: data
             };
 
-            logger.info('Luno SELL order executed successfully', {
+            logger.info('Luno market SELL order executed successfully', {
                 orderId: result.orderId,
                 executedPrice: result.executedPrice,
                 executedValue: result.executedValue
@@ -1119,6 +1145,224 @@ class OrderExecutionService {
         } catch (error) {
             logger.error('Luno order status failed', {
                 orderId,
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Get current ticker price from Luno
+     * @private
+     */
+    async _getLunoTickerPrice(pair) {
+        try {
+            // Apply rate limiting
+            await this._rateLimitDelay();
+
+            // Convert BTC to XBT for Luno
+            const lunoPair = pair.replace('BTC', 'XBT');
+
+            const url = `https://api.luno.com/api/1/ticker?pair=${lunoPair}`;
+
+            const response = await fetch(url, {
+                method: 'GET'
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Luno ticker fetch failed: ${response.status} - ${errorText}`);
+            }
+
+            const data = await response.json();
+
+            return {
+                bid: parseFloat(data.bid),
+                ask: parseFloat(data.ask),
+                lastTrade: parseFloat(data.last_trade)
+            };
+
+        } catch (error) {
+            logger.error('Luno ticker fetch failed', {
+                pair,
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Execute Luno limit BUY order (fallback for market orders)
+     * @private
+     */
+    async _executeLunoLimitBuy(pair, amountUSDT, credentials) {
+        try {
+            // Get current market price
+            const ticker = await this._getLunoTickerPrice(pair);
+            const currentPrice = ticker.ask; // Use ask price for buying
+
+            // Add 0.5% slippage buffer to ensure immediate execution
+            const limitPrice = currentPrice * 1.005;
+
+            // Calculate quantity based on amount USDT and limit price
+            const quantity = parseFloat(amountUSDT) / limitPrice;
+
+            // Convert BTC to XBT for Luno
+            const lunoPair = pair.replace('BTC', 'XBT');
+
+            const config = {
+                baseUrl: 'https://api.luno.com',
+                endpoint: '/api/1/postorder'
+            };
+
+            const payload = {
+                pair: lunoPair,
+                type: 'BID', // BID = buy limit order
+                volume: quantity.toFixed(8), // Amount of base currency
+                price: limitPrice.toFixed(2) // Price per unit
+            };
+
+            const url = `${config.baseUrl}${config.endpoint}`;
+
+            logger.info('Executing Luno limit BUY order', {
+                pair: lunoPair,
+                amountUSDT,
+                currentPrice,
+                limitPrice,
+                quantity,
+                payload
+            });
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: this._createLunoAuth(credentials.apiKey, credentials.apiSecret),
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Luno limit BUY order failed: ${response.status} - ${errorText}`);
+            }
+
+            const data = await response.json();
+
+            // Wait a moment then check order status to get execution details
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            const orderStatus = await this._getLunoOrderStatus(data.order_id, credentials);
+
+            // Transform to standard format
+            const result = {
+                orderId: data.order_id,
+                executedPrice: limitPrice, // Estimated (actual may be better)
+                executedQuantity: quantity,
+                executedValue: parseFloat(amountUSDT),
+                fee: orderStatus.feeCounter || 0,
+                status: orderStatus.status === 'COMPLETE' ? 'COMPLETE' : 'PENDING',
+                timestamp: Date.now(),
+                rawResponse: { orderData: data, orderStatus }
+            };
+
+            logger.info('Luno limit BUY order placed successfully', {
+                orderId: result.orderId,
+                limitPrice,
+                quantity,
+                status: result.status
+            });
+
+            return result;
+
+        } catch (error) {
+            logger.error('Luno limit BUY order failed', {
+                pair,
+                amountUSDT,
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Execute Luno limit SELL order (fallback for market orders)
+     * @private
+     */
+    async _executeLunoLimitSell(pair, quantity, credentials) {
+        try {
+            // Get current market price
+            const ticker = await this._getLunoTickerPrice(pair);
+            const currentPrice = ticker.bid; // Use bid price for selling
+
+            // Subtract 0.5% slippage buffer to ensure immediate execution
+            const limitPrice = currentPrice * 0.995;
+
+            // Convert BTC to XBT for Luno
+            const lunoPair = pair.replace('BTC', 'XBT');
+
+            const config = {
+                baseUrl: 'https://api.luno.com',
+                endpoint: '/api/1/postorder'
+            };
+
+            const payload = {
+                pair: lunoPair,
+                type: 'ASK', // ASK = sell limit order
+                volume: parseFloat(quantity).toFixed(8),
+                price: limitPrice.toFixed(2)
+            };
+
+            const url = `${config.baseUrl}${config.endpoint}`;
+
+            logger.info('Executing Luno limit SELL order', {
+                pair: lunoPair,
+                quantity,
+                currentPrice,
+                limitPrice,
+                payload
+            });
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: this._createLunoAuth(credentials.apiKey, credentials.apiSecret),
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Luno limit SELL order failed: ${response.status} - ${errorText}`);
+            }
+
+            const data = await response.json();
+
+            // Wait a moment then check order status to get execution details
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            const orderStatus = await this._getLunoOrderStatus(data.order_id, credentials);
+
+            const executedValue = parseFloat(quantity) * limitPrice;
+
+            // Transform to standard format
+            const result = {
+                orderId: data.order_id,
+                executedPrice: limitPrice, // Estimated (actual may be better)
+                executedQuantity: parseFloat(quantity),
+                executedValue: executedValue,
+                fee: orderStatus.feeCounter || 0,
+                status: orderStatus.status === 'COMPLETE' ? 'COMPLETE' : 'PENDING',
+                timestamp: Date.now(),
+                rawResponse: { orderData: data, orderStatus }
+            };
+
+            logger.info('Luno limit SELL order placed successfully', {
+                orderId: result.orderId,
+                limitPrice,
+                executedValue,
+                status: result.status
+            });
+
+            return result;
+
+        } catch (error) {
+            logger.error('Luno limit SELL order failed', {
+                pair,
+                quantity,
                 error: error.message
             });
             throw error;
