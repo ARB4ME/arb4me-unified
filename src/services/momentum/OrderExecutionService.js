@@ -423,7 +423,7 @@ class OrderExecutionService {
             // VALR market order payload
             const payload = {
                 side: 'BUY',
-                currencyPair: pair,
+                pair: pair,  // VALR expects "pair", not "currencyPair"
                 quoteAmount: amountUSDT.toString() // Amount in USDT (quote currency)
             };
 
@@ -501,7 +501,7 @@ class OrderExecutionService {
             // VALR market order payload
             const payload = {
                 side: 'SELL',
-                currencyPair: pair,
+                pair: pair,  // VALR expects "pair", not "currencyPair"
                 baseAmount: quantity.toString() // Amount of base currency (BTC, ETH, etc.)
             };
 
