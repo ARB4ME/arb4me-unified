@@ -1352,10 +1352,14 @@
             const today = new Date().toDateString();
             const todayPnL = closedPositions
                 .filter(pos => new Date(pos.exit_time).toDateString() === today)
-                .reduce((sum, pos) => sum + (pos.exit_pnl_usdt || 0), 0);
+                .reduce((sum, pos) => {
+                    const pnl = parseFloat(pos.exit_pnl_usdt);
+                    // Skip NaN values (from positions with calculation errors)
+                    return sum + (isNaN(pnl) ? 0 : pnl);
+                }, 0);
 
             const pnlEl = document.getElementById('totalPnL');
-            pnlEl.textContent = `R${todayPnL.toFixed(2)}`;
+            pnlEl.textContent = `$${todayPnL.toFixed(2)}`;
             pnlEl.className = todayPnL >= 0 ? 'stat-value pnl-positive' : 'stat-value pnl-negative';
         }
 
