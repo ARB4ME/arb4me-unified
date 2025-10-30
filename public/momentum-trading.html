@@ -1865,11 +1865,11 @@
             return `${hours}h ${minutes}m`;
         }
 
-        // Auto-refresh positions every 30 seconds
+        // Auto-refresh positions and live P&L every 60 seconds
         function startPositionRefresh() {
             setInterval(async () => {
                 await loadPositions();
-            }, 30000);
+            }, 60000);
         }
 
         // Close modal on outside click
