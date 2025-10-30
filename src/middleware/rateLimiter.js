@@ -49,12 +49,17 @@ const rateLimitSkip = (req) => {
     if (req.path === '/health') {
         return true;
     }
-    
+
+    // Skip for momentum trading endpoints (high-frequency worker needs)
+    if (req.originalUrl && req.originalUrl.includes('/api/v1/momentum')) {
+        return true;
+    }
+
     // Skip for admin users (if authenticated and admin)
     if (req.user && req.user.admin_role) {
         return true;
     }
-    
+
     return false;
 };
 
