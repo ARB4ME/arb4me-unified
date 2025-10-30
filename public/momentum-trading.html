@@ -106,6 +106,99 @@
             font-size: 0.8rem;
         }
 
+        .btn-info {
+            background: linear-gradient(45deg, #00d4ff 0%, #0099cc 100%);
+            margin-left: 10px;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            margin: 3% auto;
+            padding: 30px;
+            border: 2px solid rgba(0, 212, 255, 0.3);
+            border-radius: 15px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 50px rgba(0, 212, 255, 0.2);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid rgba(0, 212, 255, 0.3);
+            padding-bottom: 15px;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            color: #00d4ff;
+        }
+
+        .close-modal {
+            color: #aaa;
+            font-size: 32px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+
+        .close-modal:hover {
+            color: #00d4ff;
+        }
+
+        .modal-section {
+            margin-bottom: 25px;
+        }
+
+        .modal-section h3 {
+            color: #00ff88;
+            margin-bottom: 12px;
+        }
+
+        .modal-section h4 {
+            color: #ffb347;
+            margin: 15px 0 10px 0;
+        }
+
+        .comparison-table {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 15px 0;
+        }
+
+        .comparison-card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .comparison-card.safe {
+            border-color: rgba(0, 255, 136, 0.3);
+        }
+
+        .comparison-card.risky {
+            border-color: rgba(255, 107, 107, 0.3);
+        }
+
         .toggle-switch {
             width: 50px;
             height: 25px;
@@ -394,9 +487,12 @@
     <div class="container">
         <!-- Header -->
         <div class="header">
-            <div>
-                <h1 style="margin: 0; color: #00d4ff;">📈 Momentum Trading</h1>
-                <p style="margin: 5px 0 0 0; color: #888;">Automated technical indicator-based spot trading</p>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <div>
+                    <h1 style="margin: 0; color: #00d4ff;">📈 Momentum Trading</h1>
+                    <p style="margin: 5px 0 0 0; color: #888;">Automated technical indicator-based spot trading</p>
+                </div>
+                <button onclick="openAboutModal()" class="btn btn-info" style="margin-top: 0;">ℹ️ About</button>
             </div>
             <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
                 <!-- Exchange Selector -->
@@ -1612,6 +1708,95 @@
                 closeStrategyCreator();
             }
         }
+
+        // About Modal Functions
+        function openAboutModal() {
+            document.getElementById('aboutModal').style.display = 'block';
+        }
+
+        function closeAboutModal() {
+            document.getElementById('aboutModal').style.display = 'none';
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const aboutModal = document.getElementById('aboutModal');
+            if (event.target === aboutModal) {
+                closeAboutModal();
+            }
+        }
     </script>
+
+    <!-- About Modal -->
+    <div id="aboutModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📊 About Momentum Trading</h2>
+                <span class="close-modal" onclick="closeAboutModal()">&times;</span>
+            </div>
+
+            <div class="modal-section">
+                <h3>What We Built: Automated Momentum Trading System</h3>
+                <p><strong>In Simple Terms:</strong></p>
+                <p>We built a robot that buys and sells cryptocurrency for you automatically when the market shows strong movement patterns.</p>
+            </div>
+
+            <div class="modal-section">
+                <h4>How It Works:</h4>
+                <ol style="line-height: 1.8;">
+                    <li><strong>You set the rules</strong> - Pick which coins (XRP, BTC, etc.), how much to invest per trade ($10, $50, etc.), and when to buy/sell (based on 6 market signals)</li>
+                    <li><strong>The robot watches</strong> - Every 60 seconds, it checks if your conditions are met (like "RSI below 30" or "Volume spike 2.5x normal")</li>
+                    <li><strong>Auto-trades</strong> - When signals align, it buys. When profit target hits (e.g., 10%), it sells automatically</li>
+                </ol>
+            </div>
+
+            <div class="modal-section">
+                <h4>Example Trade:</h4>
+                <ul style="list-style: none; padding-left: 0; line-height: 1.8;">
+                    <li>• You invest: $10 USDT</li>
+                    <li>• Robot buys: XRP at $2.10 (you own 4.76 XRP)</li>
+                    <li>• Price rises to $2.31 (10% gain)</li>
+                    <li>• Robot sells automatically</li>
+                    <li>• You get: $10.97 back (after fees)</li>
+                    <li><strong style="color: #00ff88;">• Profit: $0.97</strong></li>
+                </ul>
+            </div>
+
+            <div class="modal-section">
+                <h3>The BIG Difference vs Retail Trading</h3>
+                <div class="comparison-table">
+                    <div class="comparison-card safe">
+                        <h4 style="color: #00ff88; margin-top: 0;">Your System (SPOT Trading)</h4>
+                        <p style="margin-bottom: 8px;"><strong>✅ You own real crypto</strong></p>
+                        <p style="margin-bottom: 8px;"><strong>✅ Risk = Only what you invest</strong><br><small>($10 max loss)</small></p>
+                        <p style="margin-bottom: 8px;"><strong>✅ No debt possible</strong></p>
+                        <p style="margin-bottom: 8px;"><strong>✅ Sleep peacefully</strong></p>
+                        <p style="margin-bottom: 8px;"><strong>❌ Smaller profits</strong><br><small>(10% gain = $1 profit on $10)</small></p>
+                    </div>
+
+                    <div class="comparison-card risky">
+                        <h4 style="color: #ff6b6b; margin-top: 0;">Retail Brokers (Leveraged)</h4>
+                        <p style="margin-bottom: 8px;"><strong>❌ You DON'T own crypto</strong><br><small>(just a contract)</small></p>
+                        <p style="margin-bottom: 8px;"><strong>❌ Risk = Can lose MORE than you invest</strong><br><small>(liquidation)</small></p>
+                        <p style="margin-bottom: 8px;"><strong>❌ Debt possible</strong><br><small>(if market moves fast)</small></p>
+                        <p style="margin-bottom: 8px;"><strong>❌ Constant stress</strong></p>
+                        <p style="margin-bottom: 8px;"><strong>✅ Bigger profits</strong><br><small>(10% gain with 10x leverage = $10 profit on $10)</small></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-section">
+                <h3 style="color: #00d4ff;">In One Sentence:</h3>
+                <p style="background: rgba(0, 212, 255, 0.1); padding: 15px; border-radius: 8px; border-left: 4px solid #00d4ff;">
+                    <strong>"We built an automated crypto trading robot that buys real cryptocurrency when the market shows momentum, sells at profit targets you set, and protects you from losing more than you invest - unlike risky leveraged trading that can wipe out your entire account."</strong>
+                </p>
+            </div>
+
+            <div style="text-align: center; margin-top: 25px;">
+                <button onclick="closeAboutModal()" class="btn" style="padding: 12px 30px;">Got It!</button>
+            </div>
+        </div>
+    </div>
+
 </body>
 </html>
