@@ -5439,7 +5439,7 @@ function normalizeKrakenCurrency(krakenCode) {
         'XETH': 'ETH',
         'XLTC': 'LTC',
         'XXDG': 'DOGE',
-        'ZUSD': 'USD',
+        'ZUSD': 'USDT',  // Changed from USD to USDT for momentum trading compatibility
         'ZEUR': 'EUR',
         'ZGBP': 'GBP',
         'ZJPY': 'JPY',
@@ -5524,8 +5524,10 @@ router.post('/kraken/balance', tradingRateLimit, optionalAuth, [
             currencies: Object.keys(balances)
         });
 
+        // Return format compatible with momentum trading frontend
         res.json({
             success: true,
+            balances: balances,
             data: {
                 exchange: 'kraken',
                 balances
