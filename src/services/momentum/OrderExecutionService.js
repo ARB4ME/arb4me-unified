@@ -412,6 +412,10 @@ class OrderExecutionService {
                 return await this._getChainEXBalances(credentials);
             }
 
+            if (exchangeLower === 'kraken') {
+                return await this._getKrakenBalances(credentials);
+            }
+
             throw new Error(`Exchange not supported: ${exchange}`);
 
         } catch (error) {
@@ -2039,6 +2043,98 @@ class OrderExecutionService {
             logger.error('Kraken SELL order failed', {
                 pair,
                 quantity,
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Get Kraken account balances
+     * @private
+     */
+    async _getKrakenBalances(credentials) {
+        try {
+            // Apply rate limiting
+            await this._rateLimitDelay();
+
+            const config = {
+                baseUrl: 'https://api.kraken.com',
+                endpoint: '/0/private/Balance'
+            };
+
+            const nonce = Date.now() * 1000;
+            const postData = `nonce=${nonce}`;
+
+            const authHeaders = this._createKrakenAuth(
+                credentials.apiKey,
+                credentials.apiSecret,
+                config.endpoint,
+                nonce,
+                postData
+            );
+
+            const url = `${config.baseUrl}${config.endpoint}`;
+
+            logger.info('Fetching Kraken balances');
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    ...authHeaders
+                },
+                body: postData
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Kraken balances fetch failed: ${response.status} - ${errorText}`);
+            }
+
+            const data = await response.json();
+
+            // Check for Kraken API errors
+            if (data.error && data.error.length > 0) {
+                throw new Error(`Kraken API error: ${data.error.join(', ')}`);
+            }
+
+            // Transform Kraken balances to standard format
+            // Kraken returns: { result: { "ZUSD": "1000.0000", "XXBT": "0.50000000", ... } }
+            const balances = [];
+            if (data.result) {
+                for (const [currency, balance] of Object.entries(data.result)) {
+                    // Convert Kraken currency codes to standard (ZUSD -> USDT, XXBT -> BTC, etc.)
+                    let standardCurrency = currency;
+                    if (currency === 'ZUSD') standardCurrency = 'USDT';
+                    else if (currency === 'XXBT' || currency === 'XBT') standardCurrency = 'BTC';
+                    else if (currency === 'XETH') standardCurrency = 'ETH';
+                    else if (currency === 'XXRP') standardCurrency = 'XRP';
+                    else if (currency.startsWith('X') || currency.startsWith('Z')) {
+                        // Remove X or Z prefix from Kraken currency codes
+                        standardCurrency = currency.substring(1);
+                    }
+
+                    const amount = parseFloat(balance || 0);
+                    if (amount > 0) {
+                        balances.push({
+                            currency: standardCurrency,
+                            available: amount,
+                            reserved: 0, // Kraken doesn't provide reserved separately in Balance endpoint
+                            total: amount
+                        });
+                    }
+                }
+            }
+
+            logger.info('Kraken balances fetched successfully', {
+                balanceCount: balances.length
+            });
+
+            return balances;
+
+        } catch (error) {
+            logger.error('Kraken balances fetch failed', {
                 error: error.message
             });
             throw error;
