@@ -1674,12 +1674,15 @@ class OrderExecutionService {
      * @private
      */
     _convertPairToChainEX(pair) {
-        const quoteCurrency = 'USDT';
-        if (pair.endsWith(quoteCurrency)) {
-            const baseCurrency = pair.slice(0, -quoteCurrency.length);
-            return `${baseCurrency}_${quoteCurrency}`;
+        // ChainEX is a South African exchange that uses ZAR, not USDT
+        // Convert XRPUSDT → XRPZAR, BTCUSDT → BTCZAR, etc.
+        if (pair === 'USDTZAR') {
+            return 'USDTZAR'; // Already correct
         }
-        return pair;
+        if (pair.endsWith('USDT')) {
+            return pair.replace('USDT', 'ZAR');
+        }
+        return pair; // Keep ZAR pairs as is
     }
 
     /**
