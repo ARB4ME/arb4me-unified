@@ -1555,12 +1555,16 @@ class OrderExecutionService {
                 key: credentials.apiKey
             });
 
+            // Serialize request body
+            const bodyString = JSON.stringify(payload);
+
             const fullUrl = `${config.baseUrl}${config.endpoint}?${params.toString()}`;
 
-            // Create HMAC signature of full URL
+            // Create HMAC signature of full URL + request body
+            // ChainEX pattern: sign(url + body)
             const hash = crypto
                 .createHmac('sha256', credentials.apiSecret)
-                .update(fullUrl)
+                .update(fullUrl + bodyString)
                 .digest('hex');
 
             // Add hash to params
@@ -1568,12 +1572,19 @@ class OrderExecutionService {
 
             const authenticatedUrl = `${config.baseUrl}${config.endpoint}?${params.toString()}`;
 
+            logger.debug('ChainEX BUY authentication', {
+                url: authenticatedUrl,
+                bodyLength: bodyString.length,
+                hasApiKey: !!credentials.apiKey,
+                hasApiSecret: !!credentials.apiSecret
+            });
+
             const response = await fetch(authenticatedUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(payload)
+                body: bodyString
             });
 
             if (!response.ok) {
@@ -1651,12 +1662,16 @@ class OrderExecutionService {
                 key: credentials.apiKey
             });
 
+            // Serialize request body
+            const bodyString = JSON.stringify(payload);
+
             const fullUrl = `${config.baseUrl}${config.endpoint}?${params.toString()}`;
 
-            // Create HMAC signature of full URL
+            // Create HMAC signature of full URL + request body
+            // ChainEX pattern: sign(url + body)
             const hash = crypto
                 .createHmac('sha256', credentials.apiSecret)
-                .update(fullUrl)
+                .update(fullUrl + bodyString)
                 .digest('hex');
 
             // Add hash to params
@@ -1664,12 +1679,19 @@ class OrderExecutionService {
 
             const authenticatedUrl = `${config.baseUrl}${config.endpoint}?${params.toString()}`;
 
+            logger.debug('ChainEX SELL authentication', {
+                url: authenticatedUrl,
+                bodyLength: bodyString.length,
+                hasApiKey: !!credentials.apiKey,
+                hasApiSecret: !!credentials.apiSecret
+            });
+
             const response = await fetch(authenticatedUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(payload)
+                body: bodyString
             });
 
             if (!response.ok) {
