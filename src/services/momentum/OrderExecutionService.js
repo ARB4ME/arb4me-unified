@@ -1787,6 +1787,120 @@ class OrderExecutionService {
     // ===== KRAKEN-SPECIFIC METHODS =====
 
     /**
+     * Poll Kraken order status until filled
+     * @private
+     */
+    async _pollKrakenOrderStatus(orderId, credentials, maxAttempts = 10) {
+        const config = {
+            baseUrl: 'https://api.kraken.com',
+            endpoint: '/0/private/QueryOrders'
+        };
+
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+                // Wait 1 second between attempts
+                if (attempt > 1) {
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+
+                // Apply rate limiting
+                await this._rateLimitDelay();
+
+                const nonce = Date.now() * 1000;
+                const orderParams = {
+                    nonce: nonce,
+                    txid: orderId
+                };
+
+                const postData = new URLSearchParams(orderParams).toString();
+
+                const authHeaders = this._createKrakenAuth(
+                    credentials.apiKey,
+                    credentials.apiSecret,
+                    config.endpoint,
+                    nonce,
+                    postData
+                );
+
+                const url = `${config.baseUrl}${config.endpoint}`;
+
+                logger.debug('Polling Kraken order status', {
+                    orderId,
+                    attempt,
+                    maxAttempts
+                });
+
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        ...authHeaders
+                    },
+                    body: postData
+                });
+
+                if (!response.ok) {
+                    logger.warn('Kraken order status check failed', {
+                        orderId,
+                        status: response.status
+                    });
+                    continue; // Try again
+                }
+
+                const data = await response.json();
+
+                if (data.error && data.error.length > 0) {
+                    logger.warn('Kraken order status API error', {
+                        orderId,
+                        error: data.error
+                    });
+                    continue; // Try again
+                }
+
+                const orderData = data.result?.[orderId];
+
+                if (!orderData) {
+                    logger.warn('Kraken order not found in response', { orderId });
+                    continue;
+                }
+
+                logger.debug('Kraken order status response', {
+                    orderId,
+                    status: orderData.status,
+                    vol_exec: orderData.vol_exec
+                });
+
+                // Check if order is filled (status: closed, vol_exec > 0)
+                if (orderData.status === 'closed' && parseFloat(orderData.vol_exec || 0) > 0) {
+                    logger.info('Kraken order filled', {
+                        orderId,
+                        attempt
+                    });
+                    return orderData;
+                }
+
+                // If not filled yet, continue polling
+                logger.debug('Kraken order not yet filled', {
+                    orderId,
+                    status: orderData.status,
+                    attempt
+                });
+
+            } catch (error) {
+                logger.warn('Error polling Kraken order status', {
+                    orderId,
+                    attempt,
+                    error: error.message
+                });
+                // Continue to next attempt
+            }
+        }
+
+        // Max attempts reached without fill
+        throw new Error(`Kraken order ${orderId} not filled after ${maxAttempts} attempts`);
+    }
+
+    /**
      * Execute Kraken market BUY order
      * @private
      */
@@ -1881,21 +1995,45 @@ class OrderExecutionService {
                 throw new Error(`Kraken API error: ${data.error.join(', ')}`);
             }
 
+            // Kraken returns only order ID initially - need to poll for execution details
+            const orderId = data.result?.txid?.[0];
+
+            if (!orderId) {
+                throw new Error('Kraken did not return order ID');
+            }
+
+            logger.info('Polling Kraken order status for execution details', {
+                orderId,
+                pair: krakenPair
+            });
+
+            // Poll order status until filled (max 10 attempts = 10 seconds)
+            const orderDetails = await this._pollKrakenOrderStatus(orderId, credentials, 10);
+
             // Transform Kraken response to standard format
+            // Kraken returns: vol_exec (executed volume), cost (total cost), fee, price (average price)
+            const executedQuantity = parseFloat(orderDetails.vol_exec || 0);
+            const totalCost = parseFloat(orderDetails.cost || 0);
+            const averagePrice = parseFloat(orderDetails.price || (executedQuantity > 0 ? totalCost / executedQuantity : 0));
+            const fee = parseFloat(orderDetails.fee || 0);
+
             const result = {
-                orderId: data.result?.txid?.[0] || 'unknown',
-                executedPrice: 0, // Kraken doesn't return price immediately for market orders
-                executedQuantity: 0, // Will be filled after order executes
-                executedValue: amountUSDT,
-                fee: 0, // Kraken calculates fee after execution
-                status: 'SUBMITTED',
-                timestamp: Date.now(),
-                rawResponse: data
+                orderId: orderId,
+                executedPrice: averagePrice,
+                executedQuantity: executedQuantity,
+                executedValue: totalCost,
+                fee: fee,
+                status: orderDetails.status || 'FILLED',
+                timestamp: orderDetails.opentm || Date.now(),
+                rawResponse: orderDetails
             };
 
-            logger.info('Kraken BUY order submitted successfully', {
+            logger.info('Kraken BUY order executed successfully', {
                 orderId: result.orderId,
-                amountUSDT: amountUSDT
+                executedPrice: result.executedPrice,
+                executedQuantity: result.executedQuantity,
+                executedValue: result.executedValue,
+                fee: result.fee
             });
 
             return result;
@@ -2012,21 +2150,45 @@ class OrderExecutionService {
                 throw new Error(`Kraken API error: ${data.error.join(', ')}`);
             }
 
+            // Kraken returns only order ID initially - need to poll for execution details
+            const orderId = data.result?.txid?.[0];
+
+            if (!orderId) {
+                throw new Error('Kraken did not return order ID');
+            }
+
+            logger.info('Polling Kraken order status for execution details', {
+                orderId,
+                pair: krakenPair
+            });
+
+            // Poll order status until filled (max 10 attempts = 10 seconds)
+            const orderDetails = await this._pollKrakenOrderStatus(orderId, credentials, 10);
+
             // Transform Kraken response to standard format
+            // Kraken returns: vol_exec (executed volume), cost (total cost), fee, price (average price)
+            const executedQuantity = parseFloat(orderDetails.vol_exec || quantity);
+            const totalCost = parseFloat(orderDetails.cost || 0);
+            const averagePrice = parseFloat(orderDetails.price || (executedQuantity > 0 ? totalCost / executedQuantity : 0));
+            const fee = parseFloat(orderDetails.fee || 0);
+
             const result = {
-                orderId: data.result?.txid?.[0] || 'unknown',
-                executedPrice: 0, // Kraken doesn't return price immediately for market orders
-                executedQuantity: quantity,
-                executedValue: 0, // Will be calculated after execution
-                fee: 0, // Kraken calculates fee after execution
-                status: 'SUBMITTED',
-                timestamp: Date.now(),
-                rawResponse: data
+                orderId: orderId,
+                executedPrice: averagePrice,
+                executedQuantity: executedQuantity,
+                executedValue: totalCost,
+                fee: fee,
+                status: orderDetails.status || 'FILLED',
+                timestamp: orderDetails.opentm || Date.now(),
+                rawResponse: orderDetails
             };
 
-            logger.info('Kraken SELL order submitted successfully', {
+            logger.info('Kraken SELL order executed successfully', {
                 orderId: result.orderId,
-                quantity: quantity
+                executedPrice: result.executedPrice,
+                executedQuantity: result.executedQuantity,
+                executedValue: result.executedValue,
+                fee: result.fee
             });
 
             return result;
