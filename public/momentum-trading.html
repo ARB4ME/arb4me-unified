@@ -990,6 +990,9 @@
                 console.log('🔌 Testing connection...');
                 await testConnection();
 
+                console.log('📋 Fetching available USDT pairs...');
+                await fetchExchangeUSDTPairs(selectedExchange);
+
                 console.log('💰 Fetching USDT balance...');
                 await fetchBalance();
 
@@ -1620,18 +1623,51 @@
         }
 
         // Open strategy creator
-        // Exchange-specific available USDT pairs
-        const exchangeUSDTPairs = {
-            'valr': ['BTC', 'ETH', 'XRP', 'SOL', 'ADA', 'DOT', 'MATIC', 'LINK', 'AVAX', 'ATOM'],
+        // Cache for exchange USDT pairs (fetched from API)
+        let exchangeUSDTPairs = {
+            // Will be populated from API
+            // Fallback defaults in case API fails
+            'valr': ['BTC', 'ETH', 'XRP', 'SOL', 'ADA'],
             'luno': ['BTC', 'ETH', 'XRP', 'LTC', 'BCH'],
-            'chainex': ['BTC', 'ETH', 'XRP', 'LTC', 'EOS', '1INCH', 'CVC', 'PART', 'STMX', 'SUSHI', 'TITANX'],
-            // Add more exchanges as they're implemented
-            'default': ['BTC', 'ETH', 'XRP', 'SOL', 'ADA']
+            'chainex': ['BTC', 'ETH', 'XRP', 'LTC', 'EOS'],
+            'default': ['BTC', 'ETH', 'XRP']
         };
 
+        // Fetch available USDT pairs from exchange API
+        async function fetchExchangeUSDTPairs(exchange) {
+            try {
+                const response = await fetch(`${API_BASE}/trading/${exchange.toLowerCase()}/pairs`);
+                if (!response.ok) return null;
+
+                const result = await response.json();
+                if (!result.success || !result.pairs) return null;
+
+                // Filter for USDT pairs and extract base currency
+                const usdtPairs = result.pairs
+                    .filter(pair => pair.includes('USDT') && !pair.includes('ZAR'))
+                    .map(pair => pair.replace('USDT', '').replace('_', ''))
+                    .filter(asset => asset && asset !== 'USDT'); // Remove empty and USDT itself
+
+                return usdtPairs;
+            } catch (error) {
+                console.error(`Failed to fetch ${exchange} pairs:`, error);
+                return null;
+            }
+        }
+
         // Update quick select buttons based on selected exchange
-        function updateQuickSelectButtons() {
+        async function updateQuickSelectButtons() {
             const exchange = selectedExchange.toLowerCase();
+
+            // Fetch fresh pairs if we don't have them cached
+            if (!exchangeUSDTPairs[exchange] || exchangeUSDTPairs[exchange].length < 5) {
+                const freshPairs = await fetchExchangeUSDTPairs(exchange);
+                if (freshPairs && freshPairs.length > 0) {
+                    exchangeUSDTPairs[exchange] = freshPairs;
+                    console.log(`✅ Fetched ${freshPairs.length} USDT pairs for ${exchange}:`, freshPairs);
+                }
+            }
+
             const pairs = exchangeUSDTPairs[exchange] || exchangeUSDTPairs['default'];
 
             const container = document.getElementById('quickSelectButtons');
@@ -1645,7 +1681,7 @@
             // Update warning message
             const warningEl = document.getElementById('assetWarning');
             if (warningEl) {
-                warningEl.innerHTML = `⚠️ Only use assets with USDT pairs on <strong>${selectedExchange.toUpperCase()}</strong>`;
+                warningEl.innerHTML = `⚠️ Only use assets with USDT pairs on <strong>${selectedExchange.toUpperCase()}</strong> (${pairs.length} available)`;
             }
         }
 
@@ -1659,11 +1695,11 @@
             alert(`Available USDT pairs on ${selectedExchange.toUpperCase()}:\n\n${pairList}\n\n(${pairs.length} pairs total)`);
         }
 
-        function openStrategyCreator() {
+        async function openStrategyCreator() {
             document.getElementById('strategyModal').style.display = 'block';
             document.getElementById('strategyForm').reset();
             selectPreset('conservative'); // Set default preset
-            updateQuickSelectButtons(); // Update buttons based on selected exchange
+            await updateQuickSelectButtons(); // Update buttons based on selected exchange
         }
 
         // Close strategy creator
