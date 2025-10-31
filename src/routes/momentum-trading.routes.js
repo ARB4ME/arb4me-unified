@@ -291,6 +291,44 @@ router.get('/supported-pairs/:exchange', async (req, res) => {
                     'AVAXUSDT'
                 ];
                 break;
+            case 'binance':
+                // Binance has extensive USDT pairs - return most liquid/popular ones
+                supportedPairs = [
+                    'BTCUSDT',
+                    'ETHUSDT',
+                    'BNBUSDT',
+                    'XRPUSDT',
+                    'SOLUSDT',
+                    'ADAUSDT',
+                    'DOTUSDT',
+                    'MATICUSDT',
+                    'AVAXUSDT',
+                    'LINKUSDT',
+                    'UNIUSDT',
+                    'ATOMUSDT',
+                    'LTCUSDT',
+                    'ETCUSDT',
+                    'NEARUSDT',
+                    'AAVEUSDT'
+                ];
+                break;
+            case 'kraken':
+                // Kraken USDT pairs (using standard notation)
+                supportedPairs = [
+                    'BTCUSDT',
+                    'ETHUSDT',
+                    'XRPUSDT',
+                    'SOLUSDT',
+                    'ADAUSDT',
+                    'DOTUSDT',
+                    'MATICUSDT',
+                    'AVAXUSDT',
+                    'LINKUSDT',
+                    'UNIUSDT',
+                    'ATOMUSDT',
+                    'LTCUSDT'
+                ];
+                break;
             default:
                 return res.status(400).json({
                     success: false,
