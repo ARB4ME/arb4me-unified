@@ -1814,7 +1814,7 @@ class OrderExecutionService {
                 nonce: nonce,
                 ordertype: 'market',
                 type: 'buy',
-                volume: amountUSDT.toFixed(2), // For market buy, volume is in quote currency (USDT)
+                volume: parseFloat(amountUSDT).toFixed(2), // For market buy, volume is in quote currency (USDT)
                 pair: krakenPair,
                 oflags: 'viqc' // viqc = volume in quote currency
             };
@@ -1946,7 +1946,7 @@ class OrderExecutionService {
                 nonce: nonce,
                 ordertype: 'market',
                 type: 'sell',
-                volume: quantity.toFixed(8), // Amount of base currency (crypto)
+                volume: parseFloat(quantity).toFixed(8), // Amount of base currency (crypto)
                 pair: krakenPair
             };
 
