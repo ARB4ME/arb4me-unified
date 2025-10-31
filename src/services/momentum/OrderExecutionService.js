@@ -659,15 +659,16 @@ class OrderExecutionService {
      * @private
      */
     async _executeValrSell(pair, quantity, credentials) {
+        // Declare variables at function scope to avoid ReferenceError in catch block
+        let adjustedQuantity = quantity;
+        let wasAdjusted = false;
+
         try {
             // Apply rate limiting
             await this._rateLimitDelay();
 
             // ===== STEP 1: CHECK AVAILABLE BALANCE AND ADJUST QUANTITY =====
             logger.info('🔍 Checking VALR balance before SELL order', { pair, requestedQuantity: quantity });
-
-            let adjustedQuantity = quantity;
-            let wasAdjusted = false;
 
             try {
                 const balances = await this._getValrBalances(credentials);
@@ -688,6 +689,17 @@ class OrderExecutionService {
                     throw new Error(`No ${baseAsset} balance available. Available: ${assetBalance?.available || 0}`);
                 }
 
+                // Check VALR minimum order sizes
+                // VALR requires: 0.5 USDT minimum or 0.8 XRP minimum (depending on asset)
+                const minimumOrderSizes = {
+                    'XRP': 0.8,
+                    'BTC': 0.00001,
+                    'ETH': 0.0001,
+                    // Add more as needed, default will be checked in USDT value
+                };
+
+                const minimumQuantity = minimumOrderSizes[baseAsset] || 0;
+
                 // If insufficient balance, use available balance minus 0.1% buffer for safety
                 if (assetBalance.available < quantity) {
                     const buffer = 0.999; // 99.9% of available (0.1% safety buffer)
@@ -698,6 +710,7 @@ class OrderExecutionService {
                         originalQuantity: quantity,
                         availableBalance: assetBalance.available,
                         adjustedQuantity: adjustedQuantity,
+                        discrepancy: (quantity - assetBalance.available).toFixed(8),
                         adjustmentReason: 'Fees deducted during buy reduced available balance',
                         buffer: '0.1%'
                     });
@@ -706,10 +719,33 @@ class OrderExecutionService {
                 // Format quantity to proper decimal places (VALR uses 8 decimals for crypto)
                 adjustedQuantity = parseFloat(adjustedQuantity.toFixed(8));
 
+                // Check if adjusted quantity meets VALR minimum order size
+                if (minimumQuantity > 0 && adjustedQuantity < minimumQuantity) {
+                    logger.error('❌ BALANCE BELOW VALR MINIMUM ORDER SIZE - CANNOT AUTO-CLOSE', {
+                        asset: baseAsset,
+                        availableBalance: assetBalance.available,
+                        adjustedQuantity: adjustedQuantity,
+                        minimumRequired: minimumQuantity,
+                        shortfall: (minimumQuantity - adjustedQuantity).toFixed(8),
+                        originalPositionQuantity: quantity,
+                        discrepancy: (quantity - assetBalance.available).toFixed(8),
+                        possibleReasons: [
+                            'Asset was manually sold elsewhere',
+                            'Buy order failed but position was created',
+                            'Another bot/system is trading the same account',
+                            'Database entry is incorrect'
+                        ],
+                        requiredAction: 'MANUAL INTERVENTION REQUIRED - Check VALR account history and close position manually'
+                    });
+
+                    throw new Error(`Cannot sell ${adjustedQuantity} ${baseAsset}: Below VALR minimum order size of ${minimumQuantity} ${baseAsset}. Available: ${assetBalance.available} ${baseAsset}. This position requires manual intervention.`);
+                }
+
                 logger.info('✅ SELL QUANTITY DETERMINED', {
                     finalQuantity: adjustedQuantity,
                     wasAdjusted: wasAdjusted,
-                    availableBalance: assetBalance.available
+                    availableBalance: assetBalance.available,
+                    meetsMinimum: adjustedQuantity >= minimumQuantity
                 });
 
             } catch (balanceError) {
