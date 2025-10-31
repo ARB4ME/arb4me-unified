@@ -3,6 +3,7 @@
 
 const crypto = require('crypto');
 const { logger } = require('../../utils/logger');
+const ExchangeDebugger = require('../../utils/exchangeDebugger');
 
 class OrderExecutionService {
     constructor() {
@@ -1522,6 +1523,8 @@ class OrderExecutionService {
      * @private
      */
     async _executeChainEXBuy(pair, amountUSDT, credentials) {
+        const debugger = new ExchangeDebugger('chainex');
+
         try {
             // Apply rate limiting
             await this._rateLimitDelay();
@@ -1559,17 +1562,27 @@ class OrderExecutionService {
             // Serialize request body
             const bodyString = JSON.stringify(payload);
 
-            // DEBUG: Log authentication details (will show in Railway logs)
-            console.error('============ ChainEX BUY AUTH DEBUG (HEADERS) ============');
-            console.error('Endpoint:', config.endpoint);
-            console.error('Pair:', chainexPair);
-            console.error('Timestamp:', timestamp);
-            console.error('Payload:', JSON.stringify(payload));
-            console.error('API Key:', credentials.apiKey);
-            console.error('Signature input:', timestamp + credentials.apiKey);
-            console.error('Generated signature:', signature);
-            console.error('Headers: X-API-KEY, X-TIMESTAMP, X-SIGNATURE');
-            console.error('=======================================================');
+            // Log comprehensive authentication details
+            debugger.logAuthentication({
+                method: 'POST',
+                endpoint: config.endpoint,
+                fullUrl: `${config.baseUrl}${config.endpoint}`,
+                authType: 'headers',
+                timestamp: timestamp,
+                timeFormat: 'milliseconds',
+                apiKey: credentials.apiKey,
+                apiSecret: credentials.apiSecret,
+                signatureInput: timestamp + credentials.apiKey,
+                signatureMethod: 'HMAC-SHA256',
+                signature: signature,
+                headers: {
+                    'X-API-KEY': credentials.apiKey,
+                    'X-TIMESTAMP': timestamp,
+                    'X-SIGNATURE': signature,
+                    'Content-Type': 'application/json'
+                },
+                payload: payload
+            });
 
             const response = await fetch(`${config.baseUrl}${config.endpoint}`, {
                 method: 'POST',
@@ -1582,12 +1595,14 @@ class OrderExecutionService {
                 body: bodyString
             });
 
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`ChainEX BUY order failed: ${response.status} - ${errorText}`);
-            }
-
             const data = await response.json();
+
+            // Log response details
+            await debugger.logResponse(response, data);
+
+            if (!response.ok) {
+                throw new Error(`ChainEX BUY order failed: ${response.status} - ${JSON.stringify(data)}`);
+            }
 
             // Transform ChainEX response to standard format
             const result = {
@@ -1610,6 +1625,14 @@ class OrderExecutionService {
             return result;
 
         } catch (error) {
+            // Log comprehensive error details
+            debugger.logError(error, {
+                pair,
+                amountUSDT,
+                exchange: 'chainex',
+                operation: 'BUY'
+            });
+
             logger.error('ChainEX BUY order failed', {
                 pair,
                 amountUSDT,
@@ -1624,6 +1647,8 @@ class OrderExecutionService {
      * @private
      */
     async _executeChainEXSell(pair, quantity, credentials) {
+        const debugger = new ExchangeDebugger('chainex');
+
         try {
             // Apply rate limiting
             await this._rateLimitDelay();
@@ -1661,6 +1686,28 @@ class OrderExecutionService {
             // Serialize request body
             const bodyString = JSON.stringify(payload);
 
+            // Log comprehensive authentication details
+            debugger.logAuthentication({
+                method: 'POST',
+                endpoint: config.endpoint,
+                fullUrl: `${config.baseUrl}${config.endpoint}`,
+                authType: 'headers',
+                timestamp: timestamp,
+                timeFormat: 'milliseconds',
+                apiKey: credentials.apiKey,
+                apiSecret: credentials.apiSecret,
+                signatureInput: timestamp + credentials.apiKey,
+                signatureMethod: 'HMAC-SHA256',
+                signature: signature,
+                headers: {
+                    'X-API-KEY': credentials.apiKey,
+                    'X-TIMESTAMP': timestamp,
+                    'X-SIGNATURE': signature,
+                    'Content-Type': 'application/json'
+                },
+                payload: payload
+            });
+
             const response = await fetch(`${config.baseUrl}${config.endpoint}`, {
                 method: 'POST',
                 headers: {
@@ -1672,12 +1719,14 @@ class OrderExecutionService {
                 body: bodyString
             });
 
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`ChainEX SELL order failed: ${response.status} - ${errorText}`);
-            }
-
             const data = await response.json();
+
+            // Log response details
+            await debugger.logResponse(response, data);
+
+            if (!response.ok) {
+                throw new Error(`ChainEX SELL order failed: ${response.status} - ${JSON.stringify(data)}`);
+            }
 
             // Transform ChainEX response to standard format
             const result = {
@@ -1700,6 +1749,14 @@ class OrderExecutionService {
             return result;
 
         } catch (error) {
+            // Log comprehensive error details
+            debugger.logError(error, {
+                pair,
+                quantity,
+                exchange: 'chainex',
+                operation: 'SELL'
+            });
+
             logger.error('ChainEX SELL order failed', {
                 pair,
                 quantity,
