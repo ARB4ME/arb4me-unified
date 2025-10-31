@@ -2363,7 +2363,7 @@ class OrderExecutionService {
                 symbol: pair,
                 side: 'BUY',
                 type: 'MARKET',
-                quoteOrderQty: amountUSDT.toFixed(2), // Amount in USDT (quote currency)
+                quoteOrderQty: parseFloat(amountUSDT).toFixed(2), // Amount in USDT (quote currency)
                 timestamp: timestamp
             };
 
@@ -2480,7 +2480,7 @@ class OrderExecutionService {
                 symbol: pair,
                 side: 'SELL',
                 type: 'MARKET',
-                quantity: quantity.toFixed(8), // Amount of base currency (crypto)
+                quantity: parseFloat(quantity).toFixed(8), // Amount of base currency (crypto)
                 timestamp: timestamp
             };
 
