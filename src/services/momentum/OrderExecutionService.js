@@ -2343,6 +2343,8 @@ class OrderExecutionService {
      * @private
      */
     async _executeBinanceBuy(pair, amountUSDT, credentials) {
+        const debug = new ExchangeDebugger('binance');
+
         try {
             // Apply rate limiting
             await this._rateLimitDelay();
@@ -2377,6 +2379,26 @@ class OrderExecutionService {
                 orderParams
             });
 
+            // Log comprehensive authentication details
+            debug.logAuthentication({
+                method: 'POST',
+                endpoint: config.endpoint,
+                fullUrl: url,
+                authType: 'binance-signature',
+                timestamp: timestamp,
+                timeFormat: 'Date.now() (milliseconds)',
+                apiKey: credentials.apiKey,
+                apiSecret: credentials.apiSecret,
+                signatureInput: queryString,
+                signatureMethod: 'HMAC-SHA256',
+                signature: signature,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-MBX-APIKEY': credentials.apiKey
+                },
+                queryParams: orderParams
+            });
+
             const response = await fetch(url, {
                 method: 'POST',
                 headers: {
@@ -2385,12 +2407,14 @@ class OrderExecutionService {
                 }
             });
 
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`Binance BUY order failed: ${response.status} - ${errorText}`);
-            }
-
             const data = await response.json();
+
+            // Log response details
+            await debug.logResponse(response, data);
+
+            if (!response.ok) {
+                throw new Error(`Binance BUY order failed: ${response.status} - ${JSON.stringify(data)}`);
+            }
 
             // Transform Binance response to standard format
             // Binance response: { orderId, symbol, status, executedQty, cummulativeQuoteQty, fills: [...] }
@@ -2414,6 +2438,14 @@ class OrderExecutionService {
             return result;
 
         } catch (error) {
+            // Log comprehensive error details
+            debug.logError(error, {
+                pair,
+                amountUSDT,
+                exchange: 'binance',
+                operation: 'BUY'
+            });
+
             logger.error('Binance BUY order failed', {
                 pair,
                 amountUSDT,
@@ -2428,6 +2460,8 @@ class OrderExecutionService {
      * @private
      */
     async _executeBinanceSell(pair, quantity, credentials) {
+        const debug = new ExchangeDebugger('binance');
+
         try {
             // Apply rate limiting
             await this._rateLimitDelay();
@@ -2462,6 +2496,26 @@ class OrderExecutionService {
                 orderParams
             });
 
+            // Log comprehensive authentication details
+            debug.logAuthentication({
+                method: 'POST',
+                endpoint: config.endpoint,
+                fullUrl: url,
+                authType: 'binance-signature',
+                timestamp: timestamp,
+                timeFormat: 'Date.now() (milliseconds)',
+                apiKey: credentials.apiKey,
+                apiSecret: credentials.apiSecret,
+                signatureInput: queryString,
+                signatureMethod: 'HMAC-SHA256',
+                signature: signature,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-MBX-APIKEY': credentials.apiKey
+                },
+                queryParams: orderParams
+            });
+
             const response = await fetch(url, {
                 method: 'POST',
                 headers: {
@@ -2470,12 +2524,14 @@ class OrderExecutionService {
                 }
             });
 
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`Binance SELL order failed: ${response.status} - ${errorText}`);
-            }
-
             const data = await response.json();
+
+            // Log response details
+            await debug.logResponse(response, data);
+
+            if (!response.ok) {
+                throw new Error(`Binance SELL order failed: ${response.status} - ${JSON.stringify(data)}`);
+            }
 
             // Transform Binance response to standard format
             const result = {
@@ -2498,6 +2554,14 @@ class OrderExecutionService {
             return result;
 
         } catch (error) {
+            // Log comprehensive error details
+            debug.logError(error, {
+                pair,
+                quantity,
+                exchange: 'binance',
+                operation: 'SELL'
+            });
+
             logger.error('Binance SELL order failed', {
                 pair,
                 quantity,

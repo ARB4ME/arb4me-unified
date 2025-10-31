@@ -5,7 +5,7 @@
 const { logger } = require('./logger');
 
 class ExchangeDebugger {
-    constructor(exchange, enableForExchanges = ['chainex']) {
+    constructor(exchange, enableForExchanges = ['chainex', 'kraken', 'binance']) {
         this.exchange = exchange.toLowerCase();
         this.enabled = process.env.MOMENTUM_DEBUG === 'true' ||
                       enableForExchanges.includes(this.exchange);
