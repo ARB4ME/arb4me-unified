@@ -1518,14 +1518,14 @@
                     const currentPnLPercent = parseFloat(pos.current_pnl_percent || 0);
                     const isLosing = currentPnL < 0;
 
-                    // Calculate expected profit based on strategy's sell threshold
-                    let sellThreshold = 0;
+                    // Calculate expected profit based on strategy's take profit percentage
+                    let takeProfitPercent = 0;
                     let expectedProfitUSDT = 0;
                     try {
                         const strategy = strategies.find(s => s.strategy_name === pos.strategy_name);
-                        sellThreshold = strategy ? parseFloat(strategy.sell_threshold || 0) : 0;
+                        takeProfitPercent = strategy?.exit_rules?.takeProfitPercent || 0;
                         const entryValue = parseFloat(pos.entry_value_usdt || 0);
-                        expectedProfitUSDT = (entryValue * sellThreshold) / 100;
+                        expectedProfitUSDT = (entryValue * takeProfitPercent) / 100;
                     } catch (e) {
                         console.warn('Error calculating expected profit:', e);
                     }
@@ -1546,7 +1546,7 @@
                                         $${currentPnL.toFixed(2)} (${currentPnLPercent >= 0 ? '+' : ''}${currentPnLPercent.toFixed(2)}%)
                                     </span>
                                 </div>
-                                ${sellThreshold > 0 ? `<div style="color: #00d4ff;"><strong>Expected Profit (${sellThreshold}%):</strong> +$${expectedProfitUSDT.toFixed(2)} USDT</div>` : ''}
+                                ${takeProfitPercent > 0 ? `<div style="color: #00d4ff;"><strong>Expected Profit (${takeProfitPercent}%):</strong> +$${expectedProfitUSDT.toFixed(2)} USDT</div>` : ''}
                                 <div><strong>Time Open:</strong> ${getTimeDiff(pos.entry_time)}</div>
                                 <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
                                     <strong>Strategy:</strong> ${pos.strategy_name}
