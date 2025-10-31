@@ -4903,9 +4903,11 @@ router.post('/binance/balance', tradingRateLimit, optionalAuth, [
             exchange: 'binance',
             balanceCount: Object.keys(balances).length
         });
-        
+
+        // Return format compatible with momentum trading frontend
         res.json({
             success: true,
+            balances: balances,
             data: {
                 exchange: 'binance',
                 balances: balances
