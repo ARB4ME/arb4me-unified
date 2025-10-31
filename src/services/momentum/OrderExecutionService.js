@@ -1523,7 +1523,7 @@ class OrderExecutionService {
      * @private
      */
     async _executeChainEXBuy(pair, amountUSDT, credentials) {
-        const debugger = new ExchangeDebugger('chainex');
+        const debug = new ExchangeDebugger('chainex');
 
         try {
             // Apply rate limiting
@@ -1563,7 +1563,7 @@ class OrderExecutionService {
             const bodyString = JSON.stringify(payload);
 
             // Log comprehensive authentication details
-            debugger.logAuthentication({
+            debug.logAuthentication({
                 method: 'POST',
                 endpoint: config.endpoint,
                 fullUrl: `${config.baseUrl}${config.endpoint}`,
@@ -1598,7 +1598,7 @@ class OrderExecutionService {
             const data = await response.json();
 
             // Log response details
-            await debugger.logResponse(response, data);
+            await debug.logResponse(response, data);
 
             if (!response.ok) {
                 throw new Error(`ChainEX BUY order failed: ${response.status} - ${JSON.stringify(data)}`);
@@ -1626,7 +1626,7 @@ class OrderExecutionService {
 
         } catch (error) {
             // Log comprehensive error details
-            debugger.logError(error, {
+            debug.logError(error, {
                 pair,
                 amountUSDT,
                 exchange: 'chainex',
@@ -1647,7 +1647,7 @@ class OrderExecutionService {
      * @private
      */
     async _executeChainEXSell(pair, quantity, credentials) {
-        const debugger = new ExchangeDebugger('chainex');
+        const debug = new ExchangeDebugger('chainex');
 
         try {
             // Apply rate limiting
@@ -1687,7 +1687,7 @@ class OrderExecutionService {
             const bodyString = JSON.stringify(payload);
 
             // Log comprehensive authentication details
-            debugger.logAuthentication({
+            debug.logAuthentication({
                 method: 'POST',
                 endpoint: config.endpoint,
                 fullUrl: `${config.baseUrl}${config.endpoint}`,
@@ -1722,7 +1722,7 @@ class OrderExecutionService {
             const data = await response.json();
 
             // Log response details
-            await debugger.logResponse(response, data);
+            await debug.logResponse(response, data);
 
             if (!response.ok) {
                 throw new Error(`ChainEX SELL order failed: ${response.status} - ${JSON.stringify(data)}`);
@@ -1750,7 +1750,7 @@ class OrderExecutionService {
 
         } catch (error) {
             // Log comprehensive error details
-            debugger.logError(error, {
+            debug.logError(error, {
                 pair,
                 quantity,
                 exchange: 'chainex',
