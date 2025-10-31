@@ -1572,19 +1572,20 @@ class OrderExecutionService {
 
             const authenticatedUrl = `${config.baseUrl}${config.endpoint}?${params.toString()}`;
 
-            logger.info('ChainEX BUY authentication details', {
-                endpoint: config.endpoint,
-                pair: chainexPair,
-                timestamp: time,
-                bodyLength: bodyString.length,
-                body: payload,
-                hasApiKey: !!credentials.apiKey,
-                hasApiSecret: !!credentials.apiSecret,
-                apiKeyLength: credentials.apiKey?.length,
-                apiSecretLength: credentials.apiSecret?.length,
-                fullUrlForSignature: fullUrl,
-                signatureInput: (fullUrl + bodyString).substring(0, 100) + '...'
-            });
+            // DEBUG: Log authentication details (will show in Railway logs)
+            console.error('============ ChainEX BUY AUTH DEBUG ============');
+            console.error('Endpoint:', config.endpoint);
+            console.error('Pair:', chainexPair);
+            console.error('Timestamp:', time);
+            console.error('Payload:', JSON.stringify(payload));
+            console.error('Body length:', bodyString.length);
+            console.error('Has API Key:', !!credentials.apiKey, 'Length:', credentials.apiKey?.length);
+            console.error('Has API Secret:', !!credentials.apiSecret, 'Length:', credentials.apiSecret?.length);
+            console.error('Full URL for signature:', fullUrl);
+            console.error('Signature input (first 150 chars):', (fullUrl + bodyString).substring(0, 150));
+            console.error('Generated hash:', hash);
+            console.error('Final authenticated URL:', authenticatedUrl);
+            console.error('============================================');
 
             const response = await fetch(authenticatedUrl, {
                 method: 'POST',
