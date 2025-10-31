@@ -663,8 +663,11 @@ class OrderExecutionService {
             // Apply rate limiting
             await this._rateLimitDelay();
 
-            // ===== STEP 1: CHECK AVAILABLE BALANCE =====
-            logger.info('🔍 Checking VALR balance before SELL order', { pair, quantityToSell: quantity });
+            // ===== STEP 1: CHECK AVAILABLE BALANCE AND ADJUST QUANTITY =====
+            logger.info('🔍 Checking VALR balance before SELL order', { pair, requestedQuantity: quantity });
+
+            let adjustedQuantity = quantity;
+            let wasAdjusted = false;
 
             try {
                 const balances = await this._getValrBalances(credentials);
@@ -676,38 +679,57 @@ class OrderExecutionService {
                     availableBalance: assetBalance?.available || 0,
                     reservedBalance: assetBalance?.reserved || 0,
                     totalBalance: assetBalance?.total || 0,
-                    quantityToSell: quantity,
-                    canSell: assetBalance?.available >= quantity ? '✅ YES' : '❌ NO - INSUFFICIENT',
+                    requestedQuantity: quantity,
+                    canSellRequested: assetBalance?.available >= quantity ? '✅ YES' : '❌ NO - INSUFFICIENT',
                     shortfall: assetBalance?.available < quantity ? (quantity - assetBalance.available).toFixed(8) : 0
                 });
 
-                if (!assetBalance || assetBalance.available < quantity) {
-                    logger.error('❌ INSUFFICIENT BALANCE FOR SELL ORDER', {
-                        pair,
-                        quantityNeeded: quantity,
-                        availableBalance: assetBalance?.available || 0,
-                        shortfall: quantity - (assetBalance?.available || 0),
-                        allBalances: balances
-                    });
-
-                    // Continue anyway but with warning - the exchange will reject it and we'll see the error
-                    logger.warn('⚠️ Proceeding with sell order despite insufficient balance to capture exchange error');
+                if (!assetBalance || assetBalance.available <= 0) {
+                    throw new Error(`No ${baseAsset} balance available. Available: ${assetBalance?.available || 0}`);
                 }
-            } catch (balanceError) {
-                logger.warn('⚠️ Balance check failed, proceeding with order', {
-                    error: balanceError.message
+
+                // If insufficient balance, use available balance minus 0.1% buffer for safety
+                if (assetBalance.available < quantity) {
+                    const buffer = 0.999; // 99.9% of available (0.1% safety buffer)
+                    adjustedQuantity = assetBalance.available * buffer;
+                    wasAdjusted = true;
+
+                    logger.warn('⚠️ ADJUSTING SELL QUANTITY DUE TO INSUFFICIENT BALANCE', {
+                        originalQuantity: quantity,
+                        availableBalance: assetBalance.available,
+                        adjustedQuantity: adjustedQuantity,
+                        adjustmentReason: 'Fees deducted during buy reduced available balance',
+                        buffer: '0.1%'
+                    });
+                }
+
+                // Format quantity to proper decimal places (VALR uses 8 decimals for crypto)
+                adjustedQuantity = parseFloat(adjustedQuantity.toFixed(8));
+
+                logger.info('✅ SELL QUANTITY DETERMINED', {
+                    finalQuantity: adjustedQuantity,
+                    wasAdjusted: wasAdjusted,
+                    availableBalance: assetBalance.available
                 });
+
+            } catch (balanceError) {
+                logger.error('❌ BALANCE CHECK FAILED - CANNOT PROCEED', {
+                    error: balanceError.message,
+                    pair,
+                    requestedQuantity: quantity
+                });
+                throw new Error(`Cannot execute sell order: ${balanceError.message}`);
             }
 
             // ===== STEP 2: PREPARE ORDER =====
             const config = this.exchangeConfigs.valr;
             const path = config.endpoints.marketOrder;
 
-            // VALR market order payload
+            // VALR market order payload - use adjusted quantity
             const payload = {
                 side: 'SELL',
                 pair: pair,  // VALR expects "pair", not "currencyPair"
-                baseAmount: quantity.toString() // Amount of base currency (BTC, ETH, etc.)
+                baseAmount: adjustedQuantity.toString() // Use adjusted quantity (accounts for fees)
             };
 
             const headers = this._createValrAuth(
@@ -722,7 +744,9 @@ class OrderExecutionService {
 
             logger.info('📤 Executing VALR market SELL order', {
                 pair,
-                quantity,
+                originalQuantity: quantity,
+                adjustedQuantity: adjustedQuantity,
+                wasAdjusted: wasAdjusted,
                 baseAmount: payload.baseAmount,
                 payload: JSON.stringify(payload),
                 url
@@ -745,7 +769,9 @@ class OrderExecutionService {
 
                 logger.error('❌ VALR SELL ORDER REJECTED IMMEDIATELY', {
                     pair,
-                    quantity,
+                    originalQuantity: quantity,
+                    adjustedQuantity: adjustedQuantity,
+                    wasAdjusted: wasAdjusted,
                     httpStatus: response.status,
                     errorText: errorText,
                     errorJson: errorJson,
@@ -760,7 +786,9 @@ class OrderExecutionService {
             // Log raw VALR response for debugging
             logger.info('✅ VALR SELL order submitted successfully (initial response)', {
                 pair,
-                quantity,
+                originalQuantity: quantity,
+                adjustedQuantity: adjustedQuantity,
+                wasAdjusted: wasAdjusted,
                 orderId: data.id || data.orderId,
                 rawResponse: JSON.stringify(data, null, 2)
             });
@@ -785,7 +813,7 @@ class OrderExecutionService {
 
             // Transform VALR response to standard format
             // VALR returns: totalFee (in base currency), originalQuantity, total, averagePrice
-            const baseAmount = parseFloat(orderDetails.originalQuantity || orderDetails.totalExecutedQuantity || orderDetails.quantity || quantity);
+            const baseAmount = parseFloat(orderDetails.originalQuantity || orderDetails.totalExecutedQuantity || orderDetails.quantity || adjustedQuantity);
             const quoteAmount = parseFloat(orderDetails.total || 0);
             const averagePrice = parseFloat(orderDetails.averagePrice || (baseAmount > 0 ? quoteAmount / baseAmount : 0));
 
@@ -823,7 +851,9 @@ class OrderExecutionService {
         } catch (error) {
             logger.error('VALR SELL order failed', {
                 pair,
-                quantity,
+                originalQuantity: quantity,
+                adjustedQuantity: adjustedQuantity,
+                wasAdjusted: wasAdjusted,
                 error: error.message
             });
             throw error;
