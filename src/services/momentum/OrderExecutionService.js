@@ -1560,11 +1560,11 @@ class OrderExecutionService {
 
             const fullUrl = `${config.baseUrl}${config.endpoint}?${params.toString()}`;
 
-            // Create HMAC signature of full URL + request body
-            // ChainEX pattern: sign(url + body)
+            // Create HMAC signature of ONLY the URL (not the body)
+            // ChainEX pattern from working trading.routes.js code: sign(url only)
             const hash = crypto
                 .createHmac('sha256', credentials.apiSecret)
-                .update(fullUrl + bodyString)
+                .update(fullUrl)
                 .digest('hex');
 
             // Add hash to params
@@ -1582,7 +1582,7 @@ class OrderExecutionService {
             console.error('Has API Key:', !!credentials.apiKey, 'Length:', credentials.apiKey?.length);
             console.error('Has API Secret:', !!credentials.apiSecret, 'Length:', credentials.apiSecret?.length);
             console.error('Full URL for signature:', fullUrl);
-            console.error('Signature input (first 150 chars):', (fullUrl + bodyString).substring(0, 150));
+            console.error('Signature input (URL only):', fullUrl);
             console.error('Generated hash:', hash);
             console.error('Final authenticated URL:', authenticatedUrl);
             console.error('============================================');
@@ -1675,11 +1675,11 @@ class OrderExecutionService {
 
             const fullUrl = `${config.baseUrl}${config.endpoint}?${params.toString()}`;
 
-            // Create HMAC signature of full URL + request body
-            // ChainEX pattern: sign(url + body)
+            // Create HMAC signature of ONLY the URL (not the body)
+            // ChainEX pattern from working trading.routes.js code: sign(url only)
             const hash = crypto
                 .createHmac('sha256', credentials.apiSecret)
-                .update(fullUrl + bodyString)
+                .update(fullUrl)
                 .digest('hex');
 
             // Add hash to params
