@@ -20,7 +20,7 @@ const { query } = require('../database/connection');
  *   entry_time TIMESTAMP NOT NULL,
  *   entry_signals JSONB,
  *   entry_order_id VARCHAR(100),
- *   status VARCHAR(20) DEFAULT 'OPEN' CHECK (status IN ('OPEN', 'CLOSED')),
+ *   status VARCHAR(20) DEFAULT 'OPEN' CHECK (status IN ('OPEN', 'CLOSING', 'CLOSED')),
  *   exit_price DECIMAL(18,8),
  *   exit_quantity DECIMAL(18,8),
  *   exit_fee DECIMAL(12,4) DEFAULT 0,
@@ -59,7 +59,7 @@ class MomentumPosition {
                 entry_time TIMESTAMP NOT NULL,
                 entry_signals JSONB,
                 entry_order_id VARCHAR(100),
-                status VARCHAR(20) DEFAULT 'OPEN' CHECK (status IN ('OPEN', 'CLOSED')),
+                status VARCHAR(20) DEFAULT 'OPEN' CHECK (status IN ('OPEN', 'CLOSING', 'CLOSED')),
                 exit_price DECIMAL(18,8),
                 exit_quantity DECIMAL(18,8),
                 exit_fee DECIMAL(12,4) DEFAULT 0,
@@ -93,6 +93,20 @@ class MomentumPosition {
                               WHERE table_name='momentum_positions' AND column_name='exit_fee') THEN
                     ALTER TABLE momentum_positions ADD COLUMN exit_fee DECIMAL(12,4) DEFAULT 0;
                 END IF;
+            END $$;
+
+            -- Update status CHECK constraint to include CLOSING (safe to run multiple times)
+            DO $$
+            BEGIN
+                -- Drop old constraint if exists
+                ALTER TABLE momentum_positions DROP CONSTRAINT IF EXISTS momentum_positions_status_check;
+                -- Add new constraint with CLOSING status
+                ALTER TABLE momentum_positions ADD CONSTRAINT momentum_positions_status_check
+                    CHECK (status IN ('OPEN', 'CLOSING', 'CLOSED'));
+            EXCEPTION
+                WHEN OTHERS THEN
+                    -- Constraint might not exist yet, that's fine
+                    NULL;
             END $$;
         `;
 
@@ -197,6 +211,23 @@ class MomentumPosition {
         `;
 
         const result = await query(selectQuery, [positionId]);
+        return result.rows[0];
+    }
+
+    /**
+     * Mark position as CLOSING to prevent duplicate sell attempts
+     */
+    static async markAsClosing(positionId, exitOrderId = null) {
+        const updateQuery = `
+            UPDATE momentum_positions
+            SET status = 'CLOSING',
+                exit_order_id = $1,
+                updated_at = NOW()
+            WHERE id = $2 AND status = 'OPEN'
+            RETURNING *
+        `;
+
+        const result = await query(updateQuery, [exitOrderId, positionId]);
         return result.rows[0];
     }
 
