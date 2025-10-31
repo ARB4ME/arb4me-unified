@@ -1551,15 +1551,8 @@ class OrderExecutionService {
                 payload
             });
 
-            // ChainEX uses HEADER authentication for trading orders (not query string!)
-            // Pattern from working trading.routes.js code
-            const timestamp = Date.now().toString();
-            const signature = crypto
-                .createHmac('sha256', credentials.apiSecret)
-                .update(timestamp + credentials.apiKey)
-                .digest('hex');
-
-            // Serialize request body
+            // ChainEX uses SIMPLE X-API-KEY authentication (like market data endpoints)
+            // No timestamp or signature required based on ChainEXMarketDataService pattern
             const bodyString = JSON.stringify(payload);
 
             // Log comprehensive authentication details
@@ -1567,18 +1560,11 @@ class OrderExecutionService {
                 method: 'POST',
                 endpoint: config.endpoint,
                 fullUrl: `${config.baseUrl}${config.endpoint}`,
-                authType: 'headers',
-                timestamp: timestamp,
-                timeFormat: 'milliseconds',
+                authType: 'simple-api-key',
                 apiKey: credentials.apiKey,
                 apiSecret: credentials.apiSecret,
-                signatureInput: timestamp + credentials.apiKey,
-                signatureMethod: 'HMAC-SHA256',
-                signature: signature,
                 headers: {
                     'X-API-KEY': credentials.apiKey,
-                    'X-TIMESTAMP': timestamp,
-                    'X-SIGNATURE': signature,
                     'Content-Type': 'application/json'
                 },
                 payload: payload
@@ -1588,8 +1574,6 @@ class OrderExecutionService {
                 method: 'POST',
                 headers: {
                     'X-API-KEY': credentials.apiKey,
-                    'X-TIMESTAMP': timestamp,
-                    'X-SIGNATURE': signature,
                     'Content-Type': 'application/json'
                 },
                 body: bodyString
@@ -1675,15 +1659,8 @@ class OrderExecutionService {
                 payload
             });
 
-            // ChainEX uses HEADER authentication for trading orders (not query string!)
-            // Pattern from working trading.routes.js code
-            const timestamp = Date.now().toString();
-            const signature = crypto
-                .createHmac('sha256', credentials.apiSecret)
-                .update(timestamp + credentials.apiKey)
-                .digest('hex');
-
-            // Serialize request body
+            // ChainEX uses SIMPLE X-API-KEY authentication (like market data endpoints)
+            // No timestamp or signature required based on ChainEXMarketDataService pattern
             const bodyString = JSON.stringify(payload);
 
             // Log comprehensive authentication details
@@ -1691,18 +1668,11 @@ class OrderExecutionService {
                 method: 'POST',
                 endpoint: config.endpoint,
                 fullUrl: `${config.baseUrl}${config.endpoint}`,
-                authType: 'headers',
-                timestamp: timestamp,
-                timeFormat: 'milliseconds',
+                authType: 'simple-api-key',
                 apiKey: credentials.apiKey,
                 apiSecret: credentials.apiSecret,
-                signatureInput: timestamp + credentials.apiKey,
-                signatureMethod: 'HMAC-SHA256',
-                signature: signature,
                 headers: {
                     'X-API-KEY': credentials.apiKey,
-                    'X-TIMESTAMP': timestamp,
-                    'X-SIGNATURE': signature,
                     'Content-Type': 'application/json'
                 },
                 payload: payload
@@ -1712,8 +1682,6 @@ class OrderExecutionService {
                 method: 'POST',
                 headers: {
                     'X-API-KEY': credentials.apiKey,
-                    'X-TIMESTAMP': timestamp,
-                    'X-SIGNATURE': signature,
                     'Content-Type': 'application/json'
                 },
                 body: bodyString
