@@ -1519,10 +1519,16 @@
                     const isLosing = currentPnL < 0;
 
                     // Calculate expected profit based on strategy's sell threshold
-                    const strategy = strategies.find(s => s.strategy_name === pos.strategy_name);
-                    const sellThreshold = strategy ? parseFloat(strategy.sell_threshold || 0) : 0;
-                    const entryValue = parseFloat(pos.entry_value_usdt);
-                    const expectedProfitUSDT = (entryValue * sellThreshold) / 100;
+                    let sellThreshold = 0;
+                    let expectedProfitUSDT = 0;
+                    try {
+                        const strategy = strategies.find(s => s.strategy_name === pos.strategy_name);
+                        sellThreshold = strategy ? parseFloat(strategy.sell_threshold || 0) : 0;
+                        const entryValue = parseFloat(pos.entry_value_usdt || 0);
+                        expectedProfitUSDT = (entryValue * sellThreshold) / 100;
+                    } catch (e) {
+                        console.warn('Error calculating expected profit:', e);
+                    }
 
                     return `
                         <div class="position-card ${isLosing ? 'losing' : ''}">
