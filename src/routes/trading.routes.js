@@ -4853,8 +4853,8 @@ router.post('/binance/balance', tradingRateLimit, optionalAuth, [
         });
         
         const timestamp = Date.now();
-        // Try without recvWindow for maximum API key compatibility
-        const queryString = `timestamp=${timestamp}`;
+        const recvWindow = 60000; // 60 second window for better reliability with Railway's dynamic servers
+        const queryString = `recvWindow=${recvWindow}&timestamp=${timestamp}`;
         const signature = createBinanceSignature(queryString, apiSecret);
         
         const response = await fetch(`${BINANCE_PROXY_CONFIG.baseUrl}${BINANCE_PROXY_CONFIG.endpoints.balance}?${queryString}&signature=${signature}`, {
