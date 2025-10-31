@@ -8,6 +8,8 @@ const MomentumStrategy = require('../models/MomentumStrategy');
 const MomentumPosition = require('../models/MomentumPosition');
 const MomentumCredentials = require('../models/MomentumCredentials');
 const VALRMarketDataService = require('../services/momentum/VALRMarketDataService');
+const LunoMarketDataService = require('../services/momentum/LunoMarketDataService');
+const ChainEXMarketDataService = require('../services/momentum/ChainEXMarketDataService');
 const BinanceMarketDataService = require('../services/momentum/BinanceMarketDataService');
 const OrderExecutionService = require('../services/momentum/OrderExecutionService');
 
@@ -16,6 +18,8 @@ const { query } = require('../database/connection');
 
 // Initialize services
 const valrService = new VALRMarketDataService();
+const lunoService = new LunoMarketDataService();
+const chainexService = new ChainEXMarketDataService();
 const binanceService = new BinanceMarketDataService();
 const orderExecutionService = new OrderExecutionService();
 
@@ -237,6 +241,89 @@ router.delete('/credentials', async (req, res) => {
         logger.error('Failed to delete momentum credentials', {
             userId: req.body.userId,
             exchange: req.body.exchange,
+            error: error.message
+        });
+
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * GET /api/v1/momentum/supported-pairs/:exchange
+ * Get supported USDT pairs for an exchange (from backend configuration)
+ * Returns only pairs that backend can fetch candle data for
+ */
+router.get('/supported-pairs/:exchange', async (req, res) => {
+    try {
+        const { exchange } = req.params;
+
+        if (!exchange) {
+            return res.status(400).json({
+                success: false,
+                error: 'exchange parameter is required'
+            });
+        }
+
+        let supportedPairs = [];
+
+        // Get supported pairs based on exchange
+        switch (exchange.toLowerCase()) {
+            case 'chainex':
+                supportedPairs = chainexService.getAvailablePairs();
+                break;
+            case 'luno':
+                supportedPairs = lunoService.getAvailablePairs();
+                break;
+            case 'valr':
+                // VALR doesn't have hardcoded pairs - return common USDT pairs
+                // Based on VALR's known USDT markets
+                supportedPairs = [
+                    'BTCUSDT',
+                    'ETHUSDT',
+                    'XRPUSDT',
+                    'SOLUSDT',
+                    'ADAUSDT',
+                    'DOTUSDT',
+                    'MATICUSDT',
+                    'AVAXUSDT'
+                ];
+                break;
+            default:
+                return res.status(400).json({
+                    success: false,
+                    error: `Exchange not supported: ${exchange}`
+                });
+        }
+
+        // Extract base currency (remove USDT suffix) for frontend display
+        const baseAssets = supportedPairs.map(pair => {
+            if (pair.endsWith('USDT')) {
+                return pair.replace('USDT', '');
+            }
+            return pair;
+        });
+
+        logger.info('Supported pairs fetched from backend', {
+            exchange,
+            pairCount: supportedPairs.length
+        });
+
+        res.json({
+            success: true,
+            data: {
+                exchange: exchange.toLowerCase(),
+                pairs: supportedPairs,
+                baseAssets: baseAssets,
+                count: supportedPairs.length
+            }
+        });
+
+    } catch (error) {
+        logger.error('Failed to get supported pairs', {
+            exchange: req.params.exchange,
             error: error.message
         });
 
