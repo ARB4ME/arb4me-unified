@@ -1787,6 +1787,8 @@ class OrderExecutionService {
      * @private
      */
     async _executeKrakenBuy(pair, amountUSDT, credentials) {
+        const debug = new ExchangeDebugger('kraken');
+
         try {
             // Apply rate limiting
             await this._rateLimitDelay();
@@ -1831,6 +1833,27 @@ class OrderExecutionService {
                 postData
             });
 
+            // Log comprehensive authentication details
+            debug.logAuthentication({
+                method: 'POST',
+                endpoint: config.endpoint,
+                fullUrl: url,
+                authType: 'kraken-signature',
+                timestamp: nonce,
+                timeFormat: 'nonce (Date.now() * 1000)',
+                apiKey: credentials.apiKey,
+                apiSecret: credentials.apiSecret,
+                signatureInput: `path + SHA256(nonce + postData)`,
+                signatureMethod: 'HMAC-SHA512 with base64-decoded secret',
+                signature: authHeaders['API-Sign'],
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'API-Key': authHeaders['API-Key'],
+                    'API-Sign': authHeaders['API-Sign']
+                },
+                payload: orderParams
+            });
+
             const response = await fetch(url, {
                 method: 'POST',
                 headers: {
@@ -1840,12 +1863,14 @@ class OrderExecutionService {
                 body: postData
             });
 
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`Kraken BUY order failed: ${response.status} - ${errorText}`);
-            }
-
             const data = await response.json();
+
+            // Log response details
+            await debug.logResponse(response, data);
+
+            if (!response.ok) {
+                throw new Error(`Kraken BUY order failed: ${response.status} - ${JSON.stringify(data)}`);
+            }
 
             // Check for Kraken API errors
             if (data.error && data.error.length > 0) {
@@ -1872,6 +1897,14 @@ class OrderExecutionService {
             return result;
 
         } catch (error) {
+            // Log comprehensive error details
+            debug.logError(error, {
+                pair,
+                amountUSDT,
+                exchange: 'kraken',
+                operation: 'BUY'
+            });
+
             logger.error('Kraken BUY order failed', {
                 pair,
                 amountUSDT,
@@ -1886,6 +1919,8 @@ class OrderExecutionService {
      * @private
      */
     async _executeKrakenSell(pair, quantity, credentials) {
+        const debug = new ExchangeDebugger('kraken');
+
         try {
             // Apply rate limiting
             await this._rateLimitDelay();
@@ -1929,6 +1964,27 @@ class OrderExecutionService {
                 postData
             });
 
+            // Log comprehensive authentication details
+            debug.logAuthentication({
+                method: 'POST',
+                endpoint: config.endpoint,
+                fullUrl: url,
+                authType: 'kraken-signature',
+                timestamp: nonce,
+                timeFormat: 'nonce (Date.now() * 1000)',
+                apiKey: credentials.apiKey,
+                apiSecret: credentials.apiSecret,
+                signatureInput: `path + SHA256(nonce + postData)`,
+                signatureMethod: 'HMAC-SHA512 with base64-decoded secret',
+                signature: authHeaders['API-Sign'],
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'API-Key': authHeaders['API-Key'],
+                    'API-Sign': authHeaders['API-Sign']
+                },
+                payload: orderParams
+            });
+
             const response = await fetch(url, {
                 method: 'POST',
                 headers: {
@@ -1938,12 +1994,14 @@ class OrderExecutionService {
                 body: postData
             });
 
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`Kraken SELL order failed: ${response.status} - ${errorText}`);
-            }
-
             const data = await response.json();
+
+            // Log response details
+            await debug.logResponse(response, data);
+
+            if (!response.ok) {
+                throw new Error(`Kraken SELL order failed: ${response.status} - ${JSON.stringify(data)}`);
+            }
 
             // Check for Kraken API errors
             if (data.error && data.error.length > 0) {
@@ -1970,6 +2028,14 @@ class OrderExecutionService {
             return result;
 
         } catch (error) {
+            // Log comprehensive error details
+            debug.logError(error, {
+                pair,
+                quantity,
+                exchange: 'kraken',
+                operation: 'SELL'
+            });
+
             logger.error('Kraken SELL order failed', {
                 pair,
                 quantity,
