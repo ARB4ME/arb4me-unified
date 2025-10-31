@@ -655,18 +655,14 @@
                 <div class="form-group">
                     <label>Select Assets to Trade</label>
                     <small>Quick select popular assets or type your own</small>
-                    <div style="margin: 10px 0;">
-                        <span class="quick-select-btn" onclick="quickSelectAsset('BTC')">BTC</span>
-                        <span class="quick-select-btn" onclick="quickSelectAsset('ETH')">ETH</span>
-                        <span class="quick-select-btn" onclick="quickSelectAsset('XRP')">XRP</span>
-                        <span class="quick-select-btn" onclick="quickSelectAsset('SOL')">SOL</span>
-                        <span class="quick-select-btn" onclick="quickSelectAsset('ADA')">ADA</span>
-                        <span class="quick-select-btn" onclick="quickSelectAsset('DOT')">DOT</span>
+                    <div id="quickSelectButtons" style="margin: 10px 0;">
+                        <!-- Buttons will be populated based on selected exchange -->
                     </div>
                     <input type="text" id="assetInput" placeholder="e.g., BTC, ETH, XRP" required style="text-transform: uppercase;">
                     <small>
                         Comma-separated uppercase symbols. Will be traded against USDT (e.g., BTC → BTCUSDT).
-                        <br><strong style="color: #ffb347;">⚠️ Only use assets with USDT pairs on VALR</strong> (BTC, ETH, XRP, SOL, ADA, DOT, MATIC, LINK, etc.)
+                        <br><strong style="color: #ffb347;" id="assetWarning">⚠️ Only use assets with USDT pairs on the selected exchange</strong>
+                        <br><a href="#" onclick="showAvailablePairs(); return false;" style="color: #00bfff; font-size: 0.85rem;">📋 View all available USDT pairs for this exchange</a>
                     </small>
                 </div>
 
@@ -961,6 +957,9 @@
 
             // Update UI
             document.getElementById('apiConnectionTitle').textContent = `🔌 ${getExchangeDisplayName(selectedExchange)} API Connection`;
+
+            // Update quick select buttons for the new exchange
+            updateQuickSelectButtons();
 
             // Reload all data for new exchange
             await testConnection();
@@ -1621,10 +1620,50 @@
         }
 
         // Open strategy creator
+        // Exchange-specific available USDT pairs
+        const exchangeUSDTPairs = {
+            'valr': ['BTC', 'ETH', 'XRP', 'SOL', 'ADA', 'DOT', 'MATIC', 'LINK', 'AVAX', 'ATOM'],
+            'luno': ['BTC', 'ETH', 'XRP', 'LTC', 'BCH'],
+            'chainex': ['BTC', 'ETH', 'XRP', 'LTC', 'EOS', '1INCH', 'CVC', 'PART', 'STMX', 'SUSHI', 'TITANX'],
+            // Add more exchanges as they're implemented
+            'default': ['BTC', 'ETH', 'XRP', 'SOL', 'ADA']
+        };
+
+        // Update quick select buttons based on selected exchange
+        function updateQuickSelectButtons() {
+            const exchange = selectedExchange.toLowerCase();
+            const pairs = exchangeUSDTPairs[exchange] || exchangeUSDTPairs['default'];
+
+            const container = document.getElementById('quickSelectButtons');
+            if (!container) return;
+
+            // Show top 6 pairs as quick select buttons
+            container.innerHTML = pairs.slice(0, 6).map(asset =>
+                `<span class="quick-select-btn" onclick="quickSelectAsset('${asset}')">${asset}</span>`
+            ).join('');
+
+            // Update warning message
+            const warningEl = document.getElementById('assetWarning');
+            if (warningEl) {
+                warningEl.innerHTML = `⚠️ Only use assets with USDT pairs on <strong>${selectedExchange.toUpperCase()}</strong>`;
+            }
+        }
+
+        // Show all available pairs for selected exchange
+        function showAvailablePairs() {
+            const exchange = selectedExchange.toLowerCase();
+            const pairs = exchangeUSDTPairs[exchange] || exchangeUSDTPairs['default'];
+
+            const pairList = pairs.map(asset => `${asset}USDT`).join(', ');
+
+            alert(`Available USDT pairs on ${selectedExchange.toUpperCase()}:\n\n${pairList}\n\n(${pairs.length} pairs total)`);
+        }
+
         function openStrategyCreator() {
             document.getElementById('strategyModal').style.display = 'block';
             document.getElementById('strategyForm').reset();
             selectPreset('conservative'); // Set default preset
+            updateQuickSelectButtons(); // Update buttons based on selected exchange
         }
 
         // Close strategy creator
