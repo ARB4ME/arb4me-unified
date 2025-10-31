@@ -1548,48 +1548,35 @@ class OrderExecutionService {
                 payload
             });
 
-            // ChainEX uses query string authentication for POST orders
-            const time = Math.floor(Date.now() / 1000);
-            const params = new URLSearchParams({
-                time: time.toString(),
-                key: credentials.apiKey
-            });
+            // ChainEX uses HEADER authentication for trading orders (not query string!)
+            // Pattern from working trading.routes.js code
+            const timestamp = Date.now().toString();
+            const signature = crypto
+                .createHmac('sha256', credentials.apiSecret)
+                .update(timestamp + credentials.apiKey)
+                .digest('hex');
 
             // Serialize request body
             const bodyString = JSON.stringify(payload);
 
-            const fullUrl = `${config.baseUrl}${config.endpoint}?${params.toString()}`;
-
-            // Create HMAC signature of ONLY the URL (not the body)
-            // ChainEX pattern from working trading.routes.js code: sign(url only)
-            const hash = crypto
-                .createHmac('sha256', credentials.apiSecret)
-                .update(fullUrl)
-                .digest('hex');
-
-            // Add hash to params
-            params.append('hash', hash);
-
-            const authenticatedUrl = `${config.baseUrl}${config.endpoint}?${params.toString()}`;
-
             // DEBUG: Log authentication details (will show in Railway logs)
-            console.error('============ ChainEX BUY AUTH DEBUG ============');
+            console.error('============ ChainEX BUY AUTH DEBUG (HEADERS) ============');
             console.error('Endpoint:', config.endpoint);
             console.error('Pair:', chainexPair);
-            console.error('Timestamp:', time);
+            console.error('Timestamp:', timestamp);
             console.error('Payload:', JSON.stringify(payload));
-            console.error('Body length:', bodyString.length);
-            console.error('Has API Key:', !!credentials.apiKey, 'Length:', credentials.apiKey?.length);
-            console.error('Has API Secret:', !!credentials.apiSecret, 'Length:', credentials.apiSecret?.length);
-            console.error('Full URL for signature:', fullUrl);
-            console.error('Signature input (URL only):', fullUrl);
-            console.error('Generated hash:', hash);
-            console.error('Final authenticated URL:', authenticatedUrl);
-            console.error('============================================');
+            console.error('API Key:', credentials.apiKey);
+            console.error('Signature input:', timestamp + credentials.apiKey);
+            console.error('Generated signature:', signature);
+            console.error('Headers: X-API-KEY, X-TIMESTAMP, X-SIGNATURE');
+            console.error('=======================================================');
 
-            const response = await fetch(authenticatedUrl, {
+            const response = await fetch(`${config.baseUrl}${config.endpoint}`, {
                 method: 'POST',
                 headers: {
+                    'X-API-KEY': credentials.apiKey,
+                    'X-TIMESTAMP': timestamp,
+                    'X-SIGNATURE': signature,
                     'Content-Type': 'application/json'
                 },
                 body: bodyString
@@ -1663,40 +1650,23 @@ class OrderExecutionService {
                 payload
             });
 
-            // ChainEX uses query string authentication for POST orders
-            const time = Math.floor(Date.now() / 1000);
-            const params = new URLSearchParams({
-                time: time.toString(),
-                key: credentials.apiKey
-            });
+            // ChainEX uses HEADER authentication for trading orders (not query string!)
+            // Pattern from working trading.routes.js code
+            const timestamp = Date.now().toString();
+            const signature = crypto
+                .createHmac('sha256', credentials.apiSecret)
+                .update(timestamp + credentials.apiKey)
+                .digest('hex');
 
             // Serialize request body
             const bodyString = JSON.stringify(payload);
 
-            const fullUrl = `${config.baseUrl}${config.endpoint}?${params.toString()}`;
-
-            // Create HMAC signature of ONLY the URL (not the body)
-            // ChainEX pattern from working trading.routes.js code: sign(url only)
-            const hash = crypto
-                .createHmac('sha256', credentials.apiSecret)
-                .update(fullUrl)
-                .digest('hex');
-
-            // Add hash to params
-            params.append('hash', hash);
-
-            const authenticatedUrl = `${config.baseUrl}${config.endpoint}?${params.toString()}`;
-
-            logger.debug('ChainEX SELL authentication', {
-                url: authenticatedUrl,
-                bodyLength: bodyString.length,
-                hasApiKey: !!credentials.apiKey,
-                hasApiSecret: !!credentials.apiSecret
-            });
-
-            const response = await fetch(authenticatedUrl, {
+            const response = await fetch(`${config.baseUrl}${config.endpoint}`, {
                 method: 'POST',
                 headers: {
+                    'X-API-KEY': credentials.apiKey,
+                    'X-TIMESTAMP': timestamp,
+                    'X-SIGNATURE': signature,
                     'Content-Type': 'application/json'
                 },
                 body: bodyString
