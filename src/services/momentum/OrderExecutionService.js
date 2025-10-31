@@ -1572,11 +1572,18 @@ class OrderExecutionService {
 
             const authenticatedUrl = `${config.baseUrl}${config.endpoint}?${params.toString()}`;
 
-            logger.debug('ChainEX BUY authentication', {
-                url: authenticatedUrl,
+            logger.info('ChainEX BUY authentication details', {
+                endpoint: config.endpoint,
+                pair: chainexPair,
+                timestamp: time,
                 bodyLength: bodyString.length,
+                body: payload,
                 hasApiKey: !!credentials.apiKey,
-                hasApiSecret: !!credentials.apiSecret
+                hasApiSecret: !!credentials.apiSecret,
+                apiKeyLength: credentials.apiKey?.length,
+                apiSecretLength: credentials.apiSecret?.length,
+                fullUrlForSignature: fullUrl,
+                signatureInput: (fullUrl + bodyString).substring(0, 100) + '...'
             });
 
             const response = await fetch(authenticatedUrl, {
