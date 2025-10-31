@@ -1542,17 +1542,37 @@ class OrderExecutionService {
                 quote_amount: parseFloat(amountUSDT).toFixed(2) // Amount in USDT (quote currency)
             };
 
-            const url = `${config.baseUrl}${config.endpoint}`;
-
             logger.info('Executing ChainEX market BUY order', {
                 pair: chainexPair,
                 amountUSDT,
                 payload
             });
 
-            const response = await fetch(url, {
+            // ChainEX uses query string authentication for POST orders
+            const time = Math.floor(Date.now() / 1000);
+            const params = new URLSearchParams({
+                time: time.toString(),
+                key: credentials.apiKey
+            });
+
+            const fullUrl = `${config.baseUrl}${config.endpoint}?${params.toString()}`;
+
+            // Create HMAC signature of full URL
+            const hash = crypto
+                .createHmac('sha256', credentials.apiSecret)
+                .update(fullUrl)
+                .digest('hex');
+
+            // Add hash to params
+            params.append('hash', hash);
+
+            const authenticatedUrl = `${config.baseUrl}${config.endpoint}?${params.toString()}`;
+
+            const response = await fetch(authenticatedUrl, {
                 method: 'POST',
-                headers: this._createChainEXAuth(credentials.apiKey, credentials.apiSecret, payload),
+                headers: {
+                    'Content-Type': 'application/json'
+                },
                 body: JSON.stringify(payload)
             });
 
@@ -1618,17 +1638,37 @@ class OrderExecutionService {
                 base_amount: parseFloat(quantity).toFixed(8) // Amount of base currency (crypto)
             };
 
-            const url = `${config.baseUrl}${config.endpoint}`;
-
             logger.info('Executing ChainEX market SELL order', {
                 pair: chainexPair,
                 quantity,
                 payload
             });
 
-            const response = await fetch(url, {
+            // ChainEX uses query string authentication for POST orders
+            const time = Math.floor(Date.now() / 1000);
+            const params = new URLSearchParams({
+                time: time.toString(),
+                key: credentials.apiKey
+            });
+
+            const fullUrl = `${config.baseUrl}${config.endpoint}?${params.toString()}`;
+
+            // Create HMAC signature of full URL
+            const hash = crypto
+                .createHmac('sha256', credentials.apiSecret)
+                .update(fullUrl)
+                .digest('hex');
+
+            // Add hash to params
+            params.append('hash', hash);
+
+            const authenticatedUrl = `${config.baseUrl}${config.endpoint}?${params.toString()}`;
+
+            const response = await fetch(authenticatedUrl, {
                 method: 'POST',
-                headers: this._createChainEXAuth(credentials.apiKey, credentials.apiSecret, payload),
+                headers: {
+                    'Content-Type': 'application/json'
+                },
                 body: JSON.stringify(payload)
             });
 
@@ -1674,15 +1714,9 @@ class OrderExecutionService {
      * @private
      */
     _convertPairToChainEX(pair) {
-        // ChainEX is a South African exchange that uses ZAR, not USDT
-        // Convert XRPUSDT → XRPZAR, BTCUSDT → BTCZAR, etc.
-        if (pair === 'USDTZAR') {
-            return 'USDTZAR'; // Already correct
-        }
-        if (pair.endsWith('USDT')) {
-            return pair.replace('USDT', 'ZAR');
-        }
-        return pair; // Keep ZAR pairs as is
+        // ChainEX supports both USDT and ZAR pairs
+        // Keep pair as-is (XRPUSDT, BTCUSDT, etc.)
+        return pair;
     }
 
     /**
