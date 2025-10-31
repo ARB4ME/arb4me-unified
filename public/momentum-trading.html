@@ -1209,6 +1209,12 @@
                         <div><strong>Take Profit:</strong> ${strategy.exit_rules.takeProfitPercent}% | <strong>Stop Loss:</strong> ${strategy.exit_rules.stopLossPercent}%</div>
                     </div>
 
+                    <!-- Position Countdown (for open positions) -->
+                    <div id="positionCountdown-${strategy.id}" style="display: none; margin-top: 15px; padding: 10px; background: rgba(255, 165, 0, 0.15); border-left: 3px solid #ffa500; border-radius: 5px; font-size: 0.85rem;">
+                        <div style="font-weight: bold; color: #ffa500; margin-bottom: 5px;">⏳ Open Position</div>
+                        <div id="countdownText-${strategy.id}" style="color: #ccc;"></div>
+                    </div>
+
                     <!-- Live Indicators (updated by worker) -->
                     <div id="indicators-${strategy.id}" style="margin-top: 15px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 5px; font-size: 0.85rem;">
                         <div style="font-weight: bold; margin-bottom: 8px; color: #00bfff;">
@@ -1332,13 +1338,83 @@
             }
         }
 
+        // Update position countdown timers
+        function updatePositionCountdowns() {
+            try {
+                if (!openPositions || openPositions.length === 0) {
+                    // Hide all countdown displays if no positions
+                    strategies.forEach(strategy => {
+                        const countdownDiv = document.getElementById(`positionCountdown-${strategy.id}`);
+                        if (countdownDiv) {
+                            countdownDiv.style.display = 'none';
+                        }
+                    });
+                    return;
+                }
+
+                strategies.forEach(strategy => {
+                    const countdownDiv = document.getElementById(`positionCountdown-${strategy.id}`);
+                    const countdownText = document.getElementById(`countdownText-${strategy.id}`);
+
+                    if (!countdownDiv || !countdownText) return;
+
+                    // Find open position for this strategy
+                    const openPosition = openPositions.find(pos => pos.strategy_id === strategy.id);
+
+                    if (!openPosition) {
+                        countdownDiv.style.display = 'none';
+                        return;
+                    }
+
+                    // Show countdown
+                    countdownDiv.style.display = 'block';
+
+                    // Calculate time remaining
+                    const entryTime = new Date(openPosition.entry_time).getTime();
+                    const maxHoldingHours = strategy.exit_rules?.maxHoldingHours || 24;
+                    const maxHoldingMs = maxHoldingHours * 60 * 60 * 1000;
+                    const autoCloseTime = entryTime + maxHoldingMs;
+                    const now = Date.now();
+                    const msRemaining = autoCloseTime - now;
+
+                    if (msRemaining <= 0) {
+                        countdownText.innerHTML = `
+                            <div style="color: #ff6b6b; font-weight: bold;">⚠️ Auto-close overdue!</div>
+                            <div style="font-size: 0.8rem; margin-top: 3px;">Position should close automatically</div>
+                        `;
+                    } else {
+                        const hoursRemaining = Math.floor(msRemaining / (1000 * 60 * 60));
+                        const minutesRemaining = Math.floor((msRemaining % (1000 * 60 * 60)) / (1000 * 60));
+
+                        // Calculate elapsed time
+                        const msElapsed = now - entryTime;
+                        const hoursElapsed = Math.floor(msElapsed / (1000 * 60 * 60));
+                        const minutesElapsed = Math.floor((msElapsed % (1000 * 60 * 60)) / (1000 * 60));
+
+                        countdownText.innerHTML = `
+                            <div><strong>Held for:</strong> ${hoursElapsed}h ${minutesElapsed}m</div>
+                            <div style="margin-top: 3px;"><strong>Auto-close in:</strong> <span style="color: ${msRemaining < 3600000 ? '#ff6b6b' : '#ffa500'}; font-weight: bold;">${hoursRemaining}h ${minutesRemaining}m</span></div>
+                            <div style="font-size: 0.75rem; color: #888; margin-top: 3px;">Max holding: ${maxHoldingHours}h</div>
+                        `;
+                    }
+                });
+
+            } catch (error) {
+                console.error('Failed to update position countdowns:', error);
+            }
+        }
+
         // Auto-refresh indicators every 5 seconds
         setInterval(updateLiveIndicators, 5000);
+
+        // Auto-refresh position countdowns every 10 seconds
+        setInterval(updatePositionCountdowns, 10000);
 
         // Also update immediately when strategies are loaded
         function renderStrategiesWithIndicators() {
             renderStrategies();
             setTimeout(updateLiveIndicators, 500); // Give DOM time to render
+            setTimeout(updatePositionCountdowns, 500); // Update countdowns too
         }
 
         // Load positions
@@ -1356,6 +1432,7 @@
 
                     renderPositions();
                     updateStats();
+                    updatePositionCountdowns(); // Update countdown timers
                 }
             } catch (error) {
                 console.error('Failed to load positions:', error);
