@@ -496,9 +496,30 @@ class OrderExecutionService {
                     return orderData;
                 }
 
-                // If order failed or cancelled, throw error
+                // If order failed or cancelled, log DETAILED error information
                 if (orderData.orderStatusType === 'Failed' || orderData.orderStatusType === 'Cancelled') {
-                    throw new Error(`Order ${orderId} ${orderData.orderStatusType}`);
+                    logger.error('🚨 VALR ORDER FAILED - DETAILED ERROR INFO', {
+                        orderId,
+                        orderStatusType: orderData.orderStatusType,
+                        failedReason: orderData.failedReason || orderData.failReason || 'No reason provided',
+                        pair: orderData.currencyPair || orderData.pair,
+                        side: orderData.side,
+                        orderType: orderData.orderType,
+                        originalQuantity: orderData.originalQuantity,
+                        totalExecutedQuantity: orderData.totalExecutedQuantity,
+                        remainingQuantity: orderData.remainingQuantity,
+                        averagePrice: orderData.averagePrice,
+                        total: orderData.total,
+                        totalFee: orderData.totalFee,
+                        timeInForce: orderData.timeInForce,
+                        createdAt: orderData.createdAt,
+                        updatedAt: orderData.orderUpdatedAt,
+                        FULL_RAW_RESPONSE: JSON.stringify(orderData, null, 2)
+                    });
+
+                    // Throw error with more context
+                    const errorMsg = orderData.failedReason || orderData.failReason || orderData.orderStatusType;
+                    throw new Error(`Order ${orderId} ${orderData.orderStatusType}: ${errorMsg}`);
                 }
 
                 // Otherwise continue polling
@@ -642,6 +663,43 @@ class OrderExecutionService {
             // Apply rate limiting
             await this._rateLimitDelay();
 
+            // ===== STEP 1: CHECK AVAILABLE BALANCE =====
+            logger.info('🔍 Checking VALR balance before SELL order', { pair, quantityToSell: quantity });
+
+            try {
+                const balances = await this._getValrBalances(credentials);
+                const baseAsset = pair.replace('USDT', '').replace('ZAR', ''); // Extract XRP from XRPUSDT
+                const assetBalance = balances.find(b => b.currency === baseAsset);
+
+                logger.info('📊 VALR BALANCE CHECK', {
+                    asset: baseAsset,
+                    availableBalance: assetBalance?.available || 0,
+                    reservedBalance: assetBalance?.reserved || 0,
+                    totalBalance: assetBalance?.total || 0,
+                    quantityToSell: quantity,
+                    canSell: assetBalance?.available >= quantity ? '✅ YES' : '❌ NO - INSUFFICIENT',
+                    shortfall: assetBalance?.available < quantity ? (quantity - assetBalance.available).toFixed(8) : 0
+                });
+
+                if (!assetBalance || assetBalance.available < quantity) {
+                    logger.error('❌ INSUFFICIENT BALANCE FOR SELL ORDER', {
+                        pair,
+                        quantityNeeded: quantity,
+                        availableBalance: assetBalance?.available || 0,
+                        shortfall: quantity - (assetBalance?.available || 0),
+                        allBalances: balances
+                    });
+
+                    // Continue anyway but with warning - the exchange will reject it and we'll see the error
+                    logger.warn('⚠️ Proceeding with sell order despite insufficient balance to capture exchange error');
+                }
+            } catch (balanceError) {
+                logger.warn('⚠️ Balance check failed, proceeding with order', {
+                    error: balanceError.message
+                });
+            }
+
+            // ===== STEP 2: PREPARE ORDER =====
             const config = this.exchangeConfigs.valr;
             const path = config.endpoints.marketOrder;
 
@@ -662,10 +720,12 @@ class OrderExecutionService {
 
             const url = `${config.baseUrl}${path}`;
 
-            logger.info('Executing VALR market SELL order', {
+            logger.info('📤 Executing VALR market SELL order', {
                 pair,
                 quantity,
-                payload
+                baseAmount: payload.baseAmount,
+                payload: JSON.stringify(payload),
+                url
             });
 
             const response = await this._fetchWithRetry(url, {
@@ -676,21 +736,42 @@ class OrderExecutionService {
 
             if (!response.ok) {
                 const errorText = await response.text();
+                let errorJson = null;
+                try {
+                    errorJson = JSON.parse(errorText);
+                } catch (e) {
+                    // Not JSON, use as-is
+                }
+
+                logger.error('❌ VALR SELL ORDER REJECTED IMMEDIATELY', {
+                    pair,
+                    quantity,
+                    httpStatus: response.status,
+                    errorText: errorText,
+                    errorJson: errorJson,
+                    headers: response.headers
+                });
+
                 throw new Error(`VALR SELL order failed: ${response.status} - ${errorText}`);
             }
 
             const data = await response.json();
 
             // Log raw VALR response for debugging
-            logger.info('Raw VALR SELL response (initial)', {
+            logger.info('✅ VALR SELL order submitted successfully (initial response)', {
                 pair,
-                rawResponse: JSON.stringify(data)
+                quantity,
+                orderId: data.id || data.orderId,
+                rawResponse: JSON.stringify(data, null, 2)
             });
 
             // VALR returns only order ID initially - need to poll for execution details
             const orderId = data.id || data.orderId;
 
             if (!orderId) {
+                logger.error('❌ VALR did not return order ID', {
+                    rawResponse: JSON.stringify(data, null, 2)
+                });
                 throw new Error('VALR did not return order ID');
             }
 
