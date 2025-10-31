@@ -1650,7 +1650,7 @@
         // This ensures we only show pairs that backend can fetch candle data for
         async function fetchExchangeUSDTPairs(exchange) {
             try {
-                const response = await fetch(`${API_BASE}/momentum/supported-pairs/${exchange.toLowerCase()}`);
+                const response = await fetch(`${API_BASE}/supported-pairs/${exchange.toLowerCase()}`);
                 if (!response.ok) return null;
 
                 const result = await response.json();
