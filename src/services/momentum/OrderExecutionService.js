@@ -1741,11 +1741,22 @@ class OrderExecutionService {
 
     /**
      * Convert pair to ChainEX format (BTCUSDT → BTC_USDT)
+     * ChainEX uses underscore separator for pair names
      * @private
      */
     _convertPairToChainEX(pair) {
-        // ChainEX supports both USDT and ZAR pairs
-        // Keep pair as-is (XRPUSDT, BTCUSDT, etc.)
+        // Convert BTCUSDT to BTC_USDT format
+        // Extract base and quote currencies
+        const quoteCurrency = 'USDT';
+        if (pair.endsWith(quoteCurrency)) {
+            const baseCurrency = pair.slice(0, -quoteCurrency.length);
+            return `${baseCurrency}_${quoteCurrency}`;
+        }
+        // Handle ZAR pairs
+        if (pair.endsWith('ZAR')) {
+            const baseCurrency = pair.slice(0, -3);
+            return `${baseCurrency}_ZAR`;
+        }
         return pair;
     }
 
