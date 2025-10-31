@@ -5476,7 +5476,7 @@ router.post('/kraken/balance', tradingRateLimit, optionalAuth, [
     const { apiKey, apiSecret } = req.body;
 
     try {
-        const nonce = Date.now().toString();
+        const nonce = (Date.now() * 1000).toString(); // Use microseconds for consistency with order execution
         const postdata = `nonce=${nonce}`;
         const path = KRAKEN_PROXY_CONFIG.endpoints.balance;
         const signature = createKrakenSignature(path, postdata, apiSecret, nonce);
@@ -5648,9 +5648,9 @@ router.post('/kraken/test', tradingRateLimit, optionalAuth, [
     }
 
     const { apiKey, apiSecret } = req.body;
-    
+
     try {
-        const nonce = Date.now().toString();
+        const nonce = (Date.now() * 1000).toString(); // Use microseconds for consistency with order execution
         const postdata = `nonce=${nonce}`;
         const path = KRAKEN_PROXY_CONFIG.endpoints.test;
         const signature = createKrakenSignature(path, postdata, apiSecret, nonce);
