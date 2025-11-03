@@ -7699,6 +7699,64 @@ class OrderExecutionService {
     // ============================================================================
 
     /**
+     * Get Crypto.com balances
+     * @private
+     */
+    async _getCryptoComBalances(credentials) {
+        try {
+            const nonce = Date.now();
+            const method = 'POST';
+            const requestPath = '/v2/private/get-account-summary';
+            const requestBody = '{}';
+
+            const signaturePayload = method + requestPath + requestBody + nonce;
+            const signature = crypto.createHmac('sha256', credentials.apiSecret)
+                .update(signaturePayload)
+                .digest('hex');
+
+            const url = `https://api.crypto.com${requestPath}`;
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'api-key': credentials.apiKey,
+                    'signature': signature,
+                    'nonce': nonce.toString()
+                },
+                body: requestBody
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Crypto.com balance fetch error: ${response.status} - ${errorText}`);
+            }
+
+            const result = await response.json();
+
+            if (result.code !== 0) {
+                throw new Error(`Crypto.com balance fetch failed: ${result.code} - ${result.message}`);
+            }
+
+            const accounts = result.result?.accounts || [];
+
+            // Transform to standard format
+            return accounts.map(account => ({
+                currency: account.currency,
+                available: parseFloat(account.available || 0),
+                reserved: parseFloat(account.order || 0) + parseFloat(account.stake || 0),
+                total: parseFloat(account.balance || 0)
+            }));
+
+        } catch (error) {
+            logger.error('Failed to fetch Crypto.com balances', {
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
      * Execute Crypto.com buy order (market order)
      * @private
      */
@@ -7796,12 +7854,65 @@ class OrderExecutionService {
      * @private
      */
     async _executeCryptoComSell(pair, quantity, credentials) {
+        // Declare variables at function scope for catch block access
+        let adjustedQuantity = quantity;
+        let wasAdjusted = false;
+
         try {
+            // ===== STEP 1: CHECK AVAILABLE BALANCE AND ADJUST QUANTITY =====
+            logger.info('🔍 Checking Crypto.com balance before SELL order', {
+                pair,
+                requestedQuantity: quantity
+            });
+
+            const balances = await this._getCryptoComBalances(credentials);
+            const baseAsset = pair.replace('USDT', '').replace('USDC', '');
+            const assetBalance = balances.find(b => b.currency === baseAsset);
+
+            if (!assetBalance || assetBalance.available <= 0) {
+                throw new Error(`No ${baseAsset} balance available on Crypto.com (requested: ${quantity})`);
+            }
+
+            logger.info('📊 Crypto.com balance check', {
+                asset: baseAsset,
+                available: assetBalance.available,
+                requested: quantity
+            });
+
+            // Check if available balance is sufficient
+            if (assetBalance.available < quantity) {
+                // Use 99.9% of available balance (0.1% buffer for rounding/fees)
+                adjustedQuantity = assetBalance.available * 0.999;
+                wasAdjusted = true;
+                logger.warn('⚠️ Insufficient balance on Crypto.com - adjusting SELL quantity', {
+                    asset: baseAsset,
+                    requested: quantity,
+                    available: assetBalance.available,
+                    adjusted: adjustedQuantity,
+                    reduction: ((quantity - adjustedQuantity) / quantity * 100).toFixed(2) + '%'
+                });
+            }
+
+            // Validate minimum order size
+            const minimumQuantities = {
+                'XRP': 1.0,
+                'BTC': 0.00001,
+                'ETH': 0.0001,
+                'SOL': 0.01,
+                'ADA': 1.0
+            };
+
+            const minQty = minimumQuantities[baseAsset] || 0.00001;
+            if (adjustedQuantity < minQty) {
+                throw new Error(`❌ Adjusted quantity ${adjustedQuantity} below minimum ${minQty} for ${baseAsset} on Crypto.com`);
+            }
+
+            // ===== STEP 2: EXECUTE SELL ORDER WITH ADJUSTED QUANTITY =====
             // Convert pair to Crypto.com format (BTCUSDT → BTC_USDT)
             const cryptocomPair = this._convertPairToCryptoCom(pair);
 
             // Format quantity to 8 decimal places
-            const formattedQuantity = parseFloat(quantity).toFixed(8);
+            const formattedQuantity = parseFloat(adjustedQuantity).toFixed(8);
 
             // Crypto.com order creation
             const nonce = Date.now();
@@ -7824,7 +7935,10 @@ class OrderExecutionService {
 
             logger.info('Executing Crypto.com sell order', {
                 pair: cryptocomPair,
-                quantity: formattedQuantity
+                originalQuantity: quantity,
+                adjustedQuantity: adjustedQuantity,
+                formattedQuantity: formattedQuantity,
+                wasAdjusted: wasAdjusted
             });
 
             const response = await fetch(url, {
@@ -7852,10 +7966,13 @@ class OrderExecutionService {
 
             const orderResult = result.result;
 
-            logger.info('Crypto.com sell order executed successfully', {
+            logger.info('✅ Crypto.com sell order executed successfully', {
                 orderId: orderResult?.order_id,
                 pair: cryptocomPair,
-                quantity: formattedQuantity,
+                originalQuantity: quantity,
+                adjustedQuantity: adjustedQuantity,
+                executedQuantity: formattedQuantity,
+                wasAdjusted: wasAdjusted,
                 status: orderResult?.status
             });
 
@@ -7869,9 +7986,11 @@ class OrderExecutionService {
             };
 
         } catch (error) {
-            logger.error('Crypto.com sell order failed', {
+            logger.error('❌ Failed to execute Crypto.com sell order', {
                 pair,
-                quantity,
+                originalQuantity: quantity,
+                adjustedQuantity: adjustedQuantity,
+                wasAdjusted: wasAdjusted,
                 error: error.message
             });
             throw error;
