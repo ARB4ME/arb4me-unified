@@ -6677,6 +6677,54 @@ class OrderExecutionService {
     // ============================================================================
 
     /**
+     * Get BitMart account balances
+     * BitMart uses /spot/v1/wallet endpoint
+     * @private
+     */
+    async _getBitMartBalances(credentials) {
+        try {
+            const timestamp = Date.now().toString();
+            const queryString = '';
+            const signature = this._createBitMartSignature(timestamp, credentials.memo || '', queryString, credentials.apiSecret);
+
+            const url = 'https://api-cloud.bitmart.com/spot/v1/wallet';
+
+            const response = await this._fetchWithRetry(url, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-BM-KEY': credentials.apiKey,
+                    'X-BM-SIGN': signature,
+                    'X-BM-TIMESTAMP': timestamp,
+                    'X-BM-MEMO': credentials.memo || ''
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.code !== 1000) {
+                throw new Error(`BitMart balance fetch failed: ${data.code} - ${data.message}`);
+            }
+
+            // BitMart returns array of wallet balances
+            // Transform to standard format: { currency, available, reserved, total }
+            const balances = data.data?.wallet || [];
+            return balances.map(balance => ({
+                currency: balance.id,
+                available: parseFloat(balance.available || 0),
+                reserved: parseFloat(balance.frozen || 0),
+                total: parseFloat(balance.available || 0) + parseFloat(balance.frozen || 0)
+            }));
+
+        } catch (error) {
+            logger.error('Failed to fetch BitMart balances', {
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
      * Execute BitMart buy order (market order)
      * @param {string} pair - Trading pair (e.g., 'BTCUSDT')
      * @param {number} amountUSDT - Amount in USDT to spend
@@ -6776,10 +6824,71 @@ class OrderExecutionService {
      * @private
      */
     async _executeBitMartSell(pair, quantity, credentials) {
+        // Declare variables at function scope so they're available in catch block
+        let adjustedQuantity = quantity;
+        let wasAdjusted = false;
+
         try {
             // Convert pair to BitMart format (BTCUSDT → BTC_USDT)
             const bitmartPair = this._convertPairToBitMart(pair);
 
+            // ===== STEP 1: CHECK AVAILABLE BALANCE AND ADJUST QUANTITY =====
+            logger.info('🔍 Checking BitMart balance before SELL order', {
+                pair: bitmartPair,
+                requestedQuantity: quantity
+            });
+
+            const balances = await this._getBitMartBalances(credentials);
+            const baseAsset = pair.replace('USDT', '').replace('USDC', '');
+            const assetBalance = balances.find(b => b.currency === baseAsset);
+
+            if (!assetBalance || assetBalance.available <= 0) {
+                throw new Error(`No ${baseAsset} balance available for sale on BitMart. Available: ${assetBalance?.available || 0}`);
+            }
+
+            logger.info('📊 BitMart balance check', {
+                asset: baseAsset,
+                available: assetBalance.available,
+                requested: quantity,
+                sufficient: assetBalance.available >= quantity
+            });
+
+            // If insufficient balance, adjust quantity to use 99.9% of available (0.1% buffer for rounding/fees)
+            if (assetBalance.available < quantity) {
+                const buffer = 0.999; // Use 99.9% of available balance
+                adjustedQuantity = assetBalance.available * buffer;
+                wasAdjusted = true;
+
+                logger.warn('⚠️ Insufficient balance - adjusting SELL quantity', {
+                    pair: bitmartPair,
+                    originalQuantity: quantity,
+                    availableBalance: assetBalance.available,
+                    adjustedQuantity: adjustedQuantity,
+                    reductionPercent: ((quantity - adjustedQuantity) / quantity * 100).toFixed(2)
+                });
+            }
+
+            // Validate minimum order size (exchange-specific minimums)
+            const minimumQuantities = {
+                'XRP': 1.0,
+                'BTC': 0.00001,
+                'ETH': 0.0001,
+                'LTC': 0.001,
+                'BCH': 0.001,
+                'ADA': 1.0,
+                'DOT': 0.1,
+                'LINK': 0.1,
+                'UNI': 0.1,
+                'MATIC': 1.0
+            };
+
+            const minimumQuantity = minimumQuantities[baseAsset] || 0.00001; // Default minimum
+
+            if (adjustedQuantity < minimumQuantity) {
+                throw new Error(`❌ Adjusted quantity ${adjustedQuantity.toFixed(8)} ${baseAsset} is below BitMart minimum of ${minimumQuantity}. Cannot execute SELL order.`);
+            }
+
+            // ===== STEP 2: PREPARE AND EXECUTE ORDER =====
             // BitMart requires timestamp + '#' + memo + '#' + body for signature
             const timestamp = Date.now().toString();
 
@@ -6788,7 +6897,7 @@ class OrderExecutionService {
                 symbol: bitmartPair,
                 side: 'sell',
                 type: 'market',
-                size: quantity.toFixed(8)
+                size: adjustedQuantity.toFixed(8) // Use ADJUSTED quantity
             };
 
             const body = JSON.stringify(orderData);
@@ -6797,9 +6906,11 @@ class OrderExecutionService {
 
             const url = `https://api-cloud.bitmart.com/spot/v2/submit_order`;
 
-            logger.info('Executing BitMart sell order', {
+            logger.info('📤 Executing BitMart sell order', {
                 pair: bitmartPair,
-                quantity
+                originalQuantity: quantity,
+                adjustedQuantity: adjustedQuantity,
+                wasAdjusted: wasAdjusted
             });
 
             const response = await fetch(url, {
@@ -6816,22 +6927,25 @@ class OrderExecutionService {
 
             if (!response.ok) {
                 const errorText = await response.text();
-                throw new Error(`BitMart API error: ${response.status} - ${errorText}`);
+                throw new Error(`❌ BitMart API error: ${response.status} - ${errorText}`);
             }
 
             const result = await response.json();
 
             // Check for BitMart API error
             if (result.code !== 1000) {
-                throw new Error(`BitMart order error: ${result.code} - ${result.message}`);
+                throw new Error(`❌ BitMart order error: ${result.code} - ${result.message}`);
             }
 
             // Get current price for logging
             const currentPrice = await this._fetchBitMartPrice(bitmartPair);
 
-            logger.info('BitMart sell order executed successfully', {
+            logger.info('✅ BitMart sell order executed successfully', {
                 pair: bitmartPair,
-                orderId: result.data?.order_id
+                orderId: result.data?.order_id,
+                originalQuantity: quantity,
+                adjustedQuantity: adjustedQuantity,
+                wasAdjusted: wasAdjusted
             });
 
             return {
@@ -6840,15 +6954,17 @@ class OrderExecutionService {
                 orderId: result.data?.order_id,
                 pair: bitmartPair,
                 side: 'sell',
-                quantity: parseFloat(quantity),
+                quantity: parseFloat(adjustedQuantity),
                 price: currentPrice,
                 timestamp: Date.now()
             };
 
         } catch (error) {
-            logger.error('BitMart sell order failed', {
+            logger.error('❌ BitMart sell order failed', {
                 pair,
-                quantity,
+                originalQuantity: quantity,
+                adjustedQuantity: adjustedQuantity,
+                wasAdjusted: wasAdjusted,
                 error: error.message
             });
             throw error;
