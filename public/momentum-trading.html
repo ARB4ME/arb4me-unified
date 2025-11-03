@@ -1129,12 +1129,13 @@
 
                 // Extract USDT balance from response
                 let usdtBalance = 0;
-                if (result.balances && typeof result.balances === 'object') {
+                const balances = result.data?.balances || result.balances || {};
+                if (balances && typeof balances === 'object') {
                     // Handle different response formats
-                    if (result.balances.USDT) {
-                        usdtBalance = parseFloat(result.balances.USDT.total || result.balances.USDT.available || result.balances.USDT || 0);
-                    } else if (result.balances.usdt) {
-                        usdtBalance = parseFloat(result.balances.usdt.total || result.balances.usdt.available || result.balances.usdt || 0);
+                    if (balances.USDT) {
+                        usdtBalance = parseFloat(balances.USDT.total || balances.USDT.available || balances.USDT || 0);
+                    } else if (balances.usdt) {
+                        usdtBalance = parseFloat(balances.usdt.total || balances.usdt.available || balances.usdt || 0);
                     }
                 }
 
