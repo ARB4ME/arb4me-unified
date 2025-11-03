@@ -1121,10 +1121,104 @@ class OrderExecutionService {
      * @private
      */
     async _executeLunoSell(pair, quantity, credentials) {
+        // Declare variables at function scope to avoid ReferenceError in catch block
+        let adjustedQuantity = quantity;
+        let wasAdjusted = false;
+
         try {
             // Apply rate limiting
             await this._rateLimitDelay();
 
+            // ===== STEP 1: CHECK AVAILABLE BALANCE AND ADJUST QUANTITY =====
+            logger.info('🔍 Checking Luno balance before SELL order', { pair, requestedQuantity: quantity });
+
+            try {
+                const balances = await this._getLunoBalances(credentials);
+                const baseAsset = pair.replace('USDT', '').replace('ZAR', '').replace('BTC', 'XBT'); // Luno uses XBT
+                const assetBalance = balances.find(b => b.currency === baseAsset);
+
+                logger.info('📊 LUNO BALANCE CHECK', {
+                    asset: baseAsset,
+                    availableBalance: assetBalance?.available || 0,
+                    reservedBalance: assetBalance?.reserved || 0,
+                    totalBalance: assetBalance?.total || 0,
+                    requestedQuantity: quantity,
+                    canSellRequested: assetBalance?.available >= quantity ? '✅ YES' : '❌ NO - INSUFFICIENT',
+                    shortfall: assetBalance?.available < quantity ? (quantity - assetBalance.available).toFixed(8) : 0
+                });
+
+                if (!assetBalance || assetBalance.available <= 0) {
+                    throw new Error(`No ${baseAsset} balance available. Available: ${assetBalance?.available || 0}`);
+                }
+
+                // Check Luno minimum order sizes
+                const minimumOrderSizes = {
+                    'XRP': 1.0,
+                    'XBT': 0.00001,   // BTC on Luno is called XBT
+                    'ETH': 0.0001,
+                    // Add more as needed
+                };
+
+                const minimumQuantity = minimumOrderSizes[baseAsset] || 0;
+
+                // If insufficient balance, use available balance minus 0.1% buffer for safety
+                if (assetBalance.available < quantity) {
+                    const buffer = 0.999; // 99.9% of available (0.1% safety buffer)
+                    adjustedQuantity = assetBalance.available * buffer;
+                    wasAdjusted = true;
+
+                    logger.warn('⚠️ ADJUSTING SELL QUANTITY DUE TO INSUFFICIENT BALANCE', {
+                        originalQuantity: quantity,
+                        availableBalance: assetBalance.available,
+                        adjustedQuantity: adjustedQuantity,
+                        discrepancy: (quantity - assetBalance.available).toFixed(8),
+                        adjustmentReason: 'Fees deducted during buy reduced available balance',
+                        buffer: '0.1%'
+                    });
+                }
+
+                // Format quantity to proper decimal places (Luno uses 8 decimals for crypto)
+                adjustedQuantity = parseFloat(adjustedQuantity.toFixed(8));
+
+                // Check if adjusted quantity meets Luno minimum order size
+                if (minimumQuantity > 0 && adjustedQuantity < minimumQuantity) {
+                    logger.error('❌ BALANCE BELOW LUNO MINIMUM ORDER SIZE - CANNOT AUTO-CLOSE', {
+                        asset: baseAsset,
+                        availableBalance: assetBalance.available,
+                        adjustedQuantity: adjustedQuantity,
+                        minimumRequired: minimumQuantity,
+                        shortfall: (minimumQuantity - adjustedQuantity).toFixed(8),
+                        originalPositionQuantity: quantity,
+                        discrepancy: (quantity - assetBalance.available).toFixed(8),
+                        possibleReasons: [
+                            'Asset was manually sold elsewhere',
+                            'Buy order failed but position was created',
+                            'Another bot/system is trading the same account',
+                            'Database entry is incorrect'
+                        ],
+                        requiredAction: 'MANUAL INTERVENTION REQUIRED - Check Luno account history and close position manually'
+                    });
+
+                    throw new Error(`Cannot sell ${adjustedQuantity} ${baseAsset}: Below Luno minimum order size of ${minimumQuantity} ${baseAsset}. Available: ${assetBalance.available} ${baseAsset}. This position requires manual intervention.`);
+                }
+
+                logger.info('✅ SELL QUANTITY DETERMINED', {
+                    finalQuantity: adjustedQuantity,
+                    wasAdjusted: wasAdjusted,
+                    availableBalance: assetBalance.available,
+                    meetsMinimum: adjustedQuantity >= minimumQuantity
+                });
+
+            } catch (balanceError) {
+                logger.error('❌ BALANCE CHECK FAILED - CANNOT PROCEED', {
+                    error: balanceError.message,
+                    pair,
+                    requestedQuantity: quantity
+                });
+                throw new Error(`Cannot execute sell order: ${balanceError.message}`);
+            }
+
+            // ===== STEP 2: PREPARE AND EXECUTE ORDER =====
             // Convert BTC to XBT for Luno
             const lunoPair = pair.replace('BTC', 'XBT');
 
@@ -1133,18 +1227,20 @@ class OrderExecutionService {
                 endpoint: '/api/1/marketorder'
             };
 
-            // Try market order first
+            // Try market order first - use adjusted quantity
             const payload = {
                 pair: lunoPair,
                 type: 'SELL',
-                base_volume: parseFloat(quantity).toFixed(8)
+                base_volume: adjustedQuantity.toFixed(8) // Use adjusted quantity (accounts for fees)
             };
 
             const url = `${config.baseUrl}${config.endpoint}`;
 
-            logger.info('Attempting Luno market SELL order', {
+            logger.info('📤 Executing Luno market SELL order', {
                 pair: lunoPair,
-                quantity,
+                originalQuantity: quantity,
+                adjustedQuantity: adjustedQuantity,
+                wasAdjusted: wasAdjusted,
                 payload
             });
 
@@ -1160,15 +1256,23 @@ class OrderExecutionService {
 
                 // If market not available, fall back to limit order
                 if (errorText.includes('ErrMarketUnavailable') || errorText.includes('Market not available')) {
-                    logger.info('Market order not available, falling back to limit order', {
+                    logger.info('⚠️ Market order not available, falling back to limit order', {
                         pair: lunoPair,
-                        quantity
+                        adjustedQuantity
                     });
 
-                    return await this._executeLunoLimitSell(pair, quantity, credentials);
+                    return await this._executeLunoLimitSell(pair, adjustedQuantity, credentials);
                 }
 
                 // Other errors - throw
+                logger.error('❌ LUNO SELL ORDER REJECTED', {
+                    pair: lunoPair,
+                    originalQuantity: quantity,
+                    adjustedQuantity: adjustedQuantity,
+                    wasAdjusted: wasAdjusted,
+                    httpStatus: response.status,
+                    error: errorText
+                });
                 throw new Error(`Luno SELL order failed: ${response.status} - ${errorText}`);
             }
 
@@ -1186,10 +1290,13 @@ class OrderExecutionService {
                 rawResponse: data
             };
 
-            logger.info('Luno market SELL order executed successfully', {
+            logger.info('✅ Luno market SELL order executed successfully', {
                 orderId: result.orderId,
                 executedPrice: result.executedPrice,
-                executedValue: result.executedValue
+                executedQuantity: result.executedQuantity,
+                executedValue: result.executedValue,
+                fee: result.fee,
+                wasAdjusted: wasAdjusted
             });
 
             return result;
@@ -1197,7 +1304,9 @@ class OrderExecutionService {
         } catch (error) {
             logger.error('Luno SELL order failed', {
                 pair,
-                quantity,
+                originalQuantity: quantity,
+                adjustedQuantity: adjustedQuantity,
+                wasAdjusted: wasAdjusted,
                 error: error.message
             });
             throw error;
@@ -1790,10 +1899,104 @@ class OrderExecutionService {
     async _executeChainEXSell(pair, quantity, credentials) {
         const debug = new ExchangeDebugger('chainex');
 
+        // Declare variables at function scope to avoid ReferenceError in catch block
+        let adjustedQuantity = quantity;
+        let wasAdjusted = false;
+
         try {
             // Apply rate limiting
             await this._rateLimitDelay();
 
+            // ===== STEP 1: CHECK AVAILABLE BALANCE AND ADJUST QUANTITY =====
+            logger.info('🔍 Checking ChainEX balance before SELL order', { pair, requestedQuantity: quantity });
+
+            try {
+                const balances = await this._getChainEXBalances(credentials);
+                const baseAsset = pair.replace('USDT', '').replace('ZAR', '');
+                const assetBalance = balances.find(b => b.currency === baseAsset);
+
+                logger.info('📊 CHAINEX BALANCE CHECK', {
+                    asset: baseAsset,
+                    availableBalance: assetBalance?.available || 0,
+                    reservedBalance: assetBalance?.reserved || 0,
+                    totalBalance: assetBalance?.total || 0,
+                    requestedQuantity: quantity,
+                    canSellRequested: assetBalance?.available >= quantity ? '✅ YES' : '❌ NO - INSUFFICIENT',
+                    shortfall: assetBalance?.available < quantity ? (quantity - assetBalance.available).toFixed(8) : 0
+                });
+
+                if (!assetBalance || assetBalance.available <= 0) {
+                    throw new Error(`No ${baseAsset} balance available. Available: ${assetBalance?.available || 0}`);
+                }
+
+                // Check ChainEX minimum order sizes
+                const minimumOrderSizes = {
+                    'XRP': 1.0,
+                    'BTC': 0.00001,
+                    'ETH': 0.0001,
+                    // Add more as needed
+                };
+
+                const minimumQuantity = minimumOrderSizes[baseAsset] || 0;
+
+                // If insufficient balance, use available balance minus 0.1% buffer for safety
+                if (assetBalance.available < quantity) {
+                    const buffer = 0.999; // 99.9% of available (0.1% safety buffer)
+                    adjustedQuantity = assetBalance.available * buffer;
+                    wasAdjusted = true;
+
+                    logger.warn('⚠️ ADJUSTING SELL QUANTITY DUE TO INSUFFICIENT BALANCE', {
+                        originalQuantity: quantity,
+                        availableBalance: assetBalance.available,
+                        adjustedQuantity: adjustedQuantity,
+                        discrepancy: (quantity - assetBalance.available).toFixed(8),
+                        adjustmentReason: 'Fees deducted during buy reduced available balance',
+                        buffer: '0.1%'
+                    });
+                }
+
+                // Format quantity to proper decimal places (ChainEX uses 8 decimals for crypto)
+                adjustedQuantity = parseFloat(adjustedQuantity.toFixed(8));
+
+                // Check if adjusted quantity meets ChainEX minimum order size
+                if (minimumQuantity > 0 && adjustedQuantity < minimumQuantity) {
+                    logger.error('❌ BALANCE BELOW CHAINEX MINIMUM ORDER SIZE - CANNOT AUTO-CLOSE', {
+                        asset: baseAsset,
+                        availableBalance: assetBalance.available,
+                        adjustedQuantity: adjustedQuantity,
+                        minimumRequired: minimumQuantity,
+                        shortfall: (minimumQuantity - adjustedQuantity).toFixed(8),
+                        originalPositionQuantity: quantity,
+                        discrepancy: (quantity - assetBalance.available).toFixed(8),
+                        possibleReasons: [
+                            'Asset was manually sold elsewhere',
+                            'Buy order failed but position was created',
+                            'Another bot/system is trading the same account',
+                            'Database entry is incorrect'
+                        ],
+                        requiredAction: 'MANUAL INTERVENTION REQUIRED - Check ChainEX account history and close position manually'
+                    });
+
+                    throw new Error(`Cannot sell ${adjustedQuantity} ${baseAsset}: Below ChainEX minimum order size of ${minimumQuantity} ${baseAsset}. Available: ${assetBalance.available} ${baseAsset}. This position requires manual intervention.`);
+                }
+
+                logger.info('✅ SELL QUANTITY DETERMINED', {
+                    finalQuantity: adjustedQuantity,
+                    wasAdjusted: wasAdjusted,
+                    availableBalance: assetBalance.available,
+                    meetsMinimum: adjustedQuantity >= minimumQuantity
+                });
+
+            } catch (balanceError) {
+                logger.error('❌ BALANCE CHECK FAILED - CANNOT PROCEED', {
+                    error: balanceError.message,
+                    pair,
+                    requestedQuantity: quantity
+                });
+                throw new Error(`Cannot execute sell order: ${balanceError.message}`);
+            }
+
+            // ===== STEP 2: PREPARE AND EXECUTE ORDER =====
             const config = {
                 baseUrl: 'https://api.chainex.io',
                 endpoint: '/trading/order'
@@ -1802,17 +2005,19 @@ class OrderExecutionService {
             // Convert pair format (BTCUSDT → BTC_USDT)
             const chainexPair = this._convertPairToChainEX(pair);
 
-            // ChainEX market order payload
+            // ChainEX market order payload - use adjusted quantity
             const payload = {
                 type: 'market',
                 side: 'sell',
                 pair: chainexPair,
-                base_amount: parseFloat(quantity).toFixed(8) // Amount of base currency (crypto)
+                base_amount: adjustedQuantity.toFixed(8) // Use adjusted quantity (accounts for fees)
             };
 
-            logger.info('Executing ChainEX market SELL order', {
+            logger.info('📤 Executing ChainEX market SELL order', {
                 pair: chainexPair,
-                quantity,
+                originalQuantity: quantity,
+                adjustedQuantity: adjustedQuantity,
+                wasAdjusted: wasAdjusted,
                 payload
             });
 
@@ -1850,6 +2055,14 @@ class OrderExecutionService {
             await debug.logResponse(response, data);
 
             if (!response.ok) {
+                logger.error('❌ CHAINEX SELL ORDER REJECTED', {
+                    pair: chainexPair,
+                    originalQuantity: quantity,
+                    adjustedQuantity: adjustedQuantity,
+                    wasAdjusted: wasAdjusted,
+                    httpStatus: response.status,
+                    error: JSON.stringify(data)
+                });
                 throw new Error(`ChainEX SELL order failed: ${response.status} - ${JSON.stringify(data)}`);
             }
 
@@ -1857,7 +2070,7 @@ class OrderExecutionService {
             const result = {
                 orderId: data.id || data.order_id,
                 executedPrice: parseFloat(data.average_price || data.price || 0),
-                executedQuantity: parseFloat(data.filled_amount || data.amount || 0),
+                executedQuantity: parseFloat(data.filled_amount || data.amount || adjustedQuantity),
                 executedValue: parseFloat(data.filled_value || 0),
                 fee: parseFloat(data.fee || 0),
                 status: data.status || 'COMPLETE',
@@ -1865,10 +2078,13 @@ class OrderExecutionService {
                 rawResponse: data
             };
 
-            logger.info('ChainEX SELL order executed successfully', {
+            logger.info('✅ ChainEX SELL order executed successfully', {
                 orderId: result.orderId,
                 executedPrice: result.executedPrice,
-                executedValue: result.executedValue
+                executedQuantity: result.executedQuantity,
+                executedValue: result.executedValue,
+                fee: result.fee,
+                wasAdjusted: wasAdjusted
             });
 
             return result;
@@ -1877,14 +2093,18 @@ class OrderExecutionService {
             // Log comprehensive error details
             debug.logError(error, {
                 pair,
-                quantity,
+                originalQuantity: quantity,
+                adjustedQuantity: adjustedQuantity,
+                wasAdjusted: wasAdjusted,
                 exchange: 'chainex',
                 operation: 'SELL'
             });
 
             logger.error('ChainEX SELL order failed', {
                 pair,
-                quantity,
+                originalQuantity: quantity,
+                adjustedQuantity: adjustedQuantity,
+                wasAdjusted: wasAdjusted,
                 error: error.message
             });
             throw error;
