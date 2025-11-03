@@ -3705,11 +3705,164 @@ class OrderExecutionService {
      * Execute Gate.io market SELL order
      * @private
      */
-    async _executeGateioSell(pair, quantity, credentials) {
+    /**
+     * Get Gate.io account balances
+     * @private
+     */
+    async _getGateioBalances(credentials) {
         try {
             // Apply rate limiting
             await this._rateLimitDelay();
 
+            const config = {
+                baseUrl: 'https://api.gateio.ws',
+                endpoint: '/api/v4/spot/accounts'
+            };
+
+            const timestamp = Math.floor(Date.now() / 1000).toString();
+            const method = 'GET';
+            const url = config.endpoint;
+            const queryString = '';
+            const requestBody = '';
+
+            // Create authentication signature
+            const signature = this._createGateioSignature(method, url, queryString, requestBody, timestamp, credentials.apiSecret);
+
+            const fullUrl = `${config.baseUrl}${config.endpoint}`;
+
+            const response = await this._fetchWithRetry(fullUrl, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'KEY': credentials.apiKey,
+                    'Timestamp': timestamp,
+                    'SIGN': signature
+                }
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Gate.io get balances failed: ${response.status} - ${errorText}`);
+            }
+
+            const data = await response.json();
+
+            // Transform to standard format: { currency: 'BTC', available: 0.5, reserved: 0.1, total: 0.6 }
+            return data.map(account => ({
+                currency: account.currency,
+                available: parseFloat(account.available || 0),
+                reserved: parseFloat(account.locked || 0),
+                total: parseFloat(account.available || 0) + parseFloat(account.locked || 0)
+            }));
+
+        } catch (error) {
+            logger.error('Failed to get Gate.io balances', {
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    async _executeGateioSell(pair, quantity, credentials) {
+        // Declare variables at function scope to avoid ReferenceError in catch block
+        let adjustedQuantity = quantity;
+        let wasAdjusted = false;
+
+        try {
+            // Apply rate limiting
+            await this._rateLimitDelay();
+
+            // ===== STEP 1: CHECK AVAILABLE BALANCE AND ADJUST QUANTITY =====
+            logger.info('🔍 Checking Gate.io balance before SELL order', { pair, requestedQuantity: quantity });
+
+            try {
+                const balances = await this._getGateioBalances(credentials);
+                const baseAsset = pair.replace('USDT', '').replace('_USDT', ''); // Gate.io uses underscore
+                const assetBalance = balances.find(b => b.currency === baseAsset);
+
+                logger.info('📊 GATE.IO BALANCE CHECK', {
+                    asset: baseAsset,
+                    availableBalance: assetBalance?.available || 0,
+                    reservedBalance: assetBalance?.reserved || 0,
+                    totalBalance: assetBalance?.total || 0,
+                    requestedQuantity: quantity,
+                    canSellRequested: assetBalance?.available >= quantity ? '✅ YES' : '❌ NO - INSUFFICIENT',
+                    shortfall: assetBalance?.available < quantity ? (quantity - assetBalance.available).toFixed(8) : 0
+                });
+
+                if (!assetBalance || assetBalance.available <= 0) {
+                    throw new Error(`No ${baseAsset} balance available. Available: ${assetBalance?.available || 0}`);
+                }
+
+                // Check Gate.io minimum order sizes
+                const minimumOrderSizes = {
+                    'XRP': 1.0,
+                    'BTC': 0.00001,
+                    'ETH': 0.0001,
+                    // Add more as needed
+                };
+
+                const minimumQuantity = minimumOrderSizes[baseAsset] || 0;
+
+                // If insufficient balance, use available balance minus 0.1% buffer for safety
+                if (assetBalance.available < quantity) {
+                    const buffer = 0.999; // 99.9% of available (0.1% safety buffer)
+                    adjustedQuantity = assetBalance.available * buffer;
+                    wasAdjusted = true;
+
+                    logger.warn('⚠️ ADJUSTING SELL QUANTITY DUE TO INSUFFICIENT BALANCE', {
+                        originalQuantity: quantity,
+                        availableBalance: assetBalance.available,
+                        adjustedQuantity: adjustedQuantity,
+                        discrepancy: (quantity - assetBalance.available).toFixed(8),
+                        adjustmentReason: 'Fees deducted during buy reduced available balance',
+                        buffer: '0.1%'
+                    });
+                }
+
+                // Format quantity to proper decimal places (Gate.io uses 8 decimals for crypto)
+                adjustedQuantity = parseFloat(adjustedQuantity.toFixed(8));
+
+                // Check if adjusted quantity meets Gate.io minimum order size
+                if (minimumQuantity > 0 && adjustedQuantity < minimumQuantity) {
+                    logger.error('❌ BALANCE BELOW GATE.IO MINIMUM ORDER SIZE - CANNOT AUTO-CLOSE', {
+                        asset: baseAsset,
+                        availableBalance: assetBalance.available,
+                        adjustedQuantity: adjustedQuantity,
+                        minimumRequired: minimumQuantity,
+                        shortfall: (minimumQuantity - adjustedQuantity).toFixed(8),
+                        originalPositionQuantity: quantity,
+                        discrepancy: (quantity - assetBalance.available).toFixed(8),
+                        possibleReasons: [
+                            'Asset was manually sold elsewhere',
+                            'Buy order failed but position was created',
+                            'Another bot/system is trading the same account',
+                            'Database entry is incorrect'
+                        ],
+                        requiredAction: 'MANUAL INTERVENTION REQUIRED - Check Gate.io account history and close position manually'
+                    });
+
+                    throw new Error(`Cannot sell ${adjustedQuantity} ${baseAsset}: Below Gate.io minimum order size of ${minimumQuantity} ${baseAsset}. Available: ${assetBalance.available} ${baseAsset}. This position requires manual intervention.`);
+                }
+
+                logger.info('✅ SELL QUANTITY DETERMINED', {
+                    finalQuantity: adjustedQuantity,
+                    wasAdjusted: wasAdjusted,
+                    availableBalance: assetBalance.available,
+                    meetsMinimum: adjustedQuantity >= minimumQuantity
+                });
+
+            } catch (balanceError) {
+                logger.error('❌ BALANCE CHECK FAILED - CANNOT PROCEED', {
+                    error: balanceError.message,
+                    pair,
+                    requestedQuantity: quantity
+                });
+                throw new Error(`Cannot execute sell order: ${balanceError.message}`);
+            }
+
+            // ===== STEP 2: PREPARE AND EXECUTE ORDER =====
             const config = {
                 baseUrl: 'https://api.gateio.ws',
                 endpoint: '/api/v4/spot/orders'
@@ -3721,12 +3874,12 @@ class OrderExecutionService {
             // Gate.io requires timestamp
             const timestamp = Math.floor(Date.now() / 1000).toString();
 
-            // Gate.io market order payload
+            // Gate.io market order payload - use adjusted quantity
             const orderData = {
                 currency_pair: gateioPair,
                 side: 'sell',
                 type: 'market',
-                amount: quantity.toFixed(8), // Amount of base currency (crypto)
+                amount: adjustedQuantity.toFixed(8), // Use adjusted quantity (accounts for fees)
                 time_in_force: 'ioc' // Immediate or cancel
             };
 
@@ -3740,9 +3893,11 @@ class OrderExecutionService {
 
             const fullUrl = `${config.baseUrl}${config.endpoint}`;
 
-            logger.info('Executing Gate.io market SELL order', {
+            logger.info('📤 Executing Gate.io market SELL order', {
                 pair: gateioPair,
-                quantity,
+                originalQuantity: quantity,
+                adjustedQuantity: adjustedQuantity,
+                wasAdjusted: wasAdjusted,
                 orderData
             });
 
@@ -3760,6 +3915,14 @@ class OrderExecutionService {
 
             if (!response.ok) {
                 const errorText = await response.text();
+                logger.error('❌ GATE.IO SELL ORDER REJECTED', {
+                    pair: gateioPair,
+                    originalQuantity: quantity,
+                    adjustedQuantity: adjustedQuantity,
+                    wasAdjusted: wasAdjusted,
+                    httpStatus: response.status,
+                    error: errorText
+                });
                 throw new Error(`Gate.io SELL order failed: ${response.status} - ${errorText}`);
             }
 
@@ -3769,7 +3932,7 @@ class OrderExecutionService {
             const result = {
                 orderId: data.id || 'unknown',
                 executedPrice: parseFloat(data.avg_deal_price || data.price || 0),
-                executedQuantity: parseFloat(data.amount || quantity),
+                executedQuantity: parseFloat(data.amount || adjustedQuantity),
                 executedValue: parseFloat(data.filled_total || 0),
                 fee: parseFloat(data.fee || 0),
                 status: data.status || 'open',
@@ -3777,10 +3940,13 @@ class OrderExecutionService {
                 rawResponse: data
             };
 
-            logger.info('Gate.io SELL order executed successfully', {
+            logger.info('✅ Gate.io SELL order executed successfully', {
                 orderId: result.orderId,
                 executedPrice: result.executedPrice,
-                executedValue: result.executedValue
+                executedQuantity: result.executedQuantity,
+                executedValue: result.executedValue,
+                fee: result.fee,
+                wasAdjusted: wasAdjusted
             });
 
             return result;
@@ -3788,7 +3954,9 @@ class OrderExecutionService {
         } catch (error) {
             logger.error('Gate.io SELL order failed', {
                 pair,
-                quantity,
+                originalQuantity: quantity,
+                adjustedQuantity: adjustedQuantity,
+                wasAdjusted: wasAdjusted,
                 error: error.message
             });
             throw error;
