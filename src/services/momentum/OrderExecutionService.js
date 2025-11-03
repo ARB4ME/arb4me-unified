@@ -5659,6 +5659,77 @@ class OrderExecutionService {
     }
 
     /**
+     * Get HTX account balances
+     * HTX requires account ID and uses /v1/account/accounts/{account-id}/balance endpoint
+     * @private
+     */
+    async _getHTXBalances(credentials) {
+        try {
+            // Step 1: Get account ID (required for HTX)
+            const accountId = await this._getHTXAccountId(credentials);
+
+            const timestamp = new Date().toISOString().replace(/\.\d{3}Z$/, '');
+            const path = `/v1/account/accounts/${accountId}/balance`;
+            const params = {
+                'AccessKeyId': credentials.apiKey,
+                'SignatureMethod': 'HmacSHA256',
+                'SignatureVersion': '2',
+                'Timestamp': timestamp
+            };
+
+            const signature = this._createHTXSignature('GET', 'api.huobi.pro', path, params, credentials.apiSecret);
+            params['Signature'] = signature;
+
+            const queryString = Object.keys(params).map(key => `${key}=${encodeURIComponent(params[key])}`).join('&');
+            const url = `https://api.huobi.pro${path}?${queryString}`;
+
+            const response = await this._fetchWithRetry(url, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.status !== 'ok') {
+                throw new Error(`HTX balance fetch failed: ${data.status} - ${data['err-msg']}`);
+            }
+
+            // HTX returns array of balances with type 'trade' (available) and 'frozen' (reserved)
+            // Transform to standard format: { currency, available, reserved, total }
+            const balanceList = data.data?.list || [];
+            const balanceMap = {};
+
+            balanceList.forEach(item => {
+                const currency = item.currency.toUpperCase();
+                if (!balanceMap[currency]) {
+                    balanceMap[currency] = { available: 0, reserved: 0 };
+                }
+                if (item.type === 'trade') {
+                    balanceMap[currency].available = parseFloat(item.balance || 0);
+                } else if (item.type === 'frozen') {
+                    balanceMap[currency].reserved = parseFloat(item.balance || 0);
+                }
+            });
+
+            return Object.keys(balanceMap).map(currency => ({
+                currency: currency,
+                available: balanceMap[currency].available,
+                reserved: balanceMap[currency].reserved,
+                total: balanceMap[currency].available + balanceMap[currency].reserved
+            }));
+
+        } catch (error) {
+            logger.error('Failed to fetch HTX balances', {
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
      * Execute a buy order on HTX (Huobi)
      * HTX requires account ID and uses unique signature format with hostname
      * @private
@@ -5742,20 +5813,82 @@ class OrderExecutionService {
      * @private
      */
     async _executeHTXSell(pair, quantity, credentials) {
+        // Declare variables at function scope so they're available in catch block
+        let adjustedQuantity = quantity;
+        let wasAdjusted = false;
+        let accountId;
+
         try {
-            // Step 1: Get account ID
-            const accountId = await this._getHTXAccountId(credentials);
+            // Step 1: Get account ID (required for HTX)
+            accountId = await this._getHTXAccountId(credentials);
 
             // Convert pair to HTX format (BTCUSDT → btcusdt)
             const htxPair = this._convertPairToHTX(pair);
 
+            // ===== STEP 1: CHECK AVAILABLE BALANCE AND ADJUST QUANTITY =====
+            logger.info('🔍 Checking HTX balance before SELL order', {
+                pair: htxPair,
+                requestedQuantity: quantity
+            });
+
+            const balances = await this._getHTXBalances(credentials);
+            const baseAsset = pair.replace('USDT', '').replace('USDC', '');
+            const assetBalance = balances.find(b => b.currency === baseAsset);
+
+            if (!assetBalance || assetBalance.available <= 0) {
+                throw new Error(`No ${baseAsset} balance available for sale on HTX. Available: ${assetBalance?.available || 0}`);
+            }
+
+            logger.info('📊 HTX balance check', {
+                asset: baseAsset,
+                available: assetBalance.available,
+                requested: quantity,
+                sufficient: assetBalance.available >= quantity
+            });
+
+            // If insufficient balance, adjust quantity to use 99.9% of available (0.1% buffer for rounding/fees)
+            if (assetBalance.available < quantity) {
+                const buffer = 0.999; // Use 99.9% of available balance
+                adjustedQuantity = assetBalance.available * buffer;
+                wasAdjusted = true;
+
+                logger.warn('⚠️ Insufficient balance - adjusting SELL quantity', {
+                    pair: htxPair,
+                    originalQuantity: quantity,
+                    availableBalance: assetBalance.available,
+                    adjustedQuantity: adjustedQuantity,
+                    reductionPercent: ((quantity - adjustedQuantity) / quantity * 100).toFixed(2)
+                });
+            }
+
+            // Validate minimum order size (exchange-specific minimums)
+            const minimumQuantities = {
+                'XRP': 1.0,
+                'BTC': 0.00001,
+                'ETH': 0.0001,
+                'LTC': 0.001,
+                'BCH': 0.001,
+                'ADA': 1.0,
+                'DOT': 0.1,
+                'LINK': 0.1,
+                'UNI': 0.1,
+                'MATIC': 1.0
+            };
+
+            const minimumQuantity = minimumQuantities[baseAsset] || 0.00001; // Default minimum
+
+            if (adjustedQuantity < minimumQuantity) {
+                throw new Error(`❌ Adjusted quantity ${adjustedQuantity.toFixed(8)} ${baseAsset} is below HTX minimum of ${minimumQuantity}. Cannot execute SELL order.`);
+            }
+
+            // ===== STEP 2: PREPARE AND EXECUTE ORDER =====
             // Prepare order data
             const timestamp = new Date().toISOString().replace(/\.\d{3}Z$/, '');
             const orderData = {
                 'account-id': accountId,
                 'symbol': htxPair,
                 'type': 'sell-market',
-                'amount': quantity.toString()
+                'amount': adjustedQuantity.toString() // Use ADJUSTED quantity
             };
 
             const params = {
@@ -5771,7 +5904,12 @@ class OrderExecutionService {
             const queryString = Object.keys(params).map(key => `${key}=${encodeURIComponent(params[key])}`).join('&');
             const url = `https://api.huobi.pro/v1/order/orders/place?${queryString}`;
 
-            logger.info('Executing HTX sell order', { pair: htxPair, quantity });
+            logger.info('📤 Executing HTX sell order', {
+                pair: htxPair,
+                originalQuantity: quantity,
+                adjustedQuantity: adjustedQuantity,
+                wasAdjusted: wasAdjusted
+            });
 
             const response = await fetch(url, {
                 method: 'POST',
@@ -5784,19 +5922,22 @@ class OrderExecutionService {
 
             if (!response.ok) {
                 const errorText = await response.text();
-                throw new Error(`HTX sell order failed: ${response.status} - ${errorText}`);
+                throw new Error(`❌ HTX sell order failed: ${response.status} - ${errorText}`);
             }
 
             const result = await response.json();
 
             // Check for HTX API error
             if (result.status !== 'ok') {
-                throw new Error(`HTX sell order failed: ${result.status} - ${result['err-msg']}`);
+                throw new Error(`❌ HTX sell order failed: ${result.status} - ${result['err-msg']}`);
             }
 
-            logger.info('HTX sell order executed successfully', {
+            logger.info('✅ HTX sell order executed successfully', {
                 pair: htxPair,
-                orderId: result.data
+                orderId: result.data,
+                originalQuantity: quantity,
+                adjustedQuantity: adjustedQuantity,
+                wasAdjusted: wasAdjusted
             });
 
             return {
@@ -5806,9 +5947,11 @@ class OrderExecutionService {
             };
 
         } catch (error) {
-            logger.error('Failed to execute HTX sell order', {
+            logger.error('❌ Failed to execute HTX sell order', {
                 pair,
-                quantity,
+                originalQuantity: quantity,
+                adjustedQuantity: adjustedQuantity,
+                wasAdjusted: wasAdjusted,
                 error: error.message
             });
             throw error;
