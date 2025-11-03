@@ -4704,6 +4704,63 @@ class OrderExecutionService {
     }
 
     /**
+     * Get KuCoin account balances
+     * KuCoin uses /api/v1/accounts endpoint with KC-API headers
+     * @private
+     */
+    async _getKuCoinBalances(credentials) {
+        try {
+            const timestamp = Date.now().toString();
+            const method = 'GET';
+            const endpoint = '/api/v1/accounts';
+            const requestBody = '';
+
+            // Create authentication headers
+            const signature = this._createKuCoinSignature(timestamp, method, endpoint, requestBody, credentials.apiSecret);
+            const passphrase = this._createKuCoinPassphrase(credentials.passphrase, credentials.apiSecret);
+
+            const url = `https://api.kucoin.com${endpoint}`;
+
+            const response = await this._fetchWithRetry(url, {
+                method: method,
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'KC-API-KEY': credentials.apiKey,
+                    'KC-API-SIGN': signature,
+                    'KC-API-TIMESTAMP': timestamp,
+                    'KC-API-PASSPHRASE': passphrase,
+                    'KC-API-KEY-VERSION': '2'
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.code !== '200000') {
+                throw new Error(`KuCoin balance fetch failed: ${data.code} - ${data.msg}`);
+            }
+
+            // KuCoin returns array of accounts (one per currency)
+            // Transform to standard format: { currency, available, reserved, total }
+            const accounts = data.data || [];
+            return accounts
+                .filter(account => account.type === 'trade') // Only spot trading accounts
+                .map(account => ({
+                    currency: account.currency,
+                    available: parseFloat(account.available || 0),
+                    reserved: parseFloat(account.holds || 0),
+                    total: parseFloat(account.balance || 0)
+                }));
+
+        } catch (error) {
+            logger.error('Failed to fetch KuCoin balances', {
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
      * Execute a buy order on KuCoin
      * KuCoin requires passphrase and uses hyphen pair format
      * @private
@@ -4788,10 +4845,71 @@ class OrderExecutionService {
      * @private
      */
     async _executeKuCoinSell(pair, quantity, credentials) {
+        // Declare variables at function scope so they're available in catch block
+        let adjustedQuantity = quantity;
+        let wasAdjusted = false;
+
         try {
             // Convert pair to KuCoin format (BTCUSDT → BTC-USDT)
             const kucoinPair = this._convertPairToKuCoin(pair);
 
+            // ===== STEP 1: CHECK AVAILABLE BALANCE AND ADJUST QUANTITY =====
+            logger.info('🔍 Checking KuCoin balance before SELL order', {
+                pair: kucoinPair,
+                requestedQuantity: quantity
+            });
+
+            const balances = await this._getKuCoinBalances(credentials);
+            const baseAsset = pair.replace('USDT', '').replace('USDC', '');
+            const assetBalance = balances.find(b => b.currency === baseAsset);
+
+            if (!assetBalance || assetBalance.available <= 0) {
+                throw new Error(`No ${baseAsset} balance available for sale on KuCoin. Available: ${assetBalance?.available || 0}`);
+            }
+
+            logger.info('📊 KuCoin balance check', {
+                asset: baseAsset,
+                available: assetBalance.available,
+                requested: quantity,
+                sufficient: assetBalance.available >= quantity
+            });
+
+            // If insufficient balance, adjust quantity to use 99.9% of available (0.1% buffer for rounding/fees)
+            if (assetBalance.available < quantity) {
+                const buffer = 0.999; // Use 99.9% of available balance
+                adjustedQuantity = assetBalance.available * buffer;
+                wasAdjusted = true;
+
+                logger.warn('⚠️ Insufficient balance - adjusting SELL quantity', {
+                    pair: kucoinPair,
+                    originalQuantity: quantity,
+                    availableBalance: assetBalance.available,
+                    adjustedQuantity: adjustedQuantity,
+                    reductionPercent: ((quantity - adjustedQuantity) / quantity * 100).toFixed(2)
+                });
+            }
+
+            // Validate minimum order size (exchange-specific minimums)
+            const minimumQuantities = {
+                'XRP': 1.0,
+                'BTC': 0.00001,
+                'ETH': 0.0001,
+                'LTC': 0.001,
+                'BCH': 0.001,
+                'ADA': 1.0,
+                'DOT': 0.1,
+                'LINK': 0.1,
+                'UNI': 0.1,
+                'MATIC': 1.0
+            };
+
+            const minimumQuantity = minimumQuantities[baseAsset] || 0.00001; // Default minimum
+
+            if (adjustedQuantity < minimumQuantity) {
+                throw new Error(`❌ Adjusted quantity ${adjustedQuantity.toFixed(8)} ${baseAsset} is below KuCoin minimum of ${minimumQuantity}. Cannot execute SELL order.`);
+            }
+
+            // ===== STEP 2: PREPARE AND EXECUTE ORDER =====
             // Prepare order data
             const timestamp = Date.now().toString();
             const method = 'POST';
@@ -4802,7 +4920,7 @@ class OrderExecutionService {
                 side: 'sell',
                 symbol: kucoinPair,
                 type: 'market',
-                size: quantity.toString() // Use size for sell (base currency)
+                size: adjustedQuantity.toString() // Use ADJUSTED quantity for sell (base currency)
             };
 
             const requestBody = JSON.stringify(orderData);
@@ -4813,7 +4931,12 @@ class OrderExecutionService {
 
             const url = `https://api.kucoin.com${endpoint}`;
 
-            logger.info('Executing KuCoin sell order', { pair: kucoinPair, quantity });
+            logger.info('📤 Executing KuCoin sell order', {
+                pair: kucoinPair,
+                originalQuantity: quantity,
+                adjustedQuantity: adjustedQuantity,
+                wasAdjusted: wasAdjusted
+            });
 
             const response = await fetch(url, {
                 method: method,
@@ -4831,19 +4954,22 @@ class OrderExecutionService {
 
             if (!response.ok) {
                 const errorText = await response.text();
-                throw new Error(`KuCoin sell order failed: ${response.status} - ${errorText}`);
+                throw new Error(`❌ KuCoin sell order failed: ${response.status} - ${errorText}`);
             }
 
             const result = await response.json();
 
             // Check for KuCoin API error
             if (result.code !== '200000') {
-                throw new Error(`KuCoin sell order failed: ${result.code} - ${result.msg}`);
+                throw new Error(`❌ KuCoin sell order failed: ${result.code} - ${result.msg}`);
             }
 
-            logger.info('KuCoin sell order executed successfully', {
+            logger.info('✅ KuCoin sell order executed successfully', {
                 pair: kucoinPair,
-                orderId: result.data.orderId
+                orderId: result.data.orderId,
+                originalQuantity: quantity,
+                adjustedQuantity: adjustedQuantity,
+                wasAdjusted: wasAdjusted
             });
 
             return {
@@ -4853,9 +4979,11 @@ class OrderExecutionService {
             };
 
         } catch (error) {
-            logger.error('Failed to execute KuCoin sell order', {
+            logger.error('❌ Failed to execute KuCoin sell order', {
                 pair,
-                quantity,
+                originalQuantity: quantity,
+                adjustedQuantity: adjustedQuantity,
+                wasAdjusted: wasAdjusted,
                 error: error.message
             });
             throw error;
