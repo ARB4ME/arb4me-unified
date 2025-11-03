@@ -7030,6 +7030,52 @@ class OrderExecutionService {
     // ============================================================================
 
     /**
+     * Get Bitrue account balances
+     * Bitrue uses /api/v1/account endpoint (Binance-compatible)
+     * @private
+     */
+    async _getBitrueBalances(credentials) {
+        try {
+            const timestamp = Date.now();
+            const queryParams = `timestamp=${timestamp}`;
+            const signature = this._createBitrueSignature(queryParams, credentials.apiSecret);
+
+            const url = `https://openapi.bitrue.com/api/v1/account?${queryParams}&signature=${signature}`;
+
+            const response = await this._fetchWithRetry(url, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-MBX-APIKEY': credentials.apiKey
+                }
+            });
+
+            const data = await response.json();
+
+            // Check for error
+            if (data.code && data.code < 0) {
+                throw new Error(`Bitrue balance fetch failed: ${data.code} - ${data.msg}`);
+            }
+
+            // Bitrue returns Binance-compatible format with array of balances
+            // Transform to standard format: { currency, available, reserved, total }
+            const balances = data.balances || [];
+            return balances.map(balance => ({
+                currency: balance.asset,
+                available: parseFloat(balance.free || 0),
+                reserved: parseFloat(balance.locked || 0),
+                total: parseFloat(balance.free || 0) + parseFloat(balance.locked || 0)
+            }));
+
+        } catch (error) {
+            logger.error('Failed to fetch Bitrue balances', {
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
      * Execute Bitrue buy order (market order)
      * @param {string} pair - Trading pair (e.g., 'BTCUSDT')
      * @param {number} amountUSDT - Amount in USDT to spend
@@ -7123,7 +7169,68 @@ class OrderExecutionService {
      * @private
      */
     async _executeBitrueSell(pair, quantity, credentials) {
+        // Declare variables at function scope so they're available in catch block
+        let adjustedQuantity = quantity;
+        let wasAdjusted = false;
+
         try {
+            // ===== STEP 1: CHECK AVAILABLE BALANCE AND ADJUST QUANTITY =====
+            logger.info('🔍 Checking Bitrue balance before SELL order', {
+                pair,
+                requestedQuantity: quantity
+            });
+
+            const balances = await this._getBitrueBalances(credentials);
+            const baseAsset = pair.replace('USDT', '').replace('USDC', '');
+            const assetBalance = balances.find(b => b.currency === baseAsset);
+
+            if (!assetBalance || assetBalance.available <= 0) {
+                throw new Error(`No ${baseAsset} balance available for sale on Bitrue. Available: ${assetBalance?.available || 0}`);
+            }
+
+            logger.info('📊 Bitrue balance check', {
+                asset: baseAsset,
+                available: assetBalance.available,
+                requested: quantity,
+                sufficient: assetBalance.available >= quantity
+            });
+
+            // If insufficient balance, adjust quantity to use 99.9% of available (0.1% buffer for rounding/fees)
+            if (assetBalance.available < quantity) {
+                const buffer = 0.999; // Use 99.9% of available balance
+                adjustedQuantity = assetBalance.available * buffer;
+                wasAdjusted = true;
+
+                logger.warn('⚠️ Insufficient balance - adjusting SELL quantity', {
+                    pair,
+                    originalQuantity: quantity,
+                    availableBalance: assetBalance.available,
+                    adjustedQuantity: adjustedQuantity,
+                    reductionPercent: ((quantity - adjustedQuantity) / quantity * 100).toFixed(2)
+                });
+            }
+
+            // Validate minimum order size (exchange-specific minimums)
+            const minimumQuantities = {
+                'XRP': 1.0,
+                'BTC': 0.00001,
+                'ETH': 0.0001,
+                'LTC': 0.001,
+                'BCH': 0.001,
+                'ADA': 1.0,
+                'DOT': 0.1,
+                'LINK': 0.1,
+                'UNI': 0.1,
+                'MATIC': 1.0
+            };
+
+            const minimumQuantity = minimumQuantities[baseAsset] || 0.00001; // Default minimum
+
+            if (adjustedQuantity < minimumQuantity) {
+                throw new Error(`❌ Adjusted quantity ${adjustedQuantity.toFixed(8)} ${baseAsset} is below Bitrue minimum of ${minimumQuantity}. Cannot execute SELL order.`);
+            }
+
+            // ===== STEP 2: PREPARE AND EXECUTE ORDER =====
             // Bitrue uses Binance-compatible API
             const timestamp = Date.now();
 
@@ -7132,7 +7239,7 @@ class OrderExecutionService {
                 symbol: pair,
                 side: 'SELL',
                 type: 'MARKET',
-                quantity: quantity.toFixed(8),
+                quantity: adjustedQuantity.toFixed(8), // Use ADJUSTED quantity
                 timestamp: timestamp.toString()
             };
 
@@ -7141,9 +7248,11 @@ class OrderExecutionService {
 
             const url = `https://openapi.bitrue.com/api/v1/order?${queryString}&signature=${signature}`;
 
-            logger.info('Executing Bitrue sell order', {
+            logger.info('📤 Executing Bitrue sell order', {
                 pair,
-                quantity
+                originalQuantity: quantity,
+                adjustedQuantity: adjustedQuantity,
+                wasAdjusted: wasAdjusted
             });
 
             const response = await fetch(url, {
@@ -7156,23 +7265,26 @@ class OrderExecutionService {
 
             if (!response.ok) {
                 const errorText = await response.text();
-                throw new Error(`Bitrue API error: ${response.status} - ${errorText}`);
+                throw new Error(`❌ Bitrue API error: ${response.status} - ${errorText}`);
             }
 
             const result = await response.json();
 
             // Check for Bitrue API error
             if (result.code && result.code < 0) {
-                throw new Error(`Bitrue order error: ${result.code} - ${result.msg}`);
+                throw new Error(`❌ Bitrue order error: ${result.code} - ${result.msg}`);
             }
 
             // Get current price for logging
             const currentPrice = await this._fetchBitruePrice(pair);
 
-            logger.info('Bitrue sell order executed successfully', {
+            logger.info('✅ Bitrue sell order executed successfully', {
                 pair,
                 orderId: result.orderId,
-                executedQty: result.executedQty
+                executedQty: result.executedQty,
+                originalQuantity: quantity,
+                adjustedQuantity: adjustedQuantity,
+                wasAdjusted: wasAdjusted
             });
 
             return {
@@ -7181,15 +7293,17 @@ class OrderExecutionService {
                 orderId: result.orderId,
                 pair: pair,
                 side: 'sell',
-                quantity: parseFloat(result.executedQty || quantity),
+                quantity: parseFloat(result.executedQty || adjustedQuantity),
                 price: currentPrice,
                 timestamp: Date.now()
             };
 
         } catch (error) {
-            logger.error('Bitrue sell order failed', {
+            logger.error('❌ Bitrue sell order failed', {
                 pair,
-                quantity,
+                originalQuantity: quantity,
+                adjustedQuantity: adjustedQuantity,
+                wasAdjusted: wasAdjusted,
                 error: error.message
             });
             throw error;
