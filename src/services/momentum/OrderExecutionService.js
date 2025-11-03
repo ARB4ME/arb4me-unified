@@ -2712,16 +2712,162 @@ class OrderExecutionService {
     }
 
     /**
+     * Get Binance account balances
+     * @private
+     */
+    async _getBinanceBalances(credentials) {
+        try {
+            // Apply rate limiting
+            await this._rateLimitDelay();
+
+            const config = {
+                baseUrl: 'https://api.binance.com',
+                endpoint: '/api/v3/account'
+            };
+
+            const timestamp = Date.now();
+            const queryString = `timestamp=${timestamp}`;
+            const signature = crypto.createHmac('sha256', credentials.apiSecret).update(queryString).digest('hex');
+
+            const url = `${config.baseUrl}${config.endpoint}?${queryString}&signature=${signature}`;
+
+            const response = await this._fetchWithRetry(url, {
+                method: 'GET',
+                headers: {
+                    'X-MBX-APIKEY': credentials.apiKey
+                }
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Binance get balances failed: ${response.status} - ${errorText}`);
+            }
+
+            const data = await response.json();
+
+            // Transform to standard format: { currency: 'BTC', available: 0.5, reserved: 0.1, total: 0.6 }
+            return data.balances.map(balance => ({
+                currency: balance.asset,
+                available: parseFloat(balance.free),
+                reserved: parseFloat(balance.locked),
+                total: parseFloat(balance.free) + parseFloat(balance.locked)
+            }));
+
+        } catch (error) {
+            logger.error('Failed to get Binance balances', {
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
      * Execute Binance market SELL order
      * @private
      */
     async _executeBinanceSell(pair, quantity, credentials) {
         const debug = new ExchangeDebugger('binance');
 
+        // Declare variables at function scope to avoid ReferenceError in catch block
+        let adjustedQuantity = quantity;
+        let wasAdjusted = false;
+
         try {
             // Apply rate limiting
             await this._rateLimitDelay();
 
+            // ===== STEP 1: CHECK AVAILABLE BALANCE AND ADJUST QUANTITY =====
+            logger.info('🔍 Checking Binance balance before SELL order', { pair, requestedQuantity: quantity });
+
+            try {
+                const balances = await this._getBinanceBalances(credentials);
+                const baseAsset = pair.replace('USDT', '').replace('BUSD', ''); // Extract XRP from XRPUSDT
+                const assetBalance = balances.find(b => b.currency === baseAsset);
+
+                logger.info('📊 BINANCE BALANCE CHECK', {
+                    asset: baseAsset,
+                    availableBalance: assetBalance?.available || 0,
+                    reservedBalance: assetBalance?.reserved || 0,
+                    totalBalance: assetBalance?.total || 0,
+                    requestedQuantity: quantity,
+                    canSellRequested: assetBalance?.available >= quantity ? '✅ YES' : '❌ NO - INSUFFICIENT',
+                    shortfall: assetBalance?.available < quantity ? (quantity - assetBalance.available).toFixed(8) : 0
+                });
+
+                if (!assetBalance || assetBalance.available <= 0) {
+                    throw new Error(`No ${baseAsset} balance available. Available: ${assetBalance?.available || 0}`);
+                }
+
+                // Check Binance minimum order sizes (LOT_SIZE filter)
+                // Common minimums - Binance has varying minimums per pair
+                const minimumOrderSizes = {
+                    'XRP': 1.0,      // Binance XRP minimum
+                    'BTC': 0.00001,
+                    'ETH': 0.0001,
+                    'BNB': 0.001,
+                    // Add more as needed
+                };
+
+                const minimumQuantity = minimumOrderSizes[baseAsset] || 0;
+
+                // If insufficient balance, use available balance minus 0.1% buffer for safety
+                if (assetBalance.available < quantity) {
+                    const buffer = 0.999; // 99.9% of available (0.1% safety buffer)
+                    adjustedQuantity = assetBalance.available * buffer;
+                    wasAdjusted = true;
+
+                    logger.warn('⚠️ ADJUSTING SELL QUANTITY DUE TO INSUFFICIENT BALANCE', {
+                        originalQuantity: quantity,
+                        availableBalance: assetBalance.available,
+                        adjustedQuantity: adjustedQuantity,
+                        discrepancy: (quantity - assetBalance.available).toFixed(8),
+                        adjustmentReason: 'Fees deducted during buy reduced available balance',
+                        buffer: '0.1%'
+                    });
+                }
+
+                // Format quantity to proper decimal places (Binance uses 8 decimals for crypto)
+                adjustedQuantity = parseFloat(adjustedQuantity.toFixed(8));
+
+                // Check if adjusted quantity meets Binance minimum order size
+                if (minimumQuantity > 0 && adjustedQuantity < minimumQuantity) {
+                    logger.error('❌ BALANCE BELOW BINANCE MINIMUM ORDER SIZE - CANNOT AUTO-CLOSE', {
+                        asset: baseAsset,
+                        availableBalance: assetBalance.available,
+                        adjustedQuantity: adjustedQuantity,
+                        minimumRequired: minimumQuantity,
+                        shortfall: (minimumQuantity - adjustedQuantity).toFixed(8),
+                        originalPositionQuantity: quantity,
+                        discrepancy: (quantity - assetBalance.available).toFixed(8),
+                        possibleReasons: [
+                            'Asset was manually sold elsewhere',
+                            'Buy order failed but position was created',
+                            'Another bot/system is trading the same account',
+                            'Database entry is incorrect'
+                        ],
+                        requiredAction: 'MANUAL INTERVENTION REQUIRED - Check Binance account history and close position manually'
+                    });
+
+                    throw new Error(`Cannot sell ${adjustedQuantity} ${baseAsset}: Below Binance minimum order size of ${minimumQuantity} ${baseAsset}. Available: ${assetBalance.available} ${baseAsset}. This position requires manual intervention.`);
+                }
+
+                logger.info('✅ SELL QUANTITY DETERMINED', {
+                    finalQuantity: adjustedQuantity,
+                    wasAdjusted: wasAdjusted,
+                    availableBalance: assetBalance.available,
+                    meetsMinimum: adjustedQuantity >= minimumQuantity
+                });
+
+            } catch (balanceError) {
+                logger.error('❌ BALANCE CHECK FAILED - CANNOT PROCEED', {
+                    error: balanceError.message,
+                    pair,
+                    requestedQuantity: quantity
+                });
+                throw new Error(`Cannot execute sell order: ${balanceError.message}`);
+            }
+
+            // ===== STEP 2: PREPARE AND EXECUTE ORDER =====
             const config = {
                 baseUrl: 'https://api.binance.com',
                 endpoint: '/api/v3/order'
@@ -2730,13 +2876,12 @@ class OrderExecutionService {
             // Binance requires timestamp
             const timestamp = Date.now();
 
-            // Binance market order payload
-            // For market sell, use quantity (base currency amount)
+            // Binance market order payload - use adjusted quantity
             const orderParams = {
                 symbol: pair,
                 side: 'SELL',
                 type: 'MARKET',
-                quantity: parseFloat(quantity).toFixed(8), // Amount of base currency (crypto)
+                quantity: adjustedQuantity.toFixed(8), // Use adjusted quantity (accounts for fees)
                 timestamp: timestamp
             };
 
@@ -2746,9 +2891,11 @@ class OrderExecutionService {
 
             const url = `${config.baseUrl}${config.endpoint}?${queryString}&signature=${signature}`;
 
-            logger.info('Executing Binance market SELL order', {
+            logger.info('📤 Executing Binance market SELL order', {
                 pair,
-                quantity,
+                originalQuantity: quantity,
+                adjustedQuantity: adjustedQuantity,
+                wasAdjusted: wasAdjusted,
                 orderParams
             });
 
@@ -2786,14 +2933,23 @@ class OrderExecutionService {
             await debug.logResponse(response, data);
 
             if (!response.ok) {
+                logger.error('❌ BINANCE SELL ORDER REJECTED', {
+                    pair,
+                    originalQuantity: quantity,
+                    adjustedQuantity: adjustedQuantity,
+                    wasAdjusted: wasAdjusted,
+                    httpStatus: response.status,
+                    error: JSON.stringify(data)
+                });
                 throw new Error(`Binance SELL order failed: ${response.status} - ${JSON.stringify(data)}`);
             }
 
+            // Binance returns instant execution details with fills
             // Transform Binance response to standard format
             const result = {
                 orderId: data.orderId?.toString() || 'unknown',
                 executedPrice: parseFloat(data.fills?.[0]?.price || 0),
-                executedQuantity: parseFloat(data.executedQty || quantity),
+                executedQuantity: parseFloat(data.executedQty || adjustedQuantity),
                 executedValue: parseFloat(data.cummulativeQuoteQty || 0),
                 fee: data.fills?.reduce((sum, fill) => sum + parseFloat(fill.commission || 0), 0) || 0,
                 status: data.status || 'FILLED',
@@ -2801,10 +2957,13 @@ class OrderExecutionService {
                 rawResponse: data
             };
 
-            logger.info('Binance SELL order executed successfully', {
+            logger.info('✅ Binance SELL order executed successfully', {
                 orderId: result.orderId,
                 executedPrice: result.executedPrice,
-                executedValue: result.executedValue
+                executedQuantity: result.executedQuantity,
+                executedValue: result.executedValue,
+                fee: result.fee,
+                wasAdjusted: wasAdjusted
             });
 
             return result;
@@ -2813,14 +2972,18 @@ class OrderExecutionService {
             // Log comprehensive error details
             debug.logError(error, {
                 pair,
-                quantity,
+                originalQuantity: quantity,
+                adjustedQuantity: adjustedQuantity,
+                wasAdjusted: wasAdjusted,
                 exchange: 'binance',
                 operation: 'SELL'
             });
 
             logger.error('Binance SELL order failed', {
                 pair,
-                quantity,
+                originalQuantity: quantity,
+                adjustedQuantity: adjustedQuantity,
+                wasAdjusted: wasAdjusted,
                 error: error.message
             });
             throw error;
