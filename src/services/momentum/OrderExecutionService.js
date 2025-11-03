@@ -5316,6 +5316,57 @@ class OrderExecutionService {
     }
 
     /**
+     * Get AscendEX account balances
+     * AscendEX requires account group and uses /{accountGroup}/api/pro/v1/cash/balance endpoint
+     * @private
+     */
+    async _getAscendEXBalances(credentials) {
+        try {
+            // Step 1: Get account group (required for AscendEX)
+            const accountGroup = await this._getAscendEXAccountGroup(credentials);
+
+            const timestamp = Date.now().toString();
+            const path = `/${accountGroup}/api/pro/v1/cash/balance`;
+            const signature = this._createAscendEXSignature(timestamp, path, credentials.apiSecret);
+
+            const url = `https://ascendex.com${path}`;
+
+            const response = await this._fetchWithRetry(url, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'x-auth-key': credentials.apiKey,
+                    'x-auth-timestamp': timestamp,
+                    'x-auth-signature': signature
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.code !== 0) {
+                throw new Error(`AscendEX balance fetch failed: ${data.code} - ${data.message}`);
+            }
+
+            // AscendEX returns array of balances
+            // Transform to standard format: { currency, available, reserved, total }
+            const balances = data.data || [];
+            return balances.map(balance => ({
+                currency: balance.asset,
+                available: parseFloat(balance.availableBalance || 0),
+                reserved: parseFloat(balance.totalBalance || 0) - parseFloat(balance.availableBalance || 0),
+                total: parseFloat(balance.totalBalance || 0)
+            }));
+
+        } catch (error) {
+            logger.error('Failed to fetch AscendEX balances', {
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
      * Execute a buy order on AscendEX
      * AscendEX requires account group and uses slash pair format
      * @private
@@ -5395,19 +5446,81 @@ class OrderExecutionService {
      * @private
      */
     async _executeAscendEXSell(pair, quantity, credentials) {
+        // Declare variables at function scope so they're available in catch block
+        let adjustedQuantity = quantity;
+        let wasAdjusted = false;
+        let accountGroup;
+
         try {
-            // Step 1: Get account group
-            const accountGroup = await this._getAscendEXAccountGroup(credentials);
+            // Step 1: Get account group (required for AscendEX)
+            accountGroup = await this._getAscendEXAccountGroup(credentials);
 
             // Convert pair to AscendEX format (BTCUSDT → BTC/USDT)
             const ascendexPair = this._convertPairToAscendEX(pair);
 
+            // ===== STEP 1: CHECK AVAILABLE BALANCE AND ADJUST QUANTITY =====
+            logger.info('🔍 Checking AscendEX balance before SELL order', {
+                pair: ascendexPair,
+                requestedQuantity: quantity
+            });
+
+            const balances = await this._getAscendEXBalances(credentials);
+            const baseAsset = pair.replace('USDT', '').replace('USDC', '');
+            const assetBalance = balances.find(b => b.currency === baseAsset);
+
+            if (!assetBalance || assetBalance.available <= 0) {
+                throw new Error(`No ${baseAsset} balance available for sale on AscendEX. Available: ${assetBalance?.available || 0}`);
+            }
+
+            logger.info('📊 AscendEX balance check', {
+                asset: baseAsset,
+                available: assetBalance.available,
+                requested: quantity,
+                sufficient: assetBalance.available >= quantity
+            });
+
+            // If insufficient balance, adjust quantity to use 99.9% of available (0.1% buffer for rounding/fees)
+            if (assetBalance.available < quantity) {
+                const buffer = 0.999; // Use 99.9% of available balance
+                adjustedQuantity = assetBalance.available * buffer;
+                wasAdjusted = true;
+
+                logger.warn('⚠️ Insufficient balance - adjusting SELL quantity', {
+                    pair: ascendexPair,
+                    originalQuantity: quantity,
+                    availableBalance: assetBalance.available,
+                    adjustedQuantity: adjustedQuantity,
+                    reductionPercent: ((quantity - adjustedQuantity) / quantity * 100).toFixed(2)
+                });
+            }
+
+            // Validate minimum order size (exchange-specific minimums)
+            const minimumQuantities = {
+                'XRP': 1.0,
+                'BTC': 0.00001,
+                'ETH': 0.0001,
+                'LTC': 0.001,
+                'BCH': 0.001,
+                'ADA': 1.0,
+                'DOT': 0.1,
+                'LINK': 0.1,
+                'UNI': 0.1,
+                'MATIC': 1.0
+            };
+
+            const minimumQuantity = minimumQuantities[baseAsset] || 0.00001; // Default minimum
+
+            if (adjustedQuantity < minimumQuantity) {
+                throw new Error(`❌ Adjusted quantity ${adjustedQuantity.toFixed(8)} ${baseAsset} is below AscendEX minimum of ${minimumQuantity}. Cannot execute SELL order.`);
+            }
+
+            // ===== STEP 2: PREPARE AND EXECUTE ORDER =====
             // Prepare order data
             const timestamp = Date.now().toString();
             const path = `/${accountGroup}/api/pro/v1/cash/order`;
             const orderData = {
                 symbol: ascendexPair,
-                orderQty: quantity.toString(),
+                orderQty: adjustedQuantity.toString(), // Use ADJUSTED quantity
                 orderType: 'market',
                 side: 'sell',
                 respInst: 'ACCEPT'
@@ -5417,7 +5530,12 @@ class OrderExecutionService {
 
             const url = `https://ascendex.com${path}`;
 
-            logger.info('Executing AscendEX sell order', { pair: ascendexPair, quantity });
+            logger.info('📤 Executing AscendEX sell order', {
+                pair: ascendexPair,
+                originalQuantity: quantity,
+                adjustedQuantity: adjustedQuantity,
+                wasAdjusted: wasAdjusted
+            });
 
             const response = await fetch(url, {
                 method: 'POST',
@@ -5433,19 +5551,22 @@ class OrderExecutionService {
 
             if (!response.ok) {
                 const errorText = await response.text();
-                throw new Error(`AscendEX sell order failed: ${response.status} - ${errorText}`);
+                throw new Error(`❌ AscendEX sell order failed: ${response.status} - ${errorText}`);
             }
 
             const result = await response.json();
 
             // Check for AscendEX API error
             if (result.code !== 0) {
-                throw new Error(`AscendEX sell order failed: ${result.code} - ${result.message}`);
+                throw new Error(`❌ AscendEX sell order failed: ${result.code} - ${result.message}`);
             }
 
-            logger.info('AscendEX sell order executed successfully', {
+            logger.info('✅ AscendEX sell order executed successfully', {
                 pair: ascendexPair,
-                orderId: result.data?.orderId
+                orderId: result.data?.orderId,
+                originalQuantity: quantity,
+                adjustedQuantity: adjustedQuantity,
+                wasAdjusted: wasAdjusted
             });
 
             return {
@@ -5455,9 +5576,11 @@ class OrderExecutionService {
             };
 
         } catch (error) {
-            logger.error('Failed to execute AscendEX sell order', {
+            logger.error('❌ Failed to execute AscendEX sell order', {
                 pair,
-                quantity,
+                originalQuantity: quantity,
+                adjustedQuantity: adjustedQuantity,
+                wasAdjusted: wasAdjusted,
                 error: error.message
             });
             throw error;
