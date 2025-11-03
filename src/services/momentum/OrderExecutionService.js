@@ -5027,6 +5027,55 @@ class OrderExecutionService {
     }
 
     /**
+     * Get XT.com account balances
+     * XT.com uses /v4/balances endpoint with validate headers
+     * @private
+     */
+    async _getXTBalances(credentials) {
+        try {
+            const timestamp = Date.now().toString();
+            const signature = this._createXTSignature(credentials.apiKey, timestamp, credentials.apiSecret);
+
+            const url = 'https://sapi.xt.com/v4/balances';
+
+            const response = await this._fetchWithRetry(url, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'validate-algorithms': 'HmacSHA256',
+                    'validate-appkey': credentials.apiKey,
+                    'validate-recvwindow': '60000',
+                    'validate-timestamp': timestamp,
+                    'validate-signature': signature
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.rc !== 0) {
+                throw new Error(`XT.com balance fetch failed: ${data.rc} - ${data.msg}`);
+            }
+
+            // XT.com returns array of balances
+            // Transform to standard format: { currency, available, reserved, total }
+            const balances = data.result?.assets || [];
+            return balances.map(balance => ({
+                currency: balance.currency.toUpperCase(), // XT uses lowercase, convert to uppercase
+                available: parseFloat(balance.available || 0),
+                reserved: parseFloat(balance.frozen || 0),
+                total: parseFloat(balance.total || 0)
+            }));
+
+        } catch (error) {
+            logger.error('Failed to fetch XT.com balances', {
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
      * Execute a buy order on XT.com
      * XT.com uses unique signature format with lowercase underscore pairs
      * @private
@@ -5103,24 +5152,90 @@ class OrderExecutionService {
      * @private
      */
     async _executeXTSell(pair, quantity, credentials) {
+        // Declare variables at function scope so they're available in catch block
+        let adjustedQuantity = quantity;
+        let wasAdjusted = false;
+
         try {
             // Convert pair to XT.com format (BTCUSDT → btc_usdt)
             const xtPair = this._convertPairToXT(pair);
 
+            // ===== STEP 1: CHECK AVAILABLE BALANCE AND ADJUST QUANTITY =====
+            logger.info('🔍 Checking XT.com balance before SELL order', {
+                pair: xtPair,
+                requestedQuantity: quantity
+            });
+
+            const balances = await this._getXTBalances(credentials);
+            const baseAsset = pair.replace('USDT', '').replace('USDC', '');
+            const assetBalance = balances.find(b => b.currency === baseAsset);
+
+            if (!assetBalance || assetBalance.available <= 0) {
+                throw new Error(`No ${baseAsset} balance available for sale on XT.com. Available: ${assetBalance?.available || 0}`);
+            }
+
+            logger.info('📊 XT.com balance check', {
+                asset: baseAsset,
+                available: assetBalance.available,
+                requested: quantity,
+                sufficient: assetBalance.available >= quantity
+            });
+
+            // If insufficient balance, adjust quantity to use 99.9% of available (0.1% buffer for rounding/fees)
+            if (assetBalance.available < quantity) {
+                const buffer = 0.999; // Use 99.9% of available balance
+                adjustedQuantity = assetBalance.available * buffer;
+                wasAdjusted = true;
+
+                logger.warn('⚠️ Insufficient balance - adjusting SELL quantity', {
+                    pair: xtPair,
+                    originalQuantity: quantity,
+                    availableBalance: assetBalance.available,
+                    adjustedQuantity: adjustedQuantity,
+                    reductionPercent: ((quantity - adjustedQuantity) / quantity * 100).toFixed(2)
+                });
+            }
+
+            // Validate minimum order size (exchange-specific minimums)
+            const minimumQuantities = {
+                'XRP': 1.0,
+                'BTC': 0.00001,
+                'ETH': 0.0001,
+                'LTC': 0.001,
+                'BCH': 0.001,
+                'ADA': 1.0,
+                'DOT': 0.1,
+                'LINK': 0.1,
+                'UNI': 0.1,
+                'MATIC': 1.0
+            };
+
+            const minimumQuantity = minimumQuantities[baseAsset] || 0.00001; // Default minimum
+
+            if (adjustedQuantity < minimumQuantity) {
+                throw new Error(`❌ Adjusted quantity ${adjustedQuantity.toFixed(8)} ${baseAsset} is below XT.com minimum of ${minimumQuantity}. Cannot execute SELL order.`);
+            }
+
+            // ===== STEP 2: PREPARE AND EXECUTE ORDER =====
             // Prepare order data
             const timestamp = Date.now().toString();
             const orderData = {
                 symbol: xtPair,
                 side: 'SELL',
                 type: 'MARKET',
-                quantity: quantity.toString() // Use quantity for sell (base currency)
+                quantity: adjustedQuantity.toString() // Use ADJUSTED quantity for sell (base currency)
             };
 
             const signature = this._createXTSignature(credentials.apiKey, timestamp, credentials.apiSecret);
 
             const url = `https://sapi.xt.com/v4/order`;
 
-            logger.info('Executing XT.com sell order', { pair: xtPair, quantity });
+            logger.info('📤 Executing XT.com sell order', {
+                pair: xtPair,
+                originalQuantity: quantity,
+                adjustedQuantity: adjustedQuantity,
+                wasAdjusted: wasAdjusted
+            });
 
             const response = await fetch(url, {
                 method: 'POST',
@@ -5138,19 +5253,22 @@ class OrderExecutionService {
 
             if (!response.ok) {
                 const errorText = await response.text();
-                throw new Error(`XT.com sell order failed: ${response.status} - ${errorText}`);
+                throw new Error(`❌ XT.com sell order failed: ${response.status} - ${errorText}`);
             }
 
             const result = await response.json();
 
             // Check for XT.com API error
             if (result.rc !== 0) {
-                throw new Error(`XT.com sell order failed: ${result.rc} - ${result.msg}`);
+                throw new Error(`❌ XT.com sell order failed: ${result.rc} - ${result.msg}`);
             }
 
-            logger.info('XT.com sell order executed successfully', {
+            logger.info('✅ XT.com sell order executed successfully', {
                 pair: xtPair,
-                orderId: result.result?.orderId
+                orderId: result.result?.orderId,
+                originalQuantity: quantity,
+                adjustedQuantity: adjustedQuantity,
+                wasAdjusted: wasAdjusted
             });
 
             return {
@@ -5160,9 +5278,11 @@ class OrderExecutionService {
             };
 
         } catch (error) {
-            logger.error('Failed to execute XT.com sell order', {
+            logger.error('❌ Failed to execute XT.com sell order', {
                 pair,
-                quantity,
+                originalQuantity: quantity,
+                adjustedQuantity: adjustedQuantity,
+                wasAdjusted: wasAdjusted,
                 error: error.message
             });
             throw error;
