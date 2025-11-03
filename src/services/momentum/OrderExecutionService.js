@@ -7353,6 +7353,58 @@ class OrderExecutionService {
     // ============================================================================
 
     /**
+     * Get Gemini account balances
+     * Gemini uses /v1/balances endpoint with base64 payload + HMAC-SHA384 signature
+     * @private
+     */
+    async _getGeminiBalances(credentials) {
+        try {
+            const nonce = Date.now();
+            const payload = {
+                request: '/v1/balances',
+                nonce: nonce
+            };
+
+            const payloadBase64 = Buffer.from(JSON.stringify(payload)).toString('base64');
+            const signature = this._createGeminiSignature(payloadBase64, credentials.apiSecret);
+
+            const url = 'https://api.gemini.com/v1/balances';
+
+            const response = await this._fetchWithRetry(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'text/plain',
+                    'X-GEMINI-APIKEY': credentials.apiKey,
+                    'X-GEMINI-PAYLOAD': payloadBase64,
+                    'X-GEMINI-SIGNATURE': signature
+                }
+            });
+
+            const data = await response.json();
+
+            // Check for Gemini error response
+            if (data.result === 'error') {
+                throw new Error(`Gemini balance fetch failed: ${data.reason} - ${data.message}`);
+            }
+
+            // Gemini returns array of balances
+            // Transform to standard format: { currency, available, reserved, total }
+            return data.map(balance => ({
+                currency: balance.currency,
+                available: parseFloat(balance.available || 0),
+                reserved: parseFloat(balance.availableForWithdrawal || 0) - parseFloat(balance.available || 0),
+                total: parseFloat(balance.availableForWithdrawal || 0)
+            }));
+
+        } catch (error) {
+            logger.error('Failed to fetch Gemini balances', {
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
      * Execute Gemini buy order (market order)
      * @param {string} pair - Trading pair (e.g., 'BTCUSD', 'BTCUSDT')
      * @param {number} amountUSD - Amount in USD/USDT to spend
@@ -7452,10 +7504,71 @@ class OrderExecutionService {
      * @private
      */
     async _executeGeminiSell(pair, quantity, credentials) {
+        // Declare variables at function scope so they're available in catch block
+        let adjustedQuantity = quantity;
+        let wasAdjusted = false;
+
         try {
             // Convert pair to Gemini format (BTCUSD → btcusd)
             const geminiPair = this._convertPairToGemini(pair);
 
+            // ===== STEP 1: CHECK AVAILABLE BALANCE AND ADJUST QUANTITY =====
+            logger.info('🔍 Checking Gemini balance before SELL order', {
+                pair: geminiPair,
+                requestedQuantity: quantity
+            });
+
+            const balances = await this._getGeminiBalances(credentials);
+            const baseAsset = pair.replace('USDT', '').replace('USD', '').replace('USDC', '');
+            const assetBalance = balances.find(b => b.currency === baseAsset);
+
+            if (!assetBalance || assetBalance.available <= 0) {
+                throw new Error(`No ${baseAsset} balance available for sale on Gemini. Available: ${assetBalance?.available || 0}`);
+            }
+
+            logger.info('📊 Gemini balance check', {
+                asset: baseAsset,
+                available: assetBalance.available,
+                requested: quantity,
+                sufficient: assetBalance.available >= quantity
+            });
+
+            // If insufficient balance, adjust quantity to use 99.9% of available (0.1% buffer for rounding/fees)
+            if (assetBalance.available < quantity) {
+                const buffer = 0.999; // Use 99.9% of available balance
+                adjustedQuantity = assetBalance.available * buffer;
+                wasAdjusted = true;
+
+                logger.warn('⚠️ Insufficient balance - adjusting SELL quantity', {
+                    pair: geminiPair,
+                    originalQuantity: quantity,
+                    availableBalance: assetBalance.available,
+                    adjustedQuantity: adjustedQuantity,
+                    reductionPercent: ((quantity - adjustedQuantity) / quantity * 100).toFixed(2)
+                });
+            }
+
+            // Validate minimum order size (exchange-specific minimums)
+            const minimumQuantities = {
+                'XRP': 1.0,
+                'BTC': 0.00001,
+                'ETH': 0.0001,
+                'LTC': 0.001,
+                'BCH': 0.001,
+                'ADA': 1.0,
+                'DOT': 0.1,
+                'LINK': 0.1,
+                'UNI': 0.1,
+                'MATIC': 1.0
+            };
+
+            const minimumQuantity = minimumQuantities[baseAsset] || 0.00001; // Default minimum
+
+            if (adjustedQuantity < minimumQuantity) {
+                throw new Error(`❌ Adjusted quantity ${adjustedQuantity.toFixed(8)} ${baseAsset} is below Gemini minimum of ${minimumQuantity}. Cannot execute SELL order.`);
+            }
+
+            // ===== STEP 2: PREPARE AND EXECUTE ORDER =====
             // Get current price for order
             const currentPrice = await this._fetchGeminiPrice(geminiPair);
 
@@ -7465,7 +7578,7 @@ class OrderExecutionService {
                 request: '/v1/order/new',
                 nonce: nonce,
                 symbol: geminiPair,
-                amount: quantity.toFixed(8),
+                amount: adjustedQuantity.toFixed(8), // Use ADJUSTED quantity
                 price: currentPrice.toString(),
                 side: 'sell',
                 type: 'exchange market',  // Market order on exchange (not auction)
@@ -7477,9 +7590,11 @@ class OrderExecutionService {
 
             const url = 'https://api.gemini.com/v1/order/new';
 
-            logger.info('Executing Gemini sell order', {
+            logger.info('📤 Executing Gemini sell order', {
                 pair: geminiPair,
-                quantity
+                originalQuantity: quantity,
+                adjustedQuantity: adjustedQuantity,
+                wasAdjusted: wasAdjusted
             });
 
             const response = await fetch(url, {
@@ -7494,20 +7609,23 @@ class OrderExecutionService {
 
             if (!response.ok) {
                 const errorText = await response.text();
-                throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
+                throw new Error(`❌ Gemini API error: ${response.status} - ${errorText}`);
             }
 
             const result = await response.json();
 
             // Check for Gemini error response
             if (result.result === 'error') {
-                throw new Error(`Gemini order error: ${result.reason} - ${result.message}`);
+                throw new Error(`❌ Gemini order error: ${result.reason} - ${result.message}`);
             }
 
-            logger.info('Gemini sell order executed successfully', {
+            logger.info('✅ Gemini sell order executed successfully', {
                 pair: geminiPair,
                 orderId: result.order_id,
-                executedAmount: result.executed_amount
+                executedAmount: result.executed_amount,
+                originalQuantity: quantity,
+                adjustedQuantity: adjustedQuantity,
+                wasAdjusted: wasAdjusted
             });
 
             return {
@@ -7516,15 +7634,17 @@ class OrderExecutionService {
                 orderId: result.order_id,
                 pair: geminiPair,
                 side: 'sell',
-                quantity: parseFloat(result.executed_amount || quantity),
+                quantity: parseFloat(result.executed_amount || adjustedQuantity),
                 price: parseFloat(result.avg_execution_price || currentPrice),
                 timestamp: Date.now()
             };
 
         } catch (error) {
-            logger.error('Gemini sell order failed', {
+            logger.error('❌ Gemini sell order failed', {
                 pair,
-                quantity,
+                originalQuantity: quantity,
+                adjustedQuantity: adjustedQuantity,
+                wasAdjusted: wasAdjusted,
                 error: error.message
             });
             throw error;
