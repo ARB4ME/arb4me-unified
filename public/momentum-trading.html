@@ -1110,11 +1110,12 @@
                 balanceValueEl.style.color = '#888';
                 balanceErrorEl.style.display = 'none';
 
-                // Call balance endpoint
-                const response = await fetch(`/api/v1/trading/${selectedExchange}/balance`, {
+                // Call MOMENTUM balance endpoint (not arbitrage)
+                const response = await fetch(`/api/v1/momentum/balance`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
+                        exchange: selectedExchange,
                         apiKey,
                         apiSecret,
                         ...(apiPassphrase && { passphrase: apiPassphrase })

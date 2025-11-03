@@ -400,23 +400,57 @@ class OrderExecutionService {
         try {
             const exchangeLower = exchange.toLowerCase();
 
-            if (exchangeLower === 'valr') {
-                return await this._getValrBalances(credentials);
+            // Route to appropriate exchange balance method
+            switch (exchangeLower) {
+                case 'valr':
+                    return await this._getValrBalances(credentials);
+                case 'luno':
+                    return await this._getLunoBalances(credentials);
+                case 'chainex':
+                    return await this._getChainEXBalances(credentials);
+                case 'binance':
+                    return await this._getBinanceBalances(credentials);
+                case 'kraken':
+                    return await this._getKrakenBalances(credentials);
+                case 'bybit':
+                    return await this._getByBitBalances(credentials);
+                case 'gateio':
+                case 'gate.io':
+                    return await this._getGateioBalances(credentials);
+                case 'okx':
+                    return await this._getOKXBalances(credentials);
+                case 'mexc':
+                    return await this._getMEXCBalances(credentials);
+                case 'kucoin':
+                    return await this._getKuCoinBalances(credentials);
+                case 'xt':
+                case 'xt.com':
+                    return await this._getXTBalances(credentials);
+                case 'ascendex':
+                    return await this._getAscendEXBalances(credentials);
+                case 'htx':
+                case 'huobi':
+                    return await this._getHTXBalances(credentials);
+                case 'bingx':
+                    return await this._getBingXBalances(credentials);
+                case 'bitget':
+                    return await this._getBitgetBalances(credentials);
+                case 'bitmart':
+                    return await this._getBitMartBalances(credentials);
+                case 'bitrue':
+                    return await this._getBitrueBalances(credentials);
+                case 'gemini':
+                    return await this._getGeminiBalances(credentials);
+                case 'crypto.com':
+                case 'cryptocom':
+                    return await this._getCryptoComBalances(credentials);
+                case 'coincatch':
+                    return await this._getCoincatchBalances(credentials);
+                case 'altcointrader':
+                    return await this._getAltCoinTraderBalances(credentials);
+                default:
+                    throw new Error(`Exchange not supported: ${exchange}`);
             }
-
-            if (exchangeLower === 'luno') {
-                return await this._getLunoBalances(credentials);
-            }
-
-            if (exchangeLower === 'chainex') {
-                return await this._getChainEXBalances(credentials);
-            }
-
-            if (exchangeLower === 'kraken') {
-                return await this._getKrakenBalances(credentials);
-            }
-
-            throw new Error(`Exchange not supported: ${exchange}`);
 
         } catch (error) {
             logger.error('Get balances failed', {

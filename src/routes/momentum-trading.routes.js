@@ -1294,6 +1294,69 @@ router.post('/market/current-price', async (req, res) => {
 });
 
 /**
+ * POST /api/v1/momentum/balance
+ * Get USDT balance for an exchange (accepts credentials in body)
+ */
+router.post('/balance', async (req, res) => {
+    try {
+        const { exchange, apiKey, apiSecret, passphrase, memo } = req.body;
+
+        if (!exchange || !apiKey || !apiSecret) {
+            return res.status(400).json({
+                success: false,
+                error: 'exchange, apiKey, and apiSecret are required'
+            });
+        }
+
+        logger.info('Fetching momentum balance', { exchange });
+
+        const credentials = {
+            apiKey,
+            apiSecret,
+            ...(passphrase && { passphrase }),
+            ...(memo && { memo })
+        };
+
+        // Get balances using OrderExecutionService (which has all exchange balance methods)
+        const balances = await orderExecutionService.getBalances(exchange, credentials);
+
+        // Find USDT balance
+        const usdtBalance = balances.find(b => b.currency === 'USDT');
+
+        logger.info('Momentum balance retrieved', {
+            exchange,
+            usdtAvailable: usdtBalance?.available || 0,
+            usdtTotal: usdtBalance?.total || 0
+        });
+
+        // Return in format compatible with frontend
+        res.json({
+            success: true,
+            data: {
+                exchange: exchange.toLowerCase(),
+                balances: {
+                    USDT: usdtBalance?.available || 0,
+                    usdt: usdtBalance?.available || 0
+                },
+                details: usdtBalance || { currency: 'USDT', available: 0, reserved: 0, total: 0 }
+            }
+        });
+
+    } catch (error) {
+        logger.error('Failed to fetch momentum balance', {
+            exchange: req.body.exchange,
+            error: error.message,
+            stack: error.stack
+        });
+
+        res.status(500).json({
+            success: false,
+            error: error.message || 'Failed to fetch balance'
+        });
+    }
+});
+
+/**
  * POST /api/v1/momentum/order/buy
  * Execute a buy order (accepts credentials in body)
  */
