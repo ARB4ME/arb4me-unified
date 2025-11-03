@@ -6037,6 +6037,52 @@ class OrderExecutionService {
     }
 
     /**
+     * Get BingX account balances
+     * BingX uses /openApi/spot/v1/account/balance endpoint
+     * @private
+     */
+    async _getBingXBalances(credentials) {
+        try {
+            const timestamp = Date.now();
+            const queryParams = `timestamp=${timestamp}`;
+            const signature = this._createBingXSignature(queryParams, credentials.apiSecret);
+
+            const url = `https://open-api.bingx.com/openApi/spot/v1/account/balance?${queryParams}&signature=${signature}`;
+
+            const response = await this._fetchWithRetry(url, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-BX-APIKEY': credentials.apiKey
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.code !== 0) {
+                throw new Error(`BingX balance fetch failed: ${data.code} - ${data.msg}`);
+            }
+
+            // BingX returns array of balances
+            // Transform to standard format: { currency, available, reserved, total }
+            const balances = data.data?.balances || [];
+            return balances.map(balance => ({
+                currency: balance.asset,
+                available: parseFloat(balance.free || 0),
+                reserved: parseFloat(balance.locked || 0),
+                total: parseFloat(balance.free || 0) + parseFloat(balance.locked || 0)
+            }));
+
+        } catch (error) {
+            logger.error('Failed to fetch BingX balances', {
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
      * Execute a buy order on BingX
      * BingX uses simple HMAC-SHA256 signature with hyphen pair format
      * @private
@@ -6110,17 +6156,78 @@ class OrderExecutionService {
      * @private
      */
     async _executeBingXSell(pair, quantity, credentials) {
+        // Declare variables at function scope so they're available in catch block
+        let adjustedQuantity = quantity;
+        let wasAdjusted = false;
+
         try {
             // Convert pair to BingX format (BTCUSDT → BTC-USDT)
             const bingxPair = this._convertPairToBingX(pair);
 
+            // ===== STEP 1: CHECK AVAILABLE BALANCE AND ADJUST QUANTITY =====
+            logger.info('🔍 Checking BingX balance before SELL order', {
+                pair: bingxPair,
+                requestedQuantity: quantity
+            });
+
+            const balances = await this._getBingXBalances(credentials);
+            const baseAsset = pair.replace('USDT', '').replace('USDC', '');
+            const assetBalance = balances.find(b => b.currency === baseAsset);
+
+            if (!assetBalance || assetBalance.available <= 0) {
+                throw new Error(`No ${baseAsset} balance available for sale on BingX. Available: ${assetBalance?.available || 0}`);
+            }
+
+            logger.info('📊 BingX balance check', {
+                asset: baseAsset,
+                available: assetBalance.available,
+                requested: quantity,
+                sufficient: assetBalance.available >= quantity
+            });
+
+            // If insufficient balance, adjust quantity to use 99.9% of available (0.1% buffer for rounding/fees)
+            if (assetBalance.available < quantity) {
+                const buffer = 0.999; // Use 99.9% of available balance
+                adjustedQuantity = assetBalance.available * buffer;
+                wasAdjusted = true;
+
+                logger.warn('⚠️ Insufficient balance - adjusting SELL quantity', {
+                    pair: bingxPair,
+                    originalQuantity: quantity,
+                    availableBalance: assetBalance.available,
+                    adjustedQuantity: adjustedQuantity,
+                    reductionPercent: ((quantity - adjustedQuantity) / quantity * 100).toFixed(2)
+                });
+            }
+
+            // Validate minimum order size (exchange-specific minimums)
+            const minimumQuantities = {
+                'XRP': 1.0,
+                'BTC': 0.00001,
+                'ETH': 0.0001,
+                'LTC': 0.001,
+                'BCH': 0.001,
+                'ADA': 1.0,
+                'DOT': 0.1,
+                'LINK': 0.1,
+                'UNI': 0.1,
+                'MATIC': 1.0
+            };
+
+            const minimumQuantity = minimumQuantities[baseAsset] || 0.00001; // Default minimum
+
+            if (adjustedQuantity < minimumQuantity) {
+                throw new Error(`❌ Adjusted quantity ${adjustedQuantity.toFixed(8)} ${baseAsset} is below BingX minimum of ${minimumQuantity}. Cannot execute SELL order.`);
+            }
+
+            // ===== STEP 2: PREPARE AND EXECUTE ORDER =====
             // Prepare order data
             const timestamp = Date.now();
             const orderParams = {
                 symbol: bingxPair,
                 side: 'SELL',
                 type: 'MARKET',
-                quantity: quantity.toString(),
+                quantity: adjustedQuantity.toString(), // Use ADJUSTED quantity
                 timestamp: timestamp
             };
 
@@ -6129,7 +6236,12 @@ class OrderExecutionService {
 
             const url = `https://open-api.bingx.com/openApi/spot/v1/trade/order?${queryString}&signature=${signature}`;
 
-            logger.info('Executing BingX sell order', { pair: bingxPair, quantity });
+            logger.info('📤 Executing BingX sell order', {
+                pair: bingxPair,
+                originalQuantity: quantity,
+                adjustedQuantity: adjustedQuantity,
+                wasAdjusted: wasAdjusted
+            });
 
             const response = await fetch(url, {
                 method: 'POST',
@@ -6142,19 +6254,22 @@ class OrderExecutionService {
 
             if (!response.ok) {
                 const errorText = await response.text();
-                throw new Error(`BingX sell order failed: ${response.status} - ${errorText}`);
+                throw new Error(`❌ BingX sell order failed: ${response.status} - ${errorText}`);
             }
 
             const result = await response.json();
 
             // Check for BingX API error
             if (result.code !== 0) {
-                throw new Error(`BingX sell order failed: ${result.code} - ${result.msg}`);
+                throw new Error(`❌ BingX sell order failed: ${result.code} - ${result.msg}`);
             }
 
-            logger.info('BingX sell order executed successfully', {
+            logger.info('✅ BingX sell order executed successfully', {
                 pair: bingxPair,
-                orderId: result.data?.orderId
+                orderId: result.data?.orderId,
+                originalQuantity: quantity,
+                adjustedQuantity: adjustedQuantity,
+                wasAdjusted: wasAdjusted
             });
 
             return {
@@ -6164,9 +6279,11 @@ class OrderExecutionService {
             };
 
         } catch (error) {
-            logger.error('Failed to execute BingX sell order', {
+            logger.error('❌ Failed to execute BingX sell order', {
                 pair,
-                quantity,
+                originalQuantity: quantity,
+                adjustedQuantity: adjustedQuantity,
+                wasAdjusted: wasAdjusted,
                 error: error.message
             });
             throw error;
