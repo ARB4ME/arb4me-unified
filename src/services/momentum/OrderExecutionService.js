@@ -413,7 +413,7 @@ class OrderExecutionService {
                 case 'kraken':
                     return await this._getKrakenBalances(credentials);
                 case 'bybit':
-                    return await this._getByBitBalances(credentials);
+                    return await this._getBYBITBalances(credentials);
                 case 'gateio':
                 case 'gate.io':
                     return await this._getGateioBalances(credentials);
