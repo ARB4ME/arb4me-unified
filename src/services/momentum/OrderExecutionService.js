@@ -4082,8 +4082,165 @@ class OrderExecutionService {
      * Execute a sell order on OKX
      * @private
      */
-    async _executeOKXSell(pair, quantity, credentials) {
+    /**
+     * Get OKX account balances
+     * @private
+     */
+    async _getOKXBalances(credentials) {
         try {
+            // Apply rate limiting
+            await this._rateLimitDelay();
+
+            const timestamp = new Date().toISOString();
+            const method = 'GET';
+            const requestPath = '/api/v5/account/balance';
+
+            // Create authentication headers
+            const authHeaders = this._createOKXAuth(
+                credentials.apiKey,
+                credentials.apiSecret,
+                credentials.passphrase,
+                timestamp,
+                method,
+                requestPath,
+                ''
+            );
+
+            const url = `https://www.okx.com${requestPath}`;
+
+            const response = await this._fetchWithRetry(url, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    ...authHeaders
+                }
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`OKX get balances failed: ${response.status} - ${errorText}`);
+            }
+
+            const result = await response.json();
+
+            if (result.code !== '0') {
+                throw new Error(`OKX API error: ${result.code} - ${result.msg}`);
+            }
+
+            // Transform to standard format: { currency: 'BTC', available: 0.5, reserved: 0.1, total: 0.6 }
+            const details = result.data[0]?.details || [];
+            return details.map(detail => ({
+                currency: detail.ccy,
+                available: parseFloat(detail.availBal || 0),
+                reserved: parseFloat(detail.frozenBal || 0),
+                total: parseFloat(detail.bal || 0)
+            }));
+
+        } catch (error) {
+            logger.error('Failed to get OKX balances', {
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    async _executeOKXSell(pair, quantity, credentials) {
+        // Declare variables at function scope to avoid ReferenceError in catch block
+        let adjustedQuantity = quantity;
+        let wasAdjusted = false;
+
+        try {
+            // ===== STEP 1: CHECK AVAILABLE BALANCE AND ADJUST QUANTITY =====
+            logger.info('🔍 Checking OKX balance before SELL order', { pair, requestedQuantity: quantity });
+
+            try {
+                const balances = await this._getOKXBalances(credentials);
+                const baseAsset = pair.replace('USDT', '').replace('-USDT', ''); // OKX uses hyphen
+                const assetBalance = balances.find(b => b.currency === baseAsset);
+
+                logger.info('📊 OKX BALANCE CHECK', {
+                    asset: baseAsset,
+                    availableBalance: assetBalance?.available || 0,
+                    reservedBalance: assetBalance?.reserved || 0,
+                    totalBalance: assetBalance?.total || 0,
+                    requestedQuantity: quantity,
+                    canSellRequested: assetBalance?.available >= quantity ? '✅ YES' : '❌ NO - INSUFFICIENT',
+                    shortfall: assetBalance?.available < quantity ? (quantity - assetBalance.available).toFixed(8) : 0
+                });
+
+                if (!assetBalance || assetBalance.available <= 0) {
+                    throw new Error(`No ${baseAsset} balance available. Available: ${assetBalance?.available || 0}`);
+                }
+
+                // Check OKX minimum order sizes
+                const minimumOrderSizes = {
+                    'XRP': 1.0,
+                    'BTC': 0.00001,
+                    'ETH': 0.0001,
+                    // Add more as needed
+                };
+
+                const minimumQuantity = minimumOrderSizes[baseAsset] || 0;
+
+                // If insufficient balance, use available balance minus 0.1% buffer for safety
+                if (assetBalance.available < quantity) {
+                    const buffer = 0.999; // 99.9% of available (0.1% safety buffer)
+                    adjustedQuantity = assetBalance.available * buffer;
+                    wasAdjusted = true;
+
+                    logger.warn('⚠️ ADJUSTING SELL QUANTITY DUE TO INSUFFICIENT BALANCE', {
+                        originalQuantity: quantity,
+                        availableBalance: assetBalance.available,
+                        adjustedQuantity: adjustedQuantity,
+                        discrepancy: (quantity - assetBalance.available).toFixed(8),
+                        adjustmentReason: 'Fees deducted during buy reduced available balance',
+                        buffer: '0.1%'
+                    });
+                }
+
+                // Format quantity to proper decimal places (OKX uses 8 decimals for crypto)
+                adjustedQuantity = parseFloat(adjustedQuantity.toFixed(8));
+
+                // Check if adjusted quantity meets OKX minimum order size
+                if (minimumQuantity > 0 && adjustedQuantity < minimumQuantity) {
+                    logger.error('❌ BALANCE BELOW OKX MINIMUM ORDER SIZE - CANNOT AUTO-CLOSE', {
+                        asset: baseAsset,
+                        availableBalance: assetBalance.available,
+                        adjustedQuantity: adjustedQuantity,
+                        minimumRequired: minimumQuantity,
+                        shortfall: (minimumQuantity - adjustedQuantity).toFixed(8),
+                        originalPositionQuantity: quantity,
+                        discrepancy: (quantity - assetBalance.available).toFixed(8),
+                        possibleReasons: [
+                            'Asset was manually sold elsewhere',
+                            'Buy order failed but position was created',
+                            'Another bot/system is trading the same account',
+                            'Database entry is incorrect'
+                        ],
+                        requiredAction: 'MANUAL INTERVENTION REQUIRED - Check OKX account history and close position manually'
+                    });
+
+                    throw new Error(`Cannot sell ${adjustedQuantity} ${baseAsset}: Below OKX minimum order size of ${minimumQuantity} ${baseAsset}. Available: ${assetBalance.available} ${baseAsset}. This position requires manual intervention.`);
+                }
+
+                logger.info('✅ SELL QUANTITY DETERMINED', {
+                    finalQuantity: adjustedQuantity,
+                    wasAdjusted: wasAdjusted,
+                    availableBalance: assetBalance.available,
+                    meetsMinimum: adjustedQuantity >= minimumQuantity
+                });
+
+            } catch (balanceError) {
+                logger.error('❌ BALANCE CHECK FAILED - CANNOT PROCEED', {
+                    error: balanceError.message,
+                    pair,
+                    requestedQuantity: quantity
+                });
+                throw new Error(`Cannot execute sell order: ${balanceError.message}`);
+            }
+
+            // ===== STEP 2: PREPARE AND EXECUTE ORDER =====
             // Convert pair to OKX format (BTCUSDT → BTC-USDT)
             const okxPair = this._convertPairToOKX(pair);
 
@@ -4097,7 +4254,7 @@ class OrderExecutionService {
                 tdMode: 'cash', // Cash trading mode (spot)
                 side: 'sell',
                 ordType: 'market',
-                sz: quantity.toString(), // Order quantity (in base currency for sell)
+                sz: adjustedQuantity.toString(), // Use adjusted quantity (accounts for fees)
                 tgtCcy: 'base_ccy' // Target currency is base currency
             };
 
@@ -4116,7 +4273,12 @@ class OrderExecutionService {
 
             const url = `https://www.okx.com${requestPath}`;
 
-            logger.info('Executing OKX sell order', { pair: okxPair, quantity });
+            logger.info('📤 Executing OKX sell order', {
+                pair: okxPair,
+                originalQuantity: quantity,
+                adjustedQuantity: adjustedQuantity,
+                wasAdjusted: wasAdjusted
+            });
 
             const response = await fetch(url, {
                 method: method,
@@ -4130,6 +4292,14 @@ class OrderExecutionService {
 
             if (!response.ok) {
                 const errorText = await response.text();
+                logger.error('❌ OKX SELL ORDER REJECTED', {
+                    pair: okxPair,
+                    originalQuantity: quantity,
+                    adjustedQuantity: adjustedQuantity,
+                    wasAdjusted: wasAdjusted,
+                    httpStatus: response.status,
+                    error: errorText
+                });
                 throw new Error(`OKX sell order failed: ${response.status} - ${errorText}`);
             }
 
@@ -4137,21 +4307,33 @@ class OrderExecutionService {
 
             // Check for API error in response
             if (result.code !== '0') {
+                logger.error('❌ OKX API ERROR', {
+                    pair: okxPair,
+                    originalQuantity: quantity,
+                    adjustedQuantity: adjustedQuantity,
+                    wasAdjusted: wasAdjusted,
+                    code: result.code,
+                    msg: result.msg
+                });
                 throw new Error(`OKX sell order failed: ${result.code} - ${result.msg}`);
             }
 
             const orderResult = result.data[0];
 
-            logger.info('OKX sell order executed successfully', {
+            logger.info('✅ OKX sell order executed successfully', {
                 pair: okxPair,
                 orderId: orderResult.ordId,
                 clientOrderId: orderResult.clOrdId,
-                sCode: orderResult.sCode
+                sCode: orderResult.sCode,
+                originalQuantity: quantity,
+                adjustedQuantity: adjustedQuantity,
+                wasAdjusted: wasAdjusted
             });
 
             return {
                 orderId: orderResult.ordId,
                 clientOrderId: orderResult.clOrdId,
+                executedQuantity: adjustedQuantity,
                 status: 'filled',
                 pair: okxPair
             };
@@ -4159,7 +4341,9 @@ class OrderExecutionService {
         } catch (error) {
             logger.error('Failed to execute OKX sell order', {
                 pair,
-                quantity,
+                originalQuantity: quantity,
+                adjustedQuantity: adjustedQuantity,
+                wasAdjusted: wasAdjusted,
                 error: error.message
             });
             throw error;
