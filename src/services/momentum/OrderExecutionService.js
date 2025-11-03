@@ -8056,6 +8056,72 @@ class OrderExecutionService {
     // ============================================================================
 
     /**
+     * Get Coincatch balances (OKX-compatible API)
+     * @private
+     */
+    async _getCoincatchBalances(credentials) {
+        try {
+            const timestamp = Date.now().toString();
+            const method = 'GET';
+            const requestPath = '/api/v5/account/balance';
+            const requestBody = '';
+
+            const signaturePayload = timestamp + method + requestPath + requestBody;
+            const signature = crypto.createHmac('sha256', credentials.apiSecret)
+                .update(signaturePayload)
+                .digest('base64');
+
+            const url = `${this.baseUrl || 'https://api.coincatch.com'}${requestPath}`;
+
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'OK-ACCESS-KEY': credentials.apiKey,
+                    'OK-ACCESS-SIGN': signature,
+                    'OK-ACCESS-TIMESTAMP': timestamp,
+                    'OK-ACCESS-PASSPHRASE': credentials.passphrase || credentials.apiSecret
+                }
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Coincatch balance fetch error: ${response.status} - ${errorText}`);
+            }
+
+            const result = await response.json();
+
+            if (result.code !== '0') {
+                throw new Error(`Coincatch balance fetch failed: ${result.code} - ${result.msg}`);
+            }
+
+            const balanceData = result.data || [];
+            const allBalances = [];
+
+            // Coincatch returns balance data per account (details array)
+            balanceData.forEach(account => {
+                const details = account.details || [];
+                details.forEach(detail => {
+                    allBalances.push({
+                        currency: detail.ccy,
+                        available: parseFloat(detail.availBal || 0),
+                        reserved: parseFloat(detail.frozenBal || 0),
+                        total: parseFloat(detail.cashBal || 0)
+                    });
+                });
+            });
+
+            return allBalances;
+
+        } catch (error) {
+            logger.error('Failed to fetch Coincatch balances', {
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
      * Execute Coincatch buy order (market order)
      * @private
      */
@@ -8152,9 +8218,62 @@ class OrderExecutionService {
      * @private
      */
     async _executeCoincatchSell(pair, quantity, credentials) {
+        // Declare variables at function scope for catch block access
+        let adjustedQuantity = quantity;
+        let wasAdjusted = false;
+
         try {
+            // ===== STEP 1: CHECK AVAILABLE BALANCE AND ADJUST QUANTITY =====
+            logger.info('🔍 Checking Coincatch balance before SELL order', {
+                pair,
+                requestedQuantity: quantity
+            });
+
+            const balances = await this._getCoincatchBalances(credentials);
+            const baseAsset = pair.replace('-USDT', '').replace('USDT', '');
+            const assetBalance = balances.find(b => b.currency === baseAsset);
+
+            if (!assetBalance || assetBalance.available <= 0) {
+                throw new Error(`No ${baseAsset} balance available on Coincatch (requested: ${quantity})`);
+            }
+
+            logger.info('📊 Coincatch balance check', {
+                asset: baseAsset,
+                available: assetBalance.available,
+                requested: quantity
+            });
+
+            // Check if available balance is sufficient
+            if (assetBalance.available < quantity) {
+                // Use 99.9% of available balance (0.1% buffer for rounding/fees)
+                adjustedQuantity = assetBalance.available * 0.999;
+                wasAdjusted = true;
+                logger.warn('⚠️ Insufficient balance on Coincatch - adjusting SELL quantity', {
+                    asset: baseAsset,
+                    requested: quantity,
+                    available: assetBalance.available,
+                    adjusted: adjustedQuantity,
+                    reduction: ((quantity - adjustedQuantity) / quantity * 100).toFixed(2) + '%'
+                });
+            }
+
+            // Validate minimum order size
+            const minimumQuantities = {
+                'XRP': 1.0,
+                'BTC': 0.00001,
+                'ETH': 0.0001,
+                'SOL': 0.01,
+                'ADA': 1.0
+            };
+
+            const minQty = minimumQuantities[baseAsset] || 0.00001;
+            if (adjustedQuantity < minQty) {
+                throw new Error(`❌ Adjusted quantity ${adjustedQuantity} below minimum ${minQty} for ${baseAsset} on Coincatch`);
+            }
+
+            // ===== STEP 2: EXECUTE SELL ORDER WITH ADJUSTED QUANTITY =====
             // Format quantity to 8 decimal places
-            const formattedQuantity = parseFloat(quantity).toFixed(8);
+            const formattedQuantity = parseFloat(adjustedQuantity).toFixed(8);
 
             // Coincatch order creation (OKX-compatible API)
             const timestamp = Date.now().toString();
@@ -8178,7 +8297,10 @@ class OrderExecutionService {
 
             logger.info('Executing Coincatch sell order', {
                 pair,
-                quantity: formattedQuantity
+                originalQuantity: quantity,
+                adjustedQuantity: adjustedQuantity,
+                formattedQuantity: formattedQuantity,
+                wasAdjusted: wasAdjusted
             });
 
             const response = await fetch(url, {
@@ -8207,10 +8329,13 @@ class OrderExecutionService {
 
             const orderResult = result.data?.[0];
 
-            logger.info('Coincatch sell order executed successfully', {
+            logger.info('✅ Coincatch sell order executed successfully', {
                 orderId: orderResult?.ordId,
                 pair,
-                quantity: formattedQuantity,
+                originalQuantity: quantity,
+                adjustedQuantity: adjustedQuantity,
+                executedQuantity: formattedQuantity,
+                wasAdjusted: wasAdjusted,
                 status: orderResult?.sCode
             });
 
@@ -8224,9 +8349,11 @@ class OrderExecutionService {
             };
 
         } catch (error) {
-            logger.error('Coincatch sell order failed', {
+            logger.error('❌ Failed to execute Coincatch sell order', {
                 pair,
-                quantity,
+                originalQuantity: quantity,
+                adjustedQuantity: adjustedQuantity,
+                wasAdjusted: wasAdjusted,
                 error: error.message
             });
             throw error;
