@@ -623,6 +623,19 @@
             <span class="close-modal" onclick="closeStrategyCreator()">&times;</span>
             <h3 style="color: #00d4ff; margin-bottom: 20px;">✨ Create Momentum Strategy</h3>
 
+            <!-- IMPORTANT WARNING - Prominent Position Limit Notice -->
+            <div style="margin-bottom: 20px; padding: 15px; background: rgba(255, 165, 0, 0.2); border: 2px solid #ffa500; border-radius: 8px;">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                    <span style="font-size: 1.5rem;">⚠️</span>
+                    <strong style="color: #ffa500; font-size: 1.1rem;">IMPORTANT - Position Limit</strong>
+                </div>
+                <p style="margin: 0; font-size: 0.9rem; line-height: 1.6; color: #e0e0e0;">
+                    This strategy can only hold <strong style="color: #ffa500;">1 open position per asset at a time</strong>.
+                    Once a position closes, you can immediately open another. This prevents accounting conflicts
+                    and ensures accurate P&L tracking when using shared exchange balances.
+                </p>
+            </div>
+
             <form id="strategyForm" onsubmit="saveStrategy(event)">
                 <!-- Strategy Name -->
                 <div class="form-group">
@@ -885,10 +898,11 @@
                         </div>
                         <div>
                             <label style="font-size: 0.85rem;">Max Open Positions</label>
-                            <input type="number" id="maxOpenPositions" value="3" min="1" max="20">
-                            <small>Maximum simultaneous positions</small>
+                            <input type="number" id="maxOpenPositions" value="1" min="1" max="1" disabled style="background: rgba(255,255,255,0.05); cursor: not-allowed; opacity: 0.6;">
+                            <small style="color: #ffa500;">⚠️ Currently limited to 1 position per asset</small>
                         </div>
                     </div>
+
                 </div>
 
                 <!-- Submit Buttons -->

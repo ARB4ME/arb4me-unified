@@ -504,6 +504,22 @@ router.post('/strategies', async (req, res) => {
             });
         }
 
+        // IMPORTANT: Enforce 1 position per asset limit to prevent shared pot accounting issues
+        // This prevents multiple positions at different entry prices from sharing the same exchange balance
+        if (maxOpenPositions > 1) {
+            logger.warn('Attempt to create strategy with max_open_positions > 1 blocked', {
+                userId,
+                exchange,
+                strategyName,
+                requestedMaxPositions: maxOpenPositions
+            });
+            return res.status(400).json({
+                success: false,
+                error: 'Max open positions must be 1. Multiple positions per asset creates accounting conflicts with shared exchange balances.',
+                maxAllowed: 1
+            });
+        }
+
         // Validate assets array
         if (!Array.isArray(assets) || assets.length === 0) {
             return res.status(400).json({
