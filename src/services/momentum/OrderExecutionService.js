@@ -4458,15 +4458,159 @@ class OrderExecutionService {
      * Execute a sell order on MEXC
      * @private
      */
-    async _executeMEXCSell(pair, quantity, credentials) {
+    /**
+     * Get MEXC account balances
+     * @private
+     */
+    async _getMEXCBalances(credentials) {
         try {
+            // Apply rate limiting
+            await this._rateLimitDelay();
+
+            const timestamp = Date.now();
+            const queryString = `timestamp=${timestamp}`;
+            const signature = this._createMEXCSignature(queryString, credentials.apiSecret);
+
+            const url = `https://api.mexc.com/api/v3/account?${queryString}&signature=${signature}`;
+
+            const response = await this._fetchWithRetry(url, {
+                method: 'GET',
+                headers: {
+                    'X-MEXC-APIKEY': credentials.apiKey
+                }
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`MEXC get balances failed: ${response.status} - ${errorText}`);
+            }
+
+            const data = await response.json();
+
+            // Check for MEXC API error
+            if (data.code && data.code !== 200) {
+                throw new Error(`MEXC API error: ${data.code} - ${data.msg}`);
+            }
+
+            // Transform to standard format: { currency: 'BTC', available: 0.5, reserved: 0.1, total: 0.6 }
+            return data.balances.map(balance => ({
+                currency: balance.asset,
+                available: parseFloat(balance.free || 0),
+                reserved: parseFloat(balance.locked || 0),
+                total: parseFloat(balance.free || 0) + parseFloat(balance.locked || 0)
+            }));
+
+        } catch (error) {
+            logger.error('Failed to get MEXC balances', {
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    async _executeMEXCSell(pair, quantity, credentials) {
+        // Declare variables at function scope to avoid ReferenceError in catch block
+        let adjustedQuantity = quantity;
+        let wasAdjusted = false;
+
+        try {
+            // ===== STEP 1: CHECK AVAILABLE BALANCE AND ADJUST QUANTITY =====
+            logger.info('🔍 Checking MEXC balance before SELL order', { pair, requestedQuantity: quantity });
+
+            try {
+                const balances = await this._getMEXCBalances(credentials);
+                const baseAsset = pair.replace('USDT', '').replace('USDC', '');
+                const assetBalance = balances.find(b => b.currency === baseAsset);
+
+                logger.info('📊 MEXC BALANCE CHECK', {
+                    asset: baseAsset,
+                    availableBalance: assetBalance?.available || 0,
+                    reservedBalance: assetBalance?.reserved || 0,
+                    totalBalance: assetBalance?.total || 0,
+                    requestedQuantity: quantity,
+                    canSellRequested: assetBalance?.available >= quantity ? '✅ YES' : '❌ NO - INSUFFICIENT',
+                    shortfall: assetBalance?.available < quantity ? (quantity - assetBalance.available).toFixed(8) : 0
+                });
+
+                if (!assetBalance || assetBalance.available <= 0) {
+                    throw new Error(`No ${baseAsset} balance available. Available: ${assetBalance?.available || 0}`);
+                }
+
+                // Check MEXC minimum order sizes
+                const minimumOrderSizes = {
+                    'XRP': 1.0,
+                    'BTC': 0.00001,
+                    'ETH': 0.0001,
+                    // Add more as needed
+                };
+
+                const minimumQuantity = minimumOrderSizes[baseAsset] || 0;
+
+                // If insufficient balance, use available balance minus 0.1% buffer for safety
+                if (assetBalance.available < quantity) {
+                    const buffer = 0.999; // 99.9% of available (0.1% safety buffer)
+                    adjustedQuantity = assetBalance.available * buffer;
+                    wasAdjusted = true;
+
+                    logger.warn('⚠️ ADJUSTING SELL QUANTITY DUE TO INSUFFICIENT BALANCE', {
+                        originalQuantity: quantity,
+                        availableBalance: assetBalance.available,
+                        adjustedQuantity: adjustedQuantity,
+                        discrepancy: (quantity - assetBalance.available).toFixed(8),
+                        adjustmentReason: 'Fees deducted during buy reduced available balance',
+                        buffer: '0.1%'
+                    });
+                }
+
+                // Format quantity to proper decimal places (MEXC uses 8 decimals for crypto)
+                adjustedQuantity = parseFloat(adjustedQuantity.toFixed(8));
+
+                // Check if adjusted quantity meets MEXC minimum order size
+                if (minimumQuantity > 0 && adjustedQuantity < minimumQuantity) {
+                    logger.error('❌ BALANCE BELOW MEXC MINIMUM ORDER SIZE - CANNOT AUTO-CLOSE', {
+                        asset: baseAsset,
+                        availableBalance: assetBalance.available,
+                        adjustedQuantity: adjustedQuantity,
+                        minimumRequired: minimumQuantity,
+                        shortfall: (minimumQuantity - adjustedQuantity).toFixed(8),
+                        originalPositionQuantity: quantity,
+                        discrepancy: (quantity - assetBalance.available).toFixed(8),
+                        possibleReasons: [
+                            'Asset was manually sold elsewhere',
+                            'Buy order failed but position was created',
+                            'Another bot/system is trading the same account',
+                            'Database entry is incorrect'
+                        ],
+                        requiredAction: 'MANUAL INTERVENTION REQUIRED - Check MEXC account history and close position manually'
+                    });
+
+                    throw new Error(`Cannot sell ${adjustedQuantity} ${baseAsset}: Below MEXC minimum order size of ${minimumQuantity} ${baseAsset}. Available: ${assetBalance.available} ${baseAsset}. This position requires manual intervention.`);
+                }
+
+                logger.info('✅ SELL QUANTITY DETERMINED', {
+                    finalQuantity: adjustedQuantity,
+                    wasAdjusted: wasAdjusted,
+                    availableBalance: assetBalance.available,
+                    meetsMinimum: adjustedQuantity >= minimumQuantity
+                });
+
+            } catch (balanceError) {
+                logger.error('❌ BALANCE CHECK FAILED - CANNOT PROCEED', {
+                    error: balanceError.message,
+                    pair,
+                    requestedQuantity: quantity
+                });
+                throw new Error(`Cannot execute sell order: ${balanceError.message}`);
+            }
+
+            // ===== STEP 2: PREPARE AND EXECUTE ORDER =====
             // Prepare order data
             const timestamp = Date.now();
             const orderParams = {
                 symbol: pair,
                 side: 'SELL',
                 type: 'MARKET',
-                quantity: quantity.toString(), // Sell base currency quantity
+                quantity: adjustedQuantity.toString(), // Use adjusted quantity (accounts for fees)
                 timestamp: timestamp
             };
 
@@ -4475,7 +4619,12 @@ class OrderExecutionService {
 
             const url = `https://api.mexc.com/api/v3/order?${queryString}&signature=${signature}`;
 
-            logger.info('Executing MEXC sell order', { pair, quantity });
+            logger.info('📤 Executing MEXC sell order', {
+                pair,
+                originalQuantity: quantity,
+                adjustedQuantity: adjustedQuantity,
+                wasAdjusted: wasAdjusted
+            });
 
             const response = await fetch(url, {
                 method: 'POST',
@@ -4487,6 +4636,14 @@ class OrderExecutionService {
 
             if (!response.ok) {
                 const errorText = await response.text();
+                logger.error('❌ MEXC SELL ORDER REJECTED', {
+                    pair,
+                    originalQuantity: quantity,
+                    adjustedQuantity: adjustedQuantity,
+                    wasAdjusted: wasAdjusted,
+                    httpStatus: response.status,
+                    error: errorText
+                });
                 throw new Error(`MEXC sell order failed: ${response.status} - ${errorText}`);
             }
 
@@ -4494,28 +4651,42 @@ class OrderExecutionService {
 
             // Check for MEXC API error
             if (orderData.code && orderData.code !== 200) {
+                logger.error('❌ MEXC API ERROR', {
+                    pair,
+                    originalQuantity: quantity,
+                    adjustedQuantity: adjustedQuantity,
+                    wasAdjusted: wasAdjusted,
+                    code: orderData.code,
+                    msg: orderData.msg
+                });
                 throw new Error(`MEXC sell order failed: ${orderData.code} - ${orderData.msg}`);
             }
 
-            logger.info('MEXC sell order executed successfully', {
+            logger.info('✅ MEXC sell order executed successfully', {
                 pair,
                 orderId: orderData.orderId,
                 clientOrderId: orderData.clientOrderId,
-                executedQty: orderData.executedQty
+                executedQty: orderData.executedQty,
+                originalQuantity: quantity,
+                adjustedQuantity: adjustedQuantity,
+                wasAdjusted: wasAdjusted
             });
 
             return {
                 orderId: orderData.orderId,
                 clientOrderId: orderData.clientOrderId,
                 status: 'filled',
-                executedQty: orderData.executedQty,
+                executedQty: adjustedQuantity,
+                executedQuantity: adjustedQuantity,
                 pair
             };
 
         } catch (error) {
             logger.error('Failed to execute MEXC sell order', {
                 pair,
-                quantity,
+                originalQuantity: quantity,
+                adjustedQuantity: adjustedQuantity,
+                wasAdjusted: wasAdjusted,
                 error: error.message
             });
             throw error;
