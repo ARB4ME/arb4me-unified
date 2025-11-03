@@ -3310,14 +3310,174 @@ class OrderExecutionService {
     }
 
     /**
-     * Execute BYBIT market SELL order
+     * Get BYBIT account balances
      * @private
      */
-    async _executeBYBITSell(pair, quantity, credentials) {
+    async _getBYBITBalances(credentials) {
         try {
             // Apply rate limiting
             await this._rateLimitDelay();
 
+            const config = {
+                baseUrl: 'https://api.bybit.com',
+                endpoint: '/v5/account/wallet-balance'
+            };
+
+            const timestamp = Date.now().toString();
+            const recvWindow = '5000';
+
+            // Query parameters for spot account
+            const queryParams = 'accountType=UNIFIED';
+            const paramString = timestamp + credentials.apiKey + recvWindow + queryParams;
+
+            const authHeaders = this._createBYBITAuth(
+                credentials.apiKey,
+                credentials.apiSecret,
+                timestamp,
+                recvWindow + queryParams
+            );
+
+            const url = `${config.baseUrl}${config.endpoint}?${queryParams}`;
+
+            const response = await this._fetchWithRetry(url, {
+                method: 'GET',
+                headers: {
+                    ...authHeaders,
+                    'X-BAPI-RECV-WINDOW': recvWindow
+                }
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`BYBIT get balances failed: ${response.status} - ${errorText}`);
+            }
+
+            const data = await response.json();
+
+            if (data.retCode !== 0) {
+                throw new Error(`BYBIT API error: ${data.retMsg}`);
+            }
+
+            // Transform to standard format: { currency: 'BTC', available: 0.5, reserved: 0.1, total: 0.6 }
+            const coins = data.result?.list?.[0]?.coin || [];
+            return coins.map(coin => ({
+                currency: coin.coin,
+                available: parseFloat(coin.availableToWithdraw || coin.walletBalance || 0),
+                reserved: parseFloat(coin.locked || 0),
+                total: parseFloat(coin.walletBalance || 0)
+            }));
+
+        } catch (error) {
+            logger.error('Failed to get BYBIT balances', {
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Execute BYBIT market SELL order
+     * @private
+     */
+    async _executeBYBITSell(pair, quantity, credentials) {
+        // Declare variables at function scope to avoid ReferenceError in catch block
+        let adjustedQuantity = quantity;
+        let wasAdjusted = false;
+
+        try {
+            // Apply rate limiting
+            await this._rateLimitDelay();
+
+            // ===== STEP 1: CHECK AVAILABLE BALANCE AND ADJUST QUANTITY =====
+            logger.info('🔍 Checking BYBIT balance before SELL order', { pair, requestedQuantity: quantity });
+
+            try {
+                const balances = await this._getBYBITBalances(credentials);
+                const baseAsset = pair.replace('USDT', '').replace('USDC', '');
+                const assetBalance = balances.find(b => b.currency === baseAsset);
+
+                logger.info('📊 BYBIT BALANCE CHECK', {
+                    asset: baseAsset,
+                    availableBalance: assetBalance?.available || 0,
+                    reservedBalance: assetBalance?.reserved || 0,
+                    totalBalance: assetBalance?.total || 0,
+                    requestedQuantity: quantity,
+                    canSellRequested: assetBalance?.available >= quantity ? '✅ YES' : '❌ NO - INSUFFICIENT',
+                    shortfall: assetBalance?.available < quantity ? (quantity - assetBalance.available).toFixed(8) : 0
+                });
+
+                if (!assetBalance || assetBalance.available <= 0) {
+                    throw new Error(`No ${baseAsset} balance available. Available: ${assetBalance?.available || 0}`);
+                }
+
+                // Check BYBIT minimum order sizes
+                const minimumOrderSizes = {
+                    'XRP': 1.0,
+                    'BTC': 0.00001,
+                    'ETH': 0.0001,
+                    // Add more as needed
+                };
+
+                const minimumQuantity = minimumOrderSizes[baseAsset] || 0;
+
+                // If insufficient balance, use available balance minus 0.1% buffer for safety
+                if (assetBalance.available < quantity) {
+                    const buffer = 0.999; // 99.9% of available (0.1% safety buffer)
+                    adjustedQuantity = assetBalance.available * buffer;
+                    wasAdjusted = true;
+
+                    logger.warn('⚠️ ADJUSTING SELL QUANTITY DUE TO INSUFFICIENT BALANCE', {
+                        originalQuantity: quantity,
+                        availableBalance: assetBalance.available,
+                        adjustedQuantity: adjustedQuantity,
+                        discrepancy: (quantity - assetBalance.available).toFixed(8),
+                        adjustmentReason: 'Fees deducted during buy reduced available balance',
+                        buffer: '0.1%'
+                    });
+                }
+
+                // Format quantity to proper decimal places (BYBIT uses 8 decimals for crypto)
+                adjustedQuantity = parseFloat(adjustedQuantity.toFixed(8));
+
+                // Check if adjusted quantity meets BYBIT minimum order size
+                if (minimumQuantity > 0 && adjustedQuantity < minimumQuantity) {
+                    logger.error('❌ BALANCE BELOW BYBIT MINIMUM ORDER SIZE - CANNOT AUTO-CLOSE', {
+                        asset: baseAsset,
+                        availableBalance: assetBalance.available,
+                        adjustedQuantity: adjustedQuantity,
+                        minimumRequired: minimumQuantity,
+                        shortfall: (minimumQuantity - adjustedQuantity).toFixed(8),
+                        originalPositionQuantity: quantity,
+                        discrepancy: (quantity - assetBalance.available).toFixed(8),
+                        possibleReasons: [
+                            'Asset was manually sold elsewhere',
+                            'Buy order failed but position was created',
+                            'Another bot/system is trading the same account',
+                            'Database entry is incorrect'
+                        ],
+                        requiredAction: 'MANUAL INTERVENTION REQUIRED - Check BYBIT account history and close position manually'
+                    });
+
+                    throw new Error(`Cannot sell ${adjustedQuantity} ${baseAsset}: Below BYBIT minimum order size of ${minimumQuantity} ${baseAsset}. Available: ${assetBalance.available} ${baseAsset}. This position requires manual intervention.`);
+                }
+
+                logger.info('✅ SELL QUANTITY DETERMINED', {
+                    finalQuantity: adjustedQuantity,
+                    wasAdjusted: wasAdjusted,
+                    availableBalance: assetBalance.available,
+                    meetsMinimum: adjustedQuantity >= minimumQuantity
+                });
+
+            } catch (balanceError) {
+                logger.error('❌ BALANCE CHECK FAILED - CANNOT PROCEED', {
+                    error: balanceError.message,
+                    pair,
+                    requestedQuantity: quantity
+                });
+                throw new Error(`Cannot execute sell order: ${balanceError.message}`);
+            }
+
+            // ===== STEP 2: PREPARE AND EXECUTE ORDER =====
             const config = {
                 baseUrl: 'https://api.bybit.com',
                 endpoint: '/v5/order/create'
@@ -3326,13 +3486,13 @@ class OrderExecutionService {
             // BYBIT requires timestamp
             const timestamp = Date.now().toString();
 
-            // BYBIT market order payload
+            // BYBIT market order payload - use adjusted quantity
             const orderData = {
                 category: 'spot',
                 symbol: pair,
                 side: 'Sell',
                 orderType: 'Market',
-                qty: quantity.toFixed(8) // Amount of base currency (crypto)
+                qty: adjustedQuantity.toFixed(8) // Use adjusted quantity (accounts for fees)
             };
 
             const requestBody = JSON.stringify(orderData);
@@ -3348,9 +3508,11 @@ class OrderExecutionService {
 
             const url = `${config.baseUrl}${config.endpoint}`;
 
-            logger.info('Executing BYBIT market SELL order', {
+            logger.info('📤 Executing BYBIT market SELL order', {
                 pair,
-                quantity,
+                originalQuantity: quantity,
+                adjustedQuantity: adjustedQuantity,
+                wasAdjusted: wasAdjusted,
                 orderData
             });
 
@@ -3366,6 +3528,14 @@ class OrderExecutionService {
 
             if (!response.ok) {
                 const errorText = await response.text();
+                logger.error('❌ BYBIT SELL ORDER REJECTED', {
+                    pair,
+                    originalQuantity: quantity,
+                    adjustedQuantity: adjustedQuantity,
+                    wasAdjusted: wasAdjusted,
+                    httpStatus: response.status,
+                    error: errorText
+                });
                 throw new Error(`BYBIT SELL order failed: ${response.status} - ${errorText}`);
             }
 
@@ -3373,6 +3543,14 @@ class OrderExecutionService {
 
             // Check for BYBIT API errors
             if (data.retCode !== 0) {
+                logger.error('❌ BYBIT API ERROR', {
+                    pair,
+                    originalQuantity: quantity,
+                    adjustedQuantity: adjustedQuantity,
+                    wasAdjusted: wasAdjusted,
+                    retCode: data.retCode,
+                    retMsg: data.retMsg
+                });
                 throw new Error(`BYBIT API error: ${data.retMsg}`);
             }
 
@@ -3380,7 +3558,7 @@ class OrderExecutionService {
             const result = {
                 orderId: data.result?.orderId || 'unknown',
                 executedPrice: 0, // BYBIT doesn't return price immediately for market orders
-                executedQuantity: quantity,
+                executedQuantity: adjustedQuantity,
                 executedValue: 0, // Will be calculated after execution
                 fee: 0, // BYBIT calculates fee after execution
                 status: 'SUBMITTED',
@@ -3388,9 +3566,11 @@ class OrderExecutionService {
                 rawResponse: data
             };
 
-            logger.info('BYBIT SELL order submitted successfully', {
+            logger.info('✅ BYBIT SELL order submitted successfully', {
                 orderId: result.orderId,
-                quantity: quantity
+                originalQuantity: quantity,
+                adjustedQuantity: adjustedQuantity,
+                wasAdjusted: wasAdjusted
             });
 
             return result;
@@ -3398,7 +3578,9 @@ class OrderExecutionService {
         } catch (error) {
             logger.error('BYBIT SELL order failed', {
                 pair,
-                quantity,
+                originalQuantity: quantity,
+                adjustedQuantity: adjustedQuantity,
+                wasAdjusted: wasAdjusted,
                 error: error.message
             });
             throw error;
