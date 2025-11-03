@@ -544,6 +544,44 @@ router.post('/strategies', async (req, res) => {
         // Warning: We cannot validate if pair exists on VALR without API call
         // Worker will handle invalid pairs gracefully with error logging
 
+        // IMPORTANT: Check for duplicate asset strategies on same exchange
+        // Prevents shared pot accounting issues where multiple strategies trade the same asset
+        const existingStrategies = await MomentumStrategy.getByUserAndExchange(userId, exchange);
+
+        // Check if any existing strategy shares any asset with this new strategy
+        const conflictingStrategies = existingStrategies.filter(existing => {
+            // Check if any asset in the new strategy overlaps with existing strategy assets
+            const existingAssets = Array.isArray(existing.assets) ? existing.assets : [];
+            return assets.some(newAsset => existingAssets.includes(newAsset));
+        });
+
+        if (conflictingStrategies.length > 0) {
+            // Find which specific assets are causing the conflict
+            const conflictingAssets = assets.filter(newAsset =>
+                conflictingStrategies.some(strategy =>
+                    (Array.isArray(strategy.assets) ? strategy.assets : []).includes(newAsset)
+                )
+            );
+
+            const conflictingStrategyNames = conflictingStrategies.map(s => s.strategy_name).join(', ');
+
+            logger.warn('Attempt to create duplicate asset strategy blocked', {
+                userId,
+                exchange,
+                newStrategyName: strategyName,
+                conflictingAssets: conflictingAssets,
+                existingStrategies: conflictingStrategyNames
+            });
+
+            return res.status(400).json({
+                success: false,
+                error: `Cannot create strategy: You already have ${conflictingStrategies.length === 1 ? 'a strategy' : 'strategies'} trading ${conflictingAssets.join(', ')} on ${exchange.toUpperCase()}.`,
+                conflictingAssets: conflictingAssets,
+                existingStrategies: conflictingStrategyNames,
+                reason: 'Multiple strategies trading the same asset on one exchange creates accounting conflicts with shared exchange balances. Please use different assets or toggle off the existing strategy first.'
+            });
+        }
+
         // Create strategy
         const strategy = await MomentumStrategy.create({
             userId,
@@ -677,6 +715,68 @@ router.put('/strategies/:id', async (req, res) => {
                 success: false,
                 error: 'userId is required'
             });
+        }
+
+        // IMPORTANT: Validate max_open_positions if being updated
+        if (updates.maxOpenPositions && updates.maxOpenPositions > 1) {
+            logger.warn('Attempt to update strategy with max_open_positions > 1 blocked', {
+                userId,
+                strategyId: id,
+                requestedMaxPositions: updates.maxOpenPositions
+            });
+            return res.status(400).json({
+                success: false,
+                error: 'Max open positions must be 1. Multiple positions per asset creates accounting conflicts with shared exchange balances.',
+                maxAllowed: 1
+            });
+        }
+
+        // IMPORTANT: If updating assets, check for duplicate asset strategies
+        if (updates.assets && Array.isArray(updates.assets)) {
+            // Get current strategy to know its exchange
+            const currentStrategy = await MomentumStrategy.getById(id);
+
+            if (!currentStrategy || currentStrategy.user_id !== userId) {
+                return res.status(404).json({
+                    success: false,
+                    error: 'Strategy not found'
+                });
+            }
+
+            // Get all strategies for this user/exchange (excluding current one)
+            const existingStrategies = await MomentumStrategy.getByUserAndExchange(userId, currentStrategy.exchange);
+            const otherStrategies = existingStrategies.filter(s => s.id !== parseInt(id));
+
+            // Check if any OTHER strategy shares assets with the updated assets
+            const conflictingStrategies = otherStrategies.filter(existing => {
+                const existingAssets = Array.isArray(existing.assets) ? existing.assets : [];
+                return updates.assets.some(newAsset => existingAssets.includes(newAsset));
+            });
+
+            if (conflictingStrategies.length > 0) {
+                const conflictingAssets = updates.assets.filter(newAsset =>
+                    conflictingStrategies.some(strategy =>
+                        (Array.isArray(strategy.assets) ? strategy.assets : []).includes(newAsset)
+                    )
+                );
+
+                const conflictingStrategyNames = conflictingStrategies.map(s => s.strategy_name).join(', ');
+
+                logger.warn('Attempt to update strategy with duplicate assets blocked', {
+                    userId,
+                    strategyId: id,
+                    conflictingAssets: conflictingAssets,
+                    existingStrategies: conflictingStrategyNames
+                });
+
+                return res.status(400).json({
+                    success: false,
+                    error: `Cannot update strategy: You already have ${conflictingStrategies.length === 1 ? 'a strategy' : 'strategies'} trading ${conflictingAssets.join(', ')} on ${currentStrategy.exchange.toUpperCase()}.`,
+                    conflictingAssets: conflictingAssets,
+                    existingStrategies: conflictingStrategyNames,
+                    reason: 'Multiple strategies trading the same asset on one exchange creates accounting conflicts with shared exchange balances.'
+                });
+            }
         }
 
         const strategy = await MomentumStrategy.update(id, userId, updates);
