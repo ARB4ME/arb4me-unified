@@ -6320,6 +6320,57 @@ class OrderExecutionService {
     // ============================================================================
 
     /**
+     * Get Bitget account balances
+     * Bitget uses /api/spot/v1/account/assets endpoint
+     * @private
+     */
+    async _getBitgetBalances(credentials) {
+        try {
+            const timestamp = Date.now().toString();
+            const method = 'GET';
+            const requestPath = '/api/spot/v1/account/assets';
+            const body = '';
+
+            const signature = this._createBitgetSignature(timestamp, method, requestPath, body, credentials.apiSecret);
+
+            const url = `https://api.bitget.com${requestPath}`;
+
+            const response = await this._fetchWithRetry(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'ACCESS-KEY': credentials.apiKey,
+                    'ACCESS-SIGN': signature,
+                    'ACCESS-TIMESTAMP': timestamp,
+                    'ACCESS-PASSPHRASE': credentials.passphrase
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.code !== '00000') {
+                throw new Error(`Bitget balance fetch failed: ${data.code} - ${data.msg}`);
+            }
+
+            // Bitget returns array of balances
+            // Transform to standard format: { currency, available, reserved, total }
+            const balances = data.data || [];
+            return balances.map(balance => ({
+                currency: balance.coinName,
+                available: parseFloat(balance.available || 0),
+                reserved: parseFloat(balance.frozen || 0),
+                total: parseFloat(balance.available || 0) + parseFloat(balance.frozen || 0)
+            }));
+
+        } catch (error) {
+            logger.error('Failed to fetch Bitget balances', {
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
      * Execute Bitget buy order (market order)
      * @param {string} pair - Trading pair (e.g., 'BTCUSDT')
      * @param {number} amountUSDT - Amount in USDT to spend
@@ -6422,10 +6473,71 @@ class OrderExecutionService {
      * @private
      */
     async _executeBitgetSell(pair, quantity, credentials) {
+        // Declare variables at function scope so they're available in catch block
+        let adjustedQuantity = quantity;
+        let wasAdjusted = false;
+
         try {
             // Convert pair to Bitget format (BTCUSDT → BTCUSDT_SPBL)
             const bitgetPair = this._convertPairToBitget(pair);
 
+            // ===== STEP 1: CHECK AVAILABLE BALANCE AND ADJUST QUANTITY =====
+            logger.info('🔍 Checking Bitget balance before SELL order', {
+                pair: bitgetPair,
+                requestedQuantity: quantity
+            });
+
+            const balances = await this._getBitgetBalances(credentials);
+            const baseAsset = pair.replace('USDT', '').replace('USDC', '');
+            const assetBalance = balances.find(b => b.currency === baseAsset);
+
+            if (!assetBalance || assetBalance.available <= 0) {
+                throw new Error(`No ${baseAsset} balance available for sale on Bitget. Available: ${assetBalance?.available || 0}`);
+            }
+
+            logger.info('📊 Bitget balance check', {
+                asset: baseAsset,
+                available: assetBalance.available,
+                requested: quantity,
+                sufficient: assetBalance.available >= quantity
+            });
+
+            // If insufficient balance, adjust quantity to use 99.9% of available (0.1% buffer for rounding/fees)
+            if (assetBalance.available < quantity) {
+                const buffer = 0.999; // Use 99.9% of available balance
+                adjustedQuantity = assetBalance.available * buffer;
+                wasAdjusted = true;
+
+                logger.warn('⚠️ Insufficient balance - adjusting SELL quantity', {
+                    pair: bitgetPair,
+                    originalQuantity: quantity,
+                    availableBalance: assetBalance.available,
+                    adjustedQuantity: adjustedQuantity,
+                    reductionPercent: ((quantity - adjustedQuantity) / quantity * 100).toFixed(2)
+                });
+            }
+
+            // Validate minimum order size (exchange-specific minimums)
+            const minimumQuantities = {
+                'XRP': 1.0,
+                'BTC': 0.00001,
+                'ETH': 0.0001,
+                'LTC': 0.001,
+                'BCH': 0.001,
+                'ADA': 1.0,
+                'DOT': 0.1,
+                'LINK': 0.1,
+                'UNI': 0.1,
+                'MATIC': 1.0
+            };
+
+            const minimumQuantity = minimumQuantities[baseAsset] || 0.00001; // Default minimum
+
+            if (adjustedQuantity < minimumQuantity) {
+                throw new Error(`❌ Adjusted quantity ${adjustedQuantity.toFixed(8)} ${baseAsset} is below Bitget minimum of ${minimumQuantity}. Cannot execute SELL order.`);
+            }
+
+            // ===== STEP 2: PREPARE AND EXECUTE ORDER =====
             // Bitget requires timestamp + method + requestPath + body for signature
             const timestamp = Date.now().toString();
             const method = 'POST';
@@ -6437,7 +6549,7 @@ class OrderExecutionService {
                 side: 'sell',
                 orderType: 'market',
                 force: 'gtc',
-                size: quantity.toFixed(8)
+                size: adjustedQuantity.toFixed(8) // Use ADJUSTED quantity
             };
 
             const body = JSON.stringify(orderData);
@@ -6445,9 +6557,11 @@ class OrderExecutionService {
 
             const url = `https://api.bitget.com${requestPath}`;
 
-            logger.info('Executing Bitget sell order', {
+            logger.info('📤 Executing Bitget sell order', {
                 pair: bitgetPair,
-                quantity
+                originalQuantity: quantity,
+                adjustedQuantity: adjustedQuantity,
+                wasAdjusted: wasAdjusted
             });
 
             const response = await fetch(url, {
@@ -6464,23 +6578,26 @@ class OrderExecutionService {
 
             if (!response.ok) {
                 const errorText = await response.text();
-                throw new Error(`Bitget API error: ${response.status} - ${errorText}`);
+                throw new Error(`❌ Bitget API error: ${response.status} - ${errorText}`);
             }
 
             const result = await response.json();
 
             // Check for Bitget API error
             if (result.code !== '00000') {
-                throw new Error(`Bitget order error: ${result.code} - ${result.msg}`);
+                throw new Error(`❌ Bitget order error: ${result.code} - ${result.msg}`);
             }
 
             // Get current price for logging
             const currentPrice = await this._fetchBitgetPrice(bitgetPair);
 
-            logger.info('Bitget sell order executed successfully', {
+            logger.info('✅ Bitget sell order executed successfully', {
                 pair: bitgetPair,
                 orderId: result.data?.orderId,
-                fillSize: result.data?.fillSize
+                fillSize: result.data?.fillSize,
+                originalQuantity: quantity,
+                adjustedQuantity: adjustedQuantity,
+                wasAdjusted: wasAdjusted
             });
 
             return {
@@ -6489,15 +6606,17 @@ class OrderExecutionService {
                 orderId: result.data?.orderId,
                 pair: bitgetPair,
                 side: 'sell',
-                quantity: parseFloat(result.data?.fillSize || quantity),
+                quantity: parseFloat(result.data?.fillSize || adjustedQuantity),
                 price: currentPrice,
                 timestamp: Date.now()
             };
 
         } catch (error) {
-            logger.error('Bitget sell order failed', {
+            logger.error('❌ Bitget sell order failed', {
                 pair,
-                quantity,
+                originalQuantity: quantity,
+                adjustedQuantity: adjustedQuantity,
+                wasAdjusted: wasAdjusted,
                 error: error.message
             });
             throw error;
