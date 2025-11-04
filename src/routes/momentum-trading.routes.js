@@ -595,43 +595,10 @@ router.post('/strategies', async (req, res) => {
         // Warning: We cannot validate if pair exists on VALR without API call
         // Worker will handle invalid pairs gracefully with error logging
 
-        // IMPORTANT: Check for duplicate asset strategies on same exchange
-        // Prevents shared pot accounting issues where multiple strategies trade the same asset
-        const existingStrategies = await MomentumStrategy.getByUserAndExchange(userId, exchange);
-
-        // Check if any existing strategy shares any asset with this new strategy
-        const conflictingStrategies = existingStrategies.filter(existing => {
-            // Check if any asset in the new strategy overlaps with existing strategy assets
-            const existingAssets = Array.isArray(existing.assets) ? existing.assets : [];
-            return assets.some(newAsset => existingAssets.includes(newAsset));
-        });
-
-        if (conflictingStrategies.length > 0) {
-            // Find which specific assets are causing the conflict
-            const conflictingAssets = assets.filter(newAsset =>
-                conflictingStrategies.some(strategy =>
-                    (Array.isArray(strategy.assets) ? strategy.assets : []).includes(newAsset)
-                )
-            );
-
-            const conflictingStrategyNames = conflictingStrategies.map(s => s.strategy_name).join(', ');
-
-            logger.warn('Attempt to create duplicate asset strategy blocked', {
-                userId,
-                exchange,
-                newStrategyName: strategyName,
-                conflictingAssets: conflictingAssets,
-                existingStrategies: conflictingStrategyNames
-            });
-
-            return res.status(400).json({
-                success: false,
-                error: `Cannot create strategy: You already have ${conflictingStrategies.length === 1 ? 'a strategy' : 'strategies'} trading ${conflictingAssets.join(', ')} on ${exchange.toUpperCase()}.`,
-                conflictingAssets: conflictingAssets,
-                existingStrategies: conflictingStrategyNames,
-                reason: 'Multiple strategies trading the same asset on one exchange creates accounting conflicts with shared exchange balances. Please use different assets or toggle off the existing strategy first.'
-            });
-        }
+        // NOTE: No validation for duplicate assets at creation time
+        // Users can create unlimited strategies for same asset (e.g., "Conservative XRP", "Aggressive XRP")
+        // Validation happens at ACTIVATION time - only 1 active strategy per asset per exchange
+        // This allows flexible strategy configuration without accounting conflicts
 
         // Create strategy
         const strategy = await MomentumStrategy.create({
@@ -689,6 +656,70 @@ router.post('/strategies/:id/toggle', async (req, res) => {
             });
         }
 
+        // Get strategy BEFORE toggling to check current state and assets
+        const currentStrategy = await MomentumStrategy.getById(id);
+
+        if (!currentStrategy) {
+            return res.status(404).json({
+                success: false,
+                error: 'Strategy not found'
+            });
+        }
+
+        // Verify ownership
+        if (currentStrategy.user_id !== parseInt(userId)) {
+            return res.status(403).json({
+                success: false,
+                error: 'Unauthorized: Strategy does not belong to this user'
+            });
+        }
+
+        // If currently INACTIVE (about to be activated), check for asset conflicts
+        if (!currentStrategy.is_active) {
+            // Get all ACTIVE strategies for this user and exchange
+            const activeStrategies = await MomentumStrategy.getActiveByUserAndExchange(userId, currentStrategy.exchange);
+
+            // Check if any active strategy shares assets with this one
+            const currentAssets = Array.isArray(currentStrategy.assets) ? currentStrategy.assets : [];
+            const conflictingStrategies = activeStrategies.filter(active => {
+                // Skip self (shouldn't happen but safety check)
+                if (active.id === currentStrategy.id) return false;
+
+                const activeAssets = Array.isArray(active.assets) ? active.assets : [];
+                return currentAssets.some(asset => activeAssets.includes(asset));
+            });
+
+            if (conflictingStrategies.length > 0) {
+                // Find which specific assets are causing the conflict
+                const conflictingAssets = currentAssets.filter(newAsset =>
+                    conflictingStrategies.some(strategy => {
+                        const assets = Array.isArray(strategy.assets) ? strategy.assets : [];
+                        return assets.includes(newAsset);
+                    })
+                );
+
+                const conflictingStrategyNames = conflictingStrategies.map(s => s.strategy_name).join(', ');
+
+                logger.warn('Attempt to activate strategy with asset conflict blocked', {
+                    userId,
+                    strategyId: id,
+                    strategyName: currentStrategy.strategy_name,
+                    exchange: currentStrategy.exchange,
+                    conflictingAssets: conflictingAssets,
+                    activeStrategies: conflictingStrategyNames
+                });
+
+                return res.status(400).json({
+                    success: false,
+                    error: `Cannot activate strategy: You already have active ${conflictingStrategies.length === 1 ? 'strategy' : 'strategies'} trading ${conflictingAssets.join(', ')} on ${currentStrategy.exchange.toUpperCase()}.`,
+                    conflictingAssets: conflictingAssets,
+                    activeStrategies: conflictingStrategyNames,
+                    reason: `Only 1 active strategy per asset per exchange allowed to prevent accounting conflicts. Please deactivate "${conflictingStrategyNames}" first.`
+                });
+            }
+        }
+
+        // No conflicts (or deactivating) - proceed with toggle
         const strategy = await MomentumStrategy.toggle(id, userId);
 
         if (!strategy) {
