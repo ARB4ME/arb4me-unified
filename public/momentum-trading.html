@@ -1390,7 +1390,7 @@
 
                     // Calculate time remaining
                     const entryTime = new Date(openPosition.entry_time).getTime();
-                    const maxHoldingHours = strategy.exit_rules?.maxHoldingHours || 24;
+                    const maxHoldingHours = strategy.exit_rules?.maxHoldTimeHours || 24;
                     const maxHoldingMs = maxHoldingHours * 60 * 60 * 1000;
                     const autoCloseTime = entryTime + maxHoldingMs;
                     const now = Date.now();
