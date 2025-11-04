@@ -87,8 +87,17 @@ const ReconciliationWorker = {
      */
     async getActiveExchanges(userId) {
         try {
-            const response = await fetch(`/api/v1/momentum/strategies?userId=${userId}`);
-            if (!response.ok) return [];
+            const response = await fetch('/api/v1/momentum/strategies/active', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                console.error(`Failed to fetch active strategies: ${response.status} ${response.statusText}`);
+                return [];
+            }
 
             const result = await response.json();
             const strategies = result.data || [];
