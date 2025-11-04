@@ -1535,16 +1535,101 @@
                     const currentPnLPercent = parseFloat(pos.current_pnl_percent || 0);
                     const isLosing = currentPnL < 0;
 
-                    // Calculate expected profit based on strategy's take profit percentage
-                    let takeProfitPercent = 0;
+                    // Get strategy and exit rules
+                    let strategy, takeProfitPercent = 0, stopLossPercent = 0, maxHoldTimeHours = 0, takeProfitMode = 'auto';
                     let expectedProfitUSDT = 0;
                     try {
-                        const strategy = strategies.find(s => s.strategy_name === pos.strategy_name);
+                        strategy = strategies.find(s => s.strategy_name === pos.strategy_name);
                         takeProfitPercent = strategy?.exit_rules?.takeProfitPercent || 0;
+                        stopLossPercent = strategy?.exit_rules?.stopLossPercent || 0;
+                        maxHoldTimeHours = strategy?.exit_rules?.maxHoldTimeHours || 0;
+                        takeProfitMode = strategy?.exit_rules?.takeProfitMode || 'auto';
                         const entryValue = parseFloat(pos.entry_value_usdt || 0);
                         expectedProfitUSDT = (entryValue * takeProfitPercent) / 100;
                     } catch (e) {
                         console.warn('Error calculating expected profit:', e);
+                    }
+
+                    // Calculate time remaining for max hold time
+                    let timeRemainingHtml = '';
+                    if (maxHoldTimeHours > 0) {
+                        const entryTime = new Date(pos.entry_time).getTime();
+                        const now = Date.now();
+                        const hoursOpen = (now - entryTime) / (1000 * 60 * 60);
+                        const hoursRemaining = maxHoldTimeHours - hoursOpen;
+                        const minutesRemaining = Math.floor((hoursRemaining % 1) * 60);
+                        const hoursRemainingWhole = Math.floor(hoursRemaining);
+
+                        const isUrgent = hoursRemaining < 0.25; // Less than 15 minutes
+                        const isOverdue = hoursRemaining < 0;
+
+                        timeRemainingHtml = `
+                            <div style="color: ${isOverdue ? '#ff6b6b' : isUrgent ? '#ffa500' : '#00d4ff'}; font-weight: bold;">
+                                ⏱️ Auto-close in: ${isOverdue ? 'OVERDUE!' : `${hoursRemainingWhole}h ${minutesRemaining}m`}
+                            </div>
+                        `;
+                    }
+
+                    // Build exit triggers display
+                    let exitTriggersHtml = '';
+                    if (takeProfitPercent > 0 || stopLossPercent > 0 || maxHoldTimeHours > 0) {
+                        exitTriggersHtml = '<div style="margin-top: 10px; padding: 8px; background: rgba(255,255,255,0.03); border-radius: 6px; border: 1px solid rgba(255,255,255,0.1);">';
+                        exitTriggersHtml += '<div style="font-size: 0.8rem; font-weight: bold; margin-bottom: 6px; color: #00d4ff;">📊 Exit Triggers:</div>';
+
+                        // Take Profit
+                        if (takeProfitPercent > 0) {
+                            const distanceToTP = takeProfitPercent - currentPnLPercent;
+                            const tpStatus = currentPnLPercent >= takeProfitPercent ? '✅' : '⏳';
+                            const tpMode = takeProfitMode === 'manual' ? ' (MANUAL)' : ' (AUTO)';
+                            exitTriggersHtml += `
+                                <div style="font-size: 0.75rem; margin-bottom: 4px;">
+                                    ${tpStatus} <strong>Take Profit${tpMode}:</strong> ${takeProfitPercent}% |
+                                    Current: ${currentPnLPercent.toFixed(2)}% |
+                                    <span style="color: ${distanceToTP > 0 ? '#ffa500' : '#4ade80'};">
+                                        ${distanceToTP > 0 ? `Need: +${distanceToTP.toFixed(2)}%` : `Hit! +${Math.abs(distanceToTP).toFixed(2)}%`}
+                                    </span>
+                                </div>
+                            `;
+                        }
+
+                        // Stop Loss
+                        if (stopLossPercent > 0) {
+                            const distanceToSL = Math.abs(currentPnLPercent) - stopLossPercent;
+                            const slStatus = currentPnLPercent <= -stopLossPercent ? '❌' : '✅';
+                            const cushion = stopLossPercent - Math.abs(currentPnLPercent);
+                            exitTriggersHtml += `
+                                <div style="font-size: 0.75rem; margin-bottom: 4px;">
+                                    ${slStatus} <strong>Stop Loss (AUTO):</strong> -${stopLossPercent}% |
+                                    Current: ${currentPnLPercent.toFixed(2)}% |
+                                    <span style="color: ${cushion > 0 ? '#4ade80' : '#ff6b6b'};">
+                                        ${cushion > 0 ? `Safe: ${cushion.toFixed(2)}% cushion` : `Hit! -${Math.abs(cushion).toFixed(2)}%`}
+                                    </span>
+                                </div>
+                            `;
+                        }
+
+                        // Max Hold Time
+                        if (maxHoldTimeHours > 0) {
+                            const entryTime = new Date(pos.entry_time).getTime();
+                            const now = Date.now();
+                            const hoursOpen = (now - entryTime) / (1000 * 60 * 60);
+                            const hoursRemaining = maxHoldTimeHours - hoursOpen;
+                            const minutesRemaining = Math.floor((hoursRemaining % 1) * 60);
+                            const hoursRemainingWhole = Math.floor(hoursRemaining);
+
+                            const isOverdue = hoursRemaining < 0;
+                            const timeStatus = isOverdue ? '⚠️' : '⏳';
+                            exitTriggersHtml += `
+                                <div style="font-size: 0.75rem;">
+                                    ${timeStatus} <strong>Max Hold Time (AUTO):</strong> ${maxHoldTimeHours}h |
+                                    <span style="color: ${isOverdue ? '#ff6b6b' : hoursRemaining < 0.25 ? '#ffa500' : '#4ade80'};">
+                                        ${isOverdue ? 'OVERDUE - Auto-closing...' : `${hoursRemainingWhole}h ${minutesRemaining}m remaining`}
+                                    </span>
+                                </div>
+                            `;
+                        }
+
+                        exitTriggersHtml += '</div>';
                     }
 
                     return `
@@ -1563,8 +1648,9 @@
                                         $${currentPnL.toFixed(2)} (${currentPnLPercent >= 0 ? '+' : ''}${currentPnLPercent.toFixed(2)}%)
                                     </span>
                                 </div>
-                                ${takeProfitPercent > 0 ? `<div style="color: #00d4ff;"><strong>Expected Profit (${takeProfitPercent}%):</strong> +$${expectedProfitUSDT.toFixed(2)} USDT</div>` : ''}
                                 <div><strong>Time Open:</strong> ${getTimeDiff(pos.entry_time)}</div>
+                                ${timeRemainingHtml}
+                                ${exitTriggersHtml}
                                 <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
                                     <strong>Strategy:</strong> ${pos.strategy_name}
                                 </div>
