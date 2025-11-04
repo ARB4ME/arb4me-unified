@@ -21,6 +21,11 @@ class OrderExecutionService {
         // Rate limiting: Max 5 requests per second (200ms between requests)
         this.minRequestInterval = 200; // milliseconds
         this.lastRequestTime = 0;
+
+        // Trading rules cache: Stores LOT_SIZE filters and other trading pair rules
+        // Prevents repeated API calls for same pair
+        // Format: { 'binance:XRPUSDT': { stepSize: 0.1, minQty: 0.1, maxQty: 90000000 }, ... }
+        this.tradingRulesCache = new Map();
     }
 
     /**
@@ -135,6 +140,350 @@ class OrderExecutionService {
         }
 
         throw lastError || new Error('Fetch failed');
+    }
+
+    /**
+     * Round quantity to valid step size (LOT_SIZE filter compliance)
+     * Floors quantity to nearest valid increment to avoid exchange rejections
+     * @private
+     * @param {number} quantity - Original quantity
+     * @param {number} stepSize - Exchange's step size requirement
+     * @returns {number} Rounded quantity
+     * @example
+     * _roundToStepSize(4.567, 0.1) → 4.5
+     * _roundToStepSize(4.567, 1.0) → 4.0
+     * _roundToStepSize(4.567, 0.01) → 4.56
+     */
+    _roundToStepSize(quantity, stepSize) {
+        if (!stepSize || stepSize === 0) {
+            return quantity; // No rounding needed
+        }
+
+        // Calculate precision (number of decimals)
+        const precision = stepSize.toString().split('.')[1]?.length || 0;
+
+        // Floor to step size: Math.floor(quantity / stepSize) * stepSize
+        const rounded = Math.floor(quantity / stepSize) * stepSize;
+
+        // Return with proper precision
+        return parseFloat(rounded.toFixed(precision));
+    }
+
+    /**
+     * UNIVERSAL: Get trading rules for any exchange
+     * Routes to exchange-specific methods or returns safe defaults
+     * @private
+     * @param {string} exchange - Exchange name (e.g., 'binance', 'bybit', 'okx')
+     * @param {string} pair - Trading pair (e.g., 'XRPUSDT')
+     * @returns {Promise<object>} { stepSize, minQty, maxQty }
+     */
+    async _getTradingRules(exchange, pair) {
+        const exchangeLower = exchange.toLowerCase();
+
+        try {
+            // Route to exchange-specific method if available
+            if (exchangeLower === 'binance') {
+                return await this._getBinanceTradingRules(pair);
+            } else if (exchangeLower === 'bybit') {
+                return await this._getBYBITTradingRules(pair);
+            } else if (exchangeLower === 'okx') {
+                return await this._getOKXTradingRules(pair);
+            } else if (exchangeLower === 'mexc') {
+                return await this._getMEXCTradingRules(pair);
+            } else if (exchangeLower === 'kucoin') {
+                return await this._getKuCoinTradingRules(pair);
+            } else if (exchangeLower === 'gateio' || exchangeLower === 'gate.io') {
+                return await this._getGateioTradingRules(pair);
+            } else {
+                // Safe defaults for exchanges without dedicated methods
+                logger.info(`Using default trading rules for ${exchange}`, { pair });
+                return {
+                    stepSize: 0.00000001, // 8 decimals (safest default)
+                    minQty: 0,
+                    maxQty: 90000000
+                };
+            }
+        } catch (error) {
+            logger.warn(`Failed to get ${exchange} trading rules, using defaults`, {
+                pair,
+                error: error.message
+            });
+            return {
+                stepSize: 0.00000001,
+                minQty: 0,
+                maxQty: 90000000
+            };
+        }
+    }
+
+    /**
+     * Get Binance trading rules for a pair (LOT_SIZE, PRICE_FILTER, etc.)
+     * @private
+     */
+    async _getBinanceTradingRules(pair) {
+        const cacheKey = `binance:${pair}`;
+        if (this.tradingRulesCache.has(cacheKey)) {
+            return this.tradingRulesCache.get(cacheKey);
+        }
+
+        try {
+            const url = `https://api.binance.com/api/v3/exchangeInfo?symbol=${pair}`;
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`Binance exchangeInfo failed: ${response.status}`);
+
+            const data = await response.json();
+            const symbolInfo = data.symbols?.[0];
+            if (!symbolInfo) throw new Error(`Trading pair ${pair} not found on Binance`);
+
+            const lotSizeFilter = symbolInfo.filters.find(f => f.filterType === 'LOT_SIZE');
+            const rules = {
+                stepSize: parseFloat(lotSizeFilter?.stepSize || 0.00000001),
+                minQty: parseFloat(lotSizeFilter?.minQty || 0),
+                maxQty: parseFloat(lotSizeFilter?.maxQty || 90000000)
+            };
+
+            this.tradingRulesCache.set(cacheKey, rules);
+            logger.info('📋 Binance trading rules', { pair, rules });
+            return rules;
+        } catch (error) {
+            logger.warn('Binance trading rules fetch failed, using defaults', { pair });
+            return { stepSize: 0.00000001, minQty: 0, maxQty: 90000000 };
+        }
+    }
+
+    /**
+     * Get BYBIT trading rules
+     * @private
+     */
+    async _getBYBITTradingRules(pair) {
+        const cacheKey = `bybit:${pair}`;
+        if (this.tradingRulesCache.has(cacheKey)) {
+            return this.tradingRulesCache.get(cacheKey);
+        }
+
+        try {
+            const url = `https://api.bybit.com/v5/market/instruments-info?category=spot&symbol=${pair}`;
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`BYBIT instrumentsInfo failed: ${response.status}`);
+
+            const data = await response.json();
+            const instrument = data.result?.list?.[0];
+            if (!instrument) throw new Error(`Trading pair ${pair} not found on BYBIT`);
+
+            const lotSizeFilter = instrument.lotSizeFilter;
+            const rules = {
+                stepSize: parseFloat(lotSizeFilter?.basePrecision || 0.00000001),
+                minQty: parseFloat(lotSizeFilter?.minOrderQty || 0),
+                maxQty: parseFloat(lotSizeFilter?.maxOrderQty || 90000000)
+            };
+
+            this.tradingRulesCache.set(cacheKey, rules);
+            logger.info('📋 BYBIT trading rules', { pair, rules });
+            return rules;
+        } catch (error) {
+            logger.warn('BYBIT trading rules fetch failed, using defaults', { pair });
+            return { stepSize: 0.00000001, minQty: 0, maxQty: 90000000 };
+        }
+    }
+
+    /**
+     * Get OKX trading rules
+     * @private
+     */
+    async _getOKXTradingRules(pair) {
+        const cacheKey = `okx:${pair}`;
+        if (this.tradingRulesCache.has(cacheKey)) {
+            return this.tradingRulesCache.get(cacheKey);
+        }
+
+        try {
+            const url = `https://www.okx.com/api/v5/public/instruments?instType=SPOT&instId=${pair}`;
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`OKX instruments failed: ${response.status}`);
+
+            const data = await response.json();
+            const instrument = data.data?.[0];
+            if (!instrument) throw new Error(`Trading pair ${pair} not found on OKX`);
+
+            const rules = {
+                stepSize: parseFloat(instrument.lotSz || 0.00000001),
+                minQty: parseFloat(instrument.minSz || 0),
+                maxQty: parseFloat(instrument.maxMktSz || 90000000)
+            };
+
+            this.tradingRulesCache.set(cacheKey, rules);
+            logger.info('📋 OKX trading rules', { pair, rules });
+            return rules;
+        } catch (error) {
+            logger.warn('OKX trading rules fetch failed, using defaults', { pair });
+            return { stepSize: 0.00000001, minQty: 0, maxQty: 90000000 };
+        }
+    }
+
+    /**
+     * Get MEXC trading rules
+     * @private
+     */
+    async _getMEXCTradingRules(pair) {
+        const cacheKey = `mexc:${pair}`;
+        if (this.tradingRulesCache.has(cacheKey)) {
+            return this.tradingRulesCache.get(cacheKey);
+        }
+
+        try {
+            const url = `https://api.mexc.com/api/v3/exchangeInfo?symbol=${pair}`;
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`MEXC exchangeInfo failed: ${response.status}`);
+
+            const data = await response.json();
+            const symbolInfo = data.symbols?.[0];
+            if (!symbolInfo) throw new Error(`Trading pair ${pair} not found on MEXC`);
+
+            const lotSizeFilter = symbolInfo.filters.find(f => f.filterType === 'LOT_SIZE');
+            const rules = {
+                stepSize: parseFloat(lotSizeFilter?.stepSize || 0.00000001),
+                minQty: parseFloat(lotSizeFilter?.minQty || 0),
+                maxQty: parseFloat(lotSizeFilter?.maxQty || 90000000)
+            };
+
+            this.tradingRulesCache.set(cacheKey, rules);
+            logger.info('📋 MEXC trading rules', { pair, rules });
+            return rules;
+        } catch (error) {
+            logger.warn('MEXC trading rules fetch failed, using defaults', { pair });
+            return { stepSize: 0.00000001, minQty: 0, maxQty: 90000000 };
+        }
+    }
+
+    /**
+     * Get KuCoin trading rules
+     * @private
+     */
+    async _getKuCoinTradingRules(pair) {
+        const cacheKey = `kucoin:${pair}`;
+        if (this.tradingRulesCache.has(cacheKey)) {
+            return this.tradingRulesCache.get(cacheKey);
+        }
+
+        try {
+            // KuCoin uses hyphen format (XRP-USDT)
+            const kucoinPair = pair.replace('USDT', '-USDT');
+            const url = `https://api.kucoin.com/api/v1/symbols/${kucoinPair}`;
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`KuCoin symbols failed: ${response.status}`);
+
+            const data = await response.json();
+            const symbolData = data.data;
+            if (!symbolData) throw new Error(`Trading pair ${pair} not found on KuCoin`);
+
+            const rules = {
+                stepSize: parseFloat(symbolData.baseIncrement || 0.00000001),
+                minQty: parseFloat(symbolData.baseMinSize || 0),
+                maxQty: parseFloat(symbolData.baseMaxSize || 90000000)
+            };
+
+            this.tradingRulesCache.set(cacheKey, rules);
+            logger.info('📋 KuCoin trading rules', { pair, rules });
+            return rules;
+        } catch (error) {
+            logger.warn('KuCoin trading rules fetch failed, using defaults', { pair });
+            return { stepSize: 0.00000001, minQty: 0, maxQty: 90000000 };
+        }
+    }
+
+    /**
+     * Get Gate.io trading rules
+     * @private
+     */
+    async _getGateioTradingRules(pair) {
+        const cacheKey = `gateio:${pair}`;
+        if (this.tradingRulesCache.has(cacheKey)) {
+            return this.tradingRulesCache.get(cacheKey);
+        }
+
+        try {
+            // Gate.io uses underscore format (XRP_USDT)
+            const gateioPair = pair.replace('USDT', '_USDT');
+            const url = `https://api.gateio.ws/api/v4/spot/currency_pairs/${gateioPair}`;
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`Gate.io currency_pairs failed: ${response.status}`);
+
+            const data = await response.json();
+            if (!data) throw new Error(`Trading pair ${pair} not found on Gate.io`);
+
+            const rules = {
+                stepSize: parseFloat(data.amount_precision ? Math.pow(10, -data.amount_precision) : 0.00000001),
+                minQty: parseFloat(data.min_base_amount || 0),
+                maxQty: 90000000
+            };
+
+            this.tradingRulesCache.set(cacheKey, rules);
+            logger.info('📋 Gate.io trading rules', { pair, rules });
+            return rules;
+        } catch (error) {
+            logger.warn('Gate.io trading rules fetch failed, using defaults', { pair });
+            return { stepSize: 0.00000001, minQty: 0, maxQty: 90000000 };
+        }
+    }
+
+    /**
+     * UNIVERSAL: Prepare sell quantity with LOT_SIZE compliance
+     * This method MUST be called by ALL sell methods before placing orders
+     * @private
+     * @param {string} exchange - Exchange name
+     * @param {string} pair - Trading pair
+     * @param {number} quantity - Original quantity
+     * @returns {Promise<object>} { quantity: roundedQuantity, wasRounded: boolean, stepSize, original }
+     */
+    async _prepareSellQuantity(exchange, pair, quantity) {
+        try {
+            // Get trading rules for this exchange/pair
+            const rules = await this._getTradingRules(exchange, pair);
+
+            // Round quantity to comply with LOT_SIZE filter
+            const roundedQuantity = this._roundToStepSize(quantity, rules.stepSize);
+            const wasRounded = roundedQuantity !== quantity;
+
+            if (wasRounded) {
+                logger.warn('⚙️ QUANTITY ROUNDED TO COMPLY WITH LOT_SIZE', {
+                    exchange,
+                    pair,
+                    originalQuantity: quantity,
+                    roundedQuantity: roundedQuantity,
+                    stepSize: rules.stepSize,
+                    diff: (quantity - roundedQuantity).toFixed(8),
+                    reason: 'Exchange LOT_SIZE filter compliance'
+                });
+            } else {
+                logger.info('✅ Quantity already compliant with LOT_SIZE', {
+                    exchange,
+                    pair,
+                    quantity: roundedQuantity,
+                    stepSize: rules.stepSize
+                });
+            }
+
+            // Check if rounded quantity meets minimum
+            if (roundedQuantity < rules.minQty) {
+                throw new Error(`Rounded quantity ${roundedQuantity} is below minimum order size ${rules.minQty} for ${pair} on ${exchange}`);
+            }
+
+            return {
+                quantity: roundedQuantity,
+                wasRounded,
+                stepSize: rules.stepSize,
+                original: quantity
+            };
+
+        } catch (error) {
+            logger.error('Failed to prepare sell quantity', {
+                exchange,
+                pair,
+                quantity,
+                error: error.message
+            });
+            throw error;
+        }
     }
 
     /**
@@ -3041,8 +3390,23 @@ class OrderExecutionService {
             // Apply rate limiting
             await this._rateLimitDelay();
 
+            // ===== UNIVERSAL FIX: Apply LOT_SIZE rounding FIRST =====
+            logger.info('⚙️ Applying LOT_SIZE compliance for Binance', { pair, originalQuantity: quantity });
+            const prepared = await this._prepareSellQuantity('binance', pair, quantity);
+            adjustedQuantity = prepared.quantity;
+            wasAdjusted = prepared.wasRounded;
+
+            if (wasAdjusted) {
+                logger.warn('🔧 Quantity auto-adjusted for LOT_SIZE compliance', {
+                    original: quantity,
+                    adjusted: adjustedQuantity,
+                    stepSize: prepared.stepSize,
+                    diff: (quantity - adjustedQuantity).toFixed(8)
+                });
+            }
+
             // ===== STEP 1: CHECK AVAILABLE BALANCE AND ADJUST QUANTITY =====
-            logger.info('🔍 Checking Binance balance before SELL order', { pair, requestedQuantity: quantity });
+            logger.info('🔍 Checking Binance balance before SELL order', { pair, requestedQuantity: adjustedQuantity });
 
             try {
                 const balances = await this._getBinanceBalances(credentials);
@@ -3436,8 +3800,13 @@ class OrderExecutionService {
             // Apply rate limiting
             await this._rateLimitDelay();
 
+            // ===== UNIVERSAL FIX: Apply LOT_SIZE rounding =====
+            const prepared = await this._prepareSellQuantity('bybit', pair, quantity);
+            adjustedQuantity = prepared.quantity;
+            wasAdjusted = prepared.wasRounded;
+
             // ===== STEP 1: CHECK AVAILABLE BALANCE AND ADJUST QUANTITY =====
-            logger.info('🔍 Checking BYBIT balance before SELL order', { pair, requestedQuantity: quantity });
+            logger.info('🔍 Checking BYBIT balance before SELL order', { pair, requestedQuantity: adjustedQuantity });
 
             try {
                 const balances = await this._getBYBITBalances(credentials);
