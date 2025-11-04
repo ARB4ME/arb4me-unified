@@ -27,16 +27,24 @@ const PositionMonitor = {
             const result = await response.json();
             const openPositions = result.data?.open || [];
 
+            console.log('📋 Position Monitor Check', {
+                userId,
+                exchange,
+                totalOpen: openPositions.length,
+                positions: openPositions.map(p => ({
+                    id: p.id,
+                    pair: p.pair,
+                    entryTime: p.entry_time,
+                    hoursOpen: ((Date.now() - new Date(p.entry_time).getTime()) / (1000 * 60 * 60)).toFixed(1)
+                }))
+            });
+
             if (!openPositions || openPositions.length === 0) {
-                console.debug('No open positions to monitor', { userId, exchange });
+                console.log('   ➜ No open positions to monitor');
                 return [];
             }
 
-            console.log('Monitoring open positions', {
-                userId,
-                exchange,
-                positionsCount: openPositions.length
-            });
+            console.log(`   ➜ Checking ${openPositions.length} position(s) for exit conditions...`);
 
             const closedPositions = [];
 
