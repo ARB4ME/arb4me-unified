@@ -251,14 +251,19 @@ const SignalDetection = {
             }
 
             // Check Max Hold Time
+            // Use small tolerance (0.01h = 36 seconds) to account for worker timing and floating-point precision
+            const maxHoldTimeTolerance = 0.01; // 36 seconds
+            const effectiveMaxHours = exitRules.maxHoldTimeHours ? exitRules.maxHoldTimeHours - maxHoldTimeTolerance : null;
+
             console.log(`   🕐 Max Hold Time Check:`, {
                 configured: !!exitRules.maxHoldTimeHours,
                 maxHours: exitRules.maxHoldTimeHours,
                 currentHours: hoursOpen.toFixed(2),
-                shouldTrigger: exitRules.maxHoldTimeHours && hoursOpen >= exitRules.maxHoldTimeHours
+                effectiveThreshold: effectiveMaxHours?.toFixed(2),
+                shouldTrigger: effectiveMaxHours && hoursOpen >= effectiveMaxHours
             });
 
-            if (exitRules.maxHoldTimeHours && hoursOpen >= exitRules.maxHoldTimeHours) {
+            if (effectiveMaxHours && hoursOpen >= effectiveMaxHours) {
                 console.log(`   ✅ MAX HOLD TIME TRIGGERED! Closing position.`);
                 return {
                     shouldExit: true,
