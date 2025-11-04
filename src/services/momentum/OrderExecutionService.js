@@ -1518,6 +1518,11 @@ class OrderExecutionService {
             // Apply rate limiting
             await this._rateLimitDelay();
 
+            // ===== UNIVERSAL FIX: Apply LOT_SIZE rounding =====
+            const prepared = await this._prepareSellQuantity('luno', pair, quantity);
+            adjustedQuantity = prepared.quantity;
+            wasAdjusted = prepared.wasRounded;
+
             // ===== STEP 1: CHECK AVAILABLE BALANCE AND ADJUST QUANTITY =====
             logger.info('🔍 Checking Luno balance before SELL order', { pair, requestedQuantity: quantity });
 
@@ -2089,6 +2094,10 @@ class OrderExecutionService {
      */
     async _executeLunoLimitSell(pair, quantity, credentials) {
         try {
+            // ===== UNIVERSAL FIX: Apply LOT_SIZE rounding =====
+            const prepared = await this._prepareSellQuantity('luno', pair, quantity);
+            quantity = prepared.quantity;
+
             // Get current market price
             const ticker = await this._getLunoTickerPrice(pair);
             const currentPrice = ticker.bid; // Use bid price for selling
@@ -2298,6 +2307,11 @@ class OrderExecutionService {
         try {
             // Apply rate limiting
             await this._rateLimitDelay();
+
+            // ===== UNIVERSAL FIX: Apply LOT_SIZE rounding =====
+            const prepared = await this._prepareSellQuantity('chainex', pair, quantity);
+            adjustedQuantity = prepared.quantity;
+            wasAdjusted = prepared.wasRounded;
 
             // ===== STEP 1: CHECK AVAILABLE BALANCE AND ADJUST QUANTITY =====
             logger.info('🔍 Checking ChainEX balance before SELL order', { pair, requestedQuantity: quantity });
@@ -2836,6 +2850,11 @@ class OrderExecutionService {
         try {
             // Apply rate limiting
             await this._rateLimitDelay();
+
+            // ===== UNIVERSAL FIX: Apply LOT_SIZE rounding =====
+            const prepared = await this._prepareSellQuantity('kraken', pair, quantity);
+            adjustedQuantity = prepared.quantity;
+            wasAdjusted = prepared.wasRounded;
 
             // ===== STEP 1: CHECK AVAILABLE BALANCE AND ADJUST QUANTITY =====
             logger.info('🔍 Checking Kraken balance before SELL order', { pair, requestedQuantity: quantity });
@@ -4191,6 +4210,11 @@ class OrderExecutionService {
             // Apply rate limiting
             await this._rateLimitDelay();
 
+            // ===== UNIVERSAL FIX: Apply LOT_SIZE rounding =====
+            const prepared = await this._prepareSellQuantity('gateio', pair, quantity);
+            adjustedQuantity = prepared.quantity;
+            wasAdjusted = prepared.wasRounded;
+
             // ===== STEP 1: CHECK AVAILABLE BALANCE AND ADJUST QUANTITY =====
             logger.info('🔍 Checking Gate.io balance before SELL order', { pair, requestedQuantity: quantity });
 
@@ -4570,6 +4594,11 @@ class OrderExecutionService {
         let wasAdjusted = false;
 
         try {
+            // ===== UNIVERSAL FIX: Apply LOT_SIZE rounding =====
+            const prepared = await this._prepareSellQuantity('okx', pair, quantity);
+            adjustedQuantity = prepared.quantity;
+            wasAdjusted = prepared.wasRounded;
+
             // ===== STEP 1: CHECK AVAILABLE BALANCE AND ADJUST QUANTITY =====
             logger.info('🔍 Checking OKX balance before SELL order', { pair, requestedQuantity: quantity });
 
@@ -4934,6 +4963,11 @@ class OrderExecutionService {
         let wasAdjusted = false;
 
         try {
+            // ===== UNIVERSAL FIX: Apply LOT_SIZE rounding =====
+            const prepared = await this._prepareSellQuantity('mexc', pair, quantity);
+            adjustedQuantity = prepared.quantity;
+            wasAdjusted = prepared.wasRounded;
+
             // ===== STEP 1: CHECK AVAILABLE BALANCE AND ADJUST QUANTITY =====
             logger.info('🔍 Checking MEXC balance before SELL order', { pair, requestedQuantity: quantity });
 
@@ -5274,6 +5308,11 @@ class OrderExecutionService {
             // Convert pair to KuCoin format (BTCUSDT → BTC-USDT)
             const kucoinPair = this._convertPairToKuCoin(pair);
 
+            // ===== UNIVERSAL FIX: Apply LOT_SIZE rounding =====
+            const prepared = await this._prepareSellQuantity('kucoin', pair, quantity);
+            adjustedQuantity = prepared.quantity;
+            wasAdjusted = prepared.wasRounded;
+
             // ===== STEP 1: CHECK AVAILABLE BALANCE AND ADJUST QUANTITY =====
             logger.info('🔍 Checking KuCoin balance before SELL order', {
                 pair: kucoinPair,
@@ -5582,6 +5621,11 @@ class OrderExecutionService {
             // Convert pair to XT.com format (BTCUSDT → btc_usdt)
             const xtPair = this._convertPairToXT(pair);
 
+            // ===== UNIVERSAL FIX: Apply LOT_SIZE rounding =====
+            const prepared = await this._prepareSellQuantity('xt', pair, quantity);
+            adjustedQuantity = prepared.quantity;
+            wasAdjusted = prepared.wasRounded;
+
             // ===== STEP 1: CHECK AVAILABLE BALANCE AND ADJUST QUANTITY =====
             logger.info('🔍 Checking XT.com balance before SELL order', {
                 pair: xtPair,
@@ -5880,6 +5924,11 @@ class OrderExecutionService {
 
             // Convert pair to AscendEX format (BTCUSDT → BTC/USDT)
             const ascendexPair = this._convertPairToAscendEX(pair);
+
+            // ===== UNIVERSAL FIX: Apply LOT_SIZE rounding =====
+            const prepared = await this._prepareSellQuantity('ascendex', pair, quantity);
+            adjustedQuantity = prepared.quantity;
+            wasAdjusted = prepared.wasRounded;
 
             // ===== STEP 1: CHECK AVAILABLE BALANCE AND ADJUST QUANTITY =====
             logger.info('🔍 Checking AscendEX balance before SELL order', {
@@ -6249,6 +6298,11 @@ class OrderExecutionService {
             // Convert pair to HTX format (BTCUSDT → btcusdt)
             const htxPair = this._convertPairToHTX(pair);
 
+            // ===== UNIVERSAL FIX: Apply LOT_SIZE rounding =====
+            const prepared = await this._prepareSellQuantity('htx', pair, quantity);
+            adjustedQuantity = prepared.quantity;
+            wasAdjusted = prepared.wasRounded;
+
             // ===== STEP 1: CHECK AVAILABLE BALANCE AND ADJUST QUANTITY =====
             logger.info('🔍 Checking HTX balance before SELL order', {
                 pair: htxPair,
@@ -6589,6 +6643,11 @@ class OrderExecutionService {
             // Convert pair to BingX format (BTCUSDT → BTC-USDT)
             const bingxPair = this._convertPairToBingX(pair);
 
+            // ===== UNIVERSAL FIX: Apply LOT_SIZE rounding =====
+            const prepared = await this._prepareSellQuantity('bingx', pair, quantity);
+            adjustedQuantity = prepared.quantity;
+            wasAdjusted = prepared.wasRounded;
+
             // ===== STEP 1: CHECK AVAILABLE BALANCE AND ADJUST QUANTITY =====
             logger.info('🔍 Checking BingX balance before SELL order', {
                 pair: bingxPair,
@@ -6906,6 +6965,11 @@ class OrderExecutionService {
         try {
             // Convert pair to Bitget format (BTCUSDT → BTCUSDT_SPBL)
             const bitgetPair = this._convertPairToBitget(pair);
+
+            // ===== UNIVERSAL FIX: Apply LOT_SIZE rounding =====
+            const prepared = await this._prepareSellQuantity('bitget', pair, quantity);
+            adjustedQuantity = prepared.quantity;
+            wasAdjusted = prepared.wasRounded;
 
             // ===== STEP 1: CHECK AVAILABLE BALANCE AND ADJUST QUANTITY =====
             logger.info('🔍 Checking Bitget balance before SELL order', {
@@ -7259,6 +7323,11 @@ class OrderExecutionService {
             // Convert pair to BitMart format (BTCUSDT → BTC_USDT)
             const bitmartPair = this._convertPairToBitMart(pair);
 
+            // ===== UNIVERSAL FIX: Apply LOT_SIZE rounding =====
+            const prepared = await this._prepareSellQuantity('bitmart', pair, quantity);
+            adjustedQuantity = prepared.quantity;
+            wasAdjusted = prepared.wasRounded;
+
             // ===== STEP 1: CHECK AVAILABLE BALANCE AND ADJUST QUANTITY =====
             logger.info('🔍 Checking BitMart balance before SELL order', {
                 pair: bitmartPair,
@@ -7602,6 +7671,11 @@ class OrderExecutionService {
         let wasAdjusted = false;
 
         try {
+            // ===== UNIVERSAL FIX: Apply LOT_SIZE rounding =====
+            const prepared = await this._prepareSellQuantity('bitrue', pair, quantity);
+            adjustedQuantity = prepared.quantity;
+            wasAdjusted = prepared.wasRounded;
+
             // ===== STEP 1: CHECK AVAILABLE BALANCE AND ADJUST QUANTITY =====
             logger.info('🔍 Checking Bitrue balance before SELL order', {
                 pair,
@@ -7940,6 +8014,11 @@ class OrderExecutionService {
         try {
             // Convert pair to Gemini format (BTCUSD → btcusd)
             const geminiPair = this._convertPairToGemini(pair);
+
+            // ===== UNIVERSAL FIX: Apply LOT_SIZE rounding =====
+            const prepared = await this._prepareSellQuantity('gemini', pair, quantity);
+            adjustedQuantity = prepared.quantity;
+            wasAdjusted = prepared.wasRounded;
 
             // ===== STEP 1: CHECK AVAILABLE BALANCE AND ADJUST QUANTITY =====
             logger.info('🔍 Checking Gemini balance before SELL order', {
@@ -8291,6 +8370,11 @@ class OrderExecutionService {
         let wasAdjusted = false;
 
         try {
+            // ===== UNIVERSAL FIX: Apply LOT_SIZE rounding =====
+            const prepared = await this._prepareSellQuantity('cryptocom', pair, quantity);
+            adjustedQuantity = prepared.quantity;
+            wasAdjusted = prepared.wasRounded;
+
             // ===== STEP 1: CHECK AVAILABLE BALANCE AND ADJUST QUANTITY =====
             logger.info('🔍 Checking Crypto.com balance before SELL order', {
                 pair,
@@ -8658,6 +8742,11 @@ class OrderExecutionService {
         let wasAdjusted = false;
 
         try {
+            // ===== UNIVERSAL FIX: Apply LOT_SIZE rounding =====
+            const prepared = await this._prepareSellQuantity('coincatch', pair, quantity);
+            adjustedQuantity = prepared.quantity;
+            wasAdjusted = prepared.wasRounded;
+
             // ===== STEP 1: CHECK AVAILABLE BALANCE AND ADJUST QUANTITY =====
             logger.info('🔍 Checking Coincatch balance before SELL order', {
                 pair,
