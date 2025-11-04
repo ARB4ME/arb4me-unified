@@ -1129,6 +1129,83 @@ router.post('/positions/:id/close', async (req, res) => {
 });
 
 /**
+ * PUT /api/v1/momentum/positions/:id/force-close
+ * Force close a stuck position with manual exit data (recovery endpoint)
+ */
+router.put('/positions/:id/force-close', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { exitPrice, exitQuantity, exitTime, exitReason, exitPnlUsdt, exitPnlPercent, exitFee } = req.body;
+
+        logger.warn('FORCE CLOSING stuck position (recovery action)', {
+            positionId: id,
+            exitPrice,
+            exitQuantity,
+            exitReason
+        });
+
+        // Direct SQL update to fix stuck position
+        const updateQuery = `
+            UPDATE momentum_positions
+            SET status = 'CLOSED',
+                exit_price = $1,
+                exit_quantity = $2,
+                exit_fee = $3,
+                exit_time = $4,
+                exit_reason = $5,
+                exit_pnl_usdt = $6,
+                exit_pnl_percent = $7,
+                exit_order_id = NULL,
+                updated_at = NOW()
+            WHERE id = $8
+            RETURNING *
+        `;
+
+        const { query } = require('../database/connection');
+        const result = await query(updateQuery, [
+            exitPrice,
+            exitQuantity,
+            exitFee || 0,
+            exitTime || new Date(),
+            exitReason || 'manual_recovery',
+            exitPnlUsdt || 0,
+            exitPnlPercent || 0,
+            id
+        ]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error: 'Position not found'
+            });
+        }
+
+        logger.info('Position force closed successfully', {
+            positionId: id,
+            exitPrice,
+            exitPnlUsdt
+        });
+
+        res.json({
+            success: true,
+            data: result.rows[0],
+            message: 'Position force closed - recovery successful'
+        });
+
+    } catch (error) {
+        logger.error('Failed to force close position', {
+            positionId: req.params.id,
+            error: error.message
+        });
+
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
  * PUT /api/v1/momentum/positions/:id/mark-closing
  * Mark position as CLOSING to prevent duplicate sell attempts
  */
