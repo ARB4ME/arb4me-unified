@@ -216,6 +216,20 @@ const SignalDetection = {
             // Calculate current P&L percentage
             const pnlPercent = ((currentPrice - entryPrice) / entryPrice) * 100;
 
+            console.log(`🔬 Exit Signal Analysis for Position ${position.id}:`, {
+                entryPrice,
+                currentPrice,
+                pnlPercent: pnlPercent.toFixed(2) + '%',
+                entryTime: position.entry_time,
+                hoursOpen: hoursOpen.toFixed(2) + 'h',
+                exitRules: {
+                    maxHoldTimeHours: exitRules?.maxHoldTimeHours,
+                    takeProfitPercent: exitRules?.takeProfitPercent,
+                    stopLossPercent: exitRules?.stopLossPercent,
+                    takeProfitMode: exitRules?.takeProfitMode
+                }
+            });
+
             // Check Take Profit (only in Auto mode, skip if Manual mode)
             const takeProfitMode = exitRules.takeProfitMode || 'auto'; // Default to 'auto' for backward compatibility
 
@@ -237,7 +251,15 @@ const SignalDetection = {
             }
 
             // Check Max Hold Time
+            console.log(`   🕐 Max Hold Time Check:`, {
+                configured: !!exitRules.maxHoldTimeHours,
+                maxHours: exitRules.maxHoldTimeHours,
+                currentHours: hoursOpen.toFixed(2),
+                shouldTrigger: exitRules.maxHoldTimeHours && hoursOpen >= exitRules.maxHoldTimeHours
+            });
+
             if (exitRules.maxHoldTimeHours && hoursOpen >= exitRules.maxHoldTimeHours) {
+                console.log(`   ✅ MAX HOLD TIME TRIGGERED! Closing position.`);
                 return {
                     shouldExit: true,
                     reason: 'max_hold_time',
@@ -248,6 +270,7 @@ const SignalDetection = {
             // Check indicator-based exit (if configured)
             // TODO: Add indicator-based exit signals (e.g., RSI overbought, MACD bearish crossover)
 
+            console.log(`   ❌ No exit conditions met - position stays open`);
             return {
                 shouldExit: false,
                 reason: null,
