@@ -197,9 +197,67 @@ const PositionMonitor = {
      * @param {object} credentials - Exchange credentials
      * @returns {Promise<object>} Closed position
      */
-    async _closePosition(position, reason, currentPrice, exchange, credentials) {
+    /**
+     * Helper: Fetch with timeout
+     * @private
+     */
+    async _fetchWithTimeout(url, options, timeoutMs = 30000) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
         try {
-            console.log('Closing position', {
+            const response = await fetch(url, {
+                ...options,
+                signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+            return response;
+        } catch (error) {
+            clearTimeout(timeoutId);
+            if (error.name === 'AbortError') {
+                throw new Error(`Request timeout after ${timeoutMs}ms`);
+            }
+            throw error;
+        }
+    },
+
+    /**
+     * Helper: Retry logic with exponential backoff
+     * @private
+     */
+    async _retryOperation(operation, maxRetries = 3, baseDelay = 1000) {
+        let lastError;
+
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                return await operation();
+            } catch (error) {
+                lastError = error;
+
+                if (attempt < maxRetries) {
+                    const delay = baseDelay * Math.pow(2, attempt - 1); // Exponential backoff
+                    console.warn(`Retry attempt ${attempt}/${maxRetries} after ${delay}ms`, {
+                        error: error.message
+                    });
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                } else {
+                    console.error(`All ${maxRetries} retry attempts failed`, {
+                        error: error.message
+                    });
+                }
+            }
+        }
+
+        throw lastError;
+    },
+
+    async _closePosition(position, reason, currentPrice, exchange, credentials) {
+        let sellOrder = null;
+        let exitPrice = null;
+        let exitFee = null;
+
+        try {
+            console.log('🔐 Closing position', {
                 positionId: position.id,
                 pair: position.pair,
                 reason,
@@ -211,81 +269,93 @@ const PositionMonitor = {
             // STEP 1: Mark position as CLOSING to prevent duplicate sell attempts
             // This is CRITICAL - if sell succeeds but database update fails,
             // we won't retry the sell on an already-closed position
-            const markClosingResponse = await fetch(`/api/v1/momentum/positions/${position.id}/mark-closing`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
+            console.log('🔒 STEP 1: Marking position as CLOSING...');
+            const markClosingResponse = await this._fetchWithTimeout(
+                `/api/v1/momentum/positions/${position.id}/mark-closing`,
+                {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' }
+                },
+                10000 // 10 second timeout
+            );
 
             if (!markClosingResponse.ok) {
-                console.error('Failed to mark position as CLOSING', {
+                console.error('❌ Failed to mark position as CLOSING', {
                     positionId: position.id,
                     status: markClosingResponse.status
                 });
                 throw new Error(`Failed to mark position as CLOSING: ${markClosingResponse.statusText}`);
             }
 
-            console.log('Position marked as CLOSING', { positionId: position.id });
+            console.log('✅ Position marked as CLOSING', { positionId: position.id });
 
-            // STEP 2: Execute market SELL order via API
-            const orderResponse = await fetch('/api/v1/momentum/order/sell', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
+            // STEP 2: Execute market SELL order via API with increased timeout
+            console.log('💰 STEP 2: Executing SELL order on exchange...');
+            const orderResponse = await this._fetchWithTimeout(
+                '/api/v1/momentum/order/sell',
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        exchange,
+                        pair: position.pair,
+                        quantity: position.entry_quantity,
+                        credentials
+                    })
                 },
-                body: JSON.stringify({
-                    exchange,
-                    pair: position.pair,
-                    quantity: position.entry_quantity,
-                    credentials
-                })
-            });
+                60000 // 60 second timeout for exchange operations
+            );
 
             if (!orderResponse.ok) {
-                throw new Error(`Failed to execute sell order: ${orderResponse.statusText}`);
+                const errorText = await orderResponse.text();
+                throw new Error(`Failed to execute sell order: ${orderResponse.status} - ${errorText}`);
             }
 
-            const { data: sellOrder } = await orderResponse.json();
+            const orderResult = await orderResponse.json();
+            sellOrder = orderResult.data;
 
             // Extract sell order data
-            const exitPrice = sellOrder.executedPrice || currentPrice;
+            exitPrice = sellOrder.executedPrice || currentPrice;
             const exitValue = sellOrder.executedValue || (exitPrice * position.entry_quantity);
+            exitFee = sellOrder.fee || (exitValue * 0.001); // 0.1% conservative estimate
 
-            // Get actual exit fee from exchange (or estimate 0.1% if not provided)
-            const exitFee = sellOrder.fee || (exitValue * 0.001); // 0.1% conservative estimate
-
-            console.debug('Closing position with actual fees', {
+            console.log('✅ SELL order executed successfully', {
                 positionId: position.id,
                 exitPrice,
                 exitValue,
                 exitFee: exitFee.toFixed(4),
-                entryFee: (position.entry_fee || 0).toFixed(4)
+                orderId: sellOrder.orderId
             });
 
-            // Close position in database via API
-            // The backend will calculate P&L using: (Exit Value - Exit Fee) - (Entry Value + Entry Fee)
-            const closeResponse = await fetch(`/api/v1/momentum/positions/${position.id}/close`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    exitPrice: exitPrice,
-                    exitQuantity: position.entry_quantity,
-                    exitFee: exitFee,
-                    exitReason: reason,
-                    exitOrderId: sellOrder.orderId
-                })
-            });
+            // STEP 3: Update database with retry logic
+            console.log('💾 STEP 3: Updating database (with retry)...');
+            const closedPosition = await this._retryOperation(async () => {
+                const closeResponse = await this._fetchWithTimeout(
+                    `/api/v1/momentum/positions/${position.id}/close`,
+                    {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            exitPrice: exitPrice,
+                            exitQuantity: position.entry_quantity,
+                            exitFee: exitFee,
+                            exitReason: reason,
+                            exitOrderId: sellOrder.orderId
+                        })
+                    },
+                    30000 // 30 second timeout for database update
+                );
 
-            if (!closeResponse.ok) {
-                throw new Error(`Failed to close position in database: ${closeResponse.statusText}`);
-            }
+                if (!closeResponse.ok) {
+                    const errorText = await closeResponse.text();
+                    throw new Error(`Database update failed: ${closeResponse.status} - ${errorText}`);
+                }
 
-            const { data: closedPosition } = await closeResponse.json();
+                const result = await closeResponse.json();
+                return result.data;
+            }, 3, 2000); // 3 retries, starting with 2 second delay
 
-            console.log('Position closed successfully with accurate P&L', {
+            console.log('✅ Position closed successfully with accurate P&L', {
                 positionId: position.id,
                 exitPrice,
                 exitFee: exitFee.toFixed(4),
@@ -298,10 +368,27 @@ const PositionMonitor = {
             return closedPosition;
 
         } catch (error) {
-            console.error('Failed to close position', {
+            console.error('❌ CRITICAL: Failed to close position', {
                 positionId: position.id,
-                error: error.message
+                exchange,
+                error: error.message,
+                sellExecuted: sellOrder !== null,
+                exitPrice,
+                exitFee
             });
+
+            // If sell succeeded but database update failed, log for reconciliation
+            if (sellOrder !== null) {
+                console.error('⚠️ RECONCILIATION NEEDED: Sell executed but database not updated', {
+                    positionId: position.id,
+                    exchange,
+                    exitPrice,
+                    exitFee,
+                    orderId: sellOrder.orderId,
+                    action: 'Position needs manual force-close in database'
+                });
+            }
+
             throw error;
         }
     },
