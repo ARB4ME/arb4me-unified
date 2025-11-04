@@ -666,13 +666,7 @@ router.post('/strategies/:id/toggle', async (req, res) => {
             });
         }
 
-        // Verify ownership
-        if (currentStrategy.user_id !== parseInt(userId)) {
-            return res.status(403).json({
-                success: false,
-                error: 'Unauthorized: Strategy does not belong to this user'
-            });
-        }
+        // NOTE: Removed ownership check as toggle() method already validates via WHERE user_id = $2
 
         // If currently INACTIVE (about to be activated), check for asset conflicts
         if (!currentStrategy.is_active) {
