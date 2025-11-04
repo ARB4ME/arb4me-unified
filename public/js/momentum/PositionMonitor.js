@@ -51,14 +51,19 @@ const PositionMonitor = {
             // Monitor each position
             for (const position of openPositions) {
                 try {
+                    console.log(`🔍 Checking position ${position.id} (${position.pair})...`);
+
                     const shouldClose = await this._checkExitConditions(
                         position,
                         exchange,
                         credentials
                     );
 
+                    console.log(`   Decision: shouldExit=${shouldClose.shouldExit}, reason=${shouldClose.reason || 'none'}`);
+
                     if (shouldClose.shouldExit) {
                         // Execute exit order
+                        console.log(`   ➜ Closing position ${position.id} due to ${shouldClose.reason}`);
                         const closedPosition = await this._closePosition(
                             position,
                             shouldClose.reason,
@@ -68,12 +73,15 @@ const PositionMonitor = {
                         );
 
                         closedPositions.push(closedPosition);
+                    } else {
+                        console.log(`   ➜ Position ${position.id} does not meet exit conditions yet`);
                     }
 
                 } catch (error) {
-                    console.error('Failed to monitor position', {
+                    console.error(`❌ Failed to monitor position ${position.id}:`, {
                         positionId: position.id,
-                        error: error.message
+                        error: error.message,
+                        stack: error.stack
                     });
                     // Continue monitoring other positions
                 }
@@ -143,11 +151,27 @@ const PositionMonitor = {
             const { data: currentPrice } = await priceResponse.json();
 
             // Use SignalDetection to check exit signals
+            console.log('🔍 Checking exit signals with:', {
+                positionId: position.id,
+                pair: position.pair,
+                entryTime: position.entry_time,
+                currentPrice,
+                exitRules: strategy.exit_rules,
+                strategyId: strategy.id
+            });
+
             const exitSignal = SignalDetection.checkExitSignals(
                 position,
                 currentPrice,
                 strategy.exit_rules
             );
+
+            console.log('📊 Exit signal result:', {
+                positionId: position.id,
+                shouldExit: exitSignal.shouldExit,
+                reason: exitSignal.reason,
+                details: exitSignal.details
+            });
 
             return {
                 ...exitSignal,
