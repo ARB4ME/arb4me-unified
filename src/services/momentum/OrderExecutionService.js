@@ -693,6 +693,9 @@ class OrderExecutionService {
      * @private
      */
     async _executeValrSell(pair, quantity, credentials) {
+        // Ensure quantity is a number (may come as string from API)
+        quantity = parseFloat(quantity);
+
         // Declare variables at function scope to avoid ReferenceError in catch block
         let adjustedQuantity = quantity;
         let wasAdjusted = false;
@@ -1155,6 +1158,9 @@ class OrderExecutionService {
      * @private
      */
     async _executeLunoSell(pair, quantity, credentials) {
+        // Ensure quantity is a number (may come as string from API)
+        quantity = parseFloat(quantity);
+
         // Declare variables at function scope to avoid ReferenceError in catch block
         let adjustedQuantity = quantity;
         let wasAdjusted = false;
@@ -1931,6 +1937,9 @@ class OrderExecutionService {
      * @private
      */
     async _executeChainEXSell(pair, quantity, credentials) {
+        // Ensure quantity is a number (may come as string from API)
+        quantity = parseFloat(quantity);
+
         const debug = new ExchangeDebugger('chainex');
 
         // Declare variables at function scope to avoid ReferenceError in catch block
@@ -2468,6 +2477,7 @@ class OrderExecutionService {
      * @private
      */
     async _executeKrakenSell(pair, quantity, credentials) {
+// Ensure quantity is a number (may come as string from API)        quantity = parseFloat(quantity);
         const debug = new ExchangeDebugger('kraken');
 
         // Declare variables at function scope to avoid ReferenceError in catch block
@@ -3020,6 +3030,7 @@ class OrderExecutionService {
      * @private
      */
     async _executeBinanceSell(pair, quantity, credentials) {
+// Ensure quantity is a number (may come as string from API)        quantity = parseFloat(quantity);
         const debug = new ExchangeDebugger('binance');
 
         // Declare variables at function scope to avoid ReferenceError in catch block
@@ -3270,7 +3281,7 @@ class OrderExecutionService {
                 side: 'Buy',
                 orderType: 'Market',
                 marketUnit: 'quoteCoin', // Use quote currency (USDT) for market buy
-                qty: amountUSDT.toFixed(2) // Amount in USDT
+                qty: parseFloat(amountUSDT).toFixed(2) // Amount in USDT (parse string to number)
             };
 
             const requestBody = JSON.stringify(orderData);
@@ -3414,6 +3425,9 @@ class OrderExecutionService {
      * @private
      */
     async _executeBYBITSell(pair, quantity, credentials) {
+        // Ensure quantity is a number (may come as string from API)
+        quantity = parseFloat(quantity);
+
         // Declare variables at function scope to avoid ReferenceError in catch block
         let adjustedQuantity = quantity;
         let wasAdjusted = false;
@@ -3666,7 +3680,7 @@ class OrderExecutionService {
                 currency_pair: gateioPair,
                 side: 'buy',
                 type: 'market',
-                amount: amountUSDT.toFixed(2), // Amount in quote currency (USDT) for market buy
+                amount: parseFloat(amountUSDT).toFixed(2), // Amount in quote currency (USDT) for market buy
                 time_in_force: 'ioc' // Immediate or cancel
             };
 
@@ -3799,6 +3813,7 @@ class OrderExecutionService {
     }
 
     async _executeGateioSell(pair, quantity, credentials) {
+// Ensure quantity is a number (may come as string from API)        quantity = parseFloat(quantity);
         // Declare variables at function scope to avoid ReferenceError in catch block
         let adjustedQuantity = quantity;
         let wasAdjusted = false;
@@ -4043,7 +4058,7 @@ class OrderExecutionService {
                 tdMode: 'cash', // Cash trading mode (spot)
                 side: 'buy',
                 ordType: 'market',
-                sz: amountUSDT.toFixed(2), // Order quantity (in USDT for market buy)
+                sz: parseFloat(amountUSDT).toFixed(2), // Order quantity (in USDT for market buy)
                 tgtCcy: 'quote_ccy' // Target currency is quote currency (USDT)
             };
 
@@ -4180,6 +4195,7 @@ class OrderExecutionService {
     }
 
     async _executeOKXSell(pair, quantity, credentials) {
+// Ensure quantity is a number (may come as string from API)        quantity = parseFloat(quantity);
         // Declare variables at function scope to avoid ReferenceError in catch block
         let adjustedQuantity = quantity;
         let wasAdjusted = false;
@@ -4432,7 +4448,7 @@ class OrderExecutionService {
                 symbol: pair,
                 side: 'BUY',
                 type: 'MARKET',
-                quoteOrderQty: amountUSDT.toFixed(2), // Buy with USDT amount
+                quoteOrderQty: parseFloat(amountUSDT).toFixed(2), // Buy with USDT amount
                 timestamp: timestamp
             };
 
@@ -4543,6 +4559,7 @@ class OrderExecutionService {
     }
 
     async _executeMEXCSell(pair, quantity, credentials) {
+// Ensure quantity is a number (may come as string from API)        quantity = parseFloat(quantity);
         // Declare variables at function scope to avoid ReferenceError in catch block
         let adjustedQuantity = quantity;
         let wasAdjusted = false;
@@ -4814,7 +4831,7 @@ class OrderExecutionService {
                 side: 'buy',
                 symbol: kucoinPair,
                 type: 'market',
-                funds: amountUSDT.toFixed(2) // Use funds for market buy (quote currency)
+                funds: parseFloat(amountUSDT).toFixed(2) // Use funds for market buy (quote currency)
             };
 
             const requestBody = JSON.stringify(orderData);
@@ -4879,6 +4896,7 @@ class OrderExecutionService {
      * @private
      */
     async _executeKuCoinSell(pair, quantity, credentials) {
+// Ensure quantity is a number (may come as string from API)        quantity = parseFloat(quantity);
         // Declare variables at function scope so they're available in catch block
         let adjustedQuantity = quantity;
         let wasAdjusted = false;
@@ -5125,7 +5143,7 @@ class OrderExecutionService {
                 symbol: xtPair,
                 side: 'BUY',
                 type: 'MARKET',
-                quoteQty: amountUSDT.toFixed(2) // Use quoteQty for market buy (USDT amount)
+                quoteQty: parseFloat(amountUSDT).toFixed(2) // Use quoteQty for market buy (USDT amount)
             };
 
             const signature = this._createXTSignature(credentials.apiKey, timestamp, credentials.apiSecret);
@@ -5186,6 +5204,7 @@ class OrderExecutionService {
      * @private
      */
     async _executeXTSell(pair, quantity, credentials) {
+// Ensure quantity is a number (may come as string from API)        quantity = parseFloat(quantity);
         // Declare variables at function scope so they're available in catch block
         let adjustedQuantity = quantity;
         let wasAdjusted = false;
@@ -5418,7 +5437,7 @@ class OrderExecutionService {
             const path = `/${accountGroup}/api/pro/v1/cash/order`;
             const orderData = {
                 symbol: ascendexPair,
-                orderQty: amountUSDT.toFixed(2),
+                orderQty: parseFloat(amountUSDT).toFixed(2),
                 orderType: 'market',
                 side: 'buy',
                 respInst: 'ACCEPT'
@@ -5480,6 +5499,7 @@ class OrderExecutionService {
      * @private
      */
     async _executeAscendEXSell(pair, quantity, credentials) {
+// Ensure quantity is a number (may come as string from API)        quantity = parseFloat(quantity);
         // Declare variables at function scope so they're available in catch block
         let adjustedQuantity = quantity;
         let wasAdjusted = false;
@@ -5782,7 +5802,7 @@ class OrderExecutionService {
                 'account-id': accountId,
                 'symbol': htxPair,
                 'type': 'buy-market',
-                'amount': amountUSDT.toFixed(2)
+                'amount': parseFloat(amountUSDT).toFixed(2)
             };
 
             const params = {
@@ -5847,6 +5867,7 @@ class OrderExecutionService {
      * @private
      */
     async _executeHTXSell(pair, quantity, credentials) {
+// Ensure quantity is a number (may come as string from API)        quantity = parseFloat(quantity);
         // Declare variables at function scope so they're available in catch block
         let adjustedQuantity = quantity;
         let wasAdjusted = false;
@@ -6132,7 +6153,7 @@ class OrderExecutionService {
                 symbol: bingxPair,
                 side: 'BUY',
                 type: 'MARKET',
-                quoteOrderQty: amountUSDT.toFixed(2),
+                quoteOrderQty: parseFloat(amountUSDT).toFixed(2),
                 timestamp: timestamp
             };
 
@@ -6190,6 +6211,7 @@ class OrderExecutionService {
      * @private
      */
     async _executeBingXSell(pair, quantity, credentials) {
+// Ensure quantity is a number (may come as string from API)        quantity = parseFloat(quantity);
         // Declare variables at function scope so they're available in catch block
         let adjustedQuantity = quantity;
         let wasAdjusted = false;
@@ -6507,6 +6529,7 @@ class OrderExecutionService {
      * @private
      */
     async _executeBitgetSell(pair, quantity, credentials) {
+// Ensure quantity is a number (may come as string from API)        quantity = parseFloat(quantity);
         // Declare variables at function scope so they're available in catch block
         let adjustedQuantity = quantity;
         let wasAdjusted = false;
@@ -6858,6 +6881,7 @@ class OrderExecutionService {
      * @private
      */
     async _executeBitMartSell(pair, quantity, credentials) {
+// Ensure quantity is a number (may come as string from API)        quantity = parseFloat(quantity);
         // Declare variables at function scope so they're available in catch block
         let adjustedQuantity = quantity;
         let wasAdjusted = false;
@@ -7203,6 +7227,7 @@ class OrderExecutionService {
      * @private
      */
     async _executeBitrueSell(pair, quantity, credentials) {
+// Ensure quantity is a number (may come as string from API)        quantity = parseFloat(quantity);
         // Declare variables at function scope so they're available in catch block
         let adjustedQuantity = quantity;
         let wasAdjusted = false;
@@ -7538,6 +7563,7 @@ class OrderExecutionService {
      * @private
      */
     async _executeGeminiSell(pair, quantity, credentials) {
+// Ensure quantity is a number (may come as string from API)        quantity = parseFloat(quantity);
         // Declare variables at function scope so they're available in catch block
         let adjustedQuantity = quantity;
         let wasAdjusted = false;
@@ -7888,6 +7914,9 @@ class OrderExecutionService {
      * @private
      */
     async _executeCryptoComSell(pair, quantity, credentials) {
+        // Ensure quantity is a number (may come as string from API)
+        quantity = parseFloat(quantity);
+
         // Declare variables at function scope for catch block access
         let adjustedQuantity = quantity;
         let wasAdjusted = false;
@@ -8252,6 +8281,9 @@ class OrderExecutionService {
      * @private
      */
     async _executeCoincatchSell(pair, quantity, credentials) {
+        // Ensure quantity is a number (may come as string from API)
+        quantity = parseFloat(quantity);
+
         // Declare variables at function scope for catch block access
         let adjustedQuantity = quantity;
         let wasAdjusted = false;
