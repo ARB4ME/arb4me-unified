@@ -235,11 +235,20 @@ const MomentumWorker = {
             };
 
             // Monitor existing positions (check exits)
-            const closedPositions = await PositionMonitor.monitorPositions(
-                strategy.user_id,
-                strategy.exchange,
-                credentials
-            );
+            console.log(`      🔍 Calling PositionMonitor.monitorPositions for ${strategy.exchange}...`);
+            let closedPositions = [];
+            try {
+                closedPositions = await PositionMonitor.monitorPositions(
+                    strategy.user_id,
+                    strategy.exchange,
+                    credentials
+                );
+                console.log(`      ✓ PositionMonitor completed - ${closedPositions.length} position(s) closed`);
+            } catch (error) {
+                console.error(`      ❌ PositionMonitor FAILED for ${strategy.exchange}:`, error.message);
+                console.error(`      Stack:`, error.stack);
+                // Continue with entry signals even if position monitoring failed
+            }
 
             results.positionsClosed = closedPositions.length;
 
