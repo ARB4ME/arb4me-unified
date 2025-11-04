@@ -251,8 +251,8 @@ const SignalDetection = {
             }
 
             // Check Max Hold Time
-            // Use small tolerance (0.01h = 36 seconds) to account for worker timing and floating-point precision
-            const maxHoldTimeTolerance = 0.01; // 36 seconds
+            // Use tolerance of 0.02h (72 seconds) to account for 60-second worker cycle and floating-point precision
+            const maxHoldTimeTolerance = 0.02; // 72 seconds (accounts for 60s worker interval)
             const effectiveMaxHours = exitRules.maxHoldTimeHours ? exitRules.maxHoldTimeHours - maxHoldTimeTolerance : null;
 
             console.log(`   🕐 Max Hold Time Check:`, {
