@@ -329,6 +329,57 @@ router.get('/supported-pairs/:exchange', async (req, res) => {
                     'LTCUSDT'
                 ];
                 break;
+            case 'bybit':
+                // BYBIT USDT spot pairs
+                supportedPairs = [
+                    'BTCUSDT',
+                    'ETHUSDT',
+                    'XRPUSDT',
+                    'SOLUSDT',
+                    'ADAUSDT',
+                    'DOTUSDT',
+                    'MATICUSDT',
+                    'AVAXUSDT',
+                    'LINKUSDT',
+                    'BNBUSDT',
+                    'LTCUSDT',
+                    'ATOMUSDT'
+                ];
+                break;
+            case 'gateio':
+            case 'gate.io':
+            case 'okx':
+            case 'mexc':
+            case 'kucoin':
+            case 'xt':
+            case 'xt.com':
+            case 'ascendex':
+            case 'htx':
+            case 'huobi':
+            case 'bingx':
+            case 'bitget':
+            case 'bitmart':
+            case 'bitrue':
+            case 'gemini':
+            case 'crypto.com':
+            case 'cryptocom':
+            case 'coincatch':
+            case 'altcointrader':
+                // Most major exchanges support these common USDT pairs
+                supportedPairs = [
+                    'BTCUSDT',
+                    'ETHUSDT',
+                    'XRPUSDT',
+                    'SOLUSDT',
+                    'ADAUSDT',
+                    'DOTUSDT',
+                    'MATICUSDT',
+                    'AVAXUSDT',
+                    'LINKUSDT',
+                    'LTCUSDT',
+                    'ATOMUSDT'
+                ];
+                break;
             default:
                 return res.status(400).json({
                     success: false,
