@@ -1225,6 +1225,7 @@
                         <div><strong>Max Trade:</strong> ${strategy.max_trade_amount.toLocaleString()} USDT</div>
                         <div><strong>Max Positions:</strong> ${strategy.max_open_positions}</div>
                         <div><strong>Take Profit:</strong> ${strategy.exit_rules.takeProfitPercent}% | <strong>Stop Loss:</strong> ${strategy.exit_rules.stopLossPercent}%</div>
+                        <div><strong>Max Hold Time:</strong> ${strategy.exit_rules.maxHoldTimeHours > 0 ? strategy.exit_rules.maxHoldTimeHours + 'h' : '<span style="color: #ff6b6b;">⚠️ NOT SET (position may run indefinitely)</span>'}</div>
                     </div>
 
                     <!-- Position Countdown (for open positions) -->
@@ -1761,6 +1762,7 @@
                     volumeMultiplier: 2.5,
                     takeProfit: 2,
                     stopLoss: 1.5,
+                    maxHoldTime: 24,
                     maxTradeAmount: 500,
                     maxOpenPositions: 1  // Fixed to 1 to prevent shared pot issues
                 },
@@ -1769,6 +1771,7 @@
                     volumeMultiplier: 2,
                     takeProfit: 3,
                     stopLoss: 2,
+                    maxHoldTime: 24,
                     maxTradeAmount: 1000,
                     maxOpenPositions: 1  // Fixed to 1 to prevent shared pot issues
                 },
@@ -1777,6 +1780,7 @@
                     volumeMultiplier: 1.5,
                     takeProfit: 5,
                     stopLoss: 3,
+                    maxHoldTime: 24,
                     maxTradeAmount: 2000,
                     maxOpenPositions: 1  // Fixed to 1 to prevent shared pot issues
                 }
@@ -1787,13 +1791,14 @@
             document.getElementById('volumeMultiplier').value = values.volumeMultiplier;
             document.getElementById('takeProfit').value = values.takeProfit;
             document.getElementById('stopLoss').value = values.stopLoss;
+            document.getElementById('maxHoldTime').value = values.maxHoldTime;
             document.getElementById('maxTradeAmount').value = values.maxTradeAmount;
             document.getElementById('maxOpenPositions').value = values.maxOpenPositions;
 
             // Visual feedback - briefly highlight updated fields
             const updatedFields = [
                 'rsiOversold', 'volumeMultiplier', 'takeProfit',
-                'stopLoss', 'maxTradeAmount', 'maxOpenPositions'
+                'stopLoss', 'maxHoldTime', 'maxTradeAmount', 'maxOpenPositions'
             ];
 
             updatedFields.forEach(fieldId => {
