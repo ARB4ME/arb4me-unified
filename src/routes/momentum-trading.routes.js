@@ -1129,6 +1129,46 @@ router.post('/positions/:id/close', async (req, res) => {
 });
 
 /**
+ * PUT /api/v1/momentum/positions/:id/mark-closing
+ * Mark position as CLOSING to prevent duplicate sell attempts
+ */
+router.put('/positions/:id/mark-closing', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        logger.info('Marking position as CLOSING', { positionId: id });
+
+        // Mark position as CLOSING (prevents duplicate sell attempts)
+        const position = await MomentumPosition.markAsClosing(id);
+
+        if (!position) {
+            return res.status(404).json({
+                success: false,
+                error: 'Position not found or already closing/closed'
+            });
+        }
+
+        logger.info('Position marked as CLOSING', { positionId: id });
+
+        res.json({
+            success: true,
+            data: position
+        });
+
+    } catch (error) {
+        logger.error('Failed to mark position as CLOSING', {
+            positionId: req.params.id,
+            error: error.message
+        });
+
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
  * PUT /api/v1/momentum/positions/:id/close
  * Close a position (called by PositionMonitor after executing sell order)
  */

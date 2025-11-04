@@ -176,7 +176,27 @@ const PositionMonitor = {
                 quantity: position.entry_quantity
             });
 
-            // Execute market SELL order via API
+            // STEP 1: Mark position as CLOSING to prevent duplicate sell attempts
+            // This is CRITICAL - if sell succeeds but database update fails,
+            // we won't retry the sell on an already-closed position
+            const markClosingResponse = await fetch(`/api/v1/momentum/positions/${position.id}/mark-closing`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!markClosingResponse.ok) {
+                console.error('Failed to mark position as CLOSING', {
+                    positionId: position.id,
+                    status: markClosingResponse.status
+                });
+                throw new Error(`Failed to mark position as CLOSING: ${markClosingResponse.statusText}`);
+            }
+
+            console.log('Position marked as CLOSING', { positionId: position.id });
+
+            // STEP 2: Execute market SELL order via API
             const orderResponse = await fetch('/api/v1/momentum/order/sell', {
                 method: 'POST',
                 headers: {
