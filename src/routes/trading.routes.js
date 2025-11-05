@@ -8327,8 +8327,9 @@ const XT_CONFIG = {
 
 // XT.com Authentication Helper
 // Based on official documentation: https://doc.xt.com/docs/spot/Access%20Description/SignatureGeneration
+// CRITICAL: Header names in signature use validate-* (no xt- prefix), but HTTP headers use xt-validate-*
 function createXTSignature(apiKey, timestamp, apiSecret, method, path, query = '', body = '') {
-    // Part X: Sort headers alphabetically and join with &
+    // Part X: Sort headers alphabetically and join with & (WITHOUT xt- prefix!)
     const X = `validate-algorithms=HmacSHA256&validate-appkey=${apiKey}&validate-recvwindow=60000&validate-timestamp=${timestamp}`;
 
     // Part Y: #method#path#query#body
@@ -8377,11 +8378,11 @@ router.post('/xt/balance', tradingRateLimit, optionalAuth, [
             headers: {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json',
-                'xt-validate-algorithms': 'HmacSHA256',
-                'xt-validate-appkey': apiKey,
-                'xt-validate-recvwindow': '60000',
-                'xt-validate-timestamp': timestamp,
-                'xt-validate-signature': signature
+                'validate-algorithms': 'HmacSHA256',
+                'validate-appkey': apiKey,
+                'validate-recvwindow': '60000',
+                'validate-timestamp': timestamp,
+                'validate-signature': signature
             }
         });
 
@@ -8559,11 +8560,11 @@ router.post('/xt/test', tradingRateLimit, optionalAuth, [
             headers: {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json',
-                'xt-validate-algorithms': 'HmacSHA256',
-                'xt-validate-appkey': apiKey,
-                'xt-validate-recvwindow': '60000',
-                'xt-validate-timestamp': timestamp,
-                'xt-validate-signature': signature
+                'validate-algorithms': 'HmacSHA256',
+                'validate-appkey': apiKey,
+                'validate-recvwindow': '60000',
+                'validate-timestamp': timestamp,
+                'validate-signature': signature
             }
         });
 
@@ -8661,11 +8662,11 @@ router.post('/xt/buy-order', tradingRateLimit, optionalAuth, [
             headers: {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json',
-                'xt-validate-algorithms': 'HmacSHA256',
-                'xt-validate-appkey': apiKey,
-                'xt-validate-recvwindow': '5000',
-                'xt-validate-timestamp': timestamp,
-                'xt-validate-signature': signature
+                'validate-algorithms': 'HmacSHA256',
+                'validate-appkey': apiKey,
+                'validate-recvwindow': '5000',
+                'validate-timestamp': timestamp,
+                'validate-signature': signature
             },
             body: body
         });
@@ -8766,11 +8767,11 @@ router.post('/xt/sell-order', tradingRateLimit, optionalAuth, [
             headers: {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json',
-                'xt-validate-algorithms': 'HmacSHA256',
-                'xt-validate-appkey': apiKey,
-                'xt-validate-recvwindow': '5000',
-                'xt-validate-timestamp': timestamp,
-                'xt-validate-signature': signature
+                'validate-algorithms': 'HmacSHA256',
+                'validate-appkey': apiKey,
+                'validate-recvwindow': '5000',
+                'validate-timestamp': timestamp,
+                'validate-signature': signature
             },
             body: body
         });
