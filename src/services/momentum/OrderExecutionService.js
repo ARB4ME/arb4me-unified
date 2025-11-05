@@ -5503,11 +5503,11 @@ class OrderExecutionService {
                 headers: {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json',
-                    'validate-algorithms': 'HmacSHA256',
-                    'validate-appkey': credentials.apiKey,
-                    'validate-recvwindow': '60000',
-                    'validate-timestamp': timestamp,
-                    'validate-signature': signature
+                    'xt-validate-algorithms': 'HmacSHA256',
+                    'xt-validate-appkey': credentials.apiKey,
+                    'xt-validate-recvwindow': '60000',
+                    'xt-validate-timestamp': timestamp,
+                    'xt-validate-signature': signature
                 }
             });
 
@@ -5565,11 +5565,11 @@ class OrderExecutionService {
                 headers: {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json',
-                    'validate-algorithms': 'HmacSHA256',
-                    'validate-appkey': credentials.apiKey,
-                    'validate-recvwindow': '60000',
-                    'validate-timestamp': timestamp,
-                    'validate-signature': signature
+                    'xt-validate-algorithms': 'HmacSHA256',
+                    'xt-validate-appkey': credentials.apiKey,
+                    'xt-validate-recvwindow': '60000',
+                    'xt-validate-timestamp': timestamp,
+                    'xt-validate-signature': signature
                 },
                 body: JSON.stringify(orderData)
             });
@@ -5708,11 +5708,11 @@ class OrderExecutionService {
                 headers: {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json',
-                    'validate-algorithms': 'HmacSHA256',
-                    'validate-appkey': credentials.apiKey,
-                    'validate-recvwindow': '60000',
-                    'validate-timestamp': timestamp,
-                    'validate-signature': signature
+                    'xt-validate-algorithms': 'HmacSHA256',
+                    'xt-validate-appkey': credentials.apiKey,
+                    'xt-validate-recvwindow': '60000',
+                    'xt-validate-timestamp': timestamp,
+                    'xt-validate-signature': signature
                 },
                 body: JSON.stringify(orderData)
             });
