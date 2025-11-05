@@ -5494,7 +5494,16 @@ class OrderExecutionService {
     async _getXTBalances(credentials) {
         try {
             const timestamp = Date.now().toString();
-            const signature = this._createXTSignature(credentials.apiKey, timestamp, credentials.apiSecret);
+            const path = '/v4/balances';
+            const signature = this._createXTSignature(
+                credentials.apiKey,
+                timestamp,
+                credentials.apiSecret,
+                'GET',
+                path,
+                '',
+                ''
+            );
 
             const url = 'https://sapi.xt.com/v4/balances';
 
@@ -5503,11 +5512,11 @@ class OrderExecutionService {
                 headers: {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json',
-                    'xt-validate-algorithms': 'HmacSHA256',
-                    'xt-validate-appkey': credentials.apiKey,
-                    'xt-validate-recvwindow': '60000',
-                    'xt-validate-timestamp': timestamp,
-                    'xt-validate-signature': signature
+                    'validate-algorithms': 'HmacSHA256',
+                    'validate-appkey': credentials.apiKey,
+                    'validate-recvwindow': '60000',
+                    'validate-timestamp': timestamp,
+                    'validate-signature': signature
                 }
             });
 
@@ -5554,7 +5563,17 @@ class OrderExecutionService {
                 quoteQty: parseFloat(amountUSDT).toFixed(2) // Use quoteQty for market buy (USDT amount)
             };
 
-            const signature = this._createXTSignature(credentials.apiKey, timestamp, credentials.apiSecret);
+            const path = '/v4/order';
+            const body = JSON.stringify(orderData);
+            const signature = this._createXTSignature(
+                credentials.apiKey,
+                timestamp,
+                credentials.apiSecret,
+                'POST',
+                path,
+                '',
+                body
+            );
 
             const url = `https://sapi.xt.com/v4/order`;
 
@@ -5565,13 +5584,13 @@ class OrderExecutionService {
                 headers: {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json',
-                    'xt-validate-algorithms': 'HmacSHA256',
-                    'xt-validate-appkey': credentials.apiKey,
-                    'xt-validate-recvwindow': '60000',
-                    'xt-validate-timestamp': timestamp,
-                    'xt-validate-signature': signature
+                    'validate-algorithms': 'HmacSHA256',
+                    'validate-appkey': credentials.apiKey,
+                    'validate-recvwindow': '60000',
+                    'validate-timestamp': timestamp,
+                    'validate-signature': signature
                 },
-                body: JSON.stringify(orderData)
+                body: body
             });
 
             if (!response.ok) {
@@ -5692,7 +5711,17 @@ class OrderExecutionService {
                 quantity: adjustedQuantity.toString() // Use ADJUSTED quantity for sell (base currency)
             };
 
-            const signature = this._createXTSignature(credentials.apiKey, timestamp, credentials.apiSecret);
+            const path = '/v4/order';
+            const body = JSON.stringify(orderData);
+            const signature = this._createXTSignature(
+                credentials.apiKey,
+                timestamp,
+                credentials.apiSecret,
+                'POST',
+                path,
+                '',
+                body
+            );
 
             const url = `https://sapi.xt.com/v4/order`;
 
@@ -5708,13 +5737,13 @@ class OrderExecutionService {
                 headers: {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json',
-                    'xt-validate-algorithms': 'HmacSHA256',
-                    'xt-validate-appkey': credentials.apiKey,
-                    'xt-validate-recvwindow': '60000',
-                    'xt-validate-timestamp': timestamp,
-                    'xt-validate-signature': signature
+                    'validate-algorithms': 'HmacSHA256',
+                    'validate-appkey': credentials.apiKey,
+                    'validate-recvwindow': '60000',
+                    'validate-timestamp': timestamp,
+                    'validate-signature': signature
                 },
-                body: JSON.stringify(orderData)
+                body: body
             });
 
             if (!response.ok) {
@@ -5772,12 +5801,22 @@ class OrderExecutionService {
 
     /**
      * Create XT.com signature for authentication
-     * Unique signature format: apiKey + "#" + apiSecret + "#" + timestamp
+     * Based on official XT.com SDK: https://doc.xt.com/docs/spot/Access%20Description/SignatureGeneration
+     * CRITICAL: Header names in signature use validate-* (no xt- prefix)
      * @private
      */
-    _createXTSignature(apiKey, timestamp, apiSecret) {
-        // XT signature: HMAC-SHA256(apiKey + "#" + apiSecret + "#" + timestamp, apiSecret)
-        const signString = apiKey + "#" + apiSecret + "#" + timestamp;
+    _createXTSignature(apiKey, timestamp, apiSecret, method, path, query = '', body = '') {
+        // Part X: Sort headers alphabetically and join with & (WITHOUT xt- prefix!)
+        const X = `validate-algorithms=HmacSHA256&validate-appkey=${apiKey}&validate-recvwindow=60000&validate-timestamp=${timestamp}`;
+
+        // Part Y: #method#path#query#body
+        let Y = `#${method}#${path}`;
+        if (query) Y += `#${query}`;
+        if (body) Y += `#${body}`;
+
+        // Final sign string: X + Y
+        const signString = X + Y;
+
         return crypto.createHmac('sha256', apiSecret).update(signString).digest('hex');
     }
 
