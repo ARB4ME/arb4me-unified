@@ -8326,9 +8326,19 @@ const XT_CONFIG = {
 };
 
 // XT.com Authentication Helper
-function createXTSignature(apiKey, timestamp, apiSecret) {
-    // XT signature: apiKey + "#" + secretKey + "#" + timestamp
-    const signString = apiKey + "#" + apiSecret + "#" + timestamp;
+// Based on official documentation: https://doc.xt.com/docs/spot/Access%20Description/SignatureGeneration
+function createXTSignature(apiKey, timestamp, apiSecret, method, path, query = '', body = '') {
+    // Part X: Sort headers alphabetically and join with &
+    const X = `validate-algorithms=HmacSHA256&validate-appkey=${apiKey}&validate-recvwindow=60000&validate-timestamp=${timestamp}`;
+
+    // Part Y: #method#path#query#body
+    let Y = `#${method}#${path}`;
+    if (query) Y += `#${query}`;
+    if (body) Y += `#${body}`;
+
+    // Final sign string: X + Y
+    const signString = X + Y;
+
     return crypto.createHmac('sha256', apiSecret).update(signString).digest('hex');
 }
 
@@ -8347,18 +8357,19 @@ router.post('/xt/balance', tradingRateLimit, optionalAuth, [
     try {
         const timestamp = Date.now().toString();
         const path = XT_CONFIG.endpoints.balance;
-        const signature = createXTSignature(apiKey, timestamp, apiSecret);
+        const method = 'GET';
+        const signature = createXTSignature(apiKey, timestamp, apiSecret, method, path);
 
         // Debug logging
+        const X = `validate-algorithms=HmacSHA256&validate-appkey=${apiKey}&validate-recvwindow=60000&validate-timestamp=${timestamp}`;
+        const Y = `#${method}#${path}`;
         systemLogger.trading('XT.com balance request details', {
             userId: req.user?.id,
             url: `${XT_CONFIG.baseUrl}${path}`,
             timestamp,
-            timestampLength: timestamp.length,
-            apiKeyLength: apiKey.length,
-            secretLength: apiSecret.length,
-            signatureLength: signature.length,
-            signString: apiKey + "#" + apiSecret + "#" + timestamp
+            method,
+            signString: X + Y,
+            signature
         });
 
         const response = await fetch(`${XT_CONFIG.baseUrl}${path}`, {
@@ -8540,7 +8551,8 @@ router.post('/xt/test', tradingRateLimit, optionalAuth, [
     try {
         const timestamp = Date.now().toString();
         const endpoint = XT_CONFIG.endpoints.test;
-        const signature = createXTSignature(apiKey, timestamp, apiSecret);
+        const method = 'GET';
+        const signature = createXTSignature(apiKey, timestamp, apiSecret, method, endpoint);
 
         const response = await fetch(`${XT_CONFIG.baseUrl}${endpoint}`, {
             method: 'GET',
@@ -8631,6 +8643,7 @@ router.post('/xt/buy-order', tradingRateLimit, optionalAuth, [
         
         const timestamp = Date.now().toString();
         const endpoint = '/v4/order';
+        const method = 'POST';
 
         const orderData = {
             symbol: symbol.toLowerCase().replace(/([a-z]+)([a-z]{3,4})$/, '$1_$2'), // Convert btcusdt -> btc_usdt
@@ -8640,7 +8653,8 @@ router.post('/xt/buy-order', tradingRateLimit, optionalAuth, [
             ...(price && { price: price.toString() })
         };
 
-        const signature = createXTSignature(apiKey, timestamp, apiSecret);
+        const body = JSON.stringify(orderData);
+        const signature = createXTSignature(apiKey, timestamp, apiSecret, method, endpoint, '', body);
 
         const response = await fetch(`${XT_CONFIG.baseUrl}${endpoint}`, {
             method: 'POST',
@@ -8653,7 +8667,7 @@ router.post('/xt/buy-order', tradingRateLimit, optionalAuth, [
                 'xt-validate-timestamp': timestamp,
                 'xt-validate-signature': signature
             },
-            body: JSON.stringify(orderData)
+            body: body
         });
         
         if (!response.ok) {
@@ -8734,6 +8748,7 @@ router.post('/xt/sell-order', tradingRateLimit, optionalAuth, [
         
         const timestamp = Date.now().toString();
         const endpoint = '/v4/order';
+        const method = 'POST';
 
         const orderData = {
             symbol: symbol.toLowerCase().replace(/([a-z]+)([a-z]{3,4})$/, '$1_$2'), // Convert btcusdt -> btc_usdt
@@ -8743,7 +8758,8 @@ router.post('/xt/sell-order', tradingRateLimit, optionalAuth, [
             ...(price && { price: price.toString() })
         };
 
-        const signature = createXTSignature(apiKey, timestamp, apiSecret);
+        const body = JSON.stringify(orderData);
+        const signature = createXTSignature(apiKey, timestamp, apiSecret, method, endpoint, '', body);
 
         const response = await fetch(`${XT_CONFIG.baseUrl}${endpoint}`, {
             method: 'POST',
@@ -8756,7 +8772,7 @@ router.post('/xt/sell-order', tradingRateLimit, optionalAuth, [
                 'xt-validate-timestamp': timestamp,
                 'xt-validate-signature': signature
             },
-            body: JSON.stringify(orderData)
+            body: body
         });
         
         if (!response.ok) {
