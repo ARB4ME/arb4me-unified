@@ -5507,6 +5507,21 @@ class OrderExecutionService {
 
             const url = 'https://sapi.xt.com/v4/balances';
 
+            // DEBUG: Log request details
+            logger.info('🔍 XT.com balance request', {
+                url,
+                method: 'GET',
+                timestamp,
+                apiKey: credentials.apiKey.substring(0, 8) + '...',
+                signature: signature.substring(0, 16) + '...',
+                headers: {
+                    'validate-algorithms': 'HmacSHA256',
+                    'validate-appkey': credentials.apiKey.substring(0, 8) + '...',
+                    'validate-recvwindow': '60000',
+                    'validate-timestamp': timestamp
+                }
+            });
+
             const response = await this._fetchWithRetry(url, {
                 method: 'GET',
                 headers: {
@@ -5518,6 +5533,13 @@ class OrderExecutionService {
                     'validate-timestamp': timestamp,
                     'validate-signature': signature
                 }
+            });
+
+            // DEBUG: Log HTTP response status
+            logger.info('🔍 XT.com balance HTTP response', {
+                status: response.status,
+                statusText: response.statusText,
+                ok: response.ok
             });
 
             const data = await response.json();
@@ -5838,7 +5860,21 @@ class OrderExecutionService {
         // Final sign string: X + Y
         const signString = X + Y;
 
-        return crypto.createHmac('sha256', apiSecret).update(signString).digest('hex');
+        const signature = crypto.createHmac('sha256', apiSecret).update(signString).digest('hex');
+
+        // DEBUG: Log signature generation
+        logger.debug('🔐 XT.com signature generation', {
+            method,
+            path,
+            query: query || 'empty',
+            body: body || 'empty',
+            X: X.substring(0, 80) + '...',
+            Y,
+            signStringLength: signString.length,
+            signaturePreview: signature.substring(0, 16) + '...'
+        });
+
+        return signature;
     }
 
     /**
