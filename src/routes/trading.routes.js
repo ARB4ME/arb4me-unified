@@ -7113,18 +7113,27 @@ router.post('/okx/balance', tradingRateLimit, optionalAuth, [
 
         if (!response.ok) {
             const errorText = await response.text();
+            let okxErrorDetails = errorText;
+
+            try {
+                const errorJson = JSON.parse(errorText);
+                okxErrorDetails = `Code: ${errorJson.code}, Message: ${errorJson.msg || errorJson.message}`;
+            } catch (e) {
+                // If not JSON, use raw text
+            }
+
             systemLogger.trading('OKX balance API error', {
                 userId: req.user?.id,
                 status: response.status,
                 error: errorText
             });
-            throw new APIError(`OKX API error: ${response.status}`, 502, 'OKX_API_ERROR');
+            throw new APIError(`OKX API error (${response.status}): ${okxErrorDetails}. Check: 1) API credentials are correct, 2) API key has 'Read' permission, 3) Passphrase matches the one set during API key creation, 4) Using production API keys (not testnet)`, 502, 'OKX_API_ERROR');
         }
 
         const data = await response.json();
-        
+
         if (data.code !== '0') {
-            throw new APIError(`OKX error: ${data.msg}`, 400, 'OKX_ERROR');
+            throw new APIError(`OKX error: ${data.msg}. Check: 1) API credentials are correct, 2) API key has 'Read' permission, 3) Passphrase matches the one set during API key creation`, 400, 'OKX_ERROR');
         }
 
         const balances = {};
