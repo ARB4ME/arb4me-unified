@@ -8352,10 +8352,13 @@ router.post('/xt/balance', tradingRateLimit, optionalAuth, [
         const response = await fetch(`${XT_CONFIG.baseUrl}${path}`, {
             method: 'GET',
             headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'xt-validate-algorithms': 'HmacSHA256',
                 'xt-validate-appkey': apiKey,
+                'xt-validate-recvwindow': '60000',
                 'xt-validate-timestamp': timestamp.toString(),
-                'xt-validate-signature': signature,
-                'Content-Type': 'application/json'
+                'xt-validate-signature': signature
             }
         });
 
