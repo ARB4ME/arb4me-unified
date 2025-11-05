@@ -5492,6 +5492,14 @@ class OrderExecutionService {
      * @private
      */
     async _getXTBalances(credentials) {
+        console.log('========================================');
+        console.log('🚀 XT.COM BALANCE FETCH STARTING');
+        console.log('========================================');
+        logger.info('🚀 XT.COM BALANCE FETCH STARTING', {
+            apiKeyPreview: credentials.apiKey.substring(0, 8) + '...',
+            timestamp: new Date().toISOString()
+        });
+
         try {
             const timestamp = Date.now().toString();
             const path = '/v4/balances';
@@ -5536,6 +5544,7 @@ class OrderExecutionService {
             });
 
             // DEBUG: Log HTTP response status
+            console.log('📡 XT.com HTTP Response Status:', response.status, response.statusText);
             logger.info('🔍 XT.com balance HTTP response', {
                 status: response.status,
                 statusText: response.statusText,
@@ -5545,6 +5554,7 @@ class OrderExecutionService {
             const data = await response.json();
 
             // DEBUG: Log raw response to see what XT.com is returning
+            console.log('📊 XT.com API Response:', JSON.stringify(data, null, 2));
             logger.info('🔍 XT.com balance raw response', {
                 rc: data.rc,
                 msg: data.msg,
@@ -5863,7 +5873,8 @@ class OrderExecutionService {
         const signature = crypto.createHmac('sha256', apiSecret).update(signString).digest('hex');
 
         // DEBUG: Log signature generation
-        logger.debug('🔐 XT.com signature generation', {
+        console.log('🔐 XT.com signature:', signature.substring(0, 16) + '...');
+        logger.info('🔐 XT.com signature generation', {
             method,
             path,
             query: query || 'empty',
