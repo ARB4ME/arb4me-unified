@@ -5522,6 +5522,15 @@ class OrderExecutionService {
 
             const data = await response.json();
 
+            // DEBUG: Log raw response to see what XT.com is returning
+            logger.info('🔍 XT.com balance raw response', {
+                rc: data.rc,
+                msg: data.msg,
+                resultKeys: data.result ? Object.keys(data.result) : 'NO RESULT',
+                assetsCount: data.result?.assets?.length || 0,
+                fullResponse: JSON.stringify(data)
+            });
+
             if (data.rc !== 0) {
                 throw new Error(`XT.com balance fetch failed: ${data.rc} - ${data.msg}`);
             }
@@ -5529,6 +5538,18 @@ class OrderExecutionService {
             // XT.com returns array of balances
             // Transform to standard format: { currency, available, reserved, total }
             const balances = data.result?.assets || [];
+
+            // DEBUG: Log each balance
+            logger.info('📊 XT.com balances parsed', {
+                totalBalances: balances.length,
+                balances: balances.map(b => ({
+                    currency: b.currency,
+                    available: b.available,
+                    frozen: b.frozen,
+                    total: b.total
+                }))
+            });
+
             return balances.map(balance => ({
                 currency: balance.currency.toUpperCase(), // XT uses lowercase, convert to uppercase
                 available: parseFloat(balance.available || 0),
