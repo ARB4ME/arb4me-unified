@@ -8349,6 +8349,18 @@ router.post('/xt/balance', tradingRateLimit, optionalAuth, [
         const path = XT_CONFIG.endpoints.balance;
         const signature = createXTSignature(apiKey, timestamp, apiSecret);
 
+        // Debug logging
+        systemLogger.trading('XT.com balance request details', {
+            userId: req.user?.id,
+            url: `${XT_CONFIG.baseUrl}${path}`,
+            timestamp,
+            timestampLength: timestamp.length,
+            apiKeyLength: apiKey.length,
+            secretLength: apiSecret.length,
+            signatureLength: signature.length,
+            signString: apiKey + "#" + apiSecret + "#" + timestamp
+        });
+
         const response = await fetch(`${XT_CONFIG.baseUrl}${path}`, {
             method: 'GET',
             headers: {
