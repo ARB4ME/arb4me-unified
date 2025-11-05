@@ -8527,19 +8527,19 @@ router.post('/xt/test', tradingRateLimit, optionalAuth, [
     
     try {
         const timestamp = Date.now().toString();
-        const method = 'GET';
         const endpoint = XT_CONFIG.endpoints.test;
-        const signature = createXTSignature(timestamp, method, endpoint, null, apiKey, apiSecret);
+        const signature = createXTSignature(apiKey, timestamp, apiSecret);
 
         const response = await fetch(`${XT_CONFIG.baseUrl}${endpoint}`, {
             method: 'GET',
             headers: {
-                'validate-algorithms': 'HmacSHA256',
-                'validate-appkey': apiKey,
-                'validate-timestamp': timestamp,
-                'validate-signature': signature,
-                'validate-recvwindow': '60000',
-                'Content-Type': 'application/json'
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'xt-validate-algorithms': 'HmacSHA256',
+                'xt-validate-appkey': apiKey,
+                'xt-validate-recvwindow': '60000',
+                'xt-validate-timestamp': timestamp,
+                'xt-validate-signature': signature
             }
         });
 
@@ -8617,10 +8617,9 @@ router.post('/xt/buy-order', tradingRateLimit, optionalAuth, [
             price
         });
         
-        const timestamp = Date.now();
-        const method = 'POST';
+        const timestamp = Date.now().toString();
         const endpoint = '/v4/order';
-        
+
         const orderData = {
             symbol: symbol.toLowerCase().replace(/([a-z]+)([a-z]{3,4})$/, '$1_$2'), // Convert btcusdt -> btc_usdt
             side: 'BUY',
@@ -8628,18 +8627,19 @@ router.post('/xt/buy-order', tradingRateLimit, optionalAuth, [
             quantity: quantity.toString(),
             ...(price && { price: price.toString() })
         };
-        
-        const signature = createXTSignature(timestamp, method, endpoint, orderData, apiKey, apiSecret);
-        
+
+        const signature = createXTSignature(apiKey, timestamp, apiSecret);
+
         const response = await fetch(`${XT_CONFIG.baseUrl}${endpoint}`, {
             method: 'POST',
             headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
                 'xt-validate-algorithms': 'HmacSHA256',
                 'xt-validate-appkey': apiKey,
                 'xt-validate-recvwindow': '5000',
-                'xt-validate-timestamp': timestamp.toString(),
-                'xt-validate-signature': signature,
-                'Content-Type': 'application/json'
+                'xt-validate-timestamp': timestamp,
+                'xt-validate-signature': signature
             },
             body: JSON.stringify(orderData)
         });
@@ -8720,10 +8720,9 @@ router.post('/xt/sell-order', tradingRateLimit, optionalAuth, [
             price
         });
         
-        const timestamp = Date.now();
-        const method = 'POST';
+        const timestamp = Date.now().toString();
         const endpoint = '/v4/order';
-        
+
         const orderData = {
             symbol: symbol.toLowerCase().replace(/([a-z]+)([a-z]{3,4})$/, '$1_$2'), // Convert btcusdt -> btc_usdt
             side: 'SELL',
@@ -8731,18 +8730,19 @@ router.post('/xt/sell-order', tradingRateLimit, optionalAuth, [
             quantity: quantity.toString(),
             ...(price && { price: price.toString() })
         };
-        
-        const signature = createXTSignature(timestamp, method, endpoint, orderData, apiKey, apiSecret);
-        
+
+        const signature = createXTSignature(apiKey, timestamp, apiSecret);
+
         const response = await fetch(`${XT_CONFIG.baseUrl}${endpoint}`, {
             method: 'POST',
             headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
                 'xt-validate-algorithms': 'HmacSHA256',
                 'xt-validate-appkey': apiKey,
                 'xt-validate-recvwindow': '5000',
-                'xt-validate-timestamp': timestamp.toString(),
-                'xt-validate-signature': signature,
-                'Content-Type': 'application/json'
+                'xt-validate-timestamp': timestamp,
+                'xt-validate-signature': signature
             },
             body: JSON.stringify(orderData)
         });
