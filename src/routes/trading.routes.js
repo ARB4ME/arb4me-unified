@@ -8343,9 +8343,9 @@ router.post('/xt/balance', tradingRateLimit, optionalAuth, [
     }
 
     const { apiKey, apiSecret } = req.body;
-    
+
     try {
-        const timestamp = Date.now();
+        const timestamp = Date.now().toString();
         const path = XT_CONFIG.endpoints.balance;
         const signature = createXTSignature(apiKey, timestamp, apiSecret);
 
@@ -8357,7 +8357,7 @@ router.post('/xt/balance', tradingRateLimit, optionalAuth, [
                 'xt-validate-algorithms': 'HmacSHA256',
                 'xt-validate-appkey': apiKey,
                 'xt-validate-recvwindow': '60000',
-                'xt-validate-timestamp': timestamp.toString(),
+                'xt-validate-timestamp': timestamp,
                 'xt-validate-signature': signature
             }
         });
@@ -8381,8 +8381,13 @@ router.post('/xt/balance', tradingRateLimit, optionalAuth, [
             responseData: JSON.stringify(data)
         });
         
-        if (data.rc && data.rc !== '0' && data.rc !== 'OK' && data.code !== 200) {
-            throw new APIError(`XT.com error: ${data.rc} - ${data.msg || data.message || JSON.stringify(data)}`, 400, 'XT_ERROR');
+        if (data.rc && data.rc !== 0 && data.rc !== '0' && data.rc !== 'OK' && data.code !== 200) {
+            const errorCode = data.mc || data.code || data.rc;
+            const errorMsg = data.msg || data.message || 'Unknown error';
+            const troubleshooting = errorCode === 'AUTH_103'
+                ? ' Check: 1) API credentials are correct, 2) API key is not expired, 3) Server time is synchronized'
+                : '';
+            throw new APIError(`XT.com error: ${errorCode} - ${errorMsg}${troubleshooting}`, 400, 'XT_ERROR');
         }
 
         const balances = {};
