@@ -8621,6 +8621,8 @@ class OrderExecutionService {
      */
     async _getCoincatchBalances(credentials) {
         try {
+            console.log('🚀 COINCATCH BALANCE FETCH STARTING');
+
             const timestamp = Date.now().toString();
             const method = 'GET';
             const requestPath = '/api/v5/account/balance';
@@ -8633,6 +8635,14 @@ class OrderExecutionService {
 
             const url = `${this.baseUrl || 'https://api.coincatch.com'}${requestPath}`;
 
+            console.log('📡 Coincatch balance request:', {
+                url,
+                method,
+                timestamp,
+                signaturePreview: signature.substring(0, 16) + '...',
+                hasPassphrase: !!credentials.passphrase
+            });
+
             const response = await fetch(url, {
                 method: 'GET',
                 headers: {
@@ -8644,12 +8654,16 @@ class OrderExecutionService {
                 }
             });
 
+            console.log('📡 Coincatch HTTP Response:', response.status, response.statusText);
+
             if (!response.ok) {
                 const errorText = await response.text();
+                console.log('❌ Coincatch error response:', errorText);
                 throw new Error(`Coincatch balance fetch error: ${response.status} - ${errorText}`);
             }
 
             const result = await response.json();
+            console.log('📊 Coincatch API Response:', JSON.stringify(result, null, 2));
 
             if (result.code !== '0') {
                 throw new Error(`Coincatch balance fetch failed: ${result.code} - ${result.msg}`);
@@ -8671,11 +8685,14 @@ class OrderExecutionService {
                 });
             });
 
+            console.log('📊 Coincatch balances count:', allBalances.length);
             return allBalances;
 
         } catch (error) {
+            console.log('❌ COINCATCH ERROR:', error.message);
             logger.error('Failed to fetch Coincatch balances', {
-                error: error.message
+                error: error.message,
+                stack: error.stack
             });
             throw error;
         }
