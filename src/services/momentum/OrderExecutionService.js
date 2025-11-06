@@ -5828,11 +5828,8 @@ class OrderExecutionService {
      */
     async _getAscendEXBalances(credentials) {
         try {
-            console.log('🚀 ASCENDEX BALANCE FETCH STARTING');
-
             // Step 1: Get account group (required for AscendEX)
             const accountGroup = await this._getAscendEXAccountGroup(credentials);
-            console.log('✅ AscendEX account group:', accountGroup);
 
             const timestamp = Date.now().toString();
             const path = `/${accountGroup}/api/pro/v1/cash/balance`;
@@ -5840,7 +5837,6 @@ class OrderExecutionService {
             const signature = this._createAscendEXSignature(timestamp, 'balance', credentials.apiSecret);
 
             const url = `https://ascendex.com${path}`;
-            console.log('📡 AscendEX balance request:', url);
 
             const response = await this._fetchWithRetry(url, {
                 method: 'GET',
@@ -5853,9 +5849,7 @@ class OrderExecutionService {
                 }
             });
 
-            console.log('📡 AscendEX HTTP Response:', response.status, response.statusText);
             const data = await response.json();
-            console.log('📊 AscendEX API Response:', JSON.stringify(data, null, 2));
 
             if (data.code !== 0) {
                 throw new Error(`AscendEX balance fetch failed: ${data.code} - ${data.message}`);
@@ -5864,7 +5858,6 @@ class OrderExecutionService {
             // AscendEX returns array of balances
             // Transform to standard format: { currency, available, reserved, total }
             const balances = data.data || [];
-            console.log('📊 AscendEX balances count:', balances.length);
 
             return balances.map(balance => ({
                 currency: balance.asset,
@@ -6115,14 +6108,12 @@ class OrderExecutionService {
      */
     async _getAscendEXAccountGroup(credentials) {
         try {
-            console.log('🔑 Getting AscendEX account group...');
             const timestamp = Date.now().toString();
             const path = '/api/pro/v1/info';
             // CRITICAL: AscendEX signature uses short name 'info', not full path!
             const signature = this._createAscendEXSignature(timestamp, 'info', credentials.apiSecret);
 
             const url = `https://ascendex.com${path}`;
-            console.log('📡 AscendEX account group request:', url);
 
             const response = await fetch(url, {
                 method: 'GET',
@@ -6135,16 +6126,12 @@ class OrderExecutionService {
                 }
             });
 
-            console.log('📡 AscendEX account group HTTP Response:', response.status, response.statusText);
-
             if (!response.ok) {
                 const errorText = await response.text();
-                console.log('❌ AscendEX account group error:', errorText);
                 throw new Error(`Failed to get AscendEX account group: ${response.status} - ${errorText}`);
             }
 
             const result = await response.json();
-            console.log('📊 AscendEX account group response:', JSON.stringify(result, null, 2));
 
             if (result.code !== 0) {
                 throw new Error(`Failed to get AscendEX account group: ${result.code} - ${result.message}`);
@@ -6183,16 +6170,7 @@ class OrderExecutionService {
     _createAscendEXSignature(timestamp, path, apiSecret) {
         // AscendEX signature: base64(HMAC-SHA256(timestamp + "+" + path, apiSecret))
         const prehashString = timestamp + '+' + path;
-        const signature = crypto.createHmac('sha256', apiSecret).update(prehashString).digest('base64');
-
-        console.log('🔐 AscendEX signature generation:', {
-            timestamp,
-            path,
-            prehashString,
-            signaturePreview: signature.substring(0, 20) + '...'
-        });
-
-        return signature;
+        return crypto.createHmac('sha256', apiSecret).update(prehashString).digest('base64');
     }
 
     /**
