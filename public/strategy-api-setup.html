@@ -2907,22 +2907,29 @@
         }
 
         // Fetch balance for a specific strategy
-        async function fetchStrategyBalance(exchange, strategy, apiKey, secretKey) {
+        async function fetchStrategyBalance(exchange, strategy, apiKey, secretKey, passphrase = null) {
             try {
                 // Use the appropriate endpoint for each exchange
                 const endpoint = exchange === 'chainex'
                     ? '/api/v1/trading/chainex/balance'
                     : `/api/v1/trading/${exchange}/balance`;
 
+                const requestBody = {
+                    apiKey: apiKey,
+                    apiSecret: secretKey
+                };
+
+                // Include passphrase for exchanges that require it
+                if (passphrase && passphrase.trim()) {
+                    requestBody.passphrase = passphrase;
+                }
+
                 const response = await fetch(endpoint, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({
-                        apiKey: apiKey,
-                        apiSecret: secretKey
-                    })
+                    body: JSON.stringify(requestBody)
                 });
 
                 if (response.ok) {
@@ -4237,7 +4244,7 @@
 
                                 // Try to fetch fresh balance if connected
                                 if (balanceElement) {
-                                    fetchStrategyBalance(exchange, strategy, apiKey, secretKey);
+                                    fetchStrategyBalance(exchange, strategy, apiKey, secretKey, passphrase);
                                 }
                             } else {
                                 statusElement.textContent = 'Disconnected';
