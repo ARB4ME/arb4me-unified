@@ -1657,4 +1657,87 @@ router.post('/order/sell', async (req, res) => {
     }
 });
 
+/**
+ * GET /api/v1/momentum/debug/valr-positions
+ * Debug endpoint to check VALR positions and identify stuck/reserved funds
+ */
+router.get('/debug/valr-positions', async (req, res) => {
+    try {
+        logger.info('Checking VALR positions for debug');
+
+        // Check for any OPEN or CLOSING positions on VALR
+        const openPositions = await query(`
+            SELECT id, pair, status, entry_time, exit_time, entry_value_usdt, entry_quantity, exit_pnl_usdt
+            FROM positions
+            WHERE exchange = 'valr'
+              AND status IN ('OPEN', 'CLOSING')
+              AND user_id = 1
+            ORDER BY entry_time DESC
+        `);
+
+        // Check all recent VALR positions (last 7 days)
+        const recentPositions = await query(`
+            SELECT id, pair, status, entry_time, exit_time, entry_value_usdt, exit_pnl_usdt
+            FROM positions
+            WHERE exchange = 'valr'
+              AND user_id = 1
+              AND entry_time >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+            ORDER BY entry_time DESC
+        `);
+
+        // Calculate status breakdown
+        const statusCounts = {};
+        recentPositions.forEach(pos => {
+            statusCounts[pos.status] = (statusCounts[pos.status] || 0) + 1;
+        });
+
+        // Calculate total locked in OPEN/CLOSING positions
+        const totalLocked = openPositions.reduce((sum, pos) =>
+            sum + parseFloat(pos.entry_value_usdt || 0), 0
+        );
+
+        res.json({
+            success: true,
+            data: {
+                openOrClosing: {
+                    count: openPositions.length,
+                    totalLockedUSDT: totalLocked,
+                    positions: openPositions.map(pos => ({
+                        id: pos.id,
+                        pair: pos.pair,
+                        status: pos.status,
+                        entryTime: pos.entry_time,
+                        exitTime: pos.exit_time,
+                        entryValueUSDT: pos.entry_value_usdt,
+                        hoursOpen: Math.round((Date.now() - new Date(pos.entry_time).getTime()) / (1000 * 60 * 60))
+                    }))
+                },
+                recentPositions: {
+                    totalCount: recentPositions.length,
+                    statusBreakdown: statusCounts,
+                    positions: recentPositions.map(pos => ({
+                        id: pos.id,
+                        pair: pos.pair,
+                        status: pos.status,
+                        entryTime: pos.entry_time,
+                        exitTime: pos.exit_time,
+                        entryValueUSDT: pos.entry_value_usdt
+                    }))
+                }
+            }
+        });
+
+    } catch (error) {
+        logger.error('Failed to check VALR positions', {
+            error: error.message,
+            stack: error.stack
+        });
+
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
 module.exports = router;
