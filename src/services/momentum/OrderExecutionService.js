@@ -7907,7 +7907,8 @@ class OrderExecutionService {
             const nonce = Date.now();
             const payload = {
                 request: '/v1/balances',
-                nonce: nonce
+                nonce: nonce,
+                account: 'primary'  // Gemini requires account specification
             };
 
             const payloadBase64 = Buffer.from(JSON.stringify(payload)).toString('base64');
