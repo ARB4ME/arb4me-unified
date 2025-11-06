@@ -1666,7 +1666,7 @@ router.get('/debug/valr-positions', async (req, res) => {
         logger.info('Checking VALR positions for debug');
 
         // Check for any OPEN or CLOSING positions on VALR
-        const openPositions = await query(`
+        const openPositionsResult = await query(`
             SELECT id, pair, status, entry_time, exit_time, entry_value_usdt, entry_quantity, exit_pnl_usdt
             FROM momentum_positions
             WHERE exchange = 'valr'
@@ -1674,9 +1674,10 @@ router.get('/debug/valr-positions', async (req, res) => {
               AND user_id = '1'
             ORDER BY entry_time DESC
         `);
+        const openPositions = openPositionsResult.rows || [];
 
         // Check all recent VALR positions (last 7 days)
-        const recentPositions = await query(`
+        const recentPositionsResult = await query(`
             SELECT id, pair, status, entry_time, exit_time, entry_value_usdt, exit_pnl_usdt
             FROM momentum_positions
             WHERE exchange = 'valr'
@@ -1684,6 +1685,7 @@ router.get('/debug/valr-positions', async (req, res) => {
               AND entry_time >= NOW() - INTERVAL '7 days'
             ORDER BY entry_time DESC
         `);
+        const recentPositions = recentPositionsResult.rows || [];
 
         // Calculate status breakdown
         const statusCounts = {};
