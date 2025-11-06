@@ -1671,7 +1671,7 @@ router.get('/debug/valr-positions', async (req, res) => {
             FROM momentum_positions
             WHERE exchange = 'valr'
               AND status IN ('OPEN', 'CLOSING')
-              AND user_id = 1
+              AND user_id = '1'
             ORDER BY entry_time DESC
         `);
 
@@ -1680,7 +1680,7 @@ router.get('/debug/valr-positions', async (req, res) => {
             SELECT id, pair, status, entry_time, exit_time, entry_value_usdt, exit_pnl_usdt
             FROM momentum_positions
             WHERE exchange = 'valr'
-              AND user_id = 1
+              AND user_id = '1'
               AND entry_time >= DATE_SUB(NOW(), INTERVAL 7 DAY)
             ORDER BY entry_time DESC
         `);
