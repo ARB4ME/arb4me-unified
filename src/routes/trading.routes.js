@@ -8447,8 +8447,9 @@ router.post('/xt/balance', tradingRateLimit, optionalAuth, [
         }
 
         const balances = {};
-        if (data.result && Array.isArray(data.result)) {
-            data.result.forEach(balance => {
+        const assets = data.result?.assets || data.result || [];
+        if (Array.isArray(assets)) {
+            assets.forEach(balance => {
                 const available = parseFloat(balance.availableAmount || balance.available);
                 if (available > 0) {
                     balances[balance.currency || balance.coin] = available;
