@@ -2866,11 +2866,13 @@
                 const balanceData = await response.json();
                 console.log(`📊 ${exchange} balance response:`, balanceData);
 
-                if (response.ok && balanceData.success && balanceData.balances) {
-                    console.log(`✅ ${exchange} balance fetched:`, balanceData.balances);
+                // Handle response format: balances are in balanceData.data.balances (to match other strategies)
+                if (response.ok && balanceData.success && balanceData.data) {
+                    const balances = balanceData.data.balances || balanceData.data;
+                    console.log(`✅ ${exchange} balance fetched:`, balances);
 
                     // Format and display balance
-                    const balanceDisplay = formatStrategyBalance(balanceData.balances);
+                    const balanceDisplay = formatStrategyBalance(balances);
                     const balanceElement = document.getElementById(`${exchange}-currency-swap-balance`);
                     if (balanceElement) {
                         balanceElement.innerHTML = balanceDisplay;
