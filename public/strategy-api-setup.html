@@ -3394,18 +3394,33 @@
                 return;
             }
 
+            // Build request body
+            const requestBody = {
+                exchange: exchange,
+                strategy: strategy,
+                apiKey: apiKey,
+                secretKey: secretKey
+            };
+
+            // Check if exchange requires passphrase (OKX, KuCoin)
+            const passphraseElement = document.getElementById(`${exchange}-${strategy}-passphrase`);
+            if (passphraseElement) {
+                const passphrase = passphraseElement.value;
+                if (passphrase) {
+                    requestBody.passphrase = passphrase;
+                } else if (exchange === 'okx' || exchange === 'kucoin') {
+                    alert(`${exchange.toUpperCase()} requires passphrase. Please enter it.`);
+                    return;
+                }
+            }
+
             try {
                 const response = await fetch('/api/v1/trading/test-connection', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({
-                        exchange: exchange,
-                        strategy: strategy,
-                        apiKey: apiKey,
-                        secretKey: secretKey
-                    })
+                    body: JSON.stringify(requestBody)
                 });
 
                 const result = await response.json();
