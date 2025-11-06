@@ -5572,21 +5572,22 @@ class OrderExecutionService {
             const balances = data.result?.assets || [];
 
             // DEBUG: Log each balance
+            console.log('📊 XT.com balances count:', balances.length);
             logger.info('📊 XT.com balances parsed', {
                 totalBalances: balances.length,
                 balances: balances.map(b => ({
                     currency: b.currency,
-                    available: b.available,
-                    frozen: b.frozen,
-                    total: b.total
+                    availableAmount: b.availableAmount,
+                    frozenAmount: b.frozenAmount,
+                    totalAmount: b.totalAmount
                 }))
             });
 
             return balances.map(balance => ({
                 currency: balance.currency.toUpperCase(), // XT uses lowercase, convert to uppercase
-                available: parseFloat(balance.available || 0),
-                reserved: parseFloat(balance.frozen || 0),
-                total: parseFloat(balance.total || 0)
+                available: parseFloat(balance.availableAmount || 0),
+                reserved: parseFloat(balance.frozenAmount || 0),
+                total: parseFloat(balance.totalAmount || 0)
             }));
 
         } catch (error) {
