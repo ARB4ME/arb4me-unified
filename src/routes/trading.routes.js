@@ -720,6 +720,38 @@ router.post('/test-connection', tradingRateLimit, optionalAuth, [
             }
 
             throw new Error('Connection test failed - invalid credentials');
+        } else if (exchange.toLowerCase() === 'xt' || exchange.toLowerCase() === 'xt.com') {
+            // Test XT.com connection
+            const timestamp = Date.now().toString();
+            const path = XT_CONFIG.endpoints.balance;
+            const method = 'GET';
+            const signature = createXTSignature(apiKey, timestamp, secretKey, method, path);
+
+            const response = await fetch(`${XT_CONFIG.baseUrl}${path}`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'validate-algorithms': 'HmacSHA256',
+                    'validate-appkey': apiKey,
+                    'validate-recvwindow': '60000',
+                    'validate-timestamp': timestamp,
+                    'validate-signature': signature
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data.rc === 0 || data.rc === '0' || data.rc === 'OK' || data.code === 200) {
+                    res.json({
+                        success: true,
+                        message: 'Connection test successful'
+                    });
+                    return;
+                }
+            }
+
+            throw new Error('Connection test failed - invalid credentials');
         } else if (exchange.toLowerCase() === 'kucoin') {
             // Test KuCoin connection
             const { passphrase } = req.body; // KuCoin requires passphrase

@@ -645,6 +645,33 @@
             </div>
             </form>
 
+            <!-- XT.com Cross Exchange -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">XT.com - Cross Exchange Strategy</div>
+                    <div id="xt-cross-exchange-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="xt-cross-exchange-api">API Key</label>
+                    <input type="text" id="xt-cross-exchange-api" class="form-input" placeholder="Enter XT.com API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="xt-cross-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="xt-cross-exchange-secret">Secret Key</label>
+                    <input type="password" id="xt-cross-exchange-secret" class="form-input" placeholder="Enter XT.com Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="xt-cross-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="xt-cross-exchange-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('xt', 'cross-exchange')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('xt', 'cross-exchange')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('xt', 'cross-exchange')">Disconnect</button>
+                </div>
+            </div>
+            </form>
+
             <!-- KuCoin Cross Exchange -->
             <form autocomplete="off" onsubmit="return false;">
             <div class="exchange-card">
@@ -1261,6 +1288,33 @@
             </div>
             </form>
 
+            <!-- XT.com Triangular -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">XT.com - Triangular Strategy</div>
+                    <div id="xt-triangular-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="xt-triangular-api">API Key</label>
+                    <input type="text" id="xt-triangular-api" class="form-input" placeholder="Enter XT.com API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="xt-tri-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="xt-triangular-secret">Secret Key</label>
+                    <input type="password" id="xt-triangular-secret" class="form-input" placeholder="Enter XT.com Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="xt-tri-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="xt-triangular-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('xt', 'triangular')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('xt', 'triangular')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('xt', 'triangular')">Disconnect</button>
+                </div>
+            </div>
+            </form>
+
             <!-- KuCoin Triangular -->
             <form autocomplete="off" onsubmit="return false;">
             <div class="exchange-card">
@@ -1769,6 +1823,33 @@
             </div>
             </form>
 
+            <!-- XT.com Transfer -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">XT.com - Transfer Strategy</div>
+                    <div id="xt-transfer-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="xt-transfer-api">API Key</label>
+                    <input type="text" id="xt-transfer-api" class="form-input" placeholder="Enter XT.com API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="xt-trans-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="xt-transfer-secret">Secret Key</label>
+                    <input type="password" id="xt-transfer-secret" class="form-input" placeholder="Enter XT.com Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="xt-trans-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="xt-transfer-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('xt', 'transfer')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('xt', 'transfer')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('xt', 'transfer')">Disconnect</button>
+                </div>
+            </div>
+            </form>
+
             <!-- KuCoin Transfer -->
             <form autocomplete="off" onsubmit="return false;">
             <div class="exchange-card">
@@ -2273,6 +2354,33 @@
                     <button class="btn btn-primary" onclick="connectStrategyExchange('mexc', 'currency-swap')">Connect</button>
                     <button class="btn btn-secondary" onclick="testStrategyConnection('mexc', 'currency-swap')">Test Connection</button>
                     <button class="btn btn-danger" onclick="disconnectStrategyExchange('mexc', 'currency-swap')">Disconnect</button>
+                </div>
+            </div>
+            </form>
+
+            <!-- XT.com Currency Swap -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">XT.com - Currency Swap Strategy</div>
+                    <div id="xt-currency-swap-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="xt-currency-swap-api">API Key</label>
+                    <input type="text" id="xt-currency-swap-api" class="form-input" placeholder="Enter XT.com API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="xt_currency_swap_api_unique">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="xt-currency-swap-secret">Secret Key</label>
+                    <input type="password" id="xt-currency-swap-secret" class="form-input" placeholder="Enter XT.com Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="xt_currency_swap_secret_unique">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="xt-currency-swap-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('xt', 'currency-swap')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('xt', 'currency-swap')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('xt', 'currency-swap')">Disconnect</button>
                 </div>
             </div>
             </form>
