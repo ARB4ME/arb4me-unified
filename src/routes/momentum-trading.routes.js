@@ -1668,7 +1668,7 @@ router.get('/debug/valr-positions', async (req, res) => {
         // Check for any OPEN or CLOSING positions on VALR
         const openPositions = await query(`
             SELECT id, pair, status, entry_time, exit_time, entry_value_usdt, entry_quantity, exit_pnl_usdt
-            FROM positions
+            FROM momentum_positions
             WHERE exchange = 'valr'
               AND status IN ('OPEN', 'CLOSING')
               AND user_id = 1
@@ -1678,7 +1678,7 @@ router.get('/debug/valr-positions', async (req, res) => {
         // Check all recent VALR positions (last 7 days)
         const recentPositions = await query(`
             SELECT id, pair, status, entry_time, exit_time, entry_value_usdt, exit_pnl_usdt
-            FROM positions
+            FROM momentum_positions
             WHERE exchange = 'valr'
               AND user_id = 1
               AND entry_time >= DATE_SUB(NOW(), INTERVAL 7 DAY)
