@@ -5196,15 +5196,14 @@ class OrderExecutionService {
 
             // KuCoin returns array of accounts (one per currency)
             // Transform to standard format: { currency, available, reserved, total }
+            // Note: Returns all account types (main, trade, margin) to match Strategic Arbitrage behavior
             const accounts = data.data || [];
-            return accounts
-                .filter(account => account.type === 'trade') // Only spot trading accounts
-                .map(account => ({
-                    currency: account.currency,
-                    available: parseFloat(account.available || 0),
-                    reserved: parseFloat(account.holds || 0),
-                    total: parseFloat(account.balance || 0)
-                }));
+            return accounts.map(account => ({
+                currency: account.currency,
+                available: parseFloat(account.available || 0),
+                reserved: parseFloat(account.holds || 0),
+                total: parseFloat(account.balance || 0)
+            }));
 
         } catch (error) {
             logger.error('Failed to fetch KuCoin balances', {
