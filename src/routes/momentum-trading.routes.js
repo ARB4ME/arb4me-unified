@@ -278,17 +278,16 @@ router.get('/supported-pairs/:exchange', async (req, res) => {
                 supportedPairs = lunoService.getAvailablePairs();
                 break;
             case 'valr':
-                // VALR doesn't have hardcoded pairs - return common USDT pairs
-                // Based on VALR's known USDT markets
+                // VALR USDT pairs (verified via API)
                 supportedPairs = [
                     'BTCUSDT',
                     'ETHUSDT',
                     'XRPUSDT',
                     'SOLUSDT',
                     'ADAUSDT',
-                    'DOTUSDT',
-                    'MATICUSDT',
-                    'AVAXUSDT'
+                    'AVAXUSDT',
+                    'LTCUSDT',
+                    'LINKUSDT'
                 ];
                 break;
             case 'binance':
@@ -301,7 +300,6 @@ router.get('/supported-pairs/:exchange', async (req, res) => {
                     'SOLUSDT',
                     'ADAUSDT',
                     'DOTUSDT',
-                    'MATICUSDT',
                     'AVAXUSDT',
                     'LINKUSDT',
                     'UNIUSDT',
@@ -321,7 +319,6 @@ router.get('/supported-pairs/:exchange', async (req, res) => {
                     'SOLUSDT',
                     'ADAUSDT',
                     'DOTUSDT',
-                    'MATICUSDT',
                     'AVAXUSDT',
                     'LINKUSDT',
                     'UNIUSDT',
@@ -338,12 +335,24 @@ router.get('/supported-pairs/:exchange', async (req, res) => {
                     'SOLUSDT',
                     'ADAUSDT',
                     'DOTUSDT',
-                    'MATICUSDT',
                     'AVAXUSDT',
                     'LINKUSDT',
                     'BNBUSDT',
                     'LTCUSDT',
                     'ATOMUSDT'
+                ];
+                break;
+            case 'gemini':
+                // Gemini USDT pairs (verified via API - no ADA or MATIC support)
+                supportedPairs = [
+                    'BTCUSDT',
+                    'ETHUSDT',
+                    'XRPUSDT',
+                    'SOLUSDT',
+                    'DOTUSDT',
+                    'AVAXUSDT',
+                    'LINKUSDT',
+                    'LTCUSDT'
                 ];
                 break;
             case 'gateio':
@@ -360,7 +369,6 @@ router.get('/supported-pairs/:exchange', async (req, res) => {
             case 'bitget':
             case 'bitmart':
             case 'bitrue':
-            case 'gemini':
             case 'crypto.com':
             case 'cryptocom':
             case 'coincatch':
@@ -373,7 +381,6 @@ router.get('/supported-pairs/:exchange', async (req, res) => {
                     'SOLUSDT',
                     'ADAUSDT',
                     'DOTUSDT',
-                    'MATICUSDT',
                     'AVAXUSDT',
                     'LINKUSDT',
                     'LTCUSDT',
