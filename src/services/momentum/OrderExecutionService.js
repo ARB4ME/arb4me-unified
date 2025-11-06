@@ -5492,14 +5492,6 @@ class OrderExecutionService {
      * @private
      */
     async _getXTBalances(credentials) {
-        console.log('========================================');
-        console.log('🚀 XT.COM BALANCE FETCH STARTING');
-        console.log('========================================');
-        logger.info('🚀 XT.COM BALANCE FETCH STARTING', {
-            apiKeyPreview: credentials.apiKey.substring(0, 8) + '...',
-            timestamp: new Date().toISOString()
-        });
-
         try {
             const timestamp = Date.now().toString();
             const path = '/v4/balances';
@@ -5515,21 +5507,6 @@ class OrderExecutionService {
 
             const url = 'https://sapi.xt.com/v4/balances';
 
-            // DEBUG: Log request details
-            logger.info('🔍 XT.com balance request', {
-                url,
-                method: 'GET',
-                timestamp,
-                apiKey: credentials.apiKey.substring(0, 8) + '...',
-                signature: signature.substring(0, 16) + '...',
-                headers: {
-                    'validate-algorithms': 'HmacSHA256',
-                    'validate-appkey': credentials.apiKey.substring(0, 8) + '...',
-                    'validate-recvwindow': '60000',
-                    'validate-timestamp': timestamp
-                }
-            });
-
             const response = await this._fetchWithRetry(url, {
                 method: 'GET',
                 headers: {
@@ -5543,25 +5520,7 @@ class OrderExecutionService {
                 }
             });
 
-            // DEBUG: Log HTTP response status
-            console.log('📡 XT.com HTTP Response Status:', response.status, response.statusText);
-            logger.info('🔍 XT.com balance HTTP response', {
-                status: response.status,
-                statusText: response.statusText,
-                ok: response.ok
-            });
-
             const data = await response.json();
-
-            // DEBUG: Log raw response to see what XT.com is returning
-            console.log('📊 XT.com API Response:', JSON.stringify(data, null, 2));
-            logger.info('🔍 XT.com balance raw response', {
-                rc: data.rc,
-                msg: data.msg,
-                resultKeys: data.result ? Object.keys(data.result) : 'NO RESULT',
-                assetsCount: data.result?.assets?.length || 0,
-                fullResponse: JSON.stringify(data)
-            });
 
             if (data.rc !== 0) {
                 throw new Error(`XT.com balance fetch failed: ${data.rc} - ${data.msg}`);
@@ -5570,18 +5529,6 @@ class OrderExecutionService {
             // XT.com returns array of balances
             // Transform to standard format: { currency, available, reserved, total }
             const balances = data.result?.assets || [];
-
-            // DEBUG: Log each balance
-            console.log('📊 XT.com balances count:', balances.length);
-            logger.info('📊 XT.com balances parsed', {
-                totalBalances: balances.length,
-                balances: balances.map(b => ({
-                    currency: b.currency,
-                    availableAmount: b.availableAmount,
-                    frozenAmount: b.frozenAmount,
-                    totalAmount: b.totalAmount
-                }))
-            });
 
             return balances.map(balance => ({
                 currency: balance.currency.toUpperCase(), // XT uses lowercase, convert to uppercase
@@ -5871,22 +5818,7 @@ class OrderExecutionService {
         // Final sign string: X + Y
         const signString = X + Y;
 
-        const signature = crypto.createHmac('sha256', apiSecret).update(signString).digest('hex');
-
-        // DEBUG: Log signature generation
-        console.log('🔐 XT.com signature:', signature.substring(0, 16) + '...');
-        logger.info('🔐 XT.com signature generation', {
-            method,
-            path,
-            query: query || 'empty',
-            body: body || 'empty',
-            X: X.substring(0, 80) + '...',
-            Y,
-            signStringLength: signString.length,
-            signaturePreview: signature.substring(0, 16) + '...'
-        });
-
-        return signature;
+        return crypto.createHmac('sha256', apiSecret).update(signString).digest('hex');
     }
 
     /**
