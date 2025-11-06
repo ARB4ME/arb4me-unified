@@ -8622,15 +8622,13 @@ class OrderExecutionService {
      */
     async _getCoincatchBalances(credentials) {
         try {
-            console.log('🚀 COINCATCH BALANCE FETCH STARTING');
-
             const timestamp = Date.now().toString();
             const method = 'GET';
-            const requestPath = '/api/spot/v1/account/assets';  // FIXED: Correct Coincatch endpoint
+            const requestPath = '/api/spot/v1/account/assets';
             const queryString = '';
             const requestBody = '';
 
-            // FIXED: Correct signature format for Coincatch
+            // Coincatch signature format
             let message = timestamp + method + requestPath;
             if (queryString) {
                 message += '?' + queryString;
@@ -8642,40 +8640,28 @@ class OrderExecutionService {
 
             const url = `https://api.coincatch.com${requestPath}`;
 
-            console.log('📡 Coincatch balance request:', {
-                url,
-                method,
-                timestamp,
-                signaturePreview: signature.substring(0, 16) + '...',
-                hasPassphrase: !!credentials.passphrase
-            });
-
             const response = await fetch(url, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
-                    'ACCESS-KEY': credentials.apiKey,              // FIXED: Correct header names
+                    'ACCESS-KEY': credentials.apiKey,
                     'ACCESS-SIGN': signature,
                     'ACCESS-TIMESTAMP': timestamp,
                     'ACCESS-PASSPHRASE': credentials.passphrase || credentials.apiSecret
                 }
             });
 
-            console.log('📡 Coincatch HTTP Response:', response.status, response.statusText);
-
             const result = await response.json();
-            console.log('📊 Coincatch API Response:', JSON.stringify(result, null, 2));
 
             // Coincatch may return 200 with error in response body
             if (!response.ok && response.status !== 400) {
                 throw new Error(`Coincatch balance fetch error: ${response.status} - ${JSON.stringify(result)}`);
             }
 
-            // FIXED: Correct data structure for Coincatch
+            // Parse Coincatch response structure
             const balanceData = result.data || [];
             const allBalances = [];
 
-            // Coincatch returns array of balance objects
             balanceData.forEach(balance => {
                 allBalances.push({
                     currency: balance.coinName || balance.currency,
@@ -8685,11 +8671,9 @@ class OrderExecutionService {
                 });
             });
 
-            console.log('📊 Coincatch balances count:', allBalances.length);
             return allBalances;
 
         } catch (error) {
-            console.log('❌ COINCATCH ERROR:', error.message);
             logger.error('Failed to fetch Coincatch balances', {
                 error: error.message,
                 stack: error.stack
