@@ -1530,13 +1530,18 @@ router.post('/balance', async (req, res) => {
         });
 
         // Return in format compatible with frontend
+        // Use total balance (available + reserved) to match Strategic Arbitrage behavior
+        const totalBalance = usdtBalance
+            ? (usdtBalance.total || (usdtBalance.available + usdtBalance.reserved))
+            : 0;
+
         res.json({
             success: true,
             data: {
                 exchange: exchange.toLowerCase(),
                 balances: {
-                    USDT: usdtBalance?.available || 0,
-                    usdt: usdtBalance?.available || 0
+                    USDT: totalBalance,
+                    usdt: totalBalance
                 },
                 details: usdtBalance || { currency: 'USDT', available: 0, reserved: 0, total: 0 }
             }
