@@ -1681,7 +1681,7 @@ router.get('/debug/valr-positions', async (req, res) => {
             FROM momentum_positions
             WHERE exchange = 'valr'
               AND user_id = '1'
-              AND entry_time >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+              AND entry_time >= NOW() - INTERVAL '7 days'
             ORDER BY entry_time DESC
         `);
 
