@@ -5836,7 +5836,8 @@ class OrderExecutionService {
 
             const timestamp = Date.now().toString();
             const path = `/${accountGroup}/api/pro/v1/cash/balance`;
-            const signature = this._createAscendEXSignature(timestamp, path, credentials.apiSecret);
+            // CRITICAL: AscendEX signature uses short name 'balance', not full path!
+            const signature = this._createAscendEXSignature(timestamp, 'balance', credentials.apiSecret);
 
             const url = `https://ascendex.com${path}`;
             console.log('📡 AscendEX balance request:', url);
@@ -6117,7 +6118,8 @@ class OrderExecutionService {
             console.log('🔑 Getting AscendEX account group...');
             const timestamp = Date.now().toString();
             const path = '/api/pro/v1/info';
-            const signature = this._createAscendEXSignature(timestamp, path, credentials.apiSecret);
+            // CRITICAL: AscendEX signature uses short name 'info', not full path!
+            const signature = this._createAscendEXSignature(timestamp, 'info', credentials.apiSecret);
 
             const url = `https://ascendex.com${path}`;
             console.log('📡 AscendEX account group request:', url);
