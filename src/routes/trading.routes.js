@@ -861,6 +861,39 @@ router.post('/test-connection', tradingRateLimit, optionalAuth, [
             }
 
             throw new Error('Connection test failed - invalid credentials');
+        } else if (exchange.toLowerCase() === 'cryptocom' || exchange.toLowerCase() === 'crypto.com') {
+            // Test Crypto.com connection
+            const timestamp = Date.now();
+            const nonce = Date.now();
+            const method = 'POST';
+            const requestPath = CRYPTOCOM_CONFIG.endpoints.test;
+            const requestBody = '{}';
+
+            const signature = createCryptoComSignature(method, requestPath, requestBody, secretKey, timestamp, nonce);
+
+            const response = await fetch(`${CRYPTOCOM_CONFIG.baseUrl}${requestPath}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'api-key': apiKey,
+                    'signature': signature,
+                    'nonce': nonce.toString()
+                },
+                body: requestBody
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data.code === 0 || data.code === '0') {
+                    res.json({
+                        success: true,
+                        message: 'Connection test successful'
+                    });
+                    return;
+                }
+            }
+
+            throw new Error('Connection test failed - invalid credentials');
         } else {
             throw new APIError(`Exchange ${exchange} not supported`, 400, 'UNSUPPORTED_EXCHANGE');
         }

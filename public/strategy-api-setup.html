@@ -672,6 +672,33 @@
             </div>
             </form>
 
+            <!-- Crypto.com Cross Exchange -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">Crypto.com - Cross Exchange Strategy</div>
+                    <div id="cryptocom-cross-exchange-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="cryptocom-cross-exchange-api">API Key</label>
+                    <input type="text" id="cryptocom-cross-exchange-api" class="form-input" placeholder="Enter Crypto.com API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="cryptocom-cross-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="cryptocom-cross-exchange-secret">Secret Key</label>
+                    <input type="password" id="cryptocom-cross-exchange-secret" class="form-input" placeholder="Enter Crypto.com Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="cryptocom-cross-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="cryptocom-cross-exchange-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('cryptocom', 'cross-exchange')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('cryptocom', 'cross-exchange')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('cryptocom', 'cross-exchange')">Disconnect</button>
+                </div>
+            </div>
+            </form>
+
             <!-- KuCoin Cross Exchange -->
             <form autocomplete="off" onsubmit="return false;">
             <div class="exchange-card">
@@ -1315,6 +1342,33 @@
             </div>
             </form>
 
+            <!-- Crypto.com Triangular -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">Crypto.com - Triangular Strategy</div>
+                    <div id="cryptocom-triangular-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="cryptocom-triangular-api">API Key</label>
+                    <input type="text" id="cryptocom-triangular-api" class="form-input" placeholder="Enter Crypto.com API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="cryptocom-tri-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="cryptocom-triangular-secret">Secret Key</label>
+                    <input type="password" id="cryptocom-triangular-secret" class="form-input" placeholder="Enter Crypto.com Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="cryptocom-tri-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="cryptocom-triangular-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('cryptocom', 'triangular')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('cryptocom', 'triangular')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('cryptocom', 'triangular')">Disconnect</button>
+                </div>
+            </div>
+            </form>
+
             <!-- KuCoin Triangular -->
             <form autocomplete="off" onsubmit="return false;">
             <div class="exchange-card">
@@ -1850,6 +1904,33 @@
             </div>
             </form>
 
+            <!-- Crypto.com Transfer -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">Crypto.com - Transfer Strategy</div>
+                    <div id="cryptocom-transfer-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="cryptocom-transfer-api">API Key</label>
+                    <input type="text" id="cryptocom-transfer-api" class="form-input" placeholder="Enter Crypto.com API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="cryptocom-trans-api-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="cryptocom-transfer-secret">Secret Key</label>
+                    <input type="password" id="cryptocom-transfer-secret" class="form-input" placeholder="Enter Crypto.com Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="cryptocom-trans-secret-key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="cryptocom-transfer-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('cryptocom', 'transfer')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('cryptocom', 'transfer')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('cryptocom', 'transfer')">Disconnect</button>
+                </div>
+            </div>
+            </form>
+
             <!-- KuCoin Transfer -->
             <form autocomplete="off" onsubmit="return false;">
             <div class="exchange-card">
@@ -2381,6 +2462,33 @@
                     <button class="btn btn-primary" onclick="connectStrategyExchange('xt', 'currency-swap')">Connect</button>
                     <button class="btn btn-secondary" onclick="testStrategyConnection('xt', 'currency-swap')">Test Connection</button>
                     <button class="btn btn-danger" onclick="disconnectStrategyExchange('xt', 'currency-swap')">Disconnect</button>
+                </div>
+            </div>
+            </form>
+
+            <!-- Crypto.com Currency Swap -->
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="exchange-card">
+                <div class="exchange-header">
+                    <div class="exchange-name">Crypto.com - Currency Swap Strategy</div>
+                    <div id="cryptocom-currency-swap-status" class="connection-status status-disconnected">Disconnected</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="cryptocom-currency-swap-api">API Key</label>
+                    <input type="text" id="cryptocom-currency-swap-api" class="form-input" placeholder="Enter Crypto.com API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="cryptocom_currency_swap_api_unique">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="cryptocom-currency-swap-secret">Secret Key</label>
+                    <input type="password" id="cryptocom-currency-swap-secret" class="form-input" placeholder="Enter Crypto.com Secret Key" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="cryptocom_currency_swap_secret_unique">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Balance</label>
+                    <div id="cryptocom-currency-swap-balance" style="padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; font-family: monospace; color: #333;">$0.00</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="connectStrategyExchange('cryptocom', 'currency-swap')">Connect</button>
+                    <button class="btn btn-secondary" onclick="testStrategyConnection('cryptocom', 'currency-swap')">Test Connection</button>
+                    <button class="btn btn-danger" onclick="disconnectStrategyExchange('cryptocom', 'currency-swap')">Disconnect</button>
                 </div>
             </div>
             </form>
@@ -3700,6 +3808,8 @@
                     exchange = 'gemini';
                 } else if (fieldId.includes('xt')) {
                     exchange = 'xt';
+                } else if (fieldId.includes('cryptocom')) {
+                    exchange = 'cryptocom';
                 }
             } else if (fieldId.includes('triangular')) {
                 strategy = 'triangular';
@@ -3742,6 +3852,8 @@
                     exchange = 'ascendex';
                 } else if (fieldId.includes('xt')) {
                     exchange = 'xt';
+                } else if (fieldId.includes('cryptocom')) {
+                    exchange = 'cryptocom';
                 }
             } else if (fieldId.includes('transfer')) {
                 strategy = 'transfer';
@@ -3776,6 +3888,8 @@
                     exchange = 'gemini';
                 } else if (fieldId.includes('xt')) {
                     exchange = 'xt';
+                } else if (fieldId.includes('cryptocom')) {
+                    exchange = 'cryptocom';
                 }
             } else if (fieldId.includes('currency-swap')) {
                 strategy = 'currency-swap';
@@ -3818,6 +3932,8 @@
                     exchange = 'ascendex';
                 } else if (fieldId.includes('xt')) {
                     exchange = 'xt';
+                } else if (fieldId.includes('cryptocom')) {
+                    exchange = 'cryptocom';
                 }
             }
 
@@ -3988,7 +4104,7 @@
         function loadStrategyCredentials() {
             console.log('🔄 Loading strategy credentials...');
 
-            const exchanges = ['chainex', 'valr', 'luno', 'kraken', 'binance', 'bybit', 'okx', 'mexc', 'kucoin', 'htx', 'bitget', 'bitmart', 'bitrue', 'gemini', 'coincatch', 'bingx', 'ascendex', 'gateio', 'xt'];
+            const exchanges = ['chainex', 'valr', 'luno', 'kraken', 'binance', 'bybit', 'okx', 'mexc', 'kucoin', 'htx', 'bitget', 'bitmart', 'bitrue', 'gemini', 'coincatch', 'bingx', 'ascendex', 'gateio', 'xt', 'cryptocom'];
             const strategies = ['cross-exchange', 'triangular', 'transfer', 'currency-swap'];
 
             exchanges.forEach(exchange => {
