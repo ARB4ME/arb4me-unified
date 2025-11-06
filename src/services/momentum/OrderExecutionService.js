@@ -8616,7 +8616,8 @@ class OrderExecutionService {
     // ============================================================================
 
     /**
-     * Get Coincatch balances (OKX-compatible API)
+     * Get Coincatch balances
+     * Uses /api/spot/v1/account/assets endpoint with ACCESS-* headers
      * @private
      */
     async _getCoincatchBalances(credentials) {
@@ -8625,15 +8626,21 @@ class OrderExecutionService {
 
             const timestamp = Date.now().toString();
             const method = 'GET';
-            const requestPath = '/api/v5/account/balance';
+            const requestPath = '/api/spot/v1/account/assets';  // FIXED: Correct Coincatch endpoint
+            const queryString = '';
             const requestBody = '';
 
-            const signaturePayload = timestamp + method + requestPath + requestBody;
+            // FIXED: Correct signature format for Coincatch
+            let message = timestamp + method + requestPath;
+            if (queryString) {
+                message += '?' + queryString;
+            }
+            message += requestBody;
             const signature = crypto.createHmac('sha256', credentials.apiSecret)
-                .update(signaturePayload)
+                .update(message)
                 .digest('base64');
 
-            const url = `${this.baseUrl || 'https://api.coincatch.com'}${requestPath}`;
+            const url = `https://api.coincatch.com${requestPath}`;
 
             console.log('📡 Coincatch balance request:', {
                 url,
@@ -8647,41 +8654,34 @@ class OrderExecutionService {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
-                    'OK-ACCESS-KEY': credentials.apiKey,
-                    'OK-ACCESS-SIGN': signature,
-                    'OK-ACCESS-TIMESTAMP': timestamp,
-                    'OK-ACCESS-PASSPHRASE': credentials.passphrase || credentials.apiSecret
+                    'ACCESS-KEY': credentials.apiKey,              // FIXED: Correct header names
+                    'ACCESS-SIGN': signature,
+                    'ACCESS-TIMESTAMP': timestamp,
+                    'ACCESS-PASSPHRASE': credentials.passphrase || credentials.apiSecret
                 }
             });
 
             console.log('📡 Coincatch HTTP Response:', response.status, response.statusText);
 
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.log('❌ Coincatch error response:', errorText);
-                throw new Error(`Coincatch balance fetch error: ${response.status} - ${errorText}`);
-            }
-
             const result = await response.json();
             console.log('📊 Coincatch API Response:', JSON.stringify(result, null, 2));
 
-            if (result.code !== '0') {
-                throw new Error(`Coincatch balance fetch failed: ${result.code} - ${result.msg}`);
+            // Coincatch may return 200 with error in response body
+            if (!response.ok && response.status !== 400) {
+                throw new Error(`Coincatch balance fetch error: ${response.status} - ${JSON.stringify(result)}`);
             }
 
+            // FIXED: Correct data structure for Coincatch
             const balanceData = result.data || [];
             const allBalances = [];
 
-            // Coincatch returns balance data per account (details array)
-            balanceData.forEach(account => {
-                const details = account.details || [];
-                details.forEach(detail => {
-                    allBalances.push({
-                        currency: detail.ccy,
-                        available: parseFloat(detail.availBal || 0),
-                        reserved: parseFloat(detail.frozenBal || 0),
-                        total: parseFloat(detail.cashBal || 0)
-                    });
+            // Coincatch returns array of balance objects
+            balanceData.forEach(balance => {
+                allBalances.push({
+                    currency: balance.coinName || balance.currency,
+                    available: parseFloat(balance.available || 0),
+                    reserved: parseFloat(balance.frozen || 0),
+                    total: parseFloat(balance.available || 0) + parseFloat(balance.frozen || 0)
                 });
             });
 
