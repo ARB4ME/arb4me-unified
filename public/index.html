@@ -20389,6 +20389,37 @@ ARB4ME Security Team`
             } else {
                 console.log('ℹ️ No strategy-specific credentials found in localStorage');
             }
+
+            // Sync cross-exchange credentials to main state.exchanges for Cross-Exchange Arbitrage scanning
+            if (state.strategyApis.crossExchange) {
+                Object.keys(state.strategyApis.crossExchange).forEach(exchange => {
+                    const creds = state.strategyApis.crossExchange[exchange];
+                    if (creds && creds.apiKey && creds.apiSecret) {
+                        // Mark exchange as connected in main state
+                        state.exchanges[exchange].connected = true;
+                        // Copy credentials to main state for backward compatibility
+                        state.exchanges[exchange].api = {
+                            key: creds.apiKey,
+                            secret: creds.apiSecret
+                        };
+                        if (creds.passphrase) {
+                            state.exchanges[exchange].api.passphrase = creds.passphrase;
+                        }
+                        if (creds.memo) {
+                            state.exchanges[exchange].api.memo = creds.memo;
+                        }
+                        console.log(`🔗 Synced ${exchange} cross-exchange credentials to main state`);
+                    }
+                });
+
+                // Update connected exchanges counter on dashboard
+                const connectedCount = Object.keys(state.exchanges).filter(ex => state.exchanges[ex].connected).length;
+                const connectedExchangesElement = document.getElementById('connectedExchanges');
+                if (connectedExchangesElement) {
+                    connectedExchangesElement.textContent = connectedCount;
+                }
+                console.log(`✅ Cross-Exchange Arbitrage now sees ${connectedCount} connected exchanges`);
+            }
         }
 
         // Exchange connection persistence functions
