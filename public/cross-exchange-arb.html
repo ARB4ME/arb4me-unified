@@ -1029,7 +1029,7 @@
             <!-- Control Buttons -->
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
                 <button onclick="scanForOpportunities()" class="btn">
-                    🔍 Scan Now
+                    🚀 Enable Auto-Trading
                 </button>
                 <button onclick="viewTradeHistory()" class="btn">
                     📊 Trade History
@@ -1130,6 +1130,20 @@
 
             // Initialize crypto asset search
             initializeCryptoSearch();
+
+            // Check if auto-trading is already enabled
+            const autoTradingEnabled = localStorage.getItem('autoTradingEnabled');
+            if (autoTradingEnabled === 'true') {
+                console.log('⚡ Auto-trading is already enabled - updating UI');
+                const scanButton = document.querySelector('button[onclick="scanForOpportunities()"]');
+                if (scanButton) {
+                    scanButton.textContent = '⏸️ Disable Auto-Trading';
+                    scanButton.style.background = 'linear-gradient(45deg, #ff6b6b 0%, #ff4444 100%)';
+                    scanButton.onclick = stopScanning;
+                }
+                updateStatusIndicator(true);
+                startListeningForUpdates();
+            }
         });
 
         // Quick asset search functionality
@@ -1192,46 +1206,64 @@
             console.log(`💼 Portfolio % to trade updated: ${this.value}%`);
         });
 
-        // Scan Now - Starts actual trading on index.html
+        // Enable Auto-Trading
         function scanForOpportunities() {
-            console.log('\n🔍 SCAN NOW button clicked');
-            console.log('🚀 Starting cross-exchange arbitrage scanner...');
+            console.log('\n🚀 ENABLE AUTO-TRADING clicked');
+            console.log('✅ Enabling cross-exchange arbitrage auto-trading...');
 
-            // Enable cross-exchange strategy in main system
+            // Enable cross-exchange strategy and auto-trading in main system
             localStorage.setItem('crossExchangeActive', 'true');
             localStorage.setItem('autoTradingEnabled', 'true');
-            localStorage.setItem('scanCommand', Date.now().toString()); // Trigger scan
+            localStorage.setItem('autoTradingCommand', Date.now().toString()); // Signal to start
 
-            // Open main trading engine in background
-            const tradingWindow = window.open('/', '_blank');
-
-            console.log('✅ Trading engine started in new tab');
-            console.log('💡 Keep both tabs open - this UI will show live updates');
+            console.log('✅ Auto-trading enabled');
+            console.log('💡 Trading engine will execute trades automatically');
+            console.log('💡 Ensure main dashboard (/) is open in another tab');
 
             // Update UI to show active state
             const scanButton = event.target;
-            scanButton.textContent = '🔄 Scanner Active';
+            scanButton.textContent = '⏸️ Disable Auto-Trading';
             scanButton.style.background = 'linear-gradient(45deg, #ff6b6b 0%, #ff4444 100%)';
             scanButton.onclick = stopScanning;
+
+            // Show active indicator
+            updateStatusIndicator(true);
 
             // Start listening for updates from index.html
             startListeningForUpdates();
         }
 
         function stopScanning() {
-            console.log('\n⏸️ STOP SCANNING button clicked');
+            console.log('\n⏸️ DISABLE AUTO-TRADING clicked');
 
             // Disable auto-trading in main system
             localStorage.setItem('autoTradingEnabled', 'false');
-            localStorage.setItem('stopCommand', Date.now().toString());
+            localStorage.setItem('autoTradingCommand', Date.now().toString()); // Signal to stop
 
-            // Update UI back to scan state
+            // Update UI back to enabled state
             const scanButton = event.target;
-            scanButton.textContent = '🔍 Scan Now';
+            scanButton.textContent = '🚀 Enable Auto-Trading';
             scanButton.style.background = 'linear-gradient(45deg, #00ff88 0%, #00cc66 100%)';
             scanButton.onclick = scanForOpportunities;
 
-            console.log('✅ Scanner stopped');
+            // Hide active indicator
+            updateStatusIndicator(false);
+
+            console.log('✅ Auto-trading disabled');
+        }
+
+        function updateStatusIndicator(isActive) {
+            // Update the status banner at top
+            const statusBanner = document.querySelector('.strategy-status');
+            if (statusBanner) {
+                if (isActive) {
+                    statusBanner.innerHTML = '<span style="color: #ff6b6b;">⚡ AUTO-TRADING ACTIVE</span>';
+                    statusBanner.style.background = 'linear-gradient(135deg, rgba(255,107,107,0.2) 0%, rgba(255,68,68,0.2) 100%)';
+                } else {
+                    statusBanner.innerHTML = '<span style="color: #00ff88;">✅ CROSS-EXCHANGE ARB ACTIVE</span>';
+                    statusBanner.style.background = 'linear-gradient(135deg, rgba(0,255,136,0.2) 0%, rgba(0,212,255,0.2) 100%)';
+                }
+            }
         }
 
         function startListeningForUpdates() {
