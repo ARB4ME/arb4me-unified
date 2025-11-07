@@ -1118,7 +1118,55 @@
             console.log('\n🔍 CROSS-EXCHANGE PAGE INITIALIZED');
             console.log('═'.repeat(60));
             updateStats();
+
+            // Initialize crypto asset search
+            initializeCryptoSearch();
         });
+
+        // Quick asset search functionality
+        function initializeCryptoSearch() {
+            const searchInput = document.getElementById('cryptoSearchInput');
+
+            if (!searchInput) {
+                console.log('⚠️ Search input not found, skipping search initialization');
+                return;
+            }
+
+            // Search input event listener
+            searchInput.addEventListener('input', function(e) {
+                const query = e.target.value.trim().toLowerCase();
+
+                console.log(`🔍 Search query: "${query}"`);
+
+                // Get all asset checkboxes
+                let visibleCount = 0;
+                let hiddenCount = 0;
+
+                allAssetPairs.forEach(asset => {
+                    const checkbox = document.getElementById(`asset_${asset}`);
+                    if (checkbox && checkbox.parentElement) {
+                        // Check if asset matches the query
+                        const assetLower = asset.toLowerCase();
+                        const matches = query.length === 0 || assetLower.includes(query);
+
+                        // Show/hide the parent div containing the checkbox and label
+                        if (matches) {
+                            checkbox.parentElement.style.display = '';
+                            visibleCount++;
+                        } else {
+                            checkbox.parentElement.style.display = 'none';
+                            hiddenCount++;
+                        }
+                    }
+                });
+
+                if (query.length > 0) {
+                    console.log(`📊 Search results: ${visibleCount} shown, ${hiddenCount} hidden`);
+                }
+            });
+
+            console.log('✅ Crypto asset search initialized');
+        }
 
         // Save settings when changed
         document.getElementById('maxTradeSize').addEventListener('change', function() {
