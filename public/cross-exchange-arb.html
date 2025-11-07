@@ -1166,10 +1166,20 @@
             });
             document.getElementById('activePairs').textContent = activePairs;
 
-            // Calculate opportunities: activePairs × connectedExchanges
-            // (Each pair can potentially have arbitrage across N exchanges)
-            const opportunities = activePairs * connectedCount;
-            document.getElementById('opportunitiesToday').textContent = opportunities;
+            // Calculate opportunities for CROSS-EXCHANGE arbitrage
+            // Cross-exchange requires comparing prices between PAIRS of exchanges
+            // For N exchanges, there are N × (N-1) / 2 unique exchange pairs
+            // Example: 19 exchanges = 19 × 18 / 2 = 171 exchange pairs
+            // (VALR↔Binance, VALR↔OKX, Binance↔KuCoin, etc.)
+            let exchangePairs = 0;
+            if (connectedCount >= 2) {
+                exchangePairs = (connectedCount * (connectedCount - 1)) / 2;
+            }
+
+            // Total opportunities = trading pairs × exchange pair combinations
+            // Example: 130 pairs × 171 exchange pairs = 22,230 potential arbitrage routes
+            const opportunities = activePairs * exchangePairs;
+            document.getElementById('opportunitiesToday').textContent = opportunities.toLocaleString();
         }
     </script>
 </body>
