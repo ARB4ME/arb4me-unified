@@ -1061,6 +1061,26 @@
             window.location.href = '/';
         }
 
+        // All asset pairs available on the page
+        const allAssetPairs = [
+            'XRPUSDT', 'BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'LINKUSDT', 'DOGEUSDT', 'ADAUSDT', 'DOTUSDT',
+            'AVAXUSDT', 'MATICUSDT', 'LTCUSDT', 'ATOMUSDT', 'BNBUSDT', 'UNIUSDT', 'BCHUSDT', 'SHIBUSDT',
+            'ETHBTC', 'ADABTC', 'DOTETH', 'LINKBTC', 'XRPBTC', 'XLMBTC', 'ALGOBTC', 'HBARBTC', 'HBARUSDT',
+            'SOLBTC', 'MATICBTC', 'AVAXBTC', 'BNBBTC', 'LTCBTC', 'SOLETH', 'MATICETH', 'LINKETH', 'UNIETH',
+            'BTCUSDC', 'ETHUSDC', 'SUNUSDT', 'UBXSUSDT', 'GMMTUSDT', 'SNPTUSDT', 'ONDOUSDT', 'TRADEUSDT',
+            'TLOSUSDT', 'ZCXUSDT', 'PINUSDT', 'UDSUSDT', 'TETUSDT', 'OMIUSDT', 'HTXUSDT', 'BADUSDT',
+            'DNXUSDT', 'HASHAIUSDT', 'XTAGUSDT', 'AIMONICAUSDT', 'IAGUSDT', 'SEIUSDT', 'MASAUSDT', 'TRVLUSDT',
+            'OMNIAUSDT', 'ARCAUSDT', 'EVMOSUSDT', 'HEARTUSDT', 'XCADUSDT', 'ZCDUSDT', 'NAIUSDT', 'NPCUSDT',
+            'HAIUSDT', 'NTXUSDT', 'TURBOUSDT', 'NOTUSDT', 'BLSUSDT', 'DFYNUSDT', 'STRMUSDT', 'XPRTUSDT',
+            'HTMUSDT', 'TOKOUSDT', 'ATRUSDT', 'ATLASUSDT', 'PAWSUSDT', 'KASTAUSDT', 'PZPUSDT', 'QTLXUSDT',
+            'SCPTUSDT', 'MTRGUSDT', 'VANRYUSDT', 'XRPHUSDT', 'ZANOUSDT', 'STBUUSDT', 'REKTUSDT', 'AGLAUSDT',
+            'PROPCUSDT', 'SPARKLETUSDT', 'CSIXUSDT', 'HOODUSDT', 'MBGUSDT', 'SEEDUSDT', 'MUBIUSDT', 'XPUSDT',
+            'SNYUSDT', 'PEPE2USDT', 'SWEATUSDT', 'KIPUSDT', 'VISTAUSDT', 'DKSUSDT', 'CKBUSDT', 'QUBICUSDT',
+            'ETNUSDT', 'XLMUSDT', 'PEPEUSDT', 'AAVEUSDT', 'AGRIUSDT', 'ALGOUSDT', 'LUMENUSDT', 'SFIUSDT',
+            'PROPSUSDT', 'VEMPUSDT', 'XRUSDT', 'XDCUSDT', 'GELUSDT', 'RTFUSDT', 'DCKUSDT', 'MOGUSDT',
+            'RETIKUSDT', 'ARBUSDT', 'VSCUSDT', 'REDOUSDT', 'MEMEFIUSDT', 'MUBUSDT', 'AKIUSDT', 'XZKUSDT'
+        ];
+
         // Load saved settings
         document.addEventListener('DOMContentLoaded', function() {
             // Load trading configuration from localStorage
@@ -1072,6 +1092,22 @@
 
             const maxSlippage = localStorage.getItem('maxSlippage');
             if (maxSlippage) document.getElementById('maxSlippage').value = maxSlippage;
+
+            // Load asset pair selections from localStorage
+            allAssetPairs.forEach(asset => {
+                const checkbox = document.getElementById(`asset_${asset}`);
+                if (checkbox) {
+                    const saved = localStorage.getItem(`asset_${asset}`);
+                    // Default to checked if no saved state
+                    checkbox.checked = saved === null ? true : saved === 'true';
+
+                    // Add event listener to save state when changed
+                    checkbox.addEventListener('change', function() {
+                        localStorage.setItem(`asset_${asset}`, this.checked);
+                        updateStats(); // Update counters immediately
+                    });
+                }
+            });
 
             // Update stats from localStorage or API
             updateStats();
@@ -1108,9 +1144,6 @@
         }
 
         function updateStats() {
-            // This would normally fetch from API
-            // For now, just showing placeholder values
-
             // Count connected exchanges from localStorage (NEW cross-exchange strategy format)
             let connectedCount = 0;
             const exchanges = ['valr', 'luno', 'altcointrader', 'xago', 'chainex', 'kraken', 'binance', 'bybit', 'gateio', 'okx', 'mexc', 'kucoin', 'xt', 'ascendex', 'htx', 'bingx', 'bitget', 'bitmart', 'bitrue', 'gemini', 'cryptocom', 'coincatch'];
@@ -1122,15 +1155,21 @@
             });
             document.getElementById('connectedExchanges').textContent = connectedCount;
 
-            // Count active pairs
+            // Count active pairs (all pairs in allAssetPairs array)
             let activePairs = 0;
-            const assets = ['BTCUSDT', 'ETHUSDT', 'XRPUSDT', 'SOLUSDT'];
-            assets.forEach(asset => {
-                if (localStorage.getItem(`asset_${asset}`) === 'true') {
+            allAssetPairs.forEach(asset => {
+                const saved = localStorage.getItem(`asset_${asset}`);
+                // Count as active if checked (default to true if no saved state)
+                if (saved === null || saved === 'true') {
                     activePairs++;
                 }
             });
             document.getElementById('activePairs').textContent = activePairs;
+
+            // Calculate opportunities: activePairs × connectedExchanges
+            // (Each pair can potentially have arbitrage across N exchanges)
+            const opportunities = activePairs * connectedCount;
+            document.getElementById('opportunitiesToday').textContent = opportunities;
         }
     </script>
 </body>
