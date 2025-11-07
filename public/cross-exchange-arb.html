@@ -1207,6 +1207,8 @@
         });
 
         // Enable Auto-Trading
+        let tradingEngineIframe = null;
+
         function scanForOpportunities() {
             console.log('\n🚀 ENABLE AUTO-TRADING clicked');
             console.log('✅ Enabling cross-exchange arbitrage auto-trading...');
@@ -1216,9 +1218,23 @@
             localStorage.setItem('autoTradingEnabled', 'true');
             localStorage.setItem('autoTradingCommand', Date.now().toString()); // Signal to start
 
+            // Load trading engine in hidden iframe
+            console.log('🔧 Loading trading engine...');
+            if (!tradingEngineIframe) {
+                tradingEngineIframe = document.createElement('iframe');
+                tradingEngineIframe.src = '/';
+                tradingEngineIframe.style.display = 'none'; // Hidden from view
+                tradingEngineIframe.style.position = 'absolute';
+                tradingEngineIframe.style.width = '0';
+                tradingEngineIframe.style.height = '0';
+                tradingEngineIframe.style.border = 'none';
+                document.body.appendChild(tradingEngineIframe);
+            }
+
             console.log('✅ Auto-trading enabled');
-            console.log('💡 Trading engine will execute trades automatically');
-            console.log('💡 Ensure main dashboard (/) is open in another tab');
+            console.log('✅ Trading engine running in background');
+            console.log('💡 Trades will execute automatically when opportunities found');
+            console.log('💡 Stay on this page - all updates will appear here');
 
             // Update UI to show active state
             const scanButton = event.target;
@@ -1239,6 +1255,13 @@
             // Disable auto-trading in main system
             localStorage.setItem('autoTradingEnabled', 'false');
             localStorage.setItem('autoTradingCommand', Date.now().toString()); // Signal to stop
+
+            // Stop and remove trading engine iframe
+            if (tradingEngineIframe) {
+                document.body.removeChild(tradingEngineIframe);
+                tradingEngineIframe = null;
+                console.log('✅ Trading engine stopped');
+            }
 
             // Update UI back to enabled state
             const scanButton = event.target;
