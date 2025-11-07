@@ -1111,11 +1111,12 @@
             // This would normally fetch from API
             // For now, just showing placeholder values
 
-            // Count connected exchanges from localStorage
+            // Count connected exchanges from localStorage (NEW cross-exchange strategy format)
             let connectedCount = 0;
-            const exchanges = ['valr', 'luno', 'altcointrader', 'xago', 'chainex'];
+            const exchanges = ['valr', 'luno', 'altcointrader', 'xago', 'chainex', 'kraken', 'binance', 'bybit', 'gateio', 'okx', 'mexc', 'kucoin', 'xt', 'ascendex', 'htx', 'bingx', 'bitget', 'bitmart', 'bitrue', 'gemini', 'cryptocom', 'coincatch'];
             exchanges.forEach(exchange => {
-                if (localStorage.getItem(`${exchange}Connected`) === 'true') {
+                // Check NEW strategy-specific format: ${exchange}_cross-exchange_connected
+                if (localStorage.getItem(`${exchange}_cross-exchange_connected`) === 'true') {
                     connectedCount++;
                 }
             });
