@@ -12713,8 +12713,25 @@
                 tradeExecutionState.activeTrades.get(tradeId).phase = 'completed';
                 recordSuccessfulTrade(opportunity, buyResult, sellResult);
                 addActivity(`💰 Arbitrage completed [${tradeId}]: ${formatCurrency(opportunity.profit)} profit!`, 'success');
-                
-                // Remove from active tracking (completed successfully)  
+
+                // Broadcast trade to cross-exchange UI
+                localStorage.setItem('tradeExecuted', JSON.stringify({
+                    asset: opportunity.asset,
+                    buyExchange: opportunity.buyExchange,
+                    sellExchange: opportunity.sellExchange,
+                    profit: opportunity.profit || 0,
+                    time: Date.now(),
+                    tradeId: tradeId
+                }));
+
+                // Broadcast updated stats
+                localStorage.setItem('scannerStats', JSON.stringify({
+                    todayProfit: state.tradingStats.todayProfit || 0,
+                    totalTrades: state.tradingStats.totalTrades || 0,
+                    successRate: state.tradingStats.successfulTrades / (state.tradingStats.totalTrades || 1) * 100
+                }));
+
+                // Remove from active tracking (completed successfully)
                 removeActiveTrade(tradeId);
                 
                 // Update trade history display
@@ -24178,6 +24195,15 @@ ARB4ME Security Team`
                         const bestOpportunity = opportunities[0];
                         console.log('📊 LIVE OPPORTUNITY FOUND:', bestOpportunity);
                         displayOpportunity(bestOpportunity);
+
+                        // Broadcast opportunity to cross-exchange UI
+                        localStorage.setItem('liveOpportunity', JSON.stringify({
+                            asset: bestOpportunity.asset,
+                            buyExchange: bestOpportunity.buyExchange,
+                            sellExchange: bestOpportunity.sellExchange,
+                            profit: bestOpportunity.netProfitPercent,
+                            time: Date.now()
+                        }));
                         
                         // ENHANCED: Execute ALL profitable opportunities concurrently (money printing mode!)
                         let executedTrades = 0;
@@ -28666,6 +28692,15 @@ ARB4ME Security Team`
                 // FIXED: Restore exchange connections after loading settings
                 setTimeout(() => {
                     restoreExchangeConnections();
+
+                    // Check if cross-exchange UI requested auto-trading
+                    const autoTradingRequested = localStorage.getItem('autoTradingEnabled');
+                    if (autoTradingRequested === 'true') {
+                        console.log('🚀 Cross-Exchange UI requested auto-trading - enabling...');
+                        state.autoTrading = true;
+                        toggleAutoTrading(); // Enable auto-trading
+                        addActivity('🚀 Auto-trading enabled from Cross-Exchange UI', 'success');
+                    }
                 }, 2000); // Delay to allow UI to initialize
             } else {
                 // First time user - initialize security timers with default

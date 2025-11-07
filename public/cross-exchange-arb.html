@@ -1192,18 +1192,122 @@
             console.log(`💼 Portfolio % to trade updated: ${this.value}%`);
         });
 
-        // Placeholder functions for buttons
+        // Scan Now - Starts actual trading on index.html
         function scanForOpportunities() {
             console.log('\n🔍 SCAN NOW button clicked');
-            console.log('⚠️ Note: Scanning functionality not yet implemented on this page');
-            console.log('💡 Tip: Cross-exchange scanning is available on the main index.html page');
-            alert('Scanning for cross-exchange arbitrage opportunities...');
+            console.log('🚀 Starting cross-exchange arbitrage scanner...');
+
+            // Enable cross-exchange strategy in main system
+            localStorage.setItem('crossExchangeActive', 'true');
+            localStorage.setItem('autoTradingEnabled', 'true');
+            localStorage.setItem('scanCommand', Date.now().toString()); // Trigger scan
+
+            // Open main trading engine in background
+            const tradingWindow = window.open('/', '_blank');
+
+            console.log('✅ Trading engine started in new tab');
+            console.log('💡 Keep both tabs open - this UI will show live updates');
+
+            // Update UI to show active state
+            const scanButton = event.target;
+            scanButton.textContent = '🔄 Scanner Active';
+            scanButton.style.background = 'linear-gradient(45deg, #ff6b6b 0%, #ff4444 100%)';
+            scanButton.onclick = stopScanning;
+
+            // Start listening for updates from index.html
+            startListeningForUpdates();
+        }
+
+        function stopScanning() {
+            console.log('\n⏸️ STOP SCANNING button clicked');
+
+            // Disable auto-trading in main system
+            localStorage.setItem('autoTradingEnabled', 'false');
+            localStorage.setItem('stopCommand', Date.now().toString());
+
+            // Update UI back to scan state
+            const scanButton = event.target;
+            scanButton.textContent = '🔍 Scan Now';
+            scanButton.style.background = 'linear-gradient(45deg, #00ff88 0%, #00cc66 100%)';
+            scanButton.onclick = scanForOpportunities;
+
+            console.log('✅ Scanner stopped');
+        }
+
+        function startListeningForUpdates() {
+            console.log('👂 Listening for live updates from trading engine...');
+
+            // Listen for localStorage changes from index.html
+            window.addEventListener('storage', function(e) {
+                if (e.key === 'liveOpportunity') {
+                    const opportunity = JSON.parse(e.newValue);
+                    displayOpportunity(opportunity);
+                } else if (e.key === 'tradeExecuted') {
+                    const trade = JSON.parse(e.newValue);
+                    addTradeToHistory(trade);
+                } else if (e.key === 'scannerStats') {
+                    const stats = JSON.parse(e.newValue);
+                    updateStatsFromScanner(stats);
+                }
+            });
+        }
+
+        function displayOpportunity(opportunity) {
+            console.log('💰 Live opportunity received:', opportunity);
+            // Update the "Opportunities Today" or create a live feed
+            // This will be visible in the Recent Trades section
+        }
+
+        function addTradeToHistory(trade) {
+            console.log('📊 Trade executed:', trade);
+            // Add to Recent Trades section dynamically
+            const tradesContainer = document.querySelector('.recent-trades-container');
+            if (tradesContainer) {
+                const tradeHtml = `
+                    <div style="padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <div style="font-weight: bold; color: #00ff88;">${trade.asset}</div>
+                                <div style="font-size: 0.85rem; color: #b8c6db;">
+                                    Buy: ${trade.buyExchange} → Sell: ${trade.sellExchange}
+                                </div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="color: ${trade.profit > 0 ? '#00ff88' : '#ff6b6b'}; font-weight: bold;">
+                                    ${trade.profit > 0 ? '+' : ''}$${trade.profit.toFixed(2)}
+                                </div>
+                                <div style="font-size: 0.85rem; color: #b8c6db;">
+                                    ${new Date(trade.time).toLocaleTimeString()}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                tradesContainer.insertAdjacentHTML('afterbegin', tradeHtml);
+            }
+        }
+
+        function updateStatsFromScanner(stats) {
+            console.log('📊 Scanner stats updated:', stats);
+            if (stats.todayProfit !== undefined) {
+                const profitElement = document.getElementById('totalProfit');
+                if (profitElement) {
+                    profitElement.textContent = `$${stats.todayProfit.toFixed(2)}`;
+                }
+            }
         }
 
         function viewTradeHistory() {
             console.log('\n📊 VIEW TRADE HISTORY button clicked');
-            console.log('⚠️ Note: Trade history not yet implemented on this page');
-            alert('Opening trade history...');
+            // Load trade history from localStorage
+            const tradeHistory = JSON.parse(localStorage.getItem('arb4me_data'))?.tradeHistory || [];
+            console.log(`📜 Found ${tradeHistory.length} trades in history`);
+
+            if (tradeHistory.length === 0) {
+                alert('No trade history available yet. Start scanning to execute trades!');
+            } else {
+                alert(`Trade History:\n${tradeHistory.length} trades executed\nTotal: $${tradeHistory.reduce((sum, t) => sum + (t.profit || 0), 0).toFixed(2)}`);
+            }
         }
 
         function configureExchanges() {
