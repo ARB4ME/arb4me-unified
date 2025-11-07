@@ -1094,22 +1094,29 @@
             if (maxSlippage) document.getElementById('maxSlippage').value = maxSlippage;
 
             // Load asset pair selections from localStorage
+            console.log('📋 Loading asset pair selections from localStorage...');
+            let loadedPairs = 0;
             allAssetPairs.forEach(asset => {
                 const checkbox = document.getElementById(`asset_${asset}`);
                 if (checkbox) {
                     const saved = localStorage.getItem(`asset_${asset}`);
                     // Default to checked if no saved state
                     checkbox.checked = saved === null ? true : saved === 'true';
+                    if (checkbox.checked) loadedPairs++;
 
                     // Add event listener to save state when changed
                     checkbox.addEventListener('change', function() {
                         localStorage.setItem(`asset_${asset}`, this.checked);
+                        console.log(`✏️ Asset ${asset} ${this.checked ? 'selected' : 'deselected'}`);
                         updateStats(); // Update counters immediately
                     });
                 }
             });
+            console.log(`✅ Loaded ${loadedPairs} selected asset pairs`);
 
             // Update stats from localStorage or API
+            console.log('\n🔍 CROSS-EXCHANGE PAGE INITIALIZED');
+            console.log('═'.repeat(60));
             updateStats();
         });
 
@@ -1128,43 +1135,60 @@
 
         // Placeholder functions for buttons
         function scanForOpportunities() {
+            console.log('\n🔍 SCAN NOW button clicked');
+            console.log('⚠️ Note: Scanning functionality not yet implemented on this page');
+            console.log('💡 Tip: Cross-exchange scanning is available on the main index.html page');
             alert('Scanning for cross-exchange arbitrage opportunities...');
         }
 
         function viewTradeHistory() {
+            console.log('\n📊 VIEW TRADE HISTORY button clicked');
+            console.log('⚠️ Note: Trade history not yet implemented on this page');
             alert('Opening trade history...');
         }
 
         function configureExchanges() {
-            alert('Opening exchange configuration...');
+            console.log('\n⚙️ CONFIGURE EXCHANGES button clicked');
+            console.log('💡 Redirecting to Strategy API Configuration page...');
+            window.location.href = '/strategy-api-setup.html';
         }
 
         function exportData() {
+            console.log('\n📥 EXPORT DATA button clicked');
+            console.log('⚠️ Note: Export functionality not yet implemented on this page');
             alert('Exporting trade data...');
         }
 
         function updateStats() {
+            console.log('\n📊 UPDATING STATS...');
+
             // Count connected exchanges from localStorage (NEW cross-exchange strategy format)
             let connectedCount = 0;
+            const connectedExchangesList = [];
             const exchanges = ['valr', 'luno', 'altcointrader', 'xago', 'chainex', 'kraken', 'binance', 'bybit', 'gateio', 'okx', 'mexc', 'kucoin', 'xt', 'ascendex', 'htx', 'bingx', 'bitget', 'bitmart', 'bitrue', 'gemini', 'cryptocom', 'coincatch'];
             exchanges.forEach(exchange => {
                 // Check NEW strategy-specific format: ${exchange}_cross-exchange_connected
                 if (localStorage.getItem(`${exchange}_cross-exchange_connected`) === 'true') {
                     connectedCount++;
+                    connectedExchangesList.push(exchange.toUpperCase());
                 }
             });
             document.getElementById('connectedExchanges').textContent = connectedCount;
+            console.log(`🔗 Connected Exchanges (${connectedCount}):`, connectedExchangesList.join(', ') || 'none');
 
             // Count active pairs (all pairs in allAssetPairs array)
             let activePairs = 0;
+            const selectedPairsList = [];
             allAssetPairs.forEach(asset => {
                 const saved = localStorage.getItem(`asset_${asset}`);
                 // Count as active if checked (default to true if no saved state)
                 if (saved === null || saved === 'true') {
                     activePairs++;
+                    selectedPairsList.push(asset);
                 }
             });
             document.getElementById('activePairs').textContent = activePairs;
+            console.log(`📈 Selected Asset Pairs (${activePairs}):`, selectedPairsList.join(', '));
 
             // Calculate opportunities for CROSS-EXCHANGE arbitrage
             // Cross-exchange requires comparing prices between PAIRS of exchanges
@@ -1175,11 +1199,14 @@
             if (connectedCount >= 2) {
                 exchangePairs = (connectedCount * (connectedCount - 1)) / 2;
             }
+            console.log(`🔄 Exchange Pairs: ${connectedCount} exchanges = ${exchangePairs} unique pairs`);
 
             // Total opportunities = trading pairs × exchange pair combinations
             // Example: 130 pairs × 171 exchange pairs = 22,230 potential arbitrage routes
             const opportunities = activePairs * exchangePairs;
             document.getElementById('opportunitiesToday').textContent = opportunities.toLocaleString();
+            console.log(`💡 Total Opportunities: ${activePairs} pairs × ${exchangePairs} exchange pairs = ${opportunities.toLocaleString()}`);
+            console.log('═'.repeat(60));
         }
     </script>
 </body>
