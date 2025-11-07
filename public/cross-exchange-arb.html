@@ -984,8 +984,11 @@
                             <input type="number" id="minProfitThreshold" value="0.5" min="0.1" max="5" step="0.1">
                         </div>
                         <div class="form-group">
-                            <label>Max Slippage (%)</label>
-                            <input type="number" id="maxSlippage" value="0.5" min="0.1" max="2" step="0.1">
+                            <label>Portfolio % to Trade</label>
+                            <input type="number" id="portfolioPercentage" value="10" min="1" max="100" step="1">
+                            <small style="color: #b8c6db; font-size: 0.85rem; display: block; margin-top: 5px;">
+                                Max % of available balance to use per trade (e.g., 10% of 100 USDT = 10 USDT per trade)
+                            </small>
                         </div>
                     </div>
 
@@ -1090,8 +1093,14 @@
             const minProfitThreshold = localStorage.getItem('minProfitThreshold');
             if (minProfitThreshold) document.getElementById('minProfitThreshold').value = minProfitThreshold;
 
-            const maxSlippage = localStorage.getItem('maxSlippage');
-            if (maxSlippage) document.getElementById('maxSlippage').value = maxSlippage;
+            const portfolioPercentage = localStorage.getItem('portfolioPercentage');
+            if (portfolioPercentage) document.getElementById('portfolioPercentage').value = portfolioPercentage;
+
+            // Log loaded risk settings
+            console.log('\n⚖️ RISK MANAGEMENT SETTINGS:');
+            console.log(`  Max Trade Size: ${maxTradeSize || '1000'} USDT`);
+            console.log(`  Min Profit Threshold: ${minProfitThreshold || '0.5'}%`);
+            console.log(`  Portfolio % to Trade: ${portfolioPercentage || '10'}%`);
 
             // Load asset pair selections from localStorage
             console.log('📋 Loading asset pair selections from localStorage...');
@@ -1175,10 +1184,12 @@
 
         document.getElementById('minProfitThreshold').addEventListener('change', function() {
             localStorage.setItem('minProfitThreshold', this.value);
+            console.log(`⚖️ Min profit threshold updated: ${this.value}%`);
         });
 
-        document.getElementById('maxSlippage').addEventListener('change', function() {
-            localStorage.setItem('maxSlippage', this.value);
+        document.getElementById('portfolioPercentage').addEventListener('change', function() {
+            localStorage.setItem('portfolioPercentage', this.value);
+            console.log(`💼 Portfolio % to trade updated: ${this.value}%`);
         });
 
         // Placeholder functions for buttons
