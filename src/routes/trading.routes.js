@@ -1235,19 +1235,25 @@ router.get('/trades/history', authenticatedRateLimit, authenticateUser, asyncHan
     const offset = (page - 1) * limit;
     const successful = req.query.successful; // true, false, or undefined for all
     const asset = req.query.asset; // filter by specific asset
-    
+    const strategy = req.query.strategy; // filter by strategy: cross_exchange, triangular, transfer, etc.
+
     let whereClause = 'WHERE ua.user_id = $1 AND ua.activity_type = $2';
     const queryParams = [req.user.id, 'trade_completed'];
     let paramIndex = 3;
-    
+
     if (successful !== undefined) {
         whereClause += ` AND (ua.activity_details->>'successful')::boolean = $${paramIndex++}`;
         queryParams.push(successful === 'true');
     }
-    
+
     if (asset) {
         whereClause += ` AND ua.activity_details->>'asset' = $${paramIndex++}`;
         queryParams.push(asset);
+    }
+
+    if (strategy) {
+        whereClause += ` AND ua.activity_details->>'strategy' = $${paramIndex++}`;
+        queryParams.push(strategy);
     }
     
     queryParams.push(limit, offset);
