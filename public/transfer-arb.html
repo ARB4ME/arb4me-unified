@@ -258,7 +258,12 @@
 
         <!-- Transfer Arbitrage Management Tab -->
         <div id="transferTab" class="tab-content active">
-            <h3 style="color: #00d4ff; margin-bottom: 15px;">📦 Transfer Arbitrage Management</h3>
+            <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px;">
+                <h3 style="color: #00d4ff; margin: 0;">📦 Transfer Arbitrage Management</h3>
+                <button onclick="openTransferAboutModal()" style="background: rgba(0,212,255,0.2); color: #00d4ff; border: 1px solid #00d4ff; padding: 6px 16px; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 600; transition: all 0.3s;" onmouseover="this.style.background='rgba(0,212,255,0.3)'" onmouseout="this.style.background='rgba(0,212,255,0.2)'">
+                    ℹ️ About
+                </button>
+            </div>
 
             <div style="margin-bottom: 20px; padding: 15px; background: rgba(255,179,71,0.1); border: 2px solid #ffb347; border-radius: 10px;">
                 <div style="font-size: 1.2rem; color: #ffb347; margin-bottom: 15px; font-weight: bold; text-align: center;">
@@ -664,6 +669,61 @@
                 </div>
                 <div id="calculationResult" style="margin-top: 15px; padding: 15px; background: rgba(0,255,136,0.1); border-radius: 8px; display: none;">
                     <!-- Results will appear here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transfer Arbitrage About Modal -->
+    <div id="transferAboutModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; justify-content: center; align-items: center;">
+        <div style="background: linear-gradient(135deg, #0c0c1e 0%, #161632 100%); padding: 30px; border-radius: 15px; max-width: 600px; width: 90%; max-height: 90vh; border: 2px solid #00d4ff; box-shadow: 0 10px 40px rgba(0,212,255,0.3); position: relative; overflow-y: auto;">
+            <!-- Close Button -->
+            <button onclick="closeTransferAboutModal()" style="position: absolute; top: 15px; right: 15px; background: rgba(255,68,68,0.9); border: none; color: #fff; width: 35px; height: 35px; border-radius: 50%; cursor: pointer; font-size: 1.5rem; font-weight: bold; display: flex; align-items: center; justify-content: center; transition: all 0.3s; z-index: 1;" onmouseover="this.style.background='rgba(255,68,68,1)'; this.style.transform='scale(1.1)'" onmouseout="this.style.background='rgba(255,68,68,0.9)'; this.style.transform='scale(1)'">
+                ×
+            </button>
+
+            <!-- Header -->
+            <h2 style="color: #00d4ff; margin: 0 0 20px 0; padding-right: 40px; font-size: 1.5rem;">📦 What is Transfer Arbitrage?</h2>
+
+            <!-- Content -->
+            <div style="color: #b8c6db; line-height: 1.6; font-size: 0.95rem; padding-right: 5px;">
+                <p style="margin: 0 0 15px 0;">
+                    <strong style="color: #00ff88;">Transfer arbitrage</strong> (also called <strong>physical arbitrage</strong>) involves buying crypto on one exchange and <strong>physically transferring it to another exchange</strong> where the price is higher to sell for profit.
+                </p>
+
+                <div style="background: rgba(0,212,255,0.1); padding: 15px; border-radius: 8px; border-left: 4px solid #00d4ff; margin-bottom: 15px;">
+                    <strong style="color: #00d4ff; display: block; margin-bottom: 8px;">Example:</strong>
+                    <div style="font-family: monospace; color: #00ff88;">
+                        1. Buy 1000 XRP on Binance @ $2.00 = $2,000<br>
+                        2. Transfer XRP to Kraken (fee: $0.02, time: 3 min)<br>
+                        3. Sell 1000 XRP on Kraken @ $2.08 = $2,080<br>
+                        <span style="color: #ffb347;">Profit: $80 - $0.02 = $79.98 (4%)</span>
+                    </div>
+                </div>
+
+                <p style="margin: 0 0 15px 0;">
+                    <strong style="color: #ffb347;">How it works:</strong>
+                </p>
+                <ol style="margin: 0 0 15px 0; padding-left: 25px;">
+                    <li style="margin-bottom: 8px;">System identifies <strong>price differences</strong> across exchanges</li>
+                    <li style="margin-bottom: 8px;">Finds an asset trading <strong>cheaper</strong> on Exchange A</li>
+                    <li style="margin-bottom: 8px;">Buys the asset on the <strong>cheaper exchange</strong></li>
+                    <li style="margin-bottom: 8px;"><strong>Transfers the asset</strong> to Exchange B (blockchain transfer)</li>
+                    <li style="margin-bottom: 8px;">Sells on the <strong>higher-priced exchange</strong> for profit</li>
+                </ol>
+
+                <p style="margin: 0 0 15px 0;">
+                    <strong style="color: #ffb347;">Best assets for transfer arbitrage:</strong>
+                </p>
+                <ul style="margin: 0 0 15px 0; padding-left: 25px;">
+                    <li style="margin-bottom: 8px;"><strong style="color: #00ff88;">XRP</strong> - Fast (3 min), Low fee ($0.02)</li>
+                    <li style="margin-bottom: 8px;"><strong style="color: #00ff88;">XLM</strong> - Fast (5 min), Very low fee ($0.01)</li>
+                    <li style="margin-bottom: 8px;"><strong style="color: #00ff88;">TRX</strong> - Fast, Low fee</li>
+                    <li style="margin-bottom: 8px;"><strong style="color: #00ff88;">LTC</strong> - Moderate speed, Low fee</li>
+                </ul>
+
+                <div style="background: rgba(255,152,0,0.1); padding: 15px; border-radius: 8px; border-left: 4px solid #ffb347; margin-bottom: 0;">
+                    <strong style="color: #ffb347;">Key Difference:</strong> Unlike cross-exchange arbitrage (simultaneous buy/sell), transfer arbitrage involves a <strong>time delay</strong> during the blockchain transfer. You need to account for <strong>transfer time, network fees, and price movement risk</strong>. Best for assets with fast transfer times and low fees!
                 </div>
             </div>
         </div>
@@ -2515,6 +2575,43 @@
                 ` : ''}
             `;
         }
+
+        // ============================================================================
+        // TRANSFER ARBITRAGE ABOUT MODAL
+        // ============================================================================
+
+        function openTransferAboutModal() {
+            const modal = document.getElementById('transferAboutModal');
+            if (modal) {
+                modal.style.display = 'flex';
+                console.log('ℹ️ [About Modal] Transfer Arbitrage info opened');
+            }
+        }
+
+        function closeTransferAboutModal() {
+            const modal = document.getElementById('transferAboutModal');
+            if (modal) {
+                modal.style.display = 'none';
+                console.log('ℹ️ [About Modal] Transfer Arbitrage info closed');
+            }
+        }
+
+        // Close modal when clicking outside the content
+        document.addEventListener('click', function(event) {
+            const modal = document.getElementById('transferAboutModal');
+            if (event.target === modal) {
+                closeTransferAboutModal();
+            }
+        });
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeTransferAboutModal();
+            }
+        });
+
+        // End of About Modal Functionality
     </script>
 </body>
 </html>
