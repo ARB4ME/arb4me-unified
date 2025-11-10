@@ -312,7 +312,12 @@
         <!-- Header -->
         <div class="header">
             <div>
-                <h1 style="color: #00d4ff; margin: 0 0 5px 0;">💱 Currency Swap Arbitrage</h1>
+                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 5px;">
+                    <h1 style="color: #00d4ff; margin: 0;">💱 Currency Swap Arbitrage</h1>
+                    <button onclick="openCurrencySwapAboutModal()" style="background: rgba(0,212,255,0.2); color: #00d4ff; border: 1px solid #00d4ff; padding: 6px 16px; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 600; transition: all 0.3s;" onmouseover="this.style.background='rgba(0,212,255,0.3)'" onmouseout="this.style.background='rgba(0,212,255,0.2)'">
+                        ℹ️ About
+                    </button>
+                </div>
                 <p style="margin: 0; color: #b8c6db;">Automated Multi-Exchange Currency Arbitrage</p>
             </div>
             <div style="display: flex; align-items: center; gap: 15px;">
@@ -569,6 +574,72 @@
             <div style="display: flex; gap: 10px; margin-top: 20px;">
                 <button onclick="executeCurrentPath()" class="btn btn-success" style="flex: 1;">Execute Swap</button>
                 <button onclick="closePathDetails()" class="btn" style="flex: 1;">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Currency Swap Arbitrage About Modal -->
+    <div id="currencySwapAboutModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; justify-content: center; align-items: center;">
+        <div style="background: linear-gradient(135deg, #0c0c1e 0%, #161632 100%); padding: 30px; border-radius: 15px; max-width: 600px; width: 90%; max-height: 90vh; border: 2px solid #00d4ff; box-shadow: 0 10px 40px rgba(0,212,255,0.3); position: relative; overflow-y: auto;">
+            <!-- Close Button -->
+            <button onclick="closeCurrencySwapAboutModal()" style="position: absolute; top: 15px; right: 15px; background: rgba(255,68,68,0.9); border: none; color: #fff; width: 35px; height: 35px; border-radius: 50%; cursor: pointer; font-size: 1.5rem; font-weight: bold; display: flex; align-items: center; justify-content: center; transition: all 0.3s; z-index: 1;" onmouseover="this.style.background='rgba(255,68,68,1)'; this.style.transform='scale(1.1)'" onmouseout="this.style.background='rgba(255,68,68,0.9)'; this.style.transform='scale(1)'">
+                ×
+            </button>
+
+            <!-- Header -->
+            <h2 style="color: #00d4ff; margin: 0 0 20px 0; padding-right: 40px; font-size: 1.5rem;">💱 What is Currency Swap Arbitrage?</h2>
+
+            <!-- Content -->
+            <div style="color: #b8c6db; line-height: 1.6; font-size: 0.95rem; padding-right: 5px;">
+                <p style="margin: 0 0 15px 0;">
+                    <strong style="color: #00ff88;">Currency swap arbitrage</strong> exploits price differences between <strong>fiat currencies across different exchanges</strong>. It involves converting between currencies (like ZAR, USD, EUR) through crypto to capture profit.
+                </p>
+
+                <div style="background: rgba(0,212,255,0.1); padding: 15px; border-radius: 8px; border-left: 4px solid #00d4ff; margin-bottom: 15px;">
+                    <strong style="color: #00d4ff; display: block; margin-bottom: 8px;">Example:</strong>
+                    <div style="font-family: monospace; color: #00ff88;">
+                        1. Convert 10,000 ZAR → BTC on VALR (ZAR rate)<br>
+                        2. Transfer BTC to Kraken<br>
+                        3. Sell BTC → USD on Kraken (USD rate)<br>
+                        4. Result: Better ZAR/USD rate than forex!<br>
+                        <span style="color: #ffb347;">Profit from rate differences</span>
+                    </div>
+                </div>
+
+                <p style="margin: 0 0 15px 0;">
+                    <strong style="color: #ffb347;">How it works:</strong>
+                </p>
+                <ol style="margin: 0 0 15px 0; padding-left: 25px;">
+                    <li style="margin-bottom: 8px;">System monitors <strong>fiat currency exchange rates</strong> across all exchanges</li>
+                    <li style="margin-bottom: 8px;">Identifies favorable <strong>currency conversion paths</strong> through crypto</li>
+                    <li style="margin-bottom: 8px;">Converts Currency A → Crypto on Exchange 1</li>
+                    <li style="margin-bottom: 8px;">Transfers crypto to Exchange 2 (if needed)</li>
+                    <li style="margin-bottom: 8px;">Converts Crypto → Currency B on Exchange 2</li>
+                    <li style="margin-bottom: 8px;">Net result: <strong>Better exchange rate</strong> than traditional forex</li>
+                </ol>
+
+                <p style="margin: 0 0 15px 0;">
+                    <strong style="color: #ffb347;">Common currency pairs:</strong>
+                </p>
+                <ul style="margin: 0 0 15px 0; padding-left: 25px;">
+                    <li style="margin-bottom: 8px;"><strong style="color: #00ff88;">ZAR ↔ USD</strong> - South African Rand to US Dollar</li>
+                    <li style="margin-bottom: 8px;"><strong style="color: #00ff88;">ZAR ↔ EUR</strong> - South African Rand to Euro</li>
+                    <li style="margin-bottom: 8px;"><strong style="color: #00ff88;">USD ↔ EUR</strong> - US Dollar to Euro</li>
+                    <li style="margin-bottom: 8px;"><strong style="color: #00ff88;">GBP ↔ USD</strong> - British Pound to US Dollar</li>
+                </ul>
+
+                <p style="margin: 0 0 15px 0;">
+                    <strong style="color: #ffb347;">Best for:</strong>
+                </p>
+                <ul style="margin: 0 0 15px 0; padding-left: 25px;">
+                    <li style="margin-bottom: 8px;">Converting between fiat currencies at better rates</li>
+                    <li style="margin-bottom: 8px;">International money transfers</li>
+                    <li style="margin-bottom: 8px;">Avoiding high forex bank fees</li>
+                </ul>
+
+                <div style="background: rgba(255,152,0,0.1); padding: 15px; border-radius: 8px; border-left: 4px solid #ffb347; margin-bottom: 0;">
+                    <strong style="color: #ffb347;">Key Advantage:</strong> By routing currency conversions through crypto exchanges, you can often beat traditional forex rates and save significantly on international transfers. The system automatically finds the most profitable currency swap paths!
+                </div>
             </div>
         </div>
     </div>
@@ -1888,6 +1959,43 @@
             alert('All starting balances have been reset to current balances.');
             loadBalanceTracker();
         }
+
+        // ============================================================================
+        // CURRENCY SWAP ARBITRAGE ABOUT MODAL
+        // ============================================================================
+
+        function openCurrencySwapAboutModal() {
+            const modal = document.getElementById('currencySwapAboutModal');
+            if (modal) {
+                modal.style.display = 'flex';
+                console.log('ℹ️ [About Modal] Currency Swap Arbitrage info opened');
+            }
+        }
+
+        function closeCurrencySwapAboutModal() {
+            const modal = document.getElementById('currencySwapAboutModal');
+            if (modal) {
+                modal.style.display = 'none';
+                console.log('ℹ️ [About Modal] Currency Swap Arbitrage info closed');
+            }
+        }
+
+        // Close modal when clicking outside the content
+        document.addEventListener('click', function(event) {
+            const modal = document.getElementById('currencySwapAboutModal');
+            if (event.target === modal) {
+                closeCurrencySwapAboutModal();
+            }
+        });
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeCurrencySwapAboutModal();
+            }
+        });
+
+        // End of About Modal Functionality
     </script>
 </body>
 </html>
