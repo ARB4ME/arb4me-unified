@@ -2793,6 +2793,19 @@
                 </div>
             </div>
 
+            <!-- Strategy Performance Summary -->
+            <div style="margin: 25px 0;">
+                <h3 style="color: #00d4ff; margin-bottom: 15px;">📊 Strategy Performance Summary</h3>
+                <div id="strategyPerformanceContainer" style="display: grid; gap: 15px;">
+                    <!-- Strategy cards will be dynamically inserted here -->
+                    <div style="text-align: center; padding: 30px; color: #b8c6db; background: rgba(255,255,255,0.05); border-radius: 10px; border: 2px dashed rgba(255,255,255,0.1);">
+                        <div style="font-size: 2rem; margin-bottom: 10px;">📈</div>
+                        <div style="font-size: 1rem; margin-bottom: 5px;">Loading strategy performance...</div>
+                        <div style="font-size: 0.85rem; opacity: 0.7;">Fetching trade data from backend</div>
+                    </div>
+                </div>
+            </div>
+
             <div class="tab-content active" style="display: block;">
                 <h3 style="color: #00d4ff; margin-bottom: 15px;">🎯 Arbitrage Intelligence Hub</h3>
                 <div id="currentOpportunity">
@@ -21995,7 +22008,15 @@ ARB4ME Security Team`
                 console.error('Error in switchTab:', error);
                 return;
             }
-            
+
+            // Special handling for dashboard tab - refresh strategy performance
+            if (tabName === 'dashboard') {
+                console.log('📊 Dashboard tab activated - refreshing strategy performance...');
+                loadStrategyPerformance().catch(error => {
+                    console.error('❌ Failed to refresh strategy performance:', error);
+                });
+            }
+
             // Special handling for admin tab
             if (tabName === 'admin') {
                 if (adminState.isLoggedIn) {
@@ -26311,6 +26332,268 @@ ARB4ME Security Team`
             }
         }
 
+        // ==========================================
+        // 📊 STRATEGY PERFORMANCE TRACKING
+        // ==========================================
+
+        /**
+         * Fetch strategy trade data from backend
+         * @param {string} strategy - Strategy name (e.g., 'cross_exchange')
+         * @returns {Promise<Object>} - Strategy performance data
+         */
+        async function fetchStrategyPerformance(strategy) {
+            try {
+                const token = localStorage.getItem('arb4me_jwt_token');
+                if (!token) {
+                    console.warn(`⚠️ No JWT token - cannot fetch ${strategy} performance`);
+                    return { success: false, reason: 'no_token' };
+                }
+
+                const response = await fetch(`/api/v1/trading/trades/history?strategy=${strategy}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log(`✅ Fetched ${strategy} performance:`, result.data);
+                    return { success: true, data: result.data };
+                } else {
+                    const error = await response.json();
+                    console.error(`❌ Failed to fetch ${strategy} performance:`, error);
+                    return { success: false, error };
+                }
+            } catch (error) {
+                console.error(`❌ Error fetching ${strategy} performance:`, error);
+                return { success: false, error: error.message };
+            }
+        }
+
+        /**
+         * Calculate performance metrics from trade data
+         * @param {Array} trades - Array of trade objects
+         * @returns {Object} - Calculated metrics
+         */
+        function calculatePerformanceMetrics(trades) {
+            if (!trades || trades.length === 0) {
+                return {
+                    todayPnL: 0,
+                    todayTrades: 0,
+                    cumulativePnL: 0,
+                    cumulativeTrades: 0,
+                    lastTradeTime: null
+                };
+            }
+
+            const now = new Date();
+            const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+
+            let todayPnL = 0;
+            let todayTrades = 0;
+            let cumulativePnL = 0;
+            let lastTradeTime = null;
+
+            trades.forEach(trade => {
+                const activityDetails = trade.activity_details;
+                const profit = parseFloat(activityDetails.profit) || 0;
+                const tradeDate = new Date(trade.created_at);
+
+                // Cumulative stats
+                cumulativePnL += profit;
+
+                // Track last trade time
+                if (!lastTradeTime || tradeDate > lastTradeTime) {
+                    lastTradeTime = tradeDate;
+                }
+
+                // Today's stats
+                if (tradeDate >= todayStart) {
+                    todayPnL += profit;
+                    todayTrades++;
+                }
+            });
+
+            return {
+                todayPnL,
+                todayTrades,
+                cumulativePnL,
+                cumulativeTrades: trades.length,
+                lastTradeTime
+            };
+        }
+
+        /**
+         * Render strategy performance card
+         * @param {string} strategy - Strategy name
+         * @param {Object} metrics - Performance metrics
+         * @param {string} displayName - Display name for the strategy
+         * @param {string} icon - Strategy icon emoji
+         * @param {string} color - Strategy accent color
+         * @returns {string} - HTML for the strategy card
+         */
+        function renderStrategyCard(strategy, metrics, displayName, icon, color) {
+            const formatCurrency = (value) => {
+                const sign = value >= 0 ? '+' : '';
+                return `${sign}$${value.toFixed(2)}`;
+            };
+
+            const formatTime = (date) => {
+                if (!date) return 'Never';
+                const now = new Date();
+                const diff = now - date;
+                const minutes = Math.floor(diff / 60000);
+                const hours = Math.floor(diff / 3600000);
+                const days = Math.floor(diff / 86400000);
+
+                if (minutes < 1) return 'Just now';
+                if (minutes < 60) return `${minutes}m ago`;
+                if (hours < 24) return `${hours}h ago`;
+                return `${days}d ago`;
+            };
+
+            const todayPnLColor = metrics.todayPnL >= 0 ? '#00ff88' : '#ff6b6b';
+            const cumulativePnLColor = metrics.cumulativePnL >= 0 ? '#00ff88' : '#ff6b6b';
+
+            return `
+                <div style="
+                    background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%);
+                    border: 1px solid ${color}33;
+                    border-left: 4px solid ${color};
+                    border-radius: 12px;
+                    padding: 20px;
+                    transition: all 0.3s ease;
+                    cursor: pointer;
+                " onmouseover="this.style.borderColor='${color}'; this.style.background='linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.04) 100%)'"
+                   onmouseout="this.style.borderColor='${color}33'; this.style.background='linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)'">
+
+                    <!-- Strategy Header -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="font-size: 1.5rem;">${icon}</div>
+                            <div>
+                                <div style="font-weight: bold; color: ${color}; font-size: 1.1rem;">${displayName}</div>
+                                <div style="font-size: 0.75rem; color: #b8c6db;">Last trade: ${formatTime(metrics.lastTradeTime)}</div>
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 0.75rem; color: #b8c6db; margin-bottom: 2px;">Status</div>
+                            <div style="font-size: 0.9rem; color: ${metrics.cumulativeTrades > 0 ? '#00ff88' : '#888'}; font-weight: bold;">
+                                ${metrics.cumulativeTrades > 0 ? '✅ Active' : '⚪ No Trades'}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Performance Metrics Grid -->
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+                        <!-- Today's Performance -->
+                        <div style="background: rgba(0,0,0,0.3); border-radius: 8px; padding: 12px;">
+                            <div style="font-size: 0.75rem; color: #b8c6db; margin-bottom: 5px;">📅 Today</div>
+                            <div style="font-size: 1.3rem; font-weight: bold; color: ${todayPnLColor}; margin-bottom: 3px;">
+                                ${formatCurrency(metrics.todayPnL)}
+                            </div>
+                            <div style="font-size: 0.8rem; color: #b8c6db;">
+                                ${metrics.todayTrades} trade${metrics.todayTrades !== 1 ? 's' : ''}
+                            </div>
+                        </div>
+
+                        <!-- Cumulative Performance -->
+                        <div style="background: rgba(0,0,0,0.3); border-radius: 8px; padding: 12px;">
+                            <div style="font-size: 0.75rem; color: #b8c6db; margin-bottom: 5px;">📊 All Time</div>
+                            <div style="font-size: 1.3rem; font-weight: bold; color: ${cumulativePnLColor}; margin-bottom: 3px;">
+                                ${formatCurrency(metrics.cumulativePnL)}
+                            </div>
+                            <div style="font-size: 0.8rem; color: #b8c6db;">
+                                ${metrics.cumulativeTrades} trade${metrics.cumulativeTrades !== 1 ? 's' : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        /**
+         * Load and display all strategy performance data
+         */
+        async function loadStrategyPerformance() {
+            console.log('📊 Loading strategy performance from backend...');
+
+            const container = document.getElementById('strategyPerformanceContainer');
+            if (!container) {
+                console.warn('⚠️ Strategy performance container not found');
+                return;
+            }
+
+            // Check if user is authenticated
+            const token = localStorage.getItem('arb4me_jwt_token');
+            if (!token) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 30px; color: #b8c6db; background: rgba(255,255,255,0.05); border-radius: 10px; border: 2px dashed rgba(255,255,255,0.1);">
+                        <div style="font-size: 2rem; margin-bottom: 10px;">🔒</div>
+                        <div style="font-size: 1rem; margin-bottom: 5px;">Please login to view strategy performance</div>
+                        <div style="font-size: 0.85rem; opacity: 0.7;">Your trade history and performance metrics will appear here</div>
+                    </div>
+                `;
+                return;
+            }
+
+            // Define strategies to fetch
+            const strategies = [
+                { key: 'cross_exchange', name: 'Cross Exchange ARB', icon: '🔄', color: '#00d4ff' },
+                { key: 'triangular', name: 'Triangular ARB', icon: '🔺', color: '#feca57' },
+                { key: 'transfer', name: 'Transfer ARB', icon: '📦', color: '#00ff88' },
+                { key: 'currency_swap', name: 'Currency Swap ARB', icon: '💱', color: '#ff9f43' },
+                { key: 'momentum', name: 'Momentum Trading', icon: '📈', color: '#ee5a24' }
+            ];
+
+            // Show loading state
+            container.innerHTML = `
+                <div style="text-align: center; padding: 30px; color: #b8c6db; background: rgba(255,255,255,0.05); border-radius: 10px;">
+                    <div style="font-size: 2rem; margin-bottom: 10px;">⏳</div>
+                    <div style="font-size: 1rem; margin-bottom: 5px;">Loading strategy performance...</div>
+                    <div style="font-size: 0.85rem; opacity: 0.7;">Fetching trade data from backend</div>
+                </div>
+            `;
+
+            // Fetch all strategies in parallel
+            const performanceData = await Promise.all(
+                strategies.map(async (strategy) => {
+                    const result = await fetchStrategyPerformance(strategy.key);
+                    if (result.success && result.data.trades) {
+                        const metrics = calculatePerformanceMetrics(result.data.trades);
+                        return { strategy, metrics };
+                    }
+                    return { strategy, metrics: calculatePerformanceMetrics([]) };
+                })
+            );
+
+            // Render strategy cards
+            const cardsHTML = performanceData
+                .map(({ strategy, metrics }) =>
+                    renderStrategyCard(strategy.key, metrics, strategy.name, strategy.icon, strategy.color)
+                )
+                .join('');
+
+            // Check if any strategies have trades
+            const hasAnyTrades = performanceData.some(({ metrics }) => metrics.cumulativeTrades > 0);
+
+            if (!hasAnyTrades) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 30px; color: #b8c6db; background: rgba(255,255,255,0.05); border-radius: 10px; border: 2px dashed rgba(255,255,255,0.1);">
+                        <div style="font-size: 2rem; margin-bottom: 10px;">📈</div>
+                        <div style="font-size: 1rem; margin-bottom: 5px;">No trading activity yet</div>
+                        <div style="font-size: 0.85rem; opacity: 0.7;">Configure your strategies and start trading to see performance metrics</div>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = cardsHTML;
+            }
+
+            console.log('✅ Strategy performance loaded successfully');
+        }
+
         // Event Listeners
         document.addEventListener('DOMContentLoaded', async function() {
             console.log('🚀 DOM loaded, initializing ARB4ME...');
@@ -26341,7 +26624,10 @@ ARB4ME Security Team`
 
             // Check authentication status on page load
             await checkAuthenticationStatus();
-            
+
+            // Load strategy performance data from backend
+            await loadStrategyPerformance();
+
             // Initialize WebSocket connection for real-time messaging
             initializeWebSocket();
             
