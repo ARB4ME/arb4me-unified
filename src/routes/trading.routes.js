@@ -1099,6 +1099,7 @@ router.put('/activity', authenticatedRateLimit, authenticateUser, tradingRateLim
 
 // POST /api/v1/trading/trades - Record a completed trade
 router.post('/trades', authenticatedRateLimit, authenticateUser, tradingRateLimit, [
+    body('strategy').optional().isIn(['cross_exchange', 'triangular', 'transfer', 'currency_swap', 'momentum', 'rebalance', 'payment_gateway']).withMessage('Invalid strategy type'),
     body('exchangePair').notEmpty().withMessage('Exchange pair is required'),
     body('asset').notEmpty().withMessage('Asset is required'),
     body('buyExchange').notEmpty().withMessage('Buy exchange is required'),
@@ -1117,6 +1118,7 @@ router.post('/trades', authenticatedRateLimit, authenticateUser, tradingRateLimi
     }
     
     const {
+        strategy = 'cross_exchange', // Default to cross_exchange for backward compatibility
         exchangePair,
         asset,
         buyExchange,
@@ -1156,6 +1158,7 @@ router.post('/trades', authenticatedRateLimit, authenticateUser, tradingRateLimi
         await client.query(
             'INSERT INTO user_activity (user_id, activity_type, activity_details, ip_address, user_agent) VALUES ($1, $2, $3, $4, $5)',
             [req.user.id, 'trade_completed', {
+                strategy,
                 exchangePair,
                 asset,
                 buyExchange,
@@ -1199,6 +1202,7 @@ router.post('/trades', authenticatedRateLimit, authenticateUser, tradingRateLimi
             success: true,
             data: {
                 trade: {
+                    strategy,
                     exchangePair,
                     asset,
                     buyExchange,
