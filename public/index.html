@@ -14150,6 +14150,39 @@ Please help recover this stuck asset.`;
             return prices;
         }
 
+        // 📊 Log trade to backend for multi-user profit tracking and billing
+        async function logTradeToBackend(tradeData) {
+            try {
+                const token = localStorage.getItem('arb4me_jwt_token');
+                if (!token) {
+                    console.warn('⚠️ No JWT token - trade logged locally only');
+                    return { success: false, reason: 'no_token' };
+                }
+
+                const response = await fetch('/api/v1/trading/trades', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(tradeData)
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('✅ Trade logged to backend:', result.data.trade);
+                    return { success: true, data: result.data };
+                } else {
+                    const error = await response.json();
+                    console.error('❌ Failed to log trade to backend:', error);
+                    return { success: false, error };
+                }
+            } catch (error) {
+                console.error('❌ Error logging trade to backend:', error);
+                return { success: false, error: error.message };
+            }
+        }
+
         function recordSuccessfulTrade(opportunity, buyResult, sellResult) {
             // Add to trade history
             state.tradeHistory.unshift({
@@ -14184,7 +14217,24 @@ Please help recover this stuck asset.`;
             
             // Update billing dashboard when trades are recorded
             updateBillingDashboard();
-            
+
+            // 📊 NEW: Log trade to backend for profit tracking and billing
+            logTradeToBackend({
+                strategy: 'cross_exchange',
+                exchangePair: `${opportunity.buyExchange}/${opportunity.sellExchange}`,
+                asset: opportunity.asset,
+                buyExchange: opportunity.buyExchange,
+                sellExchange: opportunity.sellExchange,
+                buyPrice: buyResult.price,
+                sellPrice: sellResult.price,
+                amount: opportunity.amount,
+                profit: opportunity.profit,
+                fees: opportunity.fees || 0,
+                successful: true
+            }).catch(error => {
+                console.warn('⚠️ Backend logging failed (trade still recorded locally):', error);
+            });
+
             // CRITICAL FIX: Update trade history display immediately
             updateTradeHistoryDisplay();
             console.log('✅ Trade recorded and history display updated');
