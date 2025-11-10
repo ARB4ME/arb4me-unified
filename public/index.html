@@ -2514,15 +2514,6 @@
             <div class="phase-badge">Complete Live Trading System + Admin Dashboard + Failure Management 🔥</div>
         </div>
 
-        <div class="toggle-container">
-            <span id="toggleLabel" style="font-size: 1.1rem; font-weight: bold;">Auto-Trading: OFF</span>
-            <div class="toggle-switch" id="autoTradingToggle">
-                <div class="toggle-knob"></div>
-            </div>
-            <span id="tradingStatus" style="color: #b8c6db;">⚠️ REAL MONEY MODE - Start with small amounts!</span>
-        </div>
-
-
         <div class="tabs">
             <div class="tab-row">
                 <button class="tab" data-tab="signup">📝 Sign Up</button>
@@ -12794,17 +12785,21 @@
             // IMMEDIATE: Stop all trading
             state.autoTrading = false;
             stopArbitrageScanning();
-            
-            // Update UI immediately
+
+            // Update UI immediately (if elements exist)
             const toggle = document.getElementById('autoTradingToggle');
             const label = document.getElementById('toggleLabel');
             const status = document.getElementById('tradingStatus');
-            
-            toggle.classList.remove('active');
-            label.textContent = 'Trading: SUSPENDED';
-            label.style.color = '#ff6b6b';
-            status.textContent = 'MANUAL RESTART REQUIRED';
-            status.style.color = '#ff6b6b';
+
+            if (toggle) toggle.classList.remove('active');
+            if (label) {
+                label.textContent = 'Trading: SUSPENDED';
+                label.style.color = '#ff6b6b';
+            }
+            if (status) {
+                status.textContent = 'MANUAL RESTART REQUIRED';
+                status.style.color = '#ff6b6b';
+            }
             
             // Store failure details
             failureState.currentFailures.push(failureDetails);
@@ -19811,13 +19806,17 @@ ARB4ME Security Team`
                 const toggle = document.getElementById('autoTradingToggle');
                 const label = document.getElementById('toggleLabel');
                 const status = document.getElementById('tradingStatus');
-                
-                toggle.classList.remove('active');
-                label.textContent = 'Auto-Trading: OFF';
-                label.style.color = 'white';
-                status.textContent = 'Locked - unlock to resume trading';
-                status.style.color = '#ff6b6b';
-                
+
+                if (toggle) toggle.classList.remove('active');
+                if (label) {
+                    label.textContent = 'Auto-Trading: OFF';
+                    label.style.color = 'white';
+                }
+                if (status) {
+                    status.textContent = 'Locked - unlock to resume trading';
+                    status.style.color = '#ff6b6b';
+                }
+
                 stopArbitrageScanning();
             }
         }
@@ -22173,39 +22172,50 @@ ARB4ME Security Team`
 
             // Toggle the state (either turning off, or turning on after requirements are met)
             state.autoTrading = !state.autoTrading;
-            
+
+            // Get UI elements (may not exist if toggle was removed from dashboard)
             const toggle = document.getElementById('autoTradingToggle');
             const label = document.getElementById('toggleLabel');
             const status = document.getElementById('tradingStatus');
-            
+
             if (state.autoTrading) {
-                toggle.classList.add('active');
-                label.textContent = 'Auto-Trading: ON';
-                label.style.color = '#00ff88';
-                
+                // Update UI elements only if they exist (defensive coding)
+                if (toggle) toggle.classList.add('active');
+                if (label) {
+                    label.textContent = 'Auto-Trading: ON';
+                    label.style.color = '#00ff88';
+                }
+
                 // Enable staggered scanning when auto-trading starts
                 STAGGERED_SCANNING.enabled = true;
                 STAGGERED_SCANNING.cycleStartTime = Date.now();
                 STAGGERED_SCANNING.currentBatch = 0;
                 STAGGERED_SCANNING.currentPairInBatch = 0;
-                
+
                 // Update status message for staggered scanning
                 const connectedExchanges = Object.keys(state.exchanges).filter(ex => state.exchanges[ex].connected).length;
-                status.textContent = `STAGGERED SCANNING: ${connectedExchanges} exchanges × ${state.settings.selectedAssets.length} pairs (20min cycles)`;
-                status.style.color = '#00ff88';
-                
+                if (status) {
+                    status.textContent = `STAGGERED SCANNING: ${connectedExchanges} exchanges × ${state.settings.selectedAssets.length} pairs (20min cycles)`;
+                    status.style.color = '#00ff88';
+                }
+
                 startArbitrageScanning();
                 addActivity(`🚀 STAGGERED auto-trading enabled: ${connectedExchanges} exchanges × ${state.settings.selectedAssets.length} pairs`, 'success');
             } else {
-                toggle.classList.remove('active');
-                label.textContent = 'Auto-Trading: OFF';
-                label.style.color = 'white';
-                status.textContent = 'Select assets in Settings, then toggle to enable';
-                status.style.color = '#b8c6db';
-                
+                // Update UI elements only if they exist (defensive coding)
+                if (toggle) toggle.classList.remove('active');
+                if (label) {
+                    label.textContent = 'Auto-Trading: OFF';
+                    label.style.color = 'white';
+                }
+                if (status) {
+                    status.textContent = 'Select assets in Settings, then toggle to enable';
+                    status.style.color = '#b8c6db';
+                }
+
                 // Disable staggered scanning when auto-trading stops
                 STAGGERED_SCANNING.enabled = false;
-                
+
                 stopArbitrageScanning();
                 addActivity('⏸️ Auto-trading disabled - staggered scanning stopped', 'warning');
             }
@@ -26530,8 +26540,11 @@ ARB4ME Security Team`
                 return { button: !!triangularButton, content: !!triangularContent };
             };
             
-            // Auto-trading toggle (ENHANCED with failure checking)
-            document.getElementById('autoTradingToggle').addEventListener('click', toggleAutoTrading);
+            // Auto-trading toggle (ENHANCED with failure checking) - only if element exists
+            const autoTradingToggle = document.getElementById('autoTradingToggle');
+            if (autoTradingToggle) {
+                autoTradingToggle.addEventListener('click', toggleAutoTrading);
+            }
 
 
             // NEW STRATEGY TOGGLES (Dashboard)
