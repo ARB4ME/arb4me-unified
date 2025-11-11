@@ -688,6 +688,31 @@ const MomentumWorker = {
 
             console.log(`         ✅ Position opened: ${pair} @ $${position.entry_price} (Qty: ${position.entry_quantity})`);
 
+            // 📊 Log to backend using shared service
+            if (typeof logTradeToBackend === 'function') {
+                logTradeToBackend({
+                    strategy: 'momentum',
+                    exchange: strategy.exchange,
+                    asset: asset,
+                    amount: entryValueUSDT,
+                    profit: 0, // Position just opened, no profit yet
+                    fees: entryFee,
+                    buyPrice: position.entry_price,
+                    sellPrice: 0, // Not sold yet
+                    metadata: {
+                        positionId: position.id,
+                        strategyId: strategy.id,
+                        strategyName: strategy.strategy_name,
+                        pair: pair,
+                        quantity: position.entry_quantity,
+                        action: 'position_open',
+                        entrySignals: triggeredIndicators.map(i => i.name).join(', ')
+                    }
+                }).catch(e => console.warn('Trade logging failed:', e));
+            } else {
+                console.warn('⚠️ logTradeToBackend not available - trade not logged');
+            }
+
             return position;
 
         } catch (error) {

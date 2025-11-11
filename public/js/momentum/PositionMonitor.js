@@ -365,6 +365,32 @@ const PositionMonitor = {
                 reason
             });
 
+            // 📊 Log to backend using shared service
+            if (typeof logTradeToBackend === 'function') {
+                logTradeToBackend({
+                    strategy: 'momentum',
+                    exchange: exchange,
+                    asset: position.asset,
+                    amount: position.entry_value_usdt || 0,
+                    profit: closedPosition.exit_pnl_usdt || 0,
+                    fees: (position.entry_fee || 0) + (exitFee || 0),
+                    buyPrice: position.entry_price,
+                    sellPrice: exitPrice,
+                    metadata: {
+                        positionId: position.id,
+                        strategyId: position.strategy_id,
+                        pair: position.pair,
+                        quantity: position.entry_quantity,
+                        action: 'position_close',
+                        exitReason: reason,
+                        holdTimeMinutes: ((Date.now() - new Date(position.entry_time).getTime()) / (1000 * 60)).toFixed(2),
+                        pnlPercent: closedPosition.exit_pnl_percent
+                    }
+                }).catch(e => console.warn('Trade logging failed:', e));
+            } else {
+                console.warn('⚠️ logTradeToBackend not available - trade not logged');
+            }
+
             return closedPosition;
 
         } catch (error) {
