@@ -131,17 +131,17 @@ async function startServer() {
             try {
                 const CurrencySwap = require('./src/models/CurrencySwap');
                 const CurrencySwapSettings = require('./src/models/CurrencySwapSettings');
-                const CurrencySwapCredentials = require('./src/models/CurrencySwapCredentials');
+                // REMOVED: CurrencySwapCredentials - credentials now client-side only
                 const AssetDeclaration = require('./src/models/AssetDeclaration');
                 const Balance = require('./src/models/Balance');
 
                 await CurrencySwap.createTable();
                 await CurrencySwapSettings.createTable();
-                await CurrencySwapCredentials.createTable();
+                // REMOVED: CurrencySwapCredentials.createTable() - security migration
                 await AssetDeclaration.createTable();
                 await Balance.createTable();
 
-                logger.info('Currency Swap tables verified/created');
+                logger.info('Currency Swap tables verified/created (credentials now client-side)');
             } catch (error) {
                 logger.warn('Currency Swap table creation skipped', { error: error.message });
                 // Don't crash if tables already exist
@@ -151,13 +151,13 @@ async function startServer() {
             try {
                 const MomentumStrategy = require('./src/models/MomentumStrategy');
                 const MomentumPosition = require('./src/models/MomentumPosition');
-                const MomentumCredentials = require('./src/models/MomentumCredentials');
+                // REMOVED: MomentumCredentials - credentials now client-side only
 
                 await MomentumStrategy.createTable();
                 await MomentumPosition.createTable();
-                await MomentumCredentials.createTable();
+                // REMOVED: MomentumCredentials.createTable() - security migration
 
-                logger.info('Momentum Trading tables verified/created');
+                logger.info('Momentum Trading tables verified/created (credentials now client-side)');
             } catch (error) {
                 logger.warn('Momentum Trading table creation skipped', { error: error.message });
                 // Don't crash if tables already exist

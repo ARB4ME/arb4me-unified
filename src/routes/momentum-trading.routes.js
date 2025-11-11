@@ -6,7 +6,7 @@ const router = express.Router();
 const { logger } = require('../utils/logger');
 const MomentumStrategy = require('../models/MomentumStrategy');
 const MomentumPosition = require('../models/MomentumPosition');
-const MomentumCredentials = require('../models/MomentumCredentials');
+// REMOVED: MomentumCredentials - credentials now managed client-side only
 const VALRMarketDataService = require('../services/momentum/VALRMarketDataService');
 const LunoMarketDataService = require('../services/momentum/LunoMarketDataService');
 const ChainEXMarketDataService = require('../services/momentum/ChainEXMarketDataService');
@@ -96,160 +96,11 @@ router.post('/test-connection', async (req, res) => {
     }
 });
 
-/**
- * POST /api/v1/momentum/credentials
- * Save API credentials for an exchange
- */
-router.post('/credentials', async (req, res) => {
-    try {
-        const { userId, exchange, apiKey, apiSecret, apiPassphrase } = req.body;
-
-        if (!userId || !exchange || !apiKey || !apiSecret) {
-            return res.status(400).json({
-                success: false,
-                error: 'userId, exchange, apiKey, and apiSecret are required'
-            });
-        }
-
-        // Test connection before saving
-        const credentials = { apiKey, apiSecret, apiPassphrase };
-
-        if (exchange.toLowerCase() === 'valr') {
-            await valrService.testConnection(credentials);
-        } else {
-            throw new Error(`Exchange not supported: ${exchange}`);
-        }
-
-        // Save credentials
-        const saved = await MomentumCredentials.saveCredentials(userId, exchange, credentials);
-
-        logger.info('Momentum credentials saved', { userId, exchange });
-
-        res.json({
-            success: true,
-            message: `Credentials saved for ${exchange.toUpperCase()}`,
-            data: {
-                exchange: saved.exchange,
-                isConnected: saved.is_connected,
-                lastConnectedAt: saved.last_connected_at
-            }
-        });
-
-    } catch (error) {
-        logger.error('Failed to save momentum credentials', {
-            userId: req.body.userId,
-            exchange: req.body.exchange,
-            error: error.message
-        });
-
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
-    }
-});
-
-/**
- * GET /api/v1/momentum/credentials
- * Get saved credentials for user and exchange (apiSecret is excluded)
- */
-router.get('/credentials', async (req, res) => {
-    try {
-        const { userId, exchange } = req.query;
-
-        if (!userId || !exchange) {
-            return res.status(400).json({
-                success: false,
-                error: 'userId and exchange are required'
-            });
-        }
-
-        const credentials = await MomentumCredentials.getCredentials(userId, exchange);
-
-        if (!credentials) {
-            // Return 200 with empty data instead of 404 to avoid console errors
-            return res.json({
-                success: true,
-                data: {
-                    exchange: exchange,
-                    hasApiKey: false,
-                    hasApiSecret: false,
-                    isConnected: false,
-                    lastConnectedAt: null
-                }
-            });
-        }
-
-        // Return credentials without apiSecret for security
-        res.json({
-            success: true,
-            data: {
-                exchange: credentials.exchange,
-                hasApiKey: !!credentials.api_key,
-                hasApiSecret: !!credentials.api_secret,
-                isConnected: credentials.is_connected,
-                lastConnectedAt: credentials.last_connected_at
-            }
-        });
-
-    } catch (error) {
-        logger.error('Failed to get momentum credentials', {
-            userId: req.query.userId,
-            exchange: req.query.exchange,
-            error: error.message
-        });
-
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
-    }
-});
-
-/**
- * DELETE /api/v1/momentum/credentials
- * Delete credentials for an exchange
- */
-router.delete('/credentials', async (req, res) => {
-    try {
-        const { userId, exchange } = req.body;
-
-        if (!userId || !exchange) {
-            return res.status(400).json({
-                success: false,
-                error: 'userId and exchange are required'
-            });
-        }
-
-        const deleted = await MomentumCredentials.deleteCredentials(userId, exchange);
-
-        if (!deleted) {
-            return res.status(404).json({
-                success: false,
-                error: 'No credentials found for this exchange'
-            });
-        }
-
-        logger.info('Momentum credentials deleted', { userId, exchange });
-
-        res.json({
-            success: true,
-            message: `Credentials deleted for ${exchange.toUpperCase()}`
-        });
-
-    } catch (error) {
-        logger.error('Failed to delete momentum credentials', {
-            userId: req.body.userId,
-            exchange: req.body.exchange,
-            error: error.message
-        });
-
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
-    }
-});
+// ═══════════════════════════════════════════════════════════════════════
+// REMOVED: Server-side credential storage endpoints
+// All credentials now managed client-side via localStorage only
+// Migration: security/remove-credential-storage
+// ═══════════════════════════════════════════════════════════════════════
 
 /**
  * GET /api/v1/momentum/supported-pairs/:exchange

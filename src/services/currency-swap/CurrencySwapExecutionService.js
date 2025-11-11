@@ -1,7 +1,7 @@
 // Currency Swap Execution Service
 // Executes 3-leg arbitrage: Buy XRP → Transfer → Sell XRP
 
-const CurrencySwapCredentials = require('../../models/CurrencySwapCredentials');
+// REMOVED: CurrencySwapCredentials - credentials now passed from request
 const Balance = require('../../models/Balance');
 const { logger } = require('../../utils/logger');
 const fetch = require('node-fetch');
@@ -12,9 +12,10 @@ class CurrencySwapExecutionService {
      * @param {number} userId - User ID
      * @param {object} path - Path object from scanner
      * @param {number} amount - Trade amount in source currency
+     * @param {object} credentials - { sourceCredentials, destCredentials } from request
      * @returns {object} Execution result
      */
-    static async executePath(userId, path, amount) {
+    static async executePath(userId, path, amount, credentials) {
         const executionLog = {
             userId,
             pathId: path.id,
@@ -30,19 +31,11 @@ class CurrencySwapExecutionService {
                 destExchange: path.destExchange
             });
 
-            // Get credentials for both exchanges
-            const sourceCredentials = await CurrencySwapCredentials.getCredentials(
-                userId,
-                path.sourceExchange
-            );
-
-            const destCredentials = await CurrencySwapCredentials.getCredentials(
-                userId,
-                path.destExchange
-            );
+            // Credentials now passed as parameters from request body (stored in localStorage only)
+            const { sourceCredentials, destCredentials } = credentials;
 
             if (!sourceCredentials || !destCredentials) {
-                throw new Error('Missing credentials for exchanges');
+                throw new Error('Missing credentials for exchanges - both source and destination credentials required');
             }
 
             // Leg 1: Buy XRP on source exchange

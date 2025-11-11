@@ -2,7 +2,7 @@
 // Scans all exchanges for XRP prices and calculates best arbitrage opportunity
 
 const CurrencySwapSettings = require('../../models/CurrencySwapSettings');
-const CurrencySwapCredentials = require('../../models/CurrencySwapCredentials');
+// REMOVED: CurrencySwapCredentials - no longer needed for scanning
 const RiskCalculatorService = require('./RiskCalculatorService');
 const { logger } = require('../../utils/logger');
 const fetch = require('node-fetch');
