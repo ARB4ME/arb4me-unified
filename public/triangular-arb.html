@@ -16767,6 +16767,9 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
 
                         alert(`✅ Trade Executed Successfully!\n\nExecution ID: ${execution.executionId}\nProfit: $${profit.toFixed(2)} (${profitPct.toFixed(3)}%)\nLegs Completed: ${execution.legs?.length || 0}/3\nTotal Time: ${execution.totalExecutionTime}ms\n\nAll legs executed atomically with slippage monitoring.`);
 
+                        // 📊 Log to backend using shared service
+                        logTriangularTrade('Bitget', pathId, profit, maxTrade, execution.totalFees || 0).catch(e => console.warn('Logging failed:', e));
+
                         // Refresh opportunities and balance
                         scanBitgetTriangularPaths();
                         initializeBitgetBalance();
@@ -17448,6 +17451,9 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
 
                         alert(`✅ Trade Executed Successfully!\n\nExecution ID: ${execution.executionId}\nProfit: $${profit.toFixed(2)} (${profitPct.toFixed(3)}%)\nLegs Completed: ${execution.legs?.length || 0}/3\nTotal Time: ${execution.totalExecutionTime}ms\n\nAll legs executed atomically with slippage monitoring.`);
 
+                        // 📊 Log to backend using shared service
+                        logTriangularTrade('BitMart', pathId, profit, maxTrade, execution.totalFees || 0).catch(e => console.warn('Logging failed:', e));
+
                         // Refresh opportunities and balance
                         scanBitmartTriangularPaths();
                         initializeBitmartBalance();
@@ -18106,6 +18112,9 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
                         const profitPct = execution.actualProfitPercentage || 0;
 
                         alert(`✅ Trade Executed Successfully!\n\nExecution ID: ${execution.executionId}\nProfit: $${profit.toFixed(2)} (${profitPct.toFixed(3)}%)\nLegs Completed: ${execution.legs?.length || 0}/3\nTotal Time: ${execution.totalExecutionTime}ms\n\nAll legs executed atomically with slippage monitoring.`);
+
+                        // 📊 Log to backend using shared service
+                        logTriangularTrade('Bitrue', pathId, profit, maxTrade, execution.totalFees || 0).catch(e => console.warn('Logging failed:', e));
 
                         // Refresh opportunities and balance
                         scanBitrueTriangularPaths();
@@ -18786,6 +18795,9 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
                         alert(`✅ Trade Executed Successfully!\n\nExecution ID: ${execution.executionId}\nPath: ${pathId}\nStart Amount: $${execution.startAmount}\nEnd Amount: $${execution.endAmount}\nProfit: $${profit.toFixed(2)} (${profitPct.toFixed(2)}%)\nLegs Completed: ${execution.legs?.length || 0}/3\n\nAll legs executed atomically with slippage monitoring.`);
 
                         console.log('✅ [GEMINI] Trade executed successfully:', execution);
+
+                        // 📊 Log to backend using shared service
+                        logTriangularTrade('Gemini', pathId, profit, maxTradeAmount, execution.totalFees || 0).catch(e => console.warn('Logging failed:', e));
 
                         // Update balance after execution
                         await updateGeminiBalance();
@@ -19539,6 +19551,9 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
                         alert(`✅ Trade Executed Successfully!\n\nExecution ID: ${execution.executionId}\nPath: ${pathId}\nStart Amount: $${execution.startAmount}\nEnd Amount: $${execution.endAmount}\nProfit: $${profit.toFixed(2)} (${profitPct.toFixed(2)}%)\nLegs Completed: ${execution.legs?.length || 0}/3\n\nAll 3 legs executed atomically.`);
 
                         console.log('✅ [COINCATCH] Trade executed successfully:', execution);
+
+                        // 📊 Log to backend using shared service
+                        logTriangularTrade('Coincatch', pathId, profit, maxTradeAmount, execution.totalFees || 0).catch(e => console.warn('Logging failed:', e));
 
                         // Update stats
                         coincatchWorkerStats.totalTrades++;
