@@ -26526,14 +26526,40 @@ ARB4ME Security Team`
                 return;
             }
 
-            // Check if user is authenticated
-            const token = localStorage.getItem('arb4me_jwt_token');
-            if (!token) {
+            // Check if user is logged in
+            if (!userState.isLoggedIn) {
                 container.innerHTML = `
                     <div style="text-align: center; padding: 30px; color: #b8c6db; background: rgba(255,255,255,0.05); border-radius: 10px; border: 2px dashed rgba(255,255,255,0.1);">
                         <div style="font-size: 2rem; margin-bottom: 10px;">🔒</div>
                         <div style="font-size: 1rem; margin-bottom: 5px;">Please login to view strategy performance</div>
                         <div style="font-size: 0.85rem; opacity: 0.7;">Your trade history and performance metrics will appear here</div>
+                    </div>
+                `;
+                return;
+            }
+
+            // Check if user has JWT token (online mode)
+            const token = localStorage.getItem('arb4me_jwt_token');
+            if (!token) {
+                console.warn('⚠️ User logged in via offline mode - backend features unavailable');
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 30px; color: #b8c6db; background: rgba(255,215,0,0.1); border-radius: 10px; border: 2px dashed rgba(255,215,0,0.3);">
+                        <div style="font-size: 2rem; margin-bottom: 10px;">⚠️</div>
+                        <div style="font-size: 1rem; margin-bottom: 10px; color: #ffd700;">Offline Mode Detected</div>
+                        <div style="font-size: 0.9rem; margin-bottom: 10px;">Strategy performance tracking requires online mode</div>
+                        <div style="font-size: 0.85rem; opacity: 0.7; margin-bottom: 15px;">Please logout and login again to connect to the backend server</div>
+                        <button onclick="logout()" style="
+                            padding: 10px 20px;
+                            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+                            color: white;
+                            border: none;
+                            border-radius: 20px;
+                            cursor: pointer;
+                            font-weight: bold;
+                            font-size: 0.9rem;
+                        ">
+                            🔄 Logout & Reconnect
+                        </button>
                     </div>
                 `;
                 return;
