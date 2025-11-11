@@ -23621,8 +23621,18 @@ ARB4ME Security Team`
 
                 // Check each strategy for this exchange
                 for (const strategy of strategies) {
-                    const apiKey = localStorage.getItem(`${exchange.id}_${strategy.id}_api`);
-                    const apiSecret = localStorage.getItem(`${exchange.id}_${strategy.id}_secret`);
+                    let apiKey, apiSecret;
+
+                    // Cross-Exchange uses old pattern (e.g., valrApiKey, lunoApiKey)
+                    if (strategy.id === 'cross-exchange') {
+                        // Old pattern: exchangeApiKey
+                        apiKey = localStorage.getItem(`${exchange.id}ApiKey`);
+                        apiSecret = localStorage.getItem(`${exchange.id}SecretKey`) || localStorage.getItem(`${exchange.id}ApiSecret`);
+                    } else {
+                        // New pattern: exchange_strategy_api
+                        apiKey = localStorage.getItem(`${exchange.id}_${strategy.id}_api`);
+                        apiSecret = localStorage.getItem(`${exchange.id}_${strategy.id}_secret`);
+                    }
 
                     row.connections[strategy.id] = {
                         connected: !!(apiKey && apiSecret),
