@@ -15417,6 +15417,9 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
 
                         alert(`✅ Trade Executed Successfully!\n\nExecution ID: ${execution.executionId}\nProfit: ${profit.toFixed(2)} (${profitPct.toFixed(3)}%)\nLegs Completed: ${execution.legs?.length || 0}/3\nTotal Time: ${execution.totalExecutionTime}ms\n\nAll legs executed atomically with slippage monitoring.`);
 
+                        // 📊 Log to backend using shared service
+                        logTriangularTrade('AscendEX', pathId, profit, maxTrade, execution.totalFees || 0).catch(e => console.warn('Logging failed:', e));
+
                         // Refresh opportunities and balance
                         scanAscendexTriangularPaths();
                         initializeAscendexBalance();
@@ -16106,6 +16109,9 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
                         const profitPct = execution.actualProfitPercentage || 0;
 
                         alert(`✅ Trade Executed Successfully!\n\nExecution ID: ${execution.executionId}\nProfit: $${profit.toFixed(2)} (${profitPct.toFixed(3)}%)\nLegs Completed: ${execution.legs?.length || 0}/3\nTotal Time: ${execution.totalExecutionTime}ms\n\nAll legs executed atomically with slippage monitoring.`);
+
+                        // 📊 Log to backend using shared service
+                        logTriangularTrade('BingX', pathId, profit, maxTrade, execution.totalFees || 0).catch(e => console.warn('Logging failed:', e));
 
                         // Refresh opportunities and balance
                         scanBingxTriangularPaths();
