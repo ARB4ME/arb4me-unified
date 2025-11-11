@@ -18516,7 +18516,14 @@ ARB4ME Security Team`
                     console.log('✅ Progress updated for backend user');
                 } else {
                     // Use local storage method for offline users
-                    updateUser(userState.userData.id, updatedUser);
+                    try {
+                        const result = updateUser(userState.userData.id, updatedUser);
+                        if (!result) {
+                            console.warn('⚠️ User not found in localStorage, skipping setup progress sync');
+                        }
+                    } catch (error) {
+                        console.warn('⚠️ Failed to update user setup progress:', error.message);
+                    }
                 }
                 
                 // Update single-user storage for backward compatibility
@@ -19727,19 +19734,41 @@ ARB4ME Security Team`
                     
                     // If we have a JWT token, verify it with backend
                     if (jwtToken) {
-                        const result = await apiService.checkAuth();
-                        if (result.success) {
-                            // Backend authentication valid
-                            userState.isLoggedIn = true;
-                            userState.userData = userData;
-                            userState.liveMode = true;
-                            updateUIForLoggedInUser();
-                            console.log('✅ Backend authentication verified');
-                            return;
-                        } else {
-                            // JWT token invalid, clear it
+                        try {
+                            const result = await apiService.checkAuth();
+                            if (result.authenticated) {
+                                // Backend authentication valid
+                                userState.isLoggedIn = true;
+                                userState.userData = userData;
+                                userState.liveMode = true;
+                                updateUIForLoggedInUser();
+                                console.log('✅ Backend authentication verified');
+                                return;
+                            }
+                        } catch (error) {
+                            // JWT token invalid or user not found in backend, clear invalid auth data
+                            console.log('⚠️ JWT token verification failed:', error.message);
+                            console.log('🧹 Clearing invalid authentication data...');
                             localStorage.removeItem('arb4me_jwt_token');
-                            console.log('⚠️ JWT token expired or invalid');
+                            localStorage.removeItem('arb4me_current_user');
+
+                            // If user doesn't exist in backend, force re-login
+                            if (error.message.includes('User not found') || error.message.includes('not found')) {
+                                console.log('❌ User not found in database - forcing logout');
+                                // Clear all auth data
+                                localStorage.removeItem('arb4me_user');
+                                localStorage.removeItem('arb4me_remember_me');
+
+                                // Show user-friendly message
+                                alert('⚠️ Your session has expired or your account no longer exists.\n\nPlease log in again or register a new account.');
+
+                                // Update UI to show login
+                                userState.isLoggedIn = false;
+                                userState.userData = null;
+                                userState.liveMode = false;
+                                updateUIForLoggedOutUser();
+                                return;
+                            }
                         }
                     }
                     
