@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Triangular Arbitrage - ARB4ME</title>
+
+    <!-- Trade Logger Service (Shared across all strategies and 20 exchanges) -->
+    <script src="/utils/trade-logger.js"></script>
+
     <style>
         body {
             background: linear-gradient(135deg, #0c0c1e 0%, #161632 100%);
@@ -5399,6 +5403,9 @@
 
                 if (data.success) {
                     showNotification(`Trade executed! Profit: $${data.profit.toFixed(2)} (${data.profitPercentage}%)`, 'success');
+
+                    // 📊 Log to backend using shared service
+                    logTriangularTrade('VALR', opportunity.pathId, data.profit || 0, maxInvestment, data.fees || 0).catch(e => console.warn('Logging failed:', e));
 
                     // Refresh opportunities and history
                     await scanValrTriangularPaths();
@@ -12568,6 +12575,11 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
 
                 if (result.success) {
                     alert(`✅ ${dryRun ? 'DRY RUN' : 'EXECUTION'} Successful!\n\n${result.message}`);
+
+                    // 📊 Log to backend (only real trades, not dry runs)
+                    if (!dryRun) {
+                        logTriangularTrade('Gate.io', pathId, result.actualProfit || result.profit || 0, result.investmentAmount || 0, result.fees || 0).catch(e => console.warn('Logging failed:', e));
+                    }
                 } else {
                     throw new Error(result.message);
                 }
@@ -13149,6 +13161,11 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
 
                 if (result.success) {
                     alert(`✅ ${dryRun ? 'DRY RUN' : 'EXECUTION'} Successful!\n\n${result.message}`);
+
+                    // 📊 Log to backend (only real trades, not dry runs)
+                    if (!dryRun) {
+                        logTriangularTrade('Crypto.com', pathId, result.actualProfit || result.profit || 0, result.investmentAmount || 0, result.fees || 0).catch(e => console.warn('Logging failed:', e));
+                    }
                 } else {
                     throw new Error(result.message);
                 }
@@ -13967,6 +13984,10 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
 
                 if (result.success) {
                     alert(`✅ MEXC Trade Executed!\n\nPath: ${opportunity.path.join(' → ')}\nActual Profit: ${result.actualProfitZAR} USDT (${result.actualProfitPercent}%)\nExecution Time: ${result.executionTime}ms\n\nTrade ID: ${result.tradeId}`);
+
+                    // 📊 Log to backend using shared service
+                    logTriangularTrade('MEXC', opportunity.path ? opportunity.path.join('→') : 'MEXC_PATH', result.actualProfitZAR || 0, opportunity.investmentAmount || 0, result.fees || 0).catch(e => console.warn('Logging failed:', e));
+
                     loadMexcTradeHistory();
                     scanMexcTriangularPaths(); // Refresh opportunities
                 } else {
@@ -14690,6 +14711,9 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
                         const profitPct = execution.actualProfitPercentage || 0;
 
                         alert(`✅ Trade Executed Successfully!\n\nExecution ID: ${execution.executionId}\nProfit: ${profit.toFixed(2)} (${profitPct.toFixed(3)}%)\nLegs Completed: ${execution.legs?.length || 0}/3\nTotal Time: ${execution.totalExecutionTime}ms\n\nAll legs executed atomically with slippage monitoring.`);
+
+                        // 📊 Log to backend using shared service
+                        logTriangularTrade('XT', pathId, profit, maxTrade, execution.totalFees || 0).catch(e => console.warn('Logging failed:', e));
 
                         // Refresh opportunities and balance
                         scanXtTriangularPaths();
