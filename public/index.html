@@ -23662,6 +23662,10 @@ ARB4ME Security Team`
             for (const row of matrix) {
                 desktopHTML += '<tr>';
 
+                // Get balance for this exchange
+                const exchangeBalance = state.balances[row.exchange.id] || {};
+                const balanceText = formatMultiCurrencyBalance(exchangeBalance, row.exchange.name);
+
                 // Exchange name cell
                 desktopHTML += `
                     <td>
@@ -23669,7 +23673,10 @@ ARB4ME Security Team`
                             <div class="matrix-exchange-logo" style="background: ${row.exchange.gradient}">
                                 ${row.exchange.logo}
                             </div>
-                            <span class="matrix-exchange-name">${row.exchange.name}</span>
+                            <div>
+                                <div class="matrix-exchange-name">${row.exchange.name}</div>
+                                <div style="font-size: 0.75rem; color: #b8c6db; margin-top: 2px;">${balanceText}</div>
+                            </div>
                         </div>
                     </td>
                 `;
@@ -23704,13 +23711,20 @@ ARB4ME Security Team`
                 const hasConnection = Object.values(row.connections).some(conn => conn.connected);
 
                 if (hasConnection) {
+                    // Get balance for this exchange
+                    const exchangeBalance = state.balances[row.exchange.id] || {};
+                    const balanceText = formatMultiCurrencyBalance(exchangeBalance, row.exchange.name);
+
                     mobileHTML += `
                         <div class="matrix-mobile-card">
                             <div class="matrix-mobile-header">
                                 <div class="matrix-exchange-logo" style="background: ${row.exchange.gradient}">
                                     ${row.exchange.logo}
                                 </div>
-                                <span class="matrix-exchange-name" style="font-size: 1rem;">${row.exchange.name}</span>
+                                <div>
+                                    <div class="matrix-exchange-name" style="font-size: 1rem;">${row.exchange.name}</div>
+                                    <div style="font-size: 0.75rem; color: #b8c6db; margin-top: 2px;">${balanceText}</div>
+                                </div>
                             </div>
                             <div class="matrix-mobile-strategies">
                     `;
