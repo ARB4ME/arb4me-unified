@@ -21861,6 +21861,10 @@ ARB4ME Security Team`
                 loadStrategyPerformance().catch(error => {
                     console.error('❌ Failed to refresh strategy performance:', error);
                 });
+
+                // Refresh Strategy-Exchange Matrix to reflect any connection changes
+                console.log('🔄 Refreshing Strategy-Exchange Matrix...');
+                populateStrategyExchangeMatrix();
             }
 
             // Special handling for admin tab
@@ -22485,6 +22489,9 @@ ARB4ME Security Team`
 
                 // Update button state (visual feedback is enough - no popup needed)
                 updateMomentumButtonState(exchangeName);
+
+                // Refresh Strategy-Exchange Matrix
+                populateStrategyExchangeMatrix();
 
             } catch (error) {
                 console.error(`❌ [Momentum] Failed to disconnect ${exchangeName}:`, error);
