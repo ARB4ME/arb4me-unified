@@ -23658,6 +23658,15 @@ ARB4ME Security Team`
             const matrixData = getStrategyExchangeMatrix();
             const { strategies, matrix } = matrixData;
 
+            // Debug: Log connection statuses
+            console.log('📊 Matrix Data:', {
+                totalExchanges: matrix.length,
+                connectedCount: matrix.filter(row =>
+                    Object.values(row.connections).some(conn => conn.connected)
+                ).length,
+                balances: state.balances
+            });
+
             // Build Desktop Table
             let desktopHTML = '<table class="matrix-table"><thead><tr>';
             desktopHTML += '<th>Exchange</th>';
@@ -23803,10 +23812,13 @@ ARB4ME Security Team`
                 document.getElementById(`${exchangeName}Status`).textContent = 'Disconnected';
                 document.getElementById(`${exchangeName}Status`).className = 'status-disconnected';
                 document.getElementById(`${exchangeName}Balance`).textContent = '$0.00';
-                
+
+                // Refresh Strategy-Exchange Matrix
+                populateStrategyExchangeMatrix();
+
                 // Don't clear API fields - keep them filled with obfuscated values
                 // The API credentials remain in state and in the fields
-                
+
                 addActivity(`🔌 ${exchangeName.toUpperCase()} disconnected`, 'info');
                 
                 // Update user setup progress for multi-user system (disconnection)
@@ -23940,14 +23952,17 @@ ARB4ME Security Team`
                     // Success - store balances and mark as connected
                     state.exchanges[exchangeName].connected = true;
                     state.balances[exchangeName] = balances;
-                    
+
                     document.getElementById(`${exchangeName}Status`).textContent = 'Connected (Live)';
                     document.getElementById(`${exchangeName}Status`).className = 'status-connected';
-                    
+
                     // Update balance display - ENHANCED: Show all currencies
                     const balanceDisplay = formatMultiCurrencyBalance(balances, exchangeName);
                     document.getElementById(`${exchangeName}Balance`).textContent = balanceDisplay;
-                    
+
+                    // Refresh Strategy-Exchange Matrix with updated balances
+                    populateStrategyExchangeMatrix();
+
                     addActivity(`✅ ${exchangeName.toUpperCase()} connected with real API`, 'success');
                     
                 } catch (apiError) {
@@ -23958,11 +23973,14 @@ ARB4ME Security Team`
                         // Mark as connected with zero balance
                         state.exchanges[exchangeName].connected = true;
                         state.balances[exchangeName] = { USDT: 0, BTC: 0, ETH: 0 };
-                        
+
                         document.getElementById(`${exchangeName}Status`).textContent = 'Connected (Live)';
                         document.getElementById(`${exchangeName}Status`).className = 'status-connected';
                         document.getElementById(`${exchangeName}Balance`).textContent = '$0.00';
-                        
+
+                        // Refresh Strategy-Exchange Matrix
+                        populateStrategyExchangeMatrix();
+
                         addActivity(`✅ ${exchangeName.toUpperCase()} connected (balance unavailable)`, 'success');
                     } else {
                         // Real API connection failed - no fallback
