@@ -26362,6 +26362,27 @@ ARB4ME Security Team`
                 } else {
                     const error = await response.json();
                     console.error(`❌ Failed to fetch ${strategy} performance:`, error);
+
+                    // Check if authentication error due to invalid/orphaned token
+                    if (response.status === 401 || response.status === 403) {
+                        console.error('🚨 Authentication failed - JWT token is invalid or user not found');
+                        console.log('🧹 Clearing invalid authentication data...');
+
+                        // Clear all auth data
+                        localStorage.removeItem('arb4me_jwt_token');
+                        localStorage.removeItem('arb4me_current_user');
+                        localStorage.removeItem('arb4me_user');
+                        localStorage.removeItem('arb4me_remember_me');
+
+                        // Force reload to trigger login screen
+                        setTimeout(() => {
+                            alert('⚠️ Your session has expired or your account no longer exists.\n\nPlease log in again or register a new account.');
+                            location.reload();
+                        }, 100);
+
+                        return { success: false, reason: 'invalid_token', error };
+                    }
+
                     return { success: false, error };
                 }
             } catch (error) {
