@@ -2747,54 +2747,6 @@
                     </div>
                 </div>
             </div>
-            
-            <!-- Top Row: Key Performance Metrics -->
-            <div class="stats-grid" style="margin-bottom: 20px;">
-                <div class="stat-card">
-                    <div class="stat-value" id="totalProfit">$0.00</div>
-                    <div class="stat-label">Today's Profit</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="totalTrades">0</div>
-                    <div class="stat-label">Total Trades</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="activeOpportunities">0</div>
-                    <div class="stat-label">Live Opportunities</div>
-                </div>
-                <div class="stat-card" onclick="openBillingDashboard()" style="cursor: pointer; border: 2px solid #00d4ff; position: relative;">
-                    <div class="stat-value" id="monthlyBill" style="color: #ff6b6b;">$0.00</div>
-                    <div class="stat-label">💰 Monthly Bill</div>
-                    <div style="font-size: 0.8rem; color: #00d4ff; margin-top: 5px;" id="billingStatus">Click to view</div>
-                    <div id="paymentAlert" style="display: none; position: absolute; top: -5px; right: -5px; background: #ff6b6b; color: white; border-radius: 50%; width: 20px; height: 20px; font-size: 0.8rem; text-align: center; line-height: 20px;">!</div>
-                </div>
-            </div>
-
-            <!-- Bottom Row: System Status -->
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-value" id="nextScan">30s</div>
-                    <div class="stat-label">Next Scan</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="connectedExchanges">0</div>
-                    <div class="stat-label">Connected Exchanges</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="balanceStatus">Not<br>Connected</div>
-                    <div class="stat-label">Balance Status
-                        <span class="usdt-tooltip">
-                            <span class="tooltip-icon">?</span>
-                            <div class="tooltip-content">
-                                <strong>💰 USDT Balance Guide:</strong><br>
-                                • Connect exchanges to see USDT balances<br>
-                                • Convert your local currency to USDT on each exchange<br>
-                                • ARB4ME trades using USDT as universal currency
-                            </div>
-                        </span>
-                    </div>
-                </div>
-            </div>
 
             <!-- Strategy Performance Summary -->
             <div style="margin: 25px 0;">
@@ -14193,9 +14145,15 @@ Please help recover this stuck asset.`;
             const activityMessage = `Trade Completed: ${opportunity.asset} profit ${formatCurrency(opportunity.profit)} (${opportunity.buyExchange} → ${opportunity.sellExchange})`;
             addLiveActivity(activityMessage, 'success', '✅', '#00b894');
             
-            // Update UI
-            document.getElementById('totalProfit').textContent = formatCurrency(state.tradingStats.todayProfit);
-            document.getElementById('totalTrades').textContent = state.tradingStats.totalTrades;
+            // Update UI (with safety checks for removed stat blocks)
+            const totalProfitEl = document.getElementById('totalProfit');
+            if (totalProfitEl) {
+                totalProfitEl.textContent = formatCurrency(state.tradingStats.todayProfit);
+            }
+            const totalTradesEl = document.getElementById('totalTrades');
+            if (totalTradesEl) {
+                totalTradesEl.textContent = state.tradingStats.totalTrades;
+            }
             
             // Save state to localStorage
             saveToStorage();
@@ -14401,8 +14359,11 @@ Please help recover this stuck asset.`;
             const activityMessage = `${errorInfo.title}: ${opportunity.asset} on ${opportunity.sellExchange} - ${errorInfo.message}`;
             addLiveActivity(activityMessage, errorInfo.category, errorInfo.icon, errorInfo.color);
             
-            // Update UI to reflect the failed trade
-            document.getElementById('totalTrades').textContent = state.tradingStats.totalTrades;
+            // Update UI to reflect the failed trade (with safety check for removed stat block)
+            const totalTradesEl = document.getElementById('totalTrades');
+            if (totalTradesEl) {
+                totalTradesEl.textContent = state.tradingStats.totalTrades;
+            }
             // NOTE: Failed trades should NOT update Box 1 (Trade History) - only Box 2 (Live Activity)
         }
         
@@ -24139,20 +24100,28 @@ ARB4ME Security Team`
 
         function updateBalanceOverview() {
             const connectedExchanges = getConnectedExchanges();
-            
-            document.getElementById('connectedExchanges').textContent = connectedExchanges.length;
-            
-            if (connectedExchanges.length > 0) {
-                if (userState.liveMode) {
-                    document.getElementById('balanceStatus').textContent = 'Live Trading';
-                    document.getElementById('balanceStatus').style.color = '#48c774';
+
+            // Safety check: Element may not exist after UI cleanup
+            const connectedExchangesEl = document.getElementById('connectedExchanges');
+            if (connectedExchangesEl) {
+                connectedExchangesEl.textContent = connectedExchanges.length;
+            }
+
+            // Safety check: Element may not exist after UI cleanup
+            const balanceStatusEl = document.getElementById('balanceStatus');
+            if (balanceStatusEl) {
+                if (connectedExchanges.length > 0) {
+                    if (userState.liveMode) {
+                        balanceStatusEl.textContent = 'Live Trading';
+                        balanceStatusEl.style.color = '#48c774';
+                    } else {
+                        balanceStatusEl.textContent = 'Test Mode';
+                        balanceStatusEl.style.color = '#feca57';
+                    }
                 } else {
-                    document.getElementById('balanceStatus').textContent = 'Test Mode';
-                    document.getElementById('balanceStatus').style.color = '#feca57';
+                    balanceStatusEl.innerHTML = 'Not<br>Connected';
+                    balanceStatusEl.style.color = '#ff6b6b';
                 }
-            } else {
-                document.getElementById('balanceStatus').innerHTML = 'Not<br>Connected';
-                document.getElementById('balanceStatus').style.color = '#ff6b6b';
             }
         }
 
