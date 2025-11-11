@@ -922,6 +922,9 @@
     <script src="/js/momentum/MomentumWorker.js"></script>
     <script src="/js/momentum/ReconciliationWorker.js?v=2"></script>
 
+    <!-- Trade Logger Service (Shared across all strategies and 20 exchanges) -->
+    <script src="/utils/trade-logger.js"></script>
+
     <script>
         const API_BASE = '/api/v1/momentum';
         const USER_ID = 1; // TODO: Get from auth
@@ -2091,6 +2094,29 @@
 
                 if (result.success) {
                     alert('✅ Position closed successfully!');
+
+                    // 📊 Log to backend using shared service
+                    // Note: Backend already logs, but we log client-side action for consistency
+                    if (result.data && result.data.position) {
+                        const pos = result.data.position;
+                        logTradeToBackend({
+                            strategy: 'momentum',
+                            exchange: selectedExchange,
+                            asset: pos.asset || 'UNKNOWN',
+                            amount: pos.position_size_usdt || 0,
+                            profit: pos.exit_pnl_usdt || 0,
+                            fees: pos.exit_fee || 0,
+                            buyPrice: pos.entry_price || 0,
+                            sellPrice: pos.exit_price || 0,
+                            metadata: {
+                                entryTime: pos.entry_time,
+                                exitTime: pos.exit_time,
+                                exitReason: 'manual_close',
+                                holdTime: pos.hold_time_minutes
+                            }
+                        }).catch(e => console.warn('Logging failed:', e));
+                    }
+
                     await loadPositions();
                 } else {
                     alert('❌ Failed to close position: ' + (result.error || 'Unknown error'));

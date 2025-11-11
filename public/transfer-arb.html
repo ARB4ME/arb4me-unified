@@ -729,6 +729,9 @@
         </div>
     </div>
 
+    <!-- Trade Logger Service (Shared across all strategies and 20 exchanges) -->
+    <script src="/utils/trade-logger.js"></script>
+
     <script>
         // Transfer ARB Configuration
         const TRANSFER_CRYPTOS = [
@@ -1132,6 +1135,24 @@
 
                     // Show success notification
                     showNotification('success', `Transfer executed! Profit: $${result.data.actualProfit.toFixed(2)}`);
+
+                    // 📊 Log to backend using shared service
+                    logTradeToBackend({
+                        strategy: 'transfer',
+                        exchange: opportunity.fromExchange,
+                        asset: opportunity.crypto,
+                        buyExchange: opportunity.fromExchange,
+                        sellExchange: opportunity.toExchange,
+                        buyPrice: result.data.buyPrice || 0,
+                        sellPrice: result.data.sellPrice || 0,
+                        amount: result.data.amount || opportunity.amount || 0,
+                        profit: result.data.actualProfit || 0,
+                        fees: result.data.totalFees || 0,
+                        metadata: {
+                            transferTime: result.data.transferTime,
+                            network: result.data.network
+                        }
+                    }).catch(e => console.warn('Logging failed:', e));
 
                     // Refresh transfer history
                     loadTransferHistory();
