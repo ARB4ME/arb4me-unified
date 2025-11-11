@@ -699,7 +699,150 @@
             color: #00ff88;
             border: 1px solid #00ff88;
         }
-        
+
+        /* Strategy-Exchange Matrix Styles */
+        .strategy-matrix-desktop {
+            overflow-x: auto;
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+            padding: 15px;
+        }
+
+        .strategy-matrix-mobile {
+            display: none;
+        }
+
+        .matrix-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 800px;
+        }
+
+        .matrix-table thead th {
+            background: rgba(0,212,255,0.1);
+            color: #00d4ff;
+            padding: 12px 8px;
+            text-align: center;
+            font-size: 0.85rem;
+            font-weight: 600;
+            border-bottom: 2px solid rgba(0,212,255,0.3);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .matrix-table thead th:first-child {
+            text-align: left;
+            padding-left: 15px;
+        }
+
+        .matrix-table tbody tr {
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            transition: background 0.2s;
+        }
+
+        .matrix-table tbody tr:hover {
+            background: rgba(255,255,255,0.05);
+        }
+
+        .matrix-table tbody td {
+            padding: 12px 8px;
+            text-align: center;
+        }
+
+        .matrix-table tbody td:first-child {
+            text-align: left;
+            padding-left: 15px;
+        }
+
+        .matrix-exchange-cell {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .matrix-exchange-logo {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.75rem;
+            color: #1a1a2e;
+            flex-shrink: 0;
+        }
+
+        .matrix-exchange-name {
+            color: #e0e0e0;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .matrix-status-cell {
+            font-size: 1.2rem;
+            cursor: help;
+        }
+
+        .matrix-status-connected {
+            color: #00ff88;
+        }
+
+        .matrix-status-disconnected {
+            color: rgba(255,255,255,0.15);
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .strategy-matrix-desktop {
+                display: none;
+            }
+
+            .strategy-matrix-mobile {
+                display: block;
+            }
+
+            .matrix-mobile-card {
+                background: rgba(255,255,255,0.05);
+                border-radius: 10px;
+                padding: 15px;
+                margin-bottom: 15px;
+            }
+
+            .matrix-mobile-header {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                margin-bottom: 15px;
+                padding-bottom: 15px;
+                border-bottom: 1px solid rgba(255,255,255,0.1);
+            }
+
+            .matrix-mobile-strategies {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+
+            .matrix-mobile-strategy {
+                background: rgba(255,255,255,0.05);
+                border-radius: 8px;
+                padding: 10px;
+                text-align: center;
+            }
+
+            .matrix-mobile-strategy-name {
+                color: #b8c6db;
+                font-size: 0.75rem;
+                margin-bottom: 5px;
+            }
+
+            .matrix-mobile-strategy-status {
+                font-size: 1.5rem;
+            }
+        }
+
         .opportunity-card {
             background: linear-gradient(135deg, rgba(0,255,136,0.1), rgba(0,212,255,0.1));
             border: 2px solid #00ff88;
@@ -2764,247 +2907,23 @@
 
             <div class="grid-2">
                 <div class="tab-content active" style="display: block;">
-                    <h3 style="color: #00d4ff; margin-bottom: 15px;">🏦 Exchange Status</h3>
-                    <div id="exchangeStatusList">
-                        <div class="exchange-status">
-                            <div class="exchange-info">
-                                <div class="exchange-logo" style="background: linear-gradient(45deg, #00d4ff, #0099cc);">V</div>
-                                <div>
-                                    <div style="font-weight: bold;">VALR <span class="price-status price-disconnected" id="valrPriceStatus">OFFLINE</span></div>
-                                    <div style="font-size: 0.8rem; color: #b8c6db;">Balance: <span id="valrBalance">$0.00</span></div>
-                                </div>
-                            </div>
-                            <div class="status-disconnected" id="valrStatus">Disconnected</div>
-                        </div>
-                        <div class="exchange-status">
-                            <div class="exchange-info">
-                                <div class="exchange-logo" style="background: linear-gradient(45deg, #feca57, #ff9f43);">L</div>
-                                <div>
-                                    <div style="font-weight: bold;">Luno <span class="price-status price-disconnected" id="lunoPriceStatus">OFFLINE</span></div>
-                                    <div style="font-size: 0.8rem; color: #b8c6db;">Balance: <span id="lunoBalance">$0.00</span></div>
-                                </div>
-                            </div>
-                            <div class="status-disconnected" id="lunoStatus">Disconnected</div>
-                        </div>
-                        <div class="exchange-status">
-                            <div class="exchange-info">
-                                <div class="exchange-logo" style="background: linear-gradient(45deg, #ff6b6b, #ee5a24);">A</div>
-                                <div>
-                                    <div style="font-weight: bold;">AltCoinTrader <span class="price-status price-disconnected" id="altcointraderPriceStatus">OFFLINE</span></div>
-                                    <div style="font-size: 0.8rem; color: #b8c6db;">Balance: <span id="altcointraderBalance">$0.00</span></div>
-                                </div>
-                            </div>
-                            <div class="status-disconnected" id="altcointraderStatus">Disconnected</div>
-                        </div>
-                        <div class="exchange-status">
-                            <div class="exchange-info">
-                                <div class="exchange-logo" style="background: linear-gradient(45deg, #00ff88, #00d4aa);">X</div>
-                                <div>
-                                    <div style="font-weight: bold;">Xago <span class="price-status price-disconnected" id="xagoPriceStatus">OFFLINE</span></div>
-                                    <div style="font-size: 0.8rem; color: #b8c6db;">Balance: <span id="xagoBalance">$0.00</span></div>
-                                </div>
-                            </div>
-                            <div class="status-disconnected" id="xagoStatus">Disconnected</div>
-                        </div>
-                        <div class="exchange-status">
-                            <div class="exchange-info">
-                                <div class="exchange-logo" style="background: linear-gradient(45deg, #ff9f43, #f0932b);">C</div>
-                                <div>
-                                    <div style="font-weight: bold;">ChainEX <span class="price-status price-disconnected" id="chainexPriceStatus">OFFLINE</span></div>
-                                    <div style="font-size: 0.8rem; color: #b8c6db;">Balance: <span id="chainexBalance">$0.00</span></div>
-                                </div>
-                            </div>
-                            <div class="status-disconnected" id="chainexStatus">Disconnected</div>
-                        </div>
+                    <h3 style="color: #00d4ff; margin-bottom: 15px;">🏦 Strategy-Exchange Matrix</h3>
+                    <div style="margin-bottom: 10px; color: #b8c6db; font-size: 0.9rem;">
+                        View all exchange connections across 5 trading strategies
+                    </div>
 
-                        <div class="exchange-status">
-                            <div class="exchange-info">
-                                <div class="exchange-logo" style="background: linear-gradient(45deg, #1e3a8a, #3b82f6);">K</div>
-                                <div>
-                                    <div style="font-weight: bold;">Kraken <span class="price-status price-disconnected" id="krakenPriceStatus">OFFLINE</span></div>
-                                    <div style="font-size: 0.8rem; color: #b8c6db;">Balance: <span id="krakenBalance">$0.00</span></div>
-                                </div>
-                            </div>
-                            <div class="status-disconnected" id="krakenStatus">Disconnected</div>
-                        </div>
-
-                        <div class="exchange-status">
-                            <div class="exchange-info">
-                                <div class="exchange-logo" style="background: linear-gradient(45deg, #f39c12, #e67e22);">B</div>
-                                <div>
-                                    <div style="font-weight: bold;">Binance <span class="price-status price-disconnected" id="binancePriceStatus">OFFLINE</span></div>
-                                    <div style="font-size: 0.8rem; color: #b8c6db;">Balance: <span id="binanceBalance">$0.00</span></div>
-                                </div>
-                            </div>
-                            <div class="status-disconnected" id="binanceStatus">Disconnected</div>
-                        </div>
-
-                        <div class="exchange-status">
-                            <div class="exchange-info">
-                                <div class="exchange-logo" style="background: linear-gradient(45deg, #e67e22, #d35400);">BY</div>
-                                <div>
-                                    <div style="font-weight: bold;">BYBIT <span class="price-status price-disconnected" id="bybitPriceStatus">OFFLINE</span></div>
-                                    <div style="font-size: 0.8rem; color: #b8c6db;">Balance: <span id="bybitBalance">$0.00</span></div>
-                                </div>
-                            </div>
-                            <div class="status-disconnected" id="bybitStatus">Disconnected</div>
-                        </div>
-
-                        <div class="exchange-status">
-                            <div class="exchange-info">
-                                <div class="exchange-logo" style="background: linear-gradient(45deg, #00b894, #00a085);">GT</div>
-                                <div>
-                                    <div style="font-weight: bold;">Gate.io <span class="price-status price-disconnected" id="gateioPriceStatus">OFFLINE</span></div>
-                                    <div style="font-size: 0.8rem; color: #b8c6db;">Balance: <span id="gateioBalance">$0.00</span></div>
-                                </div>
-                            </div>
-                            <div class="status-disconnected" id="gateioStatus">Disconnected</div>
-                        </div>
-
-                        <div class="exchange-status">
-                            <div class="exchange-info">
-                                <div class="exchange-logo" style="background: linear-gradient(45deg, #1890ff, #1677ff);">OKX</div>
-                                <div>
-                                    <div style="font-weight: bold;">OKX <span class="price-status price-disconnected" id="okxPriceStatus">OFFLINE</span></div>
-                                    <div style="font-size: 0.8rem; color: #b8c6db;">Balance: <span id="okxBalance">$0.00</span></div>
-                                </div>
-                            </div>
-                            <div class="status-disconnected" id="okxStatus">Disconnected</div>
-                        </div>
-
-                        <div class="exchange-status">
-                            <div class="exchange-info">
-                                <div class="exchange-logo" style="background: linear-gradient(45deg, #00c853, #4caf50);">MX</div>
-                                <div>
-                                    <div style="font-weight: bold;">MEXC <span class="price-status price-disconnected" id="mexcPriceStatus">OFFLINE</span></div>
-                                    <div style="font-size: 0.8rem; color: #b8c6db;">Balance: <span id="mexcBalance">$0.00</span></div>
-                                </div>
-                            </div>
-                            <div class="status-disconnected" id="mexcStatus">Disconnected</div>
-                        </div>
-
-                        <div class="exchange-status">
-                            <div class="exchange-info">
-                                <div class="exchange-logo" style="background: linear-gradient(45deg, #20bf55, #01baef);">KC</div>
-                                <div>
-                                    <div style="font-weight: bold;">KuCoin <span class="price-status price-disconnected" id="kucoinPriceStatus">OFFLINE</span></div>
-                                    <div style="font-size: 0.8rem; color: #b8c6db;">Balance: <span id="kucoinBalance">$0.00</span></div>
-                                </div>
-                            </div>
-                            <div class="status-disconnected" id="kucoinStatus">Disconnected</div>
-                        </div>
-
-                        <div class="exchange-status">
-                            <div class="exchange-info">
-                                <div class="exchange-logo" style="background: linear-gradient(45deg, #ff6b35, #f7931e);">XT</div>
-                                <div>
-                                    <div style="font-weight: bold;">XT.com <span class="price-status price-disconnected" id="xtPriceStatus">OFFLINE</span></div>
-                                    <div style="font-size: 0.8rem; color: #b8c6db;">Balance: <span id="xtBalance">$0.00</span></div>
-                                </div>
-                            </div>
-                            <div class="status-disconnected" id="xtStatus">Disconnected</div>
-                        </div>
-                        <div class="exchange-status">
-                            <div class="exchange-info">
-                                <div class="exchange-logo" style="background: linear-gradient(45deg, #9b59b6, #8e44ad);">AX</div>
-                                <div>
-                                    <div style="font-weight: bold;">AscendEX <span class="price-status price-disconnected" id="ascendexPriceStatus">OFFLINE</span></div>
-                                    <div style="font-size: 0.8rem; color: #b8c6db;">Balance: <span id="ascendexBalance">$0.00</span></div>
-                                </div>
-                            </div>
-                            <div class="status-disconnected" id="ascendexStatus">Disconnected</div>
-                        </div>
-                        <div class="exchange-status">
-                            <div class="exchange-info">
-                                <div class="exchange-logo" style="background: linear-gradient(45deg, #e74c3c, #c0392b);">HTX</div>
-                                <div>
-                                    <div style="font-weight: bold;">HTX (Huobi) <span class="price-status price-disconnected" id="htxPriceStatus">OFFLINE</span></div>
-                                    <div style="font-size: 0.8rem; color: #b8c6db;">Balance: <span id="htxBalance">$0.00</span></div>
-                                </div>
-                            </div>
-                            <div class="status-disconnected" id="htxStatus">Disconnected</div>
-                        </div>
-                        <div class="exchange-status">
-                            <div class="exchange-info">
-                                <div class="exchange-logo" style="background: linear-gradient(45deg, #ff6b6b, #ee5a50);">BX</div>
-                                <div>
-                                    <div style="font-weight: bold;">BingX <span class="price-status price-disconnected" id="bingxPriceStatus">OFFLINE</span></div>
-                                    <div style="font-size: 0.8rem; color: #b8c6db;">Balance: <span id="bingxBalance">$0.00</span></div>
-                                </div>
-                            </div>
-                            <div class="status-disconnected" id="bingxStatus">Disconnected</div>
-                        </div>
-                        <div class="exchange-status">
-                            <div class="exchange-info">
-                                <div class="exchange-logo" style="background: linear-gradient(45deg, #2980b9, #3498db);">BG</div>
-                                <div>
-                                    <div style="font-weight: bold;">Bitget <span class="price-status price-disconnected" id="bitgetPriceStatus">OFFLINE</span></div>
-                                    <div style="font-size: 0.8rem; color: #b8c6db;">Balance: <span id="bitgetBalance">$0.00</span></div>
-                                </div>
-                            </div>
-                            <div class="status-disconnected" id="bitgetStatus">Disconnected</div>
-                        </div>
-
-                        <!-- BitMart Status Card -->
-                        <div class="exchange-status">
-                            <div class="exchange-info">
-                                <div class="exchange-logo" style="background: linear-gradient(45deg, #8e44ad, #3498db);">BM</div>
-                                <div>
-                                    <div style="font-weight: bold;">BitMart <span class="price-status price-disconnected" id="bitmartPriceStatus">OFFLINE</span></div>
-                                    <div style="font-size: 0.8rem; color: #b8c6db;">Balance: <span id="bitmartBalance">$0.00</span></div>
-                                </div>
-                            </div>
-                            <div class="status-disconnected" id="bitmartStatus">Disconnected</div>
-                        </div>
-
-                        <!-- Bitrue Status Card -->
-                        <div class="exchange-status">
-                            <div class="exchange-info">
-                                <div class="exchange-logo" style="background: linear-gradient(45deg, #00d4ff, #00ff88);">BT</div>
-                                <div>
-                                    <div style="font-weight: bold;">Bitrue <span class="price-status price-disconnected" id="bitruePriceStatus">OFFLINE</span></div>
-                                    <div style="font-size: 0.8rem; color: #b8c6db;">Balance: <span id="bitrueBalance">$0.00</span></div>
-                                </div>
-                            </div>
-                            <div class="status-disconnected" id="bitrueStatus">Disconnected</div>
-                        </div>
-
-                        <!-- Gemini Status Card -->
-                        <div class="exchange-status">
-                            <div class="exchange-info">
-                                <div class="exchange-logo" style="background: linear-gradient(45deg, #ff6b35, #f7931e);">GM</div>
-                                <div>
-                                    <div style="font-weight: bold;">Gemini <span class="price-status price-disconnected" id="geminiPriceStatus">OFFLINE</span></div>
-                                    <div style="font-size: 0.8rem; color: #b8c6db;">Balance: <span id="geminiBalance">$0.00</span></div>
-                                </div>
-                            </div>
-                            <div class="status-disconnected" id="geminiStatus">Disconnected</div>
-                        </div>
-
-                        <!-- Crypto.com Status Card -->
-                        <div class="exchange-status">
-                            <div class="exchange-info">
-                                <div class="exchange-logo" style="background: linear-gradient(45deg, #0066cc, #003d7a);">CR</div>
-                                <div>
-                                    <div style="font-weight: bold;">Crypto.com <span class="price-status price-disconnected" id="cryptocomPriceStatus">OFFLINE</span></div>
-                                    <div style="font-size: 0.8rem; color: #b8c6db;">Balance: <span id="cryptocomBalance">$0.00</span></div>
-                                </div>
-                            </div>
-                            <div class="status-disconnected" id="cryptocomStatus">Disconnected</div>
+                    <!-- Desktop Matrix View -->
+                    <div id="strategyExchangeMatrix" class="strategy-matrix-desktop">
+                        <!-- Matrix will be populated by JavaScript -->
+                        <div style="text-align: center; padding: 30px; color: #b8c6db;">
+                            <div style="font-size: 2rem; margin-bottom: 10px;">🔄</div>
+                            <div>Loading matrix...</div>
                         </div>
                     </div>
 
-                        <!-- Coincatch Status Card -->
-                        <div class="exchange-status">
-                            <div class="exchange-info">
-                                <div class="exchange-logo" style="background: linear-gradient(45deg, #1a73e8, #0d47a1);">CO</div>
-                                <div>
-                                    <div style="font-weight: bold;">Coincatch <span class="price-status price-disconnected" id="coincatchPriceStatus">OFFLINE</span></div>
-                                    <div style="font-size: 0.8rem; color: #b8c6db;">Balance: <span id="coincatchBalance">$0.00</span></div>
-                                </div>
-                            </div>
-                            <div class="status-disconnected" id="coincatchStatus">Disconnected</div>
-                        </div>
+                    <!-- Mobile Matrix View -->
+                    <div id="strategyExchangeMatrixMobile" class="strategy-matrix-mobile">
+                        <!-- Mobile cards will be populated by JavaScript -->
                     </div>
                 </div>
 
@@ -23653,6 +23572,194 @@ ARB4ME Security Team`
             return displayParts.join(' | ');
         }
 
+        /**
+         * Get Strategy-Exchange Connection Matrix
+         * Scans localStorage for all exchange-strategy credential combinations
+         * @returns {Object} Matrix data structure with connection statuses
+         */
+        function getStrategyExchangeMatrix() {
+            const strategies = [
+                { id: 'cross-exchange', name: 'Cross-Exchange', icon: '🔄' },
+                { id: 'triangular', name: 'Triangular', icon: '△' },
+                { id: 'transfer', name: 'Transfer', icon: '📤' },
+                { id: 'momentum', name: 'Momentum', icon: '📈' },
+                { id: 'currency-swap', name: 'Currency Swap', icon: '💱' }
+            ];
+
+            const exchanges = [
+                { id: 'valr', name: 'VALR', logo: 'V', gradient: 'linear-gradient(45deg, #00d4ff, #0099cc)' },
+                { id: 'luno', name: 'Luno', logo: 'L', gradient: 'linear-gradient(45deg, #feca57, #ff9f43)' },
+                { id: 'altcointrader', name: 'AltCoinTrader', logo: 'A', gradient: 'linear-gradient(45deg, #ff6b6b, #ee5a24)' },
+                { id: 'xago', name: 'Xago', logo: 'X', gradient: 'linear-gradient(45deg, #00ff88, #00d4aa)' },
+                { id: 'chainex', name: 'ChainEX', logo: 'C', gradient: 'linear-gradient(45deg, #ff9f43, #f0932b)' },
+                { id: 'kraken', name: 'Kraken', logo: 'K', gradient: 'linear-gradient(45deg, #1e3a8a, #3b82f6)' },
+                { id: 'binance', name: 'Binance', logo: 'B', gradient: 'linear-gradient(45deg, #f39c12, #e67e22)' },
+                { id: 'bybit', name: 'Bybit', logo: 'BY', gradient: 'linear-gradient(45deg, #e67e22, #d35400)' },
+                { id: 'gateio', name: 'Gate.io', logo: 'GT', gradient: 'linear-gradient(45deg, #00b894, #00a085)' },
+                { id: 'okx', name: 'OKX', logo: 'OKX', gradient: 'linear-gradient(45deg, #1890ff, #1677ff)' },
+                { id: 'mexc', name: 'MEXC', logo: 'MX', gradient: 'linear-gradient(45deg, #00c853, #4caf50)' },
+                { id: 'kucoin', name: 'KuCoin', logo: 'KC', gradient: 'linear-gradient(45deg, #20bf55, #01baef)' },
+                { id: 'xt', name: 'XT.com', logo: 'XT', gradient: 'linear-gradient(45deg, #ff6b35, #f7931e)' },
+                { id: 'ascendex', name: 'AscendEX', logo: 'AX', gradient: 'linear-gradient(45deg, #9b59b6, #8e44ad)' },
+                { id: 'htx', name: 'HTX', logo: 'HTX', gradient: 'linear-gradient(45deg, #e74c3c, #c0392b)' },
+                { id: 'bingx', name: 'BingX', logo: 'BX', gradient: 'linear-gradient(45deg, #ff6b6b, #ee5a50)' },
+                { id: 'bitget', name: 'Bitget', logo: 'BG', gradient: 'linear-gradient(45deg, #2980b9, #3498db)' },
+                { id: 'bitmart', name: 'BitMart', logo: 'BM', gradient: 'linear-gradient(45deg, #8e44ad, #3498db)' },
+                { id: 'bitrue', name: 'Bitrue', logo: 'BT', gradient: 'linear-gradient(45deg, #00d4ff, #00ff88)' },
+                { id: 'gemini', name: 'Gemini', logo: 'GM', gradient: 'linear-gradient(45deg, #ff6b35, #f7931e)' },
+                { id: 'cryptocom', name: 'Crypto.com', logo: 'CR', gradient: 'linear-gradient(45deg, #0066cc, #003d7a)' },
+                { id: 'coincatch', name: 'Coincatch', logo: 'CO', gradient: 'linear-gradient(45deg, #1a73e8, #0d47a1)' }
+            ];
+
+            const matrix = [];
+
+            // Scan each exchange
+            for (const exchange of exchanges) {
+                const row = {
+                    exchange: exchange,
+                    connections: {}
+                };
+
+                // Check each strategy for this exchange
+                for (const strategy of strategies) {
+                    const apiKey = localStorage.getItem(`${exchange.id}_${strategy.id}_api`);
+                    const apiSecret = localStorage.getItem(`${exchange.id}_${strategy.id}_secret`);
+
+                    row.connections[strategy.id] = {
+                        connected: !!(apiKey && apiSecret),
+                        strategy: strategy
+                    };
+                }
+
+                matrix.push(row);
+            }
+
+            return {
+                strategies: strategies,
+                exchanges: exchanges,
+                matrix: matrix
+            };
+        }
+
+        /**
+         * Populate Strategy-Exchange Matrix
+         * Renders both desktop and mobile views of the matrix
+         */
+        function populateStrategyExchangeMatrix() {
+            const matrixData = getStrategyExchangeMatrix();
+            const { strategies, matrix } = matrixData;
+
+            // Build Desktop Table
+            let desktopHTML = '<table class="matrix-table"><thead><tr>';
+            desktopHTML += '<th>Exchange</th>';
+
+            // Add strategy column headers
+            for (const strategy of strategies) {
+                desktopHTML += `<th title="${strategy.name}">${strategy.icon}<br><span style="font-size: 0.75rem;">${strategy.name}</span></th>`;
+            }
+            desktopHTML += '</tr></thead><tbody>';
+
+            // Add exchange rows
+            for (const row of matrix) {
+                desktopHTML += '<tr>';
+
+                // Exchange name cell
+                desktopHTML += `
+                    <td>
+                        <div class="matrix-exchange-cell">
+                            <div class="matrix-exchange-logo" style="background: ${row.exchange.gradient}">
+                                ${row.exchange.logo}
+                            </div>
+                            <span class="matrix-exchange-name">${row.exchange.name}</span>
+                        </div>
+                    </td>
+                `;
+
+                // Strategy status cells
+                for (const strategy of strategies) {
+                    const connection = row.connections[strategy.id];
+                    const statusClass = connection.connected ? 'matrix-status-connected' : 'matrix-status-disconnected';
+                    const statusIcon = connection.connected ? '✅' : '−';
+                    const tooltip = connection.connected
+                        ? `${row.exchange.name} connected for ${strategy.name}`
+                        : `${row.exchange.name} not configured for ${strategy.name}`;
+
+                    desktopHTML += `
+                        <td>
+                            <span class="matrix-status-cell ${statusClass}" title="${tooltip}">
+                                ${statusIcon}
+                            </span>
+                        </td>
+                    `;
+                }
+
+                desktopHTML += '</tr>';
+            }
+
+            desktopHTML += '</tbody></table>';
+
+            // Build Mobile Cards
+            let mobileHTML = '';
+            for (const row of matrix) {
+                // Only show exchanges that have at least one connection (to reduce clutter on mobile)
+                const hasConnection = Object.values(row.connections).some(conn => conn.connected);
+
+                if (hasConnection) {
+                    mobileHTML += `
+                        <div class="matrix-mobile-card">
+                            <div class="matrix-mobile-header">
+                                <div class="matrix-exchange-logo" style="background: ${row.exchange.gradient}">
+                                    ${row.exchange.logo}
+                                </div>
+                                <span class="matrix-exchange-name" style="font-size: 1rem;">${row.exchange.name}</span>
+                            </div>
+                            <div class="matrix-mobile-strategies">
+                    `;
+
+                    for (const strategy of strategies) {
+                        const connection = row.connections[strategy.id];
+                        const statusClass = connection.connected ? 'matrix-status-connected' : 'matrix-status-disconnected';
+                        const statusIcon = connection.connected ? '✅' : '−';
+
+                        mobileHTML += `
+                            <div class="matrix-mobile-strategy">
+                                <div class="matrix-mobile-strategy-name">${strategy.icon} ${strategy.name}</div>
+                                <div class="matrix-mobile-strategy-status ${statusClass}">${statusIcon}</div>
+                            </div>
+                        `;
+                    }
+
+                    mobileHTML += `
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+
+            // If no connections on mobile, show a message
+            if (mobileHTML === '') {
+                mobileHTML = `
+                    <div style="text-align: center; padding: 30px; color: #b8c6db; background: rgba(255,255,255,0.05); border-radius: 10px;">
+                        <div style="font-size: 2rem; margin-bottom: 10px;">🔌</div>
+                        <div style="font-size: 1rem; margin-bottom: 5px;">No Exchange Connections</div>
+                        <div style="font-size: 0.85rem; opacity: 0.7;">Configure API credentials in the Strategy API Configuration page</div>
+                    </div>
+                `;
+            }
+
+            // Insert HTML into DOM
+            const desktopContainer = document.getElementById('strategyExchangeMatrix');
+            const mobileContainer = document.getElementById('strategyExchangeMatrixMobile');
+
+            if (desktopContainer) {
+                desktopContainer.innerHTML = desktopHTML;
+            }
+
+            if (mobileContainer) {
+                mobileContainer.innerHTML = mobileHTML;
+            }
+        }
+
         // Exchange Connection (simplified for demo)
         async function connectExchange(exchangeName) {
             console.log('Toggle connection for', exchangeName);
@@ -26610,6 +26717,10 @@ ARB4ME Security Team`
 
             // Load strategy performance data from backend
             await loadStrategyPerformance();
+
+            // Populate Strategy-Exchange Matrix
+            populateStrategyExchangeMatrix();
+            console.log('📊 Strategy-Exchange Matrix populated');
 
             // Initialize WebSocket connection for real-time messaging
             initializeWebSocket();
