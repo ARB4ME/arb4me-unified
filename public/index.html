@@ -23636,27 +23636,36 @@ ARB4ME Security Team`
 
                 // Check each strategy for this exchange
                 for (const strategy of strategies) {
-                    let apiKey, apiSecret;
+                    let apiKey, apiSecret, connectedFlag;
 
                     // Cross-Exchange uses old pattern (e.g., valrApiKey, lunoApiKey)
                     if (strategy.id === 'cross-exchange') {
                         // Old pattern: exchangeApiKey
                         apiKey = localStorage.getItem(`${exchange.id}ApiKey`);
                         apiSecret = localStorage.getItem(`${exchange.id}SecretKey`) || localStorage.getItem(`${exchange.id}ApiSecret`);
+                        // Check if explicitly disconnected
+                        connectedFlag = localStorage.getItem(`${exchange.id}_cross-exchange_connected`);
                     } else {
                         // New pattern: exchange_strategy_api
                         apiKey = localStorage.getItem(`${exchange.id}_${strategy.id}_api`);
                         apiSecret = localStorage.getItem(`${exchange.id}_${strategy.id}_secret`);
+                        // Check if explicitly disconnected
+                        connectedFlag = localStorage.getItem(`${exchange.id}_${strategy.id}_connected`);
                     }
 
-                    const isConnected = !!(apiKey && apiSecret);
+                    // Connected if: (1) API keys exist AND (2) not explicitly disconnected
+                    const hasCredentials = !!(apiKey && apiSecret);
+                    const isExplicitlyDisconnected = connectedFlag === 'false';
+                    const isConnected = hasCredentials && !isExplicitlyDisconnected;
 
                     // Debug first 2 exchanges only to avoid spam
                     if (matrix.length < 2) {
                         console.log(`🔍 ${exchange.name} - ${strategy.name}:`, {
                             apiKeyExists: !!apiKey,
                             apiSecretExists: !!apiSecret,
-                            connected: isConnected,
+                            connectedFlag: connectedFlag,
+                            isExplicitlyDisconnected: isExplicitlyDisconnected,
+                            finalConnected: isConnected,
                             storageKey: strategy.id === 'cross-exchange' ? `${exchange.id}ApiKey` : `${exchange.id}_${strategy.id}_api`
                         });
                     }
@@ -23686,12 +23695,19 @@ ARB4ME Security Team`
             const { strategies, matrix } = matrixData;
 
             // Debug: Log connection statuses
-            console.log('📊 Matrix Data:', {
+            const timestamp = new Date().toLocaleTimeString();
+            console.log(`📊 Matrix Data (${timestamp}):`, {
                 totalExchanges: matrix.length,
                 connectedCount: matrix.filter(row =>
                     Object.values(row.connections).some(conn => conn.connected)
                 ).length,
-                balances: state.balances
+                balances: state.balances,
+                localStorageBalances: {
+                    valr: localStorage.getItem('valr_balances'),
+                    luno: localStorage.getItem('luno_balances'),
+                    chainex: localStorage.getItem('chainex_balances'),
+                    kraken: localStorage.getItem('kraken_balances')
+                }
             });
 
             // Build Desktop Table
@@ -23718,12 +23734,25 @@ ARB4ME Security Team`
                             exchangeBalance = JSON.parse(storedBalances);
                             // Update state for next time
                             state.balances[row.exchange.id] = exchangeBalance;
+                            // Debug first 2 exchanges only
+                            if (matrix.length < 3) {
+                                console.log(`💰 ${row.exchange.name} balance loaded from localStorage:`, exchangeBalance);
+                            }
                         } catch (e) {
                             console.error(`Failed to parse balances for ${row.exchange.id}:`, e);
                             exchangeBalance = {};
                         }
                     } else {
                         exchangeBalance = {};
+                        // Debug first 2 exchanges only
+                        if (matrix.length < 3) {
+                            console.log(`💰 ${row.exchange.name} no stored balances found`);
+                        }
+                    }
+                } else {
+                    // Debug first 2 exchanges only
+                    if (matrix.length < 3) {
+                        console.log(`💰 ${row.exchange.name} balance from state:`, exchangeBalance);
                     }
                 }
                 const balanceText = formatMultiCurrencyBalance(exchangeBalance, row.exchange.name);
