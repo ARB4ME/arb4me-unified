@@ -3481,6 +3481,10 @@
                             console.error(`Balance element not found: ${exchange}-${strategy}-balance`);
                         }
 
+                        // Persist balances to localStorage for dashboard matrix
+                        localStorage.setItem(`${exchange}_balances`, JSON.stringify(balances));
+                        console.log(`💰 Persisted balances for ${exchange}:`, balances);
+
                         // MIGRATION: Update main dashboard balance and state
                         if (window.opener && strategy === 'cross-exchange') {
                             if (window.opener.state && window.opener.state.balances) {
@@ -3667,6 +3671,10 @@
 
             // Only clear connection status, keep API credentials for easy reconnection
             localStorage.removeItem(`${exchange}_${strategy}_connected`);
+
+            // Clear persisted balances
+            localStorage.removeItem(`${exchange}_balances`);
+            console.log(`💰 Cleared balances for ${exchange}`);
 
             console.log(`🗑️ Cleared connection status for ${exchange} ${strategy} (kept credentials)`);
 

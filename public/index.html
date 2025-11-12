@@ -23641,8 +23641,20 @@ ARB4ME Security Team`
                         apiSecret = localStorage.getItem(`${exchange.id}_${strategy.id}_secret`);
                     }
 
+                    const isConnected = !!(apiKey && apiSecret);
+
+                    // Debug first 2 exchanges only to avoid spam
+                    if (matrix.length < 2) {
+                        console.log(`🔍 ${exchange.name} - ${strategy.name}:`, {
+                            apiKeyExists: !!apiKey,
+                            apiSecretExists: !!apiSecret,
+                            connected: isConnected,
+                            storageKey: strategy.id === 'cross-exchange' ? `${exchange.id}ApiKey` : `${exchange.id}_${strategy.id}_api`
+                        });
+                    }
+
                     row.connections[strategy.id] = {
-                        connected: !!(apiKey && apiSecret),
+                        connected: isConnected,
                         strategy: strategy
                     };
                 }
@@ -23688,8 +23700,24 @@ ARB4ME Security Team`
             for (const row of matrix) {
                 desktopHTML += '<tr>';
 
-                // Get balance for this exchange
-                const exchangeBalance = state.balances[row.exchange.id] || {};
+                // Get balance for this exchange - check localStorage first, then state
+                let exchangeBalance = state.balances[row.exchange.id];
+                if (!exchangeBalance || Object.keys(exchangeBalance).length === 0) {
+                    // Try loading from localStorage
+                    const storedBalances = localStorage.getItem(`${row.exchange.id}_balances`);
+                    if (storedBalances) {
+                        try {
+                            exchangeBalance = JSON.parse(storedBalances);
+                            // Update state for next time
+                            state.balances[row.exchange.id] = exchangeBalance;
+                        } catch (e) {
+                            console.error(`Failed to parse balances for ${row.exchange.id}:`, e);
+                            exchangeBalance = {};
+                        }
+                    } else {
+                        exchangeBalance = {};
+                    }
+                }
                 const balanceText = formatMultiCurrencyBalance(exchangeBalance, row.exchange.name);
 
                 // Exchange name cell
@@ -23737,8 +23765,21 @@ ARB4ME Security Team`
                 const hasConnection = Object.values(row.connections).some(conn => conn.connected);
 
                 if (hasConnection) {
-                    // Get balance for this exchange
-                    const exchangeBalance = state.balances[row.exchange.id] || {};
+                    // Get balance for this exchange - check localStorage first, then state
+                    let exchangeBalance = state.balances[row.exchange.id];
+                    if (!exchangeBalance || Object.keys(exchangeBalance).length === 0) {
+                        const storedBalances = localStorage.getItem(`${row.exchange.id}_balances`);
+                        if (storedBalances) {
+                            try {
+                                exchangeBalance = JSON.parse(storedBalances);
+                                state.balances[row.exchange.id] = exchangeBalance;
+                            } catch (e) {
+                                exchangeBalance = {};
+                            }
+                        } else {
+                            exchangeBalance = {};
+                        }
+                    }
                     const balanceText = formatMultiCurrencyBalance(exchangeBalance, row.exchange.name);
 
                     mobileHTML += `
