@@ -3089,10 +3089,14 @@
                 const balanceData = await response.json();
                 console.log(`📊 ${exchange} balance response:`, balanceData);
 
-                // Handle response format: balances are in balanceData.data.balances (to match other strategies)
-                if (response.ok && balanceData.success && balanceData.data) {
-                    const balances = balanceData.data.balances || balanceData.data;
+                // Handle response format: balances can be in balanceData.data.balances OR balanceData.balances
+                if (response.ok && balanceData.success && (balanceData.data || balanceData.balances)) {
+                    const balances = balanceData.data?.balances || balanceData.data || balanceData.balances;
                     console.log(`✅ ${exchange} balance fetched:`, balances);
+
+                    // Persist balances to localStorage for dashboard matrix
+                    localStorage.setItem(`${exchange}_balances`, JSON.stringify(balances));
+                    console.log(`💾 Persisted balances for ${exchange}:`, balances);
 
                     // Format and display balance
                     const balanceDisplay = formatStrategyBalance(balances);
