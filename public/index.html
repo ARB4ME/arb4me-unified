@@ -23798,13 +23798,21 @@ ARB4ME Security Team`
             }
             desktopHTML += '</tr></thead><tbody>';
 
+            // Helper to check if balances have any non-zero values
+            const hasNonZeroBalance = (balances) => {
+                if (!balances || typeof balances !== 'object') return false;
+                return Object.values(balances).some(val => parseFloat(val) > 0);
+            };
+
             // Add exchange rows
             for (const row of matrix) {
                 desktopHTML += '<tr>';
 
                 // Get balance for this exchange - check localStorage first, then state
                 let exchangeBalance = state.balances[row.exchange.id];
-                if (!exchangeBalance || Object.keys(exchangeBalance).length === 0) {
+
+                // Reload from localStorage if: no balance, empty balance, OR all zeros (stale data)
+                if (!exchangeBalance || Object.keys(exchangeBalance).length === 0 || !hasNonZeroBalance(exchangeBalance)) {
                     // Try loading from localStorage
                     const storedBalances = localStorage.getItem(`${row.exchange.id}_balances`);
                     if (storedBalances) {
@@ -23888,7 +23896,9 @@ ARB4ME Security Team`
                 if (hasConnection) {
                     // Get balance for this exchange - check localStorage first, then state
                     let exchangeBalance = state.balances[row.exchange.id];
-                    if (!exchangeBalance || Object.keys(exchangeBalance).length === 0) {
+
+                    // Reload from localStorage if: no balance, empty balance, OR all zeros (stale data)
+                    if (!exchangeBalance || Object.keys(exchangeBalance).length === 0 || !hasNonZeroBalance(exchangeBalance)) {
                         const storedBalances = localStorage.getItem(`${row.exchange.id}_balances`);
                         if (storedBalances) {
                             try {
