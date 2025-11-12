@@ -22485,6 +22485,10 @@ ARB4ME Security Team`
                 // Just mark as disconnected - DO NOT remove credentials
                 localStorage.setItem(`${exchangeName}_momentum_connected`, 'false');
 
+                // Clear persisted balances
+                localStorage.removeItem(`${exchangeName}_balances`);
+                console.log(`💰 [Momentum] Cleared balances for ${exchangeName}`);
+
                 console.log(`✅ [Momentum] ${exchangeName} disconnected (credentials preserved)`);
 
                 // Update button state (visual feedback is enough - no popup needed)
@@ -22589,6 +22593,10 @@ ARB4ME Security Team`
 
                 console.log(`✅ [Momentum] ${exchangeName} connected successfully!`);
                 console.log(`💰 [Momentum] Balances:`, balances);
+
+                // Persist balances to localStorage for dashboard matrix
+                localStorage.setItem(`${exchangeName}_balances`, JSON.stringify(balances));
+                console.log(`💾 [Momentum] Balances persisted for matrix display`);
 
                 // Store credentials ONLY for Momentum strategy (independent from other strategies)
                 localStorage.setItem(`${exchangeName}_momentum_api`, apiKey);
