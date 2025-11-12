@@ -23541,10 +23541,17 @@ ARB4ME Security Team`
 
         // Enhanced Multi-Currency Balance Display Function
         function formatMultiCurrencyBalance(balances, exchangeName) {
+            console.log(`🔧 [formatMultiCurrencyBalance] Called for ${exchangeName}:`, {
+                balances,
+                type: typeof balances,
+                keys: Object.keys(balances || {})
+            });
+
             if (!balances || typeof balances !== 'object') {
+                console.log(`⚠️ [formatMultiCurrencyBalance] ${exchangeName} - Invalid balances, returning $0.00`);
                 return '$0.00';
             }
-            
+
             const currencyOrder = ['USDT', 'ZAR', 'XBT', 'BTC', 'ETH', 'SOL', 'XRP', 'LINK', 'DOGE', 'LTC'];
             const displayParts = [];
             
@@ -23596,11 +23603,14 @@ ARB4ME Security Team`
             
             // If no balances found, show $0.00
             if (displayParts.length === 0) {
+                console.log(`⚠️ [formatMultiCurrencyBalance] ${exchangeName} - No displayable balances found, returning $0.00`);
                 return '$0.00';
             }
-            
+
             // Join with separator - use simple text for dashboard cards
-            return displayParts.join(' | ');
+            const result = displayParts.join(' | ');
+            console.log(`✅ [formatMultiCurrencyBalance] ${exchangeName} - Returning: "${result}"`);
+            return result;
         }
 
         /**
@@ -23802,28 +23812,34 @@ ARB4ME Security Team`
                             exchangeBalance = JSON.parse(storedBalances);
                             // Update state for next time
                             state.balances[row.exchange.id] = exchangeBalance;
-                            // Debug first 2 exchanges only
-                            if (matrix.length < 3) {
-                                console.log(`💰 ${row.exchange.name} balance loaded from localStorage:`, exchangeBalance);
-                            }
+                            console.log(`💰 [MATRIX] ${row.exchange.name} balance loaded from localStorage:`, {
+                                raw: storedBalances.substring(0, 100),
+                                parsed: exchangeBalance,
+                                keys: Object.keys(exchangeBalance),
+                                USDT: exchangeBalance.USDT,
+                                ZAR: exchangeBalance.ZAR
+                            });
                         } catch (e) {
-                            console.error(`Failed to parse balances for ${row.exchange.id}:`, e);
+                            console.error(`❌ [MATRIX] Failed to parse balances for ${row.exchange.id}:`, e);
                             exchangeBalance = {};
                         }
                     } else {
                         exchangeBalance = {};
-                        // Debug first 2 exchanges only
-                        if (matrix.length < 3) {
-                            console.log(`💰 ${row.exchange.name} no stored balances found`);
-                        }
+                        console.log(`⚠️ [MATRIX] ${row.exchange.name} no stored balances found in localStorage`);
                     }
                 } else {
-                    // Debug first 2 exchanges only
-                    if (matrix.length < 3) {
-                        console.log(`💰 ${row.exchange.name} balance from state:`, exchangeBalance);
-                    }
+                    console.log(`💰 [MATRIX] ${row.exchange.name} balance from state:`, exchangeBalance);
                 }
+
+                console.log(`🎨 [MATRIX] Formatting balance for ${row.exchange.name}:`, {
+                    exchangeBalance,
+                    type: typeof exchangeBalance,
+                    isEmpty: Object.keys(exchangeBalance || {}).length === 0
+                });
+
                 const balanceText = formatMultiCurrencyBalance(exchangeBalance, row.exchange.name);
+
+                console.log(`📝 [MATRIX] ${row.exchange.name} final balance text: "${balanceText}"`);
 
                 // Exchange name cell
                 desktopHTML += `
