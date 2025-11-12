@@ -12551,7 +12551,8 @@
                 };
                 
                 addActiveTrade(tradeId, tradeInfo);
-                addActivity(`🚀 Executing arbitrage [${tradeId}]: ${opportunity.asset} (${formatCurrency(opportunity.profitAmount)} profit)`, 'info');
+                // Removed - only show completed trades, not execution starts
+                // addActivity(`🚀 Executing arbitrage [${tradeId}]: ${opportunity.asset} (${formatCurrency(opportunity.profitAmount)} profit)`, 'info');
                 
                 // Phase 1: Execute Buy Order
                 tradeExecutionState.activeTrades.get(tradeId).phase = 'buying';
@@ -12561,7 +12562,8 @@
                     return handleCompleteTradeFailure(tradeId, buyResult.error, opportunity);
                 }
                 
-                addActivity(`✅ Buy completed: ${opportunity.amount} ${opportunity.asset} on ${opportunity.buyExchange}`, 'success');
+                // Removed - only show completed trades, not individual steps
+                // addActivity(`✅ Buy completed: ${opportunity.amount} ${opportunity.asset} on ${opportunity.buyExchange}`, 'success');
                 
                 // Phase 2: Execute Sell Order
                 tradeExecutionState.activeTrades.get(tradeId).phase = 'selling';
@@ -12575,7 +12577,10 @@
                 // SUCCESS: Complete arbitrage trade
                 tradeExecutionState.activeTrades.get(tradeId).phase = 'completed';
                 recordSuccessfulTrade(opportunity, buyResult, sellResult);
-                addActivity(`💰 Arbitrage completed [${tradeId}]: ${formatCurrency(opportunity.profit)} profit!`, 'success');
+                addActivity(`🔄 Cross-Exchange: ${opportunity.asset} ${opportunity.buyExchange}→${opportunity.sellExchange} - +${formatCurrency(opportunity.profit)} profit`, 'success');
+
+                // Check for rebalancing needs after trade completes
+                checkForRebalancingNeeds();
 
                 // Broadcast trade to cross-exchange UI
                 localStorage.setItem('tradeExecuted', JSON.stringify({
@@ -21749,6 +21754,54 @@ ARB4ME Security Team`
             }
         }
 
+        /**
+         * Check for low balances and add rebalancing alerts
+         * Called after trades complete to monitor account health
+         */
+        function checkForRebalancingNeeds() {
+            if (!state.balances) return;
+
+            const lowBalanceThreshold = 50; // $50 USD or equivalent
+            const rebalanceAlerts = [];
+
+            // Check each exchange's balance
+            for (const [exchangeId, balances] of Object.entries(state.balances)) {
+                if (!balances || typeof balances !== 'object') continue;
+
+                // Calculate total value (prioritize USDT/USD, then other major currencies)
+                const usdtBalance = parseFloat(balances.USDT || balances.USD || 0);
+
+                // Alert if USDT is low
+                if (usdtBalance > 0 && usdtBalance < lowBalanceThreshold) {
+                    const exchangeName = exchangeId.charAt(0).toUpperCase() + exchangeId.slice(1);
+                    rebalanceAlerts.push({
+                        exchange: exchangeName,
+                        balance: usdtBalance,
+                        currency: balances.USDT ? 'USDT' : 'USD'
+                    });
+                }
+            }
+
+            // Add alerts to activity log (limit to prevent spam)
+            const recentAlerts = JSON.parse(localStorage.getItem('rebalanceAlerts') || '{}');
+            const now = Date.now();
+
+            for (const alert of rebalanceAlerts) {
+                // Only alert once every 30 minutes per exchange
+                const lastAlert = recentAlerts[alert.exchange] || 0;
+                if (now - lastAlert > 30 * 60 * 1000) { // 30 minutes
+                    addActivity(
+                        `⚠️ Low ${alert.currency} on ${alert.exchange} ($${alert.balance.toFixed(2)} remaining) - consider rebalancing`,
+                        'warning'
+                    );
+                    recentAlerts[alert.exchange] = now;
+                }
+            }
+
+            // Save recent alerts to prevent spam
+            localStorage.setItem('rebalanceAlerts', JSON.stringify(recentAlerts));
+        }
+
         // Live Trading Activity Feed Functions
         function addLiveActivity(message, category = 'info', icon = 'ℹ️', color = '#74b9ff') {
             const timestamp = new Date().toLocaleTimeString();
@@ -22245,10 +22298,10 @@ ARB4ME Security Team`
 
             if (state.strategies.triangular) {
                 startTriangularScanning();
-                addActivity('🔺 Triangular ARB enabled - monitoring single-exchange triangular paths', 'success');
+                // addActivity('🔺 Triangular ARB enabled - monitoring single-exchange triangular paths', 'success');
             } else {
                 stopTriangularScanning();
-                addActivity('⏸️ Triangular ARB disabled', 'warning');
+                // addActivity('⏸️ Triangular ARB disabled', 'warning');
             }
         }
 
@@ -22259,7 +22312,7 @@ ARB4ME Security Team`
             saveStrategyPreferences();
 
             if (state.strategies.transfer) {
-                addActivity('📦 Transfer ARB enabled - navigating to page', 'success');
+                // addActivity('📦 Transfer ARB enabled - navigating to page', 'success');
 
                 // Save state to localStorage
                 localStorage.setItem('transferActive', 'true');
@@ -22267,7 +22320,7 @@ ARB4ME Security Team`
                 // Navigate to transfer page
                 window.location.href = '/transfer-arb.html';
             } else {
-                addActivity('⏸️ Transfer ARB disabled', 'warning');
+                // addActivity('⏸️ Transfer ARB disabled', 'warning');
                 localStorage.setItem('transferActive', 'false');
             }
         }
@@ -22279,7 +22332,7 @@ ARB4ME Security Team`
             saveStrategyPreferences();
 
             if (state.strategies.currencySwap) {
-                addActivity('💱 Currency Swap ARB enabled - navigating to page', 'success');
+                // addActivity('💱 Currency Swap ARB enabled - navigating to page', 'success');
 
                 // Save state to localStorage
                 localStorage.setItem('currencySwapActive', 'true');
@@ -22287,7 +22340,7 @@ ARB4ME Security Team`
                 // Navigate to currency swap page
                 window.location.href = '/currency-swap-arb.html';
             } else {
-                addActivity('⏸️ Currency Swap ARB disabled', 'warning');
+                // addActivity('⏸️ Currency Swap ARB disabled', 'warning');
                 localStorage.setItem('currencySwapActive', 'false');
             }
         }
@@ -22887,15 +22940,18 @@ ARB4ME Security Team`
                             
                             if (scanResults.profitableCount > 0) {
                                 // Use sequence field from backend, or pathName as fallback
-                                const pathDisplay = best.sequence || best.pathName || 'Unknown path';
-                                const coinName = pathDisplay.split(' → ')[1] || 'N/A';
-                                addActivity(`✅ PROFITABLE: ${scanResults.profitableCount} triangular opportunities found! Best: ${coinName} at ${best.netProfitPercent.toFixed(2)}%`, 'success');
+                                // Scan results - removed to reduce noise (only show completed trades)
+                                // const pathDisplay = best.sequence || best.pathName || 'Unknown path';
+                                // const coinName = pathDisplay.split(' → ')[1] || 'N/A';
+                                // addActivity(`✅ PROFITABLE: ${scanResults.profitableCount} triangular opportunities found! Best: ${coinName} at ${best.netProfitPercent.toFixed(2)}%`, 'success');
                             } else if (best && best.netProfitPercent > -0.5) { // Check best exists
-                                const pathDisplay = best.sequence || best.pathName || 'Unknown path';
-                                const coinName = pathDisplay.split(' → ')[1] || 'N/A';
-                                addActivity(`📊 Triangular: ${exchangeCount} exchange${exchangeCount > 1 ? 's' : ''}, ${pathCount} paths, best: ${coinName} at ${best.netProfitPercent.toFixed(2)}% (need 0.8%+)`, 'info');
+                                // Scan results - removed to reduce noise
+                                // const pathDisplay = best.sequence || best.pathName || 'Unknown path';
+                                // const coinName = pathDisplay.split(' → ')[1] || 'N/A';
+                                // addActivity(`📊 Triangular: ${exchangeCount} exchange${exchangeCount > 1 ? 's' : ''}, ${pathCount} paths, best: ${coinName} at ${best.netProfitPercent.toFixed(2)}% (need 0.8%+)`, 'info');
                             } else if (best && (scanCount === 1 || scanCount % 3 === 0)) { // Check best exists
-                                addActivity(`🔺 Triangular: Monitoring ${exchangeCount} exchange${exchangeCount > 1 ? 's' : ''}, ${pathCount} paths, best at ${best.netProfitPercent.toFixed(2)}%`, 'info');
+                                // Scan results - removed to reduce noise
+                                // addActivity(`🔺 Triangular: Monitoring ${exchangeCount} exchange${exchangeCount > 1 ? 's' : ''}, ${pathCount} paths, best at ${best.netProfitPercent.toFixed(2)}%`, 'info');
                             }
                             
                             lastBestOpportunity = scanResults.bestOpportunity;
@@ -22908,7 +22964,7 @@ ARB4ME Security Team`
                 }
             }, 10000); // 10 second intervals
             
-            addActivity('🔺 Triangular scanner started - consolidated reporting enabled', 'info');
+            // addActivity('🔺 Triangular scanner started - consolidated reporting enabled', 'info');
         }
 
         // Stop triangular arbitrage scanning
@@ -22917,7 +22973,7 @@ ARB4ME Security Team`
                 clearInterval(state.triangularScanInterval);
                 state.triangularScanInterval = null;
             }
-            addActivity('⏸️ Triangular scanner stopped', 'warning');
+            // addActivity('⏸️ Triangular scanner stopped', 'warning');
         }
 
         // Execute triangular opportunity
@@ -22964,7 +23020,8 @@ ARB4ME Security Team`
                 console.log(`💰 Trade amount: ${tradeAmount.toFixed(2)} ${baseCurrency}`);
                 console.log(`📈 Expected profit: ${opportunity.netProfitPercent.toFixed(3)}%`);
 
-                addActivity(`🔺 EXECUTING: ${pathDisplay} - ${opportunity.netProfitPercent.toFixed(3)}% profit with ${tradeAmount.toFixed(2)} ${baseCurrency}`, 'success');
+                // Removed - only show completed trades, not execution starts
+                // addActivity(`🔺 EXECUTING: ${pathDisplay} - ${opportunity.netProfitPercent.toFixed(3)}% profit with ${tradeAmount.toFixed(2)} ${baseCurrency}`, 'success');
                 
                 // Get fresh prices to validate opportunity is still profitable
                 console.log('🔍 Opportunity structure:', opportunity);
@@ -23281,11 +23338,15 @@ ARB4ME Security Team`
                 console.log(`📈 Actual profit: ${actualProfit.toFixed(4)} ${baseCurrency} (${actualProfitPercent.toFixed(3)}%)`);
                 
                 // Update activity and balances
+                const profitDisplay = baseCurrency === 'USDT' ? `$${actualProfit.toFixed(2)}` : `${actualProfit.toFixed(2)} ${baseCurrency}`;
                 addActivity(
-                    `✅ Triangle Complete: ${opportunity.pathName} - Profit: ${actualProfit.toFixed(4)} ${baseCurrency} (${actualProfitPercent.toFixed(2)}%)`,
+                    `🔺 Triangular: ${opportunity.pathName} on ${opportunity.exchange} - +${profitDisplay} profit`,
                     actualProfit > 0 ? 'success' : 'warning'
                 );
-                
+
+                // Check for rebalancing needs after trade completes
+                checkForRebalancingNeeds();
+
                 // Update balance (simplified - in real implementation would sync with exchange)
                 if (state.balances[exchange]) {
                     state.balances[exchange].USDT = (state.balances[exchange].USDT || 0) + actualProfit;
