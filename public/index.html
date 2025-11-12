@@ -19589,29 +19589,14 @@ ARB4ME Security Team`
                                 return;
                             }
                         } catch (error) {
-                            // JWT token invalid or user not found in backend, clear invalid auth data
+                            // JWT token verification failed - this is OK if backend is offline
                             console.log('⚠️ JWT token verification failed:', error.message);
-                            console.log('🧹 Clearing invalid authentication data...');
+
+                            // Only clear JWT token, NOT the current user session
                             localStorage.removeItem('arb4me_jwt_token');
-                            localStorage.removeItem('arb4me_current_user');
+                            console.log('🔄 Falling back to local authentication...');
 
-                            // If user doesn't exist in backend, force re-login
-                            if (error.message.includes('User not found') || error.message.includes('not found')) {
-                                console.log('❌ User not found in database - forcing logout');
-                                // Clear all auth data
-                                localStorage.removeItem('arb4me_user');
-                                localStorage.removeItem('arb4me_remember_me');
-
-                                // Show user-friendly message
-                                alert('⚠️ Your session has expired or your account no longer exists.\n\nPlease log in again or register a new account.');
-
-                                // Update UI to show login
-                                userState.isLoggedIn = false;
-                                userState.userData = null;
-                                userState.liveMode = false;
-                                updateUIForLoggedOutUser();
-                                return;
-                            }
+                            // Don't force logout - let it fall through to local authentication
                         }
                     }
                     
