@@ -2780,15 +2780,46 @@
                         <input type="password" id="confirmPassword" required placeholder="Confirm your password">
                     </div>
                     
-                    <div style="margin: 20px 0;">
-                        <label style="display: flex; align-items: center; cursor: pointer; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px;">
-                            <input type="checkbox" id="agreeTerms" required style="margin-right: 10px;">
-                            <span style="font-size: 0.9rem; line-height: 1.4;">
-                                I agree to the <span onclick="openTermsOfService()" style="color: #00d4ff; text-decoration: underline; cursor: pointer;">Terms of Service</span> and <span onclick="openPrivacyPolicy()" style="color: #00d4ff; text-decoration: underline; cursor: pointer;">Privacy Policy</span>, and I understand this platform trades with real money.
-                            </span>
-                        </label>
+                    <!-- Trading Safety Acknowledgments -->
+                    <div style="margin: 25px 0; padding: 20px; background: rgba(255,107,107,0.1); border: 2px solid #ff6b6b; border-radius: 10px;">
+                        <div style="font-size: 1rem; color: #ff6b6b; margin-bottom: 15px; font-weight: bold; text-align: center;">
+                            ⚠️ WARNING: Live Trading uses REAL MONEY
+                        </div>
+                        <div style="font-size: 0.85rem; color: #b8c6db; margin-bottom: 15px; text-align: center;">
+                            You must acknowledge all risks before creating an account
+                        </div>
+
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            <label style="display: flex; align-items: flex-start; cursor: pointer; padding: 12px; background: rgba(255,255,255,0.1); border-radius: 8px; border: 1px solid rgba(255,255,255,0.2);">
+                                <input type="checkbox" id="safetyConfirm1" required style="margin-right: 10px; margin-top: 2px; flex-shrink: 0;">
+                                <span style="font-size: 0.9rem; line-height: 1.5;">
+                                    I understand this platform trades with <strong>REAL MONEY</strong> on live cryptocurrency exchanges
+                                </span>
+                            </label>
+
+                            <label style="display: flex; align-items: flex-start; cursor: pointer; padding: 12px; background: rgba(255,255,255,0.1); border-radius: 8px; border: 1px solid rgba(255,255,255,0.2);">
+                                <input type="checkbox" id="safetyConfirm2" required style="margin-right: 10px; margin-top: 2px; flex-shrink: 0;">
+                                <span style="font-size: 0.9rem; line-height: 1.5;">
+                                    I will <strong>start with small test amounts</strong> and increase gradually as I gain confidence
+                                </span>
+                            </label>
+
+                            <label style="display: flex; align-items: flex-start; cursor: pointer; padding: 12px; background: rgba(255,255,255,0.1); border-radius: 8px; border: 1px solid rgba(255,255,255,0.2);">
+                                <input type="checkbox" id="safetyConfirm3" required style="margin-right: 10px; margin-top: 2px; flex-shrink: 0;">
+                                <span style="font-size: 0.9rem; line-height: 1.5;">
+                                    I accept <strong>full responsibility</strong> for all trades executed by this automated system
+                                </span>
+                            </label>
+
+                            <label style="display: flex; align-items: flex-start; cursor: pointer; padding: 12px; background: rgba(255,255,255,0.1); border-radius: 8px; border: 1px solid rgba(255,255,255,0.2);">
+                                <input type="checkbox" id="agreeTerms" required style="margin-right: 10px; margin-top: 2px; flex-shrink: 0;">
+                                <span style="font-size: 0.9rem; line-height: 1.5;">
+                                    I have read the <span onclick="openTermsOfService()" style="color: #00d4ff; text-decoration: underline; cursor: pointer;">Terms of Service</span> and <span onclick="openPrivacyPolicy()" style="color: #00d4ff; text-decoration: underline; cursor: pointer;">Privacy Policy</span>, and I accept all trading risks
+                                </span>
+                            </label>
+                        </div>
                     </div>
-                    
+
                     <button type="submit" class="btn" style="font-size: 1.1rem; padding: 15px;">
                         🚀 Create My Account
                     </button>
@@ -3632,85 +3663,22 @@
 
 
         <div id="settingsTab" class="tab-content">
-            <div class="tab-content active" style="display: block;">
-                <h3 style="color: #00d4ff; margin-bottom: 15px;">🔥 Trading Safety Controls</h3>
-                <div style="margin-bottom: 20px; padding: 15px; background: rgba(255,107,107,0.1); border: 2px solid #ff6b6b; border-radius: 10px;">
-                    <div style="font-size: 0.9rem; color: #ff6b6b; margin-bottom: 15px; font-weight: bold;">
-                        ⚠️ WARNING: Live Trading uses REAL MONEY. Start with small amounts!
+            <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                <h2 style="color: #00d4ff; text-align: center; margin-bottom: 30px;">⚙️ Platform Settings</h2>
+
+                <!-- Note about strategy-specific settings -->
+                <div style="background: rgba(0,212,255,0.1); padding: 15px; border-radius: 10px; border-left: 4px solid #00d4ff; margin-bottom: 30px;">
+                    <div style="font-size: 0.9rem; color: #00d4ff; font-weight: bold; margin-bottom: 5px;">📋 Strategy Settings</div>
+                    <div style="font-size: 0.85rem; color: #b8c6db; line-height: 1.4;">
+                        Each trading strategy has its own configuration page with strategy-specific settings. Platform-wide security settings are managed here.
                     </div>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
-                        <label style="display: flex; align-items: center; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer;">
-                            <input type="checkbox" id="safetyConfirm1" style="margin-right: 10px;">
-                            <div style="flex: 1; font-size: 0.85rem;">
-                                I understand this trades with real money
-                            </div>
-                        </label>
-                        <label style="display: flex; align-items: center; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer;">
-                            <input type="checkbox" id="safetyConfirm2" style="margin-right: 10px;">
-                            <div style="flex: 1; font-size: 0.85rem;">
-                                I will start with small test amounts
-                            </div>
-                        </label>
-                        <label style="display: flex; align-items: center; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer;">
-                            <input type="checkbox" id="safetyConfirm3" style="margin-right: 10px;">
-                            <div style="flex: 1; font-size: 0.85rem;">
-                                I accept responsibility for trades
-                            </div>
-                        </label>
-                        <label style="display: flex; align-items: center; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer;">
-                            <input type="checkbox" id="guidanceConfirm" style="margin-right: 10px;">
-                            <div style="flex: 1; font-size: 0.85rem;">
-                                I have read the <a href="#" onclick="switchTab('about')" style="color: #00d4ff; text-decoration: underline;">complete user guide</a> and accept all risks
-                            </div>
-                        </label>
-                    </div>
-                    <div style="margin-top: 15px;">
-                        <label>Maximum Single Trade (USDT): <span id="maxTradeValue">$100</span></label>
-                        <input type="range" id="maxTrade" min="50" max="50000" value="100" style="width: 100%; margin-top: 5px;">
-                        <div style="font-size: 0.8rem; color: #b8c6db; margin-top: 5px;">Start small and increase gradually as you gain confidence</div>
-                    </div>
-                </div>
-                
-                <!-- Crypto Asset Selection moved to Cross-Exchange Arbitrage page -->
-                <div style="margin-bottom: 20px; padding: 20px; background: rgba(0,212,255,0.1); border: 1px solid #00d4ff; border-radius: 10px;">
-                    <h3 style="color: #00d4ff; margin-bottom: 15px; text-align: center;">💎 Crypto Asset Selection</h3>
-                    <p style="color: #b8c6db; text-align: center; margin-bottom: 15px; font-size: 0.95rem;">
-                        Crypto asset selection has been moved to the dedicated Cross-Exchange Arbitrage page for better organization and focused trading management.
-                    </p>
-                    <div style="text-align: center;">
-                        <button onclick="switchTab('dashboard')" class="btn" style="background: linear-gradient(45deg, #00d4ff 0%, #0099cc 100%); margin-right: 10px;">
-                            📊 Go to Dashboard
-                        </button>
-                        <button onclick="window.open('/cross-exchange-arb.html', '_blank')" class="btn" style="background: linear-gradient(45deg, #00ff88 0%, #00cc66 100%);">
-                            💱 Open Cross-Exchange Page
-                        </button>
-                    </div>
-                </div>
-                
-                <h3 style="color: #00d4ff; margin-bottom: 15px;">⚙️ Trading Parameters</h3>
-                
-                <!-- Fixed Profit Detection Info -->
-                <div style="background: rgba(0,255,136,0.1); padding: 15px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #00ff88;">
-                    <div style="display: flex; align-items: center; margin-bottom: 8px;">
-                        <span style="font-size: 1.2rem; margin-right: 8px;">💎</span>
-                        <h4 style="color: #00ff88; margin: 0;">Profit Detection: Fixed at 1.0%</h4>
-                    </div>
-                    <p style="color: #e0e0e0; margin: 0; font-size: 0.9rem; line-height: 1.4;">
-                        System automatically trades <strong>ALL opportunities above 1%</strong> (covers fees + profit). 
-                        No manual threshold - if there's profit, we take it! 🚀
-                    </p>
-                </div>
-                
-                <div>
-                    <label>Portfolio Exposure (% of total balance): <span id="tradeSizeValue">20%</span></label>
-                    <input type="range" id="tradeSize" min="5" max="50" value="20" style="width: 100%; margin-top: 10px;">
-                    <div style="font-size: 0.8rem; color: #b8c6db; margin-top: 5px;">Total capital at risk across all simultaneous trades</div>
                 </div>
 
-                <h3 style="color: #ff6b6b; margin: 30px 0 15px 0;">🔒 Security Settings</h3>
-                <div style="background: rgba(255,107,107,0.1); padding: 15px; border-radius: 10px; border-left: 4px solid #ff6b6b;">
-                    <div style="max-width: 300px; margin-bottom: 15px;">
-                        <label style="display: block; margin-bottom: 8px; color: #b8c6db;">Lock Screen After Inactivity:</label>
+                <!-- Security Settings Section -->
+                <h3 style="color: #ff6b6b; margin: 0 0 15px 0;">🔒 Security Settings</h3>
+                <div style="background: rgba(255,107,107,0.1); padding: 20px; border-radius: 10px; border-left: 4px solid #ff6b6b;">
+                    <div style="max-width: 400px; margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 8px; color: #e0e0e0; font-weight: bold;">Lock Screen After Inactivity:</label>
                         <select id="inactivityTimeout" onchange="updateSecuritySettings()" style="width: 100%; padding: 12px; border-radius: 8px; background: #1a1a2e; color: white; border: 1px solid rgba(255,255,255,0.2); font-size: 14px;">
                             <option value="5">5 minutes</option>
                             <option value="15">15 minutes (Recommended)</option>
@@ -3718,10 +3686,14 @@
                             <option value="60">1 hour</option>
                             <option value="0">Never (Disabled)</option>
                         </select>
+                        <div style="font-size: 0.8rem; color: #b8c6db; margin-top: 8px;">
+                            Automatically locks the platform after period of inactivity for security
+                        </div>
                     </div>
-                    <div style="text-align: center; margin-top: 15px;">
+
+                    <div style="text-align: center; margin-top: 20px;">
                         <button onclick="lockApplication('manual')" style="
-                            padding: 10px 20px;
+                            padding: 12px 24px;
                             background: linear-gradient(45deg, #ff6b6b, #ff5252);
                             color: white;
                             border: none;
@@ -3729,19 +3701,20 @@
                             font-weight: bold;
                             cursor: pointer;
                             transition: all 0.3s;
+                            font-size: 1rem;
                         " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
                             🔒 Lock Application Now
                         </button>
                     </div>
-                    <div style="margin-top: 15px; padding: 12px; background: rgba(0,255,136,0.1); border-radius: 8px; border-left: 3px solid #00ff88;">
-                        <div style="font-size: 0.9rem; color: #00ff88; font-weight: bold; margin-bottom: 5px;">🚀 Trading Protection</div>
-                        <div style="font-size: 0.85rem; color: #b8c6db; line-height: 1.4;">
+
+                    <div style="margin-top: 20px; padding: 15px; background: rgba(0,255,136,0.1); border-radius: 8px; border-left: 3px solid #00ff88;">
+                        <div style="font-size: 0.95rem; color: #00ff88; font-weight: bold; margin-bottom: 8px;">🚀 Trading Protection</div>
+                        <div style="font-size: 0.9rem; color: #e0e0e0; line-height: 1.5;">
                             Lock screen protects your UI only - <strong>trading continues safely in the background</strong><br>
-                            Password required to unlock (same as your login password)
+                            <span style="font-size: 0.85rem; color: #b8c6db;">Password required to unlock (same as your login password)</span>
                         </div>
                     </div>
                 </div>
-                
             </div>
         </div>
 
