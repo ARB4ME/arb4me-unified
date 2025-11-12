@@ -26848,6 +26848,19 @@ ARB4ME Security Team`
             populateStrategyExchangeMatrix();
             console.log('📊 Strategy-Exchange Matrix populated');
 
+            // Refresh matrix when user returns from another page (e.g., strategy-api-setup.html)
+            window.addEventListener('focus', function() {
+                console.log('🔄 Window focused - refreshing matrix...');
+                populateStrategyExchangeMatrix();
+            });
+
+            document.addEventListener('visibilitychange', function() {
+                if (!document.hidden) {
+                    console.log('🔄 Page became visible - refreshing matrix...');
+                    populateStrategyExchangeMatrix();
+                }
+            });
+
             // Initialize WebSocket connection for real-time messaging
             initializeWebSocket();
             
