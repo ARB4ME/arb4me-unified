@@ -23653,10 +23653,11 @@ ARB4ME Security Team`
                         connectedFlag = localStorage.getItem(`${exchange.id}_${strategy.id}_connected`);
                     }
 
-                    // Connected if: (1) API keys exist AND (2) not explicitly disconnected
+                    // Connected if: (1) API keys exist AND (2) explicitly connected (flag === 'true')
+                    // Note: connectedFlag can be 'true', 'false', or null (legacy data)
                     const hasCredentials = !!(apiKey && apiSecret);
-                    const isExplicitlyDisconnected = connectedFlag === 'false';
-                    const isConnected = hasCredentials && !isExplicitlyDisconnected;
+                    const isExplicitlyConnected = connectedFlag === 'true';
+                    const isConnected = hasCredentials && isExplicitlyConnected;
 
                     // Debug first 2 exchanges only to avoid spam
                     if (matrix.length < 2) {
@@ -23664,7 +23665,7 @@ ARB4ME Security Team`
                             apiKeyExists: !!apiKey,
                             apiSecretExists: !!apiSecret,
                             connectedFlag: connectedFlag,
-                            isExplicitlyDisconnected: isExplicitlyDisconnected,
+                            isExplicitlyConnected: isExplicitlyConnected,
                             finalConnected: isConnected,
                             storageKey: strategy.id === 'cross-exchange' ? `${exchange.id}ApiKey` : `${exchange.id}_${strategy.id}_api`
                         });
