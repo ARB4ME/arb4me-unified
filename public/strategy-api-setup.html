@@ -3669,8 +3669,9 @@
         function disconnectStrategyExchange(exchange, strategy) {
             console.log(`🔌 Disconnecting ${exchange} ${strategy}`);
 
-            // Only clear connection status, keep API credentials for easy reconnection
-            localStorage.removeItem(`${exchange}_${strategy}_connected`);
+            // Mark as disconnected but keep API credentials for easy reconnection
+            // IMPORTANT: Set to 'false' (not remove) so matrix can detect disconnection
+            localStorage.setItem(`${exchange}_${strategy}_connected`, 'false');
 
             // Clear persisted balances
             localStorage.removeItem(`${exchange}_balances`);
