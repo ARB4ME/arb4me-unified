@@ -27317,9 +27317,12 @@ ARB4ME Security Team`
 
 
             // Settings sliders and safety controls (profitThreshold removed - fixed at 1%)
-            document.getElementById('tradeSize').addEventListener('input', updateTradeSize);
-            document.getElementById('maxTrade').addEventListener('input', updateMaxTrade);
-            
+            const tradeSizeSlider = document.getElementById('tradeSize');
+            const maxTradeSlider = document.getElementById('maxTrade');
+
+            if (tradeSizeSlider) tradeSizeSlider.addEventListener('input', updateTradeSize);
+            if (maxTradeSlider) maxTradeSlider.addEventListener('input', updateMaxTrade);
+
             // Safety checkboxes
             ['safetyConfirm1', 'safetyConfirm2', 'safetyConfirm3', 'guidanceConfirm'].forEach(id => {
                 const checkbox = document.getElementById(id);
@@ -32946,11 +32949,16 @@ ARB4ME Security Team`
 
         // Initialize Transfer ARB status on page load
         document.addEventListener('DOMContentLoaded', function() {
-            // Set initial status
-            document.getElementById('bybitStatus').textContent = 'Ready';
-            document.getElementById('okxStatus').textContent = 'Ready';
-            document.getElementById('mexcStatus').textContent = 'Ready';
-            document.getElementById('kucoinStatus').textContent = 'Ready';
+            // Set initial status (only if elements exist)
+            const bybitStatus = document.getElementById('bybitStatus');
+            const okxStatus = document.getElementById('okxStatus');
+            const mexcStatus = document.getElementById('mexcStatus');
+            const kucoinStatus = document.getElementById('kucoinStatus');
+
+            if (bybitStatus) bybitStatus.textContent = 'Ready';
+            if (okxStatus) okxStatus.textContent = 'Ready';
+            if (mexcStatus) mexcStatus.textContent = 'Ready';
+            if (kucoinStatus) kucoinStatus.textContent = 'Ready';
 
             console.log('📦 Transfer ARB system initialized');
         });
