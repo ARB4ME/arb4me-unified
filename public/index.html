@@ -2906,9 +2906,26 @@
 
             <!-- Strategy-Exchange Matrix (Full Width) -->
             <div style="margin: 25px 0;">
-                <h3 style="color: #00d4ff; margin-bottom: 15px;">🏦 Strategy-Exchange Matrix</h3>
-                <div style="margin-bottom: 10px; color: #b8c6db; font-size: 0.9rem;">
-                    View all exchange connections across 5 trading strategies
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <div>
+                        <h3 style="color: #00d4ff; margin: 0;">🏦 Strategy-Exchange Matrix</h3>
+                        <div style="margin-top: 5px; color: #b8c6db; font-size: 0.9rem;">
+                            View all exchange connections across 5 trading strategies
+                        </div>
+                    </div>
+                    <button onclick="refreshMatrixBalances()" style="
+                        padding: 10px 20px;
+                        background: linear-gradient(45deg, #00d4ff, #00ff88);
+                        color: #1a1a2e;
+                        border: none;
+                        border-radius: 8px;
+                        cursor: pointer;
+                        font-weight: bold;
+                        font-size: 0.9rem;
+                        transition: transform 0.2s;
+                    " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                        🔄 Refresh Balances
+                    </button>
                 </div>
 
                 <!-- Desktop Matrix View -->
@@ -23587,6 +23604,46 @@ ARB4ME Security Team`
         }
 
         /**
+         * Refresh balances for all connected exchanges
+         * Note: Balances are fetched when connecting exchanges
+         * This function checks localStorage and prompts user if balances are missing
+         */
+        function refreshMatrixBalances() {
+            console.log('🔄 Refresh Balances clicked');
+
+            // Check which exchanges are connected
+            const matrixData = getStrategyExchangeMatrix();
+            const connectedExchanges = [];
+
+            for (const row of matrixData.matrix) {
+                const hasConnection = Object.values(row.connections).some(conn => conn.connected);
+                if (hasConnection) {
+                    const balanceKey = `${row.exchange.id}_balances`;
+                    const hasBalances = localStorage.getItem(balanceKey);
+
+                    connectedExchanges.push({
+                        name: row.exchange.name,
+                        id: row.exchange.id,
+                        hasBalances: !!hasBalances
+                    });
+                }
+            }
+
+            console.log('Connected exchanges:', connectedExchanges);
+
+            const missingBalances = connectedExchanges.filter(ex => !ex.hasBalances);
+
+            if (missingBalances.length > 0) {
+                const exchangeNames = missingBalances.map(ex => ex.name).join(', ');
+                alert(`⚠️ Missing balances for: ${exchangeNames}\n\nTo fetch balances:\n1. Go to API Configuration page\n2. Reconnect these exchanges\n3. Return to dashboard\n\nBalances will then appear in the matrix.`);
+            } else {
+                // Force refresh matrix display
+                populateStrategyExchangeMatrix();
+                alert('✅ All connected exchanges have balances loaded!\n\nMatrix has been refreshed.');
+            }
+        }
+
+        /**
          * Get Strategy-Exchange Connection Matrix
          * Scans localStorage for all exchange-strategy credential combinations
          * @returns {Object} Matrix data structure with connection statuses
@@ -23695,8 +23752,18 @@ ARB4ME Security Team`
             const matrixData = getStrategyExchangeMatrix();
             const { strategies, matrix } = matrixData;
 
-            // Debug: Log connection statuses
+            // Debug: Log connection statuses with parsed balances
             const timestamp = new Date().toLocaleTimeString();
+            const parseBalance = (key) => {
+                const raw = localStorage.getItem(key);
+                if (!raw) return null;
+                try {
+                    return JSON.parse(raw);
+                } catch (e) {
+                    return raw;
+                }
+            };
+
             console.log(`📊 Matrix Data (${timestamp}):`, {
                 totalExchanges: matrix.length,
                 connectedCount: matrix.filter(row =>
@@ -23704,10 +23771,10 @@ ARB4ME Security Team`
                 ).length,
                 balances: state.balances,
                 localStorageBalances: {
-                    valr: localStorage.getItem('valr_balances'),
-                    luno: localStorage.getItem('luno_balances'),
-                    chainex: localStorage.getItem('chainex_balances'),
-                    kraken: localStorage.getItem('kraken_balances')
+                    valr: parseBalance('valr_balances'),
+                    luno: parseBalance('luno_balances'),
+                    chainex: parseBalance('chainex_balances'),
+                    kraken: parseBalance('kraken_balances')
                 }
             });
 
