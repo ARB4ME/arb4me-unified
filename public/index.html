@@ -7432,12 +7432,12 @@
                             
                             addActivity('✅ Profile unlocked for editing', 'success');
                             addActivity('⏰ Session will expire in 10 minutes', 'info');
-                            
+
                             // Clear password field
-                            document.getElementById('unlockPassword').value = '';
+                            document.getElementById('profileUnlockPassword').value = '';
                         } else {
                             addActivity('❌ Invalid password', 'error');
-                            document.getElementById('unlockPassword').focus();
+                            document.getElementById('profileUnlockPassword').focus();
                         }
                     } catch (error) {
                         addActivity('❌ Error accessing profile data', 'error');
