@@ -23,3 +23,13 @@
 {"level":"info","logLevel":"info","logsDirectory":"C:\\Users\\Jonathan\\OneDrive\\Documents\\Work\\JONO WORK\\AIM Arbitrage\\2023\\IDATCO\\ARB4ME\\arb4me-unified\\logs","message":"ARB4ME Backend Logger initialized","timestamp":"2025-10-07 11:48:49"}
 {"level":"info","logLevel":"info","logsDirectory":"C:\\Users\\Jonathan\\OneDrive\\Documents\\Work\\JONO WORK\\AIM Arbitrage\\2023\\IDATCO\\ARB4ME\\arb4me-unified\\logs","message":"ARB4ME Backend Logger initialized","timestamp":"2025-10-10 11:41:49"}
 {"level":"info","logLevel":"info","logsDirectory":"C:\\Users\\Jonathan\\OneDrive\\Documents\\Work\\JONO WORK\\AIM Arbitrage\\2023\\IDATCO\\ARB4ME\\arb4me-unified\\logs","message":"ARB4ME Backend Logger initialized","timestamp":"2025-11-06 11:23:33"}
+{"level":"info","logLevel":"info","logsDirectory":"C:\\Users\\Jonathan\\OneDrive\\Documents\\Work\\JONO WORK\\AIM Arbitrage\\2023\\IDATCO\\ARB4ME\\arb4me-unified\\logs","message":"ARB4ME Backend Logger initialized","timestamp":"2025-11-11 16:47:13"}
+{"level":"warn","message":"Running without database - using in-memory storage","timestamp":"2025-11-11 16:47:16"}
+{"level":"warn","message":"Running without database - PWA will use localStorage only","timestamp":"2025-11-11 16:47:16"}
+{"level":"warn","message":"Auto-reminder service disabled - requires database connection","timestamp":"2025-11-11 16:47:16"}
+{"level":"info","message":"[WEBSOCKET] WebSocket server initialized","timestamp":"2025-11-11 16:47:16"}
+{"level":"info","message":"WebSocket server initialized","timestamp":"2025-11-11 16:47:16"}
+{"error":"systemLogger.info is not a function","level":"warn","message":"Price cache service failed to start","timestamp":"2025-11-11 16:47:16"}
+{"level":"info","message":"Server running on port 3000 in undefined mode","timestamp":"2025-11-11 16:47:16"}
+{"level":"info","message":"API available at http://localhost:3000/api/v1","timestamp":"2025-11-11 16:47:16"}
+{"level":"info","message":"::1 - - [11/Nov/2025:14:47:37 +0000] \"GET / HTTP/1.1\" 200 1766345 \"-\" \"curl/8.14.1\"","timestamp":"2025-11-11 16:47:37"}

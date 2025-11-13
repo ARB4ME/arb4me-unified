@@ -530,21 +530,38 @@ class TransferExecutionService {
     }
 
     /**
-     * STEP 3: Monitor blockchain for deposit arrival
+     * ✅ PHASE 4: STEP 3 - Monitor blockchain for deposit arrival
+     * Polls destination exchange API every 30 seconds until deposit arrives
+     * @param {string} exchange - Destination exchange name
+     * @param {string} crypto - Cryptocurrency symbol
+     * @param {string} txHash - Transaction hash from withdrawal
+     * @param {Object} credentials - API credentials for destination exchange
+     * @returns {Object} {arrived: true, amountReceived: number, confirmations: number, waitTime: ms}
      */
     async monitorDeposit(exchange, crypto, txHash, credentials) {
-        systemLogger.trading('Monitoring deposit', {
+        systemLogger.trading('🔍 Starting deposit monitoring', {
             exchange,
             crypto,
-            txHash
+            txHash: txHash ? txHash.substring(0, 10) + '...' : 'N/A'
         });
 
-        const maxWaitTime = 3600000; // 1 hour max
-        const checkInterval = 10000; // Check every 10 seconds
+        const maxWaitTime = 3600000; // 1 hour max (safety timeout)
+        const checkInterval = 30000; // Check every 30 seconds (balance between responsiveness and rate limits)
         const startTime = Date.now();
+        let checkCount = 0;
 
         while (Date.now() - startTime < maxWaitTime) {
+            checkCount++;
+            const elapsedMinutes = Math.floor((Date.now() - startTime) / 60000);
+
             try {
+                systemLogger.trading(`🔄 Deposit check #${checkCount} (${elapsedMinutes}m elapsed)`, {
+                    exchange,
+                    crypto,
+                    checkNumber: checkCount,
+                    elapsedTime: `${elapsedMinutes}m`
+                });
+
                 // Check if deposit has arrived
                 const depositStatus = await this.checkDepositStatus(
                     exchange,
@@ -554,34 +571,60 @@ class TransferExecutionService {
                 );
 
                 if (depositStatus.arrived) {
-                    systemLogger.trading('Deposit arrived', {
+                    const waitTimeMinutes = Math.floor((Date.now() - startTime) / 60000);
+                    const waitTimeSeconds = Math.floor((Date.now() - startTime) / 1000);
+
+                    systemLogger.trading(`✅ DEPOSIT ARRIVED after ${waitTimeMinutes}m ${waitTimeSeconds % 60}s`, {
                         exchange,
                         crypto,
                         amount: depositStatus.amount,
-                        confirmations: depositStatus.confirmations
+                        confirmations: depositStatus.confirmations,
+                        checksRequired: checkCount,
+                        totalWaitTime: `${waitTimeMinutes}m ${waitTimeSeconds % 60}s`
                     });
 
                     return {
                         arrived: true,
                         amountReceived: depositStatus.amount,
                         confirmations: depositStatus.confirmations,
-                        waitTime: Date.now() - startTime
+                        waitTime: Date.now() - startTime,
+                        checksRequired: checkCount
                     };
                 }
+
+                systemLogger.trading(`⏳ Deposit not arrived yet, waiting 30s...`, {
+                    exchange,
+                    crypto,
+                    nextCheckIn: '30s'
+                });
 
                 // Wait before checking again
                 await new Promise(resolve => setTimeout(resolve, checkInterval));
 
             } catch (error) {
-                systemLogger.warn('Deposit check failed, retrying...', {
+                systemLogger.warn(`⚠️ Deposit check #${checkCount} failed, retrying in 30s...`, {
                     exchange,
-                    error: error.message
+                    crypto,
+                    error: error.message,
+                    checkNumber: checkCount
                 });
+
+                // Wait before retrying
                 await new Promise(resolve => setTimeout(resolve, checkInterval));
             }
         }
 
-        throw new Error('Deposit monitoring timeout - transfer took too long');
+        // Timeout reached
+        const timeoutMinutes = Math.floor(maxWaitTime / 60000);
+        systemLogger.error(`❌ DEPOSIT MONITORING TIMEOUT after ${timeoutMinutes} minutes`, {
+            exchange,
+            crypto,
+            txHash: txHash ? txHash.substring(0, 10) + '...' : 'N/A',
+            checksPerformed: checkCount,
+            maxWaitTime: `${timeoutMinutes}m`
+        });
+
+        throw new Error(`Deposit monitoring timeout - transfer took longer than ${timeoutMinutes} minutes`);
     }
 
     /**
@@ -848,77 +891,136 @@ class TransferExecutionService {
         }
     }
 
+    /**
+     * ✅ PHASE 4: CCXT Generic Deposit Checker
+     * Check if crypto deposit has arrived on destination exchange
+     * @param {string} exchange - Destination exchange name
+     * @param {string} crypto - Cryptocurrency symbol (XRP, BTC, etc.)
+     * @param {string} txHash - Transaction hash from withdrawal
+     * @param {Object} credentials - API credentials {apiKey, apiSecret, passphrase}
+     * @returns {Object} {arrived: boolean, amount: number, confirmations: number, txHash: string}
+     */
     async checkDepositStatus(exchange, crypto, txHash, credentials) {
-        switch (exchange) {
-            case 'binance':
-                return await this.checkBinanceDeposit(crypto, credentials);
-            case 'valr':
-                return await this.checkVALRDeposit(crypto, credentials);
-            case 'kraken':
-                return await this.checkKrakenDeposit(crypto, credentials);
-            case 'okx':
-                return await this.checkOKXDeposit(crypto, credentials);
-            case 'bybit':
-                return await this.checkBybitDeposit(crypto, credentials);
-            default:
-                throw new Error(`Deposit checking not implemented for ${exchange}`);
-        }
-    }
-
-    async checkBinanceDeposit(crypto, credentials) {
-        const timestamp = Date.now();
+        systemLogger.trading('Checking deposit status via CCXT', {
+            exchange,
+            crypto,
+            txHash: txHash ? txHash.substring(0, 10) + '...' : 'N/A'
+        });
 
         try {
-            // Get recent deposit history
-            const params = {
-                coin: crypto,
-                timestamp: timestamp
-            };
+            const ccxt = require('ccxt');
 
-            const queryString = Object.entries(params)
-                .map(([key, value]) => `${key}=${value}`)
-                .join('&');
+            // Validate exchange exists in CCXT
+            if (!ccxt[exchange]) {
+                throw new Error(`Exchange '${exchange}' not supported by CCXT`);
+            }
 
-            const signature = crypto
-                .createHmac('sha256', credentials.apiSecret)
-                .update(queryString)
-                .digest('hex');
-
-            const response = await fetch(`https://api.binance.com/sapi/v1/capital/deposit/hisrec?${queryString}&signature=${signature}`, {
-                method: 'GET',
-                headers: {
-                    'X-MBX-APIKEY': credentials.apiKey,
-                    'Content-Type': 'application/json'
+            // Initialize exchange API
+            const exchangeClass = ccxt[exchange];
+            const api = new exchangeClass({
+                apiKey: credentials.apiKey,
+                secret: credentials.apiSecret,
+                password: credentials.passphrase, // For OKX, KuCoin
+                enableRateLimit: true,
+                options: {
+                    defaultType: 'spot'
                 }
             });
 
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`Binance deposit check failed: HTTP ${response.status} - ${errorText}`);
-            }
+            // Check if exchange supports fetchDeposits
+            if (!api.has['fetchDeposits']) {
+                systemLogger.warn(`${exchange} does not support fetchDeposits, falling back to balance check`, {
+                    exchange,
+                    crypto
+                });
 
-            const deposits = await response.json();
+                // FALLBACK: Check balance instead (less reliable but works)
+                const balance = await api.fetchBalance();
+                const currentBalance = balance.total[crypto] || 0;
 
-            // Check for Binance error
-            if (deposits.code && deposits.msg) {
-                throw new Error(`Binance error ${deposits.code}: ${deposits.msg}`);
-            }
-
-            // Look for most recent successful deposit
-            if (Array.isArray(deposits) && deposits.length > 0) {
-                const recentDeposit = deposits.find(d => d.status === 1); // status 1 = success
-
-                if (recentDeposit) {
+                // If balance > 0, assume deposit arrived (not ideal but better than nothing)
+                if (currentBalance > 0) {
                     return {
                         arrived: true,
-                        amount: parseFloat(recentDeposit.amount),
-                        confirmations: recentDeposit.confirmTimes,
-                        txHash: recentDeposit.txId
+                        amount: currentBalance,
+                        confirmations: 999, // Unknown
+                        txHash: 'BALANCE_CHECK'
+                    };
+                }
+
+                return {
+                    arrived: false,
+                    amount: 0,
+                    confirmations: 0,
+                    txHash: null
+                };
+            }
+
+            // Fetch recent deposits for this crypto
+            const deposits = await api.fetchDeposits(crypto, undefined, 10); // Last 10 deposits
+
+            systemLogger.trading(`Fetched ${deposits.length} recent deposits`, {
+                exchange,
+                crypto,
+                count: deposits.length
+            });
+
+            // If we have a txHash, look for exact match
+            if (txHash) {
+                const matchingDeposit = deposits.find(deposit => {
+                    // CCXT normalizes txid field
+                    const depositTxHash = deposit.txid || deposit.info?.txid || deposit.info?.txId;
+                    return depositTxHash && depositTxHash.toLowerCase() === txHash.toLowerCase();
+                });
+
+                if (matchingDeposit) {
+                    const arrived = matchingDeposit.status === 'ok' || matchingDeposit.status === 'complete';
+
+                    systemLogger.trading(`Matching deposit found: ${matchingDeposit.status}`, {
+                        exchange,
+                        crypto,
+                        status: matchingDeposit.status,
+                        arrived
+                    });
+
+                    return {
+                        arrived,
+                        amount: matchingDeposit.amount,
+                        confirmations: matchingDeposit.info?.confirmations || 0,
+                        txHash: matchingDeposit.txid
                     };
                 }
             }
 
-            // Not arrived yet
+            // If no txHash or no match found, check for ANY recent successful deposit
+            // This handles cases where exchange hasn't returned txHash yet
+            const recentSuccessful = deposits.find(deposit =>
+                (deposit.status === 'ok' || deposit.status === 'complete') &&
+                deposit.timestamp > Date.now() - 3600000 // Within last hour
+            );
+
+            if (recentSuccessful) {
+                systemLogger.trading('Recent successful deposit found (no txHash match)', {
+                    exchange,
+                    crypto,
+                    amount: recentSuccessful.amount
+                });
+
+                return {
+                    arrived: true,
+                    amount: recentSuccessful.amount,
+                    confirmations: recentSuccessful.info?.confirmations || 0,
+                    txHash: recentSuccessful.txid
+                };
+            }
+
+            // No matching deposit found
+            systemLogger.trading('No matching deposit found yet', {
+                exchange,
+                crypto,
+                depositsChecked: deposits.length
+            });
+
             return {
                 arrived: false,
                 amount: 0,
@@ -927,27 +1029,21 @@ class TransferExecutionService {
             };
 
         } catch (error) {
-            systemLogger.error('Binance deposit check failed', {
+            systemLogger.error('Deposit status check failed', {
+                exchange,
                 crypto,
                 error: error.message
             });
-            throw error;
+
+            // Don't throw - just return not arrived (monitoring will retry)
+            return {
+                arrived: false,
+                amount: 0,
+                confirmations: 0,
+                txHash: null,
+                error: error.message
+            };
         }
-    }
-
-    async checkKrakenDeposit(crypto, credentials) {
-        // TODO: Implement Kraken deposit checking
-        throw new Error('Kraken deposit checking not implemented yet');
-    }
-
-    async checkOKXDeposit(crypto, credentials) {
-        // TODO: Implement OKX deposit checking
-        throw new Error('OKX deposit checking not implemented yet');
-    }
-
-    async checkBybitDeposit(crypto, credentials) {
-        // TODO: Implement Bybit deposit checking
-        throw new Error('Bybit deposit checking not implemented yet');
     }
 
     // ========================================

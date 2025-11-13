@@ -28,3 +28,13 @@ AggregateError [ECONNREFUSED]:
 2025-10-07 11:48:49 [INFO]: ARB4ME Backend Logger initialized | {"logLevel":"info","logsDirectory":"C:\\Users\\Jonathan\\OneDrive\\Documents\\Work\\JONO WORK\\AIM Arbitrage\\2023\\IDATCO\\ARB4ME\\arb4me-unified\\logs"}
 2025-10-10 11:41:49 [INFO]: ARB4ME Backend Logger initialized | {"logLevel":"info","logsDirectory":"C:\\Users\\Jonathan\\OneDrive\\Documents\\Work\\JONO WORK\\AIM Arbitrage\\2023\\IDATCO\\ARB4ME\\arb4me-unified\\logs"}
 2025-11-06 11:23:33 [INFO]: ARB4ME Backend Logger initialized | {"logLevel":"info","logsDirectory":"C:\\Users\\Jonathan\\OneDrive\\Documents\\Work\\JONO WORK\\AIM Arbitrage\\2023\\IDATCO\\ARB4ME\\arb4me-unified\\logs"}
+2025-11-11 16:47:13 [INFO]: ARB4ME Backend Logger initialized | {"logLevel":"info","logsDirectory":"C:\\Users\\Jonathan\\OneDrive\\Documents\\Work\\JONO WORK\\AIM Arbitrage\\2023\\IDATCO\\ARB4ME\\arb4me-unified\\logs"}
+2025-11-11 16:47:16 [WARN]: Running without database - using in-memory storage
+2025-11-11 16:47:16 [WARN]: Running without database - PWA will use localStorage only
+2025-11-11 16:47:16 [WARN]: Auto-reminder service disabled - requires database connection
+2025-11-11 16:47:16 [INFO]: [WEBSOCKET] WebSocket server initialized
+2025-11-11 16:47:16 [INFO]: WebSocket server initialized
+2025-11-11 16:47:16 [WARN]: Price cache service failed to start | {"error":"systemLogger.info is not a function"}
+2025-11-11 16:47:16 [INFO]: Server running on port 3000 in undefined mode
+2025-11-11 16:47:16 [INFO]: API available at http://localhost:3000/api/v1
+2025-11-11 16:47:37 [INFO]: ::1 - - [11/Nov/2025:14:47:37 +0000] "GET / HTTP/1.1" 200 1766345 "-" "curl/8.14.1"
