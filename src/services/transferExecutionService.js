@@ -210,30 +210,142 @@ class TransferExecutionService {
     }
 
     /**
-     * STEP 1: Execute buy order on source exchange
+     * STEP 1: Execute buy order on ANY exchange using CCXT
+     * @param {string} exchange - Exchange name (e.g., 'binance', 'bybit', 'kraken')
+     * @param {string} crypto - Crypto symbol (e.g., 'XRP', 'BTC', 'ETH')
+     * @param {number} usdtAmount - Amount of USDT to spend
+     * @param {object} credentials - API credentials { apiKey, apiSecret, passphrase }
+     * @returns {object} Buy result with quantity, price, fees
      */
     async executeBuyOrder(exchange, crypto, usdtAmount, credentials) {
-        systemLogger.trading('Executing buy order', {
+        systemLogger.trading('Executing buy order via CCXT', {
             exchange,
             crypto,
             usdtAmount
         });
 
-        // Call exchange-specific buy logic
-        switch (exchange) {
-            case 'binance':
-                return await this.executeBinanceBuy(crypto, usdtAmount, credentials);
-            case 'valr':
-                return await this.executeVALRBuy(crypto, usdtAmount, credentials);
-            case 'kraken':
-                return await this.executeKrakenBuy(crypto, usdtAmount, credentials);
-            case 'okx':
-                return await this.executeOKXBuy(crypto, usdtAmount, credentials);
-            case 'bybit':
-                return await this.executeBybitBuy(crypto, usdtAmount, credentials);
-            // Add more exchanges as needed
-            default:
-                throw new Error(`Buy order not implemented for ${exchange}`);
+        try {
+            const ccxt = require('ccxt');
+
+            // Validate exchange is supported by CCXT
+            if (!ccxt[exchange]) {
+                const available = Object.keys(ccxt.exchanges).slice(0, 10).join(', ');
+                throw new Error(`Exchange '${exchange}' is not supported by CCXT. Available: ${available}...`);
+            }
+
+            // Initialize exchange API
+            const exchangeClass = ccxt[exchange];
+            const api = new exchangeClass({
+                apiKey: credentials.apiKey,
+                secret: credentials.apiSecret,
+                password: credentials.passphrase, // For OKX, KuCoin
+                enableRateLimit: true, // Respect exchange rate limits
+                options: {
+                    defaultType: 'spot', // Use spot trading (not futures/margin)
+                    adjustForTimeDifference: true // Handle time sync issues
+                }
+            });
+
+            // Validate balance BEFORE placing order (SAFETY CHECK)
+            systemLogger.trading('Checking USDT balance', { exchange });
+            const balance = await api.fetchBalance();
+            const availableUSDT = balance.free['USDT'] || 0;
+
+            if (availableUSDT < usdtAmount) {
+                throw new Error(`Insufficient USDT balance on ${exchange}. Available: $${availableUSDT.toFixed(2)}, Required: $${usdtAmount.toFixed(2)}`);
+            }
+
+            systemLogger.trading('Balance check passed', {
+                exchange,
+                availableUSDT: availableUSDT.toFixed(2),
+                requiredUSDT: usdtAmount.toFixed(2)
+            });
+
+            // Create market symbol (e.g., 'XRP/USDT')
+            const symbol = `${crypto}/USDT`;
+
+            // Verify market exists
+            await api.loadMarkets();
+            if (!api.markets[symbol]) {
+                throw new Error(`Market ${symbol} not available on ${exchange}. Check if ${crypto}/USDT pair is supported.`);
+            }
+
+            // Execute market buy order
+            systemLogger.trading('Placing market buy order', {
+                symbol,
+                usdtAmount,
+                type: 'market'
+            });
+
+            // Different exchanges need different parameters
+            let order;
+
+            // Binance/Bybit: Use quoteOrderQty (spend exact USDT amount)
+            if (['binance', 'bybit'].includes(exchange.toLowerCase())) {
+                order = await api.createOrder(symbol, 'market', 'buy', undefined, undefined, {
+                    quoteOrderQty: usdtAmount
+                });
+            } else {
+                // Other exchanges: Calculate crypto amount to buy based on current price
+                const ticker = await api.fetchTicker(symbol);
+                const currentPrice = ticker.last || ticker.close;
+                const cryptoAmount = usdtAmount / currentPrice;
+
+                systemLogger.trading('Calculated crypto amount', {
+                    currentPrice,
+                    cryptoAmount: cryptoAmount.toFixed(8)
+                });
+
+                order = await api.createMarketBuyOrder(symbol, cryptoAmount);
+            }
+
+            // Wait for order to fill (market orders usually instant, but check)
+            if (order.status !== 'closed' && order.status !== 'filled') {
+                systemLogger.trading('Order not immediately filled, fetching final status...', {
+                    orderId: order.id,
+                    status: order.status
+                });
+
+                // Fetch order details to get final status
+                const filledOrder = await api.fetchOrder(order.id, symbol);
+                order = filledOrder;
+            }
+
+            systemLogger.trading('Buy order executed successfully', {
+                orderId: order.id,
+                symbol: order.symbol,
+                filled: order.filled,
+                average: order.average,
+                cost: order.cost,
+                status: order.status,
+                fee: order.fee
+            });
+
+            // Return standardized result
+            return {
+                success: true,
+                orderId: order.id,
+                exchange: exchange,
+                crypto: crypto,
+                quantity: order.filled, // Amount of crypto received
+                averagePrice: order.average, // Average fill price
+                totalCost: order.cost, // Total USDT spent
+                fee: order.fee || { cost: 0, currency: crypto },
+                timestamp: order.timestamp || Date.now(),
+                status: order.status
+            };
+
+        } catch (error) {
+            systemLogger.error('Buy order failed', {
+                exchange,
+                crypto,
+                usdtAmount,
+                error: error.message,
+                stack: error.stack
+            });
+
+            // Re-throw with more context
+            throw new Error(`Buy order failed on ${exchange}: ${error.message}`);
         }
     }
 
