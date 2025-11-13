@@ -506,11 +506,11 @@
                     </div>
 
                     <!-- Live Status Display -->
-                    <div id="testScanStatus" style="display: none; background: rgba(0,255,136,0.1); border: 1px solid #00ff88; border-radius: 8px; padding: 20px; margin-bottom: 25px;">
+                    <div id="testScanStatus" style="background: rgba(0,255,136,0.1); border: 1px solid #00ff88; border-radius: 8px; padding: 20px; margin-bottom: 25px;">
                         <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 15px;">
                             <div>
                                 <div style="color: #888; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 5px;">Status</div>
-                                <div id="testScanStatusText" style="color: #00ff88; font-weight: bold; font-size: 1.1rem;">🟢 SCANNING</div>
+                                <div id="testScanStatusText" style="color: #888; font-weight: bold; font-size: 1.1rem;">⚪ READY TO SCAN</div>
                             </div>
                             <div>
                                 <div style="color: #888; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 5px;">Scan Cycles</div>
@@ -527,7 +527,7 @@
                         </div>
                         <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;">
                             <div style="color: #888; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 5px;">Current Scan</div>
-                            <div id="testScanCurrentSet" style="color: #b8c6db; font-size: 0.9rem;">Initializing...</div>
+                            <div id="testScanCurrentSet" style="color: #888; font-size: 0.9rem;">Click "Start Test Scan" to begin...</div>
                             <div style="margin-top: 10px; color: #888; font-size: 0.85rem;">
                                 Next scan in: <span id="testScanCountdown" style="color: #00d4ff; font-weight: bold;">--</span>
                             </div>
@@ -539,7 +539,7 @@
                     </div>
 
                     <!-- Report Tables -->
-                    <div id="testScanReports" style="display: none;">
+                    <div id="testScanReports">
                         <h4 style="color: #ffc107; margin-bottom: 20px; font-size: 1.2rem; text-align: center;">📊 Live Analysis Report</h4>
 
                         <!-- Top Routes by Profit % -->
@@ -561,7 +561,7 @@
                                         </tr>
                                     </thead>
                                     <tbody id="testScanTopProfitBody">
-                                        <tr><td colspan="9" style="text-align: center; padding: 30px; color: #888; font-style: italic;">No opportunities found yet - scanner is running...</td></tr>
+                                        <tr><td colspan="9" style="text-align: center; padding: 30px; color: #888; font-style: italic;">Waiting for scan data... Click "Start Test Scan" above.</td></tr>
                                     </tbody>
                                 </table>
                             </div>
@@ -584,7 +584,7 @@
                                         </tr>
                                     </thead>
                                     <tbody id="testScanTopConsistencyBody">
-                                        <tr><td colspan="7" style="text-align: center; padding: 30px; color: #888; font-style: italic;">No opportunities found yet - scanner is running...</td></tr>
+                                        <tr><td colspan="7" style="text-align: center; padding: 30px; color: #888; font-style: italic;">Waiting for scan data... Click "Start Test Scan" above.</td></tr>
                                     </tbody>
                                 </table>
                             </div>
@@ -605,7 +605,7 @@
                                             </tr>
                                         </thead>
                                         <tbody id="testScanBestCryptosBody">
-                                            <tr><td colspan="3" style="text-align: center; padding: 20px; color: #888;">No data yet</td></tr>
+                                            <tr><td colspan="3" style="text-align: center; padding: 20px; color: #888;">Waiting for scan data...</td></tr>
                                         </tbody>
                                     </table>
                                 </div>
@@ -624,7 +624,7 @@
                                             </tr>
                                         </thead>
                                         <tbody id="testScanBestExchangesBody">
-                                            <tr><td colspan="3" style="text-align: center; padding: 20px; color: #888;">No data yet</td></tr>
+                                            <tr><td colspan="3" style="text-align: center; padding: 20px; color: #888;">Waiting for scan data...</td></tr>
                                         </tbody>
                                     </table>
                                 </div>
@@ -645,7 +645,7 @@
                                         </tr>
                                     </thead>
                                     <tbody id="testScanTimeAnalysisBody">
-                                        <tr><td colspan="4" style="text-align: center; padding: 20px; color: #888;">Need more scanning data for time analysis...</td></tr>
+                                        <tr><td colspan="4" style="text-align: center; padding: 20px; color: #888;">Waiting for scan data...</td></tr>
                                     </tbody>
                                 </table>
                             </div>
@@ -3000,9 +3000,6 @@
             document.getElementById('stopTestScanBtn').style.cursor = 'pointer';
             document.getElementById('stopTestScanBtn').style.background = 'rgba(255,107,107,0.8)';
 
-            document.getElementById('testScanStatus').style.display = 'block';
-            document.getElementById('testScanReports').style.display = 'block';
-
             // Run first scan immediately
             await runTestScanCycle();
 
@@ -3066,19 +3063,22 @@
             }
 
             // Reset UI
-            document.getElementById('testScanStatus').style.display = 'none';
-            document.getElementById('testScanReports').style.display = 'none';
+            document.getElementById('testScanStatusText').innerHTML = '⚪ READY TO SCAN';
+            document.getElementById('testScanStatusText').style.color = '#888';
+            document.getElementById('testScanCurrentSet').textContent = 'Click "Start Test Scan" to begin...';
+            document.getElementById('testScanCurrentSet').style.color = '#888';
+            document.getElementById('testScanCountdown').textContent = '--';
             document.getElementById('testScanCycles').textContent = '0';
             document.getElementById('testScanOppsFound').textContent = '0';
             document.getElementById('testScanRunTime').textContent = '0:00';
             document.getElementById('testScanBestOpp').textContent = 'None yet';
 
             // Clear all report tables
-            document.getElementById('testScanTopProfitBody').innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 30px; color: #888; font-style: italic;">No opportunities found yet - scanner is running...</td></tr>';
-            document.getElementById('testScanTopConsistencyBody').innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 30px; color: #888; font-style: italic;">No opportunities found yet - scanner is running...</td></tr>';
-            document.getElementById('testScanBestCryptosBody').innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 20px; color: #888;">No data yet</td></tr>';
-            document.getElementById('testScanBestExchangesBody').innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 20px; color: #888;">No data yet</td></tr>';
-            document.getElementById('testScanTimeAnalysisBody').innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px; color: #888;">Need more scanning data for time analysis...</td></tr>';
+            document.getElementById('testScanTopProfitBody').innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 30px; color: #888; font-style: italic;">Waiting for scan data... Click "Start Test Scan" above.</td></tr>';
+            document.getElementById('testScanTopConsistencyBody').innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 30px; color: #888; font-style: italic;">Waiting for scan data... Click "Start Test Scan" above.</td></tr>';
+            document.getElementById('testScanBestCryptosBody').innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 20px; color: #888;">Waiting for scan data...</td></tr>';
+            document.getElementById('testScanBestExchangesBody').innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 20px; color: #888;">Waiting for scan data...</td></tr>';
+            document.getElementById('testScanTimeAnalysisBody').innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px; color: #888;">Waiting for scan data...</td></tr>';
 
             console.log('✅ Test Scan reset complete');
         }
@@ -3195,12 +3195,14 @@
         }
 
         /**
-         * Load existing test scan data
+         * Load existing test scan data and update reports on page load
          */
         function loadTestScanData() {
             const data = JSON.parse(localStorage.getItem('testScan_data') || '[]');
             if (data.length > 0) {
                 console.log(`📊 Loaded ${data.length} historical opportunities from localStorage`);
+                // Update reports with existing data
+                updateTestScanReports();
             }
         }
 
