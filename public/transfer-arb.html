@@ -1050,24 +1050,16 @@
             } catch (error) {
                 console.error('❌ Real scanner failed:', error);
 
-                // Fallback to placeholder if scanner fails
-                console.warn('⚠️ Showing placeholder data due to scanner error');
-                return [{
-                    fromExchange: connectedExchanges[0] || 'binance',
-                    toExchange: connectedExchanges[1] || 'kraken',
-                    crypto: selectedCryptos[0] || 'XRP',
-                    buyPrice: 0.50,
-                    sellPrice: 0.515,
-                    priceSpread: 3.0,
-                    usdtToSpend: 1000,
-                    netProfit: 29.73,
-                    netProfitPercent: 2.97,
-                    estimatedTransferTime: 3,
-                    riskScore: 3,
-                    profitable: true,
-                    isPlaceholder: true,
-                    error: error.message
-                }];
+                // ⚠️ SAFETY: Never show placeholder data for real money trading
+                // Stop auto-execute if it's running
+                if (isAutoExecuteActive) {
+                    stopContinuousScan();
+                    alert('⚠️ AUTO-EXECUTE STOPPED\n\nScanner Error: ' + error.message + '\n\nCannot scan for opportunities. Please check:\n- Exchange API configuration\n- Internet connection\n- Server status');
+                } else {
+                    alert('⚠️ Scanner Error\n\n' + error.message + '\n\nCannot show opportunities. Please check your exchange API configuration.');
+                }
+
+                return []; // Return empty array, never fake data
             }
         }
 
@@ -1464,11 +1456,23 @@
                                        style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.3);
                                               border-radius: 6px; padding: 10px; color: white; width: 100%; font-size: 0.9rem;">
                                 ${['XRP', 'XLM'].includes(crypto) ? `
-                                    <input type="text" id="modal-${exchange}-${crypto}-tag"
-                                           placeholder="Memo/Tag (if required)"
-                                           oninput="saveDepositAddress('${exchange}', '${crypto}', 'tag', this.value)"
-                                           style="margin-top: 8px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.3);
-                                                  border-radius: 6px; padding: 10px; color: white; width: 100%; font-size: 0.9rem;">
+                                    <div style="background: rgba(255,107,107,0.15); border: 2px solid #ff6b6b; border-radius: 8px; padding: 12px; margin-top: 12px;">
+                                        <label style="display: block; color: #ff6b6b; margin-bottom: 8px; font-weight: 700; font-size: 0.85rem;">
+                                            ⚠️ DESTINATION TAG/MEMO (REQUIRED FOR ${crypto})
+                                        </label>
+                                        <input type="text" id="modal-${exchange}-${crypto}-tag"
+                                               placeholder="Enter ${crypto} destination tag (numbers only)"
+                                               required
+                                               pattern="[0-9]+"
+                                               oninput="saveDepositAddress('${exchange}', '${crypto}', 'tag', this.value)"
+                                               style="background: rgba(0,0,0,0.4); border: 2px solid #ff6b6b; border-radius: 6px;
+                                                      padding: 10px; color: white; width: 100%; font-size: 0.9rem; margin-bottom: 8px;">
+                                        <div style="color: #ff6b6b; font-size: 0.75rem; line-height: 1.4;">
+                                            <strong>CRITICAL:</strong> ${crypto} transfers REQUIRE a destination tag/memo.<br>
+                                            <strong>Without it, your funds will be PERMANENTLY LOST!</strong><br>
+                                            Get this from your ${exchange} ${crypto} deposit page.
+                                        </div>
+                                    </div>
                                 ` : ''}
                             </div>
                         `).join('')}
@@ -1873,7 +1877,27 @@
                     console.log(`   ${bestOpp.crypto}: ${bestOpp.fromExchange} → ${bestOpp.toExchange}`);
                     console.log(`   Profit: $${bestOpp.netProfit} (${bestOpp.netProfitPercent}%)`);
 
-                    // Execute the trade automatically
+                    // ⚠️ SAFETY CHECK: Validate deposit address exists before executing
+                    const depositAddress = localStorage.getItem(`deposit_${bestOpp.toExchange}_${bestOpp.crypto}_deposit`);
+                    if (!depositAddress) {
+                        console.error('⚠️ CRITICAL: No deposit address configured for auto-execute');
+                        stopContinuousScan();
+                        alert(`⚠️ AUTO-EXECUTE STOPPED\n\nMissing Deposit Address:\n${bestOpp.toExchange} - ${bestOpp.crypto}\n\nPlease configure the deposit address in "Deposit Address Configuration" before enabling auto-execute.`);
+                        return;
+                    }
+
+                    // ⚠️ SAFETY CHECK: Validate destination tag for XRP/XLM
+                    if (['XRP', 'XLM'].includes(bestOpp.crypto)) {
+                        const tag = localStorage.getItem(`deposit_${bestOpp.toExchange}_${bestOpp.crypto}_tag`);
+                        if (!tag) {
+                            console.error('⚠️ CRITICAL: No destination tag configured for XRP/XLM');
+                            stopContinuousScan();
+                            alert(`⚠️ AUTO-EXECUTE STOPPED\n\n${bestOpp.crypto} requires a DESTINATION TAG!\n\nExchange: ${bestOpp.toExchange}\n\nFunds will be LOST without a tag. Please configure it in "Deposit Address Configuration".`);
+                            return;
+                        }
+                    }
+
+                    // Execute the trade automatically (safe to proceed)
                     await executeTransfer(bestOpp);
                 }
 
