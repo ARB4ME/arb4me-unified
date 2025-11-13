@@ -2939,23 +2939,15 @@
 
         /**
          * Load connected exchanges for test scanning
+         * Reuses existing getConnectedExchanges() function from main Transfer Arb code
          */
         function loadTestScanExchanges() {
-            const connectedExchanges = [];
-
-            // Check which exchanges have API keys configured
-            const allExchanges = ['binance', 'bybit', 'kraken', 'okx', 'kucoin', 'htx', 'bitget', 'gateio', 'mexc', 'gemini', 'valr', 'luno', 'chainex', 'altcointrader'];
-
-            allExchanges.forEach(exchange => {
-                const apiKey = localStorage.getItem(`${exchange}_transfer_arb_api_key`);
-                if (apiKey) {
-                    connectedExchanges.push(exchange);
-                }
-            });
+            // Use the existing function that checks for proper API key format
+            const connectedExchanges = getConnectedExchanges();
 
             const exchangesList = document.getElementById('testScanExchangesList');
             if (connectedExchanges.length === 0) {
-                exchangesList.innerHTML = '<span style="color: #ff6b6b;">⚠️ No exchanges connected. Add API keys in API Configuration section above.</span>';
+                exchangesList.innerHTML = '<span style="color: #ff6b6b;">⚠️ No exchanges connected. Please add API keys in <strong>Strategy API Setup</strong> section above and test connection.</span>';
             } else {
                 exchangesList.innerHTML = connectedExchanges.map(ex =>
                     `<span style="display: inline-block; background: rgba(0,212,255,0.2); padding: 4px 10px; border-radius: 4px; margin: 3px; font-size: 0.8rem;">✓ ${ex.toUpperCase()}</span>`
@@ -3116,13 +3108,8 @@
             document.getElementById('testScanRunTime').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
 
             try {
-                // Get connected exchanges
-                const connectedExchanges = [];
-                const allExchanges = ['binance', 'bybit', 'kraken', 'okx', 'kucoin', 'htx', 'bitget', 'gateio', 'mexc', 'gemini', 'valr', 'luno', 'chainex', 'altcointrader'];
-                allExchanges.forEach(exchange => {
-                    const apiKey = localStorage.getItem(`${exchange}_transfer_arb_api_key`);
-                    if (apiKey) connectedExchanges.push(exchange);
-                });
+                // Get connected exchanges using existing function
+                const connectedExchanges = getConnectedExchanges();
 
                 if (connectedExchanges.length < 2) {
                     console.warn('⚠️ Need at least 2 connected exchanges to scan');
