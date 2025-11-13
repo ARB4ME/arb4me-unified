@@ -2923,13 +2923,14 @@
 
         // ============================================
         // TEST SCAN MODE - Opportunity Research Tool
+        // Version: 2.0 - Simplified Exchange Detection
         // ============================================
 
-        let testScanInterval = null;
-        let testScanCountdownInterval = null;
-        let testScanStartTime = null;
-        let testScanCycleCount = 0;
-        let testScanNextScanTime = null;
+        var testScanInterval = null;
+        var testScanCountdownInterval = null;
+        var testScanStartTime = null;
+        var testScanCycleCount = 0;
+        var testScanNextScanTime = null;
 
         // Initialize Test Scan Mode on page load
         document.addEventListener('DOMContentLoaded', function() {
@@ -2938,21 +2939,19 @@
         });
 
         /**
-         * Load connected exchanges for test scanning
-         * Reuses existing getConnectedExchanges() function from main Transfer Arb code
+         * Load exchanges for test scanning
+         * Shows all 21 exchanges - backend will use whichever have price data available
          */
         function loadTestScanExchanges() {
-            // Use the existing function that checks for proper API key format
-            const connectedExchanges = getConnectedExchanges();
+            const allExchanges = ['binance', 'bybit', 'kraken', 'okx', 'kucoin', 'htx', 'bitget',
+                                  'gateio', 'mexc', 'gemini', 'valr', 'luno', 'chainex', 'altcointrader',
+                                  'bitmart', 'bitrue', 'coincatch', 'bingx', 'ascendex'];
 
             const exchangesList = document.getElementById('testScanExchangesList');
-            if (connectedExchanges.length === 0) {
-                exchangesList.innerHTML = '<span style="color: #ff6b6b;">⚠️ No exchanges connected. Please add API keys in <strong>Strategy API Setup</strong> section above and test connection.</span>';
-            } else {
-                exchangesList.innerHTML = connectedExchanges.map(ex =>
-                    `<span style="display: inline-block; background: rgba(0,212,255,0.2); padding: 4px 10px; border-radius: 4px; margin: 3px; font-size: 0.8rem;">✓ ${ex.toUpperCase()}</span>`
+            exchangesList.innerHTML = `<span style="color: #00d4ff;">Scanning all ${allExchanges.length} exchanges (using available price data)</span><br>` +
+                allExchanges.map(ex =>
+                    `<span style="display: inline-block; background: rgba(0,212,255,0.2); padding: 3px 8px; border-radius: 4px; margin: 2px; font-size: 0.75rem;">${ex.toUpperCase()}</span>`
                 ).join('');
-            }
         }
 
         /**
@@ -3108,20 +3107,17 @@
             document.getElementById('testScanRunTime').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
 
             try {
-                // Get connected exchanges using existing function
-                const connectedExchanges = getConnectedExchanges();
-
-                if (connectedExchanges.length < 2) {
-                    console.warn('⚠️ Need at least 2 connected exchanges to scan');
-                    return;
-                }
+                // Use all 21 exchanges - backend will use whichever have price data
+                const allExchanges = ['binance', 'bybit', 'kraken', 'okx', 'kucoin', 'htx', 'bitget',
+                                      'gateio', 'mexc', 'gemini', 'valr', 'luno', 'chainex', 'altcointrader',
+                                      'bitmart', 'bitrue', 'coincatch', 'bingx', 'ascendex'];
 
                 // Call real-time scanner
                 const response = await fetch('/api/transfer-arb/scan-realtime', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
-                        exchanges: connectedExchanges,
+                        exchanges: allExchanges,
                         cryptos: currentBatch,
                         minProfitPercent: config.minProfit,
                         maxTransferAmount: 10000,
