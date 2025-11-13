@@ -3112,8 +3112,8 @@
                                       'gateio', 'mexc', 'gemini', 'valr', 'luno', 'chainex', 'altcointrader',
                                       'bitmart', 'bitrue', 'coincatch', 'bingx', 'ascendex'];
 
-                // Call real-time scanner
-                const response = await fetch('/api/transfer-arb/scan-realtime', {
+                // Call real-time scanner (using correct API v1 prefix)
+                const response = await fetch('/api/v1/transfer-arb/scan-realtime', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
