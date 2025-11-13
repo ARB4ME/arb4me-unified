@@ -628,30 +628,103 @@ class TransferExecutionService {
     }
 
     /**
-     * STEP 4: Execute sell order on destination exchange
+     * ✅ PHASE 5: STEP 4 - Execute sell order on destination exchange
+     * Sells crypto for USDT using CCXT generic implementation
+     * @param {string} exchange - Destination exchange name
+     * @param {string} crypto - Cryptocurrency to sell (XRP, BTC, etc.)
+     * @param {number} amount - Amount of crypto to sell
+     * @param {Object} credentials - API credentials {apiKey, apiSecret, passphrase}
+     * @returns {Object} {success: true, orderId, quantity, averagePrice, totalRevenue, fee}
      */
     async executeSellOrder(exchange, crypto, amount, credentials) {
-        systemLogger.trading('Executing sell order', {
+        systemLogger.trading('🔴 Executing SELL order via CCXT', {
             exchange,
             crypto,
             amount
         });
 
-        // Call exchange-specific sell logic
-        switch (exchange) {
-            case 'binance':
-                return await this.executeBinanceSell(crypto, amount, credentials);
-            case 'valr':
-                return await this.executeVALRSell(crypto, amount, credentials);
-            case 'kraken':
-                return await this.executeKrakenSell(crypto, amount, credentials);
-            case 'okx':
-                return await this.executeOKXSell(crypto, amount, credentials);
-            case 'bybit':
-                return await this.executeBybitSell(crypto, amount, credentials);
-            // Add more exchanges as needed
-            default:
-                throw new Error(`Sell order not implemented for ${exchange}`);
+        try {
+            const ccxt = require('ccxt');
+
+            // Validate exchange exists in CCXT
+            if (!ccxt[exchange]) {
+                throw new Error(`Exchange '${exchange}' not supported by CCXT`);
+            }
+
+            // Initialize exchange API
+            const exchangeClass = ccxt[exchange];
+            const api = new exchangeClass({
+                apiKey: credentials.apiKey,
+                secret: credentials.apiSecret,
+                password: credentials.passphrase, // For OKX, KuCoin
+                enableRateLimit: true,
+                options: {
+                    defaultType: 'spot',
+                    adjustForTimeDifference: true
+                }
+            });
+
+            // SAFETY CHECK: Validate balance
+            const balance = await api.fetchBalance();
+            const availableCrypto = balance.free[crypto] || 0;
+
+            if (availableCrypto < amount) {
+                throw new Error(`Insufficient ${crypto} balance on ${exchange}. Available: ${availableCrypto}, Required: ${amount}`);
+            }
+
+            // Load markets
+            await api.loadMarkets();
+            const symbol = `${crypto}/USDT`;
+
+            if (!api.markets[symbol]) {
+                throw new Error(`Market ${symbol} not available on ${exchange}`);
+            }
+
+            // Get market precision for amount rounding
+            const market = api.markets[symbol];
+            const amountPrecision = market.precision?.amount || 8;
+            const roundedAmount = parseFloat(amount.toFixed(amountPrecision));
+
+            systemLogger.trading(`Selling ${roundedAmount} ${crypto} for USDT`, {
+                exchange,
+                symbol,
+                amount: roundedAmount
+            });
+
+            // Execute market sell order
+            const order = await api.createMarketSellOrder(symbol, roundedAmount);
+
+            // Calculate revenue
+            const totalRevenue = order.cost || (order.filled * order.average);
+
+            systemLogger.trading(`✅ SELL order executed successfully`, {
+                exchange,
+                crypto,
+                orderId: order.id,
+                filled: order.filled,
+                averagePrice: order.average,
+                totalRevenue,
+                fee: order.fee
+            });
+
+            return {
+                success: true,
+                orderId: order.id,
+                quantity: order.filled,
+                averagePrice: order.average,
+                totalRevenue,
+                fee: order.fee || { cost: 0, currency: 'USDT' }
+            };
+
+        } catch (error) {
+            systemLogger.error('❌ SELL order failed', {
+                exchange,
+                crypto,
+                amount,
+                error: error.message
+            });
+
+            throw new Error(`Sell order failed on ${exchange}: ${error.message}`);
         }
     }
 
