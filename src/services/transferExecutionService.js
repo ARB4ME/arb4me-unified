@@ -100,7 +100,8 @@ class TransferExecutionService {
                 opportunity.crypto,
                 buyResult.quantity,
                 credentials.fromExchange,
-                credentials.depositAddress
+                credentials.depositAddress,
+                credentials.depositTag  // Add tag parameter for XRP/XLM
             );
 
             transfer.steps.withdraw.status = 'COMPLETED';
@@ -350,32 +351,182 @@ class TransferExecutionService {
     }
 
     /**
-     * STEP 2: Execute withdrawal to destination exchange
+     * STEP 2: Execute withdrawal to destination exchange using CCXT
+     * @param {string} exchange - Source exchange (e.g., 'kraken')
+     * @param {string} crypto - Crypto to withdraw (e.g., 'XRP')
+     * @param {number} amount - Amount to withdraw
+     * @param {object} credentials - API credentials { apiKey, apiSecret, passphrase }
+     * @param {string} destinationAddress - Receiving wallet address
+     * @param {string} destinationTag - Tag/Memo for XRP/XLM (optional)
+     * @returns {object} Withdrawal result with txHash, status
      */
-    async executeWithdrawal(exchange, crypto, amount, credentials, destinationAddress) {
-        systemLogger.trading('Executing withdrawal', {
+    async executeWithdrawal(exchange, crypto, amount, credentials, destinationAddress, destinationTag) {
+        systemLogger.trading('Executing withdrawal via CCXT', {
             exchange,
             crypto,
             amount,
-            destination: destinationAddress.substring(0, 10) + '...'
+            destination: destinationAddress.substring(0, 10) + '...',
+            hasTag: !!destinationTag
         });
 
-        // Call exchange-specific withdrawal logic
-        switch (exchange) {
-            case 'binance':
-                return await this.executeBinanceWithdrawal(crypto, amount, destinationAddress, credentials);
-            case 'valr':
-                return await this.executeVALRWithdrawal(crypto, amount, destinationAddress, credentials);
-            case 'kraken':
-                return await this.executeKrakenWithdrawal(crypto, amount, destinationAddress, credentials);
-            case 'okx':
-                return await this.executeOKXWithdrawal(crypto, amount, destinationAddress, credentials);
-            case 'bybit':
-                return await this.executeBybitWithdrawal(crypto, amount, destinationAddress, credentials);
-            // Add more exchanges as needed
-            default:
-                throw new Error(`Withdrawal not implemented for ${exchange}`);
+        try {
+            const ccxt = require('ccxt');
+
+            // Validate exchange is supported
+            if (!ccxt[exchange]) {
+                throw new Error(`Exchange '${exchange}' not supported by CCXT`);
+            }
+
+            // Initialize exchange API
+            const exchangeClass = ccxt[exchange];
+            const api = new exchangeClass({
+                apiKey: credentials.apiKey,
+                secret: credentials.apiSecret,
+                password: credentials.passphrase, // For OKX, KuCoin
+                enableRateLimit: true
+            });
+
+            // SAFETY CHECK: Validate balance before withdrawal
+            systemLogger.trading('Checking crypto balance', { exchange, crypto });
+            const balance = await api.fetchBalance();
+            const available = balance.free[crypto] || 0;
+
+            if (available < amount) {
+                throw new Error(`Insufficient ${crypto} balance on ${exchange}. Available: ${available.toFixed(8)}, Required: ${amount.toFixed(8)}`);
+            }
+
+            systemLogger.trading('Balance check passed', {
+                exchange,
+                crypto,
+                available: available.toFixed(8),
+                withdrawing: amount.toFixed(8)
+            });
+
+            // SAFETY CHECK: Validate destination address format
+            const addressValid = this.validateCryptoAddress(crypto, destinationAddress);
+            if (!addressValid) {
+                systemLogger.error('Invalid address format detected', {
+                    crypto,
+                    address: destinationAddress
+                });
+                throw new Error(`Invalid ${crypto} address format: ${destinationAddress}. Please verify the address is correct.`);
+            }
+
+            // CRITICAL: Validate XRP/XLM tag is provided
+            if (['XRP', 'XLM'].includes(crypto) && !destinationTag) {
+                throw new Error(`CRITICAL: ${crypto} requires a destination tag. Withdrawals without tags will result in PERMANENT FUND LOSS! Please configure the tag in Deposit Address Configuration.`);
+            }
+
+            // Build withdrawal parameters
+            const params = {};
+
+            // Add tag/memo for XRP/XLM
+            if (destinationTag) {
+                params.tag = destinationTag;   // XRP format
+                params.memo = destinationTag;  // XLM format
+                systemLogger.trading('Including destination tag', {
+                    crypto,
+                    tag: destinationTag
+                });
+            }
+
+            // Specify network for USDT (critical!)
+            if (crypto === 'USDT') {
+                // Default to TRC20 (cheapest, fastest)
+                params.network = 'TRC20';
+                systemLogger.trading('USDT withdrawal - using TRC20 network', {
+                    network: 'TRC20'
+                });
+            }
+
+            // Execute withdrawal
+            systemLogger.trading('Initiating blockchain withdrawal', {
+                crypto,
+                amount,
+                exchange,
+                addressPreview: destinationAddress.substring(0, 10) + '...',
+                network: params.network || 'default'
+            });
+
+            const withdrawal = await api.withdraw(
+                crypto,
+                amount,
+                destinationAddress,
+                destinationTag,
+                params
+            );
+
+            systemLogger.trading('Withdrawal initiated successfully', {
+                withdrawalId: withdrawal.id,
+                txHash: withdrawal.txid || 'pending',
+                status: withdrawal.status,
+                fee: withdrawal.fee
+            });
+
+            // Return standardized result
+            return {
+                success: true,
+                withdrawalId: withdrawal.id,
+                txHash: withdrawal.txid || null,  // May be null if pending
+                amount: withdrawal.amount,
+                fee: withdrawal.fee,
+                status: withdrawal.status,  // 'pending', 'ok', 'failed', 'canceled'
+                network: params.network || 'default',
+                timestamp: Date.now()
+            };
+
+        } catch (error) {
+            systemLogger.error('Withdrawal failed', {
+                exchange,
+                crypto,
+                amount,
+                error: error.message,
+                stack: error.stack
+            });
+
+            throw new Error(`Withdrawal failed on ${exchange}: ${error.message}`);
         }
+    }
+
+    /**
+     * Validate cryptocurrency address format
+     * Basic validation to prevent obvious typos
+     */
+    validateCryptoAddress(crypto, address) {
+        // Address format patterns
+        const patterns = {
+            'XRP': /^r[1-9A-HJ-NP-Za-km-z]{25,34}$/,
+            'BTC': /^(1|3|bc1)[a-zA-Z0-9]{25,62}$/,
+            'ETH': /^0x[a-fA-F0-9]{40}$/,
+            'TRX': /^T[a-zA-Z0-9]{33}$/,
+            'XLM': /^G[A-Z2-7]{55}$/,
+            'LTC': /^(L|M|ltc1)[a-zA-Z0-9]{26,62}$/,
+            'USDT': /.+/,  // USDT can be on multiple networks, hard to validate
+            'USDC': /.+/,
+            'DOGE': /^D[a-zA-Z0-9]{33}$/,
+            'BCH': /^(1|3|q|p)[a-zA-Z0-9]{25,62}$/,
+            'ADA': /^addr1[a-z0-9]{53,}$/,
+            'DOT': /^1[a-zA-Z0-9]{47}$/
+        };
+
+        const pattern = patterns[crypto];
+        if (!pattern) {
+            // If no pattern defined, allow it (assume exchange validates)
+            systemLogger.warn('No validation pattern for crypto', { crypto });
+            return true;
+        }
+
+        const isValid = pattern.test(address);
+
+        if (!isValid) {
+            systemLogger.warn('Address failed format validation', {
+                crypto,
+                address: address.substring(0, 20) + '...',
+                expectedPattern: pattern.toString()
+            });
+        }
+
+        return isValid;
     }
 
     /**
