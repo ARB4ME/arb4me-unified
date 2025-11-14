@@ -3404,7 +3404,10 @@
         function updateTestScanReports() {
             const data = JSON.parse(localStorage.getItem('testScan_data') || '[]');
 
+            console.log(`📊 Updating reports with ${data.length} total opportunities`);
+
             if (data.length === 0) {
+                console.log('⚠️ No data to display in reports');
                 return;
             }
 
@@ -3478,10 +3481,12 @@
 
             // Top 10 by Profit %
             const topProfit = routes.sort((a, b) => b.avgProfit - a.avgProfit).slice(0, 10);
+            console.log(`💰 Top profit routes: ${topProfit.length} routes, best: ${topProfit[0]?.avgProfit.toFixed(2)}%`);
             updateTopProfitTable(topProfit);
 
             // Top 10 by Consistency
             const topConsistency = routes.sort((a, b) => b.count - a.count).slice(0, 10);
+            console.log(`🔄 Top consistency routes: ${topConsistency.length} routes, most consistent: ${topConsistency[0]?.count} occurrences`);
             updateTopConsistencyTable(topConsistency);
 
             // Best Cryptos
