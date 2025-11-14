@@ -55,8 +55,62 @@ class PriceCacheService {
                 name: 'Gate.io',
                 baseUrl: 'https://api.gateio.ws',
                 fetchAllPrices: this.fetchGateIOPrices.bind(this)
+            },
+            bitget: {
+                name: 'Bitget',
+                baseUrl: 'https://api.bitget.com',
+                fetchAllPrices: this.fetchBitgetPrices.bind(this)
+            },
+            gemini: {
+                name: 'Gemini',
+                baseUrl: 'https://api.gemini.com',
+                fetchAllPrices: this.fetchGeminiPrices.bind(this)
+            },
+            bingx: {
+                name: 'BingX',
+                baseUrl: 'https://open-api.bingx.com',
+                fetchAllPrices: this.fetchBingXPrices.bind(this)
+            },
+            bitmart: {
+                name: 'BitMart',
+                baseUrl: 'https://api-cloud.bitmart.com',
+                fetchAllPrices: this.fetchBitMartPrices.bind(this)
+            },
+            bitrue: {
+                name: 'Bitrue',
+                baseUrl: 'https://www.bitrue.com',
+                fetchAllPrices: this.fetchBitruePrices.bind(this)
+            },
+            ascendex: {
+                name: 'AscendEX',
+                baseUrl: 'https://ascendex.com',
+                fetchAllPrices: this.fetchAscendEXPrices.bind(this)
+            },
+            xt: {
+                name: 'XT',
+                baseUrl: 'https://sapi.xt.com',
+                fetchAllPrices: this.fetchXTPrices.bind(this)
+            },
+            coincatch: {
+                name: 'CoinCatch',
+                baseUrl: 'https://api.coincatch.com',
+                fetchAllPrices: this.fetchCoinCatchPrices.bind(this)
+            },
+            valr: {
+                name: 'VALR',
+                baseUrl: 'https://api.valr.com',
+                fetchAllPrices: this.fetchVALRPrices.bind(this)
+            },
+            luno: {
+                name: 'Luno',
+                baseUrl: 'https://api.luno.com',
+                fetchAllPrices: this.fetchLunoPrices.bind(this)
+            },
+            chainex: {
+                name: 'ChainEX',
+                baseUrl: 'https://api.chainex.io',
+                fetchAllPrices: this.fetchChainEXPrices.bind(this)
             }
-            // Add more exchanges as needed
         };
     }
 
@@ -636,6 +690,283 @@ class PriceCacheService {
         for (const ticker of data) {
             if (ticker.currency_pair.endsWith('_USDT')) {
                 const symbol = ticker.currency_pair.replace('_', '');
+                prices[symbol] = parseFloat(ticker.last);
+            }
+        }
+
+        return prices;
+    }
+
+    /**
+     * Fetch all prices from Bitget
+     */
+    async fetchBitgetPrices() {
+        const response = await fetch('https://api.bitget.com/api/spot/v1/market/tickers');
+
+        if (!response.ok) {
+            throw new Error(`Bitget API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (data.code !== '00000') {
+            throw new Error(`Bitget API error: ${data.msg}`);
+        }
+
+        const prices = {};
+        for (const ticker of data.data) {
+            if (ticker.symbol && ticker.symbol.endsWith('USDT')) {
+                prices[ticker.symbol] = parseFloat(ticker.close);
+            }
+        }
+
+        return prices;
+    }
+
+    /**
+     * Fetch all prices from Gemini
+     */
+    async fetchGeminiPrices() {
+        const response = await fetch('https://api.gemini.com/v1/pricefeed');
+
+        if (!response.ok) {
+            throw new Error(`Gemini API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        const prices = {};
+        for (const ticker of data) {
+            if (ticker.pair && ticker.pair.endsWith('USD')) {
+                // Gemini uses USD pairs, convert to USDT
+                const symbol = ticker.pair.replace('USD', 'USDT');
+                prices[symbol] = parseFloat(ticker.price);
+            }
+        }
+
+        return prices;
+    }
+
+    /**
+     * Fetch all prices from BingX
+     */
+    async fetchBingXPrices() {
+        const response = await fetch('https://open-api.bingx.com/openApi/spot/v1/ticker/24hr');
+
+        if (!response.ok) {
+            throw new Error(`BingX API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (data.code !== 0) {
+            throw new Error(`BingX API error: ${data.msg}`);
+        }
+
+        const prices = {};
+        for (const ticker of data.data) {
+            if (ticker.symbol && ticker.symbol.endsWith('-USDT')) {
+                const symbol = ticker.symbol.replace('-', '');
+                prices[symbol] = parseFloat(ticker.lastPrice);
+            }
+        }
+
+        return prices;
+    }
+
+    /**
+     * Fetch all prices from BitMart
+     */
+    async fetchBitMartPrices() {
+        const response = await fetch('https://api-cloud.bitmart.com/spot/v1/ticker');
+
+        if (!response.ok) {
+            throw new Error(`BitMart API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (data.code !== 1000) {
+            throw new Error(`BitMart API error: ${data.message}`);
+        }
+
+        const prices = {};
+        for (const ticker of data.data.tickers) {
+            if (ticker.symbol && ticker.symbol.endsWith('_USDT')) {
+                const symbol = ticker.symbol.replace('_', '');
+                prices[symbol] = parseFloat(ticker.last_price);
+            }
+        }
+
+        return prices;
+    }
+
+    /**
+     * Fetch all prices from Bitrue
+     */
+    async fetchBitruePrices() {
+        const response = await fetch('https://api.bitrue.com/api/v1/ticker/24hr');
+
+        if (!response.ok) {
+            throw new Error(`Bitrue API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        const prices = {};
+        for (const ticker of data) {
+            if (ticker.symbol && ticker.symbol.endsWith('USDT')) {
+                prices[ticker.symbol] = parseFloat(ticker.lastPrice);
+            }
+        }
+
+        return prices;
+    }
+
+    /**
+     * Fetch all prices from AscendEX
+     */
+    async fetchAscendEXPrices() {
+        const response = await fetch('https://ascendex.com/api/pro/v1/ticker');
+
+        if (!response.ok) {
+            throw new Error(`AscendEX API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (data.code !== 0) {
+            throw new Error(`AscendEX API error: ${data.message}`);
+        }
+
+        const prices = {};
+        for (const ticker of data.data) {
+            if (ticker.symbol && ticker.symbol.endsWith('/USDT')) {
+                const symbol = ticker.symbol.replace('/', '');
+                prices[symbol] = parseFloat(ticker.close);
+            }
+        }
+
+        return prices;
+    }
+
+    /**
+     * Fetch all prices from XT
+     */
+    async fetchXTPrices() {
+        const response = await fetch('https://sapi.xt.com/v4/public/ticker/24h');
+
+        if (!response.ok) {
+            throw new Error(`XT API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (!data.result) {
+            throw new Error(`XT API error: Invalid response`);
+        }
+
+        const prices = {};
+        for (const ticker of data.result) {
+            if (ticker.s && ticker.s.endsWith('_USDT')) {
+                const symbol = ticker.s.replace('_', '');
+                prices[symbol] = parseFloat(ticker.c);
+            }
+        }
+
+        return prices;
+    }
+
+    /**
+     * Fetch all prices from CoinCatch
+     */
+    async fetchCoinCatchPrices() {
+        const response = await fetch('https://api.coincatch.com/api/mix/v1/market/tickers?productType=umcbl');
+
+        if (!response.ok) {
+            throw new Error(`CoinCatch API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (data.code !== '00000') {
+            throw new Error(`CoinCatch API error: ${data.msg}`);
+        }
+
+        const prices = {};
+        for (const ticker of data.data) {
+            if (ticker.symbol && ticker.symbol.endsWith('USDT')) {
+                prices[ticker.symbol] = parseFloat(ticker.lastPr);
+            }
+        }
+
+        return prices;
+    }
+
+    /**
+     * Fetch all prices from VALR (South African Exchange)
+     */
+    async fetchVALRPrices() {
+        const response = await fetch('https://api.valr.com/v1/public/marketsummary');
+
+        if (!response.ok) {
+            throw new Error(`VALR API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        const prices = {};
+        for (const ticker of data) {
+            // VALR uses format like "BTC-USDT"
+            if (ticker.currencyPair && ticker.currencyPair.includes('USDT')) {
+                const symbol = ticker.currencyPair.replace('-', '');
+                prices[symbol] = parseFloat(ticker.lastTradedPrice);
+            }
+        }
+
+        return prices;
+    }
+
+    /**
+     * Fetch all prices from Luno (South African Exchange)
+     */
+    async fetchLunoPrices() {
+        const response = await fetch('https://api.luno.com/api/1/tickers');
+
+        if (!response.ok) {
+            throw new Error(`Luno API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        const prices = {};
+        for (const ticker of data.tickers) {
+            // Luno uses format like "BTCUSDT"
+            if (ticker.pair && ticker.pair.includes('USDT')) {
+                prices[ticker.pair] = parseFloat(ticker.last_trade);
+            }
+        }
+
+        return prices;
+    }
+
+    /**
+     * Fetch all prices from ChainEX (South African Exchange)
+     */
+    async fetchChainEXPrices() {
+        const response = await fetch('https://api.chainex.io/v1/tickers');
+
+        if (!response.ok) {
+            throw new Error(`ChainEX API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        const prices = {};
+        for (const ticker of data) {
+            // ChainEX uses format like "BTC/USDT"
+            if (ticker.symbol && ticker.symbol.includes('USDT')) {
+                const symbol = ticker.symbol.replace('/', '');
                 prices[symbol] = parseFloat(ticker.last);
             }
         }

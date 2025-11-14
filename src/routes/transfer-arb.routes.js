@@ -478,7 +478,11 @@ router.get('/debug/price-cache', asyncHandler(async (req, res) => {
         exchanges: {}
     };
 
-    const testExchanges = ['binance', 'kraken', 'okx', 'bybit', 'mexc', 'kucoin', 'htx', 'gateio'];
+    const testExchanges = [
+        'binance', 'kraken', 'okx', 'bybit', 'mexc', 'kucoin', 'htx', 'gateio',
+        'bitget', 'gemini', 'bingx', 'bitmart', 'bitrue', 'ascendex', 'xt', 'coincatch',
+        'valr', 'luno', 'chainex'
+    ];
     const testAssets = ['XRPUSDT', 'XLMUSDT', 'TRXUSDT', 'LTCUSDT', 'BTCUSDT', 'ETHUSDT'];
 
     for (const exchange of testExchanges) {
