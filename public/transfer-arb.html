@@ -3306,7 +3306,7 @@
          */
         async function runTestScanCycle() {
             // Check storage capacity before running scan
-            const MAX_TEST_RESULTS = 50000;
+            const MAX_TEST_RESULTS = 5000;
             const currentData = JSON.parse(localStorage.getItem('testScan_data') || '[]');
             const storagePercent = (currentData.length / MAX_TEST_RESULTS * 100);
 
@@ -3437,8 +3437,8 @@
                 data.push(opp);
             });
 
-            // Keep last 50,000 opportunities (enough for 1-2 days of testing)
-            const MAX_TEST_RESULTS = 50000;
+            // Keep last 5,000 opportunities (localStorage ~10MB limit)
+            const MAX_TEST_RESULTS = 5000;
             if (data.length > MAX_TEST_RESULTS) {
                 data = data.slice(-MAX_TEST_RESULTS);
             }
@@ -3505,7 +3505,7 @@
             }
 
             // Update opportunity count with progress indicator
-            const MAX_TEST_RESULTS = 50000;
+            const MAX_TEST_RESULTS = 5000;
             const storagePercent = (data.length / MAX_TEST_RESULTS * 100).toFixed(1);
             const oppsFoundEl = document.getElementById('testScanOppsFound');
             const percentEl = document.getElementById('testScanStoragePercent');
