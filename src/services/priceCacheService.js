@@ -65,22 +65,38 @@ class PriceCacheService {
      */
     start() {
         if (this.isRunning) {
-            systemLogger.info('Price cache service already running');
+            systemLogger.trading('Price cache service already running');
             return;
         }
 
         this.isRunning = true;
-        systemLogger.info('Starting price cache service...');
+        systemLogger.trading('🚀 Starting price cache service...');
+
+        // Check if fetch is available
+        if (typeof fetch === 'undefined') {
+            systemLogger.error('❌ CRITICAL: fetch is not available! Trying to require node-fetch...');
+            try {
+                global.fetch = require('node-fetch');
+                systemLogger.trading('✅ node-fetch loaded successfully');
+            } catch (err) {
+                systemLogger.error('❌ CRITICAL: node-fetch not installed!', { error: err.message });
+                return;
+            }
+        }
 
         // Initial fetch
-        this.updateAllPrices();
+        this.updateAllPrices().catch(err => {
+            systemLogger.error('Initial price fetch failed', { error: err.message });
+        });
 
         // Schedule recurring updates
         this.intervalId = setInterval(() => {
-            this.updateAllPrices();
+            this.updateAllPrices().catch(err => {
+                systemLogger.error('Scheduled price fetch failed', { error: err.message });
+            });
         }, this.updateInterval);
 
-        systemLogger.info(`Price cache service started (updating every ${this.updateInterval}ms)`);
+        systemLogger.trading(`✅ Price cache service started (updating every ${this.updateInterval}ms from ${Object.keys(this.exchanges).length} exchanges)`);
     }
 
     /**
