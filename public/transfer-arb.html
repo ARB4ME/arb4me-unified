@@ -1826,11 +1826,14 @@
             }
 
             // Smart Transfer Fees Toggle
-            document.getElementById('smartIncludeFeesToggle').addEventListener('click', function() {
-                this.classList.toggle('active');
-                localStorage.setItem('smartTransferIncludeFees', this.classList.contains('active'));
-                console.log('💸 Smart Transfer fees toggle:', this.classList.contains('active') ? 'ON' : 'OFF');
-            });
+            const smartFeesToggle = document.getElementById('smartIncludeFeesToggle');
+            if (smartFeesToggle) {
+                smartFeesToggle.addEventListener('click', function() {
+                    this.classList.toggle('active');
+                    localStorage.setItem('smartTransferIncludeFees', this.classList.contains('active'));
+                    console.log('💸 Smart Transfer fees toggle:', this.classList.contains('active') ? 'ON' : 'OFF');
+                });
+            }
 
             // Load smart transfer toggle state (default ON)
             if (localStorage.getItem('smartTransferIncludeFees') !== 'false') {
@@ -1898,13 +1901,19 @@
         });
 
         // Save settings when changed
-        document.getElementById('sourceExchange').addEventListener('change', function() {
-            localStorage.setItem('transferSourceExchange', this.value);
-        });
+        const sourceExchange = document.getElementById('sourceExchange');
+        if (sourceExchange) {
+            sourceExchange.addEventListener('change', function() {
+                localStorage.setItem('transferSourceExchange', this.value);
+            });
+        }
 
-        document.getElementById('destExchange').addEventListener('change', function() {
-            localStorage.setItem('transferDestExchange', this.value);
-        });
+        const destExchange = document.getElementById('destExchange');
+        if (destExchange) {
+            destExchange.addEventListener('change', function() {
+                localStorage.setItem('transferDestExchange', this.value);
+            });
+        }
 
         document.getElementById('transferCrypto').addEventListener('change', function() {
             localStorage.setItem('transferCrypto', this.value);
