@@ -407,7 +407,14 @@
                         <!-- Left Column: Asset Selection -->
                         <div>
                             <div style="background: rgba(0,255,136,0.05); border: 1px solid rgba(0,255,136,0.3); border-radius: 8px; padding: 20px;">
-                                <h4 style="color: #00ff88; margin-bottom: 15px; font-size: 1rem;">📊 Select Assets to Scan (30 Available)</h4>
+                                <h4 style="color: #00ff88; margin-bottom: 10px; font-size: 1rem;">
+                                    📊 Select Assets to Scan
+                                    <span id="assetCountBadge" style="margin-left: 10px; padding: 3px 8px; border-radius: 4px; font-size: 0.85rem; background: rgba(0,255,136,0.2); color: #00ff88;">0 selected</span>
+                                </h4>
+                                <div id="assetWarning" style="display: none; background: rgba(255,179,71,0.2); border: 1px solid #ffb347; border-radius: 6px; padding: 10px; margin-bottom: 10px;">
+                                    <strong style="color: #ffb347;">⚠️ Warning:</strong>
+                                    <span style="color: #b8c6db; font-size: 0.85rem;">More than 10 assets selected! For longer scanning sessions (6-9 hours), select 10 or fewer assets. With many assets, you'll hit the 5,000 route limit faster.</span>
+                                </div>
                                 <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; max-height: 400px; overflow-y: auto; padding: 5px;">
                                     <!-- Stablecoins (Fast) -->
                                     <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
@@ -415,15 +422,15 @@
                                         <span style="color: #00ff88;">💵 USDT</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(3m)</span>
                                     </label>
                                     <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
-                                        <input type="checkbox" class="test-scan-asset" value="USDC" checked style="margin-right: 6px;">
+                                        <input type="checkbox" class="test-scan-asset" value="USDC" style="margin-right: 6px;">
                                         <span style="color: #00ff88;">💵 USDC</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(3m)</span>
                                     </label>
                                     <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
-                                        <input type="checkbox" class="test-scan-asset" value="DAI" checked style="margin-right: 6px;">
+                                        <input type="checkbox" class="test-scan-asset" value="DAI" style="margin-right: 6px;">
                                         <span style="color: #00ff88;">💵 DAI</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(3m)</span>
                                     </label>
                                     <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
-                                        <input type="checkbox" class="test-scan-asset" value="BUSD" checked style="margin-right: 6px;">
+                                        <input type="checkbox" class="test-scan-asset" value="BUSD" style="margin-right: 6px;">
                                         <span style="color: #00ff88;">💵 BUSD</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(3m)</span>
                                     </label>
 
@@ -453,19 +460,19 @@
                                         <span style="color: #00ff88;">⚡ MATIC</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(3m)</span>
                                     </label>
                                     <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
-                                        <input type="checkbox" class="test-scan-asset" value="NEAR" checked style="margin-right: 6px;">
+                                        <input type="checkbox" class="test-scan-asset" value="NEAR" style="margin-right: 6px;">
                                         <span style="color: #00ff88;">⚡ NEAR</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(5m)</span>
                                     </label>
                                     <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
-                                        <input type="checkbox" class="test-scan-asset" value="HBAR" checked style="margin-right: 6px;">
+                                        <input type="checkbox" class="test-scan-asset" value="HBAR" style="margin-right: 6px;">
                                         <span style="color: #00ff88;">⚡ HBAR</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(3m)</span>
                                     </label>
                                     <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
-                                        <input type="checkbox" class="test-scan-asset" value="ARB" checked style="margin-right: 6px;">
+                                        <input type="checkbox" class="test-scan-asset" value="ARB" style="margin-right: 6px;">
                                         <span style="color: #00ff88;">⚡ ARB</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(3m)</span>
                                     </label>
                                     <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
-                                        <input type="checkbox" class="test-scan-asset" value="OP" checked style="margin-right: 6px;">
+                                        <input type="checkbox" class="test-scan-asset" value="OP" style="margin-right: 6px;">
                                         <span style="color: #00ff88;">⚡ OP</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(3m)</span>
                                     </label>
 
@@ -475,7 +482,7 @@
                                         <span style="color: #ffb347;">⚡ LTC</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(15m)</span>
                                     </label>
                                     <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
-                                        <input type="checkbox" class="test-scan-asset" value="BCH" checked style="margin-right: 6px;">
+                                        <input type="checkbox" class="test-scan-asset" value="BCH" style="margin-right: 6px;">
                                         <span style="color: #ffb347;">⚡ BCH</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(15m)</span>
                                     </label>
                                     <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
@@ -487,31 +494,31 @@
                                         <span style="color: #ffb347;">⚡ ADA</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(10m)</span>
                                     </label>
                                     <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
-                                        <input type="checkbox" class="test-scan-asset" value="AVAX" checked style="margin-right: 6px;">
+                                        <input type="checkbox" class="test-scan-asset" value="AVAX" style="margin-right: 6px;">
                                         <span style="color: #ffb347;">⚡ AVAX</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(10m)</span>
                                     </label>
                                     <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
-                                        <input type="checkbox" class="test-scan-asset" value="ATOM" checked style="margin-right: 6px;">
+                                        <input type="checkbox" class="test-scan-asset" value="ATOM" style="margin-right: 6px;">
                                         <span style="color: #ffb347;">⚡ ATOM</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(10m)</span>
                                     </label>
                                     <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
-                                        <input type="checkbox" class="test-scan-asset" value="FTM" checked style="margin-right: 6px;">
+                                        <input type="checkbox" class="test-scan-asset" value="FTM" style="margin-right: 6px;">
                                         <span style="color: #ffb347;">⚡ FTM</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(10m)</span>
                                     </label>
                                     <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
-                                        <input type="checkbox" class="test-scan-asset" value="LINK" checked style="margin-right: 6px;">
+                                        <input type="checkbox" class="test-scan-asset" value="LINK" style="margin-right: 6px;">
                                         <span style="color: #ffb347;">⚡ LINK</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(12m)</span>
                                     </label>
                                     <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
-                                        <input type="checkbox" class="test-scan-asset" value="UNI" checked style="margin-right: 6px;">
+                                        <input type="checkbox" class="test-scan-asset" value="UNI" style="margin-right: 6px;">
                                         <span style="color: #ffb347;">⚡ UNI</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(12m)</span>
                                     </label>
                                     <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
-                                        <input type="checkbox" class="test-scan-asset" value="AAVE" checked style="margin-right: 6px;">
+                                        <input type="checkbox" class="test-scan-asset" value="AAVE" style="margin-right: 6px;">
                                         <span style="color: #ffb347;">⚡ AAVE</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(12m)</span>
                                     </label>
                                     <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
-                                        <input type="checkbox" class="test-scan-asset" value="VET" checked style="margin-right: 6px;">
+                                        <input type="checkbox" class="test-scan-asset" value="VET" style="margin-right: 6px;">
                                         <span style="color: #ffb347;">⚡ VET</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(10m)</span>
                                     </label>
 
@@ -3066,12 +3073,50 @@
             document.querySelectorAll('.test-scan-asset').forEach(checkbox => {
                 checkbox.addEventListener('change', function() {
                     const selectedAssets = Array.from(document.querySelectorAll('.test-scan-asset:checked')).map(cb => cb.value);
+                    const count = selectedAssets.length;
+
+                    // Update badge
+                    const badge = document.getElementById('assetCountBadge');
+                    const warning = document.getElementById('assetWarning');
+
+                    if (badge) {
+                        badge.textContent = `${count} selected`;
+
+                        // Color coding
+                        if (count > 10) {
+                            badge.style.background = 'rgba(255,179,71,0.2)';
+                            badge.style.color = '#ffb347';
+                            if (warning) warning.style.display = 'block';
+                        } else {
+                            badge.style.background = 'rgba(0,255,136,0.2)';
+                            badge.style.color = '#00ff88';
+                            if (warning) warning.style.display = 'none';
+                        }
+                    }
+
+                    // Save to config
                     const config = JSON.parse(localStorage.getItem('testScan_config') || '{}');
                     config.assets = selectedAssets;
                     localStorage.setItem('testScan_config', JSON.stringify(config));
-                    console.log(`✅ Asset selection saved:`, selectedAssets);
+                    console.log(`✅ Asset selection saved: ${count} assets -`, selectedAssets);
                 });
             });
+
+            // Initialize badge on page load
+            setTimeout(() => {
+                const count = document.querySelectorAll('.test-scan-asset:checked').length;
+                const badge = document.getElementById('assetCountBadge');
+                const warning = document.getElementById('assetWarning');
+
+                if (badge) {
+                    badge.textContent = `${count} selected`;
+                    if (count > 10) {
+                        badge.style.background = 'rgba(255,179,71,0.2)';
+                        badge.style.color = '#ffb347';
+                        if (warning) warning.style.display = 'block';
+                    }
+                }
+            }, 100);
         });
 
         /**
