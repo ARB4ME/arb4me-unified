@@ -2963,11 +2963,11 @@
 
         /**
          * Load exchanges for test scanning
-         * Shows all 21 exchanges - backend will use whichever have price data available
+         * Shows all 19 exchanges - backend will use whichever have price data available
          */
         function loadTestScanExchanges() {
             const allExchanges = ['binance', 'bybit', 'kraken', 'okx', 'kucoin', 'htx', 'bitget',
-                                  'gateio', 'mexc', 'gemini', 'valr', 'luno', 'chainex', 'altcointrader',
+                                  'gateio', 'mexc', 'gemini', 'valr', 'luno', 'chainex', 'xt',
                                   'bitmart', 'bitrue', 'coincatch', 'bingx', 'ascendex'];
 
             const exchangesList = document.getElementById('testScanExchangesList');
@@ -3254,9 +3254,9 @@
             document.getElementById('testScanRunTime').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
 
             try {
-                // Use all 21 exchanges - backend will use whichever have price data
+                // Use all 19 exchanges - backend will use whichever have price data
                 const allExchanges = ['binance', 'bybit', 'kraken', 'okx', 'kucoin', 'htx', 'bitget',
-                                      'gateio', 'mexc', 'gemini', 'valr', 'luno', 'chainex', 'altcointrader',
+                                      'gateio', 'mexc', 'gemini', 'valr', 'luno', 'chainex', 'xt',
                                       'bitmart', 'bitrue', 'coincatch', 'bingx', 'ascendex'];
 
                 // Call real-time scanner (using correct API v1 prefix)
