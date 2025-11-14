@@ -427,6 +427,10 @@ router.post('/scan-realtime', tradingRateLimit, optionalAuth, [
         // Sort filtered opportunities by net profit %
         opportunities.sort((a, b) => b.netProfitPercent - a.netProfitPercent);
 
+        // Return top 50 routes (even if unprofitable) for research/testing
+        // This populates the reporting UI even when no profitable opportunities exist
+        const top50Routes = allCalculations.slice(0, 50);
+
         // Debug: Log top 5 routes from ALL calculations (even if unprofitable)
         const topAllRoutes = allCalculations.slice(0, 5).map(o => ({
             route: `${o.crypto}: ${o.fromExchange} → ${o.toExchange}`,
@@ -438,7 +442,8 @@ router.post('/scan-realtime', tradingRateLimit, optionalAuth, [
         systemLogger.trading('Real-time scan completed', {
             userId: req.user?.id || 'anonymous',
             routesScanned: allCalculations.length,
-            opportunitiesFound: opportunities.length,
+            profitableOpportunities: opportunities.length,
+            top50Returned: top50Routes.length,
             minProfitRequired: `${minProfitPercent}%`,
             top5BestRoutes: topAllRoutes
         });
@@ -446,7 +451,8 @@ router.post('/scan-realtime', tradingRateLimit, optionalAuth, [
         res.json({
             success: true,
             data: {
-                opportunities: opportunities.slice(0, 20), // Return top 20
+                opportunities: top50Routes, // Return top 50 (even if unprofitable) for TEST mode analysis
+                profitableCount: opportunities.length, // How many are actually profitable
                 scannedAt: new Date().toISOString(),
                 routesScanned: exchanges.length * (exchanges.length - 1) * cryptos.length,
                 filters: { minProfitPercent, maxTransferAmount, maxTransferTime }
