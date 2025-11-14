@@ -489,6 +489,11 @@
                                     ⏸️ Stop Scan
                                 </button>
 
+                                <button id="downloadTestScanBtn" onclick="downloadTestScanResults()"
+                                        style="width: 100%; padding: 12px; background: linear-gradient(135deg, #00d4ff, #0099ff); color: #fff; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; margin-bottom: 10px; font-size: 0.9rem;">
+                                    📥 Download Results (CSV)
+                                </button>
+
                                 <button id="resetTestScanBtn" onclick="resetTestScan()"
                                         style="width: 100%; padding: 12px; background: rgba(255,255,255,0.05); color: #888; font-weight: bold; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; cursor: pointer; font-size: 0.9rem;">
                                     🔄 Reset Results
@@ -509,8 +514,9 @@
                                 <div id="testScanCycles" style="color: #fff; font-weight: bold; font-size: 1.1rem;">0</div>
                             </div>
                             <div>
-                                <div style="color: #888; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 5px;">Opportunities Found</div>
-                                <div id="testScanOppsFound" style="color: #ffc107; font-weight: bold; font-size: 1.1rem;">0</div>
+                                <div style="color: #888; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 5px;">Data Collected</div>
+                                <div id="testScanOppsFound" style="color: #ffc107; font-weight: bold; font-size: 1.1rem;">0 / 50,000</div>
+                                <div id="testScanStoragePercent" style="color: #888; font-size: 0.7rem; margin-top: 2px;">0%</div>
                             </div>
                             <div>
                                 <div style="color: #888; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 5px;">Running Time</div>
@@ -3063,6 +3069,7 @@
             // Reset counters
             testScanCycleCount = 0;
             testScanStartTime = null;
+            window.testScan90PercentWarningShown = false; // Reset warning flag
 
             // Stop scanning if active
             if (testScanInterval) {
@@ -3076,7 +3083,10 @@
             document.getElementById('testScanCurrentSet').style.color = '#888';
             document.getElementById('testScanCountdown').textContent = '--';
             document.getElementById('testScanCycles').textContent = '0';
-            document.getElementById('testScanOppsFound').textContent = '0';
+            document.getElementById('testScanOppsFound').textContent = '0 / 50,000';
+            document.getElementById('testScanOppsFound').style.color = '#ffc107';
+            document.getElementById('testScanStoragePercent').textContent = '0%';
+            document.getElementById('testScanStoragePercent').style.color = '#888';
             document.getElementById('testScanRunTime').textContent = '0:00';
             document.getElementById('testScanBestOpp').textContent = 'None yet';
 
@@ -3091,9 +3101,129 @@
         }
 
         /**
+         * Download Test Scan Results as CSV
+         */
+        function downloadTestScanResults() {
+            const data = JSON.parse(localStorage.getItem('testScan_data') || '[]');
+
+            if (data.length === 0) {
+                alert('⚠️ No test scan data to download!\n\nRun a test scan first to collect data.');
+                return;
+            }
+
+            console.log(`📥 Downloading ${data.length} test scan results as CSV...`);
+
+            // CSV Headers
+            const headers = [
+                'Timestamp',
+                'Date/Time',
+                'Crypto',
+                'From Exchange',
+                'To Exchange',
+                'Buy Price',
+                'Sell Price',
+                'Price Spread %',
+                'Net Profit %',
+                'Net Profit USD',
+                'USDT to Spend',
+                'Crypto Quantity',
+                'Withdrawal Fee',
+                'Withdrawal Fee USD',
+                'Trading Fees USD',
+                'Transfer Time (min)',
+                'Risk Score',
+                'Profitable'
+            ];
+
+            // Build CSV rows
+            const csvRows = [headers.join(',')];
+
+            data.forEach(opp => {
+                const timestamp = opp.timestamp || Date.now();
+                const dateTime = new Date(timestamp).toISOString().replace('T', ' ').substring(0, 19);
+
+                const row = [
+                    timestamp,
+                    `"${dateTime}"`,
+                    opp.crypto || '',
+                    opp.fromExchange || '',
+                    opp.toExchange || '',
+                    opp.buyPrice || 0,
+                    opp.sellPrice || 0,
+                    (opp.priceSpread || 0).toFixed(3),
+                    (opp.netProfitPercent || 0).toFixed(3),
+                    (opp.netProfit || 0).toFixed(2),
+                    (opp.usdtToSpend || 0).toFixed(2),
+                    (opp.cryptoQuantity || 0).toFixed(6),
+                    (opp.withdrawalFee || 0).toFixed(6),
+                    (opp.withdrawalFeeUSD || 0).toFixed(2),
+                    (opp.tradingFees || 0).toFixed(2),
+                    opp.estimatedTransferTime || 0,
+                    opp.riskScore || 0,
+                    opp.profitable ? 'YES' : 'NO'
+                ];
+
+                csvRows.push(row.join(','));
+            });
+
+            // Create CSV content
+            const csvContent = csvRows.join('\n');
+
+            // Create download link
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+
+            const fileName = `transfer-arb-test-scan_${new Date().toISOString().split('T')[0]}_${data.length}-routes.csv`;
+
+            link.setAttribute('href', url);
+            link.setAttribute('download', fileName);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            console.log(`✅ Downloaded: ${fileName}`);
+            alert(`✅ Downloaded ${data.length.toLocaleString()} routes!\n\nFile: ${fileName}\n\nYou can now share this file for analysis.`);
+        }
+
+        /**
          * Run one test scan cycle (batched by asset sets)
          */
         async function runTestScanCycle() {
+            // Check storage capacity before running scan
+            const MAX_TEST_RESULTS = 50000;
+            const currentData = JSON.parse(localStorage.getItem('testScan_data') || '[]');
+            const storagePercent = (currentData.length / MAX_TEST_RESULTS * 100);
+
+            // AUTO-PAUSE at 100% capacity
+            if (storagePercent >= 100) {
+                console.log('🛑 Storage FULL (100%) - Auto-pausing scan');
+                alert('⚠️ TEST SCAN STORAGE FULL!\n\n' +
+                      `You have collected ${currentData.length.toLocaleString()} routes (maximum capacity).\n\n` +
+                      'Please DOWNLOAD your results before continuing.\n\n' +
+                      'The scan has been automatically paused.');
+                stopTestScan();
+                return;
+            }
+
+            // WARNING at 90% capacity (only show once per session)
+            if (storagePercent >= 90 && !window.testScan90PercentWarningShown) {
+                window.testScan90PercentWarningShown = true;
+                console.log('⚠️ Storage at 90% - Warning user');
+                // Non-blocking notification
+                setTimeout(() => {
+                    if (confirm('⚠️ TEST SCAN STORAGE WARNING\n\n' +
+                               `You have collected ${currentData.length.toLocaleString()} / ${MAX_TEST_RESULTS.toLocaleString()} routes (${storagePercent.toFixed(1)}%).\n\n` +
+                               'Storage is filling up! Consider downloading results soon.\n\n' +
+                               'Continue scanning?')) {
+                        console.log('User chose to continue scanning');
+                    } else {
+                        stopTestScan();
+                    }
+                }, 100);
+            }
+
             testScanCycleCount++;
             const config = JSON.parse(localStorage.getItem('testScan_config') || '{}');
             const selectedAssets = config.assets || [];
@@ -3193,9 +3323,10 @@
                 data.push(opp);
             });
 
-            // Keep last 1000 opportunities (prevent localStorage overflow)
-            if (data.length > 1000) {
-                data = data.slice(-1000);
+            // Keep last 50,000 opportunities (enough for 1-2 days of testing)
+            const MAX_TEST_RESULTS = 50000;
+            if (data.length > MAX_TEST_RESULTS) {
+                data = data.slice(-MAX_TEST_RESULTS);
             }
 
             localStorage.setItem('testScan_data', JSON.stringify(data));
@@ -3223,8 +3354,28 @@
                 return;
             }
 
-            // Update opportunity count
-            document.getElementById('testScanOppsFound').textContent = data.length;
+            // Update opportunity count with progress indicator
+            const MAX_TEST_RESULTS = 50000;
+            const storagePercent = (data.length / MAX_TEST_RESULTS * 100).toFixed(1);
+            const oppsFoundEl = document.getElementById('testScanOppsFound');
+            const percentEl = document.getElementById('testScanStoragePercent');
+
+            oppsFoundEl.textContent = `${data.length.toLocaleString()} / ${MAX_TEST_RESULTS.toLocaleString()}`;
+            percentEl.textContent = `${storagePercent}%`;
+
+            // Color coding based on storage capacity
+            if (storagePercent >= 100) {
+                oppsFoundEl.style.color = '#ff6b6b'; // Red - FULL
+                percentEl.style.color = '#ff6b6b';
+                percentEl.textContent = `${storagePercent}% - FULL! Download data`;
+            } else if (storagePercent >= 90) {
+                oppsFoundEl.style.color = '#ffb347'; // Orange - Warning
+                percentEl.style.color = '#ffb347';
+                percentEl.textContent = `${storagePercent}% - Download soon!`;
+            } else {
+                oppsFoundEl.style.color = '#ffc107'; // Yellow - Normal
+                percentEl.style.color = '#888';
+            }
 
             // Calculate best opportunity
             const best = data.reduce((max, opp) => opp.netProfitPercent > max.netProfitPercent ? opp : max);
