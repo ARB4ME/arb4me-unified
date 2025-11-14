@@ -369,7 +369,7 @@ router.post('/scan-realtime', tradingRateLimit, optionalAuth, [
                 const toPrices = priceCacheService.getPrices(toExchange, cryptos);
 
                 if (!fromPrices || !toPrices) {
-                    systemLogger.warn(`Missing price data for ${fromExchange} or ${toExchange}`);
+                    // Skip exchanges without price data (expected behavior)
                     continue;
                 }
 
