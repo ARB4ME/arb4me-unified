@@ -554,12 +554,13 @@
                                             <th style="text-align: right; padding: 10px; color: #888;">Best Profit %</th>
                                             <th style="text-align: right; padding: 10px; color: #888;">Times Found</th>
                                             <th style="text-align: center; padding: 10px; color: #888;">Risk</th>
+                                            <th style="text-align: center; padding: 10px; color: #888;">Liquidity</th>
                                             <th style="text-align: center; padding: 10px; color: #888;">Transfer Time</th>
                                             <th style="text-align: right; padding: 10px; color: #888;">Last Seen</th>
                                         </tr>
                                     </thead>
                                     <tbody id="testScanTopProfitBody">
-                                        <tr><td colspan="9" style="text-align: center; padding: 30px; color: #888; font-style: italic;">Waiting for scan data... Click "Start Test Scan" above.</td></tr>
+                                        <tr><td colspan="10" style="text-align: center; padding: 30px; color: #888; font-style: italic;">Waiting for scan data... Click "Start Test Scan" above.</td></tr>
                                     </tbody>
                                 </table>
                             </div>
@@ -3537,7 +3538,7 @@
         function updateTopProfitTable(routes) {
             const tbody = document.getElementById('testScanTopProfitBody');
             if (routes.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 30px; color: #888;">No data yet</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 30px; color: #888;">No data yet</td></tr>';
                 return;
             }
 
@@ -3550,6 +3551,7 @@
                     <td style="padding: 10px; text-align: right; color: #ffc107;">${route.maxProfit.toFixed(2)}%</td>
                     <td style="padding: 10px; text-align: right;">${route.count}</td>
                     <td style="padding: 10px; text-align: center;">${getRiskBadge(route.riskScore)}</td>
+                    <td style="padding: 10px; text-align: center;">${getLiquidityRating(route.fromExchange, route.toExchange)}</td>
                     <td style="padding: 10px; text-align: center; color: #b8c6db;">${route.estimatedTransferTime}m</td>
                     <td style="padding: 10px; text-align: right; color: #888; font-size: 0.8rem;">${formatTimestamp(route.lastSeen)}</td>
                 </tr>
@@ -3637,6 +3639,34 @@
             if (risk <= 3) return '<span style="background: rgba(0,255,136,0.2); color: #00ff88; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem;">LOW</span>';
             if (risk <= 6) return '<span style="background: rgba(255,179,71,0.2); color: #ffb347; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem;">MED</span>';
             return '<span style="background: rgba(255,107,107,0.2); color: #ff6b6b; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem;">HIGH</span>';
+        }
+
+        function getLiquidityRating(fromExchange, toExchange) {
+            // Exchange liquidity tiers based on 24h volume and market depth
+            const highLiquidityExchanges = ['binance', 'kraken', 'okx', 'bybit', 'gateio'];
+            const mediumLiquidityExchanges = ['kucoin', 'mexc', 'htx', 'bitget', 'gemini'];
+            // All others (valr, luno, chainex, xt, bitmart, bitrue, coincatch, bingx, ascendex) are low liquidity
+
+            const getExchangeLiquidity = (exchange) => {
+                const ex = exchange.toLowerCase();
+                if (highLiquidityExchanges.includes(ex)) return 5;
+                if (mediumLiquidityExchanges.includes(ex)) return 3;
+                return 1; // Low liquidity
+            };
+
+            // Route liquidity is determined by the weakest link (minimum of the two exchanges)
+            const fromLiq = getExchangeLiquidity(fromExchange);
+            const toLiq = getExchangeLiquidity(toExchange);
+            const routeLiquidity = Math.min(fromLiq, toLiq);
+
+            // Return color-coded badge
+            if (routeLiquidity === 5) {
+                return '<span style="background: rgba(0,255,136,0.2); color: #00ff88; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem;">🟢 5/5</span>';
+            } else if (routeLiquidity === 3) {
+                return '<span style="background: rgba(255,179,71,0.2); color: #ffb347; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem;">🟡 3/5</span>';
+            } else {
+                return '<span style="background: rgba(255,107,107,0.2); color: #ff6b6b; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem;">🔴 1/5</span>';
+            }
         }
 
         function getConsistencyBadge(consistency) {
