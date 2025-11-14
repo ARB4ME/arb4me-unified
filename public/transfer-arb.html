@@ -1922,17 +1922,26 @@
             });
         }
 
-        document.getElementById('transferCrypto').addEventListener('change', function() {
-            localStorage.setItem('transferCrypto', this.value);
-        });
+        const transferCrypto = document.getElementById('transferCrypto');
+        if (transferCrypto) {
+            transferCrypto.addEventListener('change', function() {
+                localStorage.setItem('transferCrypto', this.value);
+            });
+        }
 
-        document.getElementById('minPriceDiff').addEventListener('change', function() {
-            localStorage.setItem('minPriceDiff', this.value);
-        });
+        const minPriceDiff = document.getElementById('minPriceDiff');
+        if (minPriceDiff) {
+            minPriceDiff.addEventListener('change', function() {
+                localStorage.setItem('minPriceDiff', this.value);
+            });
+        }
 
-        document.getElementById('maxTransferAmount').addEventListener('change', function() {
-            localStorage.setItem('maxTransferAmount', this.value);
-        });
+        const maxTransferAmount = document.getElementById('maxTransferAmount');
+        if (maxTransferAmount) {
+            maxTransferAmount.addEventListener('change', function() {
+                localStorage.setItem('maxTransferAmount', this.value);
+            });
+        }
 
         // Placeholder functions
         function scanTransferOpportunities() {
