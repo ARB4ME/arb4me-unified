@@ -73,30 +73,36 @@ const logger = winston.createLogger({
 
 // Create specific loggers for different system components
 const systemLogger = {
+    // Generic info logging
+    info: (message, meta = {}) => logger.info(`[INFO] ${message}`, meta),
+
+    // Generic warning logging
+    warn: (message, meta = {}) => logger.warn(`[WARN] ${message}`, meta),
+
     // Authentication events
     auth: (message, meta = {}) => logger.info(`[AUTH] ${message}`, meta),
-    
+
     // User activity
     user: (message, meta = {}) => logger.info(`[USER] ${message}`, meta),
-    
+
     // Admin actions
     admin: (message, meta = {}) => logger.info(`[ADMIN] ${message}`, meta),
-    
+
     // Trading activity
     trading: (message, meta = {}) => logger.info(`[TRADING] ${message}`, meta),
-    
+
     // Database operations
     database: (message, meta = {}) => logger.info(`[DATABASE] ${message}`, meta),
-    
+
     // WebSocket events
     websocket: (message, meta = {}) => logger.info(`[WEBSOCKET] ${message}`, meta),
-    
+
     // API requests
     api: (message, meta = {}) => logger.info(`[API] ${message}`, meta),
-    
+
     // Security events
     security: (message, meta = {}) => logger.warn(`[SECURITY] ${message}`, meta),
-    
+
     // System errors
     error: (message, error, meta = {}) => {
         const errorMeta = {
