@@ -1842,8 +1842,9 @@
             }
 
             // Load smart transfer toggle state (default ON)
-            if (localStorage.getItem('smartTransferIncludeFees') !== 'false') {
-                document.getElementById('smartIncludeFeesToggle').classList.add('active');
+            const smartIncludeFeesToggle = document.getElementById('smartIncludeFeesToggle');
+            if (smartIncludeFeesToggle && localStorage.getItem('smartTransferIncludeFees') !== 'false') {
+                smartIncludeFeesToggle.classList.add('active');
             }
 
             // Auto-Execute Toggle
