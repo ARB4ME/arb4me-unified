@@ -376,8 +376,8 @@ router.post('/scan-realtime', tradingRateLimit, optionalAuth, [
                 // Check each crypto
                 for (const crypto of cryptos) {
                     const symbol = `${crypto}USDT`;
-                    const buyPrice = fromPrices[symbol];
-                    const sellPrice = toPrices[symbol];
+                    const buyPrice = fromPrices[symbol]?.ask || fromPrices[symbol];
+                    const sellPrice = toPrices[symbol]?.bid || toPrices[symbol];
 
                     if (!buyPrice || !sellPrice) {
                         continue; // Skip if price not available
