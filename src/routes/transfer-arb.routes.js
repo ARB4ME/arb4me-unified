@@ -376,8 +376,22 @@ router.post('/scan-realtime', tradingRateLimit, optionalAuth, [
                 // Check each crypto
                 for (const crypto of cryptos) {
                     const symbol = `${crypto}USDT`;
-                    const buyPrice = fromPrices[symbol]?.ask || fromPrices[symbol];
-                    const sellPrice = toPrices[symbol]?.bid || toPrices[symbol];
+
+                    // Get prices - handle both orderbook format {ask, bid} and simple mid prices
+                    let buyPrice, sellPrice;
+                    if (fromPrices[symbol]?.ask) {
+                        buyPrice = fromPrices[symbol].ask;
+                    } else if (fromPrices[symbol]) {
+                        // Estimate ask from mid price (assume 0.1% spread)
+                        buyPrice = fromPrices[symbol] * 1.001;
+                    }
+
+                    if (toPrices[symbol]?.bid) {
+                        sellPrice = toPrices[symbol].bid;
+                    } else if (toPrices[symbol]) {
+                        // Estimate bid from mid price (assume 0.1% spread)
+                        sellPrice = toPrices[symbol] * 0.999;
+                    }
 
                     if (!buyPrice || !sellPrice) {
                         continue; // Skip if price not available
