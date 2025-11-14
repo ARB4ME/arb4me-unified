@@ -5,6 +5,7 @@
  */
 
 const { systemLogger } = require('../utils/logger');
+const fetch = require('node-fetch');
 
 class PriceCacheService {
     constructor() {
