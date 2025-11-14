@@ -3125,9 +3125,17 @@
                     })
                 });
 
-                if (!response.ok) throw new Error('Scan failed');
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Backend error:', errorText);
+                    throw new Error('Scan failed');
+                }
 
-                const opportunities = await response.json();
+                const result = await response.json();
+                console.log('Backend response:', result);
+
+                // Extract opportunities from response structure
+                const opportunities = result.data?.opportunities || result.opportunities || result;
                 console.log(`✅ Found ${opportunities.length} opportunities in batch`);
 
                 // Opportunities already filtered by minProfit on backend
