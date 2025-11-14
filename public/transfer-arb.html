@@ -407,39 +407,130 @@
                         <!-- Left Column: Asset Selection -->
                         <div>
                             <div style="background: rgba(0,255,136,0.05); border: 1px solid rgba(0,255,136,0.3); border-radius: 8px; padding: 20px;">
-                                <h4 style="color: #00ff88; margin-bottom: 15px; font-size: 1rem;">📊 Select Assets to Scan</h4>
-                                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
-                                    <label style="color: #b8c6db; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center;">
-                                        <input type="checkbox" class="test-scan-asset" value="XRP" checked style="margin-right: 8px;">
-                                        <span style="color: #00ff88;">⚡ XRP</span> <span style="color: #888; font-size: 0.75rem; margin-left: 5px;">(Fast - 3min)</span>
+                                <h4 style="color: #00ff88; margin-bottom: 15px; font-size: 1rem;">📊 Select Assets to Scan (30 Available)</h4>
+                                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; max-height: 400px; overflow-y: auto; padding: 5px;">
+                                    <!-- Stablecoins (Fast) -->
+                                    <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
+                                        <input type="checkbox" class="test-scan-asset" value="USDT" checked style="margin-right: 6px;">
+                                        <span style="color: #00ff88;">💵 USDT</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(3m)</span>
                                     </label>
-                                    <label style="color: #b8c6db; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center;">
-                                        <input type="checkbox" class="test-scan-asset" value="XLM" checked style="margin-right: 8px;">
-                                        <span style="color: #00ff88;">⚡ XLM</span> <span style="color: #888; font-size: 0.75rem; margin-left: 5px;">(Fast - 5min)</span>
+                                    <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
+                                        <input type="checkbox" class="test-scan-asset" value="USDC" checked style="margin-right: 6px;">
+                                        <span style="color: #00ff88;">💵 USDC</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(3m)</span>
                                     </label>
-                                    <label style="color: #b8c6db; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center;">
-                                        <input type="checkbox" class="test-scan-asset" value="TRX" checked style="margin-right: 8px;">
-                                        <span style="color: #00ff88;">⚡ TRX</span> <span style="color: #888; font-size: 0.75rem; margin-left: 5px;">(Fast - 3min)</span>
+                                    <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
+                                        <input type="checkbox" class="test-scan-asset" value="DAI" checked style="margin-right: 6px;">
+                                        <span style="color: #00ff88;">💵 DAI</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(3m)</span>
                                     </label>
-                                    <label style="color: #b8c6db; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center;">
-                                        <input type="checkbox" class="test-scan-asset" value="LTC" checked style="margin-right: 8px;">
-                                        <span style="color: #ffb347;">⚡ LTC</span> <span style="color: #888; font-size: 0.75rem; margin-left: 5px;">(Med - 15min)</span>
+                                    <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
+                                        <input type="checkbox" class="test-scan-asset" value="BUSD" checked style="margin-right: 6px;">
+                                        <span style="color: #00ff88;">💵 BUSD</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(3m)</span>
                                     </label>
-                                    <label style="color: #b8c6db; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center;">
-                                        <input type="checkbox" class="test-scan-asset" value="BCH" checked style="margin-right: 8px;">
-                                        <span style="color: #ffb347;">⚡ BCH</span> <span style="color: #888; font-size: 0.75rem; margin-left: 5px;">(Med - 15min)</span>
+
+                                    <!-- Fast Transfer Coins -->
+                                    <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
+                                        <input type="checkbox" class="test-scan-asset" value="XRP" checked style="margin-right: 6px;">
+                                        <span style="color: #00ff88;">⚡ XRP</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(3m)</span>
                                     </label>
-                                    <label style="color: #b8c6db; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center;">
-                                        <input type="checkbox" class="test-scan-asset" value="DOGE" checked style="margin-right: 8px;">
-                                        <span style="color: #ffb347;">⚡ DOGE</span> <span style="color: #888; font-size: 0.75rem; margin-left: 5px;">(Med - 10min)</span>
+                                    <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
+                                        <input type="checkbox" class="test-scan-asset" value="XLM" checked style="margin-right: 6px;">
+                                        <span style="color: #00ff88;">⚡ XLM</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(5m)</span>
                                     </label>
-                                    <label style="color: #b8c6db; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center;">
-                                        <input type="checkbox" class="test-scan-asset" value="BTC" style="margin-right: 8px;">
-                                        <span style="color: #ff6b6b;">⚡ BTC</span> <span style="color: #888; font-size: 0.75rem; margin-left: 5px;">(Slow - 30min)</span>
+                                    <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
+                                        <input type="checkbox" class="test-scan-asset" value="TRX" checked style="margin-right: 6px;">
+                                        <span style="color: #00ff88;">⚡ TRX</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(3m)</span>
                                     </label>
-                                    <label style="color: #b8c6db; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center;">
-                                        <input type="checkbox" class="test-scan-asset" value="ETH" style="margin-right: 8px;">
-                                        <span style="color: #ff6b6b;">⚡ ETH</span> <span style="color: #888; font-size: 0.75rem; margin-left: 5px;">(Slow - 10min)</span>
+                                    <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
+                                        <input type="checkbox" class="test-scan-asset" value="SOL" checked style="margin-right: 6px;">
+                                        <span style="color: #00ff88;">⚡ SOL</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(5m)</span>
+                                    </label>
+                                    <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
+                                        <input type="checkbox" class="test-scan-asset" value="ALGO" checked style="margin-right: 6px;">
+                                        <span style="color: #00ff88;">⚡ ALGO</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(4m)</span>
+                                    </label>
+                                    <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
+                                        <input type="checkbox" class="test-scan-asset" value="MATIC" checked style="margin-right: 6px;">
+                                        <span style="color: #00ff88;">⚡ MATIC</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(3m)</span>
+                                    </label>
+                                    <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
+                                        <input type="checkbox" class="test-scan-asset" value="NEAR" checked style="margin-right: 6px;">
+                                        <span style="color: #00ff88;">⚡ NEAR</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(5m)</span>
+                                    </label>
+                                    <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
+                                        <input type="checkbox" class="test-scan-asset" value="HBAR" checked style="margin-right: 6px;">
+                                        <span style="color: #00ff88;">⚡ HBAR</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(3m)</span>
+                                    </label>
+                                    <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
+                                        <input type="checkbox" class="test-scan-asset" value="ARB" checked style="margin-right: 6px;">
+                                        <span style="color: #00ff88;">⚡ ARB</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(3m)</span>
+                                    </label>
+                                    <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
+                                        <input type="checkbox" class="test-scan-asset" value="OP" checked style="margin-right: 6px;">
+                                        <span style="color: #00ff88;">⚡ OP</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(3m)</span>
+                                    </label>
+
+                                    <!-- Medium Speed Coins -->
+                                    <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
+                                        <input type="checkbox" class="test-scan-asset" value="LTC" checked style="margin-right: 6px;">
+                                        <span style="color: #ffb347;">⚡ LTC</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(15m)</span>
+                                    </label>
+                                    <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
+                                        <input type="checkbox" class="test-scan-asset" value="BCH" checked style="margin-right: 6px;">
+                                        <span style="color: #ffb347;">⚡ BCH</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(15m)</span>
+                                    </label>
+                                    <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
+                                        <input type="checkbox" class="test-scan-asset" value="DOGE" checked style="margin-right: 6px;">
+                                        <span style="color: #ffb347;">⚡ DOGE</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(10m)</span>
+                                    </label>
+                                    <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
+                                        <input type="checkbox" class="test-scan-asset" value="ADA" checked style="margin-right: 6px;">
+                                        <span style="color: #ffb347;">⚡ ADA</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(10m)</span>
+                                    </label>
+                                    <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
+                                        <input type="checkbox" class="test-scan-asset" value="AVAX" checked style="margin-right: 6px;">
+                                        <span style="color: #ffb347;">⚡ AVAX</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(10m)</span>
+                                    </label>
+                                    <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
+                                        <input type="checkbox" class="test-scan-asset" value="ATOM" checked style="margin-right: 6px;">
+                                        <span style="color: #ffb347;">⚡ ATOM</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(10m)</span>
+                                    </label>
+                                    <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
+                                        <input type="checkbox" class="test-scan-asset" value="FTM" checked style="margin-right: 6px;">
+                                        <span style="color: #ffb347;">⚡ FTM</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(10m)</span>
+                                    </label>
+                                    <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
+                                        <input type="checkbox" class="test-scan-asset" value="LINK" checked style="margin-right: 6px;">
+                                        <span style="color: #ffb347;">⚡ LINK</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(12m)</span>
+                                    </label>
+                                    <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
+                                        <input type="checkbox" class="test-scan-asset" value="UNI" checked style="margin-right: 6px;">
+                                        <span style="color: #ffb347;">⚡ UNI</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(12m)</span>
+                                    </label>
+                                    <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
+                                        <input type="checkbox" class="test-scan-asset" value="AAVE" checked style="margin-right: 6px;">
+                                        <span style="color: #ffb347;">⚡ AAVE</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(12m)</span>
+                                    </label>
+                                    <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
+                                        <input type="checkbox" class="test-scan-asset" value="VET" checked style="margin-right: 6px;">
+                                        <span style="color: #ffb347;">⚡ VET</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(10m)</span>
+                                    </label>
+
+                                    <!-- Slower Coins (Unchecked by default) -->
+                                    <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
+                                        <input type="checkbox" class="test-scan-asset" value="BTC" style="margin-right: 6px;">
+                                        <span style="color: #ff6b6b;">⚡ BTC</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(30m)</span>
+                                    </label>
+                                    <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
+                                        <input type="checkbox" class="test-scan-asset" value="ETH" style="margin-right: 6px;">
+                                        <span style="color: #ff6b6b;">⚡ ETH</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(10m)</span>
+                                    </label>
+                                    <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
+                                        <input type="checkbox" class="test-scan-asset" value="DOT" style="margin-right: 6px;">
+                                        <span style="color: #ff6b6b;">⚡ DOT</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(20m)</span>
+                                    </label>
+                                    <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
+                                        <input type="checkbox" class="test-scan-asset" value="MKR" style="margin-right: 6px;">
+                                        <span style="color: #ff6b6b;">⚡ MKR</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(15m)</span>
                                     </label>
                                 </div>
                                 <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);">
