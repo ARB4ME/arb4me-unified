@@ -18,6 +18,9 @@ const transferExecutionService = require('../services/transferExecutionService')
 const TransferArbScanner = require('../services/transfer-arb-scanner');
 const fetch = require('node-fetch');
 
+// Import network detection service
+const networkDetectionService = require('../services/networkDetectionService');
+
 const router = express.Router();
 
 // =============================================================================
@@ -517,6 +520,44 @@ router.get('/debug/price-cache', asyncHandler(async (req, res) => {
         timestamp: new Date().toISOString(),
         cacheStatus
     });
+}));
+
+// Get network information for specific route
+router.get('/networks/:fromExchange/:toExchange/:asset', asyncHandler(async (req, res) => {
+    const { fromExchange, toExchange, asset } = req.params;
+
+    try {
+        // Fetch networks for both exchanges
+        const fromNetworks = await networkDetectionService.getNetworks(fromExchange, asset);
+        const toNetworks = await networkDetectionService.getNetworks(toExchange, asset);
+
+        // Find matching networks
+        const matchingNetworks = networkDetectionService.findMatchingNetworks(fromNetworks, toNetworks);
+
+        res.json({
+            success: true,
+            data: {
+                fromExchange: fromExchange.toUpperCase(),
+                toExchange: toExchange.toUpperCase(),
+                asset: asset.toUpperCase(),
+                fromNetworks,
+                toNetworks,
+                matchingNetworks,
+                isViable: matchingNetworks.length > 0,
+                bestNetwork: matchingNetworks.length > 0
+                    ? matchingNetworks.reduce((best, current) =>
+                        current.withdrawFee < best.withdrawFee ? current : best
+                    )
+                    : null
+            }
+        });
+    } catch (error) {
+        systemLogger.error('Network detection error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch network information'
+        });
+    }
 }));
 
 // Helper function to calculate transfer opportunity

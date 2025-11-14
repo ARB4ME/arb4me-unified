@@ -555,12 +555,13 @@
                                             <th style="text-align: right; padding: 10px; color: #888;">Times Found</th>
                                             <th style="text-align: center; padding: 10px; color: #888;">Risk</th>
                                             <th style="text-align: center; padding: 10px; color: #888;">Liquidity</th>
+                                            <th style="text-align: center; padding: 10px; color: #888;">Networks</th>
                                             <th style="text-align: center; padding: 10px; color: #888;">Transfer Time</th>
                                             <th style="text-align: right; padding: 10px; color: #888;">Last Seen</th>
                                         </tr>
                                     </thead>
                                     <tbody id="testScanTopProfitBody">
-                                        <tr><td colspan="10" style="text-align: center; padding: 30px; color: #888; font-style: italic;">Waiting for scan data... Click "Start Test Scan" above.</td></tr>
+                                        <tr><td colspan="11" style="text-align: center; padding: 30px; color: #888; font-style: italic;">Waiting for scan data... Click "Start Test Scan" above.</td></tr>
                                     </tbody>
                                 </table>
                             </div>
@@ -3538,11 +3539,13 @@
         function updateTopProfitTable(routes) {
             const tbody = document.getElementById('testScanTopProfitBody');
             if (routes.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 30px; color: #888;">No data yet</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; padding: 30px; color: #888;">No data yet</td></tr>';
                 return;
             }
 
-            tbody.innerHTML = routes.map((route, i) => `
+            tbody.innerHTML = routes.map((route, i) => {
+                const rowId = `route-${i}`;
+                return `
                 <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
                     <td style="padding: 10px; color: #ffc107; font-weight: bold;">${i + 1}</td>
                     <td style="padding: 10px;">${route.fromExchange.toUpperCase()} → ${route.toExchange.toUpperCase()}</td>
@@ -3552,10 +3555,53 @@
                     <td style="padding: 10px; text-align: right;">${route.count}</td>
                     <td style="padding: 10px; text-align: center;">${getRiskBadge(route.riskScore)}</td>
                     <td style="padding: 10px; text-align: center;">${getLiquidityRating(route.fromExchange, route.toExchange)}</td>
+                    <td id="${rowId}-network" style="padding: 10px; text-align: center; font-size: 0.75rem;" data-from="${route.fromExchange}" data-to="${route.toExchange}" data-crypto="${route.crypto}">
+                        <span style="color: #888;">...</span>
+                    </td>
                     <td style="padding: 10px; text-align: center; color: #b8c6db;">${route.estimatedTransferTime}m</td>
                     <td style="padding: 10px; text-align: right; color: #888; font-size: 0.8rem;">${formatTimestamp(route.lastSeen)}</td>
                 </tr>
-            `).join('');
+                `;
+            }).join('');
+
+            // Fetch network info asynchronously for each route
+            routes.forEach((route, i) => {
+                fetchAndDisplayNetworkInfo(i, route.fromExchange, route.toExchange, route.crypto);
+            });
+        }
+
+        async function fetchAndDisplayNetworkInfo(rowIndex, fromExchange, toExchange, crypto) {
+            const cell = document.getElementById(`route-${rowIndex}-network`);
+            if (!cell) return;
+
+            try {
+                const response = await fetch(`/api/v1/transfer-arb/networks/${fromExchange}/${toExchange}/${crypto}`);
+                const result = await response.json();
+
+                if (result.success && result.data) {
+                    const { matchingNetworks, isViable } = result.data;
+
+                    if (matchingNetworks.length > 0) {
+                        // Show best (cheapest) network
+                        const best = matchingNetworks[0];
+                        cell.innerHTML = `
+                            <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+                                <span style="background: rgba(0,255,136,0.2); color: #00ff88; padding: 2px 6px; border-radius: 3px; font-weight: bold;">✅ ${best.network}</span>
+                                <span style="color: #888; font-size: 0.7rem;">Fee: $${best.withdrawFee.toFixed(2)}</span>
+                            </div>
+                        `;
+                    } else {
+                        cell.innerHTML = `
+                            <span style="background: rgba(255,107,107,0.2); color: #ff6b6b; padding: 2px 6px; border-radius: 3px;">❌ No match</span>
+                        `;
+                    }
+                } else {
+                    cell.innerHTML = '<span style="color: #888;">N/A</span>';
+                }
+            } catch (error) {
+                console.error(`Failed to fetch network info for ${fromExchange}→${toExchange} ${crypto}:`, error);
+                cell.innerHTML = '<span style="color: #888;">Error</span>';
+            }
         }
 
         function updateTopConsistencyTable(routes) {
