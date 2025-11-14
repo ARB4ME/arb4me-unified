@@ -474,11 +474,11 @@
 
                                 <div>
                                     <label style="color: #b8c6db; font-size: 0.9rem; display: block; margin-bottom: 5px;">Scan Interval:</label>
-                                    <select id="testScanInterval" style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; color: #fff; font-size: 1rem;">
-                                        <option value="30">30 seconds</option>
-                                        <option value="60" selected>60 seconds (1 min)</option>
-                                        <option value="120">2 minutes</option>
-                                        <option value="300">5 minutes</option>
+                                    <select id="testScanInterval" style="width: 100%; padding: 10px; background: #2a2f45; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; color: #fff; font-size: 1rem;">
+                                        <option value="30" style="background: #2a2f45; color: #fff;">30 seconds</option>
+                                        <option value="60" selected style="background: #2a2f45; color: #fff;">60 seconds (1 min)</option>
+                                        <option value="120" style="background: #2a2f45; color: #fff;">2 minutes</option>
+                                        <option value="300" style="background: #2a2f45; color: #fff;">5 minutes</option>
                                     </select>
                                 </div>
                             </div>
@@ -2936,6 +2936,21 @@
         document.addEventListener('DOMContentLoaded', function() {
             loadTestScanExchanges();
             loadTestScanData();
+
+            // Allow live config updates during scan
+            document.getElementById('testScanMinProfit').addEventListener('change', function() {
+                const config = JSON.parse(localStorage.getItem('testScan_config') || '{}');
+                config.minProfit = parseFloat(this.value);
+                localStorage.setItem('testScan_config', JSON.stringify(config));
+                console.log(`✏️ Min profit updated to ${this.value}% (applies to next scan cycle)`);
+            });
+
+            document.getElementById('testScanInterval').addEventListener('change', function() {
+                const config = JSON.parse(localStorage.getItem('testScan_config') || '{}');
+                config.scanInterval = parseInt(this.value);
+                localStorage.setItem('testScan_config', JSON.stringify(config));
+                console.log(`⏱️ Note: Scan interval change requires restart to take effect`);
+            });
         });
 
         /**
