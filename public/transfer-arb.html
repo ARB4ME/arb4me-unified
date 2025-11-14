@@ -2959,6 +2959,17 @@
                 localStorage.setItem('testScan_config', JSON.stringify(config));
                 console.log(`⏱️ Note: Scan interval change requires restart to take effect`);
             });
+
+            // Save asset selection whenever checkboxes change
+            document.querySelectorAll('.test-scan-asset').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const selectedAssets = Array.from(document.querySelectorAll('.test-scan-asset:checked')).map(cb => cb.value);
+                    const config = JSON.parse(localStorage.getItem('testScan_config') || '{}');
+                    config.assets = selectedAssets;
+                    localStorage.setItem('testScan_config', JSON.stringify(config));
+                    console.log(`✅ Asset selection saved:`, selectedAssets);
+                });
+            });
         });
 
         /**
@@ -3342,6 +3353,39 @@
                 console.log(`📊 Loaded ${data.length} historical opportunities from localStorage`);
                 // Update reports with existing data
                 updateTestScanReports();
+            }
+
+            // Restore saved TEST scan settings
+            const config = JSON.parse(localStorage.getItem('testScan_config') || '{}');
+
+            // Restore asset checkboxes
+            if (config.assets && config.assets.length > 0) {
+                console.log(`✅ Restoring ${config.assets.length} selected assets:`, config.assets);
+                // Uncheck all first
+                document.querySelectorAll('.test-scan-asset').forEach(cb => cb.checked = false);
+                // Check saved ones
+                config.assets.forEach(asset => {
+                    const checkbox = document.querySelector(`.test-scan-asset[value="${asset}"]`);
+                    if (checkbox) checkbox.checked = true;
+                });
+            }
+
+            // Restore min profit
+            if (config.minProfit !== undefined) {
+                const minProfitInput = document.getElementById('testScanMinProfit');
+                if (minProfitInput) {
+                    minProfitInput.value = config.minProfit;
+                    console.log(`💰 Restored min profit: ${config.minProfit}%`);
+                }
+            }
+
+            // Restore scan interval
+            if (config.scanInterval !== undefined) {
+                const scanIntervalSelect = document.getElementById('testScanInterval');
+                if (scanIntervalSelect) {
+                    scanIntervalSelect.value = config.scanInterval;
+                    console.log(`⏱️ Restored scan interval: ${config.scanInterval} seconds`);
+                }
             }
         }
 
