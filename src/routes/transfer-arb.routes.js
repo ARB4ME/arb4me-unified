@@ -462,6 +462,53 @@ router.post('/scan-realtime', tradingRateLimit, optionalAuth, [
     }
 }));
 
+// =============================================================================
+// DEBUG: Price Cache Status Endpoint
+// =============================================================================
+router.get('/debug/price-cache', asyncHandler(async (req, res) => {
+    const cacheStatus = {
+        totalExchanges: 0,
+        exchangesWithData: 0,
+        exchanges: {}
+    };
+
+    const testExchanges = ['binance', 'kraken', 'okx', 'bybit', 'mexc', 'kucoin', 'htx', 'gateio'];
+    const testAssets = ['XRPUSDT', 'XLMUSDT', 'TRXUSDT', 'LTCUSDT', 'BTCUSDT', 'ETHUSDT'];
+
+    for (const exchange of testExchanges) {
+        cacheStatus.totalExchanges++;
+        const prices = priceCacheService.getPrices(exchange, testAssets.map(s => s.replace('USDT', '')));
+
+        if (prices && Object.keys(prices).length > 0) {
+            cacheStatus.exchangesWithData++;
+            cacheStatus.exchanges[exchange] = {
+                hasData: true,
+                assetCount: Object.keys(prices).length,
+                samplePrices: {}
+            };
+
+            // Show sample prices for each test asset
+            testAssets.forEach(asset => {
+                if (prices[asset]) {
+                    cacheStatus.exchanges[exchange].samplePrices[asset] = prices[asset];
+                }
+            });
+        } else {
+            cacheStatus.exchanges[exchange] = {
+                hasData: false,
+                assetCount: 0,
+                error: 'No price data available'
+            };
+        }
+    }
+
+    res.json({
+        success: true,
+        timestamp: new Date().toISOString(),
+        cacheStatus
+    });
+}));
+
 // Helper function to calculate transfer opportunity
 function calculateTransferOpportunity(crypto, fromExchange, toExchange, buyPrice, sellPrice, maxAmount) {
     // Price spread
