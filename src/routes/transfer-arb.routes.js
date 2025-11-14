@@ -355,6 +355,7 @@ router.post('/scan-realtime', tradingRateLimit, optionalAuth, [
         });
 
         const opportunities = [];
+        const allCalculations = []; // Track ALL routes for debugging
 
         // Scan all exchange pairs
         for (let i = 0; i < exchanges.length; i++) {
@@ -407,6 +408,9 @@ router.post('/scan-realtime', tradingRateLimit, optionalAuth, [
                         maxTransferAmount
                     );
 
+                    // Track all calculations for debugging
+                    allCalculations.push(opportunity);
+
                     // Filter by criteria
                     if (opportunity.profitable &&
                         opportunity.netProfitPercent >= minProfitPercent &&
@@ -417,13 +421,26 @@ router.post('/scan-realtime', tradingRateLimit, optionalAuth, [
             }
         }
 
-        // Sort by net profit %
+        // Sort ALL calculations by profit to see what's closest
+        allCalculations.sort((a, b) => b.netProfitPercent - a.netProfitPercent);
+
+        // Sort filtered opportunities by net profit %
         opportunities.sort((a, b) => b.netProfitPercent - a.netProfitPercent);
+
+        // Debug: Log top 5 routes from ALL calculations (even if unprofitable)
+        const topAllRoutes = allCalculations.slice(0, 5).map(o => ({
+            route: `${o.crypto}: ${o.fromExchange} → ${o.toExchange}`,
+            spread: `${o.priceSpread.toFixed(3)}%`,
+            profit: `${o.netProfitPercent.toFixed(3)}%`,
+            withdrawalFee: `$${(o.withdrawalFee * o.sellPrice).toFixed(2)}`
+        }));
 
         systemLogger.trading('Real-time scan completed', {
             userId: req.user?.id || 'anonymous',
-            routesScanned: exchanges.length * (exchanges.length - 1) * cryptos.length,
-            opportunitiesFound: opportunities.length
+            routesScanned: allCalculations.length,
+            opportunitiesFound: opportunities.length,
+            minProfitRequired: `${minProfitPercent}%`,
+            top5BestRoutes: topAllRoutes
         });
 
         res.json({
