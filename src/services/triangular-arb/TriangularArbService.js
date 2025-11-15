@@ -32,12 +32,14 @@ class TriangularArbService {
      * @returns {Promise<Array>} Array of profitable opportunities
      */
     async scan(exchange, options) {
-        const { credentials, paths = 'all', amount = 1000 } = options;
+        const { credentials, paths = 'all', amount = 1000, profitThreshold = 0 } = options;
 
-        systemLogger.trading(`Triangular arb scan initiated`, {
+        systemLogger.trading(`[DEBUG] Triangular arb scan initiated`, {
             exchange,
             pathsRequested: paths,
             amount,
+            profitThreshold,
+            hasCredentials: !!credentials,
             timestamp: new Date().toISOString()
         });
 
@@ -45,15 +47,26 @@ class TriangularArbService {
             // Step 1: Get path definitions for this exchange
             const pathsToScan = this.pathDefinitions.getPathsForExchange(exchange, paths);
 
+            systemLogger.trading(`[DEBUG] Step 1: Path definitions loaded`, {
+                exchange,
+                pathsRequested: paths,
+                pathsFound: pathsToScan?.length || 0,
+                pathIds: pathsToScan?.map(p => p.id).slice(0, 5) // First 5 path IDs
+            });
+
             if (!pathsToScan || pathsToScan.length === 0) {
-                systemLogger.warn(`No paths found for exchange: ${exchange}`);
+                systemLogger.warn(`No paths found for exchange: ${exchange}, paths: ${paths}`);
                 return [];
             }
 
-            systemLogger.trading(`Scanning ${pathsToScan.length} paths for ${exchange}`);
-
             // Step 2: Get unique trading pairs from all paths
             const uniquePairs = this._extractUniquePairs(pathsToScan);
+
+            systemLogger.trading(`[DEBUG] Step 2: Unique pairs extracted`, {
+                exchange,
+                uniquePairsCount: uniquePairs.length,
+                pairs: uniquePairs
+            });
 
             // Step 3: Fetch order books for all required pairs (pass credentials through)
             const orderBooks = await this.orderBookFetcher.fetchMultiple(
@@ -62,8 +75,21 @@ class TriangularArbService {
                 credentials  // Forward user's credentials
             );
 
+            systemLogger.trading(`[DEBUG] Step 3: Orderbooks fetched`, {
+                exchange,
+                orderbooksFetched: Object.keys(orderBooks).length,
+                pairsRequested: uniquePairs.length,
+                orderbookPairs: Object.keys(orderBooks),
+                sampleOrderbook: orderBooks[Object.keys(orderBooks)[0]] ? {
+                    pair: Object.keys(orderBooks)[0],
+                    hasBids: !!orderBooks[Object.keys(orderBooks)[0]]?.Bids || !!orderBooks[Object.keys(orderBooks)[0]]?.bids,
+                    hasAsks: !!orderBooks[Object.keys(orderBooks)[0]]?.Asks || !!orderBooks[Object.keys(orderBooks)[0]]?.asks
+                } : 'No orderbooks'
+            });
+
             // Step 4: Calculate profits for each path
             const opportunities = [];
+            const calculationResults = { success: 0, failed: 0, belowThreshold: 0 };
 
             for (const path of pathsToScan) {
                 try {
@@ -75,11 +101,19 @@ class TriangularArbService {
                         amount
                     );
 
-                    // Only include profitable opportunities
-                    if (result.success && result.profitPercentage > 0) {
-                        opportunities.push(result);
+                    if (result.success) {
+                        calculationResults.success++;
+                        // Include ALL opportunities (even negative profit) if profitThreshold allows
+                        if (result.profitPercentage >= profitThreshold) {
+                            opportunities.push(result);
+                        } else {
+                            calculationResults.belowThreshold++;
+                        }
+                    } else {
+                        calculationResults.failed++;
                     }
                 } catch (error) {
+                    calculationResults.failed++;
                     systemLogger.error(`Error calculating path ${path.id}`, {
                         error: error.message,
                         exchange,
@@ -88,13 +122,27 @@ class TriangularArbService {
                 }
             }
 
+            systemLogger.trading(`[DEBUG] Step 4: Profit calculations complete`, {
+                exchange,
+                pathsCalculated: pathsToScan.length,
+                successfulCalculations: calculationResults.success,
+                failedCalculations: calculationResults.failed,
+                belowThreshold: calculationResults.belowThreshold,
+                profitThreshold,
+                opportunitiesFound: opportunities.length
+            });
+
             // Sort by profit percentage (highest first)
             opportunities.sort((a, b) => b.profitPercentage - a.profitPercentage);
 
-            systemLogger.trading(`Scan complete: found ${opportunities.length} opportunities`, {
+            systemLogger.trading(`[DEBUG] Scan complete`, {
                 exchange,
                 opportunitiesFound: opportunities.length,
-                topProfit: opportunities[0]?.profitPercentage || 0
+                topProfit: opportunities[0]?.profitPercentage || 0,
+                top3Paths: opportunities.slice(0, 3).map(o => ({
+                    path: o.path,
+                    profit: o.profitPercentage
+                }))
             });
 
             return opportunities;
