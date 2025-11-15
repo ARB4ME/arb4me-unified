@@ -5291,7 +5291,11 @@
         }
 
         async function performTestScan() {
-            if (testScanState.isPaused) return;
+            // Exit immediately if scan is paused or stopped
+            if (testScanState.isPaused || !testScanState.isRunning) {
+                console.log('[TEST SCAN] performTestScan exiting - scan is stopped or paused');
+                return;
+            }
 
             const exchange = testScanState.currentExchange;
             const selectedSets = getSelectedTestPaths();
