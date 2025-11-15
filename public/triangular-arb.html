@@ -5298,6 +5298,8 @@
             const minProfit = parseFloat(document.getElementById('testScanMinProfit').value);
             const testAmount = parseFloat(document.getElementById('testScanAmount').value);
 
+            console.log('[TEST SCAN] performTestScan called', { exchange, selectedSets, minProfit, testAmount });
+
             try {
                 // Call the exchange-specific scan function
                 let opportunities = [];
@@ -5325,9 +5327,14 @@
                         console.error('Unknown exchange:', exchange);
                 }
 
+                console.log('[TEST SCAN] Scan returned', opportunities.length, 'opportunities');
+
                 // Store opportunities
                 if (opportunities.length > 0) {
+                    console.log('[TEST SCAN] Storing opportunities...');
                     storeTestOpportunities(opportunities);
+                } else {
+                    console.log('[TEST SCAN] No opportunities to store (0 found)');
                 }
 
                 testScanState.scanCount++;
@@ -5335,11 +5342,12 @@
 
                 // Update analysis report if visible
                 if (document.getElementById('testScanAnalysis').style.display !== 'none') {
+                    console.log('[TEST SCAN] Updating analysis report...');
                     updateTestAnalysisReport();
                 }
 
             } catch (error) {
-                console.error('Test scan error:', error);
+                console.error('[TEST SCAN] Error in performTestScan:', error);
                 showNotification(`Scan error: ${error.message}`, 'error');
             }
         }
@@ -5350,11 +5358,18 @@
             // but we won't execute trades - just collect data
             const opportunities = [];
 
+            console.log('[TEST SCAN] Starting VALR scan...', { selectedSets, minProfit, testAmount });
+
             for (const setNum of selectedSets) {
                 const setName = `SET_${setNum}`;
                 const backendSet = setNameMapping[setName];
 
-                if (!backendSet) continue;
+                if (!backendSet) {
+                    console.warn(`[TEST SCAN] No mapping found for ${setName}`);
+                    continue;
+                }
+
+                console.log(`[TEST SCAN] Scanning ${setName} (${backendSet})...`);
 
                 try {
                     // Use public endpoint (no auth needed for TEST scan)
@@ -5368,10 +5383,18 @@
                         })
                     });
 
+                    console.log(`[TEST SCAN] ${setName} response status:`, response.status);
+
                     if (response.ok) {
                         const result = await response.json();
-                        if (result.opportunities && result.opportunities.length > 0) {
-                            result.opportunities.forEach(opp => {
+                        console.log(`[TEST SCAN] ${setName} backend response:`, result);
+
+                        // Check response structure
+                        const resultOpps = result.data?.opportunities || result.opportunities || [];
+                        console.log(`[TEST SCAN] ${setName} found ${resultOpps.length} opportunities`);
+
+                        if (resultOpps.length > 0) {
+                            resultOpps.forEach(opp => {
                                 opportunities.push({
                                     exchange: 'VALR',
                                     path: opp.path,
@@ -5383,13 +5406,18 @@
                                     timestamp: Date.now()
                                 });
                             });
+                            console.log(`[TEST SCAN] ${setName} added ${resultOpps.length} opportunities to collection`);
                         }
+                    } else {
+                        const errorText = await response.text();
+                        console.error(`[TEST SCAN] ${setName} error response:`, errorText);
                     }
                 } catch (error) {
-                    console.error(`Error scanning VALR ${setName}:`, error);
+                    console.error(`[TEST SCAN] Error scanning VALR ${setName}:`, error);
                 }
             }
 
+            console.log(`[TEST SCAN] VALR scan complete. Total opportunities: ${opportunities.length}`);
             return opportunities;
         }
 
