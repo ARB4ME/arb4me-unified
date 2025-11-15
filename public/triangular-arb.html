@@ -188,6 +188,191 @@
             </div>
         </div>
 
+        <!-- TEST SCAN Section -->
+        <div style="background: rgba(0,212,255,0.1); padding: 20px; border-radius: 15px; margin-bottom: 30px; border: 2px solid #00d4ff;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="color: #00d4ff; margin: 0;">🧪 TEST SCAN - Data Collection Mode</h3>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <span id="testScanStatus" style="color: #ff6b6b; font-size: 0.9rem; font-weight: 600;">STOPPED</span>
+                </div>
+            </div>
+
+            <!-- Info Banner -->
+            <div style="background: rgba(0,212,255,0.15); border: 2px solid #00d4ff; border-radius: 10px; padding: 15px; margin-bottom: 20px;">
+                <div style="display: flex; align-items: flex-start; gap: 15px;">
+                    <div style="font-size: 2rem; flex-shrink: 0;">📊</div>
+                    <div>
+                        <h4 style="color: #00d4ff; margin: 0 0 8px 0; font-size: 1.1rem;">What is TEST SCAN?</h4>
+                        <p style="color: #b8e0ff; margin: 0 0 8px 0; font-size: 0.9rem;">
+                            TEST SCAN monitors triangular arbitrage opportunities WITHOUT executing trades. It collects data to help you identify:
+                            <strong>which path sets are most profitable</strong>, <strong>which exchanges have the best opportunities</strong>, and <strong>optimal trading times</strong>.
+                        </p>
+                        <p style="color: #ffc266; margin: 0; font-size: 0.85rem;">
+                            💡 <strong>No trading, no risk</strong> - Just data collection to inform your strategy before going live.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Grid -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 20px;">
+
+                <!-- Exchange Selection -->
+                <div class="stat-card">
+                    <h4 style="color: #ffb347; margin-bottom: 15px;">📍 Select Exchange</h4>
+                    <div class="form-group">
+                        <label>Exchange to Scan</label>
+                        <select id="testScanExchange" style="width: 100%; padding: 10px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); border-radius: 6px; color: #fff; font-size: 0.9rem;">
+                            <option value="valr">💚 VALR (48 paths)</option>
+                            <option value="luno">🔷 LUNO (24 paths)</option>
+                            <option value="kraken">🟣 Kraken (114+ paths)</option>
+                            <option value="binance">🟡 Binance (60+ paths)</option>
+                            <option value="bybit">🟡 ByBit (40+ paths)</option>
+                            <option value="kucoin">🟢 KuCoin (50+ paths)</option>
+                        </select>
+                    </div>
+                    <div style="margin-top: 10px; padding: 8px; background: rgba(0,212,255,0.1); border-radius: 6px; font-size: 0.8rem; color: #b8c6db;">
+                        💡 Start with one exchange, then expand to compare results across exchanges.
+                    </div>
+                </div>
+
+                <!-- Path Set Selection -->
+                <div class="stat-card">
+                    <h4 style="color: #ffb347; margin-bottom: 15px;">🎯 Path Sets to Scan</h4>
+                    <div style="display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; max-height: 200px; overflow-y: auto;" id="testScanPathSets">
+                        <!-- VALR Path Sets (default) -->
+                        <span style="color: #b8c6db; font-size: 0.85rem;">SET 1: ETH (4 paths)</span>
+                        <input type="checkbox" class="test-scan-path" data-set="1" checked>
+
+                        <span style="color: #b8c6db; font-size: 0.85rem;">SET 2: XRP (4 paths)</span>
+                        <input type="checkbox" class="test-scan-path" data-set="2" checked>
+
+                        <span style="color: #b8c6db; font-size: 0.85rem;">SET 3: SOL (4 paths)</span>
+                        <input type="checkbox" class="test-scan-path" data-set="3" checked>
+
+                        <span style="color: #b8c6db; font-size: 0.85rem;">SET 4: BNB (4 paths)</span>
+                        <input type="checkbox" class="test-scan-path" data-set="4" checked>
+                    </div>
+                    <div style="margin-top: 10px;">
+                        <button onclick="selectAllTestPaths()" style="background: rgba(0,212,255,0.2); color: #00d4ff; border: 1px solid #00d4ff; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; margin-right: 8px;">Select All</button>
+                        <button onclick="deselectAllTestPaths()" style="background: rgba(255,107,107,0.2); color: #ff6b6b; border: 1px solid #ff6b6b; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem;">Deselect All</button>
+                    </div>
+                </div>
+
+                <!-- Scan Settings -->
+                <div class="stat-card">
+                    <h4 style="color: #ffb347; margin-bottom: 15px;">⚙️ Scan Settings</h4>
+                    <div class="form-group">
+                        <label>Min Profit Threshold (%)</label>
+                        <input type="number" id="testScanMinProfit" value="0.5" min="0.1" max="5" step="0.1" style="width: 100%; padding: 8px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); border-radius: 6px; color: #fff;">
+                    </div>
+                    <div class="form-group">
+                        <label>Scan Interval (seconds)</label>
+                        <input type="number" id="testScanInterval" value="30" min="10" max="300" step="10" style="width: 100%; padding: 8px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); border-radius: 6px; color: #fff;">
+                    </div>
+                    <div class="form-group">
+                        <label>Test Amount (for calculations)</label>
+                        <input type="number" id="testScanAmount" value="1000" min="100" max="10000" step="100" style="width: 100%; padding: 8px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); border-radius: 6px; color: #fff;">
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Control Buttons -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                <button onclick="startTestScan()" class="btn" style="background: linear-gradient(45deg, #00d4ff 0%, #0099ff 100%);">
+                    ▶️ Start Scan
+                </button>
+                <button onclick="pauseTestScan()" class="btn" style="background: linear-gradient(45deg, #ffb347 0%, #ff9500 100%);">
+                    ⏸️ Pause
+                </button>
+                <button onclick="stopTestScan()" class="btn" style="background: linear-gradient(45deg, #ff6b6b 0%, #ee5a24 100%);">
+                    ⏹️ Stop & Analyze
+                </button>
+                <button onclick="clearTestScanData()" class="btn" style="background: linear-gradient(45deg, #666 0%, #444 100%);">
+                    🗑️ Clear Data
+                </button>
+            </div>
+
+            <!-- Storage Stats -->
+            <div class="stat-card" style="margin-bottom: 20px;">
+                <h4 style="color: #ffb347; margin-bottom: 15px;">💾 Storage Statistics</h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                    <div>
+                        <div style="color: #b8c6db; font-size: 0.85rem; margin-bottom: 5px;">Opportunities Stored</div>
+                        <div style="color: #00d4ff; font-size: 1.3rem; font-weight: 600;" id="testStoredCount">0</div>
+                    </div>
+                    <div>
+                        <div style="color: #b8c6db; font-size: 0.85rem; margin-bottom: 5px;">Unique Routes</div>
+                        <div style="color: #00ff88; font-size: 1.3rem; font-weight: 600;" id="testUniqueRoutes">0</div>
+                    </div>
+                    <div>
+                        <div style="color: #b8c6db; font-size: 0.85rem; margin-bottom: 5px;">Storage Used</div>
+                        <div style="color: #ffb347; font-size: 1.3rem; font-weight: 600;" id="testStorageUsed">0%</div>
+                    </div>
+                    <div>
+                        <div style="color: #b8c6db; font-size: 0.85rem; margin-bottom: 5px;">Scan Duration</div>
+                        <div style="color: #b8c6db; font-size: 1.3rem; font-weight: 600;" id="testScanDuration">0:00:00</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live Analysis Report (Hidden until data available) -->
+            <div id="testScanAnalysis" style="display: none;">
+                <h4 style="color: #00d4ff; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid rgba(0,212,255,0.3);">📊 Live Analysis Report</h4>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; margin-bottom: 20px;">
+
+                    <!-- Top 20 Routes by Profit -->
+                    <div class="stat-card">
+                        <h4 style="color: #ffb347; margin-bottom: 15px;">🏆 Top 20 Routes by Average Profit</h4>
+                        <div style="max-height: 400px; overflow-y: auto;">
+                            <table style="width: 100%; font-size: 0.85rem;">
+                                <thead style="position: sticky; top: 0; background: rgba(0,0,0,0.5);">
+                                    <tr style="color: #b8c6db;">
+                                        <th style="text-align: left; padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.2);">Route</th>
+                                        <th style="text-align: center; padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.2);">Avg %</th>
+                                        <th style="text-align: center; padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.2);">Count</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="testTopProfitTable">
+                                    <tr><td colspan="3" style="text-align: center; padding: 20px; color: #888;">No data yet...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Top 20 Routes by Consistency -->
+                    <div class="stat-card">
+                        <h4 style="color: #ffb347; margin-bottom: 15px;">📈 Top 20 Routes by Consistency</h4>
+                        <div style="max-height: 400px; overflow-y: auto;">
+                            <table style="width: 100%; font-size: 0.85rem;">
+                                <thead style="position: sticky; top: 0; background: rgba(0,0,0,0.5);">
+                                    <tr style="color: #b8c6db;">
+                                        <th style="text-align: left; padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.2);">Route</th>
+                                        <th style="text-align: center; padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.2);">Found</th>
+                                        <th style="text-align: center; padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.2);">Avg %</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="testTopConsistencyTable">
+                                    <tr><td colspan="3" style="text-align: center; padding: 20px; color: #888;">No data yet...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Export Button -->
+                <div style="text-align: center; margin-top: 20px;">
+                    <button onclick="exportTestScanData()" class="btn" style="background: linear-gradient(45deg, #00ff88 0%, #00cc70 100%);">
+                        💾 Export Analysis to JSON
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
         <!-- Exchange Selection Filter -->
         <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 12px; margin-bottom: 30px; border: 1px solid rgba(255,255,255,0.2);">
             <h4 style="color: #00d4ff; margin: 0 0 15px 0;">📋 Select Exchanges to Display</h4>
@@ -4460,6 +4645,518 @@
                 }, 300);
             }, 3000);
         }
+
+        // ============================================================================
+        // TEST SCAN FUNCTIONALITY
+        // ============================================================================
+
+        // Test Scan State
+        let testScanInterval = null;
+        let testScanState = {
+            isRunning: false,
+            isPaused: false,
+            startTime: null,
+            scanCount: 0,
+            currentExchange: 'valr'
+        };
+
+        // Path Sets Configuration for Each Exchange
+        const exchangePathSets = {
+            valr: [
+                { set: 1, name: 'ETH', paths: 4 },
+                { set: 2, name: 'XRP', paths: 4 },
+                { set: 3, name: 'SOL', paths: 4 },
+                { set: 4, name: 'BNB', paths: 4 },
+                { set: 5, name: 'SHIB', paths: 4 },
+                { set: 6, name: 'AVAX', paths: 4 },
+                { set: 7, name: 'DOGE', paths: 4 },
+                { set: 8, name: 'TRX', paths: 4 },
+                { set: 9, name: 'LTC', paths: 4 },
+                { set: 10, name: 'RLUSD', paths: 4 },
+                { set: 11, name: 'LINK', paths: 4 },
+                { set: 12, name: 'XLM', paths: 4 }
+            ],
+            luno: [
+                { set: 1, name: 'BTC', paths: 4 },
+                { set: 2, name: 'ETH', paths: 4 },
+                { set: 3, name: 'XRP', paths: 4 },
+                { set: 4, name: 'LTC', paths: 4 },
+                { set: 5, name: 'BCH', paths: 4 },
+                { set: 6, name: 'USDC', paths: 4 }
+            ],
+            kraken: [
+                { set: 1, name: 'BTC_USD', paths: 12 },
+                { set: 2, name: 'ETH_USD', paths: 12 },
+                { set: 3, name: 'BTC_USDT', paths: 12 },
+                { set: 4, name: 'ETH_USDT', paths: 12 },
+                { set: 5, name: 'SOL', paths: 12 },
+                { set: 6, name: 'XRP', paths: 12 },
+                { set: 7, name: 'ADA', paths: 12 },
+                { set: 8, name: 'DOT', paths: 12 },
+                { set: 9, name: 'MATIC', paths: 12 },
+                { set: 10, name: 'AVAX', paths: 12 }
+            ],
+            binance: [
+                { set: 1, name: 'BTC', paths: 6 },
+                { set: 2, name: 'ETH', paths: 6 },
+                { set: 3, name: 'BNB', paths: 6 },
+                { set: 4, name: 'SOL', paths: 6 },
+                { set: 5, name: 'XRP', paths: 6 },
+                { set: 6, name: 'ADA', paths: 6 },
+                { set: 7, name: 'DOGE', paths: 6 },
+                { set: 8, name: 'MATIC', paths: 6 },
+                { set: 9, name: 'DOT', paths: 6 },
+                { set: 10, name: 'AVAX', paths: 6 }
+            ],
+            bybit: [
+                { set: 1, name: 'BTC', paths: 4 },
+                { set: 2, name: 'ETH', paths: 4 },
+                { set: 3, name: 'SOL', paths: 4 },
+                { set: 4, name: 'XRP', paths: 4 },
+                { set: 5, name: 'BNB', paths: 4 },
+                { set: 6, name: 'DOGE', paths: 4 },
+                { set: 7, name: 'ADA', paths: 4 },
+                { set: 8, name: 'MATIC', paths: 4 },
+                { set: 9, name: 'DOT', paths: 4 },
+                { set: 10, name: 'AVAX', paths: 4 }
+            ],
+            kucoin: [
+                { set: 1, name: 'BTC', paths: 6 },
+                { set: 2, name: 'ETH', paths: 6 },
+                { set: 3, name: 'SOL', paths: 6 },
+                { set: 4, name: 'XRP', paths: 6 },
+                { set: 5, name: 'BNB', paths: 6 },
+                { set: 6, name: 'ADA', paths: 6 },
+                { set: 7, name: 'DOGE', paths: 6 },
+                { set: 8, name: 'MATIC', paths: 6 }
+            ]
+        };
+
+        // Update path sets when exchange changes
+        document.addEventListener('DOMContentLoaded', function() {
+            const exchangeSelect = document.getElementById('testScanExchange');
+            if (exchangeSelect) {
+                exchangeSelect.addEventListener('change', updateTestPathSets);
+                // Initialize with VALR paths
+                updateTestPathSets();
+            }
+        });
+
+        function updateTestPathSets() {
+            const exchange = document.getElementById('testScanExchange').value;
+            const pathSetsContainer = document.getElementById('testScanPathSets');
+            const sets = exchangePathSets[exchange] || [];
+
+            let html = '';
+            sets.forEach((set, index) => {
+                const checked = index < 4 ? 'checked' : ''; // Check first 4 by default
+                html += `
+                    <span style="color: #b8c6db; font-size: 0.85rem;">SET ${set.set}: ${set.name} (${set.paths} paths)</span>
+                    <input type="checkbox" class="test-scan-path" data-set="${set.set}" ${checked}>
+                `;
+            });
+
+            pathSetsContainer.innerHTML = html;
+            testScanState.currentExchange = exchange;
+        }
+
+        function selectAllTestPaths() {
+            document.querySelectorAll('.test-scan-path').forEach(cb => cb.checked = true);
+        }
+
+        function deselectAllTestPaths() {
+            document.querySelectorAll('.test-scan-path').forEach(cb => cb.checked = false);
+        }
+
+        function getSelectedTestPaths() {
+            const selected = [];
+            document.querySelectorAll('.test-scan-path:checked').forEach(cb => {
+                selected.push(parseInt(cb.dataset.set));
+            });
+            return selected;
+        }
+
+        async function startTestScan() {
+            if (testScanState.isRunning) {
+                showNotification('Test scan is already running', 'warning');
+                return;
+            }
+
+            const selectedPaths = getSelectedTestPaths();
+            if (selectedPaths.length === 0) {
+                showNotification('Please select at least one path set to scan', 'warning');
+                return;
+            }
+
+            testScanState.isRunning = true;
+            testScanState.isPaused = false;
+            testScanState.startTime = Date.now();
+            testScanState.scanCount = 0;
+
+            document.getElementById('testScanStatus').textContent = 'RUNNING';
+            document.getElementById('testScanStatus').style.color = '#00ff88';
+
+            showNotification('Test scan started', 'success');
+
+            // Get scan interval
+            const interval = parseInt(document.getElementById('testScanInterval').value) * 1000;
+
+            // Run first scan immediately
+            await performTestScan();
+
+            // Set up interval for subsequent scans
+            testScanInterval = setInterval(performTestScan, interval);
+
+            // Update duration timer
+            setInterval(updateTestScanDuration, 1000);
+        }
+
+        function pauseTestScan() {
+            if (!testScanState.isRunning) {
+                showNotification('No test scan is running', 'warning');
+                return;
+            }
+
+            if (testScanState.isPaused) {
+                // Resume
+                testScanState.isPaused = false;
+                document.getElementById('testScanStatus').textContent = 'RUNNING';
+                document.getElementById('testScanStatus').style.color = '#00ff88';
+                showNotification('Test scan resumed', 'info');
+            } else {
+                // Pause
+                testScanState.isPaused = true;
+                document.getElementById('testScanStatus').textContent = 'PAUSED';
+                document.getElementById('testScanStatus').style.color = '#ffb347';
+                showNotification('Test scan paused', 'info');
+            }
+        }
+
+        function stopTestScan() {
+            if (!testScanState.isRunning) {
+                showNotification('No test scan is running', 'warning');
+                return;
+            }
+
+            clearInterval(testScanInterval);
+            testScanState.isRunning = false;
+            testScanState.isPaused = false;
+
+            document.getElementById('testScanStatus').textContent = 'STOPPED';
+            document.getElementById('testScanStatus').style.color = '#ff6b6b';
+
+            showNotification('Test scan stopped - analyzing data...', 'info');
+
+            // Update analysis report
+            updateTestAnalysisReport();
+
+            // Show analysis section
+            document.getElementById('testScanAnalysis').style.display = 'block';
+        }
+
+        async function performTestScan() {
+            if (testScanState.isPaused) return;
+
+            const exchange = testScanState.currentExchange;
+            const selectedSets = getSelectedTestPaths();
+            const minProfit = parseFloat(document.getElementById('testScanMinProfit').value);
+            const testAmount = parseFloat(document.getElementById('testScanAmount').value);
+
+            try {
+                // Call the exchange-specific scan function
+                let opportunities = [];
+
+                switch(exchange) {
+                    case 'valr':
+                        opportunities = await scanValrTestPaths(selectedSets, minProfit, testAmount);
+                        break;
+                    case 'luno':
+                        opportunities = await scanLunoTestPaths(selectedSets, minProfit, testAmount);
+                        break;
+                    case 'kraken':
+                        opportunities = await scanKrakenTestPaths(selectedSets, minProfit, testAmount);
+                        break;
+                    case 'binance':
+                        opportunities = await scanBinanceTestPaths(selectedSets, minProfit, testAmount);
+                        break;
+                    case 'bybit':
+                        opportunities = await scanBybitTestPaths(selectedSets, minProfit, testAmount);
+                        break;
+                    case 'kucoin':
+                        opportunities = await scanKucoinTestPaths(selectedSets, minProfit, testAmount);
+                        break;
+                    default:
+                        console.error('Unknown exchange:', exchange);
+                }
+
+                // Store opportunities
+                if (opportunities.length > 0) {
+                    storeTestOpportunities(opportunities);
+                }
+
+                testScanState.scanCount++;
+                updateTestStorageStats();
+
+                // Update analysis report if visible
+                if (document.getElementById('testScanAnalysis').style.display !== 'none') {
+                    updateTestAnalysisReport();
+                }
+
+            } catch (error) {
+                console.error('Test scan error:', error);
+                showNotification(`Scan error: ${error.message}`, 'error');
+            }
+        }
+
+        // Scan functions for each exchange (using existing scan logic)
+        async function scanValrTestPaths(selectedSets, minProfit, testAmount) {
+            // This will call the same backend API that the live trading uses
+            // but we won't execute trades - just collect data
+            const opportunities = [];
+
+            for (const setNum of selectedSets) {
+                const setName = `SET_${setNum}`;
+                const backendSet = setNameMapping[setName];
+
+                if (!backendSet) continue;
+
+                try {
+                    // Use public endpoint (no auth needed for TEST scan)
+                    const response = await fetch(`${API_BASE}/exchanges/valr/triangular/scan`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            paths: backendSet,
+                            amount: testAmount,
+                            minProfitPercent: minProfit
+                        })
+                    });
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        if (result.opportunities && result.opportunities.length > 0) {
+                            result.opportunities.forEach(opp => {
+                                opportunities.push({
+                                    exchange: 'VALR',
+                                    path: opp.path,
+                                    baseCrypto: opp.baseCurrency || backendSet.split('_')[2],
+                                    netProfitPercent: opp.profitPercentage,
+                                    totalFees: opp.totalFees || 0,
+                                    slippage: opp.slippage || 0,
+                                    liquidity: opp.liquidity || 3,
+                                    timestamp: Date.now()
+                                });
+                            });
+                        }
+                    }
+                } catch (error) {
+                    console.error(`Error scanning VALR ${setName}:`, error);
+                }
+            }
+
+            return opportunities;
+        }
+
+        async function scanLunoTestPaths(selectedSets, minProfit, testAmount) {
+            // Similar implementation for Luno
+            const opportunities = [];
+            // TODO: Implement Luno-specific scanning
+            return opportunities;
+        }
+
+        async function scanKrakenTestPaths(selectedSets, minProfit, testAmount) {
+            // Similar implementation for Kraken
+            const opportunities = [];
+            // TODO: Implement Kraken-specific scanning
+            return opportunities;
+        }
+
+        async function scanBinanceTestPaths(selectedSets, minProfit, testAmount) {
+            // Similar implementation for Binance
+            const opportunities = [];
+            // TODO: Implement Binance-specific scanning
+            return opportunities;
+        }
+
+        async function scanBybitTestPaths(selectedSets, minProfit, testAmount) {
+            // Similar implementation for Bybit
+            const opportunities = [];
+            // TODO: Implement Bybit-specific scanning
+            return opportunities;
+        }
+
+        async function scanKucoinTestPaths(selectedSets, minProfit, testAmount) {
+            // Similar implementation for KuCoin
+            const opportunities = [];
+            // TODO: Implement KuCoin-specific scanning
+            return opportunities;
+        }
+
+        function storeTestOpportunities(opportunities) {
+            const dataKey = 'testScan_triangular_data';
+            const maxResults = 10000;
+
+            let data = JSON.parse(localStorage.getItem(dataKey) || '[]');
+
+            opportunities.forEach(opp => {
+                const routeKey = `${opp.exchange}_${opp.path}`;
+                opp.routeKey = routeKey;
+                opp.hour = new Date().getHours();
+                data.push(opp);
+            });
+
+            // Keep last N opportunities
+            if (data.length > maxResults) {
+                data = data.slice(-maxResults);
+            }
+
+            localStorage.setItem(dataKey, JSON.stringify(data));
+        }
+
+        function getTestScanData() {
+            const dataKey = 'testScan_triangular_data';
+            return JSON.parse(localStorage.getItem(dataKey) || '[]');
+        }
+
+        function clearTestScanData() {
+            if (!confirm('Are you sure you want to clear all test scan data? This cannot be undone.')) {
+                return;
+            }
+
+            localStorage.removeItem('testScan_triangular_data');
+            localStorage.removeItem('testScan_triangular_config');
+
+            document.getElementById('testStoredCount').textContent = '0';
+            document.getElementById('testUniqueRoutes').textContent = '0';
+            document.getElementById('testStorageUsed').textContent = '0%';
+            document.getElementById('testScanAnalysis').style.display = 'none';
+
+            showNotification('Test scan data cleared', 'success');
+        }
+
+        function updateTestStorageStats() {
+            const data = getTestScanData();
+            const uniqueRoutes = new Set(data.map(d => d.routeKey)).size;
+
+            const dataSize = new Blob([JSON.stringify(data)]).size;
+            const estimatedQuota = 10 * 1024 * 1024; // 10MB
+            const usedPercent = Math.min((dataSize / estimatedQuota) * 100, 100);
+
+            document.getElementById('testStoredCount').textContent = data.length.toLocaleString();
+            document.getElementById('testUniqueRoutes').textContent = uniqueRoutes.toLocaleString();
+            document.getElementById('testStorageUsed').textContent = usedPercent.toFixed(1) + '%';
+        }
+
+        function updateTestScanDuration() {
+            if (!testScanState.startTime) return;
+
+            const elapsed = Date.now() - testScanState.startTime;
+            const hours = Math.floor(elapsed / 3600000);
+            const minutes = Math.floor((elapsed % 3600000) / 60000);
+            const seconds = Math.floor((elapsed % 60000) / 1000);
+
+            const formatted = `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            document.getElementById('testScanDuration').textContent = formatted;
+        }
+
+        function updateTestAnalysisReport() {
+            const data = getTestScanData();
+
+            if (data.length === 0) {
+                document.getElementById('testScanAnalysis').style.display = 'none';
+                return;
+            }
+
+            // Aggregate by route
+            const routeStats = {};
+            data.forEach(opp => {
+                const key = opp.routeKey;
+                if (!routeStats[key]) {
+                    routeStats[key] = {
+                        routeKey: key,
+                        profits: [],
+                        count: 0,
+                        example: opp
+                    };
+                }
+                routeStats[key].profits.push(opp.netProfitPercent);
+                routeStats[key].count++;
+            });
+
+            // Calculate averages and sort
+            const routes = Object.values(routeStats).map(stat => ({
+                routeKey: stat.routeKey,
+                avgProfit: stat.profits.reduce((a, b) => a + b, 0) / stat.profits.length,
+                maxProfit: Math.max(...stat.profits),
+                minProfit: Math.min(...stat.profits),
+                count: stat.count
+            }));
+
+            // Top 20 by profit
+            const topProfit = [...routes].sort((a, b) => b.avgProfit - a.avgProfit).slice(0, 20);
+            let profitHtml = '';
+            topProfit.forEach((route, index) => {
+                const color = route.avgProfit > 1 ? '#00ff88' : route.avgProfit > 0.5 ? '#ffb347' : '#b8c6db';
+                profitHtml += `
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                        <td style="padding: 8px; color: ${color}; font-size: 0.8rem;">${route.routeKey}</td>
+                        <td style="padding: 8px; text-align: center; color: ${color}; font-weight: 600;">${route.avgProfit.toFixed(3)}%</td>
+                        <td style="padding: 8px; text-align: center; color: #b8c6db;">${route.count}</td>
+                    </tr>
+                `;
+            });
+            document.getElementById('testTopProfitTable').innerHTML = profitHtml;
+
+            // Top 20 by consistency
+            const topConsistency = [...routes].sort((a, b) => b.count - a.count).slice(0, 20);
+            let consistencyHtml = '';
+            topConsistency.forEach((route, index) => {
+                const color = route.count > 50 ? '#00ff88' : route.count > 20 ? '#ffb347' : '#b8c6db';
+                consistencyHtml += `
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                        <td style="padding: 8px; color: ${color}; font-size: 0.8rem;">${route.routeKey}</td>
+                        <td style="padding: 8px; text-align: center; color: ${color}; font-weight: 600;">${route.count}</td>
+                        <td style="padding: 8px; text-align: center; color: #b8c6db;">${route.avgProfit.toFixed(3)}%</td>
+                    </tr>
+                `;
+            });
+            document.getElementById('testTopConsistencyTable').innerHTML = consistencyHtml;
+
+            document.getElementById('testScanAnalysis').style.display = 'block';
+        }
+
+        function exportTestScanData() {
+            const data = getTestScanData();
+
+            if (data.length === 0) {
+                showNotification('No data to export', 'warning');
+                return;
+            }
+
+            const exportData = {
+                strategy: 'triangular',
+                exchange: testScanState.currentExchange,
+                exportedAt: new Date().toISOString(),
+                scanCount: testScanState.scanCount,
+                totalOpportunities: data.length,
+                uniqueRoutes: new Set(data.map(d => d.routeKey)).size,
+                opportunities: data
+            };
+
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `triangular-test-scan-${testScanState.currentExchange}-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+
+            showNotification('Data exported successfully', 'success');
+        }
+
+        // ============================================================================
+        // END TEST SCAN FUNCTIONALITY
+        // ============================================================================
 
         // Triangular Arbitrage JavaScript Functions
 
