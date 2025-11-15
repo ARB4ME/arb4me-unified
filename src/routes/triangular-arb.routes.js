@@ -12575,7 +12575,11 @@ router.post('/valr/triangular/scan', tradingRateLimit, optionalAuth, asyncHandle
         scanOptions.credentials = { apiKey, apiSecret };
     }
 
-    const opportunities = await triangularArbService.scan('valr', scanOptions);
+    const scanResult = await triangularArbService.scan('valr', scanOptions);
+
+    // Extract opportunities and debug info from service result
+    const opportunities = scanResult.opportunities || scanResult;  // Support both old and new format
+    const debug = scanResult.debug || null;
 
     // Return response (service handles all logic)
     res.json({
@@ -12591,7 +12595,8 @@ router.post('/valr/triangular/scan', tradingRateLimit, optionalAuth, asyncHandle
                 balanceZAR: currentBalanceZAR,
                 portfolioPercent: portfolioPercent,
                 maxTradeAmount: maxTradeAmount
-            }
+            },
+            debug  // Include debug info for frontend console logging
         }
     });
 }));

@@ -145,7 +145,27 @@ class TriangularArbService {
                 }))
             });
 
-            return opportunities;
+            // Return opportunities with detailed debug info for frontend console
+            return {
+                opportunities,
+                debug: {
+                    step1_pathsLoaded: pathsToScan.length,
+                    step1_pathIds: pathsToScan.map(p => p.id),
+                    step2_uniquePairs: uniquePairs,
+                    step3_orderbooksFetched: Object.keys(orderBooks).length,
+                    step3_orderbooksRequested: uniquePairs.length,
+                    step3_orderbookPairs: Object.keys(orderBooks),
+                    step3_sampleOrderbook: orderBooks[Object.keys(orderBooks)[0]] ? {
+                        pair: Object.keys(orderBooks)[0],
+                        bidsCount: (orderBooks[Object.keys(orderBooks)[0]]?.Bids || orderBooks[Object.keys(orderBooks)[0]]?.bids || []).length,
+                        asksCount: (orderBooks[Object.keys(orderBooks)[0]]?.Asks || orderBooks[Object.keys(orderBooks)[0]]?.asks || []).length
+                    } : null,
+                    step4_calculationsSuccessful: calculationResults.success,
+                    step4_calculationsFailed: calculationResults.failed,
+                    step4_calculationsBelowThreshold: calculationResults.belowThreshold,
+                    step4_profitThreshold: profitThreshold
+                }
+            };
 
         } catch (error) {
             systemLogger.error(`Triangular arb scan failed`, {

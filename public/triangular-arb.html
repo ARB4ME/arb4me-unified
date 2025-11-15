@@ -5389,6 +5389,38 @@
                         const result = await response.json();
                         console.log(`[TEST SCAN] ${setName} backend response:`, result);
 
+                        // Log detailed debug info from backend
+                        if (result.data?.debug) {
+                            const d = result.data.debug;
+                            console.log(`
+╔════════════════════════════════════════════════════════════
+║ 🔍 VALR ${setName} - DETAILED SCAN DEBUG
+╚════════════════════════════════════════════════════════════
+
+📋 STEP 1: Path Definitions Loaded
+   ✅ Paths loaded: ${d.step1_pathsLoaded}
+   📝 Path IDs: ${d.step1_pathIds.join(', ')}
+
+📊 STEP 2: Unique Pairs Extracted
+   ✅ Pairs needed: ${d.step2_uniquePairs.length}
+   📝 Pairs: ${d.step2_uniquePairs.join(', ')}
+
+📖 STEP 3: Orderbooks Fetched
+   ✅ Fetched: ${d.step3_orderbooksFetched}/${d.step3_orderbooksRequested}
+   ❌ Failed: ${d.step3_orderbooksRequested - d.step3_orderbooksFetched}
+   📝 Pairs fetched: ${d.step3_orderbookPairs.join(', ')}
+   ${d.step3_sampleOrderbook ? `📖 Sample (${d.step3_sampleOrderbook.pair}): ${d.step3_sampleOrderbook.bidsCount} bids, ${d.step3_sampleOrderbook.asksCount} asks` : '❌ No orderbooks fetched'}
+
+💰 STEP 4: Profit Calculations
+   ✅ Successful: ${d.step4_calculationsSuccessful}
+   ❌ Failed: ${d.step4_calculationsFailed}
+   📉 Below threshold (${d.step4_profitThreshold}%): ${d.step4_calculationsBelowThreshold}
+
+🎯 RESULT: ${result.data.opportunitiesFound} opportunities found
+════════════════════════════════════════════════════════════
+                            `);
+                        }
+
                         // Check response structure
                         const resultOpps = result.data?.opportunities || result.opportunities || [];
                         console.log(`[TEST SCAN] ${setName} found ${resultOpps.length} opportunities`);
