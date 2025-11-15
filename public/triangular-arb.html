@@ -5379,7 +5379,7 @@
                         body: JSON.stringify({
                             paths: backendSet,
                             amount: testAmount,
-                            minProfitPercent: minProfit
+                            profitThreshold: minProfit  // Fixed: backend expects 'profitThreshold' not 'minProfitPercent'
                         })
                     });
 
