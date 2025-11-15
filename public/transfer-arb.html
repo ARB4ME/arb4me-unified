@@ -1105,7 +1105,7 @@
 
                         <!-- Top Routes by Profit % -->
                         <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 20px; margin-bottom: 20px;">
-                            <h5 style="color: #00ff88; margin-bottom: 15px;">🏆 Top 10 Routes by Profit %</h5>
+                            <h5 style="color: #00ff88; margin-bottom: 15px;">🏆 Top 20 Routes by Profit %</h5>
                             <div style="overflow-x: auto;">
                                 <table id="testScanTopProfitTable" style="width: 100%; border-collapse: collapse; color: #b8c6db; font-size: 0.85rem;">
                                     <thead>
@@ -1132,7 +1132,7 @@
 
                         <!-- Top Routes by Consistency -->
                         <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 20px; margin-bottom: 20px;">
-                            <h5 style="color: #00d4ff; margin-bottom: 15px;">📈 Top 10 Routes by Consistency (Most Reliable)</h5>
+                            <h5 style="color: #00d4ff; margin-bottom: 15px;">📈 Top 20 Routes by Consistency (Most Reliable)</h5>
                             <div style="overflow-x: auto;">
                                 <table id="testScanTopConsistencyTable" style="width: 100%; border-collapse: collapse; color: #b8c6db; font-size: 0.85rem;">
                                     <thead>
@@ -4082,13 +4082,13 @@
                 };
             });
 
-            // Top 10 by Profit %
-            const topProfit = routes.sort((a, b) => b.avgProfit - a.avgProfit).slice(0, 10);
+            // Top 20 by Profit %
+            const topProfit = routes.sort((a, b) => b.avgProfit - a.avgProfit).slice(0, 20);
             console.log(`💰 Top profit routes: ${topProfit.length} routes, best: ${topProfit[0]?.avgProfit.toFixed(2)}%`);
             updateTopProfitTable(topProfit);
 
-            // Top 10 by Consistency
-            const topConsistency = routes.sort((a, b) => b.count - a.count).slice(0, 10);
+            // Top 20 by Consistency
+            const topConsistency = routes.sort((a, b) => b.count - a.count).slice(0, 20);
             console.log(`🔄 Top consistency routes: ${topConsistency.length} routes, most consistent: ${topConsistency[0]?.count} occurrences`);
             updateTopConsistencyTable(topConsistency);
 
@@ -4105,7 +4105,7 @@
                 crypto,
                 count: cryptoStats[crypto].count,
                 avgProfit: cryptoStats[crypto].profits.reduce((a, b) => a + b, 0) / cryptoStats[crypto].profits.length
-            })).sort((a, b) => b.count - a.count).slice(0, 10);
+            })).sort((a, b) => b.count - a.count).slice(0, 20);
             updateBestCryptosTable(bestCryptos);
 
             // Best Exchanges
@@ -4122,7 +4122,7 @@
                 pair,
                 count: exchangePairStats[pair].count,
                 avgProfit: exchangePairStats[pair].profits.reduce((a, b) => a + b, 0) / exchangePairStats[pair].profits.length
-            })).sort((a, b) => b.count - a.count).slice(0, 10);
+            })).sort((a, b) => b.count - a.count).slice(0, 20);
             updateBestExchangesTable(bestExchanges);
 
             // Time Analysis
