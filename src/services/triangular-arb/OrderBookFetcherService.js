@@ -22,33 +22,33 @@ class OrderBookFetcherService {
      * @returns {Promise<object>} Order books mapped by pair
      */
     async fetchMultiple(exchange, pairs, credentials) {
-        systemLogger.trading(`Fetching ${pairs.length} order books from ${exchange}`);
+        systemLogger.trading(`Fetching ${pairs.length} order books from ${exchange} (sequential with rate limiting)`);
 
         try {
-            // Fetch all order books in parallel
-            const fetchPromises = pairs.map(pair =>
-                this._fetchSingle(exchange, pair, credentials)
-                    .then(orderBook => ({ pair, orderBook, error: null }))
-                    .catch(error => ({ pair, orderBook: null, error: error.message }))
-            );
-
-            const results = await Promise.all(fetchPromises);
-
-            // Build order book map
+            // Fetch order books SEQUENTIALLY with delays to avoid rate limiting
+            // VALR and other exchanges have rate limits, parallel fetching causes 429 errors
             const orderBooks = {};
             let successCount = 0;
             let errorCount = 0;
 
-            for (const result of results) {
-                if (result.error) {
-                    systemLogger.warn(`Failed to fetch order book for ${result.pair}`, {
+            for (let i = 0; i < pairs.length; i++) {
+                const pair = pairs[i];
+
+                try {
+                    const orderBook = await this._fetchSingle(exchange, pair, credentials);
+                    orderBooks[pair] = orderBook;
+                    successCount++;
+                } catch (error) {
+                    systemLogger.warn(`Failed to fetch order book for ${pair}`, {
                         exchange,
-                        error: result.error
+                        error: error.message
                     });
                     errorCount++;
-                } else {
-                    orderBooks[result.pair] = result.orderBook;
-                    successCount++;
+                }
+
+                // Add delay between requests to avoid rate limiting (except for last request)
+                if (i < pairs.length - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 300)); // 300ms delay between requests
                 }
             }
 

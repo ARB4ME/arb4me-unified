@@ -195,12 +195,7 @@ class PathDefinitionsService {
                 { id: 'USDT_LTC_ZAR_USDT', pairs: ['LTCUSDT', 'LTCZAR', 'USDTZAR'], sequence: 'USDT → LTC → ZAR → USDT', steps: [{ pair: 'LTCUSDT', side: 'buy' }, { pair: 'LTCZAR', side: 'sell' }, { pair: 'USDTZAR', side: 'buy' }] },
                 { id: 'USDT_ZAR_LTC_USDT', pairs: ['USDTZAR', 'LTCZAR', 'LTCUSDT'], sequence: 'USDT → ZAR → LTC → USDT', steps: [{ pair: 'USDTZAR', side: 'sell' }, { pair: 'LTCZAR', side: 'buy' }, { pair: 'LTCUSDT', side: 'sell' }] }
             ],
-            SET_10_RLUSD_FOCUS: [
-                { id: 'ZAR_RLUSD_USDT_ZAR', pairs: ['RLUSDZAR', 'RLUSUSDT', 'USDTZAR'], sequence: 'ZAR → RLUSD → USDT → ZAR', steps: [{ pair: 'RLUSDZAR', side: 'buy' }, { pair: 'RLUSUSDT', side: 'sell' }, { pair: 'USDTZAR', side: 'sell' }] },
-                { id: 'ZAR_USDT_RLUSD_ZAR', pairs: ['USDTZAR', 'RLUSUSDT', 'RLUSDZAR'], sequence: 'ZAR → USDT → RLUSD → ZAR', steps: [{ pair: 'USDTZAR', side: 'buy' }, { pair: 'RLUSUSDT', side: 'buy' }, { pair: 'RLUSDZAR', side: 'sell' }] },
-                { id: 'USDT_RLUSD_ZAR_USDT', pairs: ['RLUSUSDT', 'RLUSDZAR', 'USDTZAR'], sequence: 'USDT → RLUSD → ZAR → USDT', steps: [{ pair: 'RLUSUSDT', side: 'buy' }, { pair: 'RLUSDZAR', side: 'sell' }, { pair: 'USDTZAR', side: 'buy' }] },
-                { id: 'USDT_ZAR_RLUSD_USDT', pairs: ['USDTZAR', 'RLUSDZAR', 'RLUSUSDT'], sequence: 'USDT → ZAR → RLUSD → USDT', steps: [{ pair: 'USDTZAR', side: 'sell' }, { pair: 'RLUSDZAR', side: 'buy' }, { pair: 'RLUSUSDT', side: 'sell' }] }
-            ],
+            // SET_10_RLUSD_FOCUS removed - RLUSD pairs not supported on VALR (API returns 400 "Unsupported Currency Pair")
             SET_11_LINK_FOCUS: [
                 { id: 'ZAR_LINK_USDT_ZAR', pairs: ['LINKZAR', 'LINKUSDT', 'USDTZAR'], sequence: 'ZAR → LINK → USDT → ZAR', steps: [{ pair: 'LINKZAR', side: 'buy' }, { pair: 'LINKUSDT', side: 'sell' }, { pair: 'USDTZAR', side: 'sell' }] },
                 { id: 'ZAR_USDT_LINK_ZAR', pairs: ['USDTZAR', 'LINKUSDT', 'LINKZAR'], sequence: 'ZAR → USDT → LINK → ZAR', steps: [{ pair: 'USDTZAR', side: 'buy' }, { pair: 'LINKUSDT', side: 'buy' }, { pair: 'LINKZAR', side: 'sell' }] },
