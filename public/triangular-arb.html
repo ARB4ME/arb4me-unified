@@ -5358,7 +5358,7 @@
 
                 try {
                     // Use public endpoint (no auth needed for TEST scan)
-                    const response = await fetch(`${API_BASE}/exchanges/valr/triangular/scan`, {
+                    const response = await fetch(`${API_BASE}/trading/valr/triangular/scan`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
