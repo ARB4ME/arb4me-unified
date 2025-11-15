@@ -183,7 +183,7 @@ class ExchangeConnectorService {
      * Fetch order book from exchange
      * @param {string} exchange - Exchange name
      * @param {string} pair - Trading pair
-     * @param {object} credentials - User's API credentials { apiKey, apiSecret }
+     * @param {object} credentials - User's API credentials { apiKey, apiSecret } (optional for public endpoints)
      * @returns {Promise<object>} Order book data
      */
     async fetchOrderBook(exchange, pair, credentials) {
@@ -196,12 +196,14 @@ class ExchangeConnectorService {
 
         try {
             // Create auth headers for this specific request (credentials used immediately, then discarded)
+            // For public orderbook endpoints, credentials are optional
             const authHeaders = this._createAuthHeaders(
                 exchangeLower,
                 'GET',
                 config.endpoints.orderBook,
                 null,
-                credentials
+                credentials,
+                true  // isPublicEndpoint = true for orderbook
             );
 
             // Build URL
@@ -210,7 +212,8 @@ class ExchangeConnectorService {
             systemLogger.trading(`Fetching order book`, {
                 exchange: config.name,
                 pair,
-                url
+                url,
+                authenticated: !!credentials
             });
 
             // Make request
@@ -309,8 +312,21 @@ class ExchangeConnectorService {
     /**
      * Create authentication headers (credentials used immediately, not stored)
      * @private
+     * @param {boolean} isPublicEndpoint - If true, credentials are optional
      */
-    _createAuthHeaders(exchange, method, path, body, credentials) {
+    _createAuthHeaders(exchange, method, path, body, credentials, isPublicEndpoint = false) {
+        // If no credentials provided and this is a public endpoint, return basic headers
+        if (!credentials && isPublicEndpoint) {
+            return {
+                'Content-Type': 'application/json'
+            };
+        }
+
+        // If no credentials provided for private endpoint, throw error
+        if (!credentials) {
+            throw new Error(`API credentials required for ${exchange} ${method} ${path}`);
+        }
+
         const { apiKey, apiSecret, passphrase } = credentials;
 
         switch (this.exchanges[exchange].authType) {
