@@ -222,13 +222,13 @@
                     <h4 style="color: #ffb347; margin-bottom: 15px;">📍 Select Exchange</h4>
                     <div class="form-group">
                         <label>Exchange to Scan</label>
-                        <select id="testScanExchange" style="width: 100%; padding: 10px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); border-radius: 6px; color: #fff; font-size: 0.9rem;">
-                            <option value="valr">💚 VALR (48 paths)</option>
-                            <option value="luno">🔷 LUNO (24 paths)</option>
-                            <option value="kraken">🟣 Kraken (114+ paths)</option>
-                            <option value="binance">🟡 Binance (60+ paths)</option>
-                            <option value="bybit">🟡 ByBit (40+ paths)</option>
-                            <option value="kucoin">🟢 KuCoin (50+ paths)</option>
+                        <select id="testScanExchange" style="width: 100%; padding: 10px; background: #1a1a2e; border: 1px solid rgba(0,212,255,0.5); border-radius: 6px; color: #fff; font-size: 0.9rem;">
+                            <option value="valr" style="background: #1a1a2e; color: #fff;">💚 VALR (48 paths)</option>
+                            <option value="luno" style="background: #1a1a2e; color: #fff;">🔷 LUNO (24 paths)</option>
+                            <option value="kraken" style="background: #1a1a2e; color: #fff;">🟣 Kraken (114+ paths)</option>
+                            <option value="binance" style="background: #1a1a2e; color: #fff;">🟡 Binance (60+ paths)</option>
+                            <option value="bybit" style="background: #1a1a2e; color: #fff;">🟡 ByBit (40+ paths)</option>
+                            <option value="kucoin" style="background: #1a1a2e; color: #fff;">🟢 KuCoin (50+ paths)</option>
                         </select>
                     </div>
                     <div style="margin-top: 10px; padding: 8px; background: rgba(0,212,255,0.1); border-radius: 6px; font-size: 0.8rem; color: #b8c6db;">
@@ -371,6 +371,20 @@
                 </div>
             </div>
 
+        </div>
+
+        <!-- LIVE TRADING Section Header -->
+        <div style="background: linear-gradient(135deg, rgba(0,255,136,0.15) 0%, rgba(0,212,255,0.15) 100%); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 2px solid rgba(0,255,136,0.3); text-align: center;">
+            <div style="display: flex; align-items: center; justify-content: center; gap: 15px;">
+                <div style="font-size: 2.5rem;">⚡</div>
+                <div>
+                    <h2 style="color: #00ff88; margin: 0 0 5px 0; font-size: 1.8rem; font-weight: 700;">LIVE TRADING MODE</h2>
+                    <p style="color: #b8e0ff; margin: 0; font-size: 0.95rem;">
+                        Configure and manage automated triangular arbitrage trading across all exchanges
+                    </p>
+                </div>
+                <div style="font-size: 2.5rem;">⚡</div>
+            </div>
         </div>
 
         <!-- Exchange Selection Filter -->
@@ -4747,9 +4761,17 @@
             const pathSetsContainer = document.getElementById('testScanPathSets');
             const sets = exchangePathSets[exchange] || [];
 
+            // Load saved checkbox states from localStorage
+            const savedStates = JSON.parse(localStorage.getItem('testScan_triangular_pathSets') || '{}');
+            const exchangeStates = savedStates[exchange] || {};
+
             let html = '';
             sets.forEach((set, index) => {
-                const checked = index < 4 ? 'checked' : ''; // Check first 4 by default
+                // Check if we have a saved state, otherwise default to first 4 checked
+                const checked = exchangeStates.hasOwnProperty(set.set)
+                    ? (exchangeStates[set.set] ? 'checked' : '')
+                    : (index < 4 ? 'checked' : '');
+
                 html += `
                     <span style="color: #b8c6db; font-size: 0.85rem;">SET ${set.set}: ${set.name} (${set.paths} paths)</span>
                     <input type="checkbox" class="test-scan-path" data-set="${set.set}" ${checked}>
@@ -4758,14 +4780,36 @@
 
             pathSetsContainer.innerHTML = html;
             testScanState.currentExchange = exchange;
+
+            // Add event listeners to save state when checkboxes change
+            document.querySelectorAll('.test-scan-path').forEach(cb => {
+                cb.addEventListener('change', saveTestPathStates);
+            });
+        }
+
+        function saveTestPathStates() {
+            const exchange = testScanState.currentExchange;
+            const savedStates = JSON.parse(localStorage.getItem('testScan_triangular_pathSets') || '{}');
+
+            // Get current checkbox states
+            const currentStates = {};
+            document.querySelectorAll('.test-scan-path').forEach(cb => {
+                currentStates[parseInt(cb.dataset.set)] = cb.checked;
+            });
+
+            // Save for this exchange
+            savedStates[exchange] = currentStates;
+            localStorage.setItem('testScan_triangular_pathSets', JSON.stringify(savedStates));
         }
 
         function selectAllTestPaths() {
             document.querySelectorAll('.test-scan-path').forEach(cb => cb.checked = true);
+            saveTestPathStates();
         }
 
         function deselectAllTestPaths() {
             document.querySelectorAll('.test-scan-path').forEach(cb => cb.checked = false);
+            saveTestPathStates();
         }
 
         function getSelectedTestPaths() {
