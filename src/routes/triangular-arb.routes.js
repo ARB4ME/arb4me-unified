@@ -12528,11 +12528,9 @@ async function rollbackCompletedLegs(completedLegs, apiKey, apiSecret) {
 
 // POST /api/v1/trading/valr/triangular/scan
 // Scan for triangular arbitrage opportunities with live prices
-// NOTE: No platform authentication required - validates exchange credentials only
-// POST /api/triangular-arb/valr/triangular/scan
-// Scan for triangular arbitrage opportunities on VALR
-// REFACTORED: Now uses service layer (Phase 4 - VALR test exchange)
-router.post('/valr/triangular/scan', asyncHandler(async (req, res) => {
+// NOTE: TEST SCAN MODE - Works without credentials (uses public orderbook data)
+// LIVE TRADING MODE - Requires credentials for actual trading
+router.post('/valr/triangular/scan', tradingRateLimit, optionalAuth, asyncHandler(async (req, res) => {
     const {
         paths = 'all',
         apiKey,
@@ -12545,14 +12543,15 @@ router.post('/valr/triangular/scan', asyncHandler(async (req, res) => {
         currentBalanceZAR = 0
     } = req.body;
 
-    // Validate credentials
-    if (!apiKey || !apiSecret) {
-        throw new APIError('VALR API credentials required', 400, 'VALR_CREDENTIALS_REQUIRED');
-    }
+    // Credentials are OPTIONAL for TEST scan (public data only)
+    // Required for LIVE trading (actual execution)
 
-    systemLogger.trading('Scanning VALR triangular paths', {
+    const scanMode = (apiKey && apiSecret) ? 'LIVE' : 'TEST';
+
+    systemLogger.trading(`Scanning VALR triangular paths (${scanMode} mode)`, {
         userId: req.user?.id || 'anonymous',
         exchange: 'valr',
+        scanMode,
         pathsRequested: paths,
         maxTradeAmount: maxTradeAmount,
         profitThreshold: profitThreshold,
@@ -12562,15 +12561,21 @@ router.post('/valr/triangular/scan', asyncHandler(async (req, res) => {
     });
 
     // Call service layer with portfolio settings
-    const opportunities = await triangularArbService.scan('valr', {
-        credentials: { apiKey, apiSecret },
+    const scanOptions = {
         paths,
-        amount: maxTradeAmount, // Pass maxTradeAmount for now (service doesn't support portfolio % yet)
+        amount: maxTradeAmount,
         portfolioPercent,
         currentBalanceUSDT,
         currentBalanceZAR,
         profitThreshold
-    });
+    };
+
+    // Add credentials only if provided (TEST scan uses public data, no credentials needed)
+    if (apiKey && apiSecret) {
+        scanOptions.credentials = { apiKey, apiSecret };
+    }
+
+    const opportunities = await triangularArbService.scan('valr', scanOptions);
 
     // Return response (service handles all logic)
     res.json({
