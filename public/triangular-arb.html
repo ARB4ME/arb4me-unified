@@ -8,6 +8,10 @@
     <!-- Trade Logger Service (Shared across all strategies and 20 exchanges) -->
     <script src="/utils/trade-logger.js"></script>
 
+    <!-- Test Scan Service (Shared across all strategies) -->
+    <script src="/services/testScanConfigs.js"></script>
+    <script src="/services/testScanService.js"></script>
+
     <style>
         body {
             background: linear-gradient(135deg, #0c0c1e 0%, #161632 100%);
@@ -4945,11 +4949,15 @@
         }
 
         // ============================================================================
-        // TEST SCAN FUNCTIONALITY
+        // TEST SCAN FUNCTIONALITY (Using Shared TestScanService)
         // ============================================================================
+
+        // Initialize TestScanService with triangular arbitrage configuration
+        const testScanService = new TestScanService(triangularArbConfig);
 
         // Test Scan State
         let testScanInterval = null;
+        let testScanDurationInterval = null;
         let testScanState = {
             isRunning: false,
             isPaused: false,
@@ -5136,7 +5144,7 @@
             testScanInterval = setInterval(performTestScan, interval);
 
             // Update duration timer
-            setInterval(updateTestScanDuration, 1000);
+            testScanDurationInterval = setInterval(updateTestScanDuration, 1000);
         }
 
         function pauseTestScan() {
@@ -5167,6 +5175,7 @@
             }
 
             clearInterval(testScanInterval);
+            clearInterval(testScanDurationInterval);
             testScanState.isRunning = false;
             testScanState.isPaused = false;
 
@@ -5321,29 +5330,13 @@
         }
 
         function storeTestOpportunities(opportunities) {
-            const dataKey = 'testScan_triangular_data';
-            const maxResults = 10000;
-
-            let data = JSON.parse(localStorage.getItem(dataKey) || '[]');
-
-            opportunities.forEach(opp => {
-                const routeKey = `${opp.exchange}_${opp.path}`;
-                opp.routeKey = routeKey;
-                opp.hour = new Date().getHours();
-                data.push(opp);
-            });
-
-            // Keep last N opportunities
-            if (data.length > maxResults) {
-                data = data.slice(-maxResults);
-            }
-
-            localStorage.setItem(dataKey, JSON.stringify(data));
+            // Use shared TestScanService
+            testScanService.storeOpportunities(opportunities);
         }
 
         function getTestScanData() {
-            const dataKey = 'testScan_triangular_data';
-            return JSON.parse(localStorage.getItem(dataKey) || '[]');
+            // Use shared TestScanService
+            return testScanService.getData();
         }
 
         function clearTestScanData() {
@@ -5351,8 +5344,8 @@
                 return;
             }
 
-            localStorage.removeItem('testScan_triangular_data');
-            localStorage.removeItem('testScan_triangular_config');
+            // Use shared TestScanService
+            testScanService.clearData();
 
             document.getElementById('testStoredCount').textContent = '0';
             document.getElementById('testUniqueRoutes').textContent = '0';
@@ -5363,16 +5356,14 @@
         }
 
         function updateTestStorageStats() {
-            const data = getTestScanData();
+            // Use shared TestScanService
+            const stats = testScanService.getStorageStats();
+            const data = testScanService.getData();
             const uniqueRoutes = new Set(data.map(d => d.routeKey)).size;
 
-            const dataSize = new Blob([JSON.stringify(data)]).size;
-            const estimatedQuota = 10 * 1024 * 1024; // 10MB
-            const usedPercent = Math.min((dataSize / estimatedQuota) * 100, 100);
-
-            document.getElementById('testStoredCount').textContent = data.length.toLocaleString();
+            document.getElementById('testStoredCount').textContent = stats.routeCount.toLocaleString();
             document.getElementById('testUniqueRoutes').textContent = uniqueRoutes.toLocaleString();
-            document.getElementById('testStorageUsed').textContent = usedPercent.toFixed(1) + '%';
+            document.getElementById('testStorageUsed').textContent = stats.storagePercent.toFixed(1) + '%';
         }
 
         function updateTestScanDuration() {
@@ -5388,42 +5379,17 @@
         }
 
         function updateTestAnalysisReport() {
-            const data = getTestScanData();
+            // Use shared TestScanService for analysis
+            const analysis = testScanService.analyzeData(20);
 
-            if (data.length === 0) {
+            if (analysis.summary.totalOpportunities === 0) {
                 document.getElementById('testScanAnalysis').style.display = 'none';
                 return;
             }
 
-            // Aggregate by route
-            const routeStats = {};
-            data.forEach(opp => {
-                const key = opp.routeKey;
-                if (!routeStats[key]) {
-                    routeStats[key] = {
-                        routeKey: key,
-                        profits: [],
-                        count: 0,
-                        example: opp
-                    };
-                }
-                routeStats[key].profits.push(opp.netProfitPercent);
-                routeStats[key].count++;
-            });
-
-            // Calculate averages and sort
-            const routes = Object.values(routeStats).map(stat => ({
-                routeKey: stat.routeKey,
-                avgProfit: stat.profits.reduce((a, b) => a + b, 0) / stat.profits.length,
-                maxProfit: Math.max(...stat.profits),
-                minProfit: Math.min(...stat.profits),
-                count: stat.count
-            }));
-
             // Top 20 by profit
-            const topProfit = [...routes].sort((a, b) => b.avgProfit - a.avgProfit).slice(0, 20);
             let profitHtml = '';
-            topProfit.forEach((route, index) => {
+            analysis.topProfit.forEach((route) => {
                 const color = route.avgProfit > 1 ? '#00ff88' : route.avgProfit > 0.5 ? '#ffb347' : '#b8c6db';
                 profitHtml += `
                     <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
@@ -5436,9 +5402,8 @@
             document.getElementById('testTopProfitTable').innerHTML = profitHtml;
 
             // Top 20 by consistency
-            const topConsistency = [...routes].sort((a, b) => b.count - a.count).slice(0, 20);
             let consistencyHtml = '';
-            topConsistency.forEach((route, index) => {
+            analysis.topConsistency.forEach((route) => {
                 const color = route.count > 50 ? '#00ff88' : route.count > 20 ? '#ffb347' : '#b8c6db';
                 consistencyHtml += `
                     <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
@@ -5454,22 +5419,17 @@
         }
 
         function exportTestScanData() {
-            const data = getTestScanData();
+            // Use shared TestScanService
+            const exportData = testScanService.exportData();
 
-            if (data.length === 0) {
+            if (exportData.opportunities.length === 0) {
                 showNotification('No data to export', 'warning');
                 return;
             }
 
-            const exportData = {
-                strategy: 'triangular',
-                exchange: testScanState.currentExchange,
-                exportedAt: new Date().toISOString(),
-                scanCount: testScanState.scanCount,
-                totalOpportunities: data.length,
-                uniqueRoutes: new Set(data.map(d => d.routeKey)).size,
-                opportunities: data
-            };
+            // Add scan state info
+            exportData.exchange = testScanState.currentExchange;
+            exportData.scanCount = testScanState.scanCount;
 
             const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
