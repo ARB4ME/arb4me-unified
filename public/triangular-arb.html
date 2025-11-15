@@ -147,6 +147,290 @@
                 opacity: 0;
             }
         }
+
+        /* ============================================================ */
+        /* MOBILE RESPONSIVE STYLES */
+        /* ============================================================ */
+
+        /* Tablets and Mobile Devices (768px and below) */
+        @media (max-width: 768px) {
+            /* Reduce body padding on mobile */
+            body {
+                padding: 10px;
+            }
+
+            /* Force single column layout for stats grid */
+            .stats-grid {
+                grid-template-columns: 1fr !important;
+                gap: 15px !important;
+            }
+
+            /* TEST SCAN section - stack cards vertically */
+            div[style*="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr))"] {
+                grid-template-columns: 1fr !important;
+            }
+
+            /* LIVE TRADING header - reduce padding and font size */
+            div[style*="LIVE TRADING MODE"] h2 {
+                font-size: 1.4rem !important;
+            }
+
+            div[style*="LIVE TRADING MODE"] p {
+                font-size: 0.85rem !important;
+            }
+
+            div[style*="LIVE TRADING MODE"] {
+                padding: 15px !important;
+            }
+
+            /* Exchange cards - reduce padding */
+            div[id$="-card"] {
+                padding: 15px !important;
+            }
+
+            /* Settings grids inside cards - stack vertically */
+            div[style*="minmax(250px, 1fr)"] {
+                grid-template-columns: 1fr !important;
+            }
+
+            /* Path set checkboxes - maintain 2 columns for readability */
+            div[style*="grid-template-columns: 1fr auto"] {
+                font-size: 0.8rem !important;
+            }
+
+            /* Control buttons - reduce to 2 columns on mobile */
+            div[style*="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr))"],
+            div[style*="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr))"] {
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 10px !important;
+            }
+
+            /* Reduce stat card padding */
+            .stat-card {
+                padding: 15px !important;
+            }
+
+            /* Reduce heading sizes */
+            h2 {
+                font-size: 1.5rem !important;
+            }
+
+            h3 {
+                font-size: 1.2rem !important;
+            }
+
+            h4 {
+                font-size: 1rem !important;
+            }
+
+            /* Stat values - reduce size */
+            .stat-value {
+                font-size: 1.5rem !important;
+            }
+
+            /* TEST SCAN analysis tables - enable horizontal scroll */
+            div[style*="max-height: 400px"] {
+                overflow-x: auto !important;
+            }
+
+            div[style*="max-height: 400px"] table {
+                min-width: 500px;
+                font-size: 0.85rem !important;
+            }
+
+            /* Storage stats grid - stack on mobile */
+            div[style*="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr))"] {
+                grid-template-columns: repeat(2, 1fr) !important;
+            }
+
+            /* Analysis report grid - single column */
+            div[style*="grid-template-columns: repeat(auto-fit, minmax(400px, 1fr))"] {
+                grid-template-columns: 1fr !important;
+            }
+
+            /* Exchange checkbox grid - 2 columns on mobile */
+            #exchangeCheckboxGrid {
+                grid-template-columns: repeat(2, 1fr) !important;
+            }
+
+            /* Buttons - adjust padding */
+            .btn {
+                padding: 10px 18px !important;
+                font-size: 0.85rem !important;
+            }
+
+            /* Form inputs - adjust sizing */
+            .form-group input,
+            .form-group select {
+                font-size: 0.85rem !important;
+                padding: 10px !important;
+            }
+
+            /* Toggle switches - slightly smaller */
+            .toggle-switch {
+                width: 45px !important;
+                height: 23px !important;
+            }
+
+            .toggle-knob {
+                width: 19px !important;
+                height: 19px !important;
+            }
+
+            .toggle-switch.active .toggle-knob {
+                left: 24px !important;
+            }
+
+            /* Alert cards - stack info */
+            div[style*="display: flex"][style*="gap: 15px"] {
+                flex-direction: column !important;
+                gap: 10px !important;
+            }
+
+            /* Funding requirement boxes - reduce padding */
+            div[style*="padding: 20px"][style*="margin-bottom: 20px"] {
+                padding: 15px !important;
+            }
+
+            /* Info banners - reduce icon size */
+            div[style*="font-size: 2.5rem"] {
+                font-size: 2rem !important;
+            }
+
+            div[style*="font-size: 2rem"] {
+                font-size: 1.5rem !important;
+            }
+        }
+
+        /* Very Small Phones (400px and below) */
+        @media (max-width: 400px) {
+            /* Minimal body padding */
+            body {
+                padding: 5px;
+            }
+
+            /* Single column for all grids */
+            div[style*="grid-template-columns: repeat(2, 1fr)"],
+            #exchangeCheckboxGrid {
+                grid-template-columns: 1fr !important;
+            }
+
+            /* Control buttons - single column on very small screens */
+            div[style*="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr))"],
+            div[style*="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr))"] {
+                grid-template-columns: 1fr !important;
+            }
+
+            /* Storage stats - single column */
+            div[style*="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr))"] {
+                grid-template-columns: 1fr !important;
+            }
+
+            /* Further reduce headings */
+            h2 {
+                font-size: 1.3rem !important;
+            }
+
+            h3 {
+                font-size: 1.1rem !important;
+            }
+
+            h4 {
+                font-size: 0.95rem !important;
+            }
+
+            /* Smaller stat values */
+            .stat-value {
+                font-size: 1.3rem !important;
+            }
+
+            /* Smaller buttons */
+            .btn {
+                padding: 8px 14px !important;
+                font-size: 0.8rem !important;
+            }
+
+            /* Tighter card padding */
+            .stat-card {
+                padding: 12px !important;
+            }
+
+            div[id$="-card"] {
+                padding: 12px !important;
+            }
+
+            /* Smaller form elements */
+            .form-group input,
+            .form-group select {
+                font-size: 0.8rem !important;
+                padding: 8px !important;
+            }
+
+            /* Reduce gaps everywhere */
+            .stats-grid,
+            div[style*="gap: 20px"],
+            div[style*="gap: 15px"] {
+                gap: 8px !important;
+            }
+
+            /* Tables - smaller font */
+            table {
+                font-size: 0.75rem !important;
+            }
+
+            div[style*="max-height: 400px"] table {
+                min-width: 400px;
+            }
+
+            /* Return to dashboard button - full width */
+            button[onclick="returnToPlatform()"] {
+                width: 100% !important;
+                padding: 12px 20px !important;
+            }
+
+            /* LIVE TRADING header - more compact */
+            div[style*="LIVE TRADING MODE"] {
+                padding: 12px !important;
+            }
+
+            div[style*="LIVE TRADING MODE"] h2 {
+                font-size: 1.2rem !important;
+            }
+
+            div[style*="LIVE TRADING MODE"] p {
+                font-size: 0.75rem !important;
+            }
+
+            /* Icons - smaller on tiny screens */
+            div[style*="font-size: 2.5rem"],
+            div[style*="font-size: 2rem"],
+            div[style*="font-size: 1.5rem"] {
+                font-size: 1.2rem !important;
+            }
+        }
+
+        /* Landscape orientation fixes for mobile */
+        @media (max-width: 768px) and (orientation: landscape) {
+            /* Reduce header sizes in landscape */
+            h2 {
+                font-size: 1.3rem !important;
+            }
+
+            h3 {
+                font-size: 1.1rem !important;
+            }
+
+            /* Compact stat cards in landscape */
+            .stat-card {
+                padding: 10px !important;
+            }
+
+            /* Smaller buttons in landscape */
+            .btn {
+                padding: 8px 16px !important;
+                font-size: 0.8rem !important;
+            }
+        }
     </style>
 </head>
 <body>
