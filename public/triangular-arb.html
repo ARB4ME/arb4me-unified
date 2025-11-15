@@ -5453,6 +5453,14 @@
                 } catch (error) {
                     console.error(`[TEST SCAN] Error scanning VALR ${setName}:`, error);
                 }
+
+                // Add delay between sets to avoid VALR rate limiting
+                // Each set makes ~23 requests, need cooldown between sets
+                const setIndex = selectedSets.indexOf(setNum);
+                if (setIndex < selectedSets.length - 1) {
+                    console.log('[TEST SCAN] Waiting 5 seconds before next set (VALR rate limit cooldown)...');
+                    await new Promise(resolve => setTimeout(resolve, 5000));
+                }
             }
 
             console.log(`[TEST SCAN] VALR scan complete. Total opportunities: ${opportunities.length}`);
