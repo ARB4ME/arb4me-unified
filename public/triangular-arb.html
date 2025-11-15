@@ -5361,6 +5361,12 @@
             console.log('[TEST SCAN] Starting VALR scan...', { selectedSets, minProfit, testAmount });
 
             for (const setNum of selectedSets) {
+                // Check if scan has been stopped
+                if (!testScanState.isRunning) {
+                    console.log('[TEST SCAN] Scan stopped by user - breaking out of loop');
+                    break;
+                }
+
                 const setName = `SET_${setNum}`;
                 const backendSet = setNameMapping[setName];
 
