@@ -227,6 +227,107 @@
                 font-size: 0.85rem !important;
             }
         }
+
+        /* Mobile fixes for TEST SCAN MODE */
+        @media (max-width: 768px) {
+            /* TEST scan configuration - stack vertically on mobile */
+            div[style*="grid-template-columns: 2fr 1fr"] {
+                grid-template-columns: 1fr !important;
+            }
+
+            /* Asset grid - reduce from 4 to 2 columns on mobile */
+            div[style*="repeat(4, 1fr)"][style*="max-height: 400px"] {
+                grid-template-columns: repeat(2, 1fr) !important;
+                max-height: 300px !important;
+            }
+
+            /* Tables - enable horizontal scroll on mobile */
+            div[style*="overflow-x: auto"] table {
+                min-width: 600px;
+            }
+
+            /* TEST scan status cards - reduce padding */
+            #testScanModeSection div[style*="padding: 30px"] {
+                padding: 15px !important;
+            }
+
+            /* Buttons - make full width on mobile */
+            #testScanModeSection button {
+                width: 100% !important;
+                margin-bottom: 10px;
+            }
+
+            /* Asset counter badge - smaller on mobile */
+            #assetCountBadge {
+                display: block !important;
+                margin-left: 0 !important;
+                margin-top: 5px !important;
+            }
+
+            /* Warning banner - smaller text */
+            #assetWarning {
+                font-size: 0.75rem !important;
+                padding: 8px !important;
+            }
+
+            /* Stats display - stack vertically */
+            div[style*="grid-template-columns: repeat(3, 1fr)"] {
+                grid-template-columns: 1fr !important;
+            }
+        }
+
+        /* Very small phones - further optimize */
+        @media (max-width: 400px) {
+            /* Asset grid - single column on tiny screens */
+            div[style*="repeat(4, 1fr)"][style*="max-height: 400px"],
+            div[style*="repeat(2, 1fr)"] {
+                grid-template-columns: 1fr !important;
+            }
+
+            /* Reduce all font sizes */
+            h3 {
+                font-size: 1.1rem !important;
+            }
+
+            h4, h5 {
+                font-size: 0.9rem !important;
+            }
+
+            /* Tables - even smaller min-width */
+            div[style*="overflow-x: auto"] table {
+                min-width: 500px;
+                font-size: 0.75rem !important;
+            }
+
+            /* Tighter spacing everywhere */
+            #testScanModeSection {
+                padding: 10px !important;
+            }
+        }
+
+        /* Mobile modal fixes */
+        @media (max-width: 768px) {
+            /* Modals - add padding and make responsive */
+            #depositAddressModal > div,
+            #transferAboutModal > div {
+                margin: 20px 10px !important;
+                padding: 20px !important;
+                max-width: calc(100% - 20px) !important;
+            }
+
+            /* Modal headers - smaller on mobile */
+            #depositAddressModal h2,
+            #transferAboutModal h2 {
+                font-size: 1.3rem !important;
+            }
+
+            /* Modal close buttons */
+            #depositAddressModal button,
+            #transferAboutModal button {
+                padding: 6px 12px !important;
+                font-size: 0.85rem !important;
+            }
+        }
     </style>
 </head>
 <body>
