@@ -5137,6 +5137,34 @@
             ]
         };
 
+        // Load test scan settings from localStorage
+        function loadTestScanSettings() {
+            const minProfit = localStorage.getItem('testScan_minProfit');
+            const interval = localStorage.getItem('testScan_interval');
+            const amount = localStorage.getItem('testScan_amount');
+
+            if (minProfit !== null) {
+                document.getElementById('testScanMinProfit').value = minProfit;
+            }
+            if (interval !== null) {
+                document.getElementById('testScanInterval').value = interval;
+            }
+            if (amount !== null) {
+                document.getElementById('testScanAmount').value = amount;
+            }
+        }
+
+        // Save test scan settings to localStorage
+        function saveTestScanSettings() {
+            const minProfit = document.getElementById('testScanMinProfit').value;
+            const interval = document.getElementById('testScanInterval').value;
+            const amount = document.getElementById('testScanAmount').value;
+
+            localStorage.setItem('testScan_minProfit', minProfit);
+            localStorage.setItem('testScan_interval', interval);
+            localStorage.setItem('testScan_amount', amount);
+        }
+
         // Update path sets when exchange changes
         document.addEventListener('DOMContentLoaded', function() {
             const exchangeSelect = document.getElementById('testScanExchange');
@@ -5145,6 +5173,19 @@
                 // Initialize with VALR paths
                 updateTestPathSets();
             }
+
+            // Load saved test scan settings
+            loadTestScanSettings();
+
+            // Add event listeners to save settings when they change
+            const settingsInputs = ['testScanMinProfit', 'testScanInterval', 'testScanAmount'];
+            settingsInputs.forEach(inputId => {
+                const input = document.getElementById(inputId);
+                if (input) {
+                    input.addEventListener('change', saveTestScanSettings);
+                    input.addEventListener('blur', saveTestScanSettings); // Save on blur too
+                }
+            });
         });
 
         function updateTestPathSets() {
