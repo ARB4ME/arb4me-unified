@@ -5146,7 +5146,7 @@
                             resultOpps.forEach(opp => {
                                 opportunities.push({
                                     exchange: 'VALR',
-                                    path: opp.path,
+                                    path: opp.pathId || opp.path,  // Backend sends 'pathId'
                                     baseCrypto: opp.baseCurrency || backendSet.split('_')[2],
                                     netProfitPercent: opp.profitPercentage,
                                     totalFees: opp.totalFees || 0,
