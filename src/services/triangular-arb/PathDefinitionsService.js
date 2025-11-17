@@ -60,9 +60,14 @@ class PathDefinitionsService {
             return this._flattenPathSets(allPaths);
         }
 
-        // If specific sets requested
+        // If specific sets requested as array
         if (Array.isArray(pathFilter)) {
             return this._filterPathSets(allPaths, pathFilter);
+        }
+
+        // If specific single set requested as string (e.g. "SET_1_ETH_FOCUS")
+        if (typeof pathFilter === 'string' && allPaths[pathFilter]) {
+            return allPaths[pathFilter];
         }
 
         // Default: return all
