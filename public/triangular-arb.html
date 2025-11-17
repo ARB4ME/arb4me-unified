@@ -3082,27 +3082,8 @@
                 <!-- Path Sets (2-column compact grid) -->
                 <div class="stat-card">
                     <h4 style="color: #0096FF; margin-bottom: 15px;">🔀 Path Sets (32 Total)</h4>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px; background: rgba(255,255,255,0.03); border-radius: 6px;">
-                            <input type="checkbox" id="xtSet1Enabled" checked onchange="saveXtTriangularSettings()" style="width: 16px; height: 16px; cursor: pointer;">
-                            <span style="color: #ddd; font-size: 13px;">SET 1 (7)</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px; background: rgba(255,255,255,0.03); border-radius: 6px;">
-                            <input type="checkbox" id="xtSet2Enabled" checked onchange="saveXtTriangularSettings()" style="width: 16px; height: 16px; cursor: pointer;">
-                            <span style="color: #ddd; font-size: 13px;">SET 2 (7)</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px; background: rgba(255,255,255,0.03); border-radius: 6px;">
-                            <input type="checkbox" id="xtSet3Enabled" onchange="saveXtTriangularSettings()" style="width: 16px; height: 16px; cursor: pointer;">
-                            <span style="color: #ddd; font-size: 13px;">SET 3 (6) 🚀</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px; background: rgba(255,255,255,0.03); border-radius: 6px;">
-                            <input type="checkbox" id="xtSet4Enabled" onchange="saveXtTriangularSettings()" style="width: 16px; height: 16px; cursor: pointer;">
-                            <span style="color: #ddd; font-size: 13px;">SET 4 (6)</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px; background: rgba(255,255,255,0.03); border-radius: 6px; grid-column: 1 / -1;">
-                            <input type="checkbox" id="xtSet5Enabled" onchange="saveXtTriangularSettings()" style="width: 16px; height: 16px; cursor: pointer;">
-                            <span style="color: #ddd; font-size: 13px;">SET 5: Extended Multi-Bridge (6)</span>
-                        </label>
+                    <div id="xtLivePathSets" style="display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center;">
+                        <!-- Dynamic content loaded by initializeXtLivePathSets() -->
                     </div>
 
                     <button onclick="scanXtTriangularPaths()"
@@ -3316,27 +3297,8 @@
                 <!-- Column 2: Path Sets -->
                 <div class="stat-card">
                     <h4 style="color: #8A2BE2; margin-bottom: 15px;">🔀 Path Selection (32 Total)</h4>
-                    <div style="display: flex; flex-direction: column; gap: 10px;">
-                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                            <input type="checkbox" id="ascendexSet1Enabled" checked style="width: 18px; height: 18px; cursor: pointer;" onchange="saveAscendexTriangularSettings()">
-                            <span style="color: #00ff00; font-weight: 600;">✅ SET 1: Essential ETH (7)</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                            <input type="checkbox" id="ascendexSet2Enabled" checked style="width: 18px; height: 18px; cursor: pointer;" onchange="saveAscendexTriangularSettings()">
-                            <span style="color: #00ff00; font-weight: 600;">✅ SET 2: Mid-Cap BTC (7)</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                            <input type="checkbox" id="ascendexSet3Enabled" style="width: 18px; height: 18px; cursor: pointer;" onchange="saveAscendexTriangularSettings()">
-                            <span style="color: #FFD700; font-weight: 600;">💎 SET 3: ASD Native (6)</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                            <input type="checkbox" id="ascendexSet4Enabled" style="width: 18px; height: 18px; cursor: pointer;" onchange="saveAscendexTriangularSettings()">
-                            <span style="color: #FFA500; font-weight: 600;">⚡ SET 4: High Volatility (6)</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                            <input type="checkbox" id="ascendexSet5Enabled" style="width: 18px; height: 18px; cursor: pointer;" onchange="saveAscendexTriangularSettings()">
-                            <span style="color: #ff4444; font-weight: 600;">🔁 SET 5: Multi-Bridge (6)</span>
-                        </label>
+                    <div id="ascendexLivePathSets" style="display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center;">
+                        <!-- Dynamic content loaded by initializeAscendexLivePathSets() -->
                     </div>
 
                     <div style="margin-top: 15px;">
@@ -3555,27 +3517,8 @@
                 <!-- Column 2: Path Sets -->
                 <div class="stat-card">
                     <h4 style="color: #00BFFF; margin-bottom: 15px;">🔀 Path Selection (32 Total)</h4>
-                    <div style="display: flex; flex-direction: column; gap: 10px;">
-                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                            <input type="checkbox" id="bingxSet1Enabled" checked style="width: 18px; height: 18px; cursor: pointer;" onchange="saveBingxTriangularSettings()">
-                            <span style="color: #00ff00; font-weight: 600;">✅ SET 1: Essential ETH (7)</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                            <input type="checkbox" id="bingxSet2Enabled" checked style="width: 18px; height: 18px; cursor: pointer;" onchange="saveBingxTriangularSettings()">
-                            <span style="color: #00ff00; font-weight: 600;">✅ SET 2: Mid-Cap BTC (7)</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                            <input type="checkbox" id="bingxSet3Enabled" style="width: 18px; height: 18px; cursor: pointer;" onchange="saveBingxTriangularSettings()">
-                            <span style="color: #FFD700; font-weight: 600;">💎 SET 3: SOL High-Liq (6)</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                            <input type="checkbox" id="bingxSet4Enabled" style="width: 18px; height: 18px; cursor: pointer;" onchange="saveBingxTriangularSettings()">
-                            <span style="color: #FFA500; font-weight: 600;">⚡ SET 4: High Volatility (6)</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                            <input type="checkbox" id="bingxSet5Enabled" style="width: 18px; height: 18px; cursor: pointer;" onchange="saveBingxTriangularSettings()">
-                            <span style="color: #ff4444; font-weight: 600;">🔁 SET 5: Multi-Bridge (6)</span>
-                        </label>
+                    <div id="bingxLivePathSets" style="display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center;">
+                        <!-- Dynamic content loaded by initializeBingxLivePathSets() -->
                     </div>
 
                     <div style="margin-top: 15px;">
@@ -3744,27 +3687,8 @@
                 <!-- Column 2: Path Selection -->
                 <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; border: 1px solid rgba(138,43,226,0.3);">
                     <h4 style="color: #8A2BE2; margin: 0 0 15px 0;">🔀 Path Sets (32 Total)</h4>
-                    <div style="display: flex; flex-direction: column; gap: 12px;">
-                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                            <input type="checkbox" id="bitgetSet1Enabled" checked style="width: 18px; height: 18px; cursor: pointer;">
-                            <span style="color: #ddd; font-size: 14px;">✅ SET 1 (7)</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                            <input type="checkbox" id="bitgetSet2Enabled" checked style="width: 18px; height: 18px; cursor: pointer;">
-                            <span style="color: #ddd; font-size: 14px;">✅ SET 2 (7)</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                            <input type="checkbox" id="bitgetSet3Enabled" style="width: 18px; height: 18px; cursor: pointer;">
-                            <span style="color: #ddd; font-size: 14px;">💜 SET 3: BGB (6)</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                            <input type="checkbox" id="bitgetSet4Enabled" style="width: 18px; height: 18px; cursor: pointer;">
-                            <span style="color: #ddd; font-size: 14px;">⚡ SET 4 (6)</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                            <input type="checkbox" id="bitgetSet5Enabled" style="width: 18px; height: 18px; cursor: pointer;">
-                            <span style="color: #ddd; font-size: 14px;">🔁 SET 5 (6)</span>
-                        </label>
+                    <div id="bitgetLivePathSets" style="display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center;">
+                        <!-- Dynamic content loaded by initializeBitgetLivePathSets() -->
                     </div>
                     <button onclick="viewBitgetPathDetails()" style="width: 100%; margin-top: 15px; padding: 10px; background: rgba(138,43,226,0.2); color: #8A2BE2; border: 1px solid #8A2BE2; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px;">
                         📋 View All 32 Paths
@@ -3923,27 +3847,8 @@
                 <!-- Column 2: Path Selection -->
                 <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; border: 1px solid rgba(255,140,0,0.3);">
                     <h4 style="color: #FF8C00; margin: 0 0 15px 0;">🔀 Path Selection</h4>
-                    <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px;">
-                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                            <input type="checkbox" id="bitmartSet1Enabled" checked style="width: 18px; height: 18px; cursor: pointer;">
-                            <span style="color: #ddd; font-size: 13px;">SET 1: Essential ETH (7)</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                            <input type="checkbox" id="bitmartSet2Enabled" checked style="width: 18px; height: 18px; cursor: pointer;">
-                            <span style="color: #ddd; font-size: 13px;">SET 2: Mid-Cap BTC (7)</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                            <input type="checkbox" id="bitmartSet3Enabled" style="width: 18px; height: 18px; cursor: pointer;">
-                            <span style="color: #ddd; font-size: 13px;">🧡 SET 3: BMX Native (6)</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                            <input type="checkbox" id="bitmartSet4Enabled" style="width: 18px; height: 18px; cursor: pointer;">
-                            <span style="color: #ddd; font-size: 13px;">SET 4: High Volatility (6)</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                            <input type="checkbox" id="bitmartSet5Enabled" style="width: 18px; height: 18px; cursor: pointer;">
-                            <span style="color: #ddd; font-size: 13px;">SET 5: Extended (6)</span>
-                        </label>
+                    <div id="bitmartLivePathSets" style="display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; margin-bottom: 15px;">
+                        <!-- Dynamic content loaded by initializeBitmartLivePathSets() -->
                     </div>
                     <button onclick="viewBitmartPathDetails()" style="width: 100%; padding: 10px; background: rgba(255,140,0,0.2); color: #FF8C00; border: 1px solid #FF8C00; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px;">
                         📋 View All 32 Paths
@@ -7040,6 +6945,66 @@
                 { set: 5, name: 'Extended Multi', paths: 6, structure: 'Multi-bridge triangular paths' }
             ];
             initializeLivePathSets('mexc', mexcSets, 'mexcLivePathSets', 'mexcSet', 2);
+        }
+
+        // Initialize XT.COM LIVE path sets
+        function initializeXtLivePathSets() {
+            const xtSets = [
+                { set: 1, name: 'ETH Bridge', paths: 7, structure: 'USDT ↔ Coins ↔ ETH' },
+                { set: 2, name: 'BTC Bridge', paths: 7, structure: 'USDT ↔ Coins ↔ BTC' },
+                { set: 3, name: 'XT Native', paths: 6, structure: 'USDT ↔ Coins ↔ XT' },
+                { set: 4, name: 'High Volatility', paths: 6, structure: 'High volatility triangular paths' },
+                { set: 5, name: 'Extended Multi', paths: 6, structure: 'Multi-bridge triangular paths' }
+            ];
+            initializeLivePathSets('xt', xtSets, 'xtLivePathSets', 'xtSet', 2);
+        }
+
+        // Initialize AscendEX LIVE path sets
+        function initializeAscendexLivePathSets() {
+            const ascendexSets = [
+                { set: 1, name: 'Essential ETH', paths: 7, structure: 'USDT ↔ Major Coins ↔ ETH' },
+                { set: 2, name: 'Mid-Cap BTC', paths: 7, structure: 'USDT ↔ Mid-Cap Coins ↔ BTC' },
+                { set: 3, name: 'ASD Native', paths: 6, structure: 'USDT ↔ Coins ↔ ASD' },
+                { set: 4, name: 'High Volatility', paths: 6, structure: 'High volatility triangular paths' },
+                { set: 5, name: 'Multi-Bridge', paths: 6, structure: 'Multi-bridge triangular paths' }
+            ];
+            initializeLivePathSets('ascendex', ascendexSets, 'ascendexLivePathSets', 'ascendexSet', 2);
+        }
+
+        // Initialize BingX LIVE path sets
+        function initializeBingxLivePathSets() {
+            const bingxSets = [
+                { set: 1, name: 'Essential ETH', paths: 7, structure: 'USDT ↔ Major Coins ↔ ETH' },
+                { set: 2, name: 'Mid-Cap BTC', paths: 7, structure: 'USDT ↔ Mid-Cap Coins ↔ BTC' },
+                { set: 3, name: 'SOL High-Liq', paths: 6, structure: 'USDT ↔ Coins ↔ SOL' },
+                { set: 4, name: 'High Volatility', paths: 6, structure: 'High volatility triangular paths' },
+                { set: 5, name: 'Multi-Bridge', paths: 6, structure: 'Multi-bridge triangular paths' }
+            ];
+            initializeLivePathSets('bingx', bingxSets, 'bingxLivePathSets', 'bingxSet', 2);
+        }
+
+        // Initialize Bitget LIVE path sets
+        function initializeBitgetLivePathSets() {
+            const bitgetSets = [
+                { set: 1, name: 'ETH Bridge', paths: 7, structure: 'USDT ↔ Coins ↔ ETH' },
+                { set: 2, name: 'BTC Bridge', paths: 7, structure: 'USDT ↔ Coins ↔ BTC' },
+                { set: 3, name: 'BGB Native', paths: 6, structure: 'USDT ↔ Coins ↔ BGB' },
+                { set: 4, name: 'High Volatility', paths: 6, structure: 'High volatility triangular paths' },
+                { set: 5, name: 'Extended Multi', paths: 6, structure: 'Multi-bridge triangular paths' }
+            ];
+            initializeLivePathSets('bitget', bitgetSets, 'bitgetLivePathSets', 'bitgetSet', 2);
+        }
+
+        // Initialize BitMart LIVE path sets
+        function initializeBitmartLivePathSets() {
+            const bitmartSets = [
+                { set: 1, name: 'Essential ETH', paths: 7, structure: 'USDT ↔ Major Coins ↔ ETH' },
+                { set: 2, name: 'Mid-Cap BTC', paths: 7, structure: 'USDT ↔ Mid-Cap Coins ↔ BTC' },
+                { set: 3, name: 'BMX Native', paths: 6, structure: 'USDT ↔ Coins ↔ BMX' },
+                { set: 4, name: 'High Volatility', paths: 6, structure: 'High volatility triangular paths' },
+                { set: 5, name: 'Extended', paths: 6, structure: 'Extended coin coverage' }
+            ];
+            initializeLivePathSets('bitmart', bitmartSets, 'bitmartLivePathSets', 'bitmartSet', 2);
         }
 
         // Toggle LIVE path set details expand/collapse
@@ -16348,6 +16313,10 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
         // Initialize XT settings on page load
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 [XT] Initializing triangular arbitrage settings...');
+
+            // Initialize expandable path sets UI
+            initializeXtLivePathSets();
+
             loadXtTriangularSettings();
 
             // Initialize balance tracker
@@ -17053,6 +17022,10 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
         // 9. Initialize AscendEX on DOMContentLoaded
         document.addEventListener('DOMContentLoaded', function() {
             console.log('💎 [ASCENDEX] Initializing triangular arbitrage...');
+
+            // Initialize expandable path sets UI
+            initializeAscendexLivePathSets();
+
             loadAscendexTriangularSettings();
             initializeAscendexBalance();
             switchAscendexTab('balance');
@@ -17738,6 +17711,10 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
         // 11. Initialize BingX on DOMContentLoaded
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🌊 [BINGX] Initializing triangular arbitrage...');
+
+            // Initialize expandable path sets UI
+            initializeBingxLivePathSets();
+
             loadBingxTriangularSettings();
             initializeBingxBalance();
             switchBingxTab('balance');
@@ -18429,6 +18406,10 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
         // 10. Initialize Bitget on DOMContentLoaded
         document.addEventListener('DOMContentLoaded', function() {
             console.log('💜 [BITGET] Initializing triangular arbitrage...');
+
+            // Initialize expandable path sets UI
+            initializeBitgetLivePathSets();
+
             loadBitgetTriangularSettings();
             initializeBitgetBalance();
             switchBitgetTab('balance');
@@ -19112,6 +19093,10 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
         // 10. Initialize BitMart on DOMContentLoaded
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🧡 [BITMART] Initializing triangular arbitrage...');
+
+            // Initialize expandable path sets UI
+            initializeBitmartLivePathSets();
+
             loadBitmartTriangularSettings();
             initializeBitmartBalance();
             switchBitmartTab('balance');
