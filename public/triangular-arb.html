@@ -5193,23 +5193,227 @@
         }
 
         async function scanBinanceTestPaths(selectedSets, minProfit, testAmount) {
-            // Similar implementation for Binance
             const opportunities = [];
-            // TODO: Implement Binance-specific scanning
+
+            // Map SET_1, SET_2, etc. to backend set names
+            const setNameMapping = {
+                'SET_1': 'SET_1_MAJOR_BTC',
+                'SET_2': 'SET_2_ALTCOINS_BTC',
+                'SET_3': 'SET_3_DEFI_BTC',
+                'SET_4': 'SET_4_ETH_BNB_BRIDGE',
+                'SET_5': 'SET_5_EXTENDED_MULTIBRIDGE'
+            };
+
+            console.log('[TEST SCAN] Starting Binance scan...', { selectedSets, minProfit, testAmount });
+
+            for (const setNum of selectedSets) {
+                if (!testScanState.isRunning) {
+                    console.log('[TEST SCAN] Scan stopped by user');
+                    break;
+                }
+
+                const setName = `SET_${setNum}`;
+                const backendSet = setNameMapping[setName];
+
+                if (!backendSet) {
+                    console.warn(`[TEST SCAN] No mapping found for ${setName}`);
+                    continue;
+                }
+
+                console.log(`[TEST SCAN] Scanning ${setName} (${backendSet})...`);
+
+                try {
+                    const response = await fetch(`${API_BASE}/trading/binance/triangular/scan`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            paths: backendSet,
+                            amount: testAmount,
+                            profitThreshold: minProfit
+                        })
+                    });
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        const resultOpps = result.data?.opportunities || result.opportunities || [];
+
+                        if (resultOpps.length > 0) {
+                            resultOpps.forEach(opp => {
+                                opportunities.push({
+                                    exchange: 'Binance',
+                                    path: opp.pathId || opp.path,
+                                    baseCrypto: opp.baseCurrency || 'USDT',
+                                    netProfitPercent: opp.profitPercentage,
+                                    totalFees: opp.totalFees || 0,
+                                    slippage: opp.slippage || 0,
+                                    liquidity: opp.liquidity || 3,
+                                    timestamp: Date.now()
+                                });
+                            });
+                        }
+                    }
+                } catch (error) {
+                    console.error(`[TEST SCAN] Error scanning Binance ${setName}:`, error);
+                }
+
+                const setIndex = selectedSets.indexOf(setNum);
+                if (setIndex < selectedSets.length - 1) {
+                    console.log('[TEST SCAN] Waiting 30 seconds before next set...');
+                    await new Promise(resolve => setTimeout(resolve, 30000));
+                }
+            }
+
+            console.log(`[TEST SCAN] Binance scan complete. Total opportunities: ${opportunities.length}`);
             return opportunities;
         }
 
         async function scanBybitTestPaths(selectedSets, minProfit, testAmount) {
-            // Similar implementation for Bybit
             const opportunities = [];
-            // TODO: Implement Bybit-specific scanning
+
+            // Map SET_1, SET_2, etc. to backend set names
+            const setNameMapping = {
+                'SET_1': 'SET_1_MAJOR_BTC',
+                'SET_2': 'SET_2_ALTCOINS_BTC',
+                'SET_3': 'SET_3_DEFI_BTC',
+                'SET_4': 'SET_4_ETH_BRIDGE',
+                'SET_5': 'SET_5_EXTENDED_BTC'
+            };
+
+            console.log('[TEST SCAN] Starting ByBit scan...', { selectedSets, minProfit, testAmount });
+
+            for (const setNum of selectedSets) {
+                if (!testScanState.isRunning) {
+                    console.log('[TEST SCAN] Scan stopped by user');
+                    break;
+                }
+
+                const setName = `SET_${setNum}`;
+                const backendSet = setNameMapping[setName];
+
+                if (!backendSet) {
+                    console.warn(`[TEST SCAN] No mapping found for ${setName}`);
+                    continue;
+                }
+
+                console.log(`[TEST SCAN] Scanning ${setName} (${backendSet})...`);
+
+                try {
+                    const response = await fetch(`${API_BASE}/trading/bybit/triangular/scan`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            paths: backendSet,
+                            amount: testAmount,
+                            profitThreshold: minProfit
+                        })
+                    });
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        const resultOpps = result.data?.opportunities || result.opportunities || [];
+
+                        if (resultOpps.length > 0) {
+                            resultOpps.forEach(opp => {
+                                opportunities.push({
+                                    exchange: 'ByBit',
+                                    path: opp.pathId || opp.path,
+                                    baseCrypto: opp.baseCurrency || 'USDT',
+                                    netProfitPercent: opp.profitPercentage,
+                                    totalFees: opp.totalFees || 0,
+                                    slippage: opp.slippage || 0,
+                                    liquidity: opp.liquidity || 3,
+                                    timestamp: Date.now()
+                                });
+                            });
+                        }
+                    }
+                } catch (error) {
+                    console.error(`[TEST SCAN] Error scanning ByBit ${setName}:`, error);
+                }
+
+                const setIndex = selectedSets.indexOf(setNum);
+                if (setIndex < selectedSets.length - 1) {
+                    console.log('[TEST SCAN] Waiting 30 seconds before next set...');
+                    await new Promise(resolve => setTimeout(resolve, 30000));
+                }
+            }
+
+            console.log(`[TEST SCAN] ByBit scan complete. Total opportunities: ${opportunities.length}`);
             return opportunities;
         }
 
         async function scanKucoinTestPaths(selectedSets, minProfit, testAmount) {
-            // Similar implementation for KuCoin
             const opportunities = [];
-            // TODO: Implement KuCoin-specific scanning
+
+            // Map SET_1, SET_2, etc. to backend set names
+            const setNameMapping = {
+                'SET_1': 'SET_1_ESSENTIAL_ETH_BRIDGE',
+                'SET_2': 'SET_2_MIDCAP_BTC_BRIDGE',
+                'SET_3': 'SET_3_KCS_NATIVE_BRIDGE',
+                'SET_4': 'SET_4_HIGH_VOLATILITY',
+                'SET_5': 'SET_5_EXTENDED_MULTIBRIDGE'
+            };
+
+            console.log('[TEST SCAN] Starting KuCoin scan...', { selectedSets, minProfit, testAmount });
+
+            for (const setNum of selectedSets) {
+                if (!testScanState.isRunning) {
+                    console.log('[TEST SCAN] Scan stopped by user');
+                    break;
+                }
+
+                const setName = `SET_${setNum}`;
+                const backendSet = setNameMapping[setName];
+
+                if (!backendSet) {
+                    console.warn(`[TEST SCAN] No mapping found for ${setName}`);
+                    continue;
+                }
+
+                console.log(`[TEST SCAN] Scanning ${setName} (${backendSet})...`);
+
+                try {
+                    const response = await fetch(`${API_BASE}/trading/kucoin/triangular/scan`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            paths: backendSet,
+                            amount: testAmount,
+                            profitThreshold: minProfit
+                        })
+                    });
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        const resultOpps = result.data?.opportunities || result.opportunities || [];
+
+                        if (resultOpps.length > 0) {
+                            resultOpps.forEach(opp => {
+                                opportunities.push({
+                                    exchange: 'KuCoin',
+                                    path: opp.pathId || opp.path,
+                                    baseCrypto: opp.baseCurrency || 'USDT',
+                                    netProfitPercent: opp.profitPercentage,
+                                    totalFees: opp.totalFees || 0,
+                                    slippage: opp.slippage || 0,
+                                    liquidity: opp.liquidity || 3,
+                                    timestamp: Date.now()
+                                });
+                            });
+                        }
+                    }
+                } catch (error) {
+                    console.error(`[TEST SCAN] Error scanning KuCoin ${setName}:`, error);
+                }
+
+                const setIndex = selectedSets.indexOf(setNum);
+                if (setIndex < selectedSets.length - 1) {
+                    console.log('[TEST SCAN] Waiting 30 seconds before next set...');
+                    await new Promise(resolve => setTimeout(resolve, 30000));
+                }
+            }
+
+            console.log(`[TEST SCAN] KuCoin scan complete. Total opportunities: ${opportunities.length}`);
             return opportunities;
         }
 
