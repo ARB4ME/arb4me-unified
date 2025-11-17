@@ -47,9 +47,9 @@ class OrderBookFetcherService {
                 }
 
                 // Add delay between requests to avoid rate limiting (except for last request)
-                // VALR has strict rate limits - 1 second delay prevents 429 errors
+                // VALR has strict rate limits - 5 second delay prevents 429 errors
                 if (i < pairs.length - 1) {
-                    await new Promise(resolve => setTimeout(resolve, 1000)); // 1 second delay between requests
+                    await new Promise(resolve => setTimeout(resolve, 5000)); // 5 second delay between requests
                 }
             }
 
