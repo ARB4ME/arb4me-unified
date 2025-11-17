@@ -7014,6 +7014,81 @@
             }
         }
 
+        // Initialize VALR LIVE path sets with expandable UI
+        function initializeValrLivePathSets() {
+            const valrSets = [
+                { set: 1, name: 'ETH', paths: 4 },
+                { set: 2, name: 'XRP', paths: 4 },
+                { set: 3, name: 'SOL', paths: 4 },
+                { set: 4, name: 'BNB', paths: 4 },
+                { set: 5, name: 'SHIB', paths: 4 },
+                { set: 6, name: 'AVAX', paths: 4 },
+                { set: 7, name: 'DOGE', paths: 4 },
+                { set: 8, name: 'TRX', paths: 4 },
+                { set: 9, name: 'LTC', paths: 4 },
+                // SET 10 (RLUSD) removed - pairs not supported on VALR
+                { set: 11, name: 'LINK', paths: 4 },
+                { set: 12, name: 'XLM', paths: 4 }
+            ];
+
+            const container = document.getElementById('valrLivePathSets');
+            if (!container) return;
+
+            let html = '';
+            valrSets.forEach((set, index) => {
+                // Default: first 4 sets checked
+                const defaultChecked = index < 4 ? 'checked' : '';
+
+                html += `
+                    <div style="grid-column: 1 / -1; display: flex; flex-direction: column; gap: 5px; margin-bottom: 5px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span
+                                onclick="toggleLivePathDetails('valrLiveSet${set.set}')"
+                                style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 5px; flex: 1;"
+                                title="Click to see details"
+                            >
+                                <span id="valrLiveSet${set.set}-icon" style="color: #00d4ff; font-size: 0.7rem;">▶</span>
+                                SET ${set.set}: ${set.name} (${set.paths} paths)
+                            </span>
+                            <input type="checkbox" id="valrSet${set.set}Enabled" ${defaultChecked}>
+                        </div>
+                        <div
+                            id="valrLiveSet${set.set}-details"
+                            style="display: none; padding-left: 20px; font-size: 0.75rem; color: #8899aa; border-left: 2px solid rgba(0,212,255,0.3); margin-left: 5px; padding: 8px;"
+                        >
+                            <div style="margin-bottom: 5px;"><strong style="color: #00d4ff;">Focus:</strong> ${set.name}-based triangular arbitrage</div>
+                            <div style="margin-bottom: 5px;"><strong style="color: #00d4ff;">Paths:</strong> ${set.paths} unique triangular routes</div>
+                            <div style="margin-bottom: 5px;"><strong style="color: #00d4ff;">Structure:</strong> ZAR ↔ ${set.name} ↔ USDT ↔ ZAR (and variations)</div>
+                            <div style="color: #ffb347; font-size: 0.7rem; margin-top: 8px;">💡 Tip: Worker scans all ${set.paths} paths and executes the most profitable one</div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        // Toggle LIVE path set details expand/collapse
+        function toggleLivePathDetails(setId) {
+            const details = document.getElementById(`${setId}-details`);
+            const icon = document.getElementById(`${setId}-icon`);
+
+            if (!details || !icon) return; // Safety check
+
+            // Check if currently hidden (display is 'none' or empty)
+            const isHidden = details.style.display === 'none' || details.style.display === '';
+
+            if (isHidden) {
+                // Show details
+                details.style.display = 'block';
+                icon.textContent = '▼';
+            } else {
+                // Hide details
+                details.style.display = 'none';
+                icon.textContent = '▶';
+            }
+        }
+
         // Save form values to localStorage
         function saveTriangularSettings() {
             console.log('💾 [VALR] Saving settings to localStorage...');
@@ -7061,6 +7136,10 @@
 
         // Auto-save settings when changed
         document.addEventListener('DOMContentLoaded', function() {
+            // Initialize expandable path sets UI
+            initializeValrLivePathSets();
+
+            // Load saved settings (must come after path sets are initialized)
             loadTriangularSettings();
 
             // Add event listeners for auto-save
