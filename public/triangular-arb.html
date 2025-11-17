@@ -5459,11 +5459,11 @@
                 }
 
                 // Add delay between sets to avoid VALR rate limiting
-                // Each set makes ~23 requests, need cooldown between sets
+                // Each set makes ~23 requests over ~23 seconds, need 30s cooldown for VALR rate limit to reset
                 const setIndex = selectedSets.indexOf(setNum);
                 if (setIndex < selectedSets.length - 1) {
-                    console.log('[TEST SCAN] Waiting 5 seconds before next set (VALR rate limit cooldown)...');
-                    await new Promise(resolve => setTimeout(resolve, 5000));
+                    console.log('[TEST SCAN] Waiting 30 seconds before next set (VALR rate limit cooldown)...');
+                    await new Promise(resolve => setTimeout(resolve, 30000));
                 }
             }
 
