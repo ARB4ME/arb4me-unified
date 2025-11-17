@@ -2075,21 +2075,8 @@
             <!-- Path Sets Section -->
             <div class="stat-card">
                 <h4 style="color: #00A6FF; margin-bottom: 15px;">📊 Path Sets (32 Paths in 5 Sets)</h4>
-                <div style="display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center;">
-                    <span style="color: #ffd700; font-size: 0.85rem;">SET 1: Major ETH Bridge (7 paths)</span>
-                    <input type="checkbox" id="okxSet1Enabled" checked>
-
-                    <span style="color: #32cd32; font-size: 0.85rem;">SET 2: Mid-Cap BTC Bridge (7 paths)</span>
-                    <input type="checkbox" id="okxSet2Enabled" checked>
-
-                    <span style="color: #00d4ff; font-size: 0.85rem;">SET 3: OKB Native Bridge (6 paths)</span>
-                    <input type="checkbox" id="okxSet3Enabled">
-
-                    <span style="color: #ff69b4; font-size: 0.85rem;">SET 4: High Volatility (6 paths)</span>
-                    <input type="checkbox" id="okxSet4Enabled">
-
-                    <span style="color: #ff8c00; font-size: 0.85rem;">SET 5: Extended Multi-Bridge (6 paths)</span>
-                    <input type="checkbox" id="okxSet5Enabled">
+                <div id="okxLivePathSets" style="display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center;">
+                    <!-- Dynamic content loaded by initializeOkxLivePathSets() -->
                 </div>
             </div>
 
@@ -2420,21 +2407,8 @@
                 <!-- Path Sets - Compact Grid -->
                 <div class="stat-card">
                     <h4 style="color: #2D6CF8; margin-bottom: 15px;">📊 Path Sets (31 Paths in 5 Sets)</h4>
-                    <div style="display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center;">
-                        <span style="color: #2D6CF8; font-size: 0.85rem;">SET 1: ETH Bridge (7 paths)</span>
-                        <input type="checkbox" id="huobiSet1Enabled" checked>
-
-                        <span style="color: #2D6CF8; font-size: 0.85rem;">SET 2: BTC Bridge (7 paths)</span>
-                        <input type="checkbox" id="huobiSet2Enabled" checked>
-
-                        <span style="color: #888; font-size: 0.85rem;">SET 3: HT Native (6 paths)</span>
-                        <input type="checkbox" id="huobiSet3Enabled">
-
-                        <span style="color: #888; font-size: 0.85rem;">SET 4: High Vol (6 paths)</span>
-                        <input type="checkbox" id="huobiSet4Enabled">
-
-                        <span style="color: #888; font-size: 0.85rem;">SET 5: Extended (5 paths)</span>
-                        <input type="checkbox" id="huobiSet5Enabled">
+                    <div id="huobiLivePathSets" style="display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center;">
+                        <!-- Dynamic content loaded by initializeHtxLivePathSets() -->
                     </div>
                     <div style="margin-top: 12px; padding: 8px; background: rgba(45,108,248,0.1); border-radius: 6px; font-size: 0.8rem; color: #888; text-align: center;">
                         💡 Sets 1-2 enabled by default (14 paths)
@@ -2596,21 +2570,8 @@
                 <!-- Path Sets - Compact Grid -->
                 <div class="stat-card">
                     <h4 style="color: #17C784; margin-bottom: 15px;">📊 Path Sets (32 Paths in 5 Sets)</h4>
-                    <div style="display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center;">
-                        <span style="color: #17C784; font-size: 0.85rem;">SET 1: ETH Bridge (7 paths)</span>
-                        <input type="checkbox" id="gateioSet1Enabled" checked onchange="saveGateioTriangularSettings()">
-
-                        <span style="color: #17C784; font-size: 0.85rem;">SET 2: BTC Bridge (7 paths)</span>
-                        <input type="checkbox" id="gateioSet2Enabled" checked onchange="saveGateioTriangularSettings()">
-
-                        <span style="color: #888; font-size: 0.85rem;">SET 3: GT Native (6 paths)</span>
-                        <input type="checkbox" id="gateioSet3Enabled" onchange="saveGateioTriangularSettings()">
-
-                        <span style="color: #888; font-size: 0.85rem;">SET 4: High Volatility (6 paths)</span>
-                        <input type="checkbox" id="gateioSet4Enabled" onchange="saveGateioTriangularSettings()">
-
-                        <span style="color: #888; font-size: 0.85rem;">SET 5: Extended Multi (6 paths)</span>
-                        <input type="checkbox" id="gateioSet5Enabled" onchange="saveGateioTriangularSettings()">
+                    <div id="gateioLivePathSets" style="display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center;">
+                        <!-- Dynamic content loaded by initializeGateioLivePathSets() -->
                     </div>
                 </div>
 
@@ -2765,21 +2726,8 @@
                 <!-- Path Sets - Compact Grid -->
                 <div class="stat-card">
                     <h4 style="color: #0066FF; margin-bottom: 15px;">📊 Path Sets (32 Paths in 5 Sets)</h4>
-                    <div style="display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center;">
-                        <span style="color: #0066FF; font-size: 0.85rem;">SET 1: ETH Bridge (7 paths)</span>
-                        <input type="checkbox" id="cryptocomSet1Enabled" checked onchange="saveCryptocomTriangularSettings()">
-
-                        <span style="color: #0066FF; font-size: 0.85rem;">SET 2: BTC Bridge (7 paths)</span>
-                        <input type="checkbox" id="cryptocomSet2Enabled" checked onchange="saveCryptocomTriangularSettings()">
-
-                        <span style="color: #888; font-size: 0.85rem;">SET 3: CRO Native (6 paths)</span>
-                        <input type="checkbox" id="cryptocomSet3Enabled" onchange="saveCryptocomTriangularSettings()">
-
-                        <span style="color: #888; font-size: 0.85rem;">SET 4: High Volatility (6 paths)</span>
-                        <input type="checkbox" id="cryptocomSet4Enabled" onchange="saveCryptocomTriangularSettings()">
-
-                        <span style="color: #888; font-size: 0.85rem;">SET 5: Extended Multi (6 paths)</span>
-                        <input type="checkbox" id="cryptocomSet5Enabled" onchange="saveCryptocomTriangularSettings()">
+                    <div id="cryptocomLivePathSets" style="display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center;">
+                        <!-- Dynamic content loaded by initializeCryptocomLivePathSets() -->
                     </div>
                 </div>
 
@@ -2944,27 +2892,8 @@
                 <!-- Path Sets (Compact 2-column grid) -->
                 <div class="stat-card">
                     <h4 style="color: #FFA500; margin-bottom: 15px;">🔀 Path Sets (32 Total)</h4>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.85rem;">
-                            <input type="checkbox" id="mexcSet1Enabled" checked onchange="saveMexcTriangularSettings()" style="width: 16px; height: 16px; cursor: pointer;">
-                            <span style="color: #ddd;">✅ Set 1 (7)</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.85rem;">
-                            <input type="checkbox" id="mexcSet2Enabled" checked onchange="saveMexcTriangularSettings()" style="width: 16px; height: 16px; cursor: pointer;">
-                            <span style="color: #ddd;">✅ Set 2 (7)</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.85rem;">
-                            <input type="checkbox" id="mexcSet3Enabled" onchange="saveMexcTriangularSettings()" style="width: 16px; height: 16px; cursor: pointer;">
-                            <span style="color: #ddd;">🟠 Set 3 (6)</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.85rem;">
-                            <input type="checkbox" id="mexcSet4Enabled" onchange="saveMexcTriangularSettings()" style="width: 16px; height: 16px; cursor: pointer;">
-                            <span style="color: #ddd;">⚡ Set 4 (6)</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.85rem; grid-column: 1 / -1;">
-                            <input type="checkbox" id="mexcSet5Enabled" onchange="saveMexcTriangularSettings()" style="width: 16px; height: 16px; cursor: pointer;">
-                            <span style="color: #ddd;">🔁 Set 5 (6)</span>
-                        </label>
+                    <div id="mexcLivePathSets" style="display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center;">
+                        <!-- Dynamic content loaded by initializeMexcLivePathSets() -->
                     </div>
                     <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,165,0,0.2); font-size: 0.8rem; color: #888; text-align: center;">
                         ETH Bridge • BTC Bridge • MX Native • Volatility • Extended
@@ -7051,6 +6980,66 @@
                 { set: 5, name: 'Extended', paths: 6, structure: 'Extended coin coverage' }
             ];
             initializeLivePathSets('kucoin', kucoinSets, 'kucoinLivePathSets', 'kucoinSet', 2);
+        }
+
+        // Initialize OKX LIVE path sets
+        function initializeOkxLivePathSets() {
+            const okxSets = [
+                { set: 1, name: 'Major ETH Bridge', paths: 7, structure: 'USDT ↔ Major Coins ↔ ETH' },
+                { set: 2, name: 'Mid-Cap BTC Bridge', paths: 7, structure: 'USDT ↔ Mid-Cap Coins ↔ BTC' },
+                { set: 3, name: 'OKB Native Bridge', paths: 6, structure: 'USDT ↔ Coins ↔ OKB' },
+                { set: 4, name: 'High Volatility', paths: 6, structure: 'High volatility triangular paths' },
+                { set: 5, name: 'Extended Multi-Bridge', paths: 6, structure: 'Multi-bridge triangular paths' }
+            ];
+            initializeLivePathSets('okx', okxSets, 'okxLivePathSets', 'okxSet', 2);
+        }
+
+        // Initialize HTX (Huobi) LIVE path sets
+        function initializeHtxLivePathSets() {
+            const htxSets = [
+                { set: 1, name: 'ETH Bridge', paths: 7, structure: 'USDT ↔ Coins ↔ ETH' },
+                { set: 2, name: 'BTC Bridge', paths: 7, structure: 'USDT ↔ Coins ↔ BTC' },
+                { set: 3, name: 'HT Native', paths: 6, structure: 'USDT ↔ Coins ↔ HT' },
+                { set: 4, name: 'High Vol', paths: 6, structure: 'High volatility triangular paths' },
+                { set: 5, name: 'Extended', paths: 5, structure: 'Extended coin coverage' }
+            ];
+            initializeLivePathSets('htx', htxSets, 'huobiLivePathSets', 'huobiSet', 2);
+        }
+
+        // Initialize Gate.io LIVE path sets
+        function initializeGateioLivePathSets() {
+            const gateioSets = [
+                { set: 1, name: 'ETH Bridge', paths: 7, structure: 'USDT ↔ Coins ↔ ETH' },
+                { set: 2, name: 'BTC Bridge', paths: 7, structure: 'USDT ↔ Coins ↔ BTC' },
+                { set: 3, name: 'GT Native', paths: 6, structure: 'USDT ↔ Coins ↔ GT' },
+                { set: 4, name: 'High Volatility', paths: 6, structure: 'High volatility triangular paths' },
+                { set: 5, name: 'Extended Multi', paths: 6, structure: 'Multi-bridge triangular paths' }
+            ];
+            initializeLivePathSets('gateio', gateioSets, 'gateioLivePathSets', 'gateioSet', 2);
+        }
+
+        // Initialize Crypto.com LIVE path sets
+        function initializeCryptocomLivePathSets() {
+            const cryptocomSets = [
+                { set: 1, name: 'ETH Bridge', paths: 7, structure: 'USDT ↔ Coins ↔ ETH' },
+                { set: 2, name: 'BTC Bridge', paths: 7, structure: 'USDT ↔ Coins ↔ BTC' },
+                { set: 3, name: 'CRO Native', paths: 6, structure: 'USDT ↔ Coins ↔ CRO' },
+                { set: 4, name: 'High Volatility', paths: 6, structure: 'High volatility triangular paths' },
+                { set: 5, name: 'Extended Multi', paths: 6, structure: 'Multi-bridge triangular paths' }
+            ];
+            initializeLivePathSets('cryptocom', cryptocomSets, 'cryptocomLivePathSets', 'cryptocomSet', 2);
+        }
+
+        // Initialize MEXC LIVE path sets
+        function initializeMexcLivePathSets() {
+            const mexcSets = [
+                { set: 1, name: 'ETH Bridge', paths: 7, structure: 'USDT ↔ Coins ↔ ETH' },
+                { set: 2, name: 'BTC Bridge', paths: 7, structure: 'USDT ↔ Coins ↔ BTC' },
+                { set: 3, name: 'MX Native', paths: 6, structure: 'USDT ↔ Coins ↔ MX' },
+                { set: 4, name: 'High Volatility', paths: 6, structure: 'High volatility triangular paths' },
+                { set: 5, name: 'Extended Multi', paths: 6, structure: 'Multi-bridge triangular paths' }
+            ];
+            initializeLivePathSets('mexc', mexcSets, 'mexcLivePathSets', 'mexcSet', 2);
         }
 
         // Toggle LIVE path set details expand/collapse
@@ -12396,6 +12385,10 @@
         // Initialize OKX settings on page load
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 [OKX] Initializing triangular arbitrage settings...');
+
+            // Initialize expandable path sets UI
+            initializeOkxLivePathSets();
+
             loadOKXTriangularSettings();
 
             // Add event listeners for OKX inputs (auto-save)
@@ -13298,6 +13291,10 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
         // Initialize Huobi settings on page load
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 [HUOBI] Initializing triangular arbitrage settings...');
+
+            // Initialize expandable path sets UI
+            initializeHtxLivePathSets();
+
             loadHuobiTriangularSettings();
 
             const huobiInputs = document.querySelectorAll('#huobiMaxTrade, #huobiPortfolioPercent, #huobiProfitThreshold');
@@ -14068,6 +14065,10 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
         // Initialize Gate.io settings on page load
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 [GATE.IO] Initializing triangular arbitrage settings...');
+
+            // Initialize expandable path sets UI
+            initializeGateioLivePathSets();
+
             loadGateioTriangularSettings();
 
             const gateioInputs = document.querySelectorAll('#gateioMaxTrade, #gateioPortfolioPercent, #gateioProfitThreshold');
@@ -14788,6 +14789,10 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
         // Initialize Crypto.com settings on page load
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 [CRYPTO.COM] Initializing triangular arbitrage settings...');
+
+            // Initialize expandable path sets UI
+            initializeCryptocomLivePathSets();
+
             loadCryptocomTriangularSettings();
 
             const cryptocomInputs = document.querySelectorAll('#cryptocomMaxTrade, #cryptocomPortfolioPercent, #cryptocomProfitThreshold');
@@ -15624,6 +15629,10 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
         // Initialize MEXC settings on page load
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🟠 [MEXC] Initializing triangular arbitrage settings...');
+
+            // Initialize expandable path sets UI
+            initializeMexcLivePathSets();
+
             loadMexcTriangularSettings();
 
             // Initialize balance tracker
