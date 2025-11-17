@@ -5205,8 +5205,28 @@
                     : (index < 4 ? 'checked' : '');
 
                 html += `
-                    <span style="color: #b8c6db; font-size: 0.85rem;">SET ${set.set}: ${set.name} (${set.paths} paths)</span>
-                    <input type="checkbox" class="test-scan-path" data-set="${set.set}" ${checked}>
+                    <div style="grid-column: 1 / -1; display: flex; flex-direction: column; gap: 5px; margin-bottom: 5px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span
+                                onclick="togglePathDetails('set${set.set}')"
+                                style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 5px; flex: 1;"
+                                title="Click to see details"
+                            >
+                                <span id="set${set.set}-icon" style="color: #00d4ff; font-size: 0.7rem;">▶</span>
+                                SET ${set.set}: ${set.name} (${set.paths} paths)
+                            </span>
+                            <input type="checkbox" class="test-scan-path" data-set="${set.set}" ${checked}>
+                        </div>
+                        <div
+                            id="set${set.set}-details"
+                            style="display: none; padding-left: 20px; font-size: 0.75rem; color: #8899aa; border-left: 2px solid rgba(0,212,255,0.3); margin-left: 5px; padding: 8px;"
+                        >
+                            <div style="margin-bottom: 5px;"><strong style="color: #00d4ff;">Focus:</strong> ${set.name}-based triangular arbitrage</div>
+                            <div style="margin-bottom: 5px;"><strong style="color: #00d4ff;">Paths:</strong> ${set.paths} unique triangular routes</div>
+                            <div style="margin-bottom: 5px;"><strong style="color: #00d4ff;">Structure:</strong> ZAR ↔ ${set.name} ↔ USDT ↔ ZAR (and variations)</div>
+                            <div style="color: #ffb347; font-size: 0.7rem; margin-top: 8px;">💡 Tip: Run a test scan and check the browser console debug output to see full path IDs and sequences</div>
+                        </div>
+                    </div>
                 `;
             });
 
@@ -5217,6 +5237,20 @@
             document.querySelectorAll('.test-scan-path').forEach(cb => {
                 cb.addEventListener('change', saveTestPathStates);
             });
+        }
+
+        // Toggle path set details expand/collapse
+        function togglePathDetails(setId) {
+            const details = document.getElementById(`${setId}-details`);
+            const icon = document.getElementById(`${setId}-icon`);
+
+            if (details.style.display === 'none') {
+                details.style.display = 'block';
+                icon.textContent = '▼';
+            } else {
+                details.style.display = 'none';
+                icon.textContent = '▶';
+            }
         }
 
         function saveTestPathStates() {
