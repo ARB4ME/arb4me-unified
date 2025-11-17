@@ -4008,27 +4008,8 @@
                 <!-- Column 2: Path Selection -->
                 <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; border: 1px solid rgba(34,197,94,0.3);">
                     <h4 style="color: #22C55E; margin: 0 0 15px 0;">🔀 Path Selection</h4>
-                    <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px;">
-                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                            <input type="checkbox" id="bitrueSet1Enabled" checked style="width: 18px; height: 18px; cursor: pointer;">
-                            <span style="color: #ddd; font-size: 13px;">SET 1: Essential ETH (7)</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                            <input type="checkbox" id="bitrueSet2Enabled" checked style="width: 18px; height: 18px; cursor: pointer;">
-                            <span style="color: #ddd; font-size: 13px;">SET 2: Mid-Cap BTC (7)</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                            <input type="checkbox" id="bitrueSet3Enabled" style="width: 18px; height: 18px; cursor: pointer;">
-                            <span style="color: #ddd; font-size: 13px;">💚 SET 3: BTR Native (6)</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                            <input type="checkbox" id="bitrueSet4Enabled" style="width: 18px; height: 18px; cursor: pointer;">
-                            <span style="color: #ddd; font-size: 13px;">⚡ SET 4: High Vol (6)</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                            <input type="checkbox" id="bitrueSet5Enabled" style="width: 18px; height: 18px; cursor: pointer;">
-                            <span style="color: #ddd; font-size: 13px;">🔥 SET 5: Extended (6)</span>
-                        </label>
+                    <div id="bitrueLivePathSets" style="display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; margin-bottom: 15px;">
+                        <!-- Dynamic content loaded by initializeBitrueLivePathSets() -->
                     </div>
                     <button onclick="viewBitruePathDetails()" style="width: 100%; padding: 10px; background: rgba(34,197,94,0.2); color: #22C55E; border: 1px solid #22C55E; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px;">
                         📋 View All 32 Paths
@@ -4198,31 +4179,12 @@
                 <!-- Column 2: Path Selection -->
                 <div class="stat-card">
                     <h4 style="color: #00AADD; margin: 0 0 15px 0; font-size: 0.95rem;">🛤️ Path Selection</h4>
-                    <div style="display: flex; flex-direction: column; gap: 8px;">
-                        <label style="display: flex; align-items: center; color: #888; cursor: pointer; font-size: 0.85rem;">
-                            <input type="checkbox" id="geminiSet1Enabled" checked style="margin-right: 8px; width: 16px; height: 16px;">
-                            <span>SET 1: BTC-ETH (2)</span>
-                        </label>
-                        <label style="display: flex; align-items: center; color: #888; cursor: pointer; font-size: 0.85rem;">
-                            <input type="checkbox" id="geminiSet2Enabled" checked style="margin-right: 8px; width: 16px; height: 16px;">
-                            <span>SET 2: DOGE (2)</span>
-                        </label>
-                        <label style="display: flex; align-items: center; color: #888; cursor: pointer; font-size: 0.85rem;">
-                            <input type="checkbox" id="geminiSet3Enabled" style="margin-right: 8px; width: 16px; height: 16px;">
-                            <span>SET 3: LINK (2)</span>
-                        </label>
-                        <label style="display: flex; align-items: center; color: #888; cursor: pointer; font-size: 0.85rem;">
-                            <input type="checkbox" id="geminiSet4Enabled" style="margin-right: 8px; width: 16px; height: 16px;">
-                            <span>SET 4: LTC (2)</span>
-                        </label>
-                        <label style="display: flex; align-items: center; color: #888; cursor: pointer; font-size: 0.85rem;">
-                            <input type="checkbox" id="geminiSet5Enabled" style="margin-right: 8px; width: 16px; height: 16px;">
-                            <span>SET 5: SOL (2)</span>
-                        </label>
-                        <button onclick="viewGeminiPathDetails()" style="width: 100%; padding: 8px; background: rgba(0,170,221,0.2); color: #00AADD; border: 1px solid #00AADD; border-radius: 5px; cursor: pointer; font-size: 0.8rem; margin-top: 5px;">
-                            📊 View All 10 Paths
-                        </button>
+                    <div id="geminiLivePathSets" style="display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center;">
+                        <!-- Dynamic content loaded by initializeGeminiLivePathSets() -->
                     </div>
+                    <button onclick="viewGeminiPathDetails()" style="width: 100%; padding: 8px; background: rgba(0,170,221,0.2); color: #00AADD; border: 1px solid #00AADD; border-radius: 5px; cursor: pointer; font-size: 0.8rem; margin-top: 5px;">
+                        📊 View All 10 Paths
+                    </button>
                 </div>
 
                 <!-- Column 3: Performance Stats -->
@@ -4405,27 +4367,8 @@
                 <!-- Column 2: Path Selection -->
                 <div class="stat-card">
                     <h4 style="color: #FF5722; margin-bottom: 15px;">🛤️ Path Selection (32 total)</h4>
-                    <div style="display: flex; flex-direction: column; gap: 8px;">
-                        <label style="display: flex; align-items: center; color: #888; cursor: pointer;">
-                            <input type="checkbox" id="coincatchSet1Enabled" checked style="margin-right: 8px; width: 16px; height: 16px;">
-                            <span>SET 1: BTC-ETH (2) 🎯</span>
-                        </label>
-                        <label style="display: flex; align-items: center; color: #888; cursor: pointer;">
-                            <input type="checkbox" id="coincatchSet2Enabled" checked style="margin-right: 8px; width: 16px; height: 16px;">
-                            <span>SET 2: GMT-BTC (2) 🚀</span>
-                        </label>
-                        <label style="display: flex; align-items: center; color: #888; cursor: pointer;">
-                            <input type="checkbox" id="coincatchSet3Enabled" style="margin-right: 8px; width: 16px; height: 16px;">
-                            <span>SET 3: Major 4-Leg (8) ⚡</span>
-                        </label>
-                        <label style="display: flex; align-items: center; color: #888; cursor: pointer;">
-                            <input type="checkbox" id="coincatchSet4Enabled" style="margin-right: 8px; width: 16px; height: 16px;">
-                            <span>SET 4: Altcoin 4-Leg (10) 🪙</span>
-                        </label>
-                        <label style="display: flex; align-items: center; color: #888; cursor: pointer;">
-                            <input type="checkbox" id="coincatchSet5Enabled" style="margin-right: 8px; width: 16px; height: 16px;">
-                            <span>SET 5: Extended 4-Leg (12) 💎</span>
-                        </label>
+                    <div id="coincatchLivePathSets" style="display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center;">
+                        <!-- Dynamic content loaded by initializeCoincatchLivePathSets() -->
                     </div>
                     <div style="margin-top: 15px;">
                         <button onclick="viewCoincatchPathDetails()" style="width: 100%; padding: 10px; background: rgba(255,87,34,0.2); color: #FF5722; border: 1px solid #FF5722; border-radius: 5px; cursor: pointer; font-size: 13px; font-weight: 600;">
@@ -4580,27 +4523,8 @@
                 <!-- Path Sets Configuration -->
                 <div class="stat-card">
                     <h4 style="color: #0052FF; margin-bottom: 15px;">🎯 Triangular Path Sets (32 Paths)</h4>
-                    <div style="display: flex; flex-direction: column; gap: 10px;">
-                        <label style="display: flex; align-items: center; cursor: pointer;">
-                            <input type="checkbox" id="coinbaseSet1Enabled" checked style="margin-right: 10px; width: 18px; height: 18px;">
-                            <span><strong>SET 1:</strong> Essential ETH Bridge (7 paths) - BTC, SOL, XRP, ADA, DOT, MATIC, LINK</span>
-                        </label>
-                        <label style="display: flex; align-items: center; cursor: pointer;">
-                            <input type="checkbox" id="coinbaseSet2Enabled" checked style="margin-right: 10px; width: 18px; height: 18px;">
-                            <span><strong>SET 2:</strong> Mid-Cap BTC Bridge (7 paths) - ETH, SOL, AVAX, ATOM, LTC, UNI, ALGO</span>
-                        </label>
-                        <label style="display: flex; align-items: center; cursor: pointer;">
-                            <input type="checkbox" id="coinbaseSet3Enabled" style="margin-right: 10px; width: 18px; height: 18px;">
-                            <span><strong>SET 3:</strong> DeFi Native (6 paths) - AAVE, COMP, MKR, SNX, CRV, SUSHI</span>
-                        </label>
-                        <label style="display: flex; align-items: center; cursor: pointer;">
-                            <input type="checkbox" id="coinbaseSet4Enabled" style="margin-right: 10px; width: 18px; height: 18px;">
-                            <span><strong>SET 4:</strong> High Volatility (6 paths) - DOGE, SHIB, APE, GALA, SAND, MANA</span>
-                        </label>
-                        <label style="display: flex; align-items: center; cursor: pointer;">
-                            <input type="checkbox" id="coinbaseSet5Enabled" style="margin-right: 10px; width: 18px; height: 18px;">
-                            <span><strong>SET 5:</strong> Extended Multi-Bridge (6 paths) - FIL, GRT, ICP, CHZ, ENJ + 4-leg path</span>
-                        </label>
+                    <div id="coinbaseLivePathSets" style="display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center;">
+                        <!-- Dynamic content loaded by initializeCoinbaseLivePathSets() -->
                     </div>
                 </div>
 
@@ -7005,6 +6929,54 @@
                 { set: 5, name: 'Extended', paths: 6, structure: 'Extended coin coverage' }
             ];
             initializeLivePathSets('bitmart', bitmartSets, 'bitmartLivePathSets', 'bitmartSet', 2);
+        }
+
+        // Initialize Bitrue LIVE path sets
+        function initializeBitrueLivePathSets() {
+            const bitrueSets = [
+                { set: 1, name: 'Essential ETH', paths: 7, structure: 'USDT ↔ Major Coins ↔ ETH' },
+                { set: 2, name: 'Mid-Cap BTC', paths: 7, structure: 'USDT ↔ Mid-Cap Coins ↔ BTC' },
+                { set: 3, name: 'BTR Native', paths: 6, structure: 'USDT ↔ Coins ↔ BTR' },
+                { set: 4, name: 'High Vol', paths: 6, structure: 'High volatility triangular paths' },
+                { set: 5, name: 'Extended', paths: 6, structure: 'Extended coin coverage' }
+            ];
+            initializeLivePathSets('bitrue', bitrueSets, 'bitrueLivePathSets', 'bitrueSet', 2);
+        }
+
+        // Initialize Gemini LIVE path sets
+        function initializeGeminiLivePathSets() {
+            const geminiSets = [
+                { set: 1, name: 'BTC-ETH', paths: 2, structure: 'USD ↔ BTC/ETH triangular paths' },
+                { set: 2, name: 'DOGE', paths: 2, structure: 'USD ↔ DOGE triangular paths' },
+                { set: 3, name: 'LINK', paths: 2, structure: 'USD ↔ LINK triangular paths' },
+                { set: 4, name: 'LTC', paths: 2, structure: 'USD ↔ LTC triangular paths' },
+                { set: 5, name: 'SOL', paths: 2, structure: 'USD ↔ SOL triangular paths' }
+            ];
+            initializeLivePathSets('gemini', geminiSets, 'geminiLivePathSets', 'geminiSet', 2);
+        }
+
+        // Initialize Coincatch LIVE path sets
+        function initializeCoincatchLivePathSets() {
+            const coincatchSets = [
+                { set: 1, name: 'BTC-ETH', paths: 2, structure: 'USDT ↔ BTC/ETH 3-leg paths' },
+                { set: 2, name: 'GMT-BTC', paths: 2, structure: 'USDT ↔ GMT-BTC 3-leg paths' },
+                { set: 3, name: 'Major 4-Leg', paths: 8, structure: 'USDT 4-leg triangular paths' },
+                { set: 4, name: 'Altcoin 4-Leg', paths: 10, structure: 'Altcoin 4-leg paths' },
+                { set: 5, name: 'Extended 4-Leg', paths: 12, structure: 'Extended 4-leg paths' }
+            ];
+            initializeLivePathSets('coincatch', coincatchSets, 'coincatchLivePathSets', 'coincatchSet', 2);
+        }
+
+        // Initialize Coinbase LIVE path sets
+        function initializeCoinbaseLivePathSets() {
+            const coinbaseSets = [
+                { set: 1, name: 'Essential ETH', paths: 7, structure: 'USDC ↔ Major Coins ↔ ETH' },
+                { set: 2, name: 'Mid-Cap BTC', paths: 7, structure: 'USDC ↔ Mid-Cap Coins ↔ BTC' },
+                { set: 3, name: 'DeFi Native', paths: 6, structure: 'USDC ↔ DeFi Tokens' },
+                { set: 4, name: 'High Volatility', paths: 6, structure: 'High volatility triangular paths' },
+                { set: 5, name: 'Extended Multi', paths: 6, structure: 'Multi-bridge + 4-leg paths' }
+            ];
+            initializeLivePathSets('coinbase', coinbaseSets, 'coinbaseLivePathSets', 'coinbaseSet', 2);
         }
 
         // Toggle LIVE path set details expand/collapse
@@ -12709,6 +12681,10 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
         // Initialize Coinbase settings on page load
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 [COINBASE] Initializing triangular arbitrage settings...');
+
+            // Initialize expandable path sets UI
+            initializeCoinbaseLivePathSets();
+
             loadCoinbaseTriangularSettings();
 
             // Add event listeners for Coinbase inputs (auto-save)
@@ -19771,6 +19747,10 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
         // Initialize Bitrue settings on page load
         document.addEventListener('DOMContentLoaded', function() {
             console.log('💚 [BITRUE] Initializing triangular arbitrage settings...');
+
+            // Initialize expandable path sets UI
+            initializeBitrueLivePathSets();
+
             loadBitrueTriangularSettings();
 
             // Initialize balance tracking
@@ -20479,6 +20459,10 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
         // Initialize Gemini settings on page load
         document.addEventListener('DOMContentLoaded', function() {
             console.log('💎 [GEMINI] Initializing triangular arbitrage settings...');
+
+            // Initialize expandable path sets UI
+            initializeGeminiLivePathSets();
+
             loadGeminiTriangularSettings();
 
             // Initialize balance tracking
@@ -21240,6 +21224,10 @@ SET 5: EXTENDED MULTIBRIDGE (6 paths)
         // Initialize Coincatch settings on page load
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🎯 [COINCATCH] Initializing triangular arbitrage settings...');
+
+            // Initialize expandable path sets UI
+            initializeCoincatchLivePathSets();
+
             loadCoincatchTriangularSettings();
 
             // Initialize balance tracking
