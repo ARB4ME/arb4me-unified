@@ -441,7 +441,7 @@ function calculateLunoTriangularProfit(path, orderBooks, amount = 1000) {
 // POST /api/v1/trading/luno/triangular/scan
 // Scan for Luno triangular arbitrage opportunities
 // REFACTORED: Now uses service layer (Phase 10 - second exchange)
-router.post('/luno/triangular/scan', asyncHandler(async (req, res) => {
+router.post('/luno/triangular/scan', tradingRateLimit, optionalAuth, asyncHandler(async (req, res) => {
     const {
         paths = 'all',
         apiKey,
@@ -454,33 +454,43 @@ router.post('/luno/triangular/scan', asyncHandler(async (req, res) => {
         currentBalanceZAR = 0
     } = req.body;
 
-    // Validate credentials
-    if (!apiKey || !apiSecret) {
-        throw new APIError('Luno API credentials required', 400, 'LUNO_CREDENTIALS_REQUIRED');
-    }
+    // Credentials are OPTIONAL for TEST scan (public data only)
+    // Required for LIVE trading (actual execution)
 
-    systemLogger.trading('Luno triangular scan initiated', {
+    const scanMode = (apiKey && apiSecret) ? 'LIVE' : 'TEST';
+
+    systemLogger.trading(`Scanning Luno triangular paths (${scanMode} mode)`, {
         userId: req.user?.id || 'anonymous',
         exchange: 'luno',
-        paths,
+        scanMode,
+        pathsRequested: paths,
         maxTradeAmount: maxTradeAmount,
         profitThreshold: profitThreshold,
         portfolioPercent: portfolioPercent,
         currentBalanceUSDT: currentBalanceUSDT,
-        currentBalanceZAR: currentBalanceZAR,
-        timestamp: new Date().toISOString()
+        currentBalanceZAR: currentBalanceZAR
     });
 
     // Call service layer with portfolio settings
-    const opportunities = await triangularArbService.scan('luno', {
-        credentials: { apiKey, apiSecret },
+    const scanOptions = {
         paths,
-        amount: maxTradeAmount, // Pass maxTradeAmount for now (service doesn't support portfolio % yet)
+        amount: maxTradeAmount,
         portfolioPercent,
         currentBalanceUSDT,
         currentBalanceZAR,
         profitThreshold
-    });
+    };
+
+    // Add credentials only if provided (TEST scan uses public data, no credentials needed)
+    if (apiKey && apiSecret) {
+        scanOptions.credentials = { apiKey, apiSecret };
+    }
+
+    const scanResult = await triangularArbService.scan('luno', scanOptions);
+
+    // Extract opportunities and debug info from service result
+    const opportunities = scanResult.opportunities || scanResult;  // Support both old and new format
+    const debug = scanResult.debug || null;
 
     // Return response (service handles all logic)
     res.json({
@@ -496,7 +506,8 @@ router.post('/luno/triangular/scan', asyncHandler(async (req, res) => {
                 balanceZAR: currentBalanceZAR,
                 portfolioPercent: portfolioPercent,
                 maxTradeAmount: maxTradeAmount
-            }
+            },
+            debug  // Include debug info for frontend console logging
         }
     });
 }));
@@ -777,20 +788,24 @@ router.post('/chainex/triangular/test-connection', authenticatedRateLimit, authe
 
 // POST /api/v1/trading/chainex/triangular/scan
 // Scan for triangular arbitrage opportunities on ChainEX
-router.post('/chainex/triangular/scan', asyncHandler(async (req, res) => {
+router.post('/chainex/triangular/scan', tradingRateLimit, optionalAuth, asyncHandler(async (req, res) => {
     try {
         const { paths = 'all', apiKey, apiSecret } = req.body;
 
-        systemLogger.trading('Starting ChainEX triangular arbitrage scan', {
+        // Credentials are OPTIONAL for TEST scan (public data only)
+        // Required for LIVE trading (actual execution)
+
+        const scanMode = (apiKey && apiSecret) ? 'LIVE' : 'TEST';
+
+        systemLogger.trading(`Scanning ChainEX triangular paths (${scanMode} mode)`, {
             userId: req.user?.id || 'anonymous',
-            requestedPaths: paths
+            exchange: 'chainex',
+            scanMode,
+            pathsRequested: paths
         });
 
-        if (!apiKey || !apiSecret) {
-            throw new APIError('ChainEX API credentials required', 400, 'CHAINEX_CREDENTIALS_REQUIRED');
-        }
-
-        const auth = createChainExAuth(apiKey, apiSecret);
+        // Only create auth if credentials provided (for LIVE mode)
+        const auth = (apiKey && apiSecret) ? createChainExAuth(apiKey, apiSecret) : null;
 
         // Define all 28 ChainEX triangular arbitrage paths across 6 sets
         const allPathSets = {
@@ -1192,7 +1207,7 @@ router.post('/kraken/triangular/test-connection', authenticatedRateLimit, authen
 }));
 
 // Scan Kraken Triangular Paths
-router.post('/kraken/triangular/scan', asyncHandler(async (req, res) => {
+router.post('/kraken/triangular/scan', tradingRateLimit, optionalAuth, asyncHandler(async (req, res) => {
     try {
         const {
             paths = 'all',
@@ -1206,9 +1221,15 @@ router.post('/kraken/triangular/scan', asyncHandler(async (req, res) => {
             currentBalanceUSDC = 0
         } = req.body;
 
-        systemLogger.trading('Scanning Kraken triangular paths', {
+        // Credentials are OPTIONAL for TEST scan (public data only)
+        // Required for LIVE trading (actual execution)
+
+        const scanMode = (apiKey && apiSecret) ? 'LIVE' : 'TEST';
+
+        systemLogger.trading(`Scanning Kraken triangular paths (${scanMode} mode)`, {
             userId: req.user?.id || 'anonymous',
             exchange: 'kraken',
+            scanMode,
             pathsRequested: paths,
             maxTradeAmount: maxTradeAmount,
             profitThreshold: profitThreshold,
@@ -1826,7 +1847,7 @@ router.post('/bybit/triangular/test-connection', authenticatedRateLimit, authent
 }));
 
 // Scan ByBit Triangular Paths
-router.post('/bybit/triangular/scan', asyncHandler(async (req, res) => {
+router.post('/bybit/triangular/scan', tradingRateLimit, optionalAuth, asyncHandler(async (req, res) => {
     try {
         const {
             paths = 'all',
@@ -1838,9 +1859,15 @@ router.post('/bybit/triangular/scan', asyncHandler(async (req, res) => {
             currentBalance = 0
         } = req.body;
 
-        systemLogger.trading('Scanning ByBit triangular paths', {
+        // Credentials are OPTIONAL for TEST scan (public data only)
+        // Required for LIVE trading (actual execution)
+
+        const scanMode = (apiKey && apiSecret) ? 'LIVE' : 'TEST';
+
+        systemLogger.trading(`Scanning ByBit triangular paths (${scanMode} mode)`, {
             userId: req.user?.id || 'anonymous',
             exchange: 'bybit',
+            scanMode,
             pathsRequested: paths,
             maxTradeAmount: maxTradeAmount,
             profitThreshold: profitThreshold,
@@ -2579,7 +2606,7 @@ router.post('/binance/triangular/test-connection', authenticatedRateLimit, authe
 }));
 
 // Scan Binance Triangular Arbitrage Paths
-router.post('/binance/triangular/scan', asyncHandler(async (req, res) => {
+router.post('/binance/triangular/scan', tradingRateLimit, optionalAuth, asyncHandler(async (req, res) => {
     try {
         const {
             paths = 'all',
@@ -2591,9 +2618,15 @@ router.post('/binance/triangular/scan', asyncHandler(async (req, res) => {
             currentBalance = 0
         } = req.body;
 
-        systemLogger.trading('Scanning Binance triangular paths', {
+        // Credentials are OPTIONAL for TEST scan (public data only)
+        // Required for LIVE trading (actual execution)
+
+        const scanMode = (apiKey && apiSecret) ? 'LIVE' : 'TEST';
+
+        systemLogger.trading(`Scanning Binance triangular paths (${scanMode} mode)`, {
             userId: req.user?.id || 'anonymous',
             exchange: 'binance',
+            scanMode,
             pathsRequested: paths,
             maxTradeAmount: maxTradeAmount,
             profitThreshold: profitThreshold,
@@ -3364,7 +3397,7 @@ router.post('/okx/triangular/test-connection', authenticatedRateLimit, authentic
 }));
 
 // Scan OKX Triangular Arbitrage Paths
-router.post('/okx/triangular/scan', asyncHandler(async (req, res) => {
+router.post('/okx/triangular/scan', tradingRateLimit, optionalAuth, asyncHandler(async (req, res) => {
     const {
         apiKey,
         apiSecret,
@@ -3376,12 +3409,20 @@ router.post('/okx/triangular/scan', asyncHandler(async (req, res) => {
         currentBalance = 0
     } = req.body;
 
-    if (!apiKey || !apiSecret || !passphrase) {
-        return res.status(400).json({
-            success: false,
-            message: 'API Key, Secret, and Passphrase are required'
-        });
-    }
+    // Credentials are OPTIONAL for TEST scan (public data only)
+    // Required for LIVE trading (actual execution)
+
+    const scanMode = (apiKey && apiSecret && passphrase) ? 'LIVE' : 'TEST';
+
+    systemLogger.trading(`Scanning OKX triangular paths (${scanMode} mode)`, {
+        userId: req.user?.id || 'anonymous',
+        exchange: 'okx',
+        scanMode,
+        profitThreshold,
+        maxTradeAmount,
+        portfolioPercent,
+        currentBalance
+    });
 
     try {
         // Define all 32 OKX triangular paths across 5 sets
@@ -4207,7 +4248,7 @@ router.post('/kucoin/balance', asyncHandler(async (req, res) => {
 }));
 
 // POST /api/v1/trading/kucoin/triangular/scan - Scan for triangular arbitrage opportunities
-router.post('/kucoin/triangular/scan', asyncHandler(async (req, res) => {
+router.post('/kucoin/triangular/scan', tradingRateLimit, optionalAuth, asyncHandler(async (req, res) => {
     try {
         const {
             paths = 'all',
@@ -4220,9 +4261,15 @@ router.post('/kucoin/triangular/scan', asyncHandler(async (req, res) => {
             currentBalance = 0
         } = req.body;
 
-        systemLogger.trading('Scanning KuCoin triangular paths', {
+        // Credentials are OPTIONAL for TEST scan (public data only)
+        // Required for LIVE trading (actual execution)
+
+        const scanMode = (apiKey && apiSecret) ? 'LIVE' : 'TEST';
+
+        systemLogger.trading(`Scanning KuCoin triangular paths (${scanMode} mode)`, {
             userId: req.user?.id || 'anonymous',
             exchange: 'kucoin',
+            scanMode,
             pathsRequested: paths,
             maxTradeAmount: maxTradeAmount,
             profitThreshold: profitThreshold,
@@ -4629,15 +4676,21 @@ router.post('/coinbase/triangular/test-connection', authenticatedRateLimit, auth
 }));
 
 // POST /api/v1/trading/coinbase/triangular/scan - Scan for triangular arbitrage opportunities
-router.post('/coinbase/triangular/scan', asyncHandler(async (req, res) => {
+router.post('/coinbase/triangular/scan', tradingRateLimit, optionalAuth, asyncHandler(async (req, res) => {
     const { apiKey, apiSecret, maxTradeAmount, profitThreshold, enabledSets } = req.body;
 
-    if (!apiKey || !apiSecret) {
-        return res.status(400).json({
-            success: false,
-            message: 'API credentials are required'
-        });
-    }
+    // Credentials are OPTIONAL for TEST scan (public data only)
+    // Required for LIVE trading (actual execution)
+
+    const scanMode = (apiKey && apiSecret) ? 'LIVE' : 'TEST';
+
+    systemLogger.trading(`Scanning Coinbase triangular paths (${scanMode} mode)`, {
+        userId: req.user?.id || 'anonymous',
+        exchange: 'coinbase',
+        scanMode,
+        profitThreshold,
+        maxTradeAmount
+    });
 
     try {
         console.log('🔍 [COINBASE] Scanning for triangular arbitrage opportunities...');
@@ -5040,15 +5093,22 @@ router.post('/huobi/triangular/test-connection', authenticatedRateLimit, authent
 }));
 
 // POST /api/v1/trading/huobi/triangular/scan - Scan for triangular arbitrage opportunities
-router.post('/huobi/triangular/scan', asyncHandler(async (req, res) => {
+router.post('/huobi/triangular/scan', tradingRateLimit, optionalAuth, asyncHandler(async (req, res) => {
     const { apiKey, apiSecret, maxTradeAmount, portfolioPercent, profitThreshold, enabledSets } = req.body;
 
-    if (!apiKey || !apiSecret) {
-        return res.status(400).json({
-            success: false,
-            message: 'API credentials are required'
-        });
-    }
+    // Credentials are OPTIONAL for TEST scan (public data only)
+    // Required for LIVE trading (actual execution)
+
+    const scanMode = (apiKey && apiSecret) ? 'LIVE' : 'TEST';
+
+    systemLogger.trading(`Scanning HTX triangular paths (${scanMode} mode)`, {
+        userId: req.user?.id || 'anonymous',
+        exchange: 'htx',
+        scanMode,
+        profitThreshold,
+        maxTradeAmount,
+        portfolioPercent
+    });
 
     try {
         console.log('🔍 [HTX] Scanning for triangular arbitrage opportunities with orderbook data...');
@@ -5662,18 +5722,19 @@ router.post('/gateio/triangular/test-connection', asyncHandler(async (req, res) 
 }));
 
 // ROUTE 2: Scan Gate.io Triangular Arbitrage Opportunities
-router.post('/gateio/triangular/scan', asyncHandler(async (req, res) => {
+router.post('/gateio/triangular/scan', tradingRateLimit, optionalAuth, asyncHandler(async (req, res) => {
     try {
         const { apiKey, apiSecret, maxTradeAmount, portfolioPercent = 10, profitThreshold, enabledSets } = req.body;
 
-        if (!apiKey || !apiSecret) {
-            return res.status(400).json({
-                success: false,
-                message: 'API credentials required'
-            });
-        }
+        // Credentials are OPTIONAL for TEST scan (public data only)
+        // Required for LIVE trading (actual execution)
 
-        systemLogger.info('Gate.io triangular scan started', {
+        const scanMode = (apiKey && apiSecret) ? 'LIVE' : 'TEST';
+
+        systemLogger.trading(`Scanning Gate.io triangular paths (${scanMode} mode)`, {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'gateio',
+            scanMode,
             maxTradeAmount,
             portfolioPercent,
             profitThreshold,
@@ -6203,18 +6264,19 @@ router.post('/cryptocom/triangular/test-connection', asyncHandler(async (req, re
 }));
 
 // ROUTE 2: Scan Crypto.com Triangular Arbitrage Opportunities
-router.post('/cryptocom/triangular/scan', asyncHandler(async (req, res) => {
+router.post('/cryptocom/triangular/scan', tradingRateLimit, optionalAuth, asyncHandler(async (req, res) => {
     try {
         const { apiKey, apiSecret, maxTradeAmount, portfolioPercent = 10, profitThreshold, enabledSets } = req.body;
 
-        if (!apiKey || !apiSecret) {
-            return res.status(400).json({
-                success: false,
-                message: 'API credentials required'
-            });
-        }
+        // Credentials are OPTIONAL for TEST scan (public data only)
+        // Required for LIVE trading (actual execution)
 
-        systemLogger.info('Crypto.com triangular scan started', {
+        const scanMode = (apiKey && apiSecret) ? 'LIVE' : 'TEST';
+
+        systemLogger.trading(`Scanning Crypto.com triangular paths (${scanMode} mode)`, {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'cryptocom',
+            scanMode,
             maxTradeAmount,
             portfolioPercent,
             profitThreshold,
@@ -6747,18 +6809,19 @@ router.post('/mexc/triangular/test-connection', asyncHandler(async (req, res) =>
 }));
 
 // ROUTE 2: Scan MEXC Triangular Arbitrage Opportunities
-router.post('/mexc/triangular/scan', asyncHandler(async (req, res) => {
+router.post('/mexc/triangular/scan', tradingRateLimit, optionalAuth, asyncHandler(async (req, res) => {
     try {
         const { apiKey, apiSecret, maxTradeAmount, portfolioPercent = 10, profitThreshold, enabledSets } = req.body;
 
-        if (!apiKey || !apiSecret) {
-            return res.status(400).json({
-                success: false,
-                message: 'API credentials required'
-            });
-        }
+        // Credentials are OPTIONAL for TEST scan (public data only)
+        // Required for LIVE trading (actual execution)
 
-        systemLogger.info('MEXC triangular scan started', {
+        const scanMode = (apiKey && apiSecret) ? 'LIVE' : 'TEST';
+
+        systemLogger.trading(`Scanning MEXC triangular paths (${scanMode} mode)`, {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'mexc',
+            scanMode,
             maxTradeAmount,
             portfolioPercent,
             profitThreshold,
@@ -7256,23 +7319,24 @@ router.post('/xt/triangular/test-connection', authenticate, asyncHandler(async (
 }));
 
 // 2. XT Scan Triangular Paths Route
-router.post('/xt/triangular/scan', asyncHandler(async (req, res) => {
+router.post('/xt/triangular/scan', tradingRateLimit, optionalAuth, asyncHandler(async (req, res) => {
     try {
         const { apiKey, apiSecret, maxTradeAmount, portfolioPercent = 10, profitThreshold, enabledSets } = req.body;
 
-        systemLogger.info('XT triangular scan started', {
+        // Credentials are OPTIONAL for TEST scan (public data only)
+        // Required for LIVE trading (actual execution)
+
+        const scanMode = (apiKey && apiSecret) ? 'LIVE' : 'TEST';
+
+        systemLogger.trading(`Scanning XT triangular paths (${scanMode} mode)`, {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'xt',
+            scanMode,
             maxTradeAmount,
             portfolioPercent,
             profitThreshold,
             enabledSets
         });
-
-        if (!apiKey || !apiSecret) {
-            return res.status(400).json({
-                success: false,
-                message: 'Missing XT API credentials'
-            });
-        }
 
         // Define all 32 triangular arbitrage paths with steps for ProfitCalculatorService
         const allPaths = {
@@ -7769,23 +7833,24 @@ router.post('/ascendex/triangular/test-connection', authenticate, asyncHandler(a
 }));
 
 // 2. AscendEX Scan Triangular Paths Route
-router.post('/ascendex/triangular/scan', asyncHandler(async (req, res) => {
+router.post('/ascendex/triangular/scan', tradingRateLimit, optionalAuth, asyncHandler(async (req, res) => {
     try {
         const { apiKey, apiSecret, maxTradeAmount, portfolioPercent = 10, profitThreshold, enabledSets } = req.body;
 
-        systemLogger.info('AscendEX triangular scan started', {
+        // Credentials are OPTIONAL for TEST scan (public data only)
+        // Required for LIVE trading (actual execution)
+
+        const scanMode = (apiKey && apiSecret) ? 'LIVE' : 'TEST';
+
+        systemLogger.trading(`Scanning AscendEX triangular paths (${scanMode} mode)`, {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'ascendex',
+            scanMode,
             maxTradeAmount,
             portfolioPercent,
             profitThreshold,
             enabledSets
         });
-
-        if (!apiKey || !apiSecret) {
-            return res.status(400).json({
-                success: false,
-                message: 'Missing AscendEX API credentials'
-            });
-        }
 
         // Define all 32 triangular arbitrage paths with steps for ProfitCalculatorService
         const allPaths = {
@@ -8340,18 +8405,19 @@ router.post('/bingx/triangular/test-connection', asyncHandler(async (req, res) =
 }));
 
 // ROUTE 2: Scan BingX Triangular Opportunities (Updated with ProfitCalculatorService)
-router.post('/bingx/triangular/scan', asyncHandler(async (req, res) => {
+router.post('/bingx/triangular/scan', tradingRateLimit, optionalAuth, asyncHandler(async (req, res) => {
     try {
         const { apiKey, apiSecret, maxTradeAmount, portfolioPercent = 10, profitThreshold, enabledSets } = req.body;
 
-        if (!apiKey || !apiSecret) {
-            return res.status(400).json({
-                success: false,
-                message: 'API Key and Secret are required'
-            });
-        }
+        // Credentials are OPTIONAL for TEST scan (public data only)
+        // Required for LIVE trading (actual execution)
 
-        systemLogger.info('BingX triangular scan started', {
+        const scanMode = (apiKey && apiSecret) ? 'LIVE' : 'TEST';
+
+        systemLogger.trading(`Scanning BingX triangular paths (${scanMode} mode)`, {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'bingx',
+            scanMode,
             maxTradeAmount,
             portfolioPercent,
             profitThreshold,
@@ -8835,7 +8901,7 @@ router.post('/bitget/triangular/test-connection', asyncHandler(async (req, res) 
 }));
 
 // ROUTE 2: Scan Bitget Triangular Opportunities (Updated with orderbook + ProfitCalculatorService)
-router.post('/bitget/triangular/scan', asyncHandler(async (req, res) => {
+router.post('/bitget/triangular/scan', tradingRateLimit, optionalAuth, asyncHandler(async (req, res) => {
     try {
         const {
             apiKey,
@@ -8847,14 +8913,15 @@ router.post('/bitget/triangular/scan', asyncHandler(async (req, res) => {
             enabledSets = {}
         } = req.body;
 
-        if (!apiKey || !apiSecret || !passphrase) {
-            return res.status(400).json({
-                success: false,
-                message: 'API credentials (key, secret, passphrase) required'
-            });
-        }
+        // Credentials are OPTIONAL for TEST scan (public data only)
+        // Required for LIVE trading (actual execution)
 
-        systemLogger.info('Bitget triangular scan started', {
+        const scanMode = (apiKey && apiSecret && passphrase) ? 'LIVE' : 'TEST';
+
+        systemLogger.trading(`Scanning Bitget triangular paths (${scanMode} mode)`, {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'bitget',
+            scanMode,
             maxTradeAmount,
             portfolioPercent,
             profitThreshold,
@@ -9355,7 +9422,7 @@ router.post('/bitmart/triangular/test-connection', asyncHandler(async (req, res)
 }));
 
 // ROUTE 2: Scan Bitmart Triangular Opportunities
-router.post('/bitmart/triangular/scan', asyncHandler(async (req, res) => {
+router.post('/bitmart/triangular/scan', tradingRateLimit, optionalAuth, asyncHandler(async (req, res) => {
     try {
         const {
             apiKey,
@@ -9367,12 +9434,20 @@ router.post('/bitmart/triangular/scan', asyncHandler(async (req, res) => {
             enabledSets = {}
         } = req.body;
 
-        if (!apiKey || !apiSecret || !memo) {
-            return res.status(400).json({
-                success: false,
-                message: 'API credentials required (key, secret, memo)'
-            });
-        }
+        // Credentials are OPTIONAL for TEST scan (public data only)
+        // Required for LIVE trading (actual execution)
+
+        const scanMode = (apiKey && apiSecret && memo) ? 'LIVE' : 'TEST';
+
+        systemLogger.trading(`Scanning BitMart triangular paths (${scanMode} mode)`, {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'bitmart',
+            scanMode,
+            maxTradeAmount,
+            portfolioPercent,
+            profitThreshold,
+            enabledSets
+        });
 
         // Define all 32 paths with steps for ProfitCalculatorService
         const allPaths = {
@@ -9859,7 +9934,7 @@ router.post('/bitrue/triangular/test-connection', asyncHandler(async (req, res) 
 }));
 
 // ROUTE 2: Scan Bitrue Triangular Opportunities (with ProfitCalculatorService)
-router.post('/bitrue/triangular/scan', asyncHandler(async (req, res) => {
+router.post('/bitrue/triangular/scan', tradingRateLimit, optionalAuth, asyncHandler(async (req, res) => {
     try {
         const {
             apiKey,
@@ -9870,12 +9945,20 @@ router.post('/bitrue/triangular/scan', asyncHandler(async (req, res) => {
             enabledSets = {}
         } = req.body;
 
-        if (!apiKey || !apiSecret) {
-            return res.status(400).json({
-                success: false,
-                message: 'API credentials required'
-            });
-        }
+        // Credentials are OPTIONAL for TEST scan (public data only)
+        // Required for LIVE trading (actual execution)
+
+        const scanMode = (apiKey && apiSecret) ? 'LIVE' : 'TEST';
+
+        systemLogger.trading(`Scanning Bitrue triangular paths (${scanMode} mode)`, {
+            userId: req.user?.id || 'anonymous',
+            exchange: 'bitrue',
+            scanMode,
+            maxTradeAmount,
+            portfolioPercent,
+            profitThreshold,
+            enabledSets
+        });
 
         // Define all 32 paths with steps for ProfitCalculatorService (Bitrue uses Binance-style pairs)
         const allPaths = {
@@ -10360,7 +10443,7 @@ router.post('/gemini/triangular/test-connection', authenticatedRateLimit, authen
 
 // POST /api/v1/trading/gemini/triangular/scan
 // Scan for Gemini triangular arbitrage opportunities with Portfolio % Mode
-router.post('/gemini/triangular/scan', asyncHandler(async (req, res) => {
+router.post('/gemini/triangular/scan', tradingRateLimit, optionalAuth, asyncHandler(async (req, res) => {
     try {
         const {
             apiKey,
@@ -10371,20 +10454,19 @@ router.post('/gemini/triangular/scan', asyncHandler(async (req, res) => {
             enabledSets = {}
         } = req.body;
 
-        systemLogger.trading('Gemini triangular scan initiated', {
+        // Credentials are OPTIONAL for TEST scan (public data only)
+        // Required for LIVE trading (actual execution)
+
+        const scanMode = (apiKey && apiSecret) ? 'LIVE' : 'TEST';
+
+        systemLogger.trading(`Scanning Gemini triangular paths (${scanMode} mode)`, {
             userId: req.user?.id || 'anonymous',
+            exchange: 'gemini',
+            scanMode,
             portfolioPercent,
             maxTradeAmount,
             profitThreshold
         });
-
-        // Validate inputs
-        if (!apiKey || !apiSecret) {
-            return res.status(400).json({
-                success: false,
-                message: 'Gemini API credentials required (key and secret)'
-            });
-        }
 
         // Define all 10 paths with steps for ProfitCalculatorService
         // NOTE: Gemini only has 2 USDT pairs (btcusdt, ethusdt), so only 10 paths total
@@ -11356,7 +11438,7 @@ router.post('/coincatch/triangular/test-connection', authenticatedRateLimit, aut
 
 // POST /api/v1/trading/coincatch/triangular/scan
 // Scan for Coincatch triangular arbitrage opportunities
-router.post('/coincatch/triangular/scan', asyncHandler(async (req, res) => {
+router.post('/coincatch/triangular/scan', tradingRateLimit, optionalAuth, asyncHandler(async (req, res) => {
     try {
         const {
             apiKey,
@@ -11368,17 +11450,20 @@ router.post('/coincatch/triangular/scan', asyncHandler(async (req, res) => {
             enabledSets = {}
         } = req.body;
 
-        systemLogger.trading('Coincatch triangular scan initiated', {
+        // Credentials are OPTIONAL for TEST scan (public data only)
+        // Required for LIVE trading (actual execution)
+
+        const scanMode = (apiKey && apiSecret && passphrase) ? 'LIVE' : 'TEST';
+
+        systemLogger.trading(`Scanning Coincatch triangular paths (${scanMode} mode)`, {
             userId: req.user?.id || 'anonymous',
+            exchange: 'coincatch',
+            scanMode,
             enabledSets,
             portfolioPercent,
-            maxTradeAmount
+            maxTradeAmount,
+            profitThreshold
         });
-
-        // Validate inputs
-        if (!apiKey || !apiSecret || !passphrase) {
-            throw new APIError('Coincatch API credentials (apiKey, apiSecret, passphrase) required', 400, 'COINCATCH_CREDENTIALS_REQUIRED');
-        }
 
         // Define all 32 paths (with steps for ProfitCalculatorService)
         const allPaths = {
