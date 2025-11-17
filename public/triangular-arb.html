@@ -1281,24 +1281,8 @@
                 <!-- Path Categories -->
                 <div class="stat-card">
                     <h4 style="color: #ffb347; margin-bottom: 15px;">📊 Path Sets (28 Paths in 6 Sets)</h4>
-                    <div style="display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; max-height: 200px; overflow-y: auto;">
-                        <span style="color: #ffd700; font-size: 0.85rem;">SET 1: ZAR Focus (8 paths)</span>
-                        <input type="checkbox" id="chainexSet1Enabled" checked>
-
-                        <span style="color: #ff9800; font-size: 0.85rem;">SET 2: BTC Focus (7 paths)</span>
-                        <input type="checkbox" id="chainexSet2Enabled" checked>
-
-                        <span style="color: #32cd32; font-size: 0.85rem;">SET 3: USDT Focus (6 paths)</span>
-                        <input type="checkbox" id="chainexSet3Enabled" checked>
-
-                        <span style="color: #00d4ff; font-size: 0.85rem;">SET 4: ETH Focus (4 paths)</span>
-                        <input type="checkbox" id="chainexSet4Enabled">
-
-                        <span style="color: #9370db; font-size: 0.85rem;">SET 5: Cross-Currency (2 paths)</span>
-                        <input type="checkbox" id="chainexSet5Enabled">
-
-                        <span style="color: #778899; font-size: 0.85rem;">SET 6: Extended Altcoins (1 path)</span>
-                        <input type="checkbox" id="chainexSet6Enabled">
+                    <div id="chainexLivePathSets" style="display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; max-height: 200px; overflow-y: auto;">
+                        <!-- Dynamic content loaded by initializeChainexLivePathSets() -->
                     </div>
                     <div style="margin-top: 10px; padding: 8px; background: rgba(255,152,0,0.1); border-radius: 6px; font-size: 0.8rem; color: #b8c6db;">
                         💡 Sets 1-3 are essential (21 paths). ChainEX specializes in ZAR and major crypto pairs with competitive fees.
@@ -1530,36 +1514,8 @@
                 <!-- Path Categories -->
                 <div class="stat-card">
                     <h4 style="color: #ffb347; margin-bottom: 15px;">📊 Path Sets (114 Paths in 10 Sets)</h4>
-                    <div style="display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; max-height: 200px; overflow-y: auto;">
-                        <span style="color: #ffd700; font-size: 0.85rem;">SET 1: ETH Focus (6 paths)</span>
-                        <input type="checkbox" id="krakenSet1Enabled" checked>
-
-                        <span style="color: #9966ff; font-size: 0.85rem;">SET 2: XRP Focus (12 paths)</span>
-                        <input type="checkbox" id="krakenSet2Enabled" checked>
-
-                        <span style="color: #32cd32; font-size: 0.85rem;">SET 3: SOL Focus (12 paths)</span>
-                        <input type="checkbox" id="krakenSet3Enabled" checked>
-
-                        <span style="color: #00d4ff; font-size: 0.85rem;">SET 4: ADA Focus (12 paths)</span>
-                        <input type="checkbox" id="krakenSet4Enabled">
-
-                        <span style="color: #ff69b4; font-size: 0.85rem;">SET 5: DOT Focus (12 paths)</span>
-                        <input type="checkbox" id="krakenSet5Enabled">
-
-                        <span style="color: #ff9800; font-size: 0.85rem;">SET 6: MATIC Focus (12 paths)</span>
-                        <input type="checkbox" id="krakenSet6Enabled">
-
-                        <span style="color: #00ff88; font-size: 0.85rem;">SET 7: LINK Focus (12 paths)</span>
-                        <input type="checkbox" id="krakenSet7Enabled">
-
-                        <span style="color: #ffa500; font-size: 0.85rem;">SET 8: LTC Focus (12 paths)</span>
-                        <input type="checkbox" id="krakenSet8Enabled">
-
-                        <span style="color: #8a2be2; font-size: 0.85rem;">SET 9: ATOM Focus (12 paths)</span>
-                        <input type="checkbox" id="krakenSet9Enabled">
-
-                        <span style="color: #e74c3c; font-size: 0.85rem;">SET 10: AVAX Focus (12 paths)</span>
-                        <input type="checkbox" id="krakenSet10Enabled">
+                    <div id="krakenLivePathSets" style="display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; max-height: 200px; overflow-y: auto;">
+                        <!-- Dynamic content loaded by initializeKrakenLivePathSets() -->
                     </div>
                     <div style="margin-top: 10px; padding: 8px; background: rgba(153,102,255,0.1); border-radius: 6px; font-size: 0.8rem; color: #b8c6db;">
                         💡 Sets 1-3 (30 paths) cover major liquidity. All 10 sets provide comprehensive USD/USDT/USDC coverage with BTC/ETH bridges.
@@ -1794,21 +1750,8 @@
                 <!-- Path Categories -->
                 <div class="stat-card">
                     <h4 style="color: #ffb347; margin-bottom: 15px;">📊 Path Sets (40 Paths in 5 Sets)</h4>
-                    <div style="display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; max-height: 200px; overflow-y: auto;">
-                        <span style="color: #ffd700; font-size: 0.85rem;">SET 1: Major BTC Bridge (8 paths)</span>
-                        <input type="checkbox" id="bybitSet1Enabled" checked>
-
-                        <span style="color: #32cd32; font-size: 0.85rem;">SET 2: Altcoins BTC Bridge (8 paths)</span>
-                        <input type="checkbox" id="bybitSet2Enabled" checked>
-
-                        <span style="color: #00d4ff; font-size: 0.85rem;">SET 3: DeFi BTC Bridge (8 paths)</span>
-                        <input type="checkbox" id="bybitSet3Enabled">
-
-                        <span style="color: #ff69b4; font-size: 0.85rem;">SET 4: ETH Bridge (8 paths)</span>
-                        <input type="checkbox" id="bybitSet4Enabled">
-
-                        <span style="color: #778899; font-size: 0.85rem;">SET 5: Extended BTC (8 paths)</span>
-                        <input type="checkbox" id="bybitSet5Enabled">
+                    <div id="bybitLivePathSets" style="display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; max-height: 200px; overflow-y: auto;">
+                        <!-- Dynamic content loaded by initializeBybitLivePathSets() -->
                     </div>
                     <div style="margin-top: 10px; padding: 8px; background: rgba(255,165,0,0.1); border-radius: 6px; font-size: 0.8rem; color: #b8c6db;">
                         💡 Sets 1-2 are essential (16 paths). All paths are 3-leg pure triangular arbitrage.
@@ -1978,21 +1921,8 @@
             <!-- Path Sets Section -->
             <div class="stat-card">
                 <h4 style="color: #F0B90B; margin-bottom: 15px;">📊 Path Sets (24 Paths in 5 Sets)</h4>
-                <div style="display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center;">
-                    <span style="color: #ffd700; font-size: 0.85rem;">SET 1: Major BTC Bridge (8 paths)</span>
-                    <input type="checkbox" id="binanceSet1Enabled" checked>
-
-                    <span style="color: #32cd32; font-size: 0.85rem;">SET 2: Altcoins BTC Bridge (8 paths)</span>
-                    <input type="checkbox" id="binanceSet2Enabled" checked>
-
-                    <span style="color: #00d4ff; font-size: 0.85rem;">SET 3: DeFi BTC Bridge (6 paths)</span>
-                    <input type="checkbox" id="binanceSet3Enabled">
-
-                    <span style="color: #ff69b4; font-size: 0.85rem;">SET 4: ETH/BNB Bridge (varies)</span>
-                    <input type="checkbox" id="binanceSet4Enabled">
-
-                    <span style="color: #ff8c00; font-size: 0.85rem;">SET 5: Multi-Bridge (varies)</span>
-                    <input type="checkbox" id="binanceSet5Enabled">
+                <div id="binanceLivePathSets" style="display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center;">
+                    <!-- Dynamic content loaded by initializeBinanceLivePathSets() -->
                 </div>
             </div>
 
@@ -2314,21 +2244,8 @@
                 <!-- Path Categories -->
                 <div class="stat-card">
                     <h4 style="color: #00D092; margin-bottom: 15px;">📊 Path Sets (32 Paths in 5 Sets)</h4>
-                    <div style="display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; max-height: 200px; overflow-y: auto;">
-                        <span style="color: #00D092; font-size: 0.85rem;">SET 1: ETH Bridge (7 paths)</span>
-                        <input type="checkbox" id="kucoinSet1Enabled" checked>
-
-                        <span style="color: #00D092; font-size: 0.85rem;">SET 2: BTC Bridge (7 paths)</span>
-                        <input type="checkbox" id="kucoinSet2Enabled" checked>
-
-                        <span style="color: #00D092; font-size: 0.85rem;">SET 3: KCS Native (6 paths)</span>
-                        <input type="checkbox" id="kucoinSet3Enabled">
-
-                        <span style="color: #00D092; font-size: 0.85rem;">SET 4: High Volatility (6 paths)</span>
-                        <input type="checkbox" id="kucoinSet4Enabled">
-
-                        <span style="color: #00D092; font-size: 0.85rem;">SET 5: Extended (6 paths)</span>
-                        <input type="checkbox" id="kucoinSet5Enabled">
+                    <div id="kucoinLivePathSets" style="display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; max-height: 200px; overflow-y: auto;">
+                        <!-- Dynamic content loaded by initializeKucoinLivePathSets() -->
                     </div>
                     <div style="margin-top: 10px; padding: 8px; background: rgba(0,208,146,0.1); border-radius: 6px; font-size: 0.8rem; color: #b8c6db;">
                         💡 Sets 1-2 are essential (14 paths). All paths are 3-leg pure triangular arbitrage.
@@ -7070,6 +6987,72 @@
             initializeLivePathSets('luno', lunoSets, 'lunoLivePathSets', 'lunoSet', 4);
         }
 
+        // Initialize ChainEX LIVE path sets
+        function initializeChainexLivePathSets() {
+            const chainexSets = [
+                { set: 1, name: 'ZAR Focus', paths: 8, structure: 'ZAR-based triangular paths' },
+                { set: 2, name: 'BTC Focus', paths: 7, structure: 'BTC-based triangular paths' },
+                { set: 3, name: 'USDT Focus', paths: 6, structure: 'USDT-based triangular paths' },
+                { set: 4, name: 'ETH Focus', paths: 4, structure: 'ETH-based triangular paths' },
+                { set: 5, name: 'Cross-Currency', paths: 2, structure: 'Multi-currency paths' },
+                { set: 6, name: 'Extended Altcoins', paths: 1, structure: 'Altcoin triangular paths' }
+            ];
+            initializeLivePathSets('chainex', chainexSets, 'chainexLivePathSets', 'chainexSet', 3);
+        }
+
+        // Initialize Kraken LIVE path sets
+        function initializeKrakenLivePathSets() {
+            const krakenSets = [
+                { set: 1, name: 'ETH Focus', paths: 6, structure: 'USD/USDT/USDC ↔ ETH ↔ BTC' },
+                { set: 2, name: 'XRP Focus', paths: 12, structure: 'USD/USDT/USDC ↔ XRP ↔ BTC/ETH' },
+                { set: 3, name: 'SOL Focus', paths: 12, structure: 'USD/USDT/USDC ↔ SOL ↔ BTC/ETH' },
+                { set: 4, name: 'ADA Focus', paths: 12, structure: 'USD/USDT/USDC ↔ ADA ↔ BTC/ETH' },
+                { set: 5, name: 'DOT Focus', paths: 12, structure: 'USD/USDT/USDC ↔ DOT ↔ BTC/ETH' },
+                { set: 6, name: 'MATIC Focus', paths: 12, structure: 'USD/USDT/USDC ↔ MATIC ↔ BTC/ETH' },
+                { set: 7, name: 'LINK Focus', paths: 12, structure: 'USD/USDT/USDC ↔ LINK ↔ BTC/ETH' },
+                { set: 8, name: 'LTC Focus', paths: 12, structure: 'USD/USDT/USDC ↔ LTC ↔ BTC/ETH' },
+                { set: 9, name: 'ATOM Focus', paths: 12, structure: 'USD/USDT/USDC ↔ ATOM ↔ BTC/ETH' },
+                { set: 10, name: 'AVAX Focus', paths: 12, structure: 'USD/USDT/USDC ↔ AVAX ↔ BTC/ETH' }
+            ];
+            initializeLivePathSets('kraken', krakenSets, 'krakenLivePathSets', 'krakenSet', 3);
+        }
+
+        // Initialize Bybit LIVE path sets
+        function initializeBybitLivePathSets() {
+            const bybitSets = [
+                { set: 1, name: 'Major BTC Bridge', paths: 8, structure: 'USDT ↔ Major Coins ↔ BTC' },
+                { set: 2, name: 'Altcoins BTC Bridge', paths: 8, structure: 'USDT ↔ Altcoins ↔ BTC' },
+                { set: 3, name: 'DeFi BTC Bridge', paths: 8, structure: 'USDT ↔ DeFi Tokens ↔ BTC' },
+                { set: 4, name: 'ETH Bridge', paths: 8, structure: 'USDT ↔ Coins ↔ ETH' },
+                { set: 5, name: 'Extended BTC', paths: 8, structure: 'USDT ↔ Extended Coins ↔ BTC' }
+            ];
+            initializeLivePathSets('bybit', bybitSets, 'bybitLivePathSets', 'bybitSet', 2);
+        }
+
+        // Initialize Binance LIVE path sets
+        function initializeBinanceLivePathSets() {
+            const binanceSets = [
+                { set: 1, name: 'Major BTC Bridge', paths: 8, structure: 'USDT ↔ Major Coins ↔ BTC' },
+                { set: 2, name: 'Altcoins BTC Bridge', paths: 8, structure: 'USDT ↔ Altcoins ↔ BTC' },
+                { set: 3, name: 'DeFi BTC Bridge', paths: 6, structure: 'USDT ↔ DeFi Tokens ↔ BTC' },
+                { set: 4, name: 'ETH/BNB Bridge', paths: 4, structure: 'USDT ↔ Coins ↔ ETH/BNB' },
+                { set: 5, name: 'Multi-Bridge', paths: 4, structure: 'Multi-currency triangular paths' }
+            ];
+            initializeLivePathSets('binance', binanceSets, 'binanceLivePathSets', 'binanceSet', 2);
+        }
+
+        // Initialize KuCoin LIVE path sets
+        function initializeKucoinLivePathSets() {
+            const kucoinSets = [
+                { set: 1, name: 'ETH Bridge', paths: 7, structure: 'USDT ↔ Coins ↔ ETH' },
+                { set: 2, name: 'BTC Bridge', paths: 7, structure: 'USDT ↔ Coins ↔ BTC' },
+                { set: 3, name: 'KCS Native', paths: 6, structure: 'USDT ↔ Coins ↔ KCS' },
+                { set: 4, name: 'High Volatility', paths: 6, structure: 'High volatility triangular paths' },
+                { set: 5, name: 'Extended', paths: 6, structure: 'Extended coin coverage' }
+            ];
+            initializeLivePathSets('kucoin', kucoinSets, 'kucoinLivePathSets', 'kucoinSet', 2);
+        }
+
         // Toggle LIVE path set details expand/collapse
         function toggleLivePathDetails(setId) {
             const details = document.getElementById(`${setId}-details`);
@@ -8699,6 +8682,9 @@
 
         // Auto-save ChainEX settings when changed
         document.addEventListener('DOMContentLoaded', function() {
+            // Initialize expandable path sets UI
+            initializeChainexLivePathSets();
+
             // Add event listeners for ChainEX settings auto-save
             const chainexInputs = document.querySelectorAll('#chainexMaxTrade, #chainexPortfolioPercent, #chainexProfitThreshold');
             chainexInputs.forEach(input => {
@@ -9530,6 +9516,9 @@
 
         // Auto-save Kraken settings when changed
         document.addEventListener('DOMContentLoaded', function() {
+            // Initialize expandable path sets UI
+            initializeKrakenLivePathSets();
+
             // Add event listeners for Kraken settings auto-save
             const krakenInputs = document.querySelectorAll('#krakenMaxTrade, #krakenPortfolioPercent, #krakenProfitThreshold');
             krakenInputs.forEach(input => {
@@ -10668,6 +10657,9 @@
 
         // Auto-save ByBit settings when changed
         document.addEventListener('DOMContentLoaded', function() {
+            // Initialize expandable path sets UI
+            initializeBybitLivePathSets();
+
             // Add event listeners for ByBit settings auto-save
             const bybitInputs = document.querySelectorAll('#bybitMaxTrade, #bybitPortfolioPercent, #bybitProfitThreshold');
             bybitInputs.forEach(input => {
@@ -11233,6 +11225,10 @@
         // Initialize Binance settings on page load
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 [BINANCE] Initializing triangular arbitrage settings...');
+
+            // Initialize expandable path sets UI
+            initializeBinanceLivePathSets();
+
             loadBinanceTriangularSettings();
 
             // Add event listeners for Binance inputs (auto-save)
@@ -12420,6 +12416,10 @@
         // Initialize KuCoin settings on page load
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 [KUCOIN] Initializing triangular arbitrage settings...');
+
+            // Initialize expandable path sets UI
+            initializeKucoinLivePathSets();
+
             loadKuCoinTriangularSettings();
 
             // Add event listeners for KuCoin inputs (auto-save)
