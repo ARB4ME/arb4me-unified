@@ -665,18 +665,15 @@
                     <div id="testScanCurrentInfo" style="color: #00d4ff; font-family: monospace; font-size: 0.9rem;">Waiting to start...</div>
                 </div>
 
-                <!-- Export & Analysis -->
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <button onclick="exportCurrencySwapTestScanToCSV()" class="btn" style="background: rgba(0,212,255,0.15); border: 1px solid #00d4ff; color: #00d4ff;">
-                        📥 Download CSV
-                    </button>
-                    <button onclick="viewTestScanAnalytics()" class="btn" style="background: rgba(0,255,136,0.15); border: 1px solid #00ff88; color: #00ff88;">
-                        📊 View Analytics
+                <!-- Export CSV Button -->
+                <div style="margin-bottom: 20px;">
+                    <button onclick="exportCurrencySwapTestScanToCSV()" class="btn" style="width: 100%; background: rgba(0,212,255,0.15); border: 1px solid #00d4ff; color: #00d4ff;">
+                        📥 Download CSV Export
                     </button>
                 </div>
 
                 <!-- Info Banner -->
-                <div style="background: rgba(0,212,255,0.1); padding: 12px; border-radius: 8px; margin-top: 20px; border-left: 4px solid #00d4ff;">
+                <div style="background: rgba(0,212,255,0.1); padding: 12px; border-radius: 8px; margin-bottom: 30px; border-left: 4px solid #00d4ff;">
                     <strong style="color: #00d4ff;">ℹ️ How it works:</strong>
                     <ul style="margin: 10px 0 0 0; padding-left: 20px; color: #b8c6db; font-size: 0.85rem;">
                         <li>Repeatedly scans for currency swap opportunities</li>
@@ -685,6 +682,99 @@
                         <li>Export to CSV for offline analysis</li>
                         <li><strong style="color: #00ff88;">No trading - research only!</strong></li>
                     </ul>
+                </div>
+
+                <!-- Live Analytics Report -->
+                <div id="testScanReports">
+                    <h4 style="color: #ffc107; margin-bottom: 20px; font-size: 1.2rem; text-align: center;">📊 Live Analysis Report</h4>
+
+                    <!-- Top Routes by Profit % -->
+                    <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+                        <h5 style="color: #00ff88; margin-bottom: 15px;">🏆 Top 20 Routes by Average Profit %</h5>
+                        <div style="overflow-x: auto;">
+                            <table style="width: 100%; border-collapse: collapse; color: #b8c6db; font-size: 0.85rem;">
+                                <thead>
+                                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                        <th style="text-align: left; padding: 10px; color: #888;">#</th>
+                                        <th style="text-align: left; padding: 10px; color: #888;">Source Exchange</th>
+                                        <th style="text-align: left; padding: 10px; color: #888;">Dest Exchange</th>
+                                        <th style="text-align: left; padding: 10px; color: #888;">Source Currency</th>
+                                        <th style="text-align: left; padding: 10px; color: #888;">Dest Currency</th>
+                                        <th style="text-align: right; padding: 10px; color: #888;">Avg Profit %</th>
+                                        <th style="text-align: right; padding: 10px; color: #888;">Best Profit %</th>
+                                        <th style="text-align: right; padding: 10px; color: #888;">Times Found</th>
+                                        <th style="text-align: right; padding: 10px; color: #888;">Last Seen</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="testScanTopProfitBody">
+                                    <tr><td colspan="9" style="text-align: center; padding: 30px; color: #888; font-style: italic;">Waiting for scan data... Click "Start Scanning" above.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Top Routes by Consistency -->
+                    <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+                        <h5 style="color: #00d4ff; margin-bottom: 15px;">📈 Top 20 Routes by Consistency (Most Reliable)</h5>
+                        <div style="overflow-x: auto;">
+                            <table style="width: 100%; border-collapse: collapse; color: #b8c6db; font-size: 0.85rem;">
+                                <thead>
+                                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                        <th style="text-align: left; padding: 10px; color: #888;">#</th>
+                                        <th style="text-align: left; padding: 10px; color: #888;">Route</th>
+                                        <th style="text-align: right; padding: 10px; color: #888;">Times Found</th>
+                                        <th style="text-align: right; padding: 10px; color: #888;">Avg Profit %</th>
+                                        <th style="text-align: right; padding: 10px; color: #888;">Min/Max Profit</th>
+                                        <th style="text-align: center; padding: 10px; color: #888;">Consistency</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="testScanTopConsistencyBody">
+                                    <tr><td colspan="6" style="text-align: center; padding: 30px; color: #888; font-style: italic;">Waiting for scan data... Click "Start Scanning" above.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Best Currency Pairs & Best Exchanges Side by Side -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                        <!-- Best Currency Pairs -->
+                        <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 20px;">
+                            <h5 style="color: #667eea; margin-bottom: 15px;">💱 Best Currency Pairs</h5>
+                            <div style="overflow-x: auto;">
+                                <table style="width: 100%; border-collapse: collapse; color: #b8c6db; font-size: 0.85rem;">
+                                    <thead>
+                                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                            <th style="text-align: left; padding: 10px; color: #888;">Pair</th>
+                                            <th style="text-align: right; padding: 10px; color: #888;">Opps</th>
+                                            <th style="text-align: right; padding: 10px; color: #888;">Avg Profit</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="testScanBestPairsBody">
+                                        <tr><td colspan="3" style="text-align: center; padding: 20px; color: #888;">Waiting for scan data...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Best Exchanges -->
+                        <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 20px;">
+                            <h5 style="color: #ffb347; margin-bottom: 15px;">🏦 Best Exchange Pairs</h5>
+                            <div style="overflow-x: auto;">
+                                <table style="width: 100%; border-collapse: collapse; color: #b8c6db; font-size: 0.85rem;">
+                                    <thead>
+                                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                            <th style="text-align: left; padding: 10px; color: #888;">Route</th>
+                                            <th style="text-align: right; padding: 10px; color: #888;">Opps</th>
+                                            <th style="text-align: right; padding: 10px; color: #888;">Avg Profit</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="testScanBestExchangesBody">
+                                        <tr><td colspan="3" style="text-align: center; padding: 20px; color: #888;">Waiting for scan data...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
                 </div>
         </div>
     </div>  <!-- Close main container -->
@@ -923,6 +1013,10 @@
                         cb.checked = selectedCurrencies.includes(cb.value);
                     });
 
+                    // Save to localStorage for Test Scan to read
+                    localStorage.setItem('currencySwap_selectedExchanges', JSON.stringify(selectedExchanges));
+                    localStorage.setItem('currencySwap_selectedCurrencies', JSON.stringify(selectedCurrencies));
+
                     // Update stats
                     document.getElementById('totalExchanges').textContent = selectedExchanges.length;
                     document.getElementById('totalAssets').textContent = selectedCurrencies.length;
@@ -994,6 +1088,14 @@
                     saveStatus.textContent = '✅ Auto-saved';
                     saveStatus.style.color = '#00ff88';
                     console.log('✅ Setup saved successfully!');
+
+                    // Save to localStorage for Test Scan to read
+                    localStorage.setItem('currencySwap_selectedExchanges', JSON.stringify(selectedExchanges));
+                    localStorage.setItem('currencySwap_selectedCurrencies', JSON.stringify(selectedCurrencies));
+                    console.log('💾 Saved to localStorage for Test Scan:', {
+                        exchanges: selectedExchanges,
+                        currencies: selectedCurrencies
+                    });
 
                     // Reload paths with new selections
                     console.log('🔄 Regenerating paths with new selections...');
@@ -2858,6 +2960,9 @@
                 // Update storage display
                 updateTestScanStorageDisplay();
 
+                // Update analytics tables
+                updateTestScanAnalytics();
+
             } catch (error) {
                 console.error('Failed to store opportunity:', error);
             }
@@ -3103,6 +3208,166 @@
             document.getElementById('testScanRouteCount').textContent = routeCount.toLocaleString();
             document.getElementById('testScanStoragePercent').textContent = storagePercent.toFixed(1) + '%';
             document.getElementById('testScanStorageBar').style.width = storagePercent + '%';
+        }
+
+        /**
+         * Update Test Scan Analytics Tables in Real-Time
+         * Calculates and displays: top routes by profit, consistency, best pairs, best exchanges
+         */
+        function updateTestScanAnalytics() {
+            try {
+                const data = JSON.parse(localStorage.getItem('currencySwapTestScan_data') || '[]');
+
+                if (data.length === 0) {
+                    return; // Keep waiting message
+                }
+
+                // Aggregate by routeKey
+                const routeStats = {};
+                data.forEach(opp => {
+                    const key = opp.routeKey;
+                    if (!routeStats[key]) {
+                        routeStats[key] = {
+                            routeKey: key,
+                            sourceExchange: opp.sourceExchange,
+                            destExchange: opp.destExchange,
+                            sourceCurrency: opp.sourceCurrency,
+                            destCurrency: opp.destCurrency,
+                            profits: [],
+                            timestamps: [],
+                            count: 0
+                        };
+                    }
+                    routeStats[key].profits.push(opp.profitPercent);
+                    routeStats[key].timestamps.push(opp.timestamp);
+                    routeStats[key].count++;
+                });
+
+                // Calculate stats for each route
+                const routes = Object.values(routeStats).map(route => {
+                    const avgProfit = route.profits.reduce((a, b) => a + b, 0) / route.profits.length;
+                    const maxProfit = Math.max(...route.profits);
+                    const minProfit = Math.min(...route.profits);
+                    const lastSeen = Math.max(...route.timestamps);
+                    const consistency = route.count >= 5 ? ((1 - (maxProfit - minProfit) / avgProfit) * 100) : 50;
+
+                    return {
+                        ...route,
+                        avgProfit,
+                        maxProfit,
+                        minProfit,
+                        lastSeen,
+                        consistency: Math.max(0, Math.min(100, consistency))
+                    };
+                });
+
+                // 1. Top 20 Routes by Average Profit
+                const topByProfit = routes.sort((a, b) => b.avgProfit - a.avgProfit).slice(0, 20);
+                let profitHTML = '';
+                topByProfit.forEach((route, idx) => {
+                    const timeSince = Math.floor((Date.now() - route.lastSeen) / 60000);
+                    profitHTML += `
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                            <td style="padding: 10px; color: #666;">${idx + 1}</td>
+                            <td style="padding: 10px;">${route.sourceExchange}</td>
+                            <td style="padding: 10px;">${route.destExchange}</td>
+                            <td style="padding: 10px; color: #00d4ff;">${route.sourceCurrency}</td>
+                            <td style="padding: 10px; color: #00d4ff;">${route.destCurrency}</td>
+                            <td style="padding: 10px; text-align: right; color: #00ff88; font-weight: bold;">${route.avgProfit.toFixed(2)}%</td>
+                            <td style="padding: 10px; text-align: right; color: #ffb347;">${route.maxProfit.toFixed(2)}%</td>
+                            <td style="padding: 10px; text-align: right;">${route.count}</td>
+                            <td style="padding: 10px; text-align: right; color: #888; font-size: 0.8rem;">${timeSince}m ago</td>
+                        </tr>
+                    `;
+                });
+                document.getElementById('testScanTopProfitBody').innerHTML = profitHTML || '<tr><td colspan="9" style="text-align: center; padding: 20px; color: #888;">No data yet...</td></tr>';
+
+                // 2. Top 20 Routes by Consistency
+                const topByConsistency = routes.sort((a, b) => b.count - a.count).slice(0, 20);
+                let consistencyHTML = '';
+                topByConsistency.forEach((route, idx) => {
+                    const routeDisplay = `${route.sourceExchange} → ${route.destExchange} (${route.sourceCurrency}/${route.destCurrency})`;
+                    const consistencyBar = `<div style="background: rgba(0,255,136,${route.consistency/100}); width: ${route.consistency}%; height: 8px; border-radius: 4px;"></div>`;
+                    consistencyHTML += `
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                            <td style="padding: 10px; color: #666;">${idx + 1}</td>
+                            <td style="padding: 10px;">${routeDisplay}</td>
+                            <td style="padding: 10px; text-align: right; color: #00d4ff; font-weight: bold;">${route.count}</td>
+                            <td style="padding: 10px; text-align: right; color: #00ff88;">${route.avgProfit.toFixed(2)}%</td>
+                            <td style="padding: 10px; text-align: right; font-size: 0.8rem;">${route.minProfit.toFixed(2)}% / ${route.maxProfit.toFixed(2)}%</td>
+                            <td style="padding: 10px;">${consistencyBar}</td>
+                        </tr>
+                    `;
+                });
+                document.getElementById('testScanTopConsistencyBody').innerHTML = consistencyHTML || '<tr><td colspan="6" style="text-align: center; padding: 20px; color: #888;">No data yet...</td></tr>';
+
+                // 3. Best Currency Pairs
+                const pairStats = {};
+                data.forEach(opp => {
+                    const pair = `${opp.sourceCurrency}/${opp.destCurrency}`;
+                    if (!pairStats[pair]) {
+                        pairStats[pair] = { count: 0, profits: [] };
+                    }
+                    pairStats[pair].count++;
+                    pairStats[pair].profits.push(opp.profitPercent);
+                });
+
+                const topPairs = Object.entries(pairStats)
+                    .map(([pair, stats]) => ({
+                        pair,
+                        count: stats.count,
+                        avgProfit: stats.profits.reduce((a, b) => a + b, 0) / stats.profits.length
+                    }))
+                    .sort((a, b) => b.avgProfit - a.avgProfit)
+                    .slice(0, 10);
+
+                let pairsHTML = '';
+                topPairs.forEach(pair => {
+                    pairsHTML += `
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                            <td style="padding: 10px; color: #00d4ff; font-weight: bold;">${pair.pair}</td>
+                            <td style="padding: 10px; text-align: right;">${pair.count}</td>
+                            <td style="padding: 10px; text-align: right; color: #00ff88;">${pair.avgProfit.toFixed(2)}%</td>
+                        </tr>
+                    `;
+                });
+                document.getElementById('testScanBestPairsBody').innerHTML = pairsHTML || '<tr><td colspan="3" style="text-align: center; padding: 20px; color: #888;">No data yet...</td></tr>';
+
+                // 4. Best Exchange Pairs
+                const exchangePairStats = {};
+                data.forEach(opp => {
+                    const exchangePair = `${opp.sourceExchange} → ${opp.destExchange}`;
+                    if (!exchangePairStats[exchangePair]) {
+                        exchangePairStats[exchangePair] = { count: 0, profits: [] };
+                    }
+                    exchangePairStats[exchangePair].count++;
+                    exchangePairStats[exchangePair].profits.push(opp.profitPercent);
+                });
+
+                const topExchangePairs = Object.entries(exchangePairStats)
+                    .map(([pair, stats]) => ({
+                        pair,
+                        count: stats.count,
+                        avgProfit: stats.profits.reduce((a, b) => a + b, 0) / stats.profits.length
+                    }))
+                    .sort((a, b) => b.avgProfit - a.avgProfit)
+                    .slice(0, 10);
+
+                let exchangesHTML = '';
+                topExchangePairs.forEach(pair => {
+                    exchangesHTML += `
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                            <td style="padding: 10px; color: #ffb347; font-weight: bold;">${pair.pair}</td>
+                            <td style="padding: 10px; text-align: right;">${pair.count}</td>
+                            <td style="padding: 10px; text-align: right; color: #00ff88;">${pair.avgProfit.toFixed(2)}%</td>
+                        </tr>
+                    `;
+                });
+                document.getElementById('testScanBestExchangesBody').innerHTML = exchangesHTML || '<tr><td colspan="3" style="text-align: center; padding: 20px; color: #888;">No data yet...</td></tr>';
+
+            } catch (error) {
+                console.error('Failed to update analytics:', error);
+            }
         }
 
     </script>
