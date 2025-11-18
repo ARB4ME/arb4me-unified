@@ -2272,6 +2272,239 @@
             `;
         }
 
+        // ============================================================================
+        // ADDRESS FORMAT VALIDATION
+        // ============================================================================
+
+        /**
+         * Validate if deposit address format matches the selected network
+         * Returns { valid: boolean, warning: string | null, network: string }
+         */
+        function validateAddressFormat(address, network, crypto) {
+            if (!address || address.trim() === '') {
+                return { valid: false, warning: 'Address cannot be empty', network };
+            }
+
+            const addr = address.trim();
+
+            // Network-specific validation rules
+            const validationRules = {
+                // Bitcoin networks
+                'BTC': {
+                    pattern: /^(1|3|bc1)[a-zA-HJ-NP-Z0-9]{25,62}$/,
+                    description: 'Bitcoin address (starts with 1, 3, or bc1)',
+                    minLength: 26,
+                    maxLength: 62
+                },
+                'Bitcoin': {
+                    pattern: /^(1|3|bc1)[a-zA-HJ-NP-Z0-9]{25,62}$/,
+                    description: 'Bitcoin address (starts with 1, 3, or bc1)',
+                    minLength: 26,
+                    maxLength: 62
+                },
+
+                // Ethereum & EVM networks
+                'ERC20': {
+                    pattern: /^0x[a-fA-F0-9]{40}$/,
+                    description: 'Ethereum address (starts with 0x, 42 characters)',
+                    minLength: 42,
+                    maxLength: 42
+                },
+                'Ethereum': {
+                    pattern: /^0x[a-fA-F0-9]{40}$/,
+                    description: 'Ethereum address (starts with 0x, 42 characters)',
+                    minLength: 42,
+                    maxLength: 42
+                },
+                'BEP20': {
+                    pattern: /^(0x[a-fA-F0-9]{40}|bnb1[a-z0-9]{38})$/,
+                    description: 'BSC address (starts with 0x or bnb1)',
+                    minLength: 39,
+                    maxLength: 42
+                },
+                'BSC': {
+                    pattern: /^(0x[a-fA-F0-9]{40}|bnb1[a-z0-9]{38})$/,
+                    description: 'BSC address (starts with 0x or bnb1)',
+                    minLength: 39,
+                    maxLength: 42
+                },
+                'Polygon': {
+                    pattern: /^0x[a-fA-F0-9]{40}$/,
+                    description: 'Polygon address (starts with 0x, 42 characters)',
+                    minLength: 42,
+                    maxLength: 42
+                },
+                'Arbitrum': {
+                    pattern: /^0x[a-fA-F0-9]{40}$/,
+                    description: 'Arbitrum address (starts with 0x, 42 characters)',
+                    minLength: 42,
+                    maxLength: 42
+                },
+                'Optimism': {
+                    pattern: /^0x[a-fA-F0-9]{40}$/,
+                    description: 'Optimism address (starts with 0x, 42 characters)',
+                    minLength: 42,
+                    maxLength: 42
+                },
+                'Avalanche': {
+                    pattern: /^(0x[a-fA-F0-9]{40}|X-avax1[a-z0-9]{38})$/,
+                    description: 'Avalanche address (starts with 0x or X-avax1)',
+                    minLength: 39,
+                    maxLength: 45
+                },
+
+                // Tron network
+                'TRC20': {
+                    pattern: /^T[a-zA-Z0-9]{33}$/,
+                    description: 'Tron address (starts with T, 34 characters)',
+                    minLength: 34,
+                    maxLength: 34
+                },
+                'Tron': {
+                    pattern: /^T[a-zA-Z0-9]{33}$/,
+                    description: 'Tron address (starts with T, 34 characters)',
+                    minLength: 34,
+                    maxLength: 34
+                },
+
+                // Ripple (XRP)
+                'XRP': {
+                    pattern: /^r[a-zA-Z0-9]{24,34}$/,
+                    description: 'XRP address (starts with r)',
+                    minLength: 25,
+                    maxLength: 35
+                },
+
+                // Stellar (XLM)
+                'XLM': {
+                    pattern: /^G[A-Z2-7]{55}$/,
+                    description: 'Stellar address (starts with G, 56 characters)',
+                    minLength: 56,
+                    maxLength: 56
+                },
+
+                // Litecoin
+                'LTC': {
+                    pattern: /^(L|M|ltc1)[a-zA-Z0-9]{26,62}$/,
+                    description: 'Litecoin address (starts with L, M, or ltc1)',
+                    minLength: 26,
+                    maxLength: 62
+                },
+                'Litecoin': {
+                    pattern: /^(L|M|ltc1)[a-zA-Z0-9]{26,62}$/,
+                    description: 'Litecoin address (starts with L, M, or ltc1)',
+                    minLength: 26,
+                    maxLength: 62
+                },
+
+                // Solana
+                'SOL': {
+                    pattern: /^[1-9A-HJ-NP-Za-km-z]{32,44}$/,
+                    description: 'Solana address (base58, 32-44 characters)',
+                    minLength: 32,
+                    maxLength: 44
+                },
+                'Solana': {
+                    pattern: /^[1-9A-HJ-NP-Za-km-z]{32,44}$/,
+                    description: 'Solana address (base58, 32-44 characters)',
+                    minLength: 32,
+                    maxLength: 44
+                },
+
+                // Cardano
+                'ADA': {
+                    pattern: /^(addr1|DdzFF)[a-zA-Z0-9]{50,104}$/,
+                    description: 'Cardano address (starts with addr1 or DdzFF)',
+                    minLength: 50,
+                    maxLength: 104
+                },
+                'Cardano': {
+                    pattern: /^(addr1|DdzFF)[a-zA-Z0-9]{50,104}$/,
+                    description: 'Cardano address (starts with addr1 or DdzFF)',
+                    minLength: 50,
+                    maxLength: 104
+                }
+            };
+
+            // Get validation rule for this network
+            const rule = validationRules[network];
+
+            if (!rule) {
+                // Unknown network - perform basic validation
+                if (addr.length < 20) {
+                    return {
+                        valid: false,
+                        warning: `⚠️ Address appears too short (${addr.length} characters). Most crypto addresses are at least 20 characters.`,
+                        network
+                    };
+                }
+                return {
+                    valid: true,
+                    warning: `⚠️ Cannot validate address format for network '${network}'. Please double-check manually.`,
+                    network
+                };
+            }
+
+            // Validate length
+            if (addr.length < rule.minLength || addr.length > rule.maxLength) {
+                return {
+                    valid: false,
+                    warning: `❌ Invalid address length for ${network}. Expected ${rule.minLength}-${rule.maxLength} characters, got ${addr.length}.`,
+                    network
+                };
+            }
+
+            // Validate pattern
+            if (!rule.pattern.test(addr)) {
+                return {
+                    valid: false,
+                    warning: `❌ Address format does not match ${network} network. Expected: ${rule.description}`,
+                    network
+                };
+            }
+
+            // All checks passed
+            return {
+                valid: true,
+                warning: null,
+                network
+            };
+        }
+
+        /**
+         * Show address validation warning/error in UI
+         */
+        function showAddressValidationFeedback(inputElement, validation) {
+            // Remove existing feedback
+            const existingFeedback = inputElement.parentElement.querySelector('.address-validation-feedback');
+            if (existingFeedback) {
+                existingFeedback.remove();
+            }
+
+            if (validation.warning) {
+                const feedbackDiv = document.createElement('div');
+                feedbackDiv.className = 'address-validation-feedback';
+                feedbackDiv.style.cssText = `
+                    margin-top: 8px;
+                    padding: 10px;
+                    border-radius: 6px;
+                    font-size: 0.85rem;
+                    line-height: 1.4;
+                    background: ${validation.valid ? 'rgba(255,179,71,0.15)' : 'rgba(255,68,68,0.15)'};
+                    border-left: 3px solid ${validation.valid ? '#ffb347' : '#ff4444'};
+                    color: ${validation.valid ? '#ffb347' : '#ff6b6b'};
+                `;
+                feedbackDiv.textContent = validation.warning;
+                inputElement.parentElement.appendChild(feedbackDiv);
+
+                // Update input border color
+                inputElement.style.borderColor = validation.valid ? '#ffb347' : '#ff4444';
+            } else {
+                // Valid address - green border
+                inputElement.style.borderColor = '#00ff88';
+            }
+        }
+
         // Network cache to avoid repeated API calls
         const networkCache = new Map();
 
@@ -2393,6 +2626,51 @@
             const key = `deposit_${exchange}_${crypto}_${type}`;
             localStorage.setItem(key, value);
             console.log(`💾 Auto-saved: ${key} = ${value.substring(0, 10)}...`);
+
+            // Validate address format when saving deposit address
+            if (type === 'deposit' && value && value.trim() !== '') {
+                validateDepositAddressForNetwork(exchange, crypto);
+            }
+
+            // If network was just changed, re-validate the existing address
+            if (type === 'network' && value && value.trim() !== '') {
+                validateDepositAddressForNetwork(exchange, crypto);
+            }
+        }
+
+        // Validate deposit address against selected network
+        function validateDepositAddressForNetwork(exchange, crypto) {
+            const depositKey = `deposit_${exchange}_${crypto}_deposit`;
+            const networkKey = `deposit_${exchange}_${crypto}_network`;
+
+            const address = localStorage.getItem(depositKey);
+            const network = localStorage.getItem(networkKey);
+
+            if (!address || address.trim() === '') {
+                // No address to validate yet
+                return;
+            }
+
+            if (!network || network.trim() === '') {
+                console.warn(`⚠️ Cannot validate address for ${exchange} ${crypto} - network not selected yet`);
+                return;
+            }
+
+            // Validate address against selected network
+            const validation = validateAddressFormat(address, network, crypto);
+            const inputElement = document.getElementById(`modal-${exchange}-${crypto}-deposit`);
+
+            if (inputElement) {
+                showAddressValidationFeedback(inputElement, validation);
+
+                if (!validation.valid) {
+                    console.warn(`⚠️ Address validation failed for ${exchange} ${crypto}:`, validation.warning);
+                } else if (validation.warning) {
+                    console.warn(`⚠️ Address validation warning for ${exchange} ${crypto}:`, validation.warning);
+                } else {
+                    console.log(`✅ Address validation passed for ${exchange} ${crypto} on ${network}`);
+                }
+            }
         }
 
         // Load saved deposit addresses
