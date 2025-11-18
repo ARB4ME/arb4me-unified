@@ -2972,26 +2972,40 @@
                 }
 
                 const result = await response.json();
-                console.log('Backend response:', result);
 
                 // Extract opportunity from response
                 const opportunity = result.data?.opportunity || result.opportunity || null;
 
-                if (opportunity && opportunity.profitPercent >= config.minProfit) {
-                    console.log(`✅ Found profitable opportunity: ${opportunity.profitPercent.toFixed(2)}% profit`);
+                // Enhanced logging - show what was actually found
+                if (opportunity) {
+                    console.log('📊 Backend found best opportunity:', {
+                        route: `${opportunity.sourceExchange} → ${opportunity.destExchange}`,
+                        pair: `${opportunity.sourceCurrency} → ${opportunity.destCurrency}`,
+                        profit: `${opportunity.profitPercent.toFixed(4)}%`,
+                        meetsThreshold: opportunity.profitPercent >= config.minProfit ? '✅ YES' : '❌ NO',
+                        threshold: `${config.minProfit}%`
+                    });
 
-                    // Update current scan info
-                    document.getElementById('testScanCurrentInfo').textContent =
-                        `${opportunity.sourceExchange} → ${opportunity.destExchange} | ` +
-                        `${opportunity.sourceCurrency} → ${opportunity.destCurrency} | ` +
-                        `Profit: ${opportunity.profitPercent.toFixed(2)}%`;
+                    if (opportunity.profitPercent >= config.minProfit) {
+                        console.log(`✅ STORING - Profit ${opportunity.profitPercent.toFixed(2)}% meets threshold ${config.minProfit}%`);
 
-                    // Store opportunity
-                    storeCurrencySwapOpportunity(opportunity);
+                        // Update current scan info
+                        document.getElementById('testScanCurrentInfo').textContent =
+                            `${opportunity.sourceExchange} → ${opportunity.destExchange} | ` +
+                            `${opportunity.sourceCurrency} → ${opportunity.destCurrency} | ` +
+                            `Profit: ${opportunity.profitPercent.toFixed(2)}%`;
+
+                        // Store opportunity
+                        storeCurrencySwapOpportunity(opportunity);
+                    } else {
+                        console.log(`⏭️ SKIPPING - Profit ${opportunity.profitPercent.toFixed(2)}% below threshold ${config.minProfit}%`);
+                        document.getElementById('testScanCurrentInfo').textContent =
+                            `Best: ${opportunity.sourceExchange} → ${opportunity.destExchange} (${opportunity.profitPercent.toFixed(2)}%) - Below ${config.minProfit}% threshold`;
+                    }
                 } else {
-                    console.log(`❌ No profitable opportunities found (min: ${config.minProfit}%)`);
+                    console.log('❌ Backend returned no opportunities at all');
                     document.getElementById('testScanCurrentInfo').textContent =
-                        `No opportunities above ${config.minProfit}% threshold`;
+                        'No swap opportunities found in this cycle';
                 }
 
             } catch (error) {
