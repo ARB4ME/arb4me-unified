@@ -229,8 +229,40 @@ class CurrencySwapExecutionService {
             throw new Error(`Buy order failed: ${data.error || 'Unknown error'}`);
         }
 
+        // Extract executed quantity from response (different exchanges use different fields)
+        const executedQty = data.data.executedQty ||
+                           data.data.quantity ||
+                           data.data.filled ||
+                           data.data.filledQty ||
+                           data.data.executedQuantity ||
+                           data.data.base_amount ||
+                           data.data.amount;
+
+        if (!executedQty) {
+            logger.error('Buy order response missing executed quantity', {
+                exchange,
+                response: JSON.stringify(data.data)
+            });
+            throw new Error(
+                `Buy order succeeded but cannot determine XRP amount received. ` +
+                `Exchange: ${exchange}, Response missing executedQty field. ` +
+                `This is required for accurate execution. Please check exchange API response format.`
+            );
+        }
+
+        const xrpReceived = parseFloat(executedQty);
+
+        if (isNaN(xrpReceived) || xrpReceived <= 0) {
+            throw new Error(`Invalid XRP amount received: ${executedQty}. Expected positive number.`);
+        }
+
+        logger.info(`✅ Leg 1 Buy Order: Received ${xrpReceived} XRP`, {
+            exchange,
+            orderId: data.data.orderId || data.data.id
+        });
+
         return {
-            xrpReceived: parseFloat(data.data.executedQty || data.data.quantity || amount / 0.61), // Approximate
+            xrpReceived,
             orderId: data.data.orderId || data.data.id
         };
     }
@@ -307,8 +339,40 @@ class CurrencySwapExecutionService {
             throw new Error(`Sell order failed: ${data.error || 'Unknown error'}`);
         }
 
+        // Extract currency received from response (different exchanges use different fields)
+        const currencyReceived = data.data.cummulativeQuoteQty ||
+                                data.data.total ||
+                                data.data.quote_amount ||
+                                data.data.turnover ||
+                                data.data.totalValue ||
+                                data.data.quoteQty ||
+                                data.data.funds;
+
+        if (!currencyReceived) {
+            logger.error('Sell order response missing currency amount', {
+                exchange,
+                response: JSON.stringify(data.data)
+            });
+            throw new Error(
+                `Sell order succeeded but cannot determine ${destCurrency} amount received. ` +
+                `Exchange: ${exchange}, Response missing cummulativeQuoteQty field. ` +
+                `This is required for accurate profit calculation. Please check exchange API response format.`
+            );
+        }
+
+        const finalAmount = parseFloat(currencyReceived);
+
+        if (isNaN(finalAmount) || finalAmount <= 0) {
+            throw new Error(`Invalid ${destCurrency} amount received: ${currencyReceived}. Expected positive number.`);
+        }
+
+        logger.info(`✅ Leg 3 Sell Order: Received ${finalAmount} ${destCurrency}`, {
+            exchange,
+            orderId: data.data.orderId || data.data.id
+        });
+
         return {
-            currencyReceived: parseFloat(data.data.cummulativeQuoteQty || data.data.total || xrpAmount * 0.61), // Approximate
+            currencyReceived: finalAmount,
             orderId: data.data.orderId || data.data.id
         };
     }
