@@ -30,7 +30,8 @@ class TradeExecutorService {
     async executeAtomic(exchange, opportunity, credentials, options = {}) {
         const {
             maxSlippage = 0.5,      // 0.5% max slippage
-            timeoutMs = 30000        // 30 second timeout per leg
+            timeoutMs = 30000,       // 30 second timeout per leg
+            dryRun = false           // Dry run mode (simulate without real trades)
         } = options;
 
         const executionId = this._generateExecutionId();
@@ -47,17 +48,19 @@ class TradeExecutorService {
             actualProfit: null,
             legs: [],
             status: 'INITIATED',
+            dryRun: dryRun,
             startTime: new Date().toISOString(),
             endTime: null,
             totalExecutionTime: null,
             error: null
         };
 
-        systemLogger.trading(`Starting atomic execution`, {
+        systemLogger.trading(`Starting atomic execution ${dryRun ? '[DRY RUN]' : '[LIVE]'}`, {
             executionId,
             exchange,
             pathId: opportunity.pathId,
-            expectedProfit: opportunity.profitPercentage
+            expectedProfit: opportunity.profitPercentage,
+            dryRun
         });
 
         try {
@@ -76,24 +79,50 @@ class TradeExecutorService {
                 });
 
                 try {
-                    // Execute the trade (pass credentials through)
-                    const orderResult = await Promise.race([
-                        this.exchangeConnector.executeMarketOrder(
-                            exchange,
-                            step.pair,
-                            step.side,
-                            currentAmount,
-                            credentials  // Forward user's credentials
-                        ),
-                        this._timeout(timeoutMs)
-                    ]);
+                    let orderResult, executedAmount, executedPrice;
+
+                    if (dryRun) {
+                        // DRY RUN: Simulate execution without placing real orders
+                        systemLogger.trading(`[DRY RUN] Simulating leg ${i + 1}/3`, {
+                            executionId,
+                            pair: step.pair,
+                            side: step.side,
+                            amount: currentAmount
+                        });
+
+                        // Simulate order execution with expected prices
+                        await new Promise(resolve => setTimeout(resolve, 100)); // Simulate network delay
+
+                        executedAmount = step.expectedAmount || currentAmount * 0.998; // Simulate 0.2% fee
+                        executedPrice = step.price;
+
+                        orderResult = {
+                            orderId: `DRY_RUN_${Date.now()}`,
+                            status: 'SIMULATED',
+                            executedQty: executedAmount,
+                            price: executedPrice
+                        };
+
+                    } else {
+                        // LIVE: Execute the trade (pass credentials through)
+                        orderResult = await Promise.race([
+                            this.exchangeConnector.executeMarketOrder(
+                                exchange,
+                                step.pair,
+                                step.side,
+                                currentAmount,
+                                credentials  // Forward user's credentials
+                            ),
+                            this._timeout(timeoutMs)
+                        ]);
+
+                        // Parse order result (exchange-specific)
+                        executedAmount = this._parseExecutedAmount(exchange, orderResult, step.side);
+                        executedPrice = this._parseExecutedPrice(exchange, orderResult);
+                    }
 
                     const legEndTime = Date.now();
                     const legExecutionTime = legEndTime - legStartTime;
-
-                    // Parse order result (exchange-specific)
-                    const executedAmount = this._parseExecutedAmount(exchange, orderResult, step.side);
-                    const executedPrice = this._parseExecutedPrice(exchange, orderResult);
 
                     // Calculate slippage
                     const expectedPrice = step.price;

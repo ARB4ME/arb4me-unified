@@ -12,6 +12,7 @@ const PathDefinitionsService = require('./PathDefinitionsService');
 const ProfitCalculatorService = require('./ProfitCalculatorService');
 const OrderBookFetcherService = require('./OrderBookFetcherService');
 const TradeExecutorService = require('./TradeExecutorService');
+const PreFlightValidationService = require('./PreFlightValidationService');
 
 class TriangularArbService {
     constructor() {
@@ -20,6 +21,7 @@ class TriangularArbService {
         this.profitCalculator = new ProfitCalculatorService();
         this.orderBookFetcher = new OrderBookFetcherService();
         this.tradeExecutor = new TradeExecutorService();
+        this.preFlightValidator = new PreFlightValidationService();
     }
 
     /**
@@ -183,13 +185,24 @@ class TriangularArbService {
      * @param {string} pathId - ID of the path to execute
      * @param {number} amount - Amount to trade
      * @param {object} credentials - User's API credentials { apiKey, apiSecret }
+     * @param {object} options - Execution options
      * @returns {Promise<object>} Execution result
      */
-    async execute(exchange, pathId, amount, credentials) {
-        systemLogger.trading(`Triangular arb execution initiated`, {
+    async execute(exchange, pathId, amount, credentials, options = {}) {
+        const {
+            dryRun = true,              // Default to dry run for safety
+            confirmed = false,           // Requires explicit confirmation for live trading
+            minProfitThreshold = 0.3,    // Minimum profit required
+            maxTradeAmount = null,       // Maximum trade amount limit
+            portfolioPercent = null      // Max % of portfolio
+        } = options;
+
+        systemLogger.trading(`Triangular arb execution initiated ${dryRun ? '[DRY RUN]' : '[LIVE]'}`, {
             exchange,
             pathId,
             amount,
+            dryRun,
+            confirmed,
             timestamp: new Date().toISOString()
         });
 
@@ -201,47 +214,75 @@ class TriangularArbService {
                 throw new Error(`Path not found: ${pathId} on ${exchange}`);
             }
 
-            // Step 2: Fetch fresh order books (pass credentials through)
-            const uniquePairs = path.pairs;
-            const orderBooks = await this.orderBookFetcher.fetchMultiple(
-                exchange,
-                uniquePairs,
-                credentials  // Forward user's credentials
-            );
+            // Step 2: PRE-FLIGHT VALIDATION (Critical Safety Checks)
+            systemLogger.trading(`[SAFETY] Running pre-flight validation...`);
 
-            // Step 3: Recalculate opportunity with current prices
-            const currentOpportunity = this.profitCalculator.calculate(
+            const validationResult = await this.preFlightValidator.validateTrade(
                 exchange,
                 path,
-                orderBooks,
-                amount
+                amount,
+                credentials,
+                {
+                    minProfitThreshold,
+                    maxTradeAmount,
+                    portfolioPercent,
+                    requireConfirmation: !dryRun,  // Only require confirmation for live trading
+                    confirmed
+                }
             );
 
-            if (!currentOpportunity.success) {
-                throw new Error(`Opportunity calculation failed: ${currentOpportunity.error}`);
+            if (!validationResult.passed) {
+                systemLogger.warn(`[SAFETY] Pre-flight validation FAILED`, {
+                    exchange,
+                    pathId,
+                    checks: validationResult.checks,
+                    warnings: validationResult.warnings
+                });
+
+                return {
+                    success: false,
+                    error: 'PRE_FLIGHT_VALIDATION_FAILED',
+                    validationResult,
+                    message: 'Trade blocked by safety checks'
+                };
             }
+
+            systemLogger.trading(`[SAFETY] ✅ Pre-flight validation PASSED - proceeding with execution`);
+
+            // Use the freshly calculated opportunity from validation
+            const currentOpportunity = validationResult.currentOpportunity;
 
             systemLogger.trading(`Executing opportunity`, {
                 exchange,
                 pathId,
                 expectedProfit: currentOpportunity.profitPercentage,
-                sequence: currentOpportunity.sequence
+                sequence: currentOpportunity.sequence,
+                dryRun
             });
 
-            // Step 4: Execute the 3-leg trade (pass credentials through)
+            // Step 3: Execute the 3-leg trade (pass credentials and dry run flag)
             const executionResult = await this.tradeExecutor.executeAtomic(
                 exchange,
                 currentOpportunity,
-                credentials  // Forward user's credentials
+                credentials,  // Forward user's credentials
+                {
+                    dryRun,
+                    maxSlippage: 0.5,
+                    timeoutMs: 30000
+                }
             );
 
-            systemLogger.trading(`Execution complete`, {
+            systemLogger.trading(`Execution complete ${dryRun ? '[DRY RUN]' : '[LIVE]'}`, {
                 exchange,
                 pathId,
                 success: executionResult.success,
                 actualProfit: executionResult.actualProfit,
-                executionId: executionResult.executionId
+                executionId: executionResult.executionId,
+                dryRun
             });
+
+            // Include validation result in response
+            executionResult.validationResult = validationResult;
 
             return executionResult;
 
@@ -250,6 +291,7 @@ class TriangularArbService {
                 exchange,
                 pathId,
                 amount,
+                dryRun,
                 error: error.message,
                 stack: error.stack
             });

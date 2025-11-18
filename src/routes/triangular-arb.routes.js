@@ -575,21 +575,45 @@ router.get('/luno/triangular/paths', authenticatedRateLimit, authenticateUser, a
 // POST /api/v1/trading/luno/triangular/execute
 // Execute a triangular arbitrage trade (3-leg atomic transaction)
 // REFACTORED: Now uses service layer (Phase 11 - second exchange)
-router.post('/luno/triangular/execute', asyncHandler(async (req, res) => {
-    const { pathId, amount, apiKey, apiSecret } = req.body;
+router.post('/luno/triangular/execute', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    const {
+        pathId,
+        amount,
+        apiKey,
+        apiSecret,
+        // Safety parameters
+        dryRun = true,              // Default to dry run for safety
+        confirmed = false,           // Explicit confirmation required for live trading
+        minProfitThreshold = 0.3,    // Minimum profit threshold
+        maxTradeAmount = null,       // Maximum trade amount
+        portfolioPercent = null      // Portfolio percentage limit
+    } = req.body;
 
     // Validate required parameters
     if (!pathId || !amount) {
         throw new APIError('Path ID and amount are required', 400, 'MISSING_PARAMETERS');
     }
 
+    // Validation for live trading
+    if (!dryRun && !confirmed) {
+        throw new APIError(
+            'Live trading requires explicit confirmation. Set confirmed=true to proceed.',
+            400,
+            'CONFIRMATION_REQUIRED'
+        );
+    }
+
     if (!apiKey || !apiSecret) {
         throw new APIError('Luno API credentials required', 400, 'LUNO_CREDENTIALS_REQUIRED');
     }
 
-    systemLogger.trading('Luno triangular execution initiated', {
+    systemLogger.trading(`Triangular execution initiated ${dryRun ? '[DRY RUN]' : '[LIVE]'}`, {
+        userId: req.user?.id || 'anonymous',
+        exchange: 'luno',
         pathId,
         amount,
+        dryRun,
+        confirmed,
         timestamp: new Date().toISOString()
     });
 
@@ -598,13 +622,25 @@ router.post('/luno/triangular/execute', asyncHandler(async (req, res) => {
         'luno',
         pathId,
         amount,
-        { apiKey, apiSecret }
+        { apiKey, apiSecret },
+        {
+            dryRun,
+            confirmed,
+            minProfitThreshold,
+            maxTradeAmount,
+            portfolioPercent
+        }
     );
 
     // Return execution result
     res.json({
         success: executionResult.success,
-        data: executionResult
+        data: {
+            ...executionResult,
+            dryRun,
+            confirmed,
+            safetyChecks: executionResult.validationResult?.checks
+        }
     });
 }));
 
@@ -997,44 +1033,76 @@ router.get('/chainex/triangular/paths', authenticatedRateLimit, authenticateUser
 // Execute a ChainEX triangular arbitrage trade
 router.post('/chainex/triangular/execute', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
     try {
-        const { pathId, initialAmount, apiKey, apiSecret, dryRun = false } = req.body;
+        const {
+            pathId,
+            initialAmount,
+            apiKey,
+            apiSecret,
+            // Safety parameters
+            dryRun = true,              // Default to dry run for safety
+            confirmed = false,           // Explicit confirmation required for live trading
+            minProfitThreshold = 0.3,    // Minimum profit threshold
+            maxTradeAmount = null,       // Maximum trade amount
+            portfolioPercent = null      // Portfolio percentage limit
+        } = req.body;
 
-        systemLogger.trading('ChainEX triangular execution started', {
-            userId: req.user?.id || 'anonymous',
-            pathId: pathId,
-            initialAmount: initialAmount,
-            dryRun: dryRun
-        });
+        // Validate required parameters
+        if (!pathId || !initialAmount) {
+            throw new APIError('Path ID and amount are required', 400, 'MISSING_PARAMETERS');
+        }
+
+        // Validation for live trading
+        if (!dryRun && !confirmed) {
+            throw new APIError(
+                'Live trading requires explicit confirmation. Set confirmed=true to proceed.',
+                400,
+                'CONFIRMATION_REQUIRED'
+            );
+        }
 
         if (!apiKey || !apiSecret) {
             throw new APIError('ChainEX API credentials required', 400, 'CHAINEX_CREDENTIALS_REQUIRED');
         }
 
-        const auth = createChainExAuth(apiKey, apiSecret);
-
-        const tradeRecord = {
+        systemLogger.trading(`Triangular execution initiated ${dryRun ? '[DRY RUN]' : '[LIVE]'}`, {
             userId: req.user?.id || 'anonymous',
             exchange: 'chainex',
-            pathId: pathId,
-            initialAmount: initialAmount,
-            executionStatus: dryRun ? 'test' : 'pending',
-            dryRun: dryRun,
+            pathId,
+            amount: initialAmount,
+            dryRun,
+            confirmed,
             timestamp: new Date().toISOString()
-        };
+        });
 
-        // In production, execute actual trades here
-        // For now, simulate execution
+        // Call service layer to execute trade
+        const executionResult = await triangularArbService.execute(
+            'chainex',
+            pathId,
+            initialAmount,
+            { apiKey, apiSecret },
+            {
+                dryRun,
+                confirmed,
+                minProfitThreshold,
+                maxTradeAmount,
+                portfolioPercent
+            }
+        );
 
         res.json({
-            success: true,
-            message: dryRun ? 'ChainEX triangular trade simulated' : 'ChainEX triangular trade executed',
-            data: tradeRecord
+            success: executionResult.success,
+            data: {
+                ...executionResult,
+                dryRun,
+                confirmed,
+                safetyChecks: executionResult.validationResult?.checks
+            }
         });
 
     } catch (error) {
         systemLogger.error('ChainEX triangular execution failed', {
             userId: req.user?.id || 'anonymous',
-            pathId: pathId,
+            pathId,
             error: error.message
         });
         throw error;
@@ -1677,24 +1745,73 @@ router.get('/kraken/triangular/paths', authenticatedRateLimit, authenticateUser,
     }
 }));
 
-// Execute Kraken Triangular Trade (Placeholder)
+// Execute Kraken Triangular Trade
 router.post('/kraken/triangular/execute', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
-    try {
-        systemLogger.trading('Kraken triangular execution requested (not implemented)', {
-            userId: req.user?.id || 'anonymous'
-        });
+    const {
+        pathId,
+        amount,
+        apiKey,
+        apiSecret,
+        // Safety parameters
+        dryRun = true,              // Default to dry run for safety
+        confirmed = false,           // Explicit confirmation required for live trading
+        minProfitThreshold = 0.3,    // Minimum profit threshold
+        maxTradeAmount = null,       // Maximum trade amount
+        portfolioPercent = null      // Portfolio percentage limit
+    } = req.body;
 
-        res.json({
-            success: false,
-            message: 'Kraken triangular execution not yet implemented. Backend infrastructure ready.'
-        });
-    } catch (error) {
-        systemLogger.error('Kraken triangular execution failed', {
-            userId: req.user?.id || 'anonymous',
-            error: error.message
-        });
-        throw error;
+    // Validate required parameters
+    if (!pathId || !amount) {
+        throw new APIError('Path ID and amount are required', 400, 'MISSING_PARAMETERS');
     }
+
+    // Validation for live trading
+    if (!dryRun && !confirmed) {
+        throw new APIError(
+            'Live trading requires explicit confirmation. Set confirmed=true to proceed.',
+            400,
+            'CONFIRMATION_REQUIRED'
+        );
+    }
+
+    if (!apiKey || !apiSecret) {
+        throw new APIError('Kraken API credentials required', 400, 'KRAKEN_CREDENTIALS_REQUIRED');
+    }
+
+    systemLogger.trading(`Triangular execution initiated ${dryRun ? '[DRY RUN]' : '[LIVE]'}`, {
+        userId: req.user?.id || 'anonymous',
+        exchange: 'kraken',
+        pathId,
+        amount,
+        dryRun,
+        confirmed,
+        timestamp: new Date().toISOString()
+    });
+
+    // Call service layer to execute trade
+    const executionResult = await triangularArbService.execute(
+        'kraken',
+        pathId,
+        amount,
+        { apiKey, apiSecret },
+        {
+            dryRun,
+            confirmed,
+            minProfitThreshold,
+            maxTradeAmount,
+            portfolioPercent
+        }
+    );
+
+    res.json({
+        success: executionResult.success,
+        data: {
+            ...executionResult,
+            dryRun,
+            confirmed,
+            safetyChecks: executionResult.validationResult?.checks
+        }
+    });
 }));
 
 // Clear Kraken Trade History
@@ -2415,33 +2532,73 @@ router.get('/bybit/triangular/paths', authenticatedRateLimit, authenticateUser, 
     }
 }));
 
-// Execute ByBit Triangular Trade (Placeholder)
+// Execute ByBit Triangular Trade
 router.post('/bybit/triangular/execute', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
-    try {
-        const { pathId, amount, apiKey, apiSecret } = req.body;
+    const {
+        pathId,
+        amount,
+        apiKey,
+        apiSecret,
+        // Safety parameters
+        dryRun = true,              // Default to dry run for safety
+        confirmed = false,           // Explicit confirmation required for live trading
+        minProfitThreshold = 0.3,    // Minimum profit threshold
+        maxTradeAmount = null,       // Maximum trade amount
+        portfolioPercent = null      // Portfolio percentage limit
+    } = req.body;
 
-        systemLogger.trading('ByBit triangular execution requested', {
-            userId: req.user?.id || 'anonymous',
-            pathId: pathId,
-            amount: amount
-        });
-
-        // Placeholder for future implementation
-        res.json({
-            success: false,
-            message: 'ByBit triangular execution not yet implemented',
-            data: {
-                pathId: pathId,
-                status: 'pending_implementation'
-            }
-        });
-    } catch (error) {
-        systemLogger.error('ByBit triangular execution failed', {
-            userId: req.user?.id || 'anonymous',
-            error: error.message
-        });
-        throw error;
+    // Validate required parameters
+    if (!pathId || !amount) {
+        throw new APIError('Path ID and amount are required', 400, 'MISSING_PARAMETERS');
     }
+
+    // Validation for live trading
+    if (!dryRun && !confirmed) {
+        throw new APIError(
+            'Live trading requires explicit confirmation. Set confirmed=true to proceed.',
+            400,
+            'CONFIRMATION_REQUIRED'
+        );
+    }
+
+    if (!apiKey || !apiSecret) {
+        throw new APIError('ByBit API credentials required', 400, 'BYBIT_CREDENTIALS_REQUIRED');
+    }
+
+    systemLogger.trading(`Triangular execution initiated ${dryRun ? '[DRY RUN]' : '[LIVE]'}`, {
+        userId: req.user?.id || 'anonymous',
+        exchange: 'bybit',
+        pathId,
+        amount,
+        dryRun,
+        confirmed,
+        timestamp: new Date().toISOString()
+    });
+
+    // Call service layer to execute trade
+    const executionResult = await triangularArbService.execute(
+        'bybit',
+        pathId,
+        amount,
+        { apiKey, apiSecret },
+        {
+            dryRun,
+            confirmed,
+            minProfitThreshold,
+            maxTradeAmount,
+            portfolioPercent
+        }
+    );
+
+    res.json({
+        success: executionResult.success,
+        data: {
+            ...executionResult,
+            dryRun,
+            confirmed,
+            safetyChecks: executionResult.validationResult?.checks
+        }
+    });
 }));
 
 // Delete ByBit Triangular History
@@ -3209,35 +3366,71 @@ router.get('/binance/triangular/paths', authenticatedRateLimit, authenticateUser
 
 // Execute Binance Triangular Trade (placeholder)
 router.post('/binance/triangular/execute', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
-    const { apiKey, apiSecret, pathId, amount } = req.body;
+    const {
+        pathId,
+        amount,
+        apiKey,
+        apiSecret,
+        // Safety parameters
+        dryRun = true,              // Default to dry run for safety
+        confirmed = false,           // Explicit confirmation required for live trading
+        minProfitThreshold = 0.3,    // Minimum profit threshold
+        maxTradeAmount = null,       // Maximum trade amount
+        portfolioPercent = null      // Portfolio percentage limit
+    } = req.body;
 
-    if (!apiKey || !apiSecret || !pathId || !amount) {
-        return res.status(400).json({
-            success: false,
-            message: 'API credentials, path ID, and amount are required'
-        });
+    // Validate required parameters
+    if (!pathId || !amount) {
+        throw new APIError('Path ID and amount are required', 400, 'MISSING_PARAMETERS');
     }
 
-    try {
-        // Placeholder for execution logic
-        // In production, this would execute all 3 legs atomically
-        res.json({
-            success: false,
-            message: 'Execution not yet implemented',
-            data: {
-                pathId: pathId,
-                amount: amount,
-                status: 'not_implemented',
-                note: 'Live execution will be implemented after full testing'
-            }
-        });
-    } catch (error) {
-        console.error('Binance triangular execute error:', error);
-        res.status(500).json({
-            success: false,
-            message: error.message || 'Failed to execute Binance triangular trade'
-        });
+    // Validation for live trading
+    if (!dryRun && !confirmed) {
+        throw new APIError(
+            'Live trading requires explicit confirmation. Set confirmed=true to proceed.',
+            400,
+            'CONFIRMATION_REQUIRED'
+        );
     }
+
+    if (!apiKey || !apiSecret) {
+        throw new APIError('Binance API credentials required', 400, 'BINANCE_CREDENTIALS_REQUIRED');
+    }
+
+    systemLogger.trading(`Triangular execution initiated ${dryRun ? '[DRY RUN]' : '[LIVE]'}`, {
+        userId: req.user?.id || 'anonymous',
+        exchange: 'binance',
+        pathId,
+        amount,
+        dryRun,
+        confirmed,
+        timestamp: new Date().toISOString()
+    });
+
+    // Call service layer to execute trade
+    const executionResult = await triangularArbService.execute(
+        'binance',
+        pathId,
+        amount,
+        { apiKey, apiSecret },
+        {
+            dryRun,
+            confirmed,
+            minProfitThreshold,
+            maxTradeAmount,
+            portfolioPercent
+        }
+    );
+
+    res.json({
+        success: executionResult.success,
+        data: {
+            ...executionResult,
+            dryRun,
+            confirmed,
+            safetyChecks: executionResult.validationResult?.checks
+        }
+    });
 }));
 
 // Delete Binance Triangular Trade History
@@ -3973,33 +4166,72 @@ router.get('/okx/triangular/paths', authenticatedRateLimit, authenticateUser, as
 
 // Execute OKX Triangular Trade (placeholder)
 router.post('/okx/triangular/execute', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
-    const { apiKey, apiSecret, passphrase, pathId, amount } = req.body;
+    const {
+        pathId,
+        amount,
+        apiKey,
+        apiSecret,
+        passphrase,
+        // Safety parameters
+        dryRun = true,              // Default to dry run for safety
+        confirmed = false,           // Explicit confirmation required for live trading
+        minProfitThreshold = 0.3,    // Minimum profit threshold
+        maxTradeAmount = null,       // Maximum trade amount
+        portfolioPercent = null      // Portfolio percentage limit
+    } = req.body;
 
-    if (!apiKey || !apiSecret || !passphrase || !pathId || !amount) {
-        return res.status(400).json({
-            success: false,
-            message: 'API credentials, path ID, and amount are required'
-        });
+    // Validate required parameters
+    if (!pathId || !amount) {
+        throw new APIError('Path ID and amount are required', 400, 'MISSING_PARAMETERS');
     }
 
-    try {
-        res.json({
-            success: false,
-            message: 'Execution not yet implemented',
-            data: {
-                pathId: pathId,
-                amount: amount,
-                status: 'not_implemented',
-                note: 'Live execution will be implemented after full testing'
-            }
-        });
-    } catch (error) {
-        console.error('OKX triangular execute error:', error);
-        res.status(500).json({
-            success: false,
-            message: error.message || 'Failed to execute OKX triangular trade'
-        });
+    // Validation for live trading
+    if (!dryRun && !confirmed) {
+        throw new APIError(
+            'Live trading requires explicit confirmation. Set confirmed=true to proceed.',
+            400,
+            'CONFIRMATION_REQUIRED'
+        );
     }
+
+    if (!apiKey || !apiSecret || !passphrase) {
+        throw new APIError('OKX API credentials (including passphrase) required', 400, 'OKX_CREDENTIALS_REQUIRED');
+    }
+
+    systemLogger.trading(`Triangular execution initiated ${dryRun ? '[DRY RUN]' : '[LIVE]'}`, {
+        userId: req.user?.id || 'anonymous',
+        exchange: 'okx',
+        pathId,
+        amount,
+        dryRun,
+        confirmed,
+        timestamp: new Date().toISOString()
+    });
+
+    // Call service layer to execute trade
+    const executionResult = await triangularArbService.execute(
+        'okx',
+        pathId,
+        amount,
+        { apiKey, apiSecret, passphrase },
+        {
+            dryRun,
+            confirmed,
+            minProfitThreshold,
+            maxTradeAmount,
+            portfolioPercent
+        }
+    );
+
+    res.json({
+        success: executionResult.success,
+        data: {
+            ...executionResult,
+            dryRun,
+            confirmed,
+            safetyChecks: executionResult.validationResult?.checks
+        }
+    });
 }));
 
 // Delete OKX Triangular Trade History
@@ -4511,15 +4743,71 @@ router.get('/kucoin/triangular/paths', authenticatedRateLimit, authenticateUser,
 
 // POST /api/v1/trading/kucoin/triangular/execute - Execute a triangular arbitrage trade (placeholder)
 router.post('/kucoin/triangular/execute', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
-    const { apiKey, apiSecret, passphrase, opportunity } = req.body;
+    const {
+        pathId,
+        amount,
+        apiKey,
+        apiSecret,
+        passphrase,
+        // Safety parameters
+        dryRun = true,              // Default to dry run for safety
+        confirmed = false,           // Explicit confirmation required for live trading
+        minProfitThreshold = 0.3,    // Minimum profit threshold
+        maxTradeAmount = null,       // Maximum trade amount
+        portfolioPercent = null      // Portfolio percentage limit
+    } = req.body;
 
-    console.log('⚠️ [KUCOIN] Execute endpoint called - NOT IMPLEMENTED YET');
-    console.log('🎯 [KUCOIN] Opportunity:', opportunity?.pathId);
+    // Validate required parameters
+    if (!pathId || !amount) {
+        throw new APIError('Path ID and amount are required', 400, 'MISSING_PARAMETERS');
+    }
 
-    res.status(501).json({
-        success: false,
-        message: 'Execution not yet implemented - scan mode only',
-        notice: 'This endpoint will be implemented after initial testing phase'
+    // Validation for live trading
+    if (!dryRun && !confirmed) {
+        throw new APIError(
+            'Live trading requires explicit confirmation. Set confirmed=true to proceed.',
+            400,
+            'CONFIRMATION_REQUIRED'
+        );
+    }
+
+    if (!apiKey || !apiSecret || !passphrase) {
+        throw new APIError('KuCoin API credentials (including passphrase) required', 400, 'KUCOIN_CREDENTIALS_REQUIRED');
+    }
+
+    systemLogger.trading(`Triangular execution initiated ${dryRun ? '[DRY RUN]' : '[LIVE]'}`, {
+        userId: req.user?.id || 'anonymous',
+        exchange: 'kucoin',
+        pathId,
+        amount,
+        dryRun,
+        confirmed,
+        timestamp: new Date().toISOString()
+    });
+
+    // Call service layer to execute trade
+    const executionResult = await triangularArbService.execute(
+        'kucoin',
+        pathId,
+        amount,
+        { apiKey, apiSecret, passphrase },
+        {
+            dryRun,
+            confirmed,
+            minProfitThreshold,
+            maxTradeAmount,
+            portfolioPercent
+        }
+    );
+
+    res.json({
+        success: executionResult.success,
+        data: {
+            ...executionResult,
+            dryRun,
+            confirmed,
+            safetyChecks: executionResult.validationResult?.checks
+        }
     });
 }));
 
@@ -4926,15 +5214,70 @@ router.get('/coinbase/triangular/paths', authenticatedRateLimit, authenticateUse
 
 // POST /api/v1/trading/coinbase/triangular/execute - Execute a triangular arbitrage trade (placeholder)
 router.post('/coinbase/triangular/execute', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
-    const { apiKey, apiSecret, opportunity } = req.body;
+    const {
+        pathId,
+        amount,
+        apiKey,
+        apiSecret,
+        // Safety parameters
+        dryRun = true,              // Default to dry run for safety
+        confirmed = false,           // Explicit confirmation required for live trading
+        minProfitThreshold = 0.3,    // Minimum profit threshold
+        maxTradeAmount = null,       // Maximum trade amount
+        portfolioPercent = null      // Portfolio percentage limit
+    } = req.body;
 
-    console.log('⚠️ [COINBASE] Execute endpoint called - NOT IMPLEMENTED YET');
-    console.log('🎯 [COINBASE] Opportunity:', opportunity?.pathId);
+    // Validate required parameters
+    if (!pathId || !amount) {
+        throw new APIError('Path ID and amount are required', 400, 'MISSING_PARAMETERS');
+    }
 
-    res.status(501).json({
-        success: false,
-        message: 'Execution not yet implemented - scan mode only',
-        notice: 'This endpoint will be implemented after initial testing phase'
+    // Validation for live trading
+    if (!dryRun && !confirmed) {
+        throw new APIError(
+            'Live trading requires explicit confirmation. Set confirmed=true to proceed.',
+            400,
+            'CONFIRMATION_REQUIRED'
+        );
+    }
+
+    if (!apiKey || !apiSecret) {
+        throw new APIError('Coinbase API credentials required', 400, 'COINBASE_CREDENTIALS_REQUIRED');
+    }
+
+    systemLogger.trading(`Triangular execution initiated ${dryRun ? '[DRY RUN]' : '[LIVE]'}`, {
+        userId: req.user?.id || 'anonymous',
+        exchange: 'coinbase',
+        pathId,
+        amount,
+        dryRun,
+        confirmed,
+        timestamp: new Date().toISOString()
+    });
+
+    // Call service layer to execute trade
+    const executionResult = await triangularArbService.execute(
+        'coinbase',
+        pathId,
+        amount,
+        { apiKey, apiSecret },
+        {
+            dryRun,
+            confirmed,
+            minProfitThreshold,
+            maxTradeAmount,
+            portfolioPercent
+        }
+    );
+
+    res.json({
+        success: executionResult.success,
+        data: {
+            ...executionResult,
+            dryRun,
+            confirmed,
+            safetyChecks: executionResult.validationResult?.checks
+        }
     });
 }));
 
@@ -5539,32 +5882,77 @@ router.post('/huobi/balance', asyncHandler(async (req, res) => {
 }));
 
 // POST /api/v1/trading/huobi/triangular/execute - Execute triangular arbitrage trade
-router.post('/huobi/triangular/execute', asyncHandler(async (req, res) => {
-    const { pathId, amount, apiKey, apiSecret, accountId } = req.body;
+router.post('/huobi/triangular/execute', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    const {
+        pathId,
+        amount,
+        apiKey,
+        apiSecret,
+        accountId,
+        // Safety parameters
+        dryRun = true,              // Default to dry run for safety
+        confirmed = false,           // Explicit confirmation required for live trading
+        minProfitThreshold = 0.3,    // Minimum profit threshold
+        maxTradeAmount = null,       // Maximum trade amount
+        portfolioPercent = null      // Portfolio percentage limit
+    } = req.body;
 
+    // Validate required parameters
     if (!pathId || !amount) {
-        throw new APIError('Path ID and amount required', 400);
+        throw new APIError('Path ID and amount are required', 400, 'MISSING_PARAMETERS');
+    }
+
+    // Validation for live trading
+    if (!dryRun && !confirmed) {
+        throw new APIError(
+            'Live trading requires explicit confirmation. Set confirmed=true to proceed.',
+            400,
+            'CONFIRMATION_REQUIRED'
+        );
     }
 
     if (!apiKey || !apiSecret) {
-        throw new APIError('HTX API credentials required', 400);
+        throw new APIError('HTX API credentials required', 400, 'HTX_CREDENTIALS_REQUIRED');
     }
 
     // HTX requires account-id for trading (spot trading account)
     if (!accountId) {
-        throw new APIError('HTX account ID required (spot trading account)', 400);
+        throw new APIError('HTX account ID required (spot trading account)', 400, 'HTX_ACCOUNT_ID_REQUIRED');
     }
 
+    systemLogger.trading(`Triangular execution initiated ${dryRun ? '[DRY RUN]' : '[LIVE]'}`, {
+        userId: req.user?.id || 'anonymous',
+        exchange: 'htx',
+        pathId,
+        amount,
+        dryRun,
+        confirmed,
+        timestamp: new Date().toISOString()
+    });
+
+    // Call service layer to execute trade
     const executionResult = await triangularArbService.execute(
         'htx',
         pathId,
         amount,
-        { apiKey, apiSecret, accountId }
+        { apiKey, apiSecret, accountId },
+        {
+            dryRun,
+            confirmed,
+            minProfitThreshold,
+            maxTradeAmount,
+            portfolioPercent
+        }
     );
 
     res.json({
         success: executionResult.success,
-        data: executionResult
+        data: {
+            ...executionResult,
+            dryRun,
+            confirmed,
+            safetyChecks: executionResult.validationResult?.checks
+        }
     });
 }));
 
@@ -6073,30 +6461,71 @@ router.get('/gateio/triangular/paths', authenticatedRateLimit, authenticateUser,
 }));
 
 // ROUTE 4: Execute Gate.io Triangular Trade (ATOMIC)
-router.post('/gateio/triangular/execute', asyncHandler(async (req, res) => {
-    const { pathId, amount, apiKey, apiSecret } = req.body;
+router.post('/gateio/triangular/execute', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    const {
+        pathId,
+        amount,
+        apiKey,
+        apiSecret,
+        // Safety parameters
+        dryRun = true,              // Default to dry run for safety
+        confirmed = false,           // Explicit confirmation required for live trading
+        minProfitThreshold = 0.3,    // Minimum profit threshold
+        maxTradeAmount = null,       // Maximum trade amount
+        portfolioPercent = null      // Portfolio percentage limit
+    } = req.body;
 
     // Validate required parameters
     if (!pathId || !amount) {
-        throw new APIError('Path ID and amount required', 400);
+        throw new APIError('Path ID and amount are required', 400, 'MISSING_PARAMETERS');
+    }
+
+    // Validation for live trading
+    if (!dryRun && !confirmed) {
+        throw new APIError(
+            'Live trading requires explicit confirmation. Set confirmed=true to proceed.',
+            400,
+            'CONFIRMATION_REQUIRED'
+        );
     }
 
     if (!apiKey || !apiSecret) {
-        throw new APIError('Gate.io API credentials required', 400);
+        throw new APIError('Gate.io API credentials required', 400, 'GATEIO_CREDENTIALS_REQUIRED');
     }
 
-    // Execute atomic 3-leg triangular arbitrage trade
+    systemLogger.trading(`Triangular execution initiated ${dryRun ? '[DRY RUN]' : '[LIVE]'}`, {
+        userId: req.user?.id || 'anonymous',
+        exchange: 'gateio',
+        pathId,
+        amount,
+        dryRun,
+        confirmed,
+        timestamp: new Date().toISOString()
+    });
+
+    // Call service layer to execute trade
     const executionResult = await triangularArbService.execute(
         'gateio',
         pathId,
         amount,
-        { apiKey, apiSecret }
+        { apiKey, apiSecret },
+        {
+            dryRun,
+            confirmed,
+            minProfitThreshold,
+            maxTradeAmount,
+            portfolioPercent
+        }
     );
 
-    // Return execution result
     res.json({
         success: executionResult.success,
-        data: executionResult
+        data: {
+            ...executionResult,
+            dryRun,
+            confirmed,
+            safetyChecks: executionResult.validationResult?.checks
+        }
     });
 }));
 
@@ -6646,30 +7075,71 @@ router.get('/cryptocom/triangular/paths', authenticatedRateLimit, authenticateUs
 }));
 
 // ROUTE 4: Execute Crypto.com Triangular Trade (ATOMIC)
-router.post('/cryptocom/triangular/execute', asyncHandler(async (req, res) => {
-    const { pathId, amount, apiKey, apiSecret } = req.body;
+router.post('/cryptocom/triangular/execute', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    const {
+        pathId,
+        amount,
+        apiKey,
+        apiSecret,
+        // Safety parameters
+        dryRun = true,              // Default to dry run for safety
+        confirmed = false,           // Explicit confirmation required for live trading
+        minProfitThreshold = 0.3,    // Minimum profit threshold
+        maxTradeAmount = null,       // Maximum trade amount
+        portfolioPercent = null      // Portfolio percentage limit
+    } = req.body;
 
     // Validate required parameters
     if (!pathId || !amount) {
-        throw new APIError('Path ID and amount required', 400);
+        throw new APIError('Path ID and amount are required', 400, 'MISSING_PARAMETERS');
+    }
+
+    // Validation for live trading
+    if (!dryRun && !confirmed) {
+        throw new APIError(
+            'Live trading requires explicit confirmation. Set confirmed=true to proceed.',
+            400,
+            'CONFIRMATION_REQUIRED'
+        );
     }
 
     if (!apiKey || !apiSecret) {
-        throw new APIError('Crypto.com API credentials required', 400);
+        throw new APIError('Crypto.com API credentials required', 400, 'CRYPTOCOM_CREDENTIALS_REQUIRED');
     }
 
-    // Execute atomic 3-leg triangular arbitrage trade
+    systemLogger.trading(`Triangular execution initiated ${dryRun ? '[DRY RUN]' : '[LIVE]'}`, {
+        userId: req.user?.id || 'anonymous',
+        exchange: 'cryptocom',
+        pathId,
+        amount,
+        dryRun,
+        confirmed,
+        timestamp: new Date().toISOString()
+    });
+
+    // Call service layer to execute trade
     const executionResult = await triangularArbService.execute(
         'cryptocom',
         pathId,
         amount,
-        { apiKey, apiSecret }
+        { apiKey, apiSecret },
+        {
+            dryRun,
+            confirmed,
+            minProfitThreshold,
+            maxTradeAmount,
+            portfolioPercent
+        }
     );
 
-    // Return execution result
     res.json({
         success: executionResult.success,
-        data: executionResult
+        data: {
+            ...executionResult,
+            dryRun,
+            confirmed,
+            safetyChecks: executionResult.validationResult?.checks
+        }
     });
 }));
 
@@ -7115,29 +7585,71 @@ router.get('/mexc/triangular/paths', authenticatedRateLimit, authenticateUser, a
 }));
 
 // ROUTE 4: Execute MEXC Triangular Trade (Atomic Execution)
-router.post('/mexc/triangular/execute', asyncHandler(async (req, res) => {
-    const { pathId, amount, apiKey, apiSecret } = req.body;
+router.post('/mexc/triangular/execute', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    const {
+        pathId,
+        amount,
+        apiKey,
+        apiSecret,
+        // Safety parameters
+        dryRun = true,              // Default to dry run for safety
+        confirmed = false,           // Explicit confirmation required for live trading
+        minProfitThreshold = 0.3,    // Minimum profit threshold
+        maxTradeAmount = null,       // Maximum trade amount
+        portfolioPercent = null      // Portfolio percentage limit
+    } = req.body;
 
     // Validate required parameters
     if (!pathId || !amount) {
-        throw new APIError('Path ID and amount required', 400);
+        throw new APIError('Path ID and amount are required', 400, 'MISSING_PARAMETERS');
+    }
+
+    // Validation for live trading
+    if (!dryRun && !confirmed) {
+        throw new APIError(
+            'Live trading requires explicit confirmation. Set confirmed=true to proceed.',
+            400,
+            'CONFIRMATION_REQUIRED'
+        );
     }
 
     if (!apiKey || !apiSecret) {
-        throw new APIError('MEXC API credentials required', 400);
+        throw new APIError('MEXC API credentials required', 400, 'MEXC_CREDENTIALS_REQUIRED');
     }
 
-    // Execute atomic 3-leg trade via TriangularArbService
+    systemLogger.trading(`Triangular execution initiated ${dryRun ? '[DRY RUN]' : '[LIVE]'}`, {
+        userId: req.user?.id || 'anonymous',
+        exchange: 'mexc',
+        pathId,
+        amount,
+        dryRun,
+        confirmed,
+        timestamp: new Date().toISOString()
+    });
+
+    // Call service layer to execute trade
     const executionResult = await triangularArbService.execute(
         'mexc',
         pathId,
         amount,
-        { apiKey, apiSecret }
+        { apiKey, apiSecret },
+        {
+            dryRun,
+            confirmed,
+            minProfitThreshold,
+            maxTradeAmount,
+            portfolioPercent
+        }
     );
 
     res.json({
         success: executionResult.success,
-        data: executionResult
+        data: {
+            ...executionResult,
+            dryRun,
+            confirmed,
+            safetyChecks: executionResult.validationResult?.checks
+        }
     });
 }));
 
@@ -7593,28 +8105,71 @@ router.get('/xt/triangular/paths', authenticatedRateLimit, authenticateUser, asy
 }));
 
 // 4. XT Execute Triangular Trade Route
-router.post('/xt/triangular/execute', asyncHandler(async (req, res) => {
-    const { pathId, amount, apiKey, apiSecret } = req.body;
+router.post('/xt/triangular/execute', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    const {
+        pathId,
+        amount,
+        apiKey,
+        apiSecret,
+        // Safety parameters
+        dryRun = true,              // Default to dry run for safety
+        confirmed = false,           // Explicit confirmation required for live trading
+        minProfitThreshold = 0.3,    // Minimum profit threshold
+        maxTradeAmount = null,       // Maximum trade amount
+        portfolioPercent = null      // Portfolio percentage limit
+    } = req.body;
 
+    // Validate required parameters
     if (!pathId || !amount) {
-        throw new APIError('Path ID and amount required', 400);
+        throw new APIError('Path ID and amount are required', 400, 'MISSING_PARAMETERS');
+    }
+
+    // Validation for live trading
+    if (!dryRun && !confirmed) {
+        throw new APIError(
+            'Live trading requires explicit confirmation. Set confirmed=true to proceed.',
+            400,
+            'CONFIRMATION_REQUIRED'
+        );
     }
 
     if (!apiKey || !apiSecret) {
-        throw new APIError('XT API credentials required', 400);
+        throw new APIError('XT API credentials required', 400, 'XT_CREDENTIALS_REQUIRED');
     }
 
-    // ATOMIC EXECUTION with TriangularArbService
+    systemLogger.trading(`Triangular execution initiated ${dryRun ? '[DRY RUN]' : '[LIVE]'}`, {
+        userId: req.user?.id || 'anonymous',
+        exchange: 'xt',
+        pathId,
+        amount,
+        dryRun,
+        confirmed,
+        timestamp: new Date().toISOString()
+    });
+
+    // Call service layer to execute trade
     const executionResult = await triangularArbService.execute(
         'xt',
         pathId,
         amount,
-        { apiKey, apiSecret }
+        { apiKey, apiSecret },
+        {
+            dryRun,
+            confirmed,
+            minProfitThreshold,
+            maxTradeAmount,
+            portfolioPercent
+        }
     );
 
     res.json({
         success: executionResult.success,
-        data: executionResult
+        data: {
+            ...executionResult,
+            dryRun,
+            confirmed,
+            safetyChecks: executionResult.validationResult?.checks
+        }
     });
 }));
 
@@ -8200,28 +8755,71 @@ router.get('/ascendex/triangular/paths', authenticatedRateLimit, authenticateUse
 }));
 
 // 4. AscendEX Execute Triangular Trade Route
-router.post('/ascendex/triangular/execute', asyncHandler(async (req, res) => {
-    const { pathId, amount, apiKey, apiSecret } = req.body;
+router.post('/ascendex/triangular/execute', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    const {
+        pathId,
+        amount,
+        apiKey,
+        apiSecret,
+        // Safety parameters
+        dryRun = true,              // Default to dry run for safety
+        confirmed = false,           // Explicit confirmation required for live trading
+        minProfitThreshold = 0.3,    // Minimum profit threshold
+        maxTradeAmount = null,       // Maximum trade amount
+        portfolioPercent = null      // Portfolio percentage limit
+    } = req.body;
 
+    // Validate required parameters
     if (!pathId || !amount) {
-        throw new APIError('Path ID and amount required', 400);
+        throw new APIError('Path ID and amount are required', 400, 'MISSING_PARAMETERS');
+    }
+
+    // Validation for live trading
+    if (!dryRun && !confirmed) {
+        throw new APIError(
+            'Live trading requires explicit confirmation. Set confirmed=true to proceed.',
+            400,
+            'CONFIRMATION_REQUIRED'
+        );
     }
 
     if (!apiKey || !apiSecret) {
-        throw new APIError('AscendEX API credentials required', 400);
+        throw new APIError('AscendEX API credentials required', 400, 'ASCENDEX_CREDENTIALS_REQUIRED');
     }
 
-    // ATOMIC EXECUTION with TriangularArbService
+    systemLogger.trading(`Triangular execution initiated ${dryRun ? '[DRY RUN]' : '[LIVE]'}`, {
+        userId: req.user?.id || 'anonymous',
+        exchange: 'ascendex',
+        pathId,
+        amount,
+        dryRun,
+        confirmed,
+        timestamp: new Date().toISOString()
+    });
+
+    // Call service layer to execute trade
     const executionResult = await triangularArbService.execute(
         'ascendex',
         pathId,
         amount,
-        { apiKey, apiSecret }
+        { apiKey, apiSecret },
+        {
+            dryRun,
+            confirmed,
+            minProfitThreshold,
+            maxTradeAmount,
+            portfolioPercent
+        }
     );
 
     res.json({
         success: executionResult.success,
-        data: executionResult
+        data: {
+            ...executionResult,
+            dryRun,
+            confirmed,
+            safetyChecks: executionResult.validationResult?.checks
+        }
     });
 }));
 
@@ -8695,28 +9293,71 @@ router.get('/bingx/triangular/paths', authenticatedRateLimit, authenticateUser, 
 }));
 
 // ROUTE 4: Execute BingX Triangular Trade
-router.post('/bingx/triangular/execute', asyncHandler(async (req, res) => {
-    const { pathId, amount, apiKey, apiSecret } = req.body;
+router.post('/bingx/triangular/execute', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    const {
+        pathId,
+        amount,
+        apiKey,
+        apiSecret,
+        // Safety parameters
+        dryRun = true,              // Default to dry run for safety
+        confirmed = false,           // Explicit confirmation required for live trading
+        minProfitThreshold = 0.3,    // Minimum profit threshold
+        maxTradeAmount = null,       // Maximum trade amount
+        portfolioPercent = null      // Portfolio percentage limit
+    } = req.body;
 
+    // Validate required parameters
     if (!pathId || !amount) {
-        throw new APIError('Path ID and amount required', 400);
+        throw new APIError('Path ID and amount are required', 400, 'MISSING_PARAMETERS');
+    }
+
+    // Validation for live trading
+    if (!dryRun && !confirmed) {
+        throw new APIError(
+            'Live trading requires explicit confirmation. Set confirmed=true to proceed.',
+            400,
+            'CONFIRMATION_REQUIRED'
+        );
     }
 
     if (!apiKey || !apiSecret) {
-        throw new APIError('BingX API credentials required', 400);
+        throw new APIError('BingX API credentials required', 400, 'BINGX_CREDENTIALS_REQUIRED');
     }
 
-    // ATOMIC EXECUTION with TriangularArbService
+    systemLogger.trading(`Triangular execution initiated ${dryRun ? '[DRY RUN]' : '[LIVE]'}`, {
+        userId: req.user?.id || 'anonymous',
+        exchange: 'bingx',
+        pathId,
+        amount,
+        dryRun,
+        confirmed,
+        timestamp: new Date().toISOString()
+    });
+
+    // Call service layer to execute trade
     const executionResult = await triangularArbService.execute(
         'bingx',
         pathId,
         amount,
-        { apiKey, apiSecret }
+        { apiKey, apiSecret },
+        {
+            dryRun,
+            confirmed,
+            minProfitThreshold,
+            maxTradeAmount,
+            portfolioPercent
+        }
     );
 
     res.json({
         success: executionResult.success,
-        data: executionResult
+        data: {
+            ...executionResult,
+            dryRun,
+            confirmed,
+            safetyChecks: executionResult.validationResult?.checks
+        }
     });
 }));
 
@@ -9218,28 +9859,72 @@ router.get('/bitget/triangular/paths', authenticatedRateLimit, authenticateUser,
 }));
 
 // ROUTE 4: Execute Bitget Triangular Trade
-router.post('/bitget/triangular/execute', asyncHandler(async (req, res) => {
-    const { pathId, amount, apiKey, apiSecret, passphrase } = req.body;
+router.post('/bitget/triangular/execute', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    const {
+        pathId,
+        amount,
+        apiKey,
+        apiSecret,
+        passphrase,
+        // Safety parameters
+        dryRun = true,              // Default to dry run for safety
+        confirmed = false,           // Explicit confirmation required for live trading
+        minProfitThreshold = 0.3,    // Minimum profit threshold
+        maxTradeAmount = null,       // Maximum trade amount
+        portfolioPercent = null      // Portfolio percentage limit
+    } = req.body;
 
+    // Validate required parameters
     if (!pathId || !amount) {
         throw new APIError('Path ID and amount are required', 400, 'MISSING_PARAMETERS');
     }
 
-    if (!apiKey || !apiSecret || !passphrase) {
-        throw new APIError('Bitget API credentials required (including passphrase)', 400, 'BITGET_CREDENTIALS_REQUIRED');
+    // Validation for live trading
+    if (!dryRun && !confirmed) {
+        throw new APIError(
+            'Live trading requires explicit confirmation. Set confirmed=true to proceed.',
+            400,
+            'CONFIRMATION_REQUIRED'
+        );
     }
 
-    // Call service layer to execute trade (REAL 3-LEG ATOMIC EXECUTION)
+    if (!apiKey || !apiSecret || !passphrase) {
+        throw new APIError('Bitget API credentials (including passphrase) required', 400, 'BITGET_CREDENTIALS_REQUIRED');
+    }
+
+    systemLogger.trading(`Triangular execution initiated ${dryRun ? '[DRY RUN]' : '[LIVE]'}`, {
+        userId: req.user?.id || 'anonymous',
+        exchange: 'bitget',
+        pathId,
+        amount,
+        dryRun,
+        confirmed,
+        timestamp: new Date().toISOString()
+    });
+
+    // Call service layer to execute trade
     const executionResult = await triangularArbService.execute(
         'bitget',
         pathId,
         amount,
-        { apiKey, apiSecret, passphrase }
+        { apiKey, apiSecret, passphrase },
+        {
+            dryRun,
+            confirmed,
+            minProfitThreshold,
+            maxTradeAmount,
+            portfolioPercent
+        }
     );
 
     res.json({
         success: executionResult.success,
-        data: executionResult
+        data: {
+            ...executionResult,
+            dryRun,
+            confirmed,
+            safetyChecks: executionResult.validationResult?.checks
+        }
     });
 }));
 
@@ -9734,28 +10419,72 @@ router.get('/bitmart/triangular/paths', authenticatedRateLimit, authenticateUser
 }));
 
 // ROUTE 4: Execute Bitmart Triangular Trade
-router.post('/bitmart/triangular/execute', asyncHandler(async (req, res) => {
-    const { pathId, amount, apiKey, apiSecret } = req.body;
+router.post('/bitmart/triangular/execute', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    const {
+        pathId,
+        amount,
+        apiKey,
+        apiSecret,
+        memo,
+        // Safety parameters
+        dryRun = true,              // Default to dry run for safety
+        confirmed = false,           // Explicit confirmation required for live trading
+        minProfitThreshold = 0.3,    // Minimum profit threshold
+        maxTradeAmount = null,       // Maximum trade amount
+        portfolioPercent = null      // Portfolio percentage limit
+    } = req.body;
 
+    // Validate required parameters
     if (!pathId || !amount) {
         throw new APIError('Path ID and amount are required', 400, 'MISSING_PARAMETERS');
     }
 
-    if (!apiKey || !apiSecret) {
-        throw new APIError('BitMart API credentials required', 400, 'BITMART_CREDENTIALS_REQUIRED');
+    // Validation for live trading
+    if (!dryRun && !confirmed) {
+        throw new APIError(
+            'Live trading requires explicit confirmation. Set confirmed=true to proceed.',
+            400,
+            'CONFIRMATION_REQUIRED'
+        );
     }
 
-    // Call service layer to execute trade (REAL 3-LEG ATOMIC EXECUTION)
+    if (!apiKey || !apiSecret || !memo) {
+        throw new APIError('BitMart API credentials (including memo) required', 400, 'BITMART_CREDENTIALS_REQUIRED');
+    }
+
+    systemLogger.trading(`Triangular execution initiated ${dryRun ? '[DRY RUN]' : '[LIVE]'}`, {
+        userId: req.user?.id || 'anonymous',
+        exchange: 'bitmart',
+        pathId,
+        amount,
+        dryRun,
+        confirmed,
+        timestamp: new Date().toISOString()
+    });
+
+    // Call service layer to execute trade
     const executionResult = await triangularArbService.execute(
         'bitmart',
         pathId,
         amount,
-        { apiKey, apiSecret }
+        { apiKey, apiSecret, memo },
+        {
+            dryRun,
+            confirmed,
+            minProfitThreshold,
+            maxTradeAmount,
+            portfolioPercent
+        }
     );
 
     res.json({
         success: executionResult.success,
-        data: executionResult
+        data: {
+            ...executionResult,
+            dryRun,
+            confirmed,
+            safetyChecks: executionResult.validationResult?.checks
+        }
     });
 }));
 
@@ -10239,28 +10968,71 @@ router.get('/bitrue/triangular/paths', authenticatedRateLimit, authenticateUser,
 }));
 
 // ROUTE 4: Execute Bitrue Triangular Trade
-router.post('/bitrue/triangular/execute', asyncHandler(async (req, res) => {
-    const { pathId, amount, apiKey, apiSecret } = req.body;
+router.post('/bitrue/triangular/execute', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    const {
+        pathId,
+        amount,
+        apiKey,
+        apiSecret,
+        // Safety parameters
+        dryRun = true,              // Default to dry run for safety
+        confirmed = false,           // Explicit confirmation required for live trading
+        minProfitThreshold = 0.3,    // Minimum profit threshold
+        maxTradeAmount = null,       // Maximum trade amount
+        portfolioPercent = null      // Portfolio percentage limit
+    } = req.body;
 
+    // Validate required parameters
     if (!pathId || !amount) {
         throw new APIError('Path ID and amount are required', 400, 'MISSING_PARAMETERS');
+    }
+
+    // Validation for live trading
+    if (!dryRun && !confirmed) {
+        throw new APIError(
+            'Live trading requires explicit confirmation. Set confirmed=true to proceed.',
+            400,
+            'CONFIRMATION_REQUIRED'
+        );
     }
 
     if (!apiKey || !apiSecret) {
         throw new APIError('Bitrue API credentials required', 400, 'BITRUE_CREDENTIALS_REQUIRED');
     }
 
-    // Call service layer to execute trade (REAL 3-LEG ATOMIC EXECUTION)
+    systemLogger.trading(`Triangular execution initiated ${dryRun ? '[DRY RUN]' : '[LIVE]'}`, {
+        userId: req.user?.id || 'anonymous',
+        exchange: 'bitrue',
+        pathId,
+        amount,
+        dryRun,
+        confirmed,
+        timestamp: new Date().toISOString()
+    });
+
+    // Call service layer to execute trade
     const executionResult = await triangularArbService.execute(
         'bitrue',
         pathId,
         amount,
-        { apiKey, apiSecret }
+        { apiKey, apiSecret },
+        {
+            dryRun,
+            confirmed,
+            minProfitThreshold,
+            maxTradeAmount,
+            portfolioPercent
+        }
     );
 
     res.json({
         success: executionResult.success,
-        data: executionResult
+        data: {
+            ...executionResult,
+            dryRun,
+            confirmed,
+            safetyChecks: executionResult.validationResult?.checks
+        }
     });
 }));
 
@@ -10819,36 +11591,71 @@ router.get('/gemini/triangular/paths', authenticatedRateLimit, authenticateUser,
 
 // POST /api/v1/trading/gemini/triangular/execute
 // Execute a Gemini triangular arbitrage trade (REAL ATOMIC EXECUTION)
-router.post('/gemini/triangular/execute', asyncHandler(async (req, res) => {
-    const { pathId, amount, apiKey, apiSecret } = req.body;
+router.post('/gemini/triangular/execute', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    const {
+        pathId,
+        amount,
+        apiKey,
+        apiSecret,
+        // Safety parameters
+        dryRun = true,              // Default to dry run for safety
+        confirmed = false,           // Explicit confirmation required for live trading
+        minProfitThreshold = 0.3,    // Minimum profit threshold
+        maxTradeAmount = null,       // Maximum trade amount
+        portfolioPercent = null      // Portfolio percentage limit
+    } = req.body;
 
     // Validate required parameters
     if (!pathId || !amount) {
         throw new APIError('Path ID and amount are required', 400, 'MISSING_PARAMETERS');
     }
 
+    // Validation for live trading
+    if (!dryRun && !confirmed) {
+        throw new APIError(
+            'Live trading requires explicit confirmation. Set confirmed=true to proceed.',
+            400,
+            'CONFIRMATION_REQUIRED'
+        );
+    }
+
     if (!apiKey || !apiSecret) {
         throw new APIError('Gemini API credentials required', 400, 'GEMINI_CREDENTIALS_REQUIRED');
     }
 
-    systemLogger.trading('Gemini triangular execution initiated', {
+    systemLogger.trading(`Triangular execution initiated ${dryRun ? '[DRY RUN]' : '[LIVE]'}`, {
+        userId: req.user?.id || 'anonymous',
+        exchange: 'gemini',
         pathId,
         amount,
+        dryRun,
+        confirmed,
         timestamp: new Date().toISOString()
     });
 
-    // Call service layer to execute trade (REAL 3-LEG ATOMIC EXECUTION)
+    // Call service layer to execute trade
     const executionResult = await triangularArbService.execute(
         'gemini',
         pathId,
         amount,
-        { apiKey, apiSecret }
+        { apiKey, apiSecret },
+        {
+            dryRun,
+            confirmed,
+            minProfitThreshold,
+            maxTradeAmount,
+            portfolioPercent
+        }
     );
 
-    // Return execution result
     res.json({
         success: executionResult.success,
-        data: executionResult
+        data: {
+            ...executionResult,
+            dryRun,
+            confirmed,
+            safetyChecks: executionResult.validationResult?.checks
+        }
     });
 }));
 
@@ -11727,36 +12534,72 @@ router.get('/coincatch/triangular/paths', authenticatedRateLimit, authenticateUs
 
 // POST /api/v1/trading/coincatch/triangular/execute
 // Execute a Coincatch triangular arbitrage trade (REAL EXECUTION)
-router.post('/coincatch/triangular/execute', asyncHandler(async (req, res) => {
-    const { pathId, amount, apiKey, apiSecret, passphrase } = req.body;
+router.post('/coincatch/triangular/execute', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    const {
+        pathId,
+        amount,
+        apiKey,
+        apiSecret,
+        passphrase,
+        // Safety parameters
+        dryRun = true,              // Default to dry run for safety
+        confirmed = false,           // Explicit confirmation required for live trading
+        minProfitThreshold = 0.3,    // Minimum profit threshold
+        maxTradeAmount = null,       // Maximum trade amount
+        portfolioPercent = null      // Portfolio percentage limit
+    } = req.body;
 
     // Validate required parameters
     if (!pathId || !amount) {
         throw new APIError('Path ID and amount are required', 400, 'MISSING_PARAMETERS');
     }
 
-    if (!apiKey || !apiSecret || !passphrase) {
-        throw new APIError('Coincatch API credentials required', 400, 'COINCATCH_CREDENTIALS_REQUIRED');
+    // Validation for live trading
+    if (!dryRun && !confirmed) {
+        throw new APIError(
+            'Live trading requires explicit confirmation. Set confirmed=true to proceed.',
+            400,
+            'CONFIRMATION_REQUIRED'
+        );
     }
 
-    systemLogger.trading('Coincatch triangular execution initiated', {
+    if (!apiKey || !apiSecret || !passphrase) {
+        throw new APIError('Coincatch API credentials (including passphrase) required', 400, 'COINCATCH_CREDENTIALS_REQUIRED');
+    }
+
+    systemLogger.trading(`Triangular execution initiated ${dryRun ? '[DRY RUN]' : '[LIVE]'}`, {
+        userId: req.user?.id || 'anonymous',
+        exchange: 'coincatch',
         pathId,
         amount,
+        dryRun,
+        confirmed,
         timestamp: new Date().toISOString()
     });
 
-    // Call service layer to execute trade (REAL 3-LEG ATOMIC EXECUTION)
+    // Call service layer to execute trade
     const executionResult = await triangularArbService.execute(
         'coincatch',
         pathId,
         amount,
-        { apiKey, apiSecret, passphrase }
+        { apiKey, apiSecret, passphrase },
+        {
+            dryRun,
+            confirmed,
+            minProfitThreshold,
+            maxTradeAmount,
+            portfolioPercent
+        }
     );
 
-    // Return execution result
     res.json({
         success: executionResult.success,
-        data: executionResult
+        data: {
+            ...executionResult,
+            dryRun,
+            confirmed,
+            safetyChecks: executionResult.validationResult?.checks
+        }
     });
 }));
 
@@ -12733,21 +13576,45 @@ router.get('/valr/triangular/paths', authenticatedRateLimit, authenticateUser, a
 // POST /api/v1/trading/valr/triangular/execute
 // Execute a triangular arbitrage trade (3-leg atomic transaction)
 // REFACTORED: Now uses service layer (Phase 6 - VALR test exchange)
-router.post('/valr/triangular/execute', asyncHandler(async (req, res) => {
-    const { pathId, amount, apiKey, apiSecret } = req.body;
+router.post('/valr/triangular/execute', authenticatedRateLimit, authenticateUser, asyncHandler(async (req, res) => {
+    const {
+        pathId,
+        amount,
+        apiKey,
+        apiSecret,
+        // Safety parameters
+        dryRun = true,              // Default to dry run for safety
+        confirmed = false,           // Explicit confirmation required for live trading
+        minProfitThreshold = 0.3,    // Minimum profit threshold
+        maxTradeAmount = null,       // Maximum trade amount
+        portfolioPercent = null      // Portfolio percentage limit
+    } = req.body;
 
     // Validate required parameters
     if (!pathId || !amount) {
         throw new APIError('Path ID and amount are required', 400, 'MISSING_PARAMETERS');
     }
 
+    // Validation for live trading
+    if (!dryRun && !confirmed) {
+        throw new APIError(
+            'Live trading requires explicit confirmation. Set confirmed=true to proceed.',
+            400,
+            'CONFIRMATION_REQUIRED'
+        );
+    }
+
     if (!apiKey || !apiSecret) {
         throw new APIError('VALR API credentials required', 400, 'VALR_CREDENTIALS_REQUIRED');
     }
 
-    systemLogger.trading('VALR triangular execution initiated', {
+    systemLogger.trading(`Triangular execution initiated ${dryRun ? '[DRY RUN]' : '[LIVE]'}`, {
+        userId: req.user?.id || 'anonymous',
+        exchange: 'valr',
         pathId,
         amount,
+        dryRun,
+        confirmed,
         timestamp: new Date().toISOString()
     });
 
@@ -12756,13 +13623,24 @@ router.post('/valr/triangular/execute', asyncHandler(async (req, res) => {
         'valr',
         pathId,
         amount,
-        { apiKey, apiSecret }
+        { apiKey, apiSecret },
+        {
+            dryRun,
+            confirmed,
+            minProfitThreshold,
+            maxTradeAmount,
+            portfolioPercent
+        }
     );
 
-    // Return execution result
     res.json({
         success: executionResult.success,
-        data: executionResult
+        data: {
+            ...executionResult,
+            dryRun,
+            confirmed,
+            safetyChecks: executionResult.validationResult?.checks
+        }
     });
 }));
 

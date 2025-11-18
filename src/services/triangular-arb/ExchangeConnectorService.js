@@ -310,6 +310,197 @@ class ExchangeConnectorService {
     }
 
     /**
+     * Fetch account balance from exchange
+     * @param {string} exchange - Exchange name
+     * @param {string} currency - Currency to check (e.g., 'USDT', 'ZAR', 'USD')
+     * @param {object} credentials - User's API credentials { apiKey, apiSecret }
+     * @returns {Promise<number>} Available balance
+     */
+    async fetchBalance(exchange, currency, credentials) {
+        const exchangeLower = exchange.toLowerCase();
+        const config = this.exchanges[exchangeLower];
+
+        if (!config) {
+            throw new Error(`Exchange not supported: ${exchange}`);
+        }
+
+        try {
+            // Build balance endpoint (exchange-specific)
+            const balanceEndpoint = this._getBalanceEndpoint(exchangeLower);
+
+            // Create auth headers
+            const authHeaders = this._createAuthHeaders(
+                exchangeLower,
+                'GET',
+                balanceEndpoint,
+                null,
+                credentials
+            );
+
+            // Build URL
+            const url = `${config.baseUrl}${balanceEndpoint}`;
+
+            systemLogger.trading(`Fetching balance`, {
+                exchange: config.name,
+                currency
+            });
+
+            // Make request
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: authHeaders
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`${config.name} balance fetch failed: ${response.status} - ${errorText}`);
+            }
+
+            const data = await response.json();
+
+            // Parse balance (exchange-specific)
+            const balance = this._parseBalance(exchangeLower, data, currency);
+
+            return balance;
+
+        } catch (error) {
+            systemLogger.error(`Balance fetch failed`, {
+                exchange: config.name,
+                currency,
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Get balance endpoint for exchange
+     * @private
+     */
+    _getBalanceEndpoint(exchange) {
+        const endpoints = {
+            valr: '/v1/account/balances',
+            luno: '/api/1/balance',
+            binance: '/api/v3/account',
+            bybit: '/v5/account/wallet-balance',
+            kucoin: '/api/v1/accounts',
+            okx: '/api/v5/account/balance',
+            coinbase: '/api/v3/brokerage/accounts',
+            htx: '/v1/account/accounts',
+            gateio: '/api/v4/spot/accounts',
+            cryptocom: '/private/get-account-summary',
+            mexc: '/api/v3/account',
+            xt: '/v4/balances',
+            ascendex: '/api/pro/v1/cash/balance',
+            bingx: '/openApi/spot/v1/account/balance',
+            bitget: '/api/spot/v1/account/assets',
+            bitmart: '/spot/v1/wallet',
+            bitrue: '/api/v1/account',
+            gemini: '/v1/balances',
+            coincatch: '/api/v1/account/balance',
+            chainex: '/account/balance',
+            kraken: '/0/private/Balance'
+        };
+
+        return endpoints[exchange] || '/balance';
+    }
+
+    /**
+     * Parse balance from exchange response
+     * @private
+     */
+    _parseBalance(exchange, data, currency) {
+        try {
+            switch (exchange) {
+                case 'valr':
+                    const valrBalance = data.find(b => b.currency === currency);
+                    return parseFloat(valrBalance?.available || 0);
+
+                case 'luno':
+                    const lunoBalance = data.balance?.find(b => b.asset === currency);
+                    return parseFloat(lunoBalance?.balance || 0);
+
+                case 'binance':
+                case 'bitrue':
+                case 'mexc':
+                    const binanceBalance = data.balances?.find(b => b.asset === currency);
+                    return parseFloat(binanceBalance?.free || 0);
+
+                case 'bitmart':
+                    const bitmartBalance = data.data?.wallet?.find(b => b.currency === currency);
+                    return parseFloat(bitmartBalance?.available || 0);
+
+                case 'bitget':
+                    const bitgetBalance = data.data?.find(b => b.coin === currency);
+                    return parseFloat(bitgetBalance?.available || 0);
+
+                case 'bingx':
+                    const bingxBalance = data.data?.balances?.find(b => b.asset === currency);
+                    return parseFloat(bingxBalance?.free || 0);
+
+                case 'ascendex':
+                    const ascendexBalance = data.data?.find(b => b.asset === currency);
+                    return parseFloat(ascendexBalance?.availableBalance || 0);
+
+                case 'xt':
+                    const xtBalance = data.result?.assets?.find(b => b.currency === currency.toLowerCase());
+                    return parseFloat(xtBalance?.available || 0);
+
+                case 'gemini':
+                    const geminiBalance = data.find(b => b.currency === currency);
+                    return parseFloat(geminiBalance?.available || 0);
+
+                case 'coincatch':
+                    const coincatchBalance = data.data?.find(b => b.coin === currency);
+                    return parseFloat(coincatchBalance?.available || 0);
+
+                case 'cryptocom':
+                    const cryptocomBalance = data.result?.accounts?.find(b => b.currency === currency);
+                    return parseFloat(cryptocomBalance?.balance || 0);
+
+                case 'htx':
+                    // HTX returns array of accounts, need to find spot account first
+                    const htxSpot = data.data?.find(a => a.type === 'spot');
+                    if (htxSpot && htxSpot.list) {
+                        const htxBalance = htxSpot.list.find(b => b.currency === currency.toLowerCase());
+                        return parseFloat(htxBalance?.balance || 0);
+                    }
+                    return 0;
+
+                case 'gateio':
+                    const gateioBalance = data.find(b => b.currency === currency);
+                    return parseFloat(gateioBalance?.available || 0);
+
+                case 'kraken':
+                    // Kraken uses currency codes like ZUSD, ZEUR, XXBT
+                    const krakenCurrency = currency === 'BTC' ? 'XXBT' :
+                                          currency === 'USD' ? 'ZUSD' :
+                                          currency === 'EUR' ? 'ZEUR' : currency;
+                    return parseFloat(data.result?.[krakenCurrency] || 0);
+
+                default:
+                    // Generic parser
+                    if (Array.isArray(data)) {
+                        const balance = data.find(b =>
+                            b.currency === currency ||
+                            b.asset === currency ||
+                            b.coin === currency
+                        );
+                        return parseFloat(balance?.available || balance?.free || balance?.balance || 0);
+                    }
+                    return 0;
+            }
+        } catch (error) {
+            systemLogger.error(`Failed to parse balance`, {
+                exchange,
+                currency,
+                error: error.message
+            });
+            return 0;
+        }
+    }
+
+    /**
      * Create authentication headers (credentials used immediately, not stored)
      * @private
      * @param {boolean} isPublicEndpoint - If true, credentials are optional
