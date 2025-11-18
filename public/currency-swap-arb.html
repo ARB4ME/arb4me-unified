@@ -2860,12 +2860,236 @@
             }
         }
 
+        /**
+         * Export Currency Swap Test Scan data to CSV
+         * Step 9.7: Download results for offline analysis
+         */
         function exportCurrencySwapTestScanToCSV() {
-            alert('⚠️ CSV export functionality coming soon! (Step 9.7)');
+            try {
+                const data = JSON.parse(localStorage.getItem('currencySwapTestScan_data') || '[]');
+
+                if (data.length === 0) {
+                    alert('⚠️ No test scan data to export.\n\nStart a test scan first to collect opportunities.');
+                    return;
+                }
+
+                console.log(`📥 Exporting ${data.length} opportunities to CSV...`);
+
+                // CSV headers
+                const headers = [
+                    'Timestamp',
+                    'Date',
+                    'Hour',
+                    'Source Exchange',
+                    'Dest Exchange',
+                    'Source Currency',
+                    'Dest Currency',
+                    'Profit %',
+                    'Route Key'
+                ];
+
+                // Build CSV rows
+                const rows = data.map(opp => [
+                    opp.timestamp || '',
+                    opp.date || new Date(opp.timestamp).toISOString(),
+                    opp.hour !== undefined ? opp.hour : '',
+                    opp.sourceExchange || '',
+                    opp.destExchange || '',
+                    opp.sourceCurrency || '',
+                    opp.destCurrency || '',
+                    opp.profitPercent !== undefined ? opp.profitPercent.toFixed(4) : '',
+                    opp.routeKey || ''
+                ]);
+
+                // Combine headers and rows
+                const csvContent = [
+                    headers.join(','),
+                    ...rows.map(row => row.join(','))
+                ].join('\n');
+
+                // Create download link
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+
+                // Filename format: currency-swap-test-scan_YYYY-MM-DD_N-routes.csv
+                const today = new Date().toISOString().split('T')[0];
+                const filename = `currency-swap-test-scan_${today}_${data.length}-routes.csv`;
+
+                link.setAttribute('href', url);
+                link.setAttribute('download', filename);
+                link.style.display = 'none';
+
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                console.log(`✅ CSV exported: ${filename}`);
+                alert(`✅ CSV Export Successful!\n\nFile: ${filename}\nRoutes: ${data.length.toLocaleString()}\n\nCheck your Downloads folder.`);
+
+            } catch (error) {
+                console.error('Failed to export CSV:', error);
+                alert(`❌ Export failed: ${error.message}`);
+            }
         }
 
+        /**
+         * View Test Scan Analytics
+         * Step 9.6: Display aggregated statistics and insights
+         */
         function viewTestScanAnalytics() {
-            alert('⚠️ Analytics functionality coming soon! (Step 9.6)');
+            try {
+                const data = JSON.parse(localStorage.getItem('currencySwapTestScan_data') || '[]');
+
+                if (data.length === 0) {
+                    alert('⚠️ No test scan data available.\n\nStart a test scan first to collect opportunities and view analytics.');
+                    return;
+                }
+
+                console.log(`📊 Analyzing ${data.length} opportunities...`);
+
+                // Aggregate by routeKey
+                const routeStats = {};
+                data.forEach(opp => {
+                    const key = opp.routeKey;
+                    if (!routeStats[key]) {
+                        routeStats[key] = {
+                            routeKey: key,
+                            sourceExchange: opp.sourceExchange,
+                            destExchange: opp.destExchange,
+                            sourceCurrency: opp.sourceCurrency,
+                            destCurrency: opp.destCurrency,
+                            profits: [],
+                            count: 0,
+                            firstSeen: opp.timestamp,
+                            lastSeen: opp.timestamp
+                        };
+                    }
+                    routeStats[key].profits.push(opp.profitPercent);
+                    routeStats[key].count++;
+                    routeStats[key].lastSeen = Math.max(routeStats[key].lastSeen, opp.timestamp);
+                });
+
+                // Calculate averages and sort
+                const routes = Object.values(routeStats).map(route => {
+                    const avgProfit = route.profits.reduce((a, b) => a + b, 0) / route.profits.length;
+                    const maxProfit = Math.max(...route.profits);
+                    const minProfit = Math.min(...route.profits);
+                    return { ...route, avgProfit, maxProfit, minProfit };
+                });
+
+                // Top 10 by average profit
+                const topByProfit = routes
+                    .sort((a, b) => b.avgProfit - a.avgProfit)
+                    .slice(0, 10);
+
+                // Top 10 by consistency (most frequent)
+                const topByConsistency = routes
+                    .sort((a, b) => b.count - a.count)
+                    .slice(0, 10);
+
+                // Overall stats
+                const totalOpportunities = data.length;
+                const uniqueRoutes = routes.length;
+                const avgProfit = data.reduce((sum, opp) => sum + opp.profitPercent, 0) / data.length;
+                const maxProfit = Math.max(...data.map(opp => opp.profitPercent));
+                const timeRange = {
+                    start: Math.min(...data.map(opp => opp.timestamp)),
+                    end: Math.max(...data.map(opp => opp.timestamp))
+                };
+                const durationHours = (timeRange.end - timeRange.start) / (1000 * 60 * 60);
+
+                // Build analytics display
+                let analyticsHTML = `
+                    <div style="color: #b8c6db; line-height: 1.6;">
+                        <h3 style="color: #00d4ff; margin-bottom: 20px;">📊 Currency Swap Test Scan Analytics</h3>
+
+                        <div style="background: rgba(0,212,255,0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #00d4ff;">
+                            <h4 style="color: #ffb347; margin: 0 0 10px 0;">Summary</h4>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.9rem;">
+                                <div><strong>Total Opportunities:</strong> ${totalOpportunities.toLocaleString()}</div>
+                                <div><strong>Unique Routes:</strong> ${uniqueRoutes}</div>
+                                <div><strong>Average Profit:</strong> ${avgProfit.toFixed(2)}%</div>
+                                <div><strong>Best Profit:</strong> ${maxProfit.toFixed(2)}%</div>
+                                <div><strong>Scan Duration:</strong> ${durationHours.toFixed(1)} hours</div>
+                                <div><strong>Avg per Hour:</strong> ${(totalOpportunities / Math.max(durationHours, 0.1)).toFixed(1)}</div>
+                            </div>
+                        </div>
+
+                        <div style="background: rgba(0,255,136,0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #00ff88;">
+                            <h4 style="color: #00ff88; margin: 0 0 10px 0;">🏆 Top 10 Routes by Average Profit</h4>
+                            <div style="max-height: 300px; overflow-y: auto;">
+                                ${topByProfit.map((route, i) => `
+                                    <div style="background: rgba(0,0,0,0.2); padding: 10px; margin-bottom: 8px; border-radius: 6px; font-size: 0.85rem;">
+                                        <div style="color: #ffb347; font-weight: bold;">#${i + 1} - ${route.avgProfit.toFixed(2)}% avg</div>
+                                        <div>${route.sourceExchange} → ${route.destExchange}</div>
+                                        <div>${route.sourceCurrency} → ${route.destCurrency}</div>
+                                        <div style="color: #888; font-size: 0.8rem;">
+                                            Count: ${route.count} |
+                                            Max: ${route.maxProfit.toFixed(2)}% |
+                                            Min: ${route.minProfit.toFixed(2)}%
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+
+                        <div style="background: rgba(255,179,71,0.1); padding: 15px; border-radius: 8px; border-left: 4px solid #ffb347;">
+                            <h4 style="color: #ffb347; margin: 0 0 10px 0;">🔁 Top 10 Most Consistent Routes</h4>
+                            <div style="max-height: 300px; overflow-y: auto;">
+                                ${topByConsistency.map((route, i) => `
+                                    <div style="background: rgba(0,0,0,0.2); padding: 10px; margin-bottom: 8px; border-radius: 6px; font-size: 0.85rem;">
+                                        <div style="color: #00d4ff; font-weight: bold;">#${i + 1} - ${route.count} times found</div>
+                                        <div>${route.sourceExchange} → ${route.destExchange}</div>
+                                        <div>${route.sourceCurrency} → ${route.destCurrency}</div>
+                                        <div style="color: #888; font-size: 0.8rem;">
+                                            Avg: ${route.avgProfit.toFixed(2)}% |
+                                            Max: ${route.maxProfit.toFixed(2)}% |
+                                            Min: ${route.minProfit.toFixed(2)}%
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Display in alert (simple version) or could create a modal
+                const analyticsWindow = window.open('', 'Currency Swap Analytics', 'width=800,height=600');
+                analyticsWindow.document.write(`
+                    <html>
+                    <head>
+                        <title>Currency Swap Test Scan Analytics</title>
+                        <style>
+                            body {
+                                font-family: 'Inter', -apple-system, sans-serif;
+                                background: linear-gradient(135deg, #0c0c1e 0%, #161632 100%);
+                                color: #b8c6db;
+                                padding: 20px;
+                                margin: 0;
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        ${analyticsHTML}
+                        <div style="text-align: center; margin-top: 20px;">
+                            <button onclick="window.print()" style="padding: 10px 20px; background: #00d4ff; color: #0c0c1e; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">
+                                🖨️ Print
+                            </button>
+                            <button onclick="window.close()" style="padding: 10px 20px; background: #ff6b6b; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; margin-left: 10px;">
+                                ✖️ Close
+                            </button>
+                        </div>
+                    </body>
+                    </html>
+                `);
+
+                console.log('✅ Analytics displayed in new window');
+
+            } catch (error) {
+                console.error('Failed to view analytics:', error);
+                alert(`❌ Analytics failed: ${error.message}`);
+            }
         }
 
         function updateTestScanStorageDisplay() {
