@@ -2721,6 +2721,145 @@
             document.getElementById('testScanCountdown').textContent = seconds + 's';
         }
 
+        /**
+         * Run Currency Swap Test Scan Cycle
+         * Core scanning logic - calls API and stores results
+         */
+        async function runCurrencySwapTestScanCycle() {
+            // Check storage capacity before running scan
+            const MAX_TEST_RESULTS = 5000;
+            const currentData = JSON.parse(localStorage.getItem('currencySwapTestScan_data') || '[]');
+            const storagePercent = (currentData.length / MAX_TEST_RESULTS * 100);
+
+            // AUTO-PAUSE at 100% capacity (Step 9.8)
+            if (storagePercent >= 100) {
+                console.log('🛑 Storage FULL (100%) - Auto-pausing scan');
+                alert('⚠️ TEST SCAN STORAGE FULL!\n\n' +
+                      `You have collected ${currentData.length.toLocaleString()} routes (maximum capacity).\n\n` +
+                      'Please DOWNLOAD your results before continuing.\n\n' +
+                      'The scan has been automatically paused.');
+                stopCurrencySwapTestScan();
+                return;
+            }
+
+            // WARNING at 90% capacity (only show once per session) (Step 9.8)
+            if (storagePercent >= 90 && !window.currencySwapTestScan90PercentWarningShown) {
+                window.currencySwapTestScan90PercentWarningShown = true;
+                console.log('⚠️ Storage at 90% - Warning user');
+                setTimeout(() => {
+                    if (confirm('⚠️ TEST SCAN STORAGE WARNING\n\n' +
+                               `You have collected ${currentData.length.toLocaleString()} / ${MAX_TEST_RESULTS.toLocaleString()} routes (${storagePercent.toFixed(1)}%).\n\n` +
+                               'Storage is filling up! Consider downloading results soon.\n\n' +
+                               'Continue scanning?')) {
+                        console.log('User chose to continue scanning');
+                    } else {
+                        stopCurrencySwapTestScan();
+                    }
+                }, 100);
+            }
+
+            currencySwapTestScanCycleCount++;
+            const config = JSON.parse(localStorage.getItem('currencySwapTestScan_config') || '{}');
+
+            console.log(`🔍 Currency Swap Test Scan Cycle #${currencySwapTestScanCycleCount}`);
+
+            // Update status UI
+            document.getElementById('testScanStatusText').innerHTML = '🟢 SCANNING';
+            document.getElementById('testScanStatusText').style.color = '#00ff88';
+            document.getElementById('testScanCycles').textContent = currencySwapTestScanCycleCount;
+
+            // Update running time
+            const elapsedSeconds = Math.floor((Date.now() - currencySwapTestScanStartTime) / 1000);
+            const minutes = Math.floor(elapsedSeconds / 60);
+            const seconds = elapsedSeconds % 60;
+            document.getElementById('testScanRunTime').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+            try {
+                // Call Currency Swap scanner API (public endpoint - no credentials)
+                const response = await fetch(`${API_BASE}/scan?userId=${USER_ID}`, {
+                    method: 'GET',
+                    headers: {'Content-Type': 'application/json'}
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Backend error:', errorText);
+                    throw new Error('Scan failed');
+                }
+
+                const result = await response.json();
+                console.log('Backend response:', result);
+
+                // Extract opportunity from response
+                const opportunity = result.data?.opportunity || result.opportunity || null;
+
+                if (opportunity && opportunity.profitPercent >= config.minProfit) {
+                    console.log(`✅ Found profitable opportunity: ${opportunity.profitPercent.toFixed(2)}% profit`);
+
+                    // Update current scan info
+                    document.getElementById('testScanCurrentInfo').textContent =
+                        `${opportunity.sourceExchange} → ${opportunity.destExchange} | ` +
+                        `${opportunity.sourceCurrency} → ${opportunity.destCurrency} | ` +
+                        `Profit: ${opportunity.profitPercent.toFixed(2)}%`;
+
+                    // Store opportunity
+                    storeCurrencySwapOpportunity(opportunity);
+                } else {
+                    console.log(`❌ No profitable opportunities found (min: ${config.minProfit}%)`);
+                    document.getElementById('testScanCurrentInfo').textContent =
+                        `No opportunities above ${config.minProfit}% threshold`;
+                }
+
+            } catch (error) {
+                console.error('❌ Test scan cycle failed:', error);
+                document.getElementById('testScanCurrentInfo').textContent =
+                    `Error: ${error.message}`;
+            }
+
+            // Reset countdown for next scan
+            const scanInterval = config.scanInterval * 1000;
+            currencySwapTestScanNextScanTime = Date.now() + scanInterval;
+        }
+
+        /**
+         * Store Currency Swap Opportunity in localStorage
+         * Step 9.5: Data storage with unique routeKey
+         */
+        function storeCurrencySwapOpportunity(opportunity) {
+            try {
+                let data = JSON.parse(localStorage.getItem('currencySwapTestScan_data') || '[]');
+
+                // Create unique route key: sourceExchange_destExchange_sourceCurrency_destCurrency
+                const routeKey = `${opportunity.sourceExchange}_${opportunity.destExchange}_${opportunity.sourceCurrency}_${opportunity.destCurrency}`;
+
+                // Add metadata
+                const enrichedOpportunity = {
+                    ...opportunity,
+                    timestamp: Date.now(),
+                    routeKey: routeKey,
+                    hour: new Date().getHours(),
+                    date: new Date().toISOString()
+                };
+
+                data.push(enrichedOpportunity);
+
+                // Keep last 5000 opportunities (localStorage quota limit)
+                if (data.length > 5000) {
+                    data = data.slice(-5000);
+                }
+
+                localStorage.setItem('currencySwapTestScan_data', JSON.stringify(data));
+
+                console.log(`💾 Stored opportunity: ${routeKey} (${data.length} total)`);
+
+                // Update storage display
+                updateTestScanStorageDisplay();
+
+            } catch (error) {
+                console.error('Failed to store opportunity:', error);
+            }
+        }
+
         function exportCurrencySwapTestScanToCSV() {
             alert('⚠️ CSV export functionality coming soon! (Step 9.7)');
         }
