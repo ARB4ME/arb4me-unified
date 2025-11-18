@@ -1905,9 +1905,11 @@
                     apiSecret: localStorage.getItem(`${opportunity.toExchange}_transfer_secret`) || ''
                 };
 
-                // Get deposit address
+                // Get deposit address and network
                 const depositAddress = localStorage.getItem(`deposit_${opportunity.toExchange}_${opportunity.crypto}_deposit`) || '';
                 const depositTag = localStorage.getItem(`deposit_${opportunity.toExchange}_${opportunity.crypto}_tag`) || '';
+                const fromNetwork = localStorage.getItem(`deposit_${opportunity.fromExchange}_${opportunity.crypto}_network`) || '';
+                const toNetwork = localStorage.getItem(`deposit_${opportunity.toExchange}_${opportunity.crypto}_network`) || '';
 
                 // Validate credentials and deposit address
                 if (!fromExchangeCreds.apiKey || !fromExchangeCreds.apiSecret) {
@@ -1921,6 +1923,26 @@
                 if (!depositAddress) {
                     throw new Error(`Missing deposit address for ${opportunity.toExchange} ${opportunity.crypto}`);
                 }
+
+                // CRITICAL: Validate network configuration
+                if (!fromNetwork) {
+                    throw new Error(`⚠️ NETWORK NOT CONFIGURED!\n\nPlease configure the withdrawal network for ${opportunity.fromExchange} ${opportunity.crypto} in deposit settings.\n\nGo to: Configure Deposit Addresses → Select network`);
+                }
+
+                if (!toNetwork) {
+                    throw new Error(`⚠️ NETWORK NOT CONFIGURED!\n\nPlease configure the deposit network for ${opportunity.toExchange} ${opportunity.crypto} in deposit settings.\n\nGo to: Configure Deposit Addresses → Select network`);
+                }
+
+                // CRITICAL: Validate network match
+                if (fromNetwork !== toNetwork) {
+                    throw new Error(`🚨 NETWORK MISMATCH - EXECUTION BLOCKED!\n\n` +
+                        `Withdrawal Network: ${fromNetwork}\n` +
+                        `Deposit Network: ${toNetwork}\n\n` +
+                        `These networks MUST match or funds will be PERMANENTLY LOST!\n\n` +
+                        `Please update your deposit address configuration to use matching networks.`);
+                }
+
+                console.log(`✅ Network validation passed: ${fromNetwork} → ${toNetwork}`);
 
                 console.log('✅ Credentials validated, calling execution API...');
 
@@ -1936,7 +1958,9 @@
                             fromExchange: fromExchangeCreds,
                             toExchange: toExchangeCreds,
                             depositAddress: depositAddress,
-                            depositTag: depositTag || undefined
+                            depositTag: depositTag || undefined,
+                            fromNetwork: fromNetwork,
+                            toNetwork: toNetwork
                         }
                     })
                 });

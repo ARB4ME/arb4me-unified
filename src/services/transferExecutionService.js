@@ -86,12 +86,63 @@ class TransferExecutionService {
                 price: buyResult.averagePrice
             });
 
+            // CRITICAL SAFETY CHECK: NETWORK VALIDATION
+            systemLogger.trading('🔒 NETWORK VALIDATION: Checking network compatibility...', {
+                transferId,
+                fromExchange: opportunity.fromExchange,
+                toExchange: opportunity.toExchange,
+                crypto: opportunity.crypto,
+                fromNetwork: credentials.fromNetwork,
+                toNetwork: credentials.toNetwork
+            });
+
+            // Validate networks are configured
+            if (!credentials.fromNetwork) {
+                throw new Error(`⚠️ NETWORK NOT CONFIGURED: Withdrawal network not set for ${opportunity.fromExchange} ${opportunity.crypto}`);
+            }
+
+            if (!credentials.toNetwork) {
+                throw new Error(`⚠️ NETWORK NOT CONFIGURED: Deposit network not set for ${opportunity.toExchange} ${opportunity.crypto}`);
+            }
+
+            // CRITICAL: Validate network match
+            if (credentials.fromNetwork !== credentials.toNetwork) {
+                systemLogger.error('🚨 NETWORK MISMATCH DETECTED - BLOCKING EXECUTION', {
+                    transferId,
+                    fromExchange: opportunity.fromExchange,
+                    toExchange: opportunity.toExchange,
+                    crypto: opportunity.crypto,
+                    withdrawalNetwork: credentials.fromNetwork,
+                    depositNetwork: credentials.toNetwork,
+                    RISK: 'PERMANENT FUND LOSS'
+                });
+
+                throw new Error(
+                    `🚨 NETWORK MISMATCH - EXECUTION BLOCKED!\n\n` +
+                    `Route: ${opportunity.fromExchange} → ${opportunity.toExchange}\n` +
+                    `Crypto: ${opportunity.crypto}\n` +
+                    `Withdrawal Network: ${credentials.fromNetwork}\n` +
+                    `Deposit Network: ${credentials.toNetwork}\n\n` +
+                    `These networks MUST match or funds will be PERMANENTLY LOST!\n\n` +
+                    `Please update your deposit address configuration to use matching networks.`
+                );
+            }
+
+            systemLogger.trading('✅ NETWORK VALIDATION PASSED', {
+                transferId,
+                network: credentials.fromNetwork,
+                fromExchange: opportunity.fromExchange,
+                toExchange: opportunity.toExchange,
+                crypto: opportunity.crypto
+            });
+
             // STEP 2: WITHDRAW CRYPTO TO DESTINATION
             systemLogger.trading('Step 2: Withdrawing crypto', {
                 transferId,
                 fromExchange: opportunity.fromExchange,
                 toExchange: opportunity.toExchange,
-                amount: buyResult.quantity
+                amount: buyResult.quantity,
+                network: credentials.fromNetwork
             });
 
             transfer.steps.withdraw.status = 'IN_PROGRESS';
