@@ -1555,6 +1555,50 @@
         </div>
     </div>
 
+    <!-- Execution Confirmation Modal -->
+    <div id="executionConfirmationModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 10000; justify-content: center; align-items: center;">
+        <div style="background: linear-gradient(135deg, #0c0c1e 0%, #161632 100%); padding: 30px; border-radius: 15px; max-width: 600px; width: 90%; max-height: 90vh; border: 2px solid #ffb347; box-shadow: 0 10px 40px rgba(255,179,71,0.3); position: relative; overflow-y: auto;">
+            <!-- Close Button -->
+            <button onclick="closeExecutionConfirmation()" style="position: absolute; top: 15px; right: 15px; background: rgba(255,68,68,0.9); border: none; color: #fff; width: 35px; height: 35px; border-radius: 50%; cursor: pointer; font-size: 1.5rem; font-weight: bold; display: flex; align-items: center; justify-content: center; transition: all 0.3s; z-index: 1;" onmouseover="this.style.background='rgba(255,68,68,1)'; this.style.transform='scale(1.1)'" onmouseout="this.style.background='rgba(255,68,68,0.9)'; this.style.transform='scale(1)'">
+                ×
+            </button>
+
+            <!-- Header -->
+            <h2 style="color: #ffb347; margin: 0 0 20px 0; padding-right: 40px; font-size: 1.5rem;">⚠️ Confirm Live Execution</h2>
+
+            <!-- Warning Banner -->
+            <div style="background: rgba(255,68,68,0.15); padding: 15px; border-radius: 8px; border-left: 4px solid #ff4444; margin-bottom: 20px;">
+                <strong style="color: #ff4444; display: block; margin-bottom: 8px;">🚨 IMPORTANT - READ CAREFULLY</strong>
+                <div style="color: #ffb8b8; font-size: 0.9rem; line-height: 1.5;">
+                    This will execute a REAL trade with REAL money on live exchanges. This action is <strong>IRREVERSIBLE</strong>. Please review all details carefully before proceeding.
+                </div>
+            </div>
+
+            <!-- Trade Details -->
+            <div id="confirmationDetails" style="color: #b8c6db; line-height: 1.6; font-size: 0.95rem;">
+                <!-- Will be populated dynamically -->
+            </div>
+
+            <!-- Estimated Timeline -->
+            <div style="background: rgba(0,212,255,0.1); padding: 15px; border-radius: 8px; border-left: 4px solid #00d4ff; margin-top: 20px;">
+                <strong style="color: #00d4ff; display: block; margin-bottom: 8px;">⏱️ Estimated Timeline</strong>
+                <div id="confirmationTimeline" style="color: #b8c6db; font-size: 0.9rem;">
+                    <!-- Will be populated dynamically -->
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 25px;">
+                <button onclick="closeExecutionConfirmation()" style="background: rgba(255,68,68,0.2); border: 2px solid #ff4444; color: #ff4444; padding: 15px 20px; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: bold; transition: all 0.3s;" onmouseover="this.style.background='rgba(255,68,68,0.3)'" onmouseout="this.style.background='rgba(255,68,68,0.2)'">
+                    ❌ Cancel
+                </button>
+                <button onclick="confirmAndExecute()" style="background: linear-gradient(135deg, #00ff88 0%, #00d4ff 100%); border: none; color: #0c0c1e; padding: 15px 20px; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: bold; transition: all 0.3s; box-shadow: 0 4px 15px rgba(0,255,136,0.3);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(0,255,136,0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(0,255,136,0.3)'">
+                    ✅ Confirm & Execute
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Trade Logger Service (Shared across all strategies and 20 exchanges) -->
     <script src="/utils/trade-logger.js"></script>
 
@@ -1889,8 +1933,14 @@
             }
         }
 
-        // Execute transfer arbitrage opportunity
+        // Show confirmation dialog before executing
         async function executeTransfer(opportunity) {
+            console.log('⚠️ Showing confirmation dialog for:', opportunity);
+            showExecutionConfirmation(opportunity);
+        }
+
+        // Execute transfer arbitrage opportunity (direct execution after confirmation)
+        async function executeTransferDirect(opportunity) {
             console.log('🚀 EXECUTING TRANSFER:', opportunity);
 
             try {
@@ -3820,6 +3870,160 @@
         });
 
         // End of About Modal Functionality
+
+        // ============================================================================
+        // EXECUTION CONFIRMATION MODAL
+        // ============================================================================
+
+        // Store pending execution
+        let pendingExecution = null;
+
+        function showExecutionConfirmation(opportunity) {
+            console.log('⚠️ [Confirmation Modal] Showing execution confirmation...', opportunity);
+
+            // Store the opportunity for later execution
+            pendingExecution = opportunity;
+
+            // Get network info
+            const fromNetwork = localStorage.getItem(`deposit_${opportunity.fromExchange}_${opportunity.crypto}_network`) || 'NOT SET';
+            const toNetwork = localStorage.getItem(`deposit_${opportunity.toExchange}_${opportunity.crypto}_network`) || 'NOT SET';
+
+            // Estimate transfer time based on crypto
+            const transferTimes = {
+                'XRP': 3,
+                'XLM': 5,
+                'TRX': 3,
+                'LTC': 15,
+                'DOGE': 10,
+                'BCH': 15,
+                'USDT': 5,
+                'USDC': 10,
+                'BTC': 30,
+                'ETH': 10,
+                'ADA': 20,
+                'DOT': 15
+            };
+            const estimatedTransferTime = transferTimes[opportunity.crypto] || 15;
+
+            // Populate confirmation details
+            const detailsDiv = document.getElementById('confirmationDetails');
+            detailsDiv.innerHTML = `
+                <div style="background: rgba(0,212,255,0.1); padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                    <div style="color: #00d4ff; font-weight: bold; margin-bottom: 10px;">📊 Trade Details</div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; color: #b8c6db;">
+                        <div><strong>Route:</strong></div>
+                        <div style="text-align: right;">${opportunity.fromExchange} → ${opportunity.toExchange}</div>
+
+                        <div><strong>Cryptocurrency:</strong></div>
+                        <div style="text-align: right;">${opportunity.crypto}</div>
+
+                        <div><strong>Amount:</strong></div>
+                        <div style="text-align: right;">$${opportunity.usdtToSpend.toFixed(2)} USDT</div>
+
+                        <div><strong>Buy Price:</strong></div>
+                        <div style="text-align: right;">$${opportunity.buyPrice.toFixed(6)}</div>
+
+                        <div><strong>Sell Price:</strong></div>
+                        <div style="text-align: right;">$${opportunity.sellPrice.toFixed(6)}</div>
+                    </div>
+                </div>
+
+                <div style="background: rgba(0,255,136,0.1); padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                    <div style="color: #00ff88; font-weight: bold; margin-bottom: 10px;">💰 Expected Profit</div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; color: #b8c6db;">
+                        <div><strong>Gross Profit:</strong></div>
+                        <div style="text-align: right; color: #00ff88;">+$${opportunity.grossProfit.toFixed(2)}</div>
+
+                        <div><strong>Trading Fees:</strong></div>
+                        <div style="text-align: right; color: #ff6b6b;">-$${opportunity.totalTradingFees.toFixed(2)}</div>
+
+                        <div><strong>Network Fee (Est):</strong></div>
+                        <div style="text-align: right; color: #ff6b6b;">-$${opportunity.networkFee.toFixed(2)}</div>
+
+                        <div style="padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);"><strong>Net Profit:</strong></div>
+                        <div style="text-align: right; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1); font-size: 1.2rem;">
+                            <strong style="color: ${opportunity.netProfit >= 0 ? '#00ff88' : '#ff6b6b'};">
+                                ${opportunity.netProfit >= 0 ? '+' : ''}$${opportunity.netProfit.toFixed(2)} (${opportunity.netProfitPercent.toFixed(2)}%)
+                            </strong>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="background: rgba(255,179,71,0.1); padding: 15px; border-radius: 8px;">
+                    <div style="color: #ffb347; font-weight: bold; margin-bottom: 10px;">🔗 Network Configuration</div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; color: #b8c6db;">
+                        <div><strong>Withdrawal Network:</strong></div>
+                        <div style="text-align: right;">${fromNetwork}</div>
+
+                        <div><strong>Deposit Network:</strong></div>
+                        <div style="text-align: right;">${toNetwork}</div>
+
+                        <div><strong>Network Match:</strong></div>
+                        <div style="text-align: right;">
+                            ${fromNetwork === toNetwork && fromNetwork !== 'NOT SET'
+                                ? '<span style="color: #00ff88;">✅ Verified</span>'
+                                : '<span style="color: #ff4444;">❌ ERROR</span>'}
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Populate timeline
+            const timelineDiv = document.getElementById('confirmationTimeline');
+            timelineDiv.innerHTML = `
+                <div style="font-family: monospace; color: #b8c6db; line-height: 1.8;">
+                    1. <strong style="color: #00d4ff;">Buy ${opportunity.crypto}</strong> on ${opportunity.fromExchange} (~5-10 seconds)<br>
+                    2. <strong style="color: #00d4ff;">Withdraw ${opportunity.crypto}</strong> from ${opportunity.fromExchange} (~10-30 seconds)<br>
+                    3. <strong style="color: #ffb347;">Blockchain Transfer</strong> via ${fromNetwork} (~${estimatedTransferTime} minutes)<br>
+                    4. <strong style="color: #ffb347;">Wait for Deposit</strong> on ${opportunity.toExchange} (~2-5 minutes)<br>
+                    5. <strong style="color: #00ff88;">Sell ${opportunity.crypto}</strong> on ${opportunity.toExchange} (~5-10 seconds)<br>
+                    <br>
+                    <strong style="color: #00ff88;">Total Estimated Time: ${estimatedTransferTime + 8} - ${estimatedTransferTime + 15} minutes</strong>
+                </div>
+            `;
+
+            // Show modal
+            const modal = document.getElementById('executionConfirmationModal');
+            if (modal) {
+                modal.style.display = 'flex';
+                console.log('✅ [Confirmation Modal] Confirmation dialog displayed');
+            }
+        }
+
+        function closeExecutionConfirmation() {
+            console.log('❌ [Confirmation Modal] User cancelled execution');
+            const modal = document.getElementById('executionConfirmationModal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+            pendingExecution = null;
+        }
+
+        async function confirmAndExecute() {
+            console.log('✅ [Confirmation Modal] User confirmed execution');
+
+            if (!pendingExecution) {
+                alert('⚠️ No pending execution found');
+                return;
+            }
+
+            // Close the confirmation modal
+            closeExecutionConfirmation();
+
+            // Execute the transfer (call original execution logic)
+            await executeTransferDirect(pendingExecution);
+
+            // Clear pending execution
+            pendingExecution = null;
+        }
+
+        // Close modal when clicking outside the content
+        document.addEventListener('click', function(event) {
+            const modal = document.getElementById('executionConfirmationModal');
+            if (event.target === modal) {
+                closeExecutionConfirmation();
+            }
+        });
 
         // ============================================
         // TEST SCAN MODE - Opportunity Research Tool
