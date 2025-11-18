@@ -563,6 +563,107 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Test Scan Mode Card -->
+            <div class="card" style="margin-top: 20px; border: 2px solid #ffb347;">
+                <h3 style="color: #ffb347;">🔬 Test Scan Mode (Research Tool)</h3>
+                <p style="color: #b8c6db; font-size: 0.9rem; margin-bottom: 20px;">
+                    Scan for currency swap opportunities over time to analyze patterns, best pairs, and profitability.
+                    <strong style="color: #00ff88;">No credentials required</strong> - uses public market data only.
+                </p>
+
+                <!-- Scan Status -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                    <div class="stat-box" style="background: rgba(255,179,71,0.1); border: 1px solid #ffb347;">
+                        <div style="font-size: 0.9rem; color: #b8c6db; margin-bottom: 5px;">Status</div>
+                        <div id="testScanStatusText" style="font-size: 1.3rem; font-weight: bold; color: #888;">⚪ READY TO SCAN</div>
+                    </div>
+                    <div class="stat-box" style="background: rgba(0,212,255,0.1); border: 1px solid #00d4ff;">
+                        <div style="font-size: 0.9rem; color: #b8c6db; margin-bottom: 5px;">Scan Cycles</div>
+                        <div id="testScanCycles" style="font-size: 1.3rem; font-weight: bold; color: #00d4ff;">0</div>
+                    </div>
+                    <div class="stat-box" style="background: rgba(0,255,136,0.1); border: 1px solid #00ff88;">
+                        <div style="font-size: 0.9rem; color: #b8c6db; margin-bottom: 5px;">Running Time</div>
+                        <div id="testScanRunTime" style="font-size: 1.3rem; font-weight: bold; color: #00ff88;">0:00</div>
+                    </div>
+                    <div class="stat-box" style="background: rgba(255,107,107,0.1); border: 1px solid #ff6b6b;">
+                        <div style="font-size: 0.9rem; color: #b8c6db; margin-bottom: 5px;">Next Scan In</div>
+                        <div id="testScanCountdown" style="font-size: 1.3rem; font-weight: bold; color: #ff6b6b;">--</div>
+                    </div>
+                </div>
+
+                <!-- Storage Capacity -->
+                <div style="background: rgba(255,179,71,0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #ffb347;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span style="color: #ffb347; font-weight: bold;">📦 Storage Capacity</span>
+                        <span id="testScanStoragePercent" style="color: #00ff88; font-weight: bold;">0%</span>
+                    </div>
+                    <div style="width: 100%; height: 20px; background: rgba(0,0,0,0.3); border-radius: 10px; overflow: hidden; border: 1px solid rgba(255,255,255,0.2);">
+                        <div id="testScanStorageBar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #00ff88 0%, #ffb347 70%, #ff6b6b 100%); transition: width 0.3s;"></div>
+                    </div>
+                    <div style="color: #b8c6db; font-size: 0.85rem; margin-top: 5px;">
+                        <span id="testScanRouteCount">0</span> / 5,000 routes collected
+                    </div>
+                </div>
+
+                <!-- Scan Settings -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                    <div>
+                        <label style="display: block; color: #b8c6db; font-size: 0.9rem; margin-bottom: 5px;">Min Profit Threshold (%)</label>
+                        <input type="number" id="testScanMinProfit" value="0.5" step="0.1" min="0" max="10" style="width: 100%; padding: 10px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; color: white;">
+                    </div>
+                    <div>
+                        <label style="display: block; color: #b8c6db; font-size: 0.9rem; margin-bottom: 5px;">Scan Interval (seconds)</label>
+                        <select id="testScanInterval" style="width: 100%; padding: 10px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; color: white;">
+                            <option value="30">30 seconds</option>
+                            <option value="60" selected>60 seconds (Recommended)</option>
+                            <option value="120">120 seconds</option>
+                            <option value="300">300 seconds (5 minutes)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Control Buttons -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 20px;">
+                    <button id="startTestScanBtn" onclick="startCurrencySwapTestScan()" class="btn btn-success" style="background: linear-gradient(45deg, #00ff88 0%, #00cc6a 100%);">
+                        ▶️ Start Scanning
+                    </button>
+                    <button id="stopTestScanBtn" onclick="stopCurrencySwapTestScan()" class="btn btn-danger" disabled style="background: rgba(255,107,107,0.2); cursor: not-allowed;">
+                        ⏸️ Stop Scanning
+                    </button>
+                    <button onclick="resetCurrencySwapTestScan()" class="btn" style="background: rgba(255,179,71,0.2); border: 1px solid #ffb347; color: #ffb347;">
+                        🔄 Reset Data
+                    </button>
+                </div>
+
+                <!-- Current Scan Info -->
+                <div style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px; margin-bottom: 20px;">
+                    <div style="color: #b8c6db; font-size: 0.85rem; margin-bottom: 5px;">Current Scan:</div>
+                    <div id="testScanCurrentInfo" style="color: #00d4ff; font-family: monospace; font-size: 0.9rem;">Waiting to start...</div>
+                </div>
+
+                <!-- Export & Analysis -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <button onclick="exportCurrencySwapTestScanToCSV()" class="btn" style="background: rgba(0,212,255,0.15); border: 1px solid #00d4ff; color: #00d4ff;">
+                        📥 Download CSV
+                    </button>
+                    <button onclick="viewTestScanAnalytics()" class="btn" style="background: rgba(0,255,136,0.15); border: 1px solid #00ff88; color: #00ff88;">
+                        📊 View Analytics
+                    </button>
+                </div>
+
+                <!-- Info Banner -->
+                <div style="background: rgba(0,212,255,0.1); padding: 12px; border-radius: 8px; margin-top: 20px; border-left: 4px solid #00d4ff;">
+                    <strong style="color: #00d4ff;">ℹ️ How it works:</strong>
+                    <ul style="margin: 10px 0 0 0; padding-left: 20px; color: #b8c6db; font-size: 0.85rem;">
+                        <li>Repeatedly scans for currency swap opportunities</li>
+                        <li>Collects data over time (up to 5,000 routes)</li>
+                        <li>Analyzes best currency pairs, most profitable times, consistency</li>
+                        <li>Export to CSV for offline analysis</li>
+                        <li><strong style="color: #00ff88;">No trading - research only!</strong></li>
+                    </ul>
+                </div>
+            </div>
         </div>
     </div>
 
