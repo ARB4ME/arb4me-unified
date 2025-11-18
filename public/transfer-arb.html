@@ -2145,14 +2145,19 @@
                 return;
             }
 
-            // Calculate how many addresses are configured
+            // Calculate how many addresses are configured (both network AND deposit address required)
             let configuredCount = 0;
             let totalNeeded = selectedCryptos.length * connectedExchanges.length;
 
             connectedExchanges.forEach(exchange => {
                 selectedCryptos.forEach(crypto => {
+                    const networkKey = `deposit_${exchange}_${crypto}_network`;
                     const depositKey = `deposit_${exchange}_${crypto}_deposit`;
-                    if (localStorage.getItem(depositKey)) {
+                    const hasNetwork = localStorage.getItem(networkKey);
+                    const hasDeposit = localStorage.getItem(depositKey);
+
+                    // Both network and deposit address must be configured
+                    if (hasNetwork && hasDeposit) {
                         configuredCount++;
                     }
                 });
@@ -2191,6 +2196,80 @@
                     </p>
                 </div>
             `;
+        }
+
+        // Get available networks for a crypto
+        function getAvailableNetworks(crypto) {
+            const networkOptions = {
+                'BTC': [
+                    { id: 'BTC', name: 'Bitcoin', fee: '~0.0005 BTC' },
+                    { id: 'BTC-Lightning', name: 'Lightning Network', fee: 'Very low' }
+                ],
+                'ETH': [
+                    { id: 'ERC20', name: 'Ethereum (ERC20)', fee: '~0.005 ETH' },
+                    { id: 'Arbitrum', name: 'Arbitrum One', fee: 'Low' },
+                    { id: 'Optimism', name: 'Optimism', fee: 'Low' }
+                ],
+                'USDT': [
+                    { id: 'TRC20', name: 'Tron (TRC20)', fee: '~1 USDT' },
+                    { id: 'ERC20', name: 'Ethereum (ERC20)', fee: '~15 USDT' },
+                    { id: 'BEP20', name: 'BSC (BEP20)', fee: '~0.5 USDT' },
+                    { id: 'Polygon', name: 'Polygon', fee: '~0.1 USDT' },
+                    { id: 'Arbitrum', name: 'Arbitrum One', fee: '~0.1 USDT' },
+                    { id: 'Optimism', name: 'Optimism', fee: '~0.1 USDT' },
+                    { id: 'Avalanche', name: 'Avalanche C-Chain', fee: '~0.5 USDT' },
+                    { id: 'SOL', name: 'Solana', fee: '~0.01 USDT' }
+                ],
+                'USDC': [
+                    { id: 'ERC20', name: 'Ethereum (ERC20)', fee: '~15 USDC' },
+                    { id: 'TRC20', name: 'Tron (TRC20)', fee: '~1 USDC' },
+                    { id: 'BEP20', name: 'BSC (BEP20)', fee: '~0.5 USDC' },
+                    { id: 'Polygon', name: 'Polygon', fee: '~0.1 USDC' },
+                    { id: 'Arbitrum', name: 'Arbitrum One', fee: '~0.1 USDC' },
+                    { id: 'Optimism', name: 'Optimism', fee: '~0.1 USDC' },
+                    { id: 'Avalanche', name: 'Avalanche C-Chain', fee: '~0.5 USDC' },
+                    { id: 'SOL', name: 'Solana (SPL)', fee: '~0.01 USDC' }
+                ],
+                'XRP': [
+                    { id: 'XRP', name: 'XRP Ledger', fee: '~0.25 XRP' }
+                ],
+                'XLM': [
+                    { id: 'XLM', name: 'Stellar Network', fee: '~0.01 XLM' }
+                ],
+                'TRX': [
+                    { id: 'TRC20', name: 'Tron (TRC20)', fee: '~1 TRX' }
+                ],
+                'LTC': [
+                    { id: 'LTC', name: 'Litecoin', fee: '~0.001 LTC' }
+                ],
+                'BCH': [
+                    { id: 'BCH', name: 'Bitcoin Cash', fee: '~0.0005 BCH' }
+                ],
+                'ADA': [
+                    { id: 'ADA', name: 'Cardano', fee: '~1 ADA' }
+                ],
+                'DOT': [
+                    { id: 'DOT', name: 'Polkadot', fee: '~0.1 DOT' }
+                ],
+                'DOGE': [
+                    { id: 'DOGE', name: 'Dogecoin', fee: '~2 DOGE' }
+                ],
+                'MATIC': [
+                    { id: 'Polygon', name: 'Polygon', fee: '~0.1 MATIC' },
+                    { id: 'ERC20', name: 'Ethereum (ERC20)', fee: '~5 MATIC' }
+                ],
+                'SOL': [
+                    { id: 'SOL', name: 'Solana', fee: '~0.01 SOL' }
+                ],
+                'AVAX': [
+                    { id: 'Avalanche-C', name: 'Avalanche C-Chain', fee: '~0.01 AVAX' },
+                    { id: 'Avalanche-X', name: 'Avalanche X-Chain', fee: '~0.001 AVAX' }
+                ]
+            };
+
+            return networkOptions[crypto] || [
+                { id: 'UNKNOWN', name: `${crypto} Native Network`, fee: 'Check exchange' }
+            ];
         }
 
         // Save deposit address to localStorage
@@ -2271,18 +2350,57 @@
                             ${exchange}
                             <span style="color: #00ff88; font-size: 0.8rem; font-weight: normal;">✓ Connected</span>
                         </h4>
-                        ${selectedCryptos.map(crypto => `
-                            <div style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                        ${selectedCryptos.map(crypto => {
+                            // Get available networks for this crypto
+                            const networks = getAvailableNetworks(crypto);
+
+                            return `
+                            <div style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+                                    <div style="background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+                                                padding: 6px 12px; border-radius: 6px; font-weight: 700; font-size: 0.9rem;">
+                                        ${crypto}
+                                    </div>
+                                    <div style="color: #b8c6db; font-size: 0.8rem;">
+                                        Configure deposit details for ${exchange}
+                                    </div>
+                                </div>
+
+                                <!-- Network Selection (CRITICAL) -->
+                                <div style="background: rgba(0,212,255,0.1); border: 2px solid #00d4ff; border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+                                    <label style="display: block; color: #00d4ff; margin-bottom: 8px; font-weight: 700; font-size: 0.85rem;">
+                                        🔗 NETWORK/CHAIN (CRITICAL - Must Match Withdrawal Network!)
+                                    </label>
+                                    <select id="modal-${exchange}-${crypto}-network"
+                                            onchange="saveDepositAddress('${exchange}', '${crypto}', 'network', this.value)"
+                                            style="background: rgba(0,0,0,0.4); border: 2px solid #00d4ff; border-radius: 6px;
+                                                   padding: 10px; color: white; width: 100%; font-size: 0.9rem; cursor: pointer;">
+                                        <option value="">⚠️ SELECT NETWORK (REQUIRED)</option>
+                                        ${networks.map(net => `
+                                            <option value="${net.id}">${net.name} ${net.fee ? `(Fee: ${net.fee})` : ''}</option>
+                                        `).join('')}
+                                    </select>
+                                    <div style="color: #00d4ff; font-size: 0.75rem; line-height: 1.4; margin-top: 8px;">
+                                        <strong>⚠️ CRITICAL:</strong> Network must match the network used for withdrawal.<br>
+                                        <strong>Sending to wrong network = PERMANENT FUND LOSS!</strong><br>
+                                        Example: If withdrawing via TRC20, deposit address MUST be TRC20.
+                                    </div>
+                                </div>
+
+                                <!-- Deposit Address -->
                                 <label style="display: block; color: #b8c6db; margin-bottom: 8px; font-weight: 600;">
-                                    ${crypto} Deposit Address
+                                    📬 Deposit Address
                                 </label>
                                 <input type="text" id="modal-${exchange}-${crypto}-deposit"
                                        placeholder="${exchange} ${crypto} deposit address"
                                        oninput="saveDepositAddress('${exchange}', '${crypto}', 'deposit', this.value)"
                                        style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.3);
-                                              border-radius: 6px; padding: 10px; color: white; width: 100%; font-size: 0.9rem;">
+                                              border-radius: 6px; padding: 10px; color: white; width: 100%; font-size: 0.9rem;
+                                              margin-bottom: 12px;">
+
                                 ${['XRP', 'XLM'].includes(crypto) ? `
-                                    <div style="background: rgba(255,107,107,0.15); border: 2px solid #ff6b6b; border-radius: 8px; padding: 12px; margin-top: 12px;">
+                                    <!-- Destination Tag/Memo for XRP/XLM -->
+                                    <div style="background: rgba(255,107,107,0.15); border: 2px solid #ff6b6b; border-radius: 8px; padding: 12px;">
                                         <label style="display: block; color: #ff6b6b; margin-bottom: 8px; font-weight: 700; font-size: 0.85rem;">
                                             ⚠️ DESTINATION TAG/MEMO (REQUIRED FOR ${crypto})
                                         </label>
@@ -2301,7 +2419,7 @@
                                     </div>
                                 ` : ''}
                             </div>
-                        `).join('')}
+                        `}).join('')}
                     </div>
                 `).join('');
 
@@ -2322,6 +2440,16 @@
 
             connectedExchanges.forEach(exchange => {
                 selectedCryptos.forEach(crypto => {
+                    // Load network selection
+                    const networkKey = `deposit_${exchange}_${crypto}_network`;
+                    const networkValue = localStorage.getItem(networkKey);
+                    const networkSelect = document.getElementById(`modal-${exchange}-${crypto}-network`);
+
+                    if (networkValue && networkSelect) {
+                        networkSelect.value = networkValue;
+                        console.log(`✅ Loaded ${exchange} ${crypto} network: ${networkValue}`);
+                    }
+
                     // Load deposit address
                     const depositKey = `deposit_${exchange}_${crypto}_deposit`;
                     const depositValue = localStorage.getItem(depositKey);
