@@ -126,9 +126,25 @@ class CurrencySwapExecutionService {
 
             logger.info(`Leg 2 complete: Withdrew ${leg2Result.amountSent} XRP`);
 
-            // Wait for XRP to arrive (basic wait - can be enhanced with balance polling)
-            logger.info('Waiting for XRP transfer to complete...');
-            await this._waitForTransfer(10000); // 10 second wait
+            // Wait for XRP to arrive on destination exchange (with balance polling)
+            logger.info('⏳ Waiting for XRP deposit to arrive on destination exchange...');
+            const depositArrived = await this._waitForDepositArrival(
+                path.destExchange,
+                leg2Result.amountSent,
+                destCredentials,
+                600000 // 10 minute timeout for XRP transfers
+            );
+
+            if (!depositArrived.success) {
+                throw new Error(
+                    `XRP deposit timeout: Waited 10 minutes but XRP did not arrive on ${path.destExchange}. ` +
+                    `Withdrawal ID: ${leg2Result.withdrawalId}. ` +
+                    `Please check ${path.sourceExchange} withdrawal status and ${path.destExchange} deposit history manually. ` +
+                    `XRP may still be in transit on the blockchain.`
+                );
+            }
+
+            logger.info(`✅ XRP deposit confirmed on ${path.destExchange}: ${depositArrived.confirmedAmount} XRP arrived after ${depositArrived.waitTime}ms`);
 
             // Leg 3: Sell XRP on destination exchange
             logger.info('Leg 3: Selling XRP on destination exchange');
@@ -378,11 +394,141 @@ class CurrencySwapExecutionService {
     }
 
     /**
-     * Wait for XRP transfer to complete
+     * Wait for XRP deposit to arrive on destination exchange (with balance polling)
      * @private
+     * @param {string} exchange - Destination exchange
+     * @param {number} expectedAmount - Expected XRP amount
+     * @param {object} credentials - Exchange credentials
+     * @param {number} timeoutMs - Timeout in milliseconds (default 10 minutes)
+     * @returns {Promise<object>} { success: boolean, confirmedAmount: number, waitTime: number }
      */
-    static async _waitForTransfer(milliseconds) {
-        return new Promise(resolve => setTimeout(resolve, milliseconds));
+    static async _waitForDepositArrival(exchange, expectedAmount, credentials, timeoutMs = 600000) {
+        const baseURL = process.env.NODE_ENV === 'production'
+            ? 'https://arb4me-unified-production.up.railway.app'
+            : 'http://localhost:3000';
+
+        const exchangeLower = exchange.toLowerCase();
+        const startTime = Date.now();
+        const pollInterval = 5000; // Check every 5 seconds
+        let initialBalance = null;
+
+        try {
+            // Get initial XRP balance
+            const initialResponse = await fetch(`${baseURL}/api/v1/trading/${exchangeLower}/balance`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    apiKey: credentials.apiKey,
+                    apiSecret: credentials.apiSecret,
+                    apiPassphrase: credentials.apiPassphrase,
+                    currency: 'XRP'
+                })
+            });
+
+            const initialData = await initialResponse.json();
+            if (initialData.success && initialData.data) {
+                initialBalance = parseFloat(initialData.data.free || initialData.data.available || 0);
+                logger.info(`Initial XRP balance on ${exchange}: ${initialBalance} XRP`);
+            } else {
+                logger.warn(`Could not fetch initial balance from ${exchange}, will poll without comparison`);
+            }
+
+            // Poll until deposit arrives or timeout
+            let attempt = 0;
+            while (true) {
+                attempt++;
+                const elapsed = Date.now() - startTime;
+
+                if (elapsed >= timeoutMs) {
+                    logger.error(`Deposit timeout after ${elapsed}ms`, {
+                        exchange,
+                        expectedAmount,
+                        attempts: attempt
+                    });
+                    return { success: false, waitTime: elapsed };
+                }
+
+                // Wait before checking (except first attempt)
+                if (attempt > 1) {
+                    await new Promise(resolve => setTimeout(resolve, pollInterval));
+                }
+
+                // Check current balance
+                try {
+                    const response = await fetch(`${baseURL}/api/v1/trading/${exchangeLower}/balance`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            apiKey: credentials.apiKey,
+                            apiSecret: credentials.apiSecret,
+                            apiPassphrase: credentials.apiPassphrase,
+                            currency: 'XRP'
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success && data.data) {
+                        const currentBalance = parseFloat(data.data.free || data.data.available || 0);
+
+                        logger.info(`[Attempt ${attempt}] Current XRP balance on ${exchange}: ${currentBalance} XRP (elapsed: ${Math.floor(elapsed / 1000)}s)`);
+
+                        // Check if deposit arrived
+                        if (initialBalance !== null) {
+                            // We have initial balance - check for increase
+                            const balanceIncrease = currentBalance - initialBalance;
+
+                            if (balanceIncrease >= expectedAmount * 0.95) { // 95% threshold to account for fees
+                                const waitTime = Date.now() - startTime;
+                                logger.info(`✅ XRP deposit detected! Balance increased by ${balanceIncrease} XRP`, {
+                                    exchange,
+                                    initialBalance,
+                                    currentBalance,
+                                    expectedAmount,
+                                    waitTime: `${Math.floor(waitTime / 1000)}s`
+                                });
+
+                                return {
+                                    success: true,
+                                    confirmedAmount: balanceIncrease,
+                                    waitTime
+                                };
+                            }
+                        } else {
+                            // No initial balance - just check if we have enough XRP now
+                            if (currentBalance >= expectedAmount * 0.95) {
+                                const waitTime = Date.now() - startTime;
+                                logger.info(`✅ Sufficient XRP balance detected: ${currentBalance} XRP`, {
+                                    exchange,
+                                    expectedAmount,
+                                    waitTime: `${Math.floor(waitTime / 1000)}s`
+                                });
+
+                                return {
+                                    success: true,
+                                    confirmedAmount: currentBalance,
+                                    waitTime
+                                };
+                            }
+                        }
+                    }
+
+                } catch (balanceError) {
+                    logger.warn(`Balance check failed on attempt ${attempt}`, {
+                        exchange,
+                        error: balanceError.message
+                    });
+                    // Continue polling even if one check fails
+                }
+            }
+
+        } catch (error) {
+            logger.error('Deposit polling failed with error', {
+                exchange,
+                error: error.message
+            });
+            return { success: false, error: error.message };
+        }
     }
 }
 
