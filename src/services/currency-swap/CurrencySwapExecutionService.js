@@ -6,6 +6,7 @@ const Balance = require('../../models/Balance');
 const { logger } = require('../../utils/logger');
 const fetch = require('node-fetch');
 const PreFlightValidationService = require('./PreFlightValidationService');
+const executionRateLimiter = require('../triangular-arb/ExecutionRateLimiter');
 
 class CurrencySwapExecutionService {
     constructor() {
@@ -26,6 +27,9 @@ class CurrencySwapExecutionService {
             startTime: Date.now(),
             legs: []
         };
+
+        // Declare executionId outside try block so it's accessible in finally
+        let executionId = null;
 
         try {
             logger.info(`Executing Currency Swap path: ${path.id}`, {
@@ -78,6 +82,58 @@ class CurrencySwapExecutionService {
             }
 
             logger.info('[SAFETY] ✅ Pre-flight validation PASSED - all checks successful');
+
+            // RATE LIMITING: Check both source and destination exchanges
+            logger.info('[RATE LIMIT] Checking rate limits for both exchanges...');
+
+            const sourceRateCheck = await executionRateLimiter.checkExecutionAllowed(
+                path.sourceExchange,
+                userId.toString()
+            );
+
+            if (!sourceRateCheck.allowed) {
+                logger.warn(`[RATE LIMIT] Source exchange ${path.sourceExchange} rate limit active`, {
+                    reason: sourceRateCheck.reason,
+                    waitTime: sourceRateCheck.waitTime,
+                    message: sourceRateCheck.message
+                });
+                throw new Error(
+                    `⏳ Rate Limit - Source Exchange\n\n` +
+                    `${sourceRateCheck.message}\n\n` +
+                    `Please wait ${Math.ceil(sourceRateCheck.waitTime / 1000)} seconds before executing another trade.`
+                );
+            }
+
+            const destRateCheck = await executionRateLimiter.checkExecutionAllowed(
+                path.destExchange,
+                userId.toString()
+            );
+
+            if (!destRateCheck.allowed) {
+                logger.warn(`[RATE LIMIT] Destination exchange ${path.destExchange} rate limit active`, {
+                    reason: destRateCheck.reason,
+                    waitTime: destRateCheck.waitTime,
+                    message: destRateCheck.message
+                });
+                throw new Error(
+                    `⏳ Rate Limit - Destination Exchange\n\n` +
+                    `${destRateCheck.message}\n\n` +
+                    `Please wait ${Math.ceil(destRateCheck.waitTime / 1000)} seconds before executing another trade.`
+                );
+            }
+
+            logger.info('[RATE LIMIT] ✅ Both exchanges available for execution');
+
+            // Mark execution started for BOTH exchanges
+            executionId = `currency-swap-${Date.now()}-${userId}`;
+            executionRateLimiter.markExecutionStarted(path.sourceExchange, executionId, userId.toString());
+            executionRateLimiter.markExecutionStarted(path.destExchange, executionId, userId.toString());
+
+            logger.info('[RATE LIMIT] Execution marked as started for both exchanges', {
+                executionId,
+                sourceExchange: path.sourceExchange,
+                destExchange: path.destExchange
+            });
 
             // PRE-FLIGHT: Verify source currency balance before executing (redundant but logged separately)
             logger.info(`Pre-flight: Checking ${path.sourceCurrency} balance on ${path.sourceExchange}`);
@@ -269,6 +325,19 @@ class CurrencySwapExecutionService {
                 error: error.message,
                 execution: executionLog
             };
+        } finally {
+            // ALWAYS mark execution as completed for BOTH exchanges (success or failure)
+            if (executionId) {
+                executionRateLimiter.markExecutionCompleted(path.sourceExchange, executionId, userId.toString());
+                executionRateLimiter.markExecutionCompleted(path.destExchange, executionId, userId.toString());
+
+                logger.info('[RATE LIMIT] Execution marked as completed for both exchanges', {
+                    executionId,
+                    sourceExchange: path.sourceExchange,
+                    destExchange: path.destExchange,
+                    status: executionLog.status
+                });
+            }
         }
     }
 
