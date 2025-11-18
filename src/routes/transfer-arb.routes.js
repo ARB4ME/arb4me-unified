@@ -730,11 +730,12 @@ router.post('/execute', tradingRateLimit, optionalAuth, [
             );
         }
 
-        // Execute the transfer
-        const result = await transferExecutionService.executeTransfer(opportunity, credentials);
+        // Execute the transfer (pass userId for per-user rate limiting)
+        const userId = req.user?.id || 'anonymous';
+        const result = await transferExecutionService.executeTransfer(opportunity, credentials, userId);
 
         systemLogger.trading('Transfer ARB execution completed', {
-            userId: req.user?.id || 'anonymous',
+            userId,
             transferId: result.transferId,
             actualProfit: result.actualProfit,
             duration: result.duration

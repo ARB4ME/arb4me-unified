@@ -57,7 +57,7 @@ class ExecutionRateLimiter {
     /**
      * Check if execution is allowed for an exchange
      * @param {string} exchange - Exchange name
-     * @param {string} userId - User ID (for logging)
+     * @param {string} userId - User ID (for per-user rate limiting)
      * @returns {Promise<object>} { allowed: boolean, waitTime: number, message: string }
      */
     async checkExecutionAllowed(exchange, userId = 'anonymous') {
@@ -65,33 +65,38 @@ class ExecutionRateLimiter {
         const now = Date.now();
         const rateLimit = this.rateLimits[exchangeLower] || this.rateLimits.default;
 
-        // Check if there's an active execution on this exchange
-        const activeCount = this.activeExecutions.get(exchangeLower) || 0;
+        // Create per-user-per-exchange key for multi-user platform
+        const userExchangeKey = `${userId}_${exchangeLower}`;
+
+        // Check if there's an active execution for THIS USER on THIS EXCHANGE
+        const activeCount = this.activeExecutions.get(userExchangeKey) || 0;
         if (activeCount > 0) {
-            systemLogger.warn(`[RATE LIMIT] Exchange busy - execution already in progress`, {
+            systemLogger.warn(`[RATE LIMIT] User's exchange busy - execution already in progress`, {
                 exchange: exchangeLower,
                 userId,
-                activeExecutions: activeCount
+                activeExecutions: activeCount,
+                userExchangeKey
             });
 
             return {
                 allowed: false,
                 waitTime: 5000, // Suggest 5 second retry
-                message: `Exchange ${exchange} is currently processing another trade. Please wait a few seconds and try again.`,
-                reason: 'EXCHANGE_BUSY'
+                message: `You have a trade in progress on ${exchange}. Please wait for it to complete.`,
+                reason: 'USER_EXCHANGE_BUSY'
             };
         }
 
-        // Check last execution time
-        const lastExecution = this.lastExecutionTime.get(exchangeLower);
+        // Check last execution time for THIS USER on THIS EXCHANGE
+        const lastExecution = this.lastExecutionTime.get(userExchangeKey);
         if (lastExecution) {
             const timeSinceLastExecution = now - lastExecution;
             const remainingWait = rateLimit - timeSinceLastExecution;
 
             if (remainingWait > 0) {
-                systemLogger.warn(`[RATE LIMIT] Too soon since last execution`, {
+                systemLogger.warn(`[RATE LIMIT] Too soon since last execution for this user`, {
                     exchange: exchangeLower,
                     userId,
+                    userExchangeKey,
                     timeSinceLastExecution: `${Math.floor(timeSinceLastExecution / 1000)}s`,
                     requiredWait: `${Math.floor(rateLimit / 1000)}s`,
                     remainingWait: `${Math.floor(remainingWait / 1000)}s`
@@ -110,6 +115,7 @@ class ExecutionRateLimiter {
         systemLogger.trading(`[RATE LIMIT] ✅ Execution allowed`, {
             exchange: exchangeLower,
             userId,
+            userExchangeKey,
             lastExecution: lastExecution ? `${Math.floor((now - lastExecution) / 1000)}s ago` : 'never'
         });
 
@@ -124,21 +130,25 @@ class ExecutionRateLimiter {
      * Mark execution as started
      * @param {string} exchange - Exchange name
      * @param {string} executionId - Execution ID for tracking
+     * @param {string} userId - User ID (for per-user tracking)
      */
-    markExecutionStarted(exchange, executionId) {
+    markExecutionStarted(exchange, executionId, userId = 'anonymous') {
         const exchangeLower = exchange.toLowerCase();
         const now = Date.now();
+        const userExchangeKey = `${userId}_${exchangeLower}`;
 
-        // Increment active execution count
-        const currentActive = this.activeExecutions.get(exchangeLower) || 0;
-        this.activeExecutions.set(exchangeLower, currentActive + 1);
+        // Increment active execution count for this user+exchange
+        const currentActive = this.activeExecutions.get(userExchangeKey) || 0;
+        this.activeExecutions.set(userExchangeKey, currentActive + 1);
 
-        // Update last execution time
-        this.lastExecutionTime.set(exchangeLower, now);
+        // Update last execution time for this user+exchange
+        this.lastExecutionTime.set(userExchangeKey, now);
 
         systemLogger.trading(`[RATE LIMIT] Execution started`, {
             exchange: exchangeLower,
             executionId,
+            userId,
+            userExchangeKey,
             activeExecutions: currentActive + 1
         });
     }
@@ -147,23 +157,27 @@ class ExecutionRateLimiter {
      * Mark execution as completed
      * @param {string} exchange - Exchange name
      * @param {string} executionId - Execution ID for tracking
+     * @param {string} userId - User ID (for per-user tracking)
      */
-    markExecutionCompleted(exchange, executionId) {
+    markExecutionCompleted(exchange, executionId, userId = 'anonymous') {
         const exchangeLower = exchange.toLowerCase();
+        const userExchangeKey = `${userId}_${exchangeLower}`;
 
-        // Decrement active execution count
-        const currentActive = this.activeExecutions.get(exchangeLower) || 0;
+        // Decrement active execution count for this user+exchange
+        const currentActive = this.activeExecutions.get(userExchangeKey) || 0;
         const newActive = Math.max(0, currentActive - 1);
 
         if (newActive === 0) {
-            this.activeExecutions.delete(exchangeLower);
+            this.activeExecutions.delete(userExchangeKey);
         } else {
-            this.activeExecutions.set(exchangeLower, newActive);
+            this.activeExecutions.set(userExchangeKey, newActive);
         }
 
         systemLogger.trading(`[RATE LIMIT] Execution completed`, {
             exchange: exchangeLower,
             executionId,
+            userId,
+            userExchangeKey,
             activeExecutions: newActive
         });
     }

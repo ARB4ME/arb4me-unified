@@ -11,6 +11,7 @@
 const { systemLogger } = require('../utils/logger');
 const crypto = require('crypto');
 const PreFlightValidationService = require('./transfer-arb/PreFlightValidationService');
+const executionRateLimiter = require('./triangular-arb/ExecutionRateLimiter');
 
 class TransferExecutionService {
     constructor() {
@@ -23,8 +24,11 @@ class TransferExecutionService {
     /**
      * Execute a transfer arbitrage opportunity
      * Option 1: ONE transfer at a time (simple & safe)
+     * @param {object} opportunity - Transfer opportunity
+     * @param {object} credentials - User credentials
+     * @param {string} userId - User ID for rate limiting (optional, defaults to 'anonymous')
      */
-    async executeTransfer(opportunity, credentials) {
+    async executeTransfer(opportunity, credentials, userId = 'anonymous') {
         // Check if already executing
         if (this.isExecuting) {
             throw new Error('Transfer already in progress. Wait for completion before starting another.');
@@ -63,6 +67,74 @@ class TransferExecutionService {
         this.activeTransfers.set(transferId, transfer);
 
         try {
+            // RATE LIMIT CHECK: Prevent overwhelming exchanges with rapid executions
+            systemLogger.trading(`[RATE LIMIT] Checking execution rate limit...`, {
+                transferId,
+                userId,
+                fromExchange: opportunity.fromExchange,
+                toExchange: opportunity.toExchange
+            });
+
+            // Check rate limit for FROM exchange
+            const fromRateLimitCheck = await executionRateLimiter.checkExecutionAllowed(
+                opportunity.fromExchange,
+                userId
+            );
+
+            if (!fromRateLimitCheck.allowed) {
+                systemLogger.warn(`[RATE LIMIT] Execution blocked on ${opportunity.fromExchange}`, {
+                    transferId,
+                    userId,
+                    exchange: opportunity.fromExchange,
+                    reason: fromRateLimitCheck.reason,
+                    waitTime: `${Math.ceil(fromRateLimitCheck.waitTime / 1000)}s`
+                });
+
+                transfer.status = 'RATE_LIMITED';
+                transfer.error = fromRateLimitCheck.message;
+                transfer.endTime = Date.now();
+                this.transferHistory.push(transfer);
+                this.activeTransfers.delete(transferId);
+                this.isExecuting = false;
+
+                throw new Error(fromRateLimitCheck.message);
+            }
+
+            // Check rate limit for TO exchange
+            const toRateLimitCheck = await executionRateLimiter.checkExecutionAllowed(
+                opportunity.toExchange,
+                userId
+            );
+
+            if (!toRateLimitCheck.allowed) {
+                systemLogger.warn(`[RATE LIMIT] Execution blocked on ${opportunity.toExchange}`, {
+                    transferId,
+                    userId,
+                    exchange: opportunity.toExchange,
+                    reason: toRateLimitCheck.reason,
+                    waitTime: `${Math.ceil(toRateLimitCheck.waitTime / 1000)}s`
+                });
+
+                transfer.status = 'RATE_LIMITED';
+                transfer.error = toRateLimitCheck.message;
+                transfer.endTime = Date.now();
+                this.transferHistory.push(transfer);
+                this.activeTransfers.delete(transferId);
+                this.isExecuting = false;
+
+                throw new Error(toRateLimitCheck.message);
+            }
+
+            // Mark executions as started for both exchanges
+            executionRateLimiter.markExecutionStarted(opportunity.fromExchange, transferId, userId);
+            executionRateLimiter.markExecutionStarted(opportunity.toExchange, transferId, userId);
+            systemLogger.trading(`[RATE LIMIT] ✅ Rate limit checks passed - execution allowed`, {
+                transferId,
+                userId,
+                fromExchange: opportunity.fromExchange,
+                toExchange: opportunity.toExchange
+            });
+
             // STEP 0: PRE-FLIGHT VALIDATION (Critical Safety Checks)
             systemLogger.trading('[SAFETY] Running pre-flight validation...', {
                 transferId,
@@ -101,6 +173,11 @@ class TransferExecutionService {
                 // Move to history
                 this.transferHistory.push(transfer);
                 this.activeTransfers.delete(transferId);
+
+                // Mark rate limit executions as completed (even though validation failed)
+                executionRateLimiter.markExecutionCompleted(opportunity.fromExchange, transferId, userId);
+                executionRateLimiter.markExecutionCompleted(opportunity.toExchange, transferId, userId);
+
                 this.isExecuting = false;
 
                 // Return detailed validation error
@@ -286,6 +363,11 @@ class TransferExecutionService {
             // Move to history
             this.transferHistory.push(transfer);
             this.activeTransfers.delete(transferId);
+
+            // Mark rate limit executions as completed (success)
+            executionRateLimiter.markExecutionCompleted(opportunity.fromExchange, transferId, userId);
+            executionRateLimiter.markExecutionCompleted(opportunity.toExchange, transferId, userId);
+
             this.isExecuting = false;
 
             return {
@@ -312,6 +394,11 @@ class TransferExecutionService {
             // Move to history
             this.transferHistory.push(transfer);
             this.activeTransfers.delete(transferId);
+
+            // Mark rate limit executions as completed (error case)
+            executionRateLimiter.markExecutionCompleted(opportunity.fromExchange, transferId, userId);
+            executionRateLimiter.markExecutionCompleted(opportunity.toExchange, transferId, userId);
+
             this.isExecuting = false;
 
             throw error;
