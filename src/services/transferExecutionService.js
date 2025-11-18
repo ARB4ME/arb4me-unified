@@ -10,12 +10,14 @@
 
 const { systemLogger } = require('../utils/logger');
 const crypto = require('crypto');
+const PreFlightValidationService = require('./transfer-arb/PreFlightValidationService');
 
 class TransferExecutionService {
     constructor() {
         this.activeTransfers = new Map(); // Track ongoing transfers
         this.transferHistory = [];
         this.isExecuting = false;
+        this.preFlightValidator = new PreFlightValidationService();
     }
 
     /**
@@ -61,6 +63,61 @@ class TransferExecutionService {
         this.activeTransfers.set(transferId, transfer);
 
         try {
+            // STEP 0: PRE-FLIGHT VALIDATION (Critical Safety Checks)
+            systemLogger.trading('[SAFETY] Running pre-flight validation...', {
+                transferId,
+                fromExchange: opportunity.fromExchange,
+                toExchange: opportunity.toExchange,
+                crypto: opportunity.crypto,
+                amount: opportunity.usdtToSpend
+            });
+
+            const validationResult = await this.preFlightValidator.validateTransfer(
+                opportunity,
+                credentials,
+                {
+                    minProfitThreshold: 1.0,      // 1% minimum for transfer arb
+                    maxTradeAmount: 10000,         // $10k max per trade
+                    portfolioPercent: null,        // Not enforced for now
+                    requireConfirmation: false,    // Not requiring confirmation yet (will add in Step 6)
+                    confirmed: true                // Skip confirmation for now
+                }
+            );
+
+            if (!validationResult.passed) {
+                systemLogger.warn('[SAFETY] Pre-flight validation FAILED', {
+                    transferId,
+                    fromExchange: opportunity.fromExchange,
+                    toExchange: opportunity.toExchange,
+                    checks: validationResult.checks,
+                    warnings: validationResult.warnings
+                });
+
+                transfer.status = 'VALIDATION_FAILED';
+                transfer.error = 'Pre-flight validation failed';
+                transfer.endTime = Date.now();
+                transfer.validationResult = validationResult;
+
+                // Move to history
+                this.transferHistory.push(transfer);
+                this.activeTransfers.delete(transferId);
+                this.isExecuting = false;
+
+                // Return detailed validation error
+                const failedChecks = Object.entries(validationResult.checks)
+                    .filter(([_, check]) => !check.passed)
+                    .map(([name, check]) => `${name}: ${check.error || check.message}`)
+                    .join('\n');
+
+                throw new Error(`Pre-flight validation failed:\n\n${failedChecks}`);
+            }
+
+            systemLogger.trading('[SAFETY] ✅ Pre-flight validation PASSED - proceeding with execution', {
+                transferId,
+                validationChecks: Object.keys(validationResult.checks).filter(k => validationResult.checks[k].passed).length,
+                warnings: validationResult.warnings.length
+            });
+
             // STEP 1: BUY CRYPTO ON SOURCE EXCHANGE
             systemLogger.trading('Step 1: Buying crypto', {
                 transferId,
