@@ -63,8 +63,47 @@ class CurrencySwapExecutionService {
             // Leg 2: Withdraw XRP to destination exchange
             logger.info('Leg 2: Withdrawing XRP to destination');
 
-            if (!destCredentials.xrpDepositAddress) {
-                throw new Error(`No XRP deposit address configured for ${path.destExchange}`);
+            // CRITICAL: Validate XRP deposit address
+            if (!destCredentials.xrpDepositAddress || destCredentials.xrpDepositAddress.trim() === '') {
+                throw new Error(`🚨 CRITICAL: No XRP deposit address configured for ${path.destExchange}. Cannot proceed with withdrawal.`);
+            }
+
+            // CRITICAL: Validate XRP destination tag for exchanges that require it
+            const exchangesRequiringTag = [
+                'VALR', 'valr',
+                'Binance', 'binance',
+                'Kraken', 'kraken',
+                'OKX', 'okx',
+                'Bybit', 'bybit',
+                'KuCoin', 'kucoin',
+                'Coinbase', 'coinbase',
+                'Gate.io', 'gateio',
+                'HTX', 'htx',
+                'Bitget', 'bitget'
+            ];
+
+            const requiresTag = exchangesRequiringTag.some(ex =>
+                path.destExchange.toLowerCase() === ex.toLowerCase()
+            );
+
+            if (requiresTag) {
+                if (!destCredentials.xrpDepositTag || destCredentials.xrpDepositTag.trim() === '') {
+                    throw new Error(
+                        `🚨 CRITICAL - PERMANENT FUND LOSS RISK!\n\n` +
+                        `${path.destExchange} REQUIRES an XRP destination tag/memo.\n` +
+                        `Sending XRP without a tag will result in PERMANENT FUND LOSS!\n\n` +
+                        `Please configure the XRP destination tag for ${path.destExchange} before executing.\n\n` +
+                        `To find your destination tag:\n` +
+                        `1. Go to ${path.destExchange}\n` +
+                        `2. Navigate to Deposit → XRP\n` +
+                        `3. Copy both the deposit address AND the destination tag/memo\n` +
+                        `4. Configure both in Currency Swap settings`
+                    );
+                }
+
+                logger.info(`✅ XRP destination tag validated for ${path.destExchange}: ${destCredentials.xrpDepositTag}`);
+            } else {
+                logger.info(`ℹ️ ${path.destExchange} does not require XRP destination tag (or not in known list)`);
             }
 
             const leg2Result = await this._executeWithdrawal(
