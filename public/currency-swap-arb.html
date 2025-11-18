@@ -2530,6 +2530,13 @@
         // TEST SCAN MODE FUNCTIONS
         // ════════════════════════════════════════════════════════════════════
 
+        // Global variables for test scan state
+        let currencySwapTestScanInterval = null;
+        let currencySwapTestScanCountdownInterval = null;
+        let currencySwapTestScanStartTime = null;
+        let currencySwapTestScanCycleCount = 0;
+        let currencySwapTestScanNextScanTime = null;
+
         /**
          * Update Test Scan Scope display
          * Shows which exchanges, currencies, and paths will be scanned
@@ -2579,22 +2586,139 @@
             }
         }
 
-        // Placeholder functions for test scan controls (will be implemented in Steps 9.3-9.8)
-        function startCurrencySwapTestScan() {
-            alert('⚠️ Test scan functionality coming soon! (Step 9.3-9.8)\n\nThis will repeatedly scan for currency swap opportunities and collect data for analysis.');
-        }
+        /**
+         * Start Currency Swap Test Scan
+         */
+        async function startCurrencySwapTestScan() {
+            console.log('🔬 Starting Currency Swap Test Scan...');
 
-        function stopCurrencySwapTestScan() {
-            alert('Test scan not yet running');
-        }
+            // Validate selections
+            const selectedExchanges = JSON.parse(localStorage.getItem('currencySwap_selectedExchanges') || '[]');
+            const selectedCurrencies = JSON.parse(localStorage.getItem('currencySwap_selectedCurrencies') || '[]');
 
-        function resetCurrencySwapTestScan() {
-            if (confirm('⚠️ This will clear all test scan data. Continue?')) {
-                localStorage.removeItem('currencySwapTestScan_data');
-                localStorage.removeItem('currencySwapTestScan_config');
-                alert('✅ Test scan data cleared');
-                updateTestScanStorageDisplay();
+            if (selectedExchanges.length < 2) {
+                alert('⚠️ Please select at least 2 exchanges to scan currency swap opportunities');
+                return;
             }
+
+            if (selectedCurrencies.length < 2) {
+                alert('⚠️ Please select at least 2 currencies to scan currency swap opportunities');
+                return;
+            }
+
+            // Get settings
+            const minProfit = parseFloat(document.getElementById('testScanMinProfit').value);
+            const scanInterval = parseInt(document.getElementById('testScanInterval').value) * 1000; // Convert to ms
+
+            // Store config
+            localStorage.setItem('currencySwapTestScan_config', JSON.stringify({
+                exchanges: selectedExchanges,
+                currencies: selectedCurrencies,
+                minProfit,
+                scanInterval: scanInterval / 1000
+            }));
+
+            // Initialize scan state
+            currencySwapTestScanStartTime = Date.now();
+            currencySwapTestScanCycleCount = 0;
+
+            // UI updates
+            document.getElementById('startTestScanBtn').disabled = true;
+            document.getElementById('startTestScanBtn').style.cursor = 'not-allowed';
+            document.getElementById('startTestScanBtn').style.opacity = '0.5';
+
+            document.getElementById('stopTestScanBtn').disabled = false;
+            document.getElementById('stopTestScanBtn').style.cursor = 'pointer';
+            document.getElementById('stopTestScanBtn').style.background = 'rgba(255,107,107,0.8)';
+
+            // Run first scan immediately
+            await runCurrencySwapTestScanCycle();
+
+            // Set up recurring scans
+            currencySwapTestScanInterval = setInterval(async () => {
+                await runCurrencySwapTestScanCycle();
+            }, scanInterval);
+
+            // Set up countdown timer
+            currencySwapTestScanNextScanTime = Date.now() + scanInterval;
+            currencySwapTestScanCountdownInterval = setInterval(updateCurrencySwapTestScanCountdown, 1000);
+        }
+
+        /**
+         * Stop Currency Swap Test Scan
+         */
+        function stopCurrencySwapTestScan() {
+            console.log('⏸️ Stopping Currency Swap Test Scan...');
+
+            // Clear intervals
+            if (currencySwapTestScanInterval) clearInterval(currencySwapTestScanInterval);
+            if (currencySwapTestScanCountdownInterval) clearInterval(currencySwapTestScanCountdownInterval);
+
+            // UI updates
+            document.getElementById('startTestScanBtn').disabled = false;
+            document.getElementById('startTestScanBtn').style.cursor = 'pointer';
+            document.getElementById('startTestScanBtn').style.opacity = '1';
+
+            document.getElementById('stopTestScanBtn').disabled = true;
+            document.getElementById('stopTestScanBtn').style.cursor = 'not-allowed';
+            document.getElementById('stopTestScanBtn').style.background = 'rgba(255,107,107,0.2)';
+
+            document.getElementById('testScanStatusText').innerHTML = '🟡 STOPPED';
+            document.getElementById('testScanStatusText').style.color = '#ffb347';
+            document.getElementById('testScanCountdown').textContent = '--';
+
+            console.log('✅ Currency Swap Test Scan stopped');
+        }
+
+        /**
+         * Reset Currency Swap Test Scan (clear all data)
+         */
+        function resetCurrencySwapTestScan() {
+            if (!confirm('⚠️ This will clear all test scan results. Continue?')) {
+                return;
+            }
+
+            console.log('🔄 Resetting Currency Swap Test Scan data...');
+
+            // Clear localStorage
+            localStorage.removeItem('currencySwapTestScan_data');
+            localStorage.removeItem('currencySwapTestScan_config');
+
+            // Reset counters
+            currencySwapTestScanCycleCount = 0;
+            currencySwapTestScanStartTime = null;
+            window.currencySwapTestScan90PercentWarningShown = false; // Reset warning flag
+
+            // Stop scanning if active
+            if (currencySwapTestScanInterval) {
+                stopCurrencySwapTestScan();
+            }
+
+            // Reset UI
+            document.getElementById('testScanStatusText').innerHTML = '⚪ READY TO SCAN';
+            document.getElementById('testScanStatusText').style.color = '#888';
+            document.getElementById('testScanCycles').textContent = '0';
+            document.getElementById('testScanRunTime').textContent = '0:00';
+            document.getElementById('testScanCountdown').textContent = '--';
+            document.getElementById('testScanCurrentInfo').textContent = 'Waiting to start...';
+
+            // Update storage display
+            updateTestScanStorageDisplay();
+
+            console.log('✅ Currency Swap Test Scan data cleared');
+        }
+
+        /**
+         * Update countdown timer for next scan
+         */
+        function updateCurrencySwapTestScanCountdown() {
+            if (!currencySwapTestScanNextScanTime) return;
+
+            const now = Date.now();
+            const timeUntilNext = Math.max(0, currencySwapTestScanNextScanTime - now);
+            const seconds = Math.ceil(timeUntilNext / 1000);
+
+            document.getElementById('testScanCountdown').textContent = seconds + 's';
         }
 
         function exportCurrencySwapTestScanToCSV() {
