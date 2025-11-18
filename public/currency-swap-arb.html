@@ -563,9 +563,12 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
 
-            <!-- Test Scan Mode Card -->
-            <div class="card" style="margin-top: 20px; border: 2px solid #ffb347;">
+    <!-- Test Scan Mode Card (Full Width Below) -->
+    <div class="container">
+        <div class="card" style="margin-top: 20px; border: 2px solid #ffb347;">
                 <h3 style="color: #ffb347;">🔬 Test Scan Mode (Research Tool)</h3>
                 <p style="color: #b8c6db; font-size: 0.9rem; margin-bottom: 20px;">
                     Scan for currency swap opportunities over time to analyze patterns, best pairs, and profitability.
@@ -685,7 +688,6 @@
                         <li><strong style="color: #00ff88;">No trading - research only!</strong></li>
                     </ul>
                 </div>
-            </div>
         </div>
     </div>
 
@@ -1002,6 +1004,9 @@
 
                     // Update XRP deposit inputs
                     await populateXrpDepositInputs();
+
+                    // Update Test Scan scope display
+                    updateTestScanScope();
                 } else {
                     saveStatus.textContent = '❌ Save failed';
                     saveStatus.style.color = '#ff6b6b';
