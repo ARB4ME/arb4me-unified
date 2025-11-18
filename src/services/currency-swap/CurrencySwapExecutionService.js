@@ -5,8 +5,12 @@
 const Balance = require('../../models/Balance');
 const { logger } = require('../../utils/logger');
 const fetch = require('node-fetch');
+const PreFlightValidationService = require('./PreFlightValidationService');
 
 class CurrencySwapExecutionService {
+    constructor() {
+        this.preFlightValidator = new PreFlightValidationService();
+    }
     /**
      * Execute a currency swap path (3 legs)
      * @param {number} userId - User ID
@@ -38,7 +42,44 @@ class CurrencySwapExecutionService {
                 throw new Error('Missing credentials for exchanges - both source and destination credentials required');
             }
 
-            // PRE-FLIGHT: Verify source currency balance before executing
+            // STEP 0: PRE-FLIGHT VALIDATION
+            logger.info('[STEP 0] Running pre-flight validation checks...');
+            const preFlightValidator = new PreFlightValidationService();
+            const validationResult = await preFlightValidator.validateSwap(
+                path,
+                amount,
+                credentials,
+                {
+                    minProfitThreshold: 0.5,        // 0.5% minimum for currency swap
+                    maxTradeAmount: 5000,           // $5k max per trade
+                    portfolioPercent: null,
+                    requireConfirmation: false,      // Will be enabled in Step 6
+                    confirmed: true
+                }
+            );
+
+            if (!validationResult.passed) {
+                logger.warn('[SAFETY] Pre-flight validation FAILED', {
+                    pathId: path.id,
+                    checks: validationResult.checks,
+                    warnings: validationResult.warnings
+                });
+
+                executionLog.status = 'VALIDATION_FAILED';
+                executionLog.error = 'Pre-flight validation failed';
+                executionLog.validationResult = validationResult;
+
+                const failedChecks = Object.entries(validationResult.checks)
+                    .filter(([_, check]) => !check.passed)
+                    .map(([name, check]) => `${name}: ${check.error || check.message}`)
+                    .join('\n');
+
+                throw new Error(`Pre-flight validation failed:\n\n${failedChecks}`);
+            }
+
+            logger.info('[SAFETY] ✅ Pre-flight validation PASSED - all checks successful');
+
+            // PRE-FLIGHT: Verify source currency balance before executing (redundant but logged separately)
             logger.info(`Pre-flight: Checking ${path.sourceCurrency} balance on ${path.sourceExchange}`);
             const sourceBalanceCheck = await this._checkBalance(
                 path.sourceExchange,
