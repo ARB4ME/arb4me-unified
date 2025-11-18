@@ -38,6 +38,26 @@ class CurrencySwapExecutionService {
                 throw new Error('Missing credentials for exchanges - both source and destination credentials required');
             }
 
+            // PRE-FLIGHT: Verify source currency balance before executing
+            logger.info(`Pre-flight: Checking ${path.sourceCurrency} balance on ${path.sourceExchange}`);
+            const sourceBalanceCheck = await this._checkBalance(
+                path.sourceExchange,
+                path.sourceCurrency,
+                amount,
+                sourceCredentials
+            );
+
+            if (!sourceBalanceCheck.sufficient) {
+                throw new Error(
+                    `Insufficient ${path.sourceCurrency} balance on ${path.sourceExchange}.\n` +
+                    `Required: ${amount.toFixed(2)} ${path.sourceCurrency} (including fees)\n` +
+                    `Available: ${sourceBalanceCheck.available.toFixed(2)} ${path.sourceCurrency}\n` +
+                    `Shortage: ${(amount - sourceBalanceCheck.available).toFixed(2)} ${path.sourceCurrency}`
+                );
+            }
+
+            logger.info(`✅ Balance check passed: ${sourceBalanceCheck.available.toFixed(2)} ${path.sourceCurrency} available on ${path.sourceExchange}`);
+
             // Leg 1: Buy XRP on source exchange
             logger.info('Leg 1: Buying XRP on source exchange');
             const leg1Result = await this._executeBuyOrder(
@@ -528,6 +548,65 @@ class CurrencySwapExecutionService {
                 error: error.message
             });
             return { success: false, error: error.message };
+        }
+    }
+
+    /**
+     * Check if exchange has sufficient balance for trade
+     * @private
+     * @param {string} exchange - Exchange name
+     * @param {string} currency - Currency to check
+     * @param {number} requiredAmount - Required amount (will add fee buffer)
+     * @param {object} credentials - Exchange credentials
+     * @returns {Promise<object>} { sufficient: boolean, available: number, required: number }
+     */
+    static async _checkBalance(exchange, currency, requiredAmount, credentials) {
+        const baseURL = process.env.NODE_ENV === 'production'
+            ? 'https://arb4me-unified-production.up.railway.app'
+            : 'http://localhost:3000';
+
+        const exchangeLower = exchange.toLowerCase();
+
+        try {
+            const response = await fetch(`${baseURL}/api/v1/trading/${exchangeLower}/balance`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    apiKey: credentials.apiKey,
+                    apiSecret: credentials.apiSecret,
+                    apiPassphrase: credentials.apiPassphrase,
+                    currency: currency
+                })
+            });
+
+            const data = await response.json();
+
+            if (!data.success || !data.data) {
+                logger.warn(`Failed to fetch balance from ${exchange}`, {
+                    currency,
+                    error: data.error
+                });
+                throw new Error(`Could not fetch ${currency} balance from ${exchange}: ${data.error || 'Unknown error'}`);
+            }
+
+            const available = parseFloat(data.data.free || data.data.available || 0);
+
+            // Add 0.2% buffer for trading fees
+            const totalRequired = requiredAmount * 1.002;
+
+            return {
+                sufficient: available >= totalRequired,
+                available,
+                required: totalRequired
+            };
+
+        } catch (error) {
+            logger.error('Balance check failed', {
+                exchange,
+                currency,
+                error: error.message
+            });
+            throw error;
         }
     }
 }
