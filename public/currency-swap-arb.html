@@ -607,25 +607,63 @@
                     </div>
                 </div>
 
-                <!-- Scan Scope (shows what will be scanned) -->
+                <!-- Exchange & Currency Selection for Test Scan -->
                 <div style="background: rgba(0,212,255,0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #00d4ff;">
-                    <div style="color: #00d4ff; font-weight: bold; margin-bottom: 10px;">🎯 Scan Scope</div>
-                    <div style="display: grid; gap: 8px; color: #b8c6db; font-size: 0.9rem;">
-                        <div>
-                            <strong style="color: #ffb347;">Exchanges:</strong>
-                            <span id="testScanExchangeList" style="color: #00ff88; font-family: monospace;">Loading...</span>
-                        </div>
-                        <div>
-                            <strong style="color: #ffb347;">Currencies:</strong>
-                            <span id="testScanCurrencyList" style="color: #00ff88; font-family: monospace;">Loading...</span>
-                        </div>
-                        <div>
-                            <strong style="color: #ffb347;">Possible Paths:</strong>
-                            <span id="testScanPathCount" style="color: #00ff88; font-family: monospace; font-weight: bold;">0</span>
+                    <div style="color: #00d4ff; font-weight: bold; margin-bottom: 15px;">🎯 Select Exchanges & Currencies to Test Scan</div>
+
+                    <!-- Exchange Checkboxes -->
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; color: #ffb347; font-weight: bold; margin-bottom: 8px;">📊 Exchanges:</label>
+                        <div id="testScanExchangeCheckboxes" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; max-height: 200px; overflow-y: auto; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            <label style="color: #b8c6db; cursor: pointer; padding: 5px;"><input type="checkbox" value="VALR" onchange="saveTestScanSelections()"> VALR</label>
+                            <label style="color: #b8c6db; cursor: pointer; padding: 5px;"><input type="checkbox" value="Luno" onchange="saveTestScanSelections()"> Luno</label>
+                            <label style="color: #b8c6db; cursor: pointer; padding: 5px;"><input type="checkbox" value="Kraken" onchange="saveTestScanSelections()"> Kraken</label>
+                            <label style="color: #b8c6db; cursor: pointer; padding: 5px;"><input type="checkbox" value="ChainEX" onchange="saveTestScanSelections()"> ChainEX</label>
+                            <label style="color: #b8c6db; cursor: pointer; padding: 5px;"><input type="checkbox" value="Bybit" onchange="saveTestScanSelections()"> Bybit</label>
+                            <label style="color: #b8c6db; cursor: pointer; padding: 5px;"><input type="checkbox" value="Binance" onchange="saveTestScanSelections()"> Binance</label>
+                            <label style="color: #b8c6db; cursor: pointer; padding: 5px;"><input type="checkbox" value="OKX" onchange="saveTestScanSelections()"> OKX</label>
+                            <label style="color: #b8c6db; cursor: pointer; padding: 5px;"><input type="checkbox" value="Kucoin" onchange="saveTestScanSelections()"> Kucoin</label>
+                            <label style="color: #b8c6db; cursor: pointer; padding: 5px;"><input type="checkbox" value="HTX" onchange="saveTestScanSelections()"> HTX</label>
+                            <label style="color: #b8c6db; cursor: pointer; padding: 5px;"><input type="checkbox" value="Gate.io" onchange="saveTestScanSelections()"> Gate.io</label>
+                            <label style="color: #b8c6db; cursor: pointer; padding: 5px;"><input type="checkbox" value="Crypto.com" onchange="saveTestScanSelections()"> Crypto.com</label>
+                            <label style="color: #b8c6db; cursor: pointer; padding: 5px;"><input type="checkbox" value="MEXC" onchange="saveTestScanSelections()"> MEXC</label>
+                            <label style="color: #b8c6db; cursor: pointer; padding: 5px;"><input type="checkbox" value="XT" onchange="saveTestScanSelections()"> XT</label>
+                            <label style="color: #b8c6db; cursor: pointer; padding: 5px;"><input type="checkbox" value="AscendEX" onchange="saveTestScanSelections()"> AscendEX</label>
+                            <label style="color: #b8c6db; cursor: pointer; padding: 5px;"><input type="checkbox" value="BingX" onchange="saveTestScanSelections()"> BingX</label>
+                            <label style="color: #b8c6db; cursor: pointer; padding: 5px;"><input type="checkbox" value="Bitget" onchange="saveTestScanSelections()"> Bitget</label>
+                            <label style="color: #b8c6db; cursor: pointer; padding: 5px;"><input type="checkbox" value="BitMart" onchange="saveTestScanSelections()"> BitMart</label>
+                            <label style="color: #b8c6db; cursor: pointer; padding: 5px;"><input type="checkbox" value="Bitrue" onchange="saveTestScanSelections()"> Bitrue</label>
+                            <label style="color: #b8c6db; cursor: pointer; padding: 5px;"><input type="checkbox" value="Gemini" onchange="saveTestScanSelections()"> Gemini</label>
+                            <label style="color: #b8c6db; cursor: pointer; padding: 5px;"><input type="checkbox" value="Coincatch" onchange="saveTestScanSelections()"> Coincatch</label>
                         </div>
                     </div>
+
+                    <!-- Currency Checkboxes -->
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; color: #ffb347; font-weight: bold; margin-bottom: 8px;">💰 Currencies:</label>
+                        <div id="testScanCurrencyCheckboxes" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                            <label style="color: #b8c6db; cursor: pointer; padding: 5px;"><input type="checkbox" value="USDT" onchange="saveTestScanSelections()"> 💵 USDT</label>
+                            <label style="color: #b8c6db; cursor: pointer; padding: 5px;"><input type="checkbox" value="USDC" onchange="saveTestScanSelections()"> 💵 USDC</label>
+                            <label style="color: #b8c6db; cursor: pointer; padding: 5px;"><input type="checkbox" value="ZAR" onchange="saveTestScanSelections()"> 🇿🇦 ZAR</label>
+                            <label style="color: #b8c6db; cursor: pointer; padding: 5px;"><input type="checkbox" value="XRP" onchange="saveTestScanSelections()"> ⚡ XRP</label>
+                            <label style="color: #b8c6db; cursor: pointer; padding: 5px;"><input type="checkbox" value="USD" onchange="saveTestScanSelections()"> 🇺🇸 USD</label>
+                            <label style="color: #b8c6db; cursor: pointer; padding: 5px;"><input type="checkbox" value="RLUSD" onchange="saveTestScanSelections()"> 💎 RLUSD</label>
+                            <label style="color: #b8c6db; cursor: pointer; padding: 5px;"><input type="checkbox" value="AUD" onchange="saveTestScanSelections()"> 🇦🇺 AUD</label>
+                            <label style="color: #b8c6db; cursor: pointer; padding: 5px;"><input type="checkbox" value="EUR" onchange="saveTestScanSelections()"> 🇪🇺 EUR</label>
+                            <label style="color: #b8c6db; cursor: pointer; padding: 5px;"><input type="checkbox" value="GBP" onchange="saveTestScanSelections()"> 🇬🇧 GBP</label>
+                            <label style="color: #b8c6db; cursor: pointer; padding: 5px;"><input type="checkbox" value="CAD" onchange="saveTestScanSelections()"> 🇨🇦 CAD</label>
+                            <label style="color: #b8c6db; cursor: pointer; padding: 5px;"><input type="checkbox" value="AED" onchange="saveTestScanSelections()"> 🇦🇪 AED</label>
+                        </div>
+                    </div>
+
+                    <!-- Possible Paths Display -->
+                    <div style="padding: 10px; background: rgba(0,255,136,0.1); border-radius: 6px; border: 1px solid rgba(0,255,136,0.3);">
+                        <strong style="color: #ffb347;">Possible Paths:</strong>
+                        <span id="testScanPathCount" style="color: #00ff88; font-family: monospace; font-weight: bold; font-size: 1.1rem; margin-left: 10px;">0</span>
+                    </div>
+
                     <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); color: #b8c6db; font-size: 0.85rem;">
-                        💡 Test scan uses your current exchange and currency selections. To change what's scanned, update your selections in the Settings section above.
+                        💡 Test scan selections are independent from your live trading settings. Select at least 2 exchanges and 2 currencies to enable scanning.
                     </div>
                 </div>
 
@@ -938,8 +976,8 @@
             console.log('⏳ Step 6/7: Loading risk settings...');
             await loadRiskSettings();
 
-            console.log('⏳ Step 7/7: Updating test scan scope...');
-            updateTestScanScope();
+            console.log('⏳ Step 7/7: Loading test scan selections...');
+            loadTestScanSelections();
 
             console.log('✅ Currency Swap initialization complete!');
 
@@ -1104,9 +1142,6 @@
 
                     // Update XRP deposit inputs
                     await populateXrpDepositInputs();
-
-                    // Update Test Scan scope display
-                    updateTestScanScope();
                 } else {
                     saveStatus.textContent = '❌ Save failed';
                     saveStatus.style.color = '#ff6b6b';
@@ -2643,51 +2678,95 @@
         let currencySwapTestScanNextScanTime = null;
 
         /**
-         * Update Test Scan Scope display
-         * Shows which exchanges, currencies, and paths will be scanned
+         * Save Test Scan Selections to localStorage (separate from main trading settings)
+         * Called when checkboxes change
          */
-        function updateTestScanScope() {
+        function saveTestScanSelections() {
             try {
-                // Get current selections from localStorage (same as main currency swap uses)
-                const selectedExchanges = JSON.parse(localStorage.getItem('currencySwap_selectedExchanges') || '[]');
-                const selectedCurrencies = JSON.parse(localStorage.getItem('currencySwap_selectedCurrencies') || '[]');
+                // Get selected exchanges
+                const exchangeCheckboxes = document.querySelectorAll('#testScanExchangeCheckboxes input[type="checkbox"]:checked');
+                const selectedExchanges = Array.from(exchangeCheckboxes).map(cb => cb.value);
 
-                // Update exchange list display
-                const exchangeListEl = document.getElementById('testScanExchangeList');
-                if (selectedExchanges.length > 0) {
-                    exchangeListEl.textContent = selectedExchanges.join(', ');
-                    exchangeListEl.style.color = '#00ff88';
-                } else {
-                    exchangeListEl.textContent = 'None selected - please select exchanges above';
-                    exchangeListEl.style.color = '#ff6b6b';
-                }
+                // Get selected currencies
+                const currencyCheckboxes = document.querySelectorAll('#testScanCurrencyCheckboxes input[type="checkbox"]:checked');
+                const selectedCurrencies = Array.from(currencyCheckboxes).map(cb => cb.value);
 
-                // Update currency list display
-                const currencyListEl = document.getElementById('testScanCurrencyList');
-                if (selectedCurrencies.length > 0) {
-                    currencyListEl.textContent = selectedCurrencies.join(', ');
-                    currencyListEl.style.color = '#00ff88';
-                } else {
-                    currencyListEl.textContent = 'None selected - please select currencies above';
-                    currencyListEl.style.color = '#ff6b6b';
-                }
+                // Save to localStorage with TEST SCAN specific keys
+                localStorage.setItem('currencySwapTestScan_selectedExchanges', JSON.stringify(selectedExchanges));
+                localStorage.setItem('currencySwapTestScan_selectedCurrencies', JSON.stringify(selectedCurrencies));
 
-                // Calculate possible paths (rough estimate: exchange pairs * currency pairs)
+                console.log('💾 Test Scan selections saved:', {
+                    exchanges: selectedExchanges,
+                    currencies: selectedCurrencies
+                });
+
+                // Update possible paths display
+                updateTestScanPossiblePaths(selectedExchanges, selectedCurrencies);
+
+            } catch (error) {
+                console.error('Failed to save test scan selections:', error);
+            }
+        }
+
+        /**
+         * Load Test Scan Selections from localStorage
+         * Called on page load
+         */
+        function loadTestScanSelections() {
+            try {
+                // Load saved selections from localStorage
+                const selectedExchanges = JSON.parse(localStorage.getItem('currencySwapTestScan_selectedExchanges') || '[]');
+                const selectedCurrencies = JSON.parse(localStorage.getItem('currencySwapTestScan_selectedCurrencies') || '[]');
+
+                console.log('📂 Loading Test Scan selections:', {
+                    exchanges: selectedExchanges,
+                    currencies: selectedCurrencies
+                });
+
+                // Restore exchange checkboxes
+                document.querySelectorAll('#testScanExchangeCheckboxes input[type="checkbox"]').forEach(cb => {
+                    cb.checked = selectedExchanges.includes(cb.value);
+                });
+
+                // Restore currency checkboxes
+                document.querySelectorAll('#testScanCurrencyCheckboxes input[type="checkbox"]').forEach(cb => {
+                    cb.checked = selectedCurrencies.includes(cb.value);
+                });
+
+                // Update possible paths display
+                updateTestScanPossiblePaths(selectedExchanges, selectedCurrencies);
+
+                console.log('✅ Test Scan selections loaded');
+
+            } catch (error) {
+                console.error('Failed to load test scan selections:', error);
+            }
+        }
+
+        /**
+         * Update Possible Paths calculation and display
+         */
+        function updateTestScanPossiblePaths(selectedExchanges, selectedCurrencies) {
+            try {
+                // Calculate possible paths
+                // Formula: (E × (E-1)) × (C × (C-1)) / 2
                 const possiblePaths = selectedExchanges.length >= 2 && selectedCurrencies.length >= 2
                     ? (selectedExchanges.length * (selectedExchanges.length - 1)) * (selectedCurrencies.length * (selectedCurrencies.length - 1)) / 2
                     : 0;
 
                 const pathCountEl = document.getElementById('testScanPathCount');
-                pathCountEl.textContent = possiblePaths > 0 ? Math.floor(possiblePaths) : '0 (select 2+ exchanges & 2+ currencies)';
+                if (possiblePaths > 0) {
+                    pathCountEl.textContent = Math.floor(possiblePaths).toLocaleString();
+                    pathCountEl.style.color = '#00ff88';
+                } else {
+                    pathCountEl.textContent = '0 (select 2+ exchanges & 2+ currencies)';
+                    pathCountEl.style.color = '#ff6b6b';
+                }
 
-                console.log('✅ Test scan scope updated:', {
-                    exchanges: selectedExchanges,
-                    currencies: selectedCurrencies,
-                    estimatedPaths: possiblePaths
-                });
+                console.log(`📊 Possible paths: ${possiblePaths}`);
 
             } catch (error) {
-                console.error('Failed to update test scan scope:', error);
+                console.error('Failed to update possible paths:', error);
             }
         }
 
