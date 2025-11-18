@@ -2198,6 +2198,48 @@
             `;
         }
 
+        // Network cache to avoid repeated API calls
+        const networkCache = new Map();
+
+        // Fetch available networks from API for specific exchange pair and crypto
+        async function fetchNetworksFromAPI(fromExchange, toExchange, crypto) {
+            const cacheKey = `${fromExchange}_${toExchange}_${crypto}`;
+
+            // Check cache first
+            if (networkCache.has(cacheKey)) {
+                console.log(`📦 Using cached networks for ${cacheKey}`);
+                return networkCache.get(cacheKey);
+            }
+
+            try {
+                console.log(`🔍 Fetching networks from API: ${fromExchange} → ${toExchange} for ${crypto}`);
+
+                const response = await fetch(`/api/v1/transfer-arb/networks/${fromExchange}/${toExchange}/${crypto}`);
+                const data = await response.json();
+
+                if (data.success && data.data) {
+                    const networkData = {
+                        fromNetworks: data.data.fromNetworks || [],
+                        toNetworks: data.data.toNetworks || [],
+                        matchingNetworks: data.data.matchingNetworks || [],
+                        bestNetwork: data.data.bestNetwork || null,
+                        isViable: data.data.isViable || false
+                    };
+
+                    // Cache the result
+                    networkCache.set(cacheKey, networkData);
+                    console.log(`✅ Fetched ${networkData.matchingNetworks.length} matching networks for ${crypto}`);
+
+                    return networkData;
+                }
+            } catch (error) {
+                console.warn(`⚠️ Failed to fetch networks from API: ${error.message}`);
+            }
+
+            // Return null if API fails (will fallback to static list)
+            return null;
+        }
+
         // Get available networks for a crypto
         function getAvailableNetworks(crypto) {
             const networkOptions = {
@@ -2368,9 +2410,17 @@
 
                                 <!-- Network Selection (CRITICAL) -->
                                 <div style="background: rgba(0,212,255,0.1); border: 2px solid #00d4ff; border-radius: 8px; padding: 12px; margin-bottom: 12px;">
-                                    <label style="display: block; color: #00d4ff; margin-bottom: 8px; font-weight: 700; font-size: 0.85rem;">
-                                        🔗 NETWORK/CHAIN (CRITICAL - Must Match Withdrawal Network!)
-                                    </label>
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                        <label style="color: #00d4ff; font-weight: 700; font-size: 0.85rem; margin: 0;">
+                                            🔗 NETWORK/CHAIN (CRITICAL - Must Match Withdrawal Network!)
+                                        </label>
+                                        <button onclick="checkNetworkCompatibility('${exchange}', '${crypto}')"
+                                                style="background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+                                                       border: none; padding: 4px 10px; border-radius: 4px;
+                                                       color: white; font-size: 0.75rem; cursor: pointer; font-weight: 600;">
+                                            🔍 Check All Exchanges
+                                        </button>
+                                    </div>
                                     <select id="modal-${exchange}-${crypto}-network"
                                             onchange="saveDepositAddress('${exchange}', '${crypto}', 'network', this.value)"
                                             style="background: rgba(0,0,0,0.4); border: 2px solid #00d4ff; border-radius: 6px;
@@ -2380,6 +2430,10 @@
                                             <option value="${net.id}">${net.name} ${net.fee ? `(Fee: ${net.fee})` : ''}</option>
                                         `).join('')}
                                     </select>
+                                    <div id="compat-hint-${exchange}-${crypto}" style="display: none; margin-top: 8px; padding: 8px;
+                                         background: rgba(0,255,136,0.1); border: 1px solid #00ff88; border-radius: 4px;">
+                                        <!-- Compatibility hint will be inserted here -->
+                                    </div>
                                     <div style="color: #00d4ff; font-size: 0.75rem; line-height: 1.4; margin-top: 8px;">
                                         <strong>⚠️ CRITICAL:</strong> Network must match the network used for withdrawal.<br>
                                         <strong>Sending to wrong network = PERMANENT FUND LOSS!</strong><br>
@@ -2473,6 +2527,118 @@
                     }
                 });
             });
+        }
+
+        // Check network compatibility across all connected exchanges for a crypto
+        async function checkNetworkCompatibility(currentExchange, crypto) {
+            console.log(`🔍 Checking network compatibility for ${crypto} across all exchanges...`);
+
+            const connectedExchanges = getConnectedExchanges();
+            const hintDiv = document.getElementById(`compat-hint-${currentExchange}-${crypto}`);
+
+            if (connectedExchanges.length < 2) {
+                hintDiv.style.display = 'block';
+                hintDiv.innerHTML = `
+                    <div style="color: #ffb347; font-size: 0.75rem;">
+                        ℹ️ Connect more exchanges to check compatibility
+                    </div>
+                `;
+                return;
+            }
+
+            // Show loading state
+            hintDiv.style.display = 'block';
+            hintDiv.innerHTML = `
+                <div style="color: #00d4ff; font-size: 0.75rem;">
+                    ⏳ Checking compatibility across ${connectedExchanges.length} exchanges...
+                </div>
+            `;
+
+            try {
+                // Check each pair to find common networks
+                const commonNetworks = new Map(); // network → count of exchanges supporting it
+
+                for (let i = 0; i < connectedExchanges.length; i++) {
+                    for (let j = i + 1; j < connectedExchanges.length; j++) {
+                        const fromEx = connectedExchanges[i];
+                        const toEx = connectedExchanges[j];
+
+                        // Fetch network compatibility for this pair
+                        const networkData = await fetchNetworksFromAPI(fromEx, toEx, crypto);
+
+                        if (networkData && networkData.matchingNetworks) {
+                            networkData.matchingNetworks.forEach(network => {
+                                const netId = network.network || network.id || network.name;
+                                commonNetworks.set(netId, (commonNetworks.get(netId) || 0) + 1);
+                            });
+                        }
+                    }
+                }
+
+                // Find networks supported by ALL exchanges
+                const pairsCount = (connectedExchanges.length * (connectedExchanges.length - 1)) / 2;
+                const universalNetworks = Array.from(commonNetworks.entries())
+                    .filter(([net, count]) => count === pairsCount)
+                    .map(([net]) => net);
+
+                if (universalNetworks.length > 0) {
+                    hintDiv.style.background = 'rgba(0,255,136,0.1)';
+                    hintDiv.style.borderColor = '#00ff88';
+                    hintDiv.innerHTML = `
+                        <div style="color: #00ff88; font-size: 0.75rem; font-weight: 600;">
+                            ✅ COMPATIBLE NETWORKS (Work with ALL ${connectedExchanges.length} exchanges):
+                        </div>
+                        <div style="color: #00ff88; font-size: 0.75rem; margin-top: 4px;">
+                            ${universalNetworks.join(', ')}
+                        </div>
+                        <div style="color: #b8c6db; font-size: 0.7rem; margin-top: 4px;">
+                            💡 Recommended: Choose one of these networks for maximum flexibility
+                        </div>
+                    `;
+
+                    // Highlight compatible networks in dropdown
+                    const select = document.getElementById(`modal-${currentExchange}-${crypto}-network`);
+                    Array.from(select.options).forEach(option => {
+                        if (universalNetworks.includes(option.value)) {
+                            option.text = `✅ ${option.text}`;
+                        }
+                    });
+                } else {
+                    // No universal networks, show which networks are most common
+                    const sortedNetworks = Array.from(commonNetworks.entries())
+                        .sort((a, b) => b[1] - a[1])
+                        .slice(0, 3);
+
+                    hintDiv.style.background = 'rgba(255,179,71,0.1)';
+                    hintDiv.style.borderColor = '#ffb347';
+                    hintDiv.innerHTML = `
+                        <div style="color: #ffb347; font-size: 0.75rem; font-weight: 600;">
+                            ⚠️ No network works with ALL exchanges
+                        </div>
+                        <div style="color: #b8c6db; font-size: 0.75rem; margin-top: 4px;">
+                            Most common networks:
+                            ${sortedNetworks.map(([net, count]) =>
+                                `<br>• ${net} (${count}/${pairsCount} pairs)`
+                            ).join('')}
+                        </div>
+                        <div style="color: #ffb347; font-size: 0.7rem; margin-top: 4px;">
+                            💡 You may need different networks for different exchange pairs
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Network compatibility check failed:', error);
+                hintDiv.style.background = 'rgba(255,107,107,0.1)';
+                hintDiv.style.borderColor = '#ff6b6b';
+                hintDiv.innerHTML = `
+                    <div style="color: #ff6b6b; font-size: 0.75rem;">
+                        ❌ Failed to check compatibility: ${error.message}
+                    </div>
+                    <div style="color: #b8c6db; font-size: 0.7rem; margin-top: 4px;">
+                        You can still manually select networks from the dropdown
+                    </div>
+                `;
+            }
         }
 
         // Close deposit address modal
