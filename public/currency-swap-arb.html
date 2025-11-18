@@ -921,35 +921,203 @@
             }
 
             // Build input fields for each selected exchange
-            xrpInputsDiv.innerHTML = selectedExchanges.map(exchange => `
-                <div style="background: rgba(255,255,255,0.05); padding: 12px; border-radius: 6px; border-left: 3px solid #00d4ff;">
-                    <div style="font-weight: bold; color: #00d4ff; margin-bottom: 8px;">${exchange}</div>
-                    <div style="display: grid; gap: 8px;">
-                        <div>
-                            <label style="font-size: 0.85rem; color: #b8c6db; display: block; margin-bottom: 4px;">Deposit Address</label>
-                            <input
-                                type="text"
-                                id="xrp_address_${exchange}"
-                                placeholder="r......"
-                                value="${existingXrpData[exchange]?.address || ''}"
-                                onchange="saveXrpDepositInfo('${exchange}')"
-                                style="width: 100%; padding: 8px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; color: white; font-family: monospace; font-size: 0.9rem;"
-                            >
-                        </div>
-                        <div>
-                            <label style="font-size: 0.85rem; color: #b8c6db; display: block; margin-bottom: 4px;">Destination Tag (optional)</label>
-                            <input
-                                type="text"
-                                id="xrp_tag_${exchange}"
-                                placeholder="12345678"
-                                value="${existingXrpData[exchange]?.tag || ''}"
-                                onchange="saveXrpDepositInfo('${exchange}')"
-                                style="width: 100%; padding: 8px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; color: white; font-family: monospace; font-size: 0.9rem;"
-                            >
+            xrpInputsDiv.innerHTML = selectedExchanges.map(exchange => {
+                // Check if this exchange requires a destination tag
+                const exchangesRequiringTag = ['VALR', 'valr', 'Binance', 'binance', 'Kraken', 'kraken', 'OKX', 'okx', 'Bybit', 'bybit', 'KuCoin', 'kucoin', 'Coinbase', 'coinbase', 'Gate.io', 'gateio', 'HTX', 'htx', 'Bitget', 'bitget'];
+                const requiresTag = exchangesRequiringTag.some(ex => exchange.toLowerCase() === ex.toLowerCase());
+                const tagLabel = requiresTag ? '🚨 Destination Tag (REQUIRED)' : 'Destination Tag (optional)';
+
+                return `
+                    <div style="background: rgba(255,255,255,0.05); padding: 12px; border-radius: 6px; border-left: 3px solid #00d4ff;">
+                        <div style="font-weight: bold; color: #00d4ff; margin-bottom: 8px;">${exchange}</div>
+                        <div style="display: grid; gap: 12px;">
+                            <div>
+                                <label style="font-size: 0.85rem; color: #b8c6db; display: block; margin-bottom: 4px;">
+                                    XRP Deposit Address
+                                    <span style="color: #ff6b6b; font-size: 0.75rem; margin-left: 4px;">(must start with 'r', 25-35 chars)</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    id="xrp_address_${exchange}"
+                                    placeholder="rXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+                                    value="${existingXrpData[exchange]?.address || ''}"
+                                    oninput="validateXrpInputs('${exchange}')"
+                                    onchange="saveXrpDepositInfo('${exchange}')"
+                                    style="width: 100%; padding: 8px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; color: white; font-family: monospace; font-size: 0.9rem; transition: border 0.3s;"
+                                >
+                                <div id="xrp_address_feedback_${exchange}" style="font-size: 0.8rem; margin-top: 4px; min-height: 18px;"></div>
+                            </div>
+                            <div>
+                                <label style="font-size: 0.85rem; color: ${requiresTag ? '#ff6b6b' : '#b8c6db'}; display: block; margin-bottom: 4px; font-weight: ${requiresTag ? 'bold' : 'normal'};">
+                                    ${tagLabel}
+                                </label>
+                                <input
+                                    type="text"
+                                    id="xrp_tag_${exchange}"
+                                    placeholder="${requiresTag ? 'REQUIRED - Numeric tag' : '12345678 (if required)'}"
+                                    value="${existingXrpData[exchange]?.tag || ''}"
+                                    oninput="validateXrpInputs('${exchange}')"
+                                    onchange="saveXrpDepositInfo('${exchange}')"
+                                    style="width: 100%; padding: 8px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; color: white; font-family: monospace; font-size: 0.9rem; transition: border 0.3s;"
+                                >
+                                <div id="xrp_tag_feedback_${exchange}" style="font-size: 0.8rem; margin-top: 4px; min-height: 18px;"></div>
+                            </div>
                         </div>
                     </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
+
+            // Trigger initial validation for existing values
+            setTimeout(() => {
+                selectedExchanges.forEach(exchange => {
+                    const addressInput = document.getElementById(`xrp_address_${exchange}`);
+                    const tagInput = document.getElementById(`xrp_tag_${exchange}`);
+                    if ((addressInput && addressInput.value) || (tagInput && tagInput.value)) {
+                        validateXrpInputs(exchange);
+                    }
+                });
+            }, 100);
+        }
+
+        /**
+         * Validate XRP address format
+         * XRP addresses must:
+         * - Start with 'r'
+         * - Be 25-35 characters long
+         * - Contain only alphanumeric characters (base58: rpshnaf39wBUDNEGHJKLM4PQRST7VWXYZ2bcdeCg65jkm8oFqi1tuvAxyz)
+         */
+        function validateXrpAddress(address) {
+            if (!address || address.trim() === '') {
+                return {
+                    valid: false,
+                    error: 'Address is required'
+                };
+            }
+
+            const trimmedAddress = address.trim();
+
+            // Must start with 'r'
+            if (!trimmedAddress.startsWith('r')) {
+                return {
+                    valid: false,
+                    error: 'XRP addresses must start with "r"'
+                };
+            }
+
+            // Must be 25-35 characters
+            if (trimmedAddress.length < 25 || trimmedAddress.length > 35) {
+                return {
+                    valid: false,
+                    error: `Invalid length (${trimmedAddress.length} chars). Must be 25-35 characters`
+                };
+            }
+
+            // Must contain only valid base58 characters (no 0, O, I, l)
+            const base58Regex = /^[rpshnaf39wBUDNEGHJKLM4PQRST7VWXYZ2bcdeCg65jkm8oFqi1tuvAxyz]+$/;
+            if (!base58Regex.test(trimmedAddress)) {
+                return {
+                    valid: false,
+                    error: 'Contains invalid characters. XRP addresses use base58 (no 0, O, I, or l)'
+                };
+            }
+
+            return {
+                valid: true,
+                message: '✅ Valid XRP address format'
+            };
+        }
+
+        /**
+         * Validate XRP destination tag and show warnings for exchanges that require it
+         */
+        function validateXrpTag(exchange, tag) {
+            const exchangesRequiringTag = [
+                'VALR', 'valr',
+                'Binance', 'binance',
+                'Kraken', 'kraken',
+                'OKX', 'okx',
+                'Bybit', 'bybit',
+                'KuCoin', 'kucoin',
+                'Coinbase', 'coinbase',
+                'Gate.io', 'gateio',
+                'HTX', 'htx',
+                'Bitget', 'bitget'
+            ];
+
+            const requiresTag = exchangesRequiringTag.some(ex =>
+                exchange.toLowerCase() === ex.toLowerCase()
+            );
+
+            if (requiresTag) {
+                if (!tag || tag.trim() === '') {
+                    return {
+                        valid: false,
+                        error: `⚠️ ${exchange} REQUIRES a destination tag! Missing tag = PERMANENT FUND LOSS!`,
+                        critical: true
+                    };
+                }
+
+                // Tag should be numeric
+                if (!/^\d+$/.test(tag.trim())) {
+                    return {
+                        valid: false,
+                        error: 'Destination tag must be numeric',
+                        critical: false
+                    };
+                }
+
+                return {
+                    valid: true,
+                    message: '✅ Destination tag configured'
+                };
+            }
+
+            // Exchange doesn't require tag
+            if (tag && tag.trim() !== '') {
+                return {
+                    valid: true,
+                    message: 'ℹ️ Optional for this exchange'
+                };
+            }
+
+            return {
+                valid: true,
+                message: 'ℹ️ Not required for this exchange'
+            };
+        }
+
+        /**
+         * Real-time validation as user types
+         */
+        function validateXrpInputs(exchange) {
+            const addressInput = document.getElementById(`xrp_address_${exchange}`);
+            const tagInput = document.getElementById(`xrp_tag_${exchange}`);
+            const addressFeedback = document.getElementById(`xrp_address_feedback_${exchange}`);
+            const tagFeedback = document.getElementById(`xrp_tag_feedback_${exchange}`);
+
+            // Validate address
+            const addressValidation = validateXrpAddress(addressInput.value);
+            if (addressValidation.valid) {
+                addressInput.style.border = '2px solid #00ff88';
+                addressFeedback.innerHTML = `<span style="color: #00ff88;">${addressValidation.message}</span>`;
+            } else {
+                addressInput.style.border = '2px solid #ff6b6b';
+                addressFeedback.innerHTML = `<span style="color: #ff6b6b;">❌ ${addressValidation.error}</span>`;
+            }
+
+            // Validate tag
+            const tagValidation = validateXrpTag(exchange, tagInput.value);
+            if (tagValidation.valid) {
+                if (tagValidation.critical === false) {
+                    tagInput.style.border = '2px solid #00ff88';
+                } else {
+                    tagInput.style.border = '1px solid rgba(255,255,255,0.2)';
+                }
+                tagFeedback.innerHTML = `<span style="color: ${tagValidation.message.includes('✅') ? '#00ff88' : '#b8c6db'};">${tagValidation.message}</span>`;
+            } else {
+                tagInput.style.border = tagValidation.critical ? '2px solid #ff3333' : '2px solid #ffb347';
+                tagFeedback.innerHTML = `<span style="color: ${tagValidation.critical ? '#ff3333' : '#ffb347'};">${tagValidation.error}</span>`;
+            }
         }
 
         // Auto-save XRP deposit info when user types
