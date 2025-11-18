@@ -628,7 +628,8 @@ router.post('/luno/triangular/execute', authenticatedRateLimit, authenticateUser
             confirmed,
             minProfitThreshold,
             maxTradeAmount,
-            portfolioPercent
+            portfolioPercent,
+            userId: req.user?.id || 'anonymous'
         }
     );
 
@@ -1085,7 +1086,8 @@ router.post('/chainex/triangular/execute', authenticatedRateLimit, authenticateU
                 confirmed,
                 minProfitThreshold,
                 maxTradeAmount,
-                portfolioPercent
+                portfolioPercent,
+                userId: req.user?.id || 'anonymous'
             }
         );
 
@@ -1799,7 +1801,8 @@ router.post('/kraken/triangular/execute', authenticatedRateLimit, authenticateUs
             confirmed,
             minProfitThreshold,
             maxTradeAmount,
-            portfolioPercent
+            portfolioPercent,
+            userId: req.user?.id || 'anonymous'
         }
     );
 
@@ -2586,7 +2589,8 @@ router.post('/bybit/triangular/execute', authenticatedRateLimit, authenticateUse
             confirmed,
             minProfitThreshold,
             maxTradeAmount,
-            portfolioPercent
+            portfolioPercent,
+            userId: req.user?.id || 'anonymous'
         }
     );
 
@@ -3418,7 +3422,8 @@ router.post('/binance/triangular/execute', authenticatedRateLimit, authenticateU
             confirmed,
             minProfitThreshold,
             maxTradeAmount,
-            portfolioPercent
+            portfolioPercent,
+            userId: req.user?.id || 'anonymous'
         }
     );
 
@@ -4219,7 +4224,8 @@ router.post('/okx/triangular/execute', authenticatedRateLimit, authenticateUser,
             confirmed,
             minProfitThreshold,
             maxTradeAmount,
-            portfolioPercent
+            portfolioPercent,
+            userId: req.user?.id || 'anonymous'
         }
     );
 
@@ -4796,7 +4802,8 @@ router.post('/kucoin/triangular/execute', authenticatedRateLimit, authenticateUs
             confirmed,
             minProfitThreshold,
             maxTradeAmount,
-            portfolioPercent
+            portfolioPercent,
+            userId: req.user?.id || 'anonymous'
         }
     );
 
@@ -5266,7 +5273,8 @@ router.post('/coinbase/triangular/execute', authenticatedRateLimit, authenticate
             confirmed,
             minProfitThreshold,
             maxTradeAmount,
-            portfolioPercent
+            portfolioPercent,
+            userId: req.user?.id || 'anonymous'
         }
     );
 
@@ -5941,7 +5949,8 @@ router.post('/huobi/triangular/execute', authenticatedRateLimit, authenticateUse
             confirmed,
             minProfitThreshold,
             maxTradeAmount,
-            portfolioPercent
+            portfolioPercent,
+            userId: req.user?.id || 'anonymous'
         }
     );
 
@@ -6514,7 +6523,8 @@ router.post('/gateio/triangular/execute', authenticatedRateLimit, authenticateUs
             confirmed,
             minProfitThreshold,
             maxTradeAmount,
-            portfolioPercent
+            portfolioPercent,
+            userId: req.user?.id || 'anonymous'
         }
     );
 
@@ -7128,7 +7138,8 @@ router.post('/cryptocom/triangular/execute', authenticatedRateLimit, authenticat
             confirmed,
             minProfitThreshold,
             maxTradeAmount,
-            portfolioPercent
+            portfolioPercent,
+            userId: req.user?.id || 'anonymous'
         }
     );
 
@@ -7638,7 +7649,8 @@ router.post('/mexc/triangular/execute', authenticatedRateLimit, authenticateUser
             confirmed,
             minProfitThreshold,
             maxTradeAmount,
-            portfolioPercent
+            portfolioPercent,
+            userId: req.user?.id || 'anonymous'
         }
     );
 
@@ -8158,7 +8170,8 @@ router.post('/xt/triangular/execute', authenticatedRateLimit, authenticateUser, 
             confirmed,
             minProfitThreshold,
             maxTradeAmount,
-            portfolioPercent
+            portfolioPercent,
+            userId: req.user?.id || 'anonymous'
         }
     );
 
@@ -8808,7 +8821,8 @@ router.post('/ascendex/triangular/execute', authenticatedRateLimit, authenticate
             confirmed,
             minProfitThreshold,
             maxTradeAmount,
-            portfolioPercent
+            portfolioPercent,
+            userId: req.user?.id || 'anonymous'
         }
     );
 
@@ -9346,7 +9360,8 @@ router.post('/bingx/triangular/execute', authenticatedRateLimit, authenticateUse
             confirmed,
             minProfitThreshold,
             maxTradeAmount,
-            portfolioPercent
+            portfolioPercent,
+            userId: req.user?.id || 'anonymous'
         }
     );
 
@@ -9913,7 +9928,8 @@ router.post('/bitget/triangular/execute', authenticatedRateLimit, authenticateUs
             confirmed,
             minProfitThreshold,
             maxTradeAmount,
-            portfolioPercent
+            portfolioPercent,
+            userId: req.user?.id || 'anonymous'
         }
     );
 
@@ -10473,7 +10489,8 @@ router.post('/bitmart/triangular/execute', authenticatedRateLimit, authenticateU
             confirmed,
             minProfitThreshold,
             maxTradeAmount,
-            portfolioPercent
+            portfolioPercent,
+            userId: req.user?.id || 'anonymous'
         }
     );
 
@@ -11021,7 +11038,8 @@ router.post('/bitrue/triangular/execute', authenticatedRateLimit, authenticateUs
             confirmed,
             minProfitThreshold,
             maxTradeAmount,
-            portfolioPercent
+            portfolioPercent,
+            userId: req.user?.id || 'anonymous'
         }
     );
 
@@ -11644,7 +11662,8 @@ router.post('/gemini/triangular/execute', authenticatedRateLimit, authenticateUs
             confirmed,
             minProfitThreshold,
             maxTradeAmount,
-            portfolioPercent
+            portfolioPercent,
+            userId: req.user?.id || 'anonymous'
         }
     );
 
@@ -12588,7 +12607,8 @@ router.post('/coincatch/triangular/execute', authenticatedRateLimit, authenticat
             confirmed,
             minProfitThreshold,
             maxTradeAmount,
-            portfolioPercent
+            portfolioPercent,
+            userId: req.user?.id || 'anonymous'
         }
     );
 
@@ -13629,7 +13649,8 @@ router.post('/valr/triangular/execute', authenticatedRateLimit, authenticateUser
             confirmed,
             minProfitThreshold,
             maxTradeAmount,
-            portfolioPercent
+            portfolioPercent,
+            userId: req.user?.id || 'anonymous'
         }
     );
 

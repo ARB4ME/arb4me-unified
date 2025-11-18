@@ -13,6 +13,7 @@ const ProfitCalculatorService = require('./ProfitCalculatorService');
 const OrderBookFetcherService = require('./OrderBookFetcherService');
 const TradeExecutorService = require('./TradeExecutorService');
 const PreFlightValidationService = require('./PreFlightValidationService');
+const executionRateLimiter = require('./ExecutionRateLimiter');
 
 class TriangularArbService {
     constructor() {
@@ -194,7 +195,8 @@ class TriangularArbService {
             confirmed = false,           // Requires explicit confirmation for live trading
             minProfitThreshold = 0.3,    // Minimum profit required
             maxTradeAmount = null,       // Maximum trade amount limit
-            portfolioPercent = null      // Max % of portfolio
+            portfolioPercent = null,     // Max % of portfolio
+            userId = 'anonymous'         // User ID for rate limiting
         } = options;
 
         systemLogger.trading(`Triangular arb execution initiated ${dryRun ? '[DRY RUN]' : '[LIVE]'}`, {
@@ -203,10 +205,42 @@ class TriangularArbService {
             amount,
             dryRun,
             confirmed,
+            userId,
             timestamp: new Date().toISOString()
         });
 
+        const executionId = `EXEC_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
         try {
+            // STEP 0: RATE LIMIT CHECK (prevent overwhelming exchanges)
+            // Skip rate limiting for dry runs (they don't hit exchange APIs for execution)
+            if (!dryRun) {
+                systemLogger.trading(`[RATE LIMIT] Checking execution rate limit...`);
+
+                const rateLimitCheck = await executionRateLimiter.checkExecutionAllowed(exchange, userId);
+
+                if (!rateLimitCheck.allowed) {
+                    systemLogger.warn(`[RATE LIMIT] Execution blocked`, {
+                        exchange,
+                        userId,
+                        reason: rateLimitCheck.reason,
+                        waitTime: `${Math.ceil(rateLimitCheck.waitTime / 1000)}s`
+                    });
+
+                    return {
+                        success: false,
+                        error: rateLimitCheck.reason,
+                        message: rateLimitCheck.message,
+                        waitTime: rateLimitCheck.waitTime,
+                        retryAfter: Date.now() + rateLimitCheck.waitTime
+                    };
+                }
+
+                // Mark execution as started
+                executionRateLimiter.markExecutionStarted(exchange, executionId);
+                systemLogger.trading(`[RATE LIMIT] ✅ Rate limit check passed - execution allowed`);
+            }
+
             // Step 1: Get the specific path definition
             const path = this.pathDefinitions.getPathById(exchange, pathId);
 
@@ -284,9 +318,19 @@ class TriangularArbService {
             // Include validation result in response
             executionResult.validationResult = validationResult;
 
+            // Mark execution as completed (for live trading rate limiting)
+            if (!dryRun) {
+                executionRateLimiter.markExecutionCompleted(exchange, executionId);
+            }
+
             return executionResult;
 
         } catch (error) {
+            // Mark execution as completed even on error (for live trading rate limiting)
+            if (!dryRun) {
+                executionRateLimiter.markExecutionCompleted(exchange, executionId);
+            }
+
             systemLogger.error(`Triangular arb execution failed`, {
                 exchange,
                 pathId,
