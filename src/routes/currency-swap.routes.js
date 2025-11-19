@@ -615,6 +615,126 @@ router.get('/scan', async (req, res) => {
 });
 
 /**
+ * POST /api/v1/currency-swap/scan-realtime
+ * PUBLIC endpoint for Test Scan - scans using cached/public price data
+ * Similar to Transfer Arb's scan-realtime endpoint
+ */
+router.post('/scan-realtime', async (req, res) => {
+    try {
+        const { exchanges, currencies, minProfitPercent, maxTradeAmount } = req.body;
+
+        if (!exchanges || !currencies || exchanges.length === 0 || currencies.length === 0) {
+            return res.status(400).json({
+                success: false,
+                error: 'exchanges and currencies arrays are required'
+            });
+        }
+
+        systemLogger.trading('[TEST SCAN] Currency Swap realtime scan initiated', {
+            exchangeCount: exchanges.length,
+            currencyCount: currencies.length,
+            minProfit: minProfitPercent
+        });
+
+        // Import price cache service
+        const PriceUpdateService = require('../services/priceUpdateService');
+
+        // Get cached prices for all exchanges
+        const priceData = {};
+        for (const exchange of exchanges) {
+            const exchangeLower = exchange.toLowerCase();
+            const prices = PriceUpdateService.getExchangePrices(exchangeLower);
+
+            if (prices && Object.keys(prices).length > 0) {
+                priceData[exchange] = {};
+
+                // Extract XRP pairs for requested currencies
+                for (const currency of currencies) {
+                    const xrpPair = `XRP/${currency}`;
+                    if (prices[xrpPair]) {
+                        priceData[exchange][currency] = {
+                            bid: parseFloat(prices[xrpPair].bid || prices[xrpPair].bidPrice || 0),
+                            ask: parseFloat(prices[xrpPair].ask || prices[xrpPair].askPrice || 0),
+                            last: parseFloat(prices[xrpPair].last || prices[xrpPair].lastPrice || 0)
+                        };
+                    }
+                }
+            }
+        }
+
+        systemLogger.trading('[TEST SCAN] Fetched cached prices', {
+            exchangesWithData: Object.keys(priceData).length
+        });
+
+        // Calculate all possible paths using cached prices
+        const { _calculateAllPaths, _calculatePathProfit } = CurrencySwapScannerService;
+
+        const mockSettings = {
+            threshold_percent: minProfitPercent || 0.5,
+            max_trade_amount_usdt: maxTradeAmount || 5000
+        };
+
+        // Filter out XRP from tradable currencies (it's bridge only)
+        const tradableCurrencies = currencies.filter(c => c !== 'XRP');
+
+        // Calculate paths
+        const paths = await _calculateAllPaths.call(
+            CurrencySwapScannerService,
+            exchanges,
+            tradableCurrencies,
+            priceData,
+            mockSettings
+        );
+
+        systemLogger.trading('[TEST SCAN] Path calculation complete', {
+            pathsCalculated: paths.length
+        });
+
+        // Sort by profit
+        paths.sort((a, b) => b.profitPercent - a.profitPercent);
+        const bestPath = paths.length > 0 ? paths[0] : null;
+
+        const result = {
+            success: true,
+            opportunity: bestPath,
+            scannedPaths: paths.length,
+            totalPossiblePaths: exchanges.length * (exchanges.length - 1) * tradableCurrencies.length * (tradableCurrencies.length - 1),
+            isProfitable: bestPath ? bestPath.profitPercent > 0 : false,
+            meetsThreshold: bestPath ? bestPath.profitPercent >= minProfitPercent : false
+        };
+
+        if (bestPath) {
+            const profitStatus = bestPath.profitPercent > 0 ?
+                (result.meetsThreshold ? '✅ PROFITABLE' : '⚠️ BELOW THRESHOLD') :
+                '📉 LOSS';
+
+            systemLogger.trading(`[TEST SCAN] Best path: ${profitStatus}`, {
+                path: bestPath.id,
+                profit: bestPath.profitPercent.toFixed(4) + '%'
+            });
+        } else {
+            systemLogger.trading('[TEST SCAN] No paths could be calculated (missing price data)');
+        }
+
+        res.json({
+            success: true,
+            data: result
+        });
+
+    } catch (error) {
+        systemLogger.error('[TEST SCAN] Currency Swap realtime scan failed', {
+            error: error.message,
+            stack: error.stack
+        });
+
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
  * POST /api/v1/currency-swap/execute
  * Execute a currency swap opportunity (live trading)
  */

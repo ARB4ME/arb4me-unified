@@ -2959,10 +2959,27 @@
             document.getElementById('testScanRunTime').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
 
             try {
-                // Call Currency Swap scanner API (public endpoint - no credentials)
-                const response = await fetch(`${API_BASE}/scan?userId=${USER_ID}`, {
-                    method: 'GET',
-                    headers: {'Content-Type': 'application/json'}
+                // Get selected exchanges and currencies from Test Scan localStorage
+                const selectedExchanges = JSON.parse(localStorage.getItem('currencySwapTestScan_selectedExchanges') || '[]');
+                const selectedCurrencies = JSON.parse(localStorage.getItem('currencySwapTestScan_selectedCurrencies') || '[]');
+
+                if (selectedExchanges.length === 0 || selectedCurrencies.length === 0) {
+                    console.warn('❌ No exchanges or currencies selected for test scan');
+                    return;
+                }
+
+                console.log(`🔍 Scanning ${selectedExchanges.length} exchanges × ${selectedCurrencies.length} currencies`);
+
+                // Call Currency Swap realtime scanner API (public endpoint - uses cached prices)
+                const response = await fetch(`${API_BASE}/scan-realtime`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        exchanges: selectedExchanges,
+                        currencies: selectedCurrencies,
+                        minProfitPercent: config.minProfit || 0.5,
+                        maxTradeAmount: 5000
+                    })
                 });
 
                 if (!response.ok) {
