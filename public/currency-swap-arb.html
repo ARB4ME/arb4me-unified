@@ -3113,23 +3113,20 @@
                     const selectedExchanges = JSON.parse(localStorage.getItem('currencySwapTestScan_selectedExchanges') || '[]');
                     const selectedCurrencies = JSON.parse(localStorage.getItem('currencySwapTestScan_selectedCurrencies') || '[]');
 
+                    // Get available pairs from backend (ALL scanned paths, not just top 20)
+                    const availablePairs = result.data?.availablePairs || {};
+
+                    console.log(`📋 Available pairs from backend (${Object.keys(availablePairs).length} exchanges):`, availablePairs);
+
                     // Analyze which exchange-currency combinations have data
                     const exchangeCurrencyMatrix = {};
                     selectedExchanges.forEach(exchange => {
                         exchangeCurrencyMatrix[exchange] = {};
                         selectedCurrencies.forEach(currency => {
-                            exchangeCurrencyMatrix[exchange][currency] = false;
+                            // Check if this exchange-currency combo is in availablePairs
+                            exchangeCurrencyMatrix[exchange][currency] =
+                                availablePairs[exchange] && availablePairs[exchange].includes(currency);
                         });
-                    });
-
-                    // Mark which combinations appeared in opportunities
-                    opportunities.forEach(opp => {
-                        if (exchangeCurrencyMatrix[opp.sourceExchange]) {
-                            exchangeCurrencyMatrix[opp.sourceExchange][opp.sourceCurrency] = true;
-                        }
-                        if (exchangeCurrencyMatrix[opp.destExchange]) {
-                            exchangeCurrencyMatrix[opp.destExchange][opp.destCurrency] = true;
-                        }
                     });
 
                     // Per-Exchange Coverage

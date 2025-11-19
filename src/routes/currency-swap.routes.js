@@ -743,12 +743,35 @@ router.post('/scan-realtime', async (req, res) => {
         const topOpportunities = paths.slice(0, 20);
         const bestPath = paths.length > 0 ? paths[0] : null;
 
+        // Extract ALL exchange-currency combinations that had price data (from ALL paths, not just top 20)
+        const availablePairs = {};
+        paths.forEach(path => {
+            // Mark source exchange-currency as available
+            if (!availablePairs[path.sourceExchange]) {
+                availablePairs[path.sourceExchange] = new Set();
+            }
+            availablePairs[path.sourceExchange].add(path.sourceCurrency);
+
+            // Mark destination exchange-currency as available
+            if (!availablePairs[path.destExchange]) {
+                availablePairs[path.destExchange] = new Set();
+            }
+            availablePairs[path.destExchange].add(path.destCurrency);
+        });
+
+        // Convert Sets to Arrays for JSON serialization
+        const availablePairsArray = {};
+        Object.keys(availablePairs).forEach(exchange => {
+            availablePairsArray[exchange] = Array.from(availablePairs[exchange]);
+        });
+
         const result = {
             success: true,
             opportunity: bestPath, // Keep for backward compatibility
             opportunities: topOpportunities, // NEW: Top 20 opportunities
             scannedPaths: paths.length,
             totalPossiblePaths: exchanges.length * (exchanges.length - 1) * tradableCurrencies.length,
+            availablePairs: availablePairsArray, // NEW: All exchange-currency combos with data
             isProfitable: bestPath ? bestPath.profitPercent > 0 : false,
             meetsThreshold: bestPath ? bestPath.profitPercent >= minProfitPercent : false
         };
