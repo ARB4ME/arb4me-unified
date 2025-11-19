@@ -2998,52 +2998,80 @@
                     hasData: 'data' in result,
                     dataType: typeof result.data,
                     hasOpportunity: result.data ? ('opportunity' in result.data) : 'N/A',
-                    opportunityValue: result.data?.opportunity || 'missing'
+                    hasOpportunities: result.data ? ('opportunities' in result.data) : 'N/A',
+                    opportunitiesCount: result.data?.opportunities?.length || 0
                 });
 
-                // Extract opportunity from response
-                const opportunity = result.data?.opportunity || result.opportunity || null;
+                // Extract top 20 opportunities from response (NEW: now processing array instead of single)
+                const opportunities = result.data?.opportunities || [];
+                const bestOpportunity = result.data?.opportunity || null;
 
                 // Enhanced logging - show what was actually found (including negative/losses)
-                if (opportunity) {
-                    const profit = opportunity.profitPercent;
-                    const isProfitable = profit > 0;
-                    const meetsThreshold = profit >= config.minProfit;
+                if (opportunities.length > 0) {
+                    console.log(`📊 Backend found ${opportunities.length} opportunities (top 20):`);
 
-                    // Show profit/loss with clear indicators
-                    const profitIndicator = isProfitable ? '💰 PROFIT' : '📉 LOSS';
-                    const profitColor = isProfitable ? '✅' : '🔴';
+                    let storedCount = 0;
+                    let profitableCount = 0;
+                    let lossCount = 0;
+                    let belowThresholdCount = 0;
 
-                    console.log('📊 Backend found best opportunity:', {
-                        route: `${opportunity.sourceExchange} → ${opportunity.destExchange}`,
-                        pair: `${opportunity.sourceCurrency} → ${opportunity.destCurrency}`,
-                        result: `${profitIndicator} ${profit.toFixed(4)}%`,
-                        meetsThreshold: meetsThreshold ? '✅ YES' : '❌ NO',
-                        threshold: `${config.minProfit}%`,
-                        status: isProfitable ? (meetsThreshold ? 'Will store ✅' : 'Profitable but below threshold ⚠️') : 'Would lose money 🔴'
+                    // Process all top 20 opportunities
+                    for (const opportunity of opportunities) {
+                        const profit = opportunity.profitPercent;
+                        const isProfitable = profit > 0;
+                        const meetsThreshold = profit >= config.minProfit;
+
+                        if (isProfitable) {
+                            profitableCount++;
+                            if (meetsThreshold) {
+                                storedCount++;
+                                storeCurrencySwapOpportunity(opportunity);
+                                console.log(`✅ STORED #${storedCount}: ${opportunity.sourceExchange} → ${opportunity.destExchange} | ${opportunity.sourceCurrency} | ${profit.toFixed(4)}%`);
+                            } else {
+                                belowThresholdCount++;
+                                console.log(`⚠️ SKIP: ${opportunity.sourceExchange} → ${opportunity.destExchange} | ${opportunity.sourceCurrency} | ${profit.toFixed(4)}% (below ${config.minProfit}%)`);
+                            }
+                        } else {
+                            lossCount++;
+                            console.log(`📉 LOSS: ${opportunity.sourceExchange} → ${opportunity.destExchange} | ${opportunity.sourceCurrency} | ${profit.toFixed(4)}%`);
+                        }
+                    }
+
+                    // Summary of top 20
+                    console.log(`═════════════════════════════════════════════════════════════`);
+                    console.log(`📊 TOP 20 SUMMARY:`, {
+                        total: opportunities.length,
+                        profitable: profitableCount,
+                        meetsThreshold: storedCount,
+                        belowThreshold: belowThresholdCount,
+                        losses: lossCount,
+                        profitRange: opportunities.length > 0 ?
+                            `${opportunities[opportunities.length - 1].profitPercent.toFixed(4)}% to ${opportunities[0].profitPercent.toFixed(4)}%` :
+                            'N/A'
                     });
+                    console.log(`✅ Stored ${storedCount} opportunities that meet ${config.minProfit}% threshold`);
+                    console.log(`═════════════════════════════════════════════════════════════`);
 
-                    if (meetsThreshold) {
-                        console.log(`✅ STORING - Profit ${profit.toFixed(4)}% meets threshold ${config.minProfit}%`);
+                    // Update UI with best opportunity info
+                    if (bestOpportunity) {
+                        const profit = bestOpportunity.profitPercent;
+                        const isProfitable = profit > 0;
+                        const meetsThreshold = profit >= config.minProfit;
 
-                        // Update current scan info
-                        document.getElementById('testScanCurrentInfo').textContent =
-                            `${opportunity.sourceExchange} → ${opportunity.destExchange} | ` +
-                            `${opportunity.sourceCurrency} → ${opportunity.destCurrency} | ` +
-                            `Profit: ${profit.toFixed(2)}%`;
-
-                        // Store opportunity
-                        storeCurrencySwapOpportunity(opportunity);
-                    } else if (isProfitable) {
-                        console.log(`⏭️ SKIPPING - Profit ${profit.toFixed(4)}% is profitable but below threshold ${config.minProfit}%`);
-                        document.getElementById('testScanCurrentInfo').textContent =
-                            `Best: ${opportunity.sourceExchange} → ${opportunity.destExchange} | ${opportunity.sourceCurrency} → ${opportunity.destCurrency} | ` +
-                            `+${profit.toFixed(4)}% (below ${config.minProfit}% threshold)`;
-                    } else {
-                        console.log(`🔴 LOSS - Would lose ${Math.abs(profit).toFixed(4)}% on ${opportunity.sourceExchange} → ${opportunity.destExchange} (${opportunity.sourceCurrency}/${opportunity.destCurrency})`);
-                        document.getElementById('testScanCurrentInfo').textContent =
-                            `Best: ${opportunity.sourceExchange} → ${opportunity.destExchange} | ${opportunity.sourceCurrency} → ${opportunity.destCurrency} | ` +
-                            `${profit.toFixed(4)}% LOSS - Not profitable`;
+                        if (meetsThreshold) {
+                            document.getElementById('testScanCurrentInfo').textContent =
+                                `Best: ${bestOpportunity.sourceExchange} → ${bestOpportunity.destExchange} | ` +
+                                `${bestOpportunity.sourceCurrency} | ` +
+                                `${profit.toFixed(4)}% | Stored ${storedCount}/20`;
+                        } else if (isProfitable) {
+                            document.getElementById('testScanCurrentInfo').textContent =
+                                `Best: ${bestOpportunity.sourceExchange} → ${bestOpportunity.destExchange} | ${bestOpportunity.sourceCurrency} | ` +
+                                `+${profit.toFixed(4)}% (below ${config.minProfit}% threshold) | Stored ${storedCount}/20`;
+                        } else {
+                            document.getElementById('testScanCurrentInfo').textContent =
+                                `Best: ${bestOpportunity.sourceExchange} → ${bestOpportunity.destExchange} | ${bestOpportunity.sourceCurrency} | ` +
+                                `${profit.toFixed(4)}% LOSS | Stored ${storedCount}/20`;
+                        }
                     }
                 } else {
                     console.log('❌ Backend returned no opportunities at all (this is unusual - backend should always return best path)');

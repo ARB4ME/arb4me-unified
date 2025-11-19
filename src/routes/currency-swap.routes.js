@@ -736,15 +736,19 @@ router.post('/scan-realtime', async (req, res) => {
             pathsCalculated: paths.length
         });
 
-        // Sort by profit
+        // Sort by profit (highest first)
         paths.sort((a, b) => b.profitPercent - a.profitPercent);
+
+        // Get top 20 opportunities
+        const topOpportunities = paths.slice(0, 20);
         const bestPath = paths.length > 0 ? paths[0] : null;
 
         const result = {
             success: true,
-            opportunity: bestPath,
+            opportunity: bestPath, // Keep for backward compatibility
+            opportunities: topOpportunities, // NEW: Top 20 opportunities
             scannedPaths: paths.length,
-            totalPossiblePaths: exchanges.length * (exchanges.length - 1) * tradableCurrencies.length * (tradableCurrencies.length - 1),
+            totalPossiblePaths: exchanges.length * (exchanges.length - 1) * tradableCurrencies.length,
             isProfitable: bestPath ? bestPath.profitPercent > 0 : false,
             meetsThreshold: bestPath ? bestPath.profitPercent >= minProfitPercent : false
         };
@@ -757,6 +761,10 @@ router.post('/scan-realtime', async (req, res) => {
             systemLogger.trading(`[TEST SCAN] Best path: ${profitStatus}`, {
                 path: bestPath.id,
                 profit: bestPath.profitPercent.toFixed(4) + '%'
+            });
+
+            systemLogger.trading(`[TEST SCAN] Returning top ${topOpportunities.length} opportunities`, {
+                profitRange: `${topOpportunities[topOpportunities.length-1].profitPercent.toFixed(4)}% to ${topOpportunities[0].profitPercent.toFixed(4)}%`
             });
         } else {
             systemLogger.trading('[TEST SCAN] No paths could be calculated (missing price data)');
