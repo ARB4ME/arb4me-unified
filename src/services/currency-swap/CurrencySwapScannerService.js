@@ -54,30 +54,54 @@ class CurrencySwapScannerService {
                 settings
             );
 
+            // Calculate total possible paths
+            const totalPossiblePaths = selectedExchanges.length * (selectedExchanges.length - 1) * tradableCurrencies.length * (tradableCurrencies.length - 1);
+
             if (paths.length === 0) {
-                logger.info('No profitable paths found');
+                logger.warn('[SCANNER] No paths could be calculated - likely missing price data');
                 return {
                     success: true,
                     opportunity: null,
-                    message: 'No profitable paths found',
-                    scannedPaths: 0
+                    message: 'No paths could be calculated (missing price data)',
+                    scannedPaths: 0,
+                    totalPossiblePaths
                 };
             }
 
-            // 4. Sort by profit and get best one
+            // 4. Sort by profit and get best one (even if it's a loss)
             paths.sort((a, b) => b.profitPercent - a.profitPercent);
             const bestPath = paths[0];
 
-            logger.info(`Best opportunity found: ${bestPath.profitPercent.toFixed(2)}% profit`, {
-                path: bestPath.id,
-                profit: bestPath.profitAmount
-            });
+            // Check if best path is profitable
+            const isProfitable = bestPath.profitPercent > 0;
+            const meetsThreshold = bestPath.profitPercent >= (settings.threshold_percent || 0.5);
+
+            if (isProfitable && meetsThreshold) {
+                logger.info(`[SCANNER] ✅ Best opportunity PROFITABLE and meets threshold: ${bestPath.profitPercent.toFixed(4)}%`, {
+                    path: bestPath.id,
+                    profit: bestPath.profitAmount,
+                    threshold: settings.threshold_percent || 0.5
+                });
+            } else if (isProfitable) {
+                logger.info(`[SCANNER] ⚠️ Best opportunity profitable but BELOW threshold: ${bestPath.profitPercent.toFixed(4)}%`, {
+                    path: bestPath.id,
+                    profit: bestPath.profitAmount,
+                    threshold: settings.threshold_percent || 0.5
+                });
+            } else {
+                logger.warn(`[SCANNER] 📉 Best path is a LOSS: ${bestPath.profitPercent.toFixed(4)}%`, {
+                    path: bestPath.id,
+                    loss: bestPath.profitAmount
+                });
+            }
 
             return {
                 success: true,
                 opportunity: bestPath,
                 scannedPaths: paths.length,
-                totalPaths: selectedExchanges.length * (selectedExchanges.length - 1) * tradableCurrencies.length * (tradableCurrencies.length - 1)
+                totalPossiblePaths,
+                isProfitable,
+                meetsThreshold
             };
 
         } catch (error) {
@@ -146,7 +170,9 @@ class CurrencySwapScannerService {
      * @private
      */
     static async _calculateAllPaths(exchanges, currencies, priceData, settings) {
-        const profitablePaths = [];
+        const allPaths = [];
+        let calculatedCount = 0;
+        let skippedNoPriceData = 0;
 
         // Get fee structure (simplified - can be enhanced per exchange)
         const defaultFees = {
@@ -154,6 +180,8 @@ class CurrencySwapScannerService {
             takerFee: 0.001,  // 0.1%
             withdrawalFee: 0.1 // 0.1 XRP flat fee
         };
+
+        logger.info(`[SCANNER] Starting path calculation for ${exchanges.length} exchanges and ${currencies.length} currencies`);
 
         for (const sourceExchange of exchanges) {
             for (const destExchange of exchanges) {
@@ -166,10 +194,12 @@ class CurrencySwapScannerService {
                         // Check if we have prices
                         if (!priceData[sourceExchange]?.[sourceCurrency] ||
                             !priceData[destExchange]?.[destCurrency]) {
+                            skippedNoPriceData++;
+                            logger.debug(`[SCANNER] Skipping path ${sourceExchange}/${sourceCurrency} -> ${destExchange}/${destCurrency} - no price data`);
                             continue;
                         }
 
-                        // Calculate path profit
+                        // Calculate path profit (ALWAYS - don't filter here)
                         const pathProfit = this._calculatePathProfit(
                             sourceExchange,
                             sourceCurrency,
@@ -180,24 +210,39 @@ class CurrencySwapScannerService {
                             settings.max_trade_amount_usdt || 5000
                         );
 
-                        // Check if profitable above threshold
-                        if (pathProfit.profitPercent >= (settings.threshold_percent || 0.5)) {
-                            profitablePaths.push({
-                                id: `${sourceExchange}-${sourceCurrency}-${destExchange}-${destCurrency}`,
-                                sourceExchange,
-                                sourceCurrency,
-                                destExchange,
-                                destCurrency,
-                                bridgeAsset: 'XRP',
-                                ...pathProfit
-                            });
+                        calculatedCount++;
+
+                        // Add ALL paths to array (including losses)
+                        const path = {
+                            id: `${sourceExchange}-${sourceCurrency}-${destExchange}-${destCurrency}`,
+                            sourceExchange,
+                            sourceCurrency,
+                            destExchange,
+                            destCurrency,
+                            bridgeAsset: 'XRP',
+                            ...pathProfit
+                        };
+
+                        allPaths.push(path);
+
+                        // Log notable paths (profitable or significant losses)
+                        if (pathProfit.profitPercent > 0) {
+                            logger.info(`[SCANNER] 💰 PROFIT: ${path.id} = +${pathProfit.profitPercent.toFixed(4)}%`);
+                        } else if (pathProfit.profitPercent < -1) {
+                            logger.info(`[SCANNER] 📉 LOSS: ${path.id} = ${pathProfit.profitPercent.toFixed(4)}%`);
                         }
                     }
                 }
             }
         }
 
-        return profitablePaths;
+        logger.info(`[SCANNER] Path calculation complete:`, {
+            totalCalculated: calculatedCount,
+            skippedNoPriceData,
+            pathsReturned: allPaths.length
+        });
+
+        return allPaths;
     }
 
     /**
