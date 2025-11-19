@@ -14,6 +14,13 @@ class PriceCacheService {
         this.isRunning = false;
         this.intervalId = null;
 
+        // Target currencies for Currency Swap (XRP pairs)
+        this.currencySwapTargets = [
+            'USDT', 'USDC', 'USD', 'EUR', 'GBP', 'AUD', 'ZAR', 'BTC', 'ETH',
+            'BRL', 'TRY', 'UAH', 'NGN', 'RUB', 'JPY', 'CAD', 'CHF', 'AED',
+            'DAI', 'TUSD', 'PAX', 'BUSD'
+        ];
+
         // Exchange configurations
         this.exchanges = {
             binance: {
@@ -272,6 +279,28 @@ class PriceCacheService {
     }
 
     /**
+     * Check if a trading pair should be cached for Currency Swap
+     * Returns true if it's either a USDT pair (for Transfer Arb) or an XRP pair with target currency
+     */
+    shouldCachePair(symbol) {
+        // Cache all USDT pairs for Transfer Arb (backward compatibility)
+        if (symbol.endsWith('USDT')) {
+            return true;
+        }
+
+        // Cache XRP pairs with target currencies for Currency Swap
+        if (symbol.startsWith('XRP')) {
+            for (const currency of this.currencySwapTargets) {
+                if (symbol === `XRP${currency}`) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Get fiat-crypto pair price from specific exchange
      * Returns null if pair not available
      */
@@ -486,11 +515,24 @@ class PriceCacheService {
         const data = await response.json();
 
         // Convert array to object { symbol: price }
+        // Cache USDT pairs (Transfer Arb) and XRP pairs (Currency Swap)
         const prices = {};
+        let xrpPairCount = 0;
+
         for (const item of data) {
-            if (item.symbol.endsWith('USDT')) {
+            if (this.shouldCachePair(item.symbol)) {
                 prices[item.symbol] = parseFloat(item.price);
+
+                // Log XRP pairs for Currency Swap
+                if (item.symbol.startsWith('XRP') && !item.symbol.endsWith('USDT')) {
+                    xrpPairCount++;
+                    systemLogger.trading(`[PRICE CACHE] Binance cached ${item.symbol}: ${item.price}`);
+                }
             }
+        }
+
+        if (xrpPairCount > 0) {
+            systemLogger.trading(`[PRICE CACHE] Binance cached ${xrpPairCount} XRP pairs for Currency Swap`);
         }
 
         return prices;
@@ -527,10 +569,12 @@ class PriceCacheService {
     }
 
     /**
-     * Convert Kraken pair format to standard USDT pairs
+     * Convert Kraken pair format to standard format
+     * Now includes XRP pairs with multiple currencies for Currency Swap
      */
     krakenPairToStandard(krakenPair) {
         const mapping = {
+            // Standard USDT pairs for Transfer Arb
             'XXBTZUSD': 'BTCUSDT',
             'XETHZUSD': 'ETHUSDT',
             'XRPUSD': 'XRPUSDT',
@@ -539,7 +583,21 @@ class PriceCacheService {
             'TRXUSD': 'TRXUSDT',
             'ADAUSD': 'ADAUSDT',
             'DOTUSD': 'DOTUSDT',
-            'USDTZUSD': 'USDTUSDT'
+            'USDTZUSD': 'USDTUSDT',
+
+            // XRP pairs with multiple currencies for Currency Swap
+            'XXRPZUSD': 'XRPUSD',      // XRP/USD
+            'XRPUSDT': 'XRPUSDT',      // XRP/USDT
+            'XXRPZEUR': 'XRPEUR',      // XRP/EUR
+            'XRPEUR': 'XRPEUR',        // XRP/EUR alternative
+            'XXRPZGBP': 'XRPGBP',      // XRP/GBP
+            'XRPGBP': 'XRPGBP',        // XRP/GBP alternative
+            'XXRPZAUD': 'XRPAUD',      // XRP/AUD
+            'XRPAUD': 'XRPAUD',        // XRP/AUD alternative
+            'XXRPZJPY': 'XRPJPY',      // XRP/JPY
+            'XXRPZCAD': 'XRPCAD',      // XRP/CAD
+            'XXRPXXBT': 'XRPBTC',      // XRP/BTC
+            'XXRPXETH': 'XRPETH'       // XRP/ETH
         };
 
         return mapping[krakenPair] || null;
