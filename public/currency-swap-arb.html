@@ -3491,7 +3491,7 @@
                         avgProfit: stats.profits.reduce((a, b) => a + b, 0) / stats.profits.length
                     }))
                     .sort((a, b) => b.avgProfit - a.avgProfit)
-                    .slice(0, 10);
+                    .slice(0, 20);
 
                 let pairsHTML = '';
                 topPairs.forEach(pair => {
@@ -3523,7 +3523,7 @@
                         avgProfit: stats.profits.reduce((a, b) => a + b, 0) / stats.profits.length
                     }))
                     .sort((a, b) => b.avgProfit - a.avgProfit)
-                    .slice(0, 10);
+                    .slice(0, 20);
 
                 let exchangesHTML = '';
                 topExchangePairs.forEach(pair => {
