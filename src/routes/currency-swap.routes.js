@@ -636,27 +636,52 @@ router.post('/scan-realtime', async (req, res) => {
             minProfit: minProfitPercent
         });
 
-        // Import price cache service
-        const PriceUpdateService = require('../services/priceUpdateService');
+        // Import price cache service (singleton instance)
+        const priceCacheService = require('../services/priceCacheService');
 
         // Get cached prices for all exchanges
         const priceData = {};
         for (const exchange of exchanges) {
             const exchangeLower = exchange.toLowerCase();
-            const prices = PriceUpdateService.getExchangePrices(exchangeLower);
+
+            // Get all cached prices for this exchange
+            const prices = priceCacheService.getPrices(exchangeLower);
 
             if (prices && Object.keys(prices).length > 0) {
                 priceData[exchange] = {};
 
                 // Extract XRP pairs for requested currencies
+                // Note: priceCacheService stores prices as objects with bid/ask or as simple values
                 for (const currency of currencies) {
-                    const xrpPair = `XRP/${currency}`;
-                    if (prices[xrpPair]) {
-                        priceData[exchange][currency] = {
-                            bid: parseFloat(prices[xrpPair].bid || prices[xrpPair].bidPrice || 0),
-                            ask: parseFloat(prices[xrpPair].ask || prices[xrpPair].askPrice || 0),
-                            last: parseFloat(prices[xrpPair].last || prices[xrpPair].lastPrice || 0)
-                        };
+                    // Try different pair formats that might be in cache
+                    const possiblePairs = [
+                        `XRP${currency}`,      // XRPUSDT
+                        `XRP/${currency}`,     // XRP/USDT
+                        `XRP-${currency}`      // XRP-USDT
+                    ];
+
+                    for (const pair of possiblePairs) {
+                        if (prices[pair]) {
+                            const price = prices[pair];
+
+                            // Handle different price formats
+                            if (typeof price === 'object') {
+                                priceData[exchange][currency] = {
+                                    bid: parseFloat(price.bid || price.bidPrice || price.buy || 0),
+                                    ask: parseFloat(price.ask || price.askPrice || price.sell || 0),
+                                    last: parseFloat(price.last || price.lastPrice || price.price || 0)
+                                };
+                            } else {
+                                // Simple price value - use it for both bid and ask
+                                const priceVal = parseFloat(price);
+                                priceData[exchange][currency] = {
+                                    bid: priceVal,
+                                    ask: priceVal,
+                                    last: priceVal
+                                };
+                            }
+                            break; // Found the pair, stop trying other formats
+                        }
                     }
                 }
             }
