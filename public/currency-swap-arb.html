@@ -2973,6 +2973,17 @@
 
                 const result = await response.json();
 
+                // DEBUG: Show full backend response to understand structure
+                console.log('🔍 RAW Backend Response:', JSON.stringify(result, null, 2));
+                console.log('📦 Response structure:', {
+                    hasSuccess: 'success' in result,
+                    successValue: result.success,
+                    hasData: 'data' in result,
+                    dataType: typeof result.data,
+                    hasOpportunity: result.data ? ('opportunity' in result.data) : 'N/A',
+                    opportunityValue: result.data?.opportunity || 'missing'
+                });
+
                 // Extract opportunity from response
                 const opportunity = result.data?.opportunity || result.opportunity || null;
 
