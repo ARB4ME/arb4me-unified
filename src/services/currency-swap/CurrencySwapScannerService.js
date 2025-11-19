@@ -124,12 +124,30 @@ class CurrencySwapScannerService {
             ? 'https://arb4me-unified-production.up.railway.app'
             : 'http://localhost:3000';
 
+        // Debug statistics
+        const fetchStats = {
+            totalAttempts: 0,
+            successful: 0,
+            failedNoData: 0,
+            failedInvalidPrice: 0,
+            failedError: 0,
+            byExchange: {}
+        };
+
+        logger.info(`[PRICE FETCH] Starting price fetch for ${exchanges.length} exchanges × ${currencies.length} currencies = ${exchanges.length * currencies.length} pairs`);
+
         for (const exchange of exchanges) {
             priceData[exchange] = {};
+            fetchStats.byExchange[exchange] = {
+                successful: [],
+                failed: []
+            };
 
             for (const currency of currencies) {
+                fetchStats.totalAttempts++;
+                const pair = `XRP/${currency}`;
+
                 try {
-                    const pair = `XRP/${currency}`;
                     const exchangeLower = exchange.toLowerCase();
 
                     const response = await fetch(`${baseURL}/api/v1/trading/${exchangeLower}/ticker`, {
@@ -143,24 +161,58 @@ class CurrencySwapScannerService {
                     if (data.success && data.data) {
                         // Extract bid/ask prices (format varies by exchange)
                         const price = data.data;
-                        priceData[exchange][currency] = {
-                            bid: parseFloat(price.bid || price.bidPrice || price.buy || 0),
-                            ask: parseFloat(price.ask || price.askPrice || price.sell || 0),
-                            last: parseFloat(price.last || price.lastPrice || price.price || 0)
-                        };
+                        const bid = parseFloat(price.bid || price.bidPrice || price.buy || 0);
+                        const ask = parseFloat(price.ask || price.askPrice || price.sell || 0);
+                        const last = parseFloat(price.last || price.lastPrice || price.price || 0);
 
-                        logger.info(`${exchange} ${pair}: bid=${priceData[exchange][currency].bid}, ask=${priceData[exchange][currency].ask}`);
+                        // Validate prices are non-zero
+                        if (bid > 0 && ask > 0) {
+                            priceData[exchange][currency] = { bid, ask, last };
+                            fetchStats.successful++;
+                            fetchStats.byExchange[exchange].successful.push(currency);
+                            logger.info(`[PRICE FETCH] ✅ ${exchange} ${pair}: bid=${bid.toFixed(6)}, ask=${ask.toFixed(6)}`);
+                        } else {
+                            fetchStats.failedInvalidPrice++;
+                            fetchStats.byExchange[exchange].failed.push(`${currency} (zero prices: bid=${bid}, ask=${ask})`);
+                            logger.warn(`[PRICE FETCH] ⚠️ ${exchange} ${pair}: Invalid prices (bid=${bid}, ask=${ask})`);
+                        }
                     } else {
-                        logger.warn(`No price data for ${exchange} ${pair}`);
+                        fetchStats.failedNoData++;
+                        fetchStats.byExchange[exchange].failed.push(`${currency} (no data: ${data.error || 'unknown'})`);
+                        logger.warn(`[PRICE FETCH] ❌ ${exchange} ${pair}: No data returned (${data.error || 'no error message'})`);
                     }
 
                 } catch (error) {
-                    logger.warn(`Failed to fetch ${exchange} XRP/${currency} price`, {
-                        error: error.message
-                    });
+                    fetchStats.failedError++;
+                    fetchStats.byExchange[exchange].failed.push(`${currency} (error: ${error.message})`);
+                    logger.warn(`[PRICE FETCH] ❌ ${exchange} ${pair}: Error - ${error.message}`);
                 }
             }
         }
+
+        // Log detailed summary
+        logger.info(`[PRICE FETCH] ═══════════════════════════════════════════════════════`);
+        logger.info(`[PRICE FETCH] SUMMARY:`, {
+            totalAttempts: fetchStats.totalAttempts,
+            successful: fetchStats.successful,
+            failedNoData: fetchStats.failedNoData,
+            failedInvalidPrice: fetchStats.failedInvalidPrice,
+            failedError: fetchStats.failedError,
+            successRate: `${((fetchStats.successful / fetchStats.totalAttempts) * 100).toFixed(1)}%`
+        });
+
+        logger.info(`[PRICE FETCH] ═══════════════════════════════════════════════════════`);
+        logger.info(`[PRICE FETCH] BY EXCHANGE:`);
+        for (const exchange of exchanges) {
+            const stats = fetchStats.byExchange[exchange];
+            logger.info(`[PRICE FETCH] ${exchange}:`, {
+                successful: stats.successful.length,
+                failed: stats.failed.length,
+                successfulPairs: stats.successful.join(', ') || 'none',
+                failedPairs: stats.failed.length > 0 ? stats.failed : 'none'
+            });
+        }
+        logger.info(`[PRICE FETCH] ═══════════════════════════════════════════════════════`);
 
         return priceData;
     }
