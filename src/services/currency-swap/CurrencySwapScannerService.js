@@ -241,7 +241,10 @@ class CurrencySwapScannerService {
 
                 for (const sourceCurrency of currencies) {
                     for (const destCurrency of currencies) {
-                        if (sourceCurrency === destCurrency) continue;
+                        // IMPORTANT: For Currency Swap, source and dest currencies must match
+                        // We're arbitraging the XRP rate between exchanges, not converting currencies
+                        // Example: Buy XRP with USDT on Binance, sell XRP for USDT on Kraken
+                        if (sourceCurrency !== destCurrency) continue;
 
                         // Check if we have prices
                         if (!priceData[sourceExchange]?.[sourceCurrency] ||
