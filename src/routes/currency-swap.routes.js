@@ -647,6 +647,13 @@ router.post('/scan-realtime', async (req, res) => {
             // Get all cached prices for this exchange
             const prices = priceCacheService.getPrices(exchangeLower);
 
+            // DEBUG: Show what's in cache for this exchange
+            systemLogger.trading(`[TEST SCAN DEBUG] ${exchange} cache check:`, {
+                hasPrices: !!prices,
+                priceCount: prices ? Object.keys(prices).length : 0,
+                sampleKeys: prices ? Object.keys(prices).slice(0, 5) : []
+            });
+
             if (prices && Object.keys(prices).length > 0) {
                 priceData[exchange] = {};
 
@@ -663,6 +670,12 @@ router.post('/scan-realtime', async (req, res) => {
                     for (const pair of possiblePairs) {
                         if (prices[pair]) {
                             const price = prices[pair];
+
+                            // DEBUG: Found XRP pair
+                            systemLogger.trading(`[TEST SCAN DEBUG] ✅ Found ${exchange} ${pair}:`, {
+                                priceType: typeof price,
+                                priceValue: price
+                            });
 
                             // Handle different price formats
                             if (typeof price === 'object') {
@@ -687,8 +700,16 @@ router.post('/scan-realtime', async (req, res) => {
             }
         }
 
-        systemLogger.trading('[TEST SCAN] Fetched cached prices', {
-            exchangesWithData: Object.keys(priceData).length
+        // DEBUG: Show final price data summary
+        const priceDataSummary = {};
+        for (const [exch, currencies] of Object.entries(priceData)) {
+            priceDataSummary[exch] = Object.keys(currencies);
+        }
+
+        systemLogger.trading('[TEST SCAN] Fetched cached prices - SUMMARY:', {
+            exchangesWithData: Object.keys(priceData).length,
+            totalExchangesRequested: exchanges.length,
+            priceDataSummary
         });
 
         // Calculate all possible paths using cached prices
