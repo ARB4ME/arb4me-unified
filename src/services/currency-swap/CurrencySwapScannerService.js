@@ -199,6 +199,22 @@ class CurrencySwapScannerService {
                             continue;
                         }
 
+                        // Validate prices are valid numbers > 0
+                        const sourcePrice = priceData[sourceExchange][sourceCurrency];
+                        const destPrice = priceData[destExchange][destCurrency];
+
+                        if (!sourcePrice.ask || sourcePrice.ask <= 0 || !sourcePrice.bid || sourcePrice.bid <= 0) {
+                            skippedNoPriceData++;
+                            logger.debug(`[SCANNER] Skipping path ${sourceExchange}/${sourceCurrency} - invalid source price (ask: ${sourcePrice.ask}, bid: ${sourcePrice.bid})`);
+                            continue;
+                        }
+
+                        if (!destPrice.ask || destPrice.ask <= 0 || !destPrice.bid || destPrice.bid <= 0) {
+                            skippedNoPriceData++;
+                            logger.debug(`[SCANNER] Skipping path ${destExchange}/${destCurrency} - invalid dest price (ask: ${destPrice.ask}, bid: ${destPrice.bid})`);
+                            continue;
+                        }
+
                         // Calculate path profit (ALWAYS - don't filter here)
                         const pathProfit = this._calculatePathProfit(
                             sourceExchange,
@@ -250,41 +266,128 @@ class CurrencySwapScannerService {
      * @private
      */
     static _calculatePathProfit(sourceExchange, sourceCurrency, destExchange, destCurrency, priceData, fees, tradeAmount) {
-        // Input amount in source currency (e.g., 1000 USD)
-        const inputAmount = tradeAmount;
+        try {
+            // Input amount in source currency (e.g., 1000 USD)
+            const inputAmount = tradeAmount;
 
-        // Leg 1: Buy XRP with source currency on source exchange
-        const sourcePrice = priceData[sourceExchange][sourceCurrency];
-        const xrpBought = (inputAmount / sourcePrice.ask) * (1 - fees.takerFee);
+            // Leg 1: Buy XRP with source currency on source exchange
+            const sourcePrice = priceData[sourceExchange][sourceCurrency];
 
-        // Leg 2: Withdraw XRP (flat fee)
-        const xrpAfterWithdrawal = xrpBought - fees.withdrawalFee;
-
-        if (xrpAfterWithdrawal <= 0) {
-            return { profitPercent: -100, profitAmount: -inputAmount };
-        }
-
-        // Leg 3: Sell XRP for dest currency on dest exchange
-        const destPrice = priceData[destExchange][destCurrency];
-        const outputAmount = (xrpAfterWithdrawal * destPrice.bid) * (1 - fees.takerFee);
-
-        // Calculate profit
-        const profitAmount = outputAmount - inputAmount;
-        const profitPercent = (profitAmount / inputAmount) * 100;
-
-        return {
-            profitPercent,
-            profitAmount,
-            inputAmount,
-            outputAmount,
-            xrpBought,
-            xrpAfterWithdrawal,
-            fees: {
-                leg1Fee: inputAmount * fees.takerFee,
-                withdrawalFee: fees.withdrawalFee,
-                leg3Fee: (xrpAfterWithdrawal * destPrice.bid) * fees.takerFee
+            // Safety check: ensure ask price is valid
+            if (!sourcePrice || !sourcePrice.ask || sourcePrice.ask <= 0) {
+                logger.warn(`[SCANNER] Invalid source ask price for ${sourceExchange}/${sourceCurrency}`);
+                return {
+                    profitPercent: -100,
+                    profitAmount: -inputAmount,
+                    inputAmount,
+                    outputAmount: 0,
+                    xrpBought: 0,
+                    xrpAfterWithdrawal: 0,
+                    fees: { leg1Fee: 0, withdrawalFee: fees.withdrawalFee, leg3Fee: 0 }
+                };
             }
-        };
+
+            const xrpBought = (inputAmount / sourcePrice.ask) * (1 - fees.takerFee);
+
+            // Leg 2: Withdraw XRP (flat fee)
+            const xrpAfterWithdrawal = xrpBought - fees.withdrawalFee;
+
+            if (xrpAfterWithdrawal <= 0) {
+                return {
+                    profitPercent: -100,
+                    profitAmount: -inputAmount,
+                    inputAmount,
+                    outputAmount: 0,
+                    xrpBought,
+                    xrpAfterWithdrawal: 0,
+                    fees: {
+                        leg1Fee: inputAmount * fees.takerFee,
+                        withdrawalFee: fees.withdrawalFee,
+                        leg3Fee: 0
+                    }
+                };
+            }
+
+            // Leg 3: Sell XRP for dest currency on dest exchange
+            const destPrice = priceData[destExchange][destCurrency];
+
+            // Safety check: ensure bid price is valid
+            if (!destPrice || !destPrice.bid || destPrice.bid <= 0) {
+                logger.warn(`[SCANNER] Invalid dest bid price for ${destExchange}/${destCurrency}`);
+                return {
+                    profitPercent: -100,
+                    profitAmount: -inputAmount,
+                    inputAmount,
+                    outputAmount: 0,
+                    xrpBought,
+                    xrpAfterWithdrawal,
+                    fees: {
+                        leg1Fee: inputAmount * fees.takerFee,
+                        withdrawalFee: fees.withdrawalFee,
+                        leg3Fee: 0
+                    }
+                };
+            }
+
+            const outputAmount = (xrpAfterWithdrawal * destPrice.bid) * (1 - fees.takerFee);
+
+            // Calculate profit
+            const profitAmount = outputAmount - inputAmount;
+            const profitPercent = (profitAmount / inputAmount) * 100;
+
+            // Final safety check for NaN values
+            if (isNaN(profitPercent) || isNaN(profitAmount) || !isFinite(profitPercent) || !isFinite(profitAmount)) {
+                logger.error(`[SCANNER] Calculation resulted in invalid values for ${sourceExchange}->${destExchange}`, {
+                    profitPercent,
+                    profitAmount,
+                    xrpBought,
+                    outputAmount
+                });
+                return {
+                    profitPercent: -100,
+                    profitAmount: -inputAmount,
+                    inputAmount,
+                    outputAmount: 0,
+                    xrpBought: 0,
+                    xrpAfterWithdrawal: 0,
+                    fees: { leg1Fee: 0, withdrawalFee: fees.withdrawalFee, leg3Fee: 0 }
+                };
+            }
+
+            return {
+                profitPercent,
+                profitAmount,
+                inputAmount,
+                outputAmount,
+                xrpBought,
+                xrpAfterWithdrawal,
+                fees: {
+                    leg1Fee: inputAmount * fees.takerFee,
+                    withdrawalFee: fees.withdrawalFee,
+                    leg3Fee: (xrpAfterWithdrawal * destPrice.bid) * fees.takerFee
+                }
+            };
+
+        } catch (error) {
+            logger.error(`[SCANNER] Error calculating path profit`, {
+                sourceExchange,
+                sourceCurrency,
+                destExchange,
+                destCurrency,
+                error: error.message
+            });
+
+            // Return safe default values
+            return {
+                profitPercent: -100,
+                profitAmount: -tradeAmount,
+                inputAmount: tradeAmount,
+                outputAmount: 0,
+                xrpBought: 0,
+                xrpAfterWithdrawal: 0,
+                fees: { leg1Fee: 0, withdrawalFee: fees.withdrawalFee, leg3Fee: 0 }
+            };
+        }
     }
 }
 
