@@ -621,8 +621,9 @@ class PriceCacheService {
 
         const prices = {};
         for (const ticker of data.data) {
-            if (ticker.instId.endsWith('-USDT')) {
-                const symbol = ticker.instId.replace('-', '');
+            // OKX uses format like XRP-USDT, convert to XRPUSDT
+            const symbol = ticker.instId.replace('-', '');
+            if (this.shouldCachePair(symbol)) {
                 prices[symbol] = parseFloat(ticker.last);
             }
         }
@@ -648,7 +649,7 @@ class PriceCacheService {
 
         const prices = {};
         for (const ticker of data.result.list) {
-            if (ticker.symbol.endsWith('USDT')) {
+            if (this.shouldCachePair(ticker.symbol)) {
                 prices[ticker.symbol] = parseFloat(ticker.lastPrice);
             }
         }
@@ -670,7 +671,7 @@ class PriceCacheService {
 
         const prices = {};
         for (const item of data) {
-            if (item.symbol.endsWith('USDT')) {
+            if (this.shouldCachePair(item.symbol)) {
                 prices[item.symbol] = parseFloat(item.price);
             }
         }
@@ -696,8 +697,9 @@ class PriceCacheService {
 
         const prices = {};
         for (const ticker of data.data.ticker) {
-            if (ticker.symbol.endsWith('-USDT')) {
-                const symbol = ticker.symbol.replace('-', '');
+            // KuCoin uses format like XRP-USDT, convert to XRPUSDT
+            const symbol = ticker.symbol.replace('-', '');
+            if (this.shouldCachePair(symbol)) {
                 prices[symbol] = parseFloat(ticker.last);
             }
         }
@@ -723,8 +725,9 @@ class PriceCacheService {
 
         const prices = {};
         for (const ticker of data.data) {
-            if (ticker.symbol.endsWith('usdt')) {
-                const symbol = ticker.symbol.replace('usdt', 'USDT').toUpperCase();
+            // HTX uses lowercase like xrpusdt, convert to XRPUSDT
+            const symbol = ticker.symbol.toUpperCase();
+            if (this.shouldCachePair(symbol)) {
                 prices[symbol] = parseFloat(ticker.close);
             }
         }
@@ -746,8 +749,9 @@ class PriceCacheService {
 
         const prices = {};
         for (const ticker of data) {
-            if (ticker.currency_pair.endsWith('_USDT')) {
-                const symbol = ticker.currency_pair.replace('_', '');
+            // Gate.io uses format like XRP_USDT, convert to XRPUSDT
+            const symbol = ticker.currency_pair.replace('_', '');
+            if (this.shouldCachePair(symbol)) {
                 prices[symbol] = parseFloat(ticker.last);
             }
         }
@@ -773,7 +777,7 @@ class PriceCacheService {
 
         const prices = {};
         for (const ticker of data.data) {
-            if (ticker.symbol && ticker.symbol.endsWith('USDT')) {
+            if (ticker.symbol && this.shouldCachePair(ticker.symbol)) {
                 prices[ticker.symbol] = parseFloat(ticker.close);
             }
         }
@@ -795,10 +799,12 @@ class PriceCacheService {
 
         const prices = {};
         for (const ticker of data) {
-            if (ticker.pair && ticker.pair.endsWith('USD')) {
-                // Gemini uses USD pairs, convert to USDT
-                const symbol = ticker.pair.replace('USD', 'USDT');
-                prices[symbol] = parseFloat(ticker.price);
+            if (ticker.pair) {
+                // Gemini format: XRPUSD, BTCUSD - check all target currencies
+                const pairUpper = ticker.pair.toUpperCase();
+                if (this.shouldCachePair(pairUpper)) {
+                    prices[pairUpper] = parseFloat(ticker.price);
+                }
             }
         }
 
@@ -823,9 +829,12 @@ class PriceCacheService {
 
         const prices = {};
         for (const ticker of data.data) {
-            if (ticker.symbol && ticker.symbol.endsWith('-USDT')) {
+            if (ticker.symbol) {
+                // BingX uses format like XRP-USDT, convert to XRPUSDT
                 const symbol = ticker.symbol.replace('-', '');
-                prices[symbol] = parseFloat(ticker.lastPrice);
+                if (this.shouldCachePair(symbol)) {
+                    prices[symbol] = parseFloat(ticker.lastPrice);
+                }
             }
         }
 
@@ -850,9 +859,12 @@ class PriceCacheService {
 
         const prices = {};
         for (const ticker of data.data.tickers) {
-            if (ticker.symbol && ticker.symbol.endsWith('_USDT')) {
+            if (ticker.symbol) {
+                // BitMart uses format like XRP_USDT, convert to XRPUSDT
                 const symbol = ticker.symbol.replace('_', '');
-                prices[symbol] = parseFloat(ticker.last_price);
+                if (this.shouldCachePair(symbol)) {
+                    prices[symbol] = parseFloat(ticker.last_price);
+                }
             }
         }
 
@@ -873,7 +885,7 @@ class PriceCacheService {
 
         const prices = {};
         for (const ticker of data) {
-            if (ticker.symbol && ticker.symbol.endsWith('USDT')) {
+            if (ticker.symbol && this.shouldCachePair(ticker.symbol)) {
                 prices[ticker.symbol] = parseFloat(ticker.lastPrice);
             }
         }
@@ -899,9 +911,12 @@ class PriceCacheService {
 
         const prices = {};
         for (const ticker of data.data) {
-            if (ticker.symbol && ticker.symbol.endsWith('/USDT')) {
+            if (ticker.symbol) {
+                // AscendEX uses format like XRP/USDT, convert to XRPUSDT
                 const symbol = ticker.symbol.replace('/', '');
-                prices[symbol] = parseFloat(ticker.close);
+                if (this.shouldCachePair(symbol)) {
+                    prices[symbol] = parseFloat(ticker.close);
+                }
             }
         }
 
@@ -926,9 +941,12 @@ class PriceCacheService {
 
         const prices = {};
         for (const ticker of data.result) {
-            if (ticker.s && ticker.s.endsWith('_USDT')) {
+            if (ticker.s) {
+                // XT uses format like XRP_USDT, convert to XRPUSDT
                 const symbol = ticker.s.replace('_', '');
-                prices[symbol] = parseFloat(ticker.c);
+                if (this.shouldCachePair(symbol)) {
+                    prices[symbol] = parseFloat(ticker.c);
+                }
             }
         }
 
@@ -953,7 +971,7 @@ class PriceCacheService {
 
         const prices = {};
         for (const ticker of data.data) {
-            if (ticker.symbol && ticker.symbol.endsWith('USDT')) {
+            if (ticker.symbol && this.shouldCachePair(ticker.symbol)) {
                 prices[ticker.symbol] = parseFloat(ticker.lastPr);
             }
         }
@@ -963,6 +981,7 @@ class PriceCacheService {
 
     /**
      * Fetch all prices from VALR (South African Exchange)
+     * Important for ZAR pairs!
      */
     async fetchVALRPrices() {
         const response = await fetch('https://api.valr.com/v1/public/marketsummary');
@@ -975,10 +994,12 @@ class PriceCacheService {
 
         const prices = {};
         for (const ticker of data) {
-            // VALR uses format like "BTC-USDT"
-            if (ticker.currencyPair && ticker.currencyPair.includes('USDT')) {
+            if (ticker.currencyPair) {
+                // VALR uses format like XRP-ZAR, XRP-USDT, convert to XRPZAR, XRPUSDT
                 const symbol = ticker.currencyPair.replace('-', '');
-                prices[symbol] = parseFloat(ticker.lastTradedPrice);
+                if (this.shouldCachePair(symbol)) {
+                    prices[symbol] = parseFloat(ticker.lastTradedPrice);
+                }
             }
         }
 
@@ -987,6 +1008,7 @@ class PriceCacheService {
 
     /**
      * Fetch all prices from Luno (South African Exchange)
+     * Important for ZAR pairs!
      */
     async fetchLunoPrices() {
         const response = await fetch('https://api.luno.com/api/1/tickers');
@@ -999,8 +1021,7 @@ class PriceCacheService {
 
         const prices = {};
         for (const ticker of data.tickers) {
-            // Luno uses format like "BTCUSDT"
-            if (ticker.pair && ticker.pair.includes('USDT')) {
+            if (ticker.pair && this.shouldCachePair(ticker.pair)) {
                 prices[ticker.pair] = parseFloat(ticker.last_trade);
             }
         }
@@ -1010,6 +1031,7 @@ class PriceCacheService {
 
     /**
      * Fetch all prices from ChainEX (South African Exchange)
+     * Important for ZAR pairs!
      */
     async fetchChainEXPrices() {
         const response = await fetch('https://api.chainex.io/v1/tickers');
@@ -1022,10 +1044,12 @@ class PriceCacheService {
 
         const prices = {};
         for (const ticker of data) {
-            // ChainEX uses format like "BTC/USDT"
-            if (ticker.symbol && ticker.symbol.includes('USDT')) {
+            if (ticker.symbol) {
+                // ChainEX uses format like XRP/ZAR, XRP/USDT, convert to XRPZAR, XRPUSDT
                 const symbol = ticker.symbol.replace('/', '');
-                prices[symbol] = parseFloat(ticker.last);
+                if (this.shouldCachePair(symbol)) {
+                    prices[symbol] = parseFloat(ticker.last);
+                }
             }
         }
 
