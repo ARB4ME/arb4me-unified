@@ -2886,6 +2886,14 @@
             document.getElementById('testScanCountdown').textContent = '--';
             document.getElementById('testScanCurrentInfo').textContent = 'Waiting to start...';
 
+            // Clear analytics tables - reset them to "Waiting for data..." state
+            ['topRoutesByProfit', 'routeConsistency', 'bestCurrencyPairs', 'bestExchanges'].forEach(tableId => {
+                const tbody = document.getElementById(tableId);
+                if (tbody) {
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #888; padding: 20px;">Waiting for scan data...</td></tr>';
+                }
+            });
+
             // Update storage display
             updateTestScanStorageDisplay();
 
