@@ -3068,6 +3068,89 @@
                     console.log(`✅ Stored ${storedCount} opportunities that meet ${config.minProfit}% threshold`);
                     console.log(`═════════════════════════════════════════════════════════════`);
 
+                    // DATA AVAILABILITY ANALYSIS - Critical for understanding viable trading pairs
+                    console.log(`\n🔍 DATA AVAILABILITY ANALYSIS (for live trading decisions):`);
+                    console.log(`═════════════════════════════════════════════════════════════`);
+
+                    // Get selected exchanges and currencies
+                    const selectedExchanges = JSON.parse(localStorage.getItem('currencySwapTestScan_selectedExchanges') || '[]');
+                    const selectedCurrencies = JSON.parse(localStorage.getItem('currencySwapTestScan_selectedCurrencies') || '[]');
+
+                    // Analyze which exchange-currency combinations have data
+                    const exchangeCurrencyMatrix = {};
+                    selectedExchanges.forEach(exchange => {
+                        exchangeCurrencyMatrix[exchange] = {};
+                        selectedCurrencies.forEach(currency => {
+                            exchangeCurrencyMatrix[exchange][currency] = false;
+                        });
+                    });
+
+                    // Mark which combinations appeared in opportunities
+                    opportunities.forEach(opp => {
+                        if (exchangeCurrencyMatrix[opp.sourceExchange]) {
+                            exchangeCurrencyMatrix[opp.sourceExchange][opp.sourceCurrency] = true;
+                        }
+                        if (exchangeCurrencyMatrix[opp.destExchange]) {
+                            exchangeCurrencyMatrix[opp.destExchange][opp.destCurrency] = true;
+                        }
+                    });
+
+                    // Per-Exchange Coverage
+                    console.log(`\n📊 PER-EXCHANGE COVERAGE:`);
+                    selectedExchanges.forEach(exchange => {
+                        const available = selectedCurrencies.filter(curr => exchangeCurrencyMatrix[exchange][curr]).length;
+                        const total = selectedCurrencies.length;
+                        const percentage = ((available / total) * 100).toFixed(0);
+                        const availableCurrencies = selectedCurrencies.filter(curr => exchangeCurrencyMatrix[exchange][curr]);
+                        const missingCurrencies = selectedCurrencies.filter(curr => !exchangeCurrencyMatrix[exchange][curr]);
+
+                        console.log(`${exchange}: ${available}/${total} currencies (${percentage}%)`);
+                        if (availableCurrencies.length > 0) {
+                            console.log(`  ✅ Available: ${availableCurrencies.join(', ')}`);
+                        }
+                        if (missingCurrencies.length > 0) {
+                            console.log(`  ❌ Missing: ${missingCurrencies.join(', ')}`);
+                        }
+                    });
+
+                    // Per-Currency Coverage
+                    console.log(`\n📊 PER-CURRENCY COVERAGE:`);
+                    selectedCurrencies.forEach(currency => {
+                        const available = selectedExchanges.filter(ex => exchangeCurrencyMatrix[ex][currency]).length;
+                        const total = selectedExchanges.length;
+                        const percentage = ((available / total) * 100).toFixed(0);
+                        const availableExchanges = selectedExchanges.filter(ex => exchangeCurrencyMatrix[ex][currency]);
+
+                        console.log(`${currency}: ${available}/${total} exchanges (${percentage}%)`);
+                        if (availableExchanges.length > 0) {
+                            console.log(`  ✅ Available on: ${availableExchanges.join(', ')}`);
+                        }
+                        if (available === 0) {
+                            console.log(`  ⚠️ NO EXCHANGES support ${currency} - consider removing from selection`);
+                        } else if (available < 3) {
+                            console.log(`  ⚠️ LOW AVAILABILITY - limited arbitrage opportunities`);
+                        }
+                    });
+
+                    // Best Pairs for Live Trading
+                    console.log(`\n💡 LIVE TRADING RECOMMENDATIONS:`);
+                    const viableCurrencies = selectedCurrencies.filter(currency => {
+                        const available = selectedExchanges.filter(ex => exchangeCurrencyMatrix[ex][currency]).length;
+                        return available >= 3; // Need at least 3 exchanges for arbitrage
+                    });
+
+                    if (viableCurrencies.length > 0) {
+                        console.log(`✅ Viable currencies (3+ exchanges): ${viableCurrencies.join(', ')}`);
+                        viableCurrencies.forEach(currency => {
+                            const exchanges = selectedExchanges.filter(ex => exchangeCurrencyMatrix[ex][currency]);
+                            console.log(`   ${currency}: ${exchanges.join(' ↔ ')}`);
+                        });
+                    } else {
+                        console.log(`⚠️ No currencies have 3+ exchanges - limited arbitrage opportunities`);
+                    }
+
+                    console.log(`═════════════════════════════════════════════════════════════\n`);
+
                     // Update UI with best opportunity info
                     if (bestOpportunity) {
                         const profit = bestOpportunity.profitPercent;
