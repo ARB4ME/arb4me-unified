@@ -518,21 +518,65 @@ class PriceCacheService {
         // Cache USDT pairs (Transfer Arb) and XRP pairs (Currency Swap)
         const prices = {};
         let xrpPairCount = 0;
+        let rejectedCount = 0;
 
+        // First pass: Cache all prices
         for (const item of data) {
             if (this.shouldCachePair(item.symbol)) {
                 prices[item.symbol] = parseFloat(item.price);
+            }
+        }
 
-                // Log XRP pairs for Currency Swap
-                if (item.symbol.startsWith('XRP') && !item.symbol.endsWith('USDT')) {
+        // Get XRPUSDT reference price for validation
+        const xrpUsdtPrice = prices['XRPUSDT'];
+
+        if (!xrpUsdtPrice || xrpUsdtPrice <= 0) {
+            systemLogger.error('[PRICE CACHE] Binance XRPUSDT price missing - cannot validate other XRP pairs');
+            return prices;
+        }
+
+        // Second pass: Validate non-USDT XRP pairs against USDT cross rates
+        for (const symbol of Object.keys(prices)) {
+            if (symbol.startsWith('XRP') && !symbol.endsWith('USDT') && !symbol.endsWith('USDC')) {
+                const currency = symbol.replace('XRP', ''); // Extract currency (AUD, GBP, EUR, etc.)
+                const currencyUsdtPair = `${currency}USDT`; // e.g., AUDUSDT, GBPUSDT
+                const currencyUsdtPrice = prices[currencyUsdtPair];
+
+                // Calculate expected XRP price in this currency
+                let expectedPrice = null;
+                if (currencyUsdtPrice && currencyUsdtPrice > 0) {
+                    // For fiat pairs like AUD, GBP (quoted as AUDUSDT = how many USD per AUD)
+                    expectedPrice = xrpUsdtPrice / currencyUsdtPrice;
+                }
+
+                if (expectedPrice) {
+                    const actualPrice = prices[symbol];
+                    const percentDiff = Math.abs((actualPrice - expectedPrice) / expectedPrice * 100);
+
+                    // Reject if price differs by more than 30% from expected (indicates stale/fake price)
+                    if (percentDiff > 30) {
+                        systemLogger.warn(`[PRICE CACHE] ⚠️ Binance ${symbol} REJECTED - price deviation ${percentDiff.toFixed(1)}%`, {
+                            actual: actualPrice.toFixed(6),
+                            expected: expectedPrice.toFixed(6),
+                            xrpUsdt: xrpUsdtPrice,
+                            currencyUsdt: currencyUsdtPrice
+                        });
+                        delete prices[symbol]; // Remove invalid price
+                        rejectedCount++;
+                    } else {
+                        xrpPairCount++;
+                        systemLogger.trading(`[PRICE CACHE] ✅ Binance ${symbol}: ${actualPrice.toFixed(6)} (deviation: ${percentDiff.toFixed(1)}%)`);
+                    }
+                } else {
+                    // Cannot validate without currency USDT pair - log and keep the price
                     xrpPairCount++;
-                    systemLogger.trading(`[PRICE CACHE] Binance cached ${item.symbol}: ${item.price}`);
+                    systemLogger.trading(`[PRICE CACHE] Binance cached ${symbol}: ${prices[symbol]} (no validation - missing ${currencyUsdtPair})`);
                 }
             }
         }
 
-        if (xrpPairCount > 0) {
-            systemLogger.trading(`[PRICE CACHE] Binance cached ${xrpPairCount} XRP pairs for Currency Swap`);
+        if (xrpPairCount > 0 || rejectedCount > 0) {
+            systemLogger.trading(`[PRICE CACHE] Binance XRP pairs: ${xrpPairCount} cached, ${rejectedCount} rejected (>30% deviation)`);
         }
 
         return prices;
