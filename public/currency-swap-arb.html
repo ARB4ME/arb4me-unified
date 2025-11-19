@@ -813,6 +813,38 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Data Availability Analysis (Full Width) -->
+                    <div style="background: rgba(0,212,255,0.05); border: 1px solid rgba(0,212,255,0.3); border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+                        <h5 style="color: #00d4ff; margin-bottom: 15px;">🔍 Data Availability Analysis (Live Trading Intelligence)</h5>
+                        <p style="color: #888; font-size: 0.85rem; margin-bottom: 20px;">Shows which exchange-currency combinations have price data available. Use this to configure your live trading settings.</p>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                            <!-- Per-Exchange Coverage -->
+                            <div>
+                                <h6 style="color: #667eea; margin-bottom: 10px;">📊 Per-Exchange Coverage</h6>
+                                <div id="exchangeCoverageTable" style="font-size: 0.85rem; color: #b8c6db;">
+                                    <div style="text-align: center; padding: 20px; color: #888;">Waiting for scan data...</div>
+                                </div>
+                            </div>
+
+                            <!-- Per-Currency Coverage -->
+                            <div>
+                                <h6 style="color: #667eea; margin-bottom: 10px;">📊 Per-Currency Coverage</h6>
+                                <div id="currencyCoverageTable" style="font-size: 0.85rem; color: #b8c6db;">
+                                    <div style="text-align: center; padding: 20px; color: #888;">Waiting for scan data...</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Live Trading Recommendations (Full Width) -->
+                        <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
+                            <h6 style="color: #00ff88; margin-bottom: 10px;">💡 Live Trading Recommendations</h6>
+                            <div id="tradingRecommendations" style="font-size: 0.85rem; color: #b8c6db;">
+                                <div style="text-align: center; padding: 20px; color: #888;">Waiting for scan data...</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
         </div>
     </div>  <!-- Close main container -->
@@ -2894,6 +2926,11 @@
                 }
             });
 
+            // Clear data availability analysis sections
+            document.getElementById('exchangeCoverageTable').innerHTML = '<div style="text-align: center; padding: 20px; color: #888;">Waiting for scan data...</div>';
+            document.getElementById('currencyCoverageTable').innerHTML = '<div style="text-align: center; padding: 20px; color: #888;">Waiting for scan data...</div>';
+            document.getElementById('tradingRecommendations').innerHTML = '<div style="text-align: center; padding: 20px; color: #888;">Waiting for scan data...</div>';
+
             // Update storage display
             updateTestScanStorageDisplay();
 
@@ -3097,6 +3134,7 @@
 
                     // Per-Exchange Coverage
                     console.log(`\n📊 PER-EXCHANGE COVERAGE:`);
+                    let exchangeCoverageHTML = '';
                     selectedExchanges.forEach(exchange => {
                         const available = selectedCurrencies.filter(curr => exchangeCurrencyMatrix[exchange][curr]).length;
                         const total = selectedCurrencies.length;
@@ -3104,6 +3142,7 @@
                         const availableCurrencies = selectedCurrencies.filter(curr => exchangeCurrencyMatrix[exchange][curr]);
                         const missingCurrencies = selectedCurrencies.filter(curr => !exchangeCurrencyMatrix[exchange][curr]);
 
+                        // Console logging
                         console.log(`${exchange}: ${available}/${total} currencies (${percentage}%)`);
                         if (availableCurrencies.length > 0) {
                             console.log(`  ✅ Available: ${availableCurrencies.join(', ')}`);
@@ -3111,16 +3150,35 @@
                         if (missingCurrencies.length > 0) {
                             console.log(`  ❌ Missing: ${missingCurrencies.join(', ')}`);
                         }
+
+                        // UI HTML
+                        const barColor = percentage >= 60 ? '#00ff88' : percentage >= 30 ? '#ffb347' : '#ff6b6b';
+                        exchangeCoverageHTML += `
+                            <div style="margin-bottom: 15px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 6px;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                                    <span style="font-weight: bold; color: #00d4ff;">${exchange}</span>
+                                    <span style="color: ${barColor};">${available}/${total} (${percentage}%)</span>
+                                </div>
+                                <div style="background: rgba(255,255,255,0.1); height: 6px; border-radius: 3px; margin-bottom: 8px;">
+                                    <div style="background: ${barColor}; width: ${percentage}%; height: 100%; border-radius: 3px;"></div>
+                                </div>
+                                ${availableCurrencies.length > 0 ? `<div style="color: #00ff88; font-size: 0.8rem;">✅ ${availableCurrencies.join(', ')}</div>` : ''}
+                                ${missingCurrencies.length > 0 ? `<div style="color: #888; font-size: 0.8rem; margin-top: 3px;">❌ ${missingCurrencies.join(', ')}</div>` : ''}
+                            </div>
+                        `;
                     });
+                    document.getElementById('exchangeCoverageTable').innerHTML = exchangeCoverageHTML;
 
                     // Per-Currency Coverage
                     console.log(`\n📊 PER-CURRENCY COVERAGE:`);
+                    let currencyCoverageHTML = '';
                     selectedCurrencies.forEach(currency => {
                         const available = selectedExchanges.filter(ex => exchangeCurrencyMatrix[ex][currency]).length;
                         const total = selectedExchanges.length;
                         const percentage = ((available / total) * 100).toFixed(0);
                         const availableExchanges = selectedExchanges.filter(ex => exchangeCurrencyMatrix[ex][currency]);
 
+                        // Console logging
                         console.log(`${currency}: ${available}/${total} exchanges (${percentage}%)`);
                         if (availableExchanges.length > 0) {
                             console.log(`  ✅ Available on: ${availableExchanges.join(', ')}`);
@@ -3130,7 +3188,31 @@
                         } else if (available < 3) {
                             console.log(`  ⚠️ LOW AVAILABILITY - limited arbitrage opportunities`);
                         }
+
+                        // UI HTML
+                        const barColor = percentage >= 60 ? '#00ff88' : percentage >= 30 ? '#ffb347' : '#ff6b6b';
+                        let warningIcon = '';
+                        if (available === 0) {
+                            warningIcon = '<span style="color: #ff6b6b; font-size: 0.8rem;">⚠️ NO SUPPORT - Remove</span>';
+                        } else if (available < 3) {
+                            warningIcon = '<span style="color: #ffb347; font-size: 0.8rem;">⚠️ LOW - Limited Arb</span>';
+                        }
+
+                        currencyCoverageHTML += `
+                            <div style="margin-bottom: 15px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 6px;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                                    <span style="font-weight: bold; color: #ffb347;">${currency}</span>
+                                    <span style="color: ${barColor};">${available}/${total} (${percentage}%)</span>
+                                </div>
+                                <div style="background: rgba(255,255,255,0.1); height: 6px; border-radius: 3px; margin-bottom: 8px;">
+                                    <div style="background: ${barColor}; width: ${percentage}%; height: 100%; border-radius: 3px;"></div>
+                                </div>
+                                ${availableExchanges.length > 0 ? `<div style="color: #00ff88; font-size: 0.8rem;">✅ ${availableExchanges.join(', ')}</div>` : ''}
+                                ${warningIcon ? `<div style="margin-top: 5px;">${warningIcon}</div>` : ''}
+                            </div>
+                        `;
                     });
+                    document.getElementById('currencyCoverageTable').innerHTML = currencyCoverageHTML;
 
                     // Best Pairs for Live Trading
                     console.log(`\n💡 LIVE TRADING RECOMMENDATIONS:`);
@@ -3139,15 +3221,40 @@
                         return available >= 3; // Need at least 3 exchanges for arbitrage
                     });
 
+                    let recommendationsHTML = '';
                     if (viableCurrencies.length > 0) {
+                        // Console logging
                         console.log(`✅ Viable currencies (3+ exchanges): ${viableCurrencies.join(', ')}`);
                         viableCurrencies.forEach(currency => {
                             const exchanges = selectedExchanges.filter(ex => exchangeCurrencyMatrix[ex][currency]);
                             console.log(`   ${currency}: ${exchanges.join(' ↔ ')}`);
                         });
+
+                        // UI HTML
+                        recommendationsHTML = `
+                            <div style="background: rgba(0,255,136,0.1); padding: 15px; border-radius: 6px; border: 1px solid rgba(0,255,136,0.3);">
+                                <div style="color: #00ff88; font-weight: bold; margin-bottom: 10px;">✅ Viable Currencies for Live Trading (3+ exchanges):</div>
+                                ${viableCurrencies.map(currency => {
+                                    const exchanges = selectedExchanges.filter(ex => exchangeCurrencyMatrix[ex][currency]);
+                                    return `
+                                        <div style="margin-bottom: 10px; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 4px;">
+                                            <div style="color: #ffb347; font-weight: bold; margin-bottom: 5px;">${currency} (${exchanges.length} exchanges)</div>
+                                            <div style="color: #b8c6db; font-size: 0.85rem;">${exchanges.join(' ↔ ')}</div>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        `;
                     } else {
                         console.log(`⚠️ No currencies have 3+ exchanges - limited arbitrage opportunities`);
+                        recommendationsHTML = `
+                            <div style="background: rgba(255,107,107,0.1); padding: 15px; border-radius: 6px; border: 1px solid rgba(255,107,107,0.3); text-align: center;">
+                                <div style="color: #ff6b6b; font-weight: bold;">⚠️ No Viable Currencies Found</div>
+                                <div style="color: #888; font-size: 0.85rem; margin-top: 5px;">No currencies have 3+ exchanges. Select more exchanges or currencies.</div>
+                            </div>
+                        `;
                     }
+                    document.getElementById('tradingRecommendations').innerHTML = recommendationsHTML;
 
                     console.log(`═════════════════════════════════════════════════════════════\n`);
 
