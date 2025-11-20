@@ -5025,9 +5025,9 @@ router.post('/binance/ticker', tickerRateLimit, optionalAuth, [
             endpoint: 'ticker',
             pair: pair
         });
-        
-        // Binance uses direct USDT pairs (BTCUSDT, ETHUSDT, etc.)
-        const binancePair = pair.toUpperCase();
+
+        // Binance uses direct pairs without separators (XRP/GBP or XRP-GBP -> XRPGBP)
+        const binancePair = pair.toUpperCase().replace(/[\/\-]/g, '');
         
         // Get both price and 24hr stats
         const [priceResponse, statsResponse] = await Promise.all([
@@ -6319,9 +6319,11 @@ router.post('/bybit/ticker', tickerRateLimit, optionalAuth, [
     }
 
     const { pair } = req.body;
-    
+
     try {
-        const response = await fetch(`${BYBIT_PROXY_CONFIG.baseUrl}${BYBIT_PROXY_CONFIG.endpoints.ticker}?category=spot&symbol=${pair}`, {
+        // Bybit uses pairs without separators (XRP/GBP -> XRPGBP)
+        const bybitPair = pair.replace(/[\/\-]/g, '');
+        const response = await fetch(`${BYBIT_PROXY_CONFIG.baseUrl}${BYBIT_PROXY_CONFIG.endpoints.ticker}?category=spot&symbol=${bybitPair}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json'
@@ -7260,16 +7262,32 @@ router.post('/okx/ticker', tickerRateLimit, optionalAuth, [
     }
 
     const { pair } = req.body;
-    
+
     try {
-        // Convert pair format for OKX (BTCUSDT -> BTC-USDT)
+        // Convert pair format for OKX (XRP/USDT or XRPUSDT -> XRP-USDT)
         let okxSymbol;
-        if (pair.includes('USDT')) {
-            // Handle USDT pairs: BTCUSDT -> BTC-USDT
+
+        // First, handle slash format (XRP/USDT -> XRP-USDT)
+        if (pair.includes('/')) {
+            okxSymbol = pair.replace('/', '-');
+        } else if (pair.includes('USDT')) {
+            // Handle USDT pairs: XRPUSDT -> XRP-USDT
             okxSymbol = pair.replace('USDT', '-USDT');
         } else if (pair.includes('USDC')) {
-            // Handle USDC pairs: BTCUSDC -> BTC-USDC
+            // Handle USDC pairs: XRPUSDC -> XRP-USDC
             okxSymbol = pair.replace('USDC', '-USDC');
+        } else if (pair.includes('USD')) {
+            // Handle USD pairs: XRPUSD -> XRP-USD
+            okxSymbol = pair.replace('USD', '-USD');
+        } else if (pair.includes('EUR')) {
+            // Handle EUR pairs: XRPEUR -> XRP-EUR
+            okxSymbol = pair.replace('EUR', '-EUR');
+        } else if (pair.includes('GBP')) {
+            // Handle GBP pairs: XRPGBP -> XRP-GBP
+            okxSymbol = pair.replace('GBP', '-GBP');
+        } else if (pair.includes('AED')) {
+            // Handle AED pairs: XRPAED -> XRP-AED
+            okxSymbol = pair.replace('AED', '-AED');
         } else if (pair.includes('BTC') && !pair.startsWith('BTC')) {
             // Handle pairs with BTC as quote: ETHBTC -> ETH-BTC
             okxSymbol = pair.replace('BTC', '-BTC');
@@ -8229,10 +8247,14 @@ router.post('/kucoin/ticker', tickerRateLimit, optionalAuth, [
     }
 
     const { pair } = req.body;
-    
+
     try {
-        // Convert pair format (BTCUSDT -> BTC-USDT for KuCoin)
-        const kucoinSymbol = pair.replace(/([A-Z]+)([A-Z]{3,4})$/, '$1-$2');
+        // Convert pair format to KuCoin format (XRP/GBP or XRPGBP -> XRP-GBP)
+        let kucoinSymbol = pair.replace('/', '-'); // Handle slash format first
+        if (!kucoinSymbol.includes('-')) {
+            // Handle concatenated format (XRPGBP -> XRP-GBP)
+            kucoinSymbol = kucoinSymbol.replace(/([A-Z]+)([A-Z]{3,4})$/, '$1-$2');
+        }
         
         const response = await fetch(`${KUCOIN_PROXY_CONFIG.baseUrl}${KUCOIN_PROXY_CONFIG.endpoints.ticker}?symbol=${kucoinSymbol}`, {
             method: 'GET',

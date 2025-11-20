@@ -583,8 +583,16 @@ class PriceCacheService {
                         delete prices[symbol]; // Remove invalid price
                         rejectedCount++;
                     } else {
+                        // NORMALIZE inverted pairs to standard XRP/CURRENCY format
+                        if (isInverted) {
+                            const originalPrice = actualPrice;
+                            const normalizedPrice = 1 / actualPrice;
+                            prices[symbol] = normalizedPrice;
+                            systemLogger.trading(`[PRICE CACHE] ✅ Binance ${symbol}: ${originalPrice.toFixed(6)} → ${normalizedPrice.toFixed(6)} (normalized from inverted, deviation: ${percentDiff.toFixed(1)}%)`);
+                        } else {
+                            systemLogger.trading(`[PRICE CACHE] ✅ Binance ${symbol}: ${actualPrice.toFixed(6)} (deviation: ${percentDiff.toFixed(1)}%)`);
+                        }
                         xrpPairCount++;
-                        systemLogger.trading(`[PRICE CACHE] ✅ Binance ${symbol}: ${actualPrice.toFixed(6)} (deviation: ${percentDiff.toFixed(1)}%${isInverted ? ', inverted' : ''})`);
                     }
                 } else {
                     // Cannot validate without currency USDT pair - log and keep the price
