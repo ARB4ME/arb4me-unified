@@ -1136,4 +1136,92 @@ router.get('/daily-limit-check', async (req, res) => {
     }
 });
 
+/**
+ * POST /api/v1/currency-swap/multi-bridge/start
+ * Start multi-bridge test scan (cycles through XRP, XLM, TRX, LTC)
+ */
+router.post('/multi-bridge/start', async (req, res) => {
+    try {
+        const userId = req.body.userId || req.query.userId || 1;
+
+        const { getScheduler } = require('../services/currency-swap/MultiBridgeScanScheduler');
+        const scheduler = getScheduler();
+
+        const result = scheduler.start(userId);
+
+        systemLogger.trading('[MULTI-BRIDGE] Scan started', {
+            userId,
+            bridges: result.bridges
+        });
+
+        res.json(result);
+
+    } catch (error) {
+        systemLogger.error('[MULTI-BRIDGE] Failed to start scan', {
+            error: error.message,
+            stack: error.stack
+        });
+
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * POST /api/v1/currency-swap/multi-bridge/stop
+ * Stop multi-bridge test scan
+ */
+router.post('/multi-bridge/stop', async (req, res) => {
+    try {
+        const { getScheduler } = require('../services/currency-swap/MultiBridgeScanScheduler');
+        const scheduler = getScheduler();
+
+        const result = scheduler.stop();
+
+        systemLogger.trading('[MULTI-BRIDGE] Scan stopped', result);
+
+        res.json(result);
+
+    } catch (error) {
+        systemLogger.error('[MULTI-BRIDGE] Failed to stop scan', {
+            error: error.message
+        });
+
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * GET /api/v1/currency-swap/multi-bridge/status
+ * Get current status of multi-bridge scan
+ */
+router.get('/multi-bridge/status', async (req, res) => {
+    try {
+        const { getScheduler } = require('../services/currency-swap/MultiBridgeScanScheduler');
+        const scheduler = getScheduler();
+
+        const status = scheduler.getStatus();
+
+        res.json({
+            success: true,
+            data: status
+        });
+
+    } catch (error) {
+        systemLogger.error('[MULTI-BRIDGE] Failed to get status', {
+            error: error.message
+        });
+
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
 module.exports = router;

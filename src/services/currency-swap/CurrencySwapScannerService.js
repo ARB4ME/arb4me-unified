@@ -11,11 +11,15 @@ class CurrencySwapScannerService {
     /**
      * Scan all exchanges and find best profitable path
      * @param {number} userId - User ID
+     * @param {object} options - Scan options
+     * @param {string} options.bridgeAsset - Bridge asset to use (XRP, XLM, TRX, LTC)
      * @returns {object} Best opportunity or null
      */
-    static async scanOpportunities(userId) {
+    static async scanOpportunities(userId, options = {}) {
         try {
-            logger.info(`Starting Currency Swap scan for user ${userId}`);
+            const { bridgeAsset = 'XRP' } = options;
+
+            logger.info(`Starting Currency Swap scan for user ${userId}`, { bridgeAsset });
 
             // 1. Load user settings
             const settings = await CurrencySwapSettings.getOrCreate(userId);
@@ -28,8 +32,8 @@ class CurrencySwapScannerService {
                 ? JSON.parse(settings.selected_currencies)
                 : (settings.selected_currencies || []);
 
-            // XRP is bridge only, not a source/destination
-            const tradableCurrencies = selectedCurrencies.filter(c => c !== 'XRP');
+            // Bridge asset is bridge only, not a source/destination
+            const tradableCurrencies = selectedCurrencies.filter(c => c !== bridgeAsset);
 
             if (selectedExchanges.length === 0 || tradableCurrencies.length === 0) {
                 logger.warn('No exchanges or currencies selected', { userId });
@@ -39,9 +43,9 @@ class CurrencySwapScannerService {
                 };
             }
 
-            // 2. Fetch all XRP prices from exchanges
-            logger.info(`Fetching XRP prices from ${selectedExchanges.length} exchanges`);
-            const priceData = await this._fetchAllPrices(selectedExchanges, tradableCurrencies);
+            // 2. Fetch all bridge asset prices from exchanges
+            logger.info(`Fetching ${bridgeAsset} prices from ${selectedExchanges.length} exchanges`);
+            const priceData = await this._fetchAllPrices(selectedExchanges, tradableCurrencies, bridgeAsset);
 
             logger.info(`Fetched prices for ${Object.keys(priceData).length} exchanges`);
 
@@ -51,7 +55,8 @@ class CurrencySwapScannerService {
                 selectedExchanges,
                 tradableCurrencies,
                 priceData,
-                settings
+                settings,
+                bridgeAsset
             );
 
             // Calculate total possible paths
@@ -115,10 +120,10 @@ class CurrencySwapScannerService {
     }
 
     /**
-     * Fetch XRP prices from all exchanges
+     * Fetch bridge asset prices from all exchanges
      * @private
      */
-    static async _fetchAllPrices(exchanges, currencies) {
+    static async _fetchAllPrices(exchanges, currencies, bridgeAsset = 'XRP') {
         const priceData = {};
         const baseURL = process.env.NODE_ENV === 'production'
             ? 'https://arb4me-unified-production.up.railway.app'
@@ -145,7 +150,7 @@ class CurrencySwapScannerService {
 
             for (const currency of currencies) {
                 fetchStats.totalAttempts++;
-                const pair = `XRP/${currency}`;
+                const pair = `${bridgeAsset}/${currency}`;
 
                 try {
                     const exchangeLower = exchange.toLowerCase();
@@ -221,16 +226,23 @@ class CurrencySwapScannerService {
      * Calculate profitability for all possible paths
      * @private
      */
-    static async _calculateAllPaths(exchanges, currencies, priceData, settings) {
+    static async _calculateAllPaths(exchanges, currencies, priceData, settings, bridgeAsset = 'XRP') {
         const allPaths = [];
         let calculatedCount = 0;
         let skippedNoPriceData = 0;
 
-        // Get fee structure (simplified - can be enhanced per exchange)
+        // Get fee structure based on bridge asset (simplified - can be enhanced per exchange)
+        const withdrawalFees = {
+            'XRP': 0.1,      // 0.1 XRP
+            'XLM': 0.01,     // 0.01 XLM
+            'TRX': 1.0,      // 1 TRX
+            'LTC': 0.001     // 0.001 LTC
+        };
+
         const defaultFees = {
             makerFee: 0.001,  // 0.1%
             takerFee: 0.001,  // 0.1%
-            withdrawalFee: 0.1 // 0.1 XRP flat fee
+            withdrawalFee: withdrawalFees[bridgeAsset] || 0.1
         };
 
         logger.info(`[SCANNER] Starting path calculation for ${exchanges.length} exchanges and ${currencies.length} currencies`);
@@ -242,7 +254,7 @@ class CurrencySwapScannerService {
                 for (const sourceCurrency of currencies) {
                     for (const destCurrency of currencies) {
                         // IMPORTANT: For Currency Swap, source and dest currencies must match
-                        // We're arbitraging the XRP rate between exchanges, not converting currencies
+                        // We're arbitraging the bridge asset rate between exchanges, not converting currencies
                         // Example: Buy XRP with USDT on Binance, sell XRP for USDT on Kraken
                         if (sourceCurrency !== destCurrency) continue;
 
@@ -278,7 +290,8 @@ class CurrencySwapScannerService {
                             destCurrency,
                             priceData,
                             defaultFees,
-                            settings.max_trade_amount_usdt || 5000
+                            settings.max_trade_amount_usdt || 5000,
+                            bridgeAsset
                         );
 
                         calculatedCount++;
@@ -290,7 +303,7 @@ class CurrencySwapScannerService {
                             sourceCurrency,
                             destExchange,
                             destCurrency,
-                            bridgeAsset: 'XRP',
+                            bridgeAsset,
                             ...pathProfit
                         };
 
@@ -320,12 +333,12 @@ class CurrencySwapScannerService {
      * Calculate profit for a single path
      * @private
      */
-    static _calculatePathProfit(sourceExchange, sourceCurrency, destExchange, destCurrency, priceData, fees, tradeAmount) {
+    static _calculatePathProfit(sourceExchange, sourceCurrency, destExchange, destCurrency, priceData, fees, tradeAmount, bridgeAsset = 'XRP') {
         try {
             // Input amount in source currency (e.g., 1000 USD)
             const inputAmount = tradeAmount;
 
-            // Leg 1: Buy XRP with source currency on source exchange
+            // Leg 1: Buy bridge asset with source currency on source exchange
             const sourcePrice = priceData[sourceExchange][sourceCurrency];
 
             // Safety check: ensure ask price is valid
@@ -336,25 +349,25 @@ class CurrencySwapScannerService {
                     profitAmount: -inputAmount,
                     inputAmount,
                     outputAmount: 0,
-                    xrpBought: 0,
-                    xrpAfterWithdrawal: 0,
+                    bridgeAssetBought: 0,
+                    bridgeAssetAfterWithdrawal: 0,
                     fees: { leg1Fee: 0, withdrawalFee: fees.withdrawalFee, leg3Fee: 0 }
                 };
             }
 
-            const xrpBought = (inputAmount / sourcePrice.ask) * (1 - fees.takerFee);
+            const bridgeAssetBought = (inputAmount / sourcePrice.ask) * (1 - fees.takerFee);
 
-            // Leg 2: Withdraw XRP (flat fee)
-            const xrpAfterWithdrawal = xrpBought - fees.withdrawalFee;
+            // Leg 2: Withdraw bridge asset (flat fee)
+            const bridgeAssetAfterWithdrawal = bridgeAssetBought - fees.withdrawalFee;
 
-            if (xrpAfterWithdrawal <= 0) {
+            if (bridgeAssetAfterWithdrawal <= 0) {
                 return {
                     profitPercent: -100,
                     profitAmount: -inputAmount,
                     inputAmount,
                     outputAmount: 0,
-                    xrpBought,
-                    xrpAfterWithdrawal: 0,
+                    bridgeAssetBought,
+                    bridgeAssetAfterWithdrawal: 0,
                     fees: {
                         leg1Fee: inputAmount * fees.takerFee,
                         withdrawalFee: fees.withdrawalFee,
@@ -363,7 +376,7 @@ class CurrencySwapScannerService {
                 };
             }
 
-            // Leg 3: Sell XRP for dest currency on dest exchange
+            // Leg 3: Sell bridge asset for dest currency on dest exchange
             const destPrice = priceData[destExchange][destCurrency];
 
             // Safety check: ensure bid price is valid
@@ -374,8 +387,8 @@ class CurrencySwapScannerService {
                     profitAmount: -inputAmount,
                     inputAmount,
                     outputAmount: 0,
-                    xrpBought,
-                    xrpAfterWithdrawal,
+                    bridgeAssetBought,
+                    bridgeAssetAfterWithdrawal,
                     fees: {
                         leg1Fee: inputAmount * fees.takerFee,
                         withdrawalFee: fees.withdrawalFee,
@@ -384,7 +397,7 @@ class CurrencySwapScannerService {
                 };
             }
 
-            const outputAmount = (xrpAfterWithdrawal * destPrice.bid) * (1 - fees.takerFee);
+            const outputAmount = (bridgeAssetAfterWithdrawal * destPrice.bid) * (1 - fees.takerFee);
 
             // Calculate profit
             const profitAmount = outputAmount - inputAmount;
@@ -395,7 +408,7 @@ class CurrencySwapScannerService {
                 logger.error(`[SCANNER] Calculation resulted in invalid values for ${sourceExchange}->${destExchange}`, {
                     profitPercent,
                     profitAmount,
-                    xrpBought,
+                    bridgeAssetBought,
                     outputAmount
                 });
                 return {
@@ -403,8 +416,8 @@ class CurrencySwapScannerService {
                     profitAmount: -inputAmount,
                     inputAmount,
                     outputAmount: 0,
-                    xrpBought: 0,
-                    xrpAfterWithdrawal: 0,
+                    bridgeAssetBought: 0,
+                    bridgeAssetAfterWithdrawal: 0,
                     fees: { leg1Fee: 0, withdrawalFee: fees.withdrawalFee, leg3Fee: 0 }
                 };
             }
@@ -414,12 +427,12 @@ class CurrencySwapScannerService {
                 profitAmount,
                 inputAmount,
                 outputAmount,
-                xrpBought,
-                xrpAfterWithdrawal,
+                bridgeAssetBought,
+                bridgeAssetAfterWithdrawal,
                 fees: {
                     leg1Fee: inputAmount * fees.takerFee,
                     withdrawalFee: fees.withdrawalFee,
-                    leg3Fee: (xrpAfterWithdrawal * destPrice.bid) * fees.takerFee
+                    leg3Fee: (bridgeAssetAfterWithdrawal * destPrice.bid) * fees.takerFee
                 }
             };
 
@@ -429,6 +442,7 @@ class CurrencySwapScannerService {
                 sourceCurrency,
                 destExchange,
                 destCurrency,
+                bridgeAsset,
                 error: error.message
             });
 
@@ -438,8 +452,8 @@ class CurrencySwapScannerService {
                 profitAmount: -tradeAmount,
                 inputAmount: tradeAmount,
                 outputAmount: 0,
-                xrpBought: 0,
-                xrpAfterWithdrawal: 0,
+                bridgeAssetBought: 0,
+                bridgeAssetAfterWithdrawal: 0,
                 fees: { leg1Fee: 0, withdrawalFee: fees.withdrawalFee, leg3Fee: 0 }
             };
         }
