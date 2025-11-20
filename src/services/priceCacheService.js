@@ -544,9 +544,27 @@ class PriceCacheService {
 
                 // Calculate expected XRP price in this currency
                 let expectedPrice = null;
+                let isInverted = false;
+
                 if (currencyUsdtPrice && currencyUsdtPrice > 0) {
-                    // For fiat pairs like AUD, GBP (quoted as AUDUSDT = how many USD per AUD)
-                    expectedPrice = xrpUsdtPrice / currencyUsdtPrice;
+                    const actualPrice = prices[symbol];
+
+                    // Calculate both standard and inverted expected prices
+                    const standardExpected = xrpUsdtPrice / currencyUsdtPrice; // XRP/CURRENCY
+                    const invertedExpected = currencyUsdtPrice / xrpUsdtPrice; // CURRENCY/XRP
+
+                    // Calculate deviations for both
+                    const standardDeviation = Math.abs((actualPrice - standardExpected) / standardExpected * 100);
+                    const invertedDeviation = Math.abs((actualPrice - invertedExpected) / invertedExpected * 100);
+
+                    // Use whichever calculation has lower deviation (handles inverted pairs like GBP)
+                    if (invertedDeviation < standardDeviation) {
+                        expectedPrice = invertedExpected;
+                        isInverted = true;
+                    } else {
+                        expectedPrice = standardExpected;
+                        isInverted = false;
+                    }
                 }
 
                 if (expectedPrice) {
@@ -558,6 +576,7 @@ class PriceCacheService {
                         systemLogger.warn(`[PRICE CACHE] ⚠️ Binance ${symbol} REJECTED - price deviation ${percentDiff.toFixed(1)}%`, {
                             actual: actualPrice.toFixed(6),
                             expected: expectedPrice.toFixed(6),
+                            inverted: isInverted,
                             xrpUsdt: xrpUsdtPrice,
                             currencyUsdt: currencyUsdtPrice
                         });
@@ -565,7 +584,7 @@ class PriceCacheService {
                         rejectedCount++;
                     } else {
                         xrpPairCount++;
-                        systemLogger.trading(`[PRICE CACHE] ✅ Binance ${symbol}: ${actualPrice.toFixed(6)} (deviation: ${percentDiff.toFixed(1)}%)`);
+                        systemLogger.trading(`[PRICE CACHE] ✅ Binance ${symbol}: ${actualPrice.toFixed(6)} (deviation: ${percentDiff.toFixed(1)}%${isInverted ? ', inverted' : ''})`);
                     }
                 } else {
                     // Cannot validate without currency USDT pair - log and keep the price
