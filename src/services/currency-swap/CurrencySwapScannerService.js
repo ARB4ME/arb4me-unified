@@ -31,16 +31,17 @@ class CurrencySwapScannerService {
             });
 
             // 1. Load user settings (or use overrides for test scan)
-            let selectedExchanges, selectedCurrencies;
+            let selectedExchanges, selectedCurrencies, settings;
 
             if (overrideExchanges && overrideCurrencies) {
                 // Use provided overrides (for test scan)
                 selectedExchanges = overrideExchanges;
                 selectedCurrencies = overrideCurrencies;
+                settings = null; // No settings object for test scans - use defaults
                 logger.info(`Using override settings: ${selectedExchanges.length} exchanges, ${selectedCurrencies.length} currencies`);
             } else {
                 // Load from database (for live trading)
-                const settings = await CurrencySwapSettings.getOrCreate(userId);
+                settings = await CurrencySwapSettings.getOrCreate(userId);
 
                 selectedExchanges = typeof settings.selected_exchanges === 'string'
                     ? JSON.parse(settings.selected_exchanges)
@@ -98,19 +99,20 @@ class CurrencySwapScannerService {
 
             // Check if best path is profitable
             const isProfitable = bestPath.profitPercent > 0;
-            const meetsThreshold = bestPath.profitPercent >= (settings.threshold_percent || 0.5);
+            const thresholdPercent = settings?.threshold_percent || 0.5;
+            const meetsThreshold = bestPath.profitPercent >= thresholdPercent;
 
             if (isProfitable && meetsThreshold) {
                 logger.info(`[SCANNER] ✅ Best opportunity PROFITABLE and meets threshold: ${bestPath.profitPercent.toFixed(4)}%`, {
                     path: bestPath.id,
                     profit: bestPath.profitAmount,
-                    threshold: settings.threshold_percent || 0.5
+                    threshold: thresholdPercent
                 });
             } else if (isProfitable) {
                 logger.info(`[SCANNER] ⚠️ Best opportunity profitable but BELOW threshold: ${bestPath.profitPercent.toFixed(4)}%`, {
                     path: bestPath.id,
                     profit: bestPath.profitAmount,
-                    threshold: settings.threshold_percent || 0.5
+                    threshold: thresholdPercent
                 });
             } else {
                 logger.warn(`[SCANNER] 📉 Best path is a LOSS: ${bestPath.profitPercent.toFixed(4)}%`, {
@@ -334,7 +336,7 @@ class CurrencySwapScannerService {
                             destCurrency,
                             priceData,
                             defaultFees,
-                            settings.max_trade_amount_usdt || 5000,
+                            settings?.max_trade_amount_usdt || 5000,
                             bridgeAsset
                         );
 
