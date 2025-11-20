@@ -506,13 +506,18 @@ class PriceCacheService {
      * Fetch all prices from Binance
      */
     async fetchBinancePrices() {
-        const response = await fetch('https://api.binance.com/api/v3/ticker/price');
+        // Fetch BOTH price ticker AND book ticker for liquidity validation
+        const [priceResponse, bookResponse] = await Promise.all([
+            fetch('https://api.binance.com/api/v3/ticker/price'),
+            fetch('https://api.binance.com/api/v3/ticker/bookTicker')
+        ]);
 
-        if (!response.ok) {
-            throw new Error(`Binance API error: ${response.status}`);
+        if (!priceResponse.ok) {
+            throw new Error(`Binance API error: ${priceResponse.status}`);
         }
 
-        const data = await response.json();
+        const data = await priceResponse.json();
+        const bookData = await (bookResponse.ok ? bookResponse.json() : Promise.resolve([]));
 
         // Convert array to object { symbol: price }
         // Cache USDT pairs (Transfer Arb) and XRP pairs (Currency Swap)
@@ -520,10 +525,29 @@ class PriceCacheService {
         let xrpPairCount = 0;
         let rejectedCount = 0;
 
-        // First pass: Cache all prices
+        // Create book ticker lookup for liquidity validation
+        const bookTickers = {};
+        for (const book of bookData) {
+            bookTickers[book.symbol] = {
+                bid: parseFloat(book.bidPrice || 0),
+                ask: parseFloat(book.askPrice || 0)
+            };
+        }
+
+        // First pass: Cache all prices WITH liquidity validation
         for (const item of data) {
             if (this.shouldCachePair(item.symbol)) {
-                prices[item.symbol] = parseFloat(item.price);
+                const price = parseFloat(item.price);
+                const book = bookTickers[item.symbol];
+
+                // REJECT pairs with zero bid/ask (no liquidity)
+                if (book && (book.bid === 0 || book.ask === 0)) {
+                    systemLogger.warn(`[PRICE CACHE] ⚠️ Binance ${item.symbol} REJECTED - no liquidity (bid=${book.bid}, ask=${book.ask})`);
+                    rejectedCount++;
+                    continue;
+                }
+
+                prices[item.symbol] = price;
             }
         }
 
@@ -603,7 +627,7 @@ class PriceCacheService {
         }
 
         if (xrpPairCount > 0 || rejectedCount > 0) {
-            systemLogger.trading(`[PRICE CACHE] Binance XRP pairs: ${xrpPairCount} cached, ${rejectedCount} rejected (>30% deviation)`);
+            systemLogger.trading(`[PRICE CACHE] Binance XRP pairs: ${xrpPairCount} cached, ${rejectedCount} rejected (no liquidity or >30% deviation)`);
         }
 
         return prices;
