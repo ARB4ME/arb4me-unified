@@ -3812,11 +3812,24 @@
 
                 const userId = localStorage.getItem('userId') || 1;
 
-                // Start the multi-bridge scan
+                // Read test scan selections from localStorage
+                const selectedExchanges = JSON.parse(localStorage.getItem('currencySwap_selectedExchanges') || '[]');
+                const selectedCurrencies = JSON.parse(localStorage.getItem('currencySwap_selectedCurrencies') || '[]');
+
+                console.log('Using test scan selections:', {
+                    exchanges: selectedExchanges,
+                    currencies: selectedCurrencies
+                });
+
+                // Start the multi-bridge scan with test scan selections
                 const response = await fetch(`${API_BASE}/multi-bridge/start`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId })
+                    body: JSON.stringify({
+                        userId,
+                        exchanges: selectedExchanges,
+                        currencies: selectedCurrencies
+                    })
                 });
 
                 const result = await response.json();

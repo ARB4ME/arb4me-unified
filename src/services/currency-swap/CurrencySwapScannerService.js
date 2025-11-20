@@ -13,24 +13,43 @@ class CurrencySwapScannerService {
      * @param {number} userId - User ID
      * @param {object} options - Scan options
      * @param {string} options.bridgeAsset - Bridge asset to use (XRP, XLM, TRX, LTC)
+     * @param {array} options.exchanges - Optional: Override exchanges (for test scan)
+     * @param {array} options.currencies - Optional: Override currencies (for test scan)
      * @returns {object} Best opportunity or null
      */
     static async scanOpportunities(userId, options = {}) {
         try {
-            const { bridgeAsset = 'XRP' } = options;
+            const {
+                bridgeAsset = 'XRP',
+                exchanges: overrideExchanges = null,
+                currencies: overrideCurrencies = null
+            } = options;
 
-            logger.info(`Starting Currency Swap scan for user ${userId}`, { bridgeAsset });
+            logger.info(`Starting Currency Swap scan for user ${userId}`, {
+                bridgeAsset,
+                usingOverrides: !!(overrideExchanges || overrideCurrencies)
+            });
 
-            // 1. Load user settings
-            const settings = await CurrencySwapSettings.getOrCreate(userId);
+            // 1. Load user settings (or use overrides for test scan)
+            let selectedExchanges, selectedCurrencies;
 
-            const selectedExchanges = typeof settings.selected_exchanges === 'string'
-                ? JSON.parse(settings.selected_exchanges)
-                : (settings.selected_exchanges || []);
+            if (overrideExchanges && overrideCurrencies) {
+                // Use provided overrides (for test scan)
+                selectedExchanges = overrideExchanges;
+                selectedCurrencies = overrideCurrencies;
+                logger.info(`Using override settings: ${selectedExchanges.length} exchanges, ${selectedCurrencies.length} currencies`);
+            } else {
+                // Load from database (for live trading)
+                const settings = await CurrencySwapSettings.getOrCreate(userId);
 
-            const selectedCurrencies = typeof settings.selected_currencies === 'string'
-                ? JSON.parse(settings.selected_currencies)
-                : (settings.selected_currencies || []);
+                selectedExchanges = typeof settings.selected_exchanges === 'string'
+                    ? JSON.parse(settings.selected_exchanges)
+                    : (settings.selected_exchanges || []);
+
+                selectedCurrencies = typeof settings.selected_currencies === 'string'
+                    ? JSON.parse(settings.selected_currencies)
+                    : (settings.selected_currencies || []);
+            }
 
             // Bridge asset is bridge only, not a source/destination
             const tradableCurrencies = selectedCurrencies.filter(c => c !== bridgeAsset);

@@ -1143,15 +1143,20 @@ router.get('/daily-limit-check', async (req, res) => {
 router.post('/multi-bridge/start', async (req, res) => {
     try {
         const userId = req.body.userId || req.query.userId || 1;
+        const exchanges = req.body.exchanges || null;
+        const currencies = req.body.currencies || null;
 
         const { getScheduler } = require('../services/currency-swap/MultiBridgeScanScheduler');
         const scheduler = getScheduler();
 
-        const result = scheduler.start(userId);
+        const result = scheduler.start(userId, exchanges, currencies);
 
         systemLogger.trading('[MULTI-BRIDGE] Scan started', {
             userId,
-            bridges: result.bridges
+            bridges: result.bridges,
+            usingTestSelections: !!(exchanges && currencies),
+            exchanges: exchanges ? exchanges.length : 'database',
+            currencies: currencies ? currencies.length : 'database'
         });
 
         res.json(result);

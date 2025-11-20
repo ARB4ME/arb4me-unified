@@ -25,13 +25,17 @@ class MultiBridgeScanScheduler {
         this.userId = null;
         this.timeoutId = null;
         this.cycleNumber = 0;
+        this.testScanExchanges = null; // Test scan exchange selections
+        this.testScanCurrencies = null; // Test scan currency selections
     }
 
     /**
      * Start the multi-bridge scan cycle
      * @param {number} userId - User ID
+     * @param {array} exchanges - Optional: Exchange selections for test scan
+     * @param {array} currencies - Optional: Currency selections for test scan
      */
-    start(userId) {
+    start(userId, exchanges = null, currencies = null) {
         if (this.isRunning) {
             logger.warn('[MULTI-BRIDGE] Scanner already running');
             return {
@@ -41,11 +45,17 @@ class MultiBridgeScanScheduler {
         }
 
         this.userId = userId;
+        this.testScanExchanges = exchanges;
+        this.testScanCurrencies = currencies;
         this.isRunning = true;
         this.cycleNumber = 0;
+
         logger.info('[MULTI-BRIDGE] Starting multi-bridge scan cycle', {
             bridges: this.bridgeAssets,
-            interval: `${this.scanInterval / 1000}s`
+            interval: `${this.scanInterval / 1000}s`,
+            usingTestSelections: !!(exchanges && currencies),
+            exchanges: exchanges ? exchanges.length : 'database',
+            currencies: currencies ? currencies.length : 'database'
         });
 
         // Start first scan immediately
@@ -107,10 +117,19 @@ class MultiBridgeScanScheduler {
         try {
             const scanStartTime = Date.now();
 
+            // Build scan options
+            const scanOptions = { bridgeAsset: currentBridge };
+
+            // If test scan selections provided, pass them as overrides
+            if (this.testScanExchanges && this.testScanCurrencies) {
+                scanOptions.exchanges = this.testScanExchanges;
+                scanOptions.currencies = this.testScanCurrencies;
+            }
+
             // Run scan with current bridge
             const result = await CurrencySwapScannerService.scanOpportunities(
                 this.userId,
-                { bridgeAsset: currentBridge }
+                scanOptions
             );
 
             const scanDuration = Date.now() - scanStartTime;
