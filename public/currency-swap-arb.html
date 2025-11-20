@@ -3813,7 +3813,7 @@
                 const userId = localStorage.getItem('userId') || 1;
 
                 // Start the multi-bridge scan
-                const response = await fetch(`${API_BASE}/api/v1/currency-swap/multi-bridge/start`, {
+                const response = await fetch(`${API_BASE}/multi-bridge/start`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ userId })
@@ -3854,7 +3854,7 @@
          */
         async function pollMultiBridgeStatus() {
             try {
-                const response = await fetch(`${API_BASE}/api/v1/currency-swap/multi-bridge/status`);
+                const response = await fetch(`${API_BASE}/multi-bridge/status`);
                 const result = await response.json();
 
                 if (result.success && result.data) {
@@ -3984,7 +3984,7 @@
                 }
 
                 // Call stop endpoint
-                const response = await fetch(`${API_BASE}/api/v1/currency-swap/multi-bridge/stop`, {
+                const response = await fetch(`${API_BASE}/multi-bridge/stop`, {
                     method: 'POST'
                 });
 
