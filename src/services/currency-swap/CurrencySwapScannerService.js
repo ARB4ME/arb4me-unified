@@ -125,9 +125,9 @@ class CurrencySwapScannerService {
      */
     static async _fetchAllPrices(exchanges, currencies, bridgeAsset = 'XRP') {
         const priceData = {};
-        const baseURL = process.env.NODE_ENV === 'production'
-            ? 'https://arb4me-unified-production.up.railway.app'
-            : 'http://localhost:3000';
+
+        // Use price cache service instead of trading endpoints
+        const priceCacheService = require('../priceCacheService');
 
         // Debug statistics
         const fetchStats = {
@@ -139,7 +139,7 @@ class CurrencySwapScannerService {
             byExchange: {}
         };
 
-        logger.info(`[PRICE FETCH] Starting price fetch for ${exchanges.length} exchanges × ${currencies.length} currencies = ${exchanges.length * currencies.length} pairs`);
+        logger.info(`[PRICE FETCH] Starting price fetch for ${exchanges.length} exchanges × ${currencies.length} currencies = ${exchanges.length * currencies.length} pairs using PRICE CACHE`);
 
         for (const exchange of exchanges) {
             priceData[exchange] = {};
@@ -148,34 +148,59 @@ class CurrencySwapScannerService {
                 failed: []
             };
 
+            const exchangeLower = exchange.toLowerCase();
+
+            // Get all cached prices for this exchange
+            const cachedPrices = priceCacheService.getPrices(exchangeLower);
+
+            if (!cachedPrices || Object.keys(cachedPrices).length === 0) {
+                logger.warn(`[PRICE FETCH] ❌ ${exchange}: No cached prices available`);
+                continue;
+            }
+
             for (const currency of currencies) {
                 fetchStats.totalAttempts++;
                 const pair = `${bridgeAsset}/${currency}`;
 
                 try {
-                    const exchangeLower = exchange.toLowerCase();
+                    // Try different pair formats that might be in cache
+                    const possiblePairs = [
+                        `${bridgeAsset}${currency}`,           // XRPUSDT
+                        `${bridgeAsset}-${currency}`,          // XRP-USDT
+                        `${bridgeAsset}/${currency}`,          // XRP/USDT
+                        `${bridgeAsset.toUpperCase()}${currency.toUpperCase()}`, // Uppercase
+                    ];
 
-                    const response = await fetch(`${baseURL}/api/v1/trading/${exchangeLower}/ticker`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ pair })
-                    });
+                    let priceFound = null;
 
-                    const data = await response.json();
+                    for (const pairFormat of possiblePairs) {
+                        if (cachedPrices[pairFormat]) {
+                            priceFound = cachedPrices[pairFormat];
+                            break;
+                        }
+                    }
 
-                    if (data.success && data.data) {
-                        // Extract bid/ask prices (format varies by exchange)
-                        const price = data.data;
-                        const bid = parseFloat(price.bid || price.bidPrice || price.buy || 0);
-                        const ask = parseFloat(price.ask || price.askPrice || price.sell || 0);
-                        const last = parseFloat(price.last || price.lastPrice || price.price || 0);
+                    if (priceFound) {
+                        // Parse price (could be simple number or object with bid/ask)
+                        let bid, ask, last;
+
+                        if (typeof priceFound === 'number') {
+                            // Simple price - use as both bid and ask (with small spread)
+                            bid = priceFound * 0.9995; // 0.05% spread
+                            ask = priceFound * 1.0005;
+                            last = priceFound;
+                        } else if (typeof priceFound === 'object') {
+                            bid = parseFloat(priceFound.bid || priceFound.bidPrice || priceFound.buy || 0);
+                            ask = parseFloat(priceFound.ask || priceFound.askPrice || priceFound.sell || 0);
+                            last = parseFloat(priceFound.last || priceFound.lastPrice || priceFound.price || priceFound);
+                        }
 
                         // Validate prices are non-zero
                         if (bid > 0 && ask > 0) {
                             priceData[exchange][currency] = { bid, ask, last };
                             fetchStats.successful++;
                             fetchStats.byExchange[exchange].successful.push(currency);
-                            logger.info(`[PRICE FETCH] ✅ ${exchange} ${pair}: bid=${bid.toFixed(6)}, ask=${ask.toFixed(6)}`);
+                            logger.info(`[PRICE FETCH] ✅ ${exchange} ${pair}: bid=${bid.toFixed(6)}, ask=${ask.toFixed(6)} (from cache)`);
                         } else {
                             fetchStats.failedInvalidPrice++;
                             fetchStats.byExchange[exchange].failed.push(`${currency} (zero prices: bid=${bid}, ask=${ask})`);
@@ -183,8 +208,8 @@ class CurrencySwapScannerService {
                         }
                     } else {
                         fetchStats.failedNoData++;
-                        fetchStats.byExchange[exchange].failed.push(`${currency} (no data: ${data.error || 'unknown'})`);
-                        logger.warn(`[PRICE FETCH] ❌ ${exchange} ${pair}: No data returned (${data.error || 'no error message'})`);
+                        fetchStats.byExchange[exchange].failed.push(`${currency} (not in cache)`);
+                        logger.warn(`[PRICE FETCH] ❌ ${exchange} ${pair}: Not found in cache`);
                     }
 
                 } catch (error) {
