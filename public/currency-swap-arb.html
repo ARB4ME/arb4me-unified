@@ -685,16 +685,73 @@
                 </div>
 
                 <!-- Control Buttons -->
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 20px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
                     <button id="startTestScanBtn" onclick="startCurrencySwapTestScan()" class="btn btn-success" style="background: linear-gradient(45deg, #00ff88 0%, #00cc6a 100%);">
-                        ▶️ Start Scanning
+                        ▶️ Start Single Scan (XRP)
                     </button>
                     <button id="stopTestScanBtn" onclick="stopCurrencySwapTestScan()" class="btn btn-danger" disabled style="background: rgba(255,107,107,0.2); cursor: not-allowed;">
-                        ⏸️ Stop Scanning
+                        ⏸️ Stop Single Scan
+                    </button>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;">
+                    <button id="startMultiBridgeScanBtn" onclick="startMultiBridgeScan()" class="btn" style="background: linear-gradient(45deg, #7c3aed 0%, #5b21b6 100%); color: white; border: 2px solid #a78bfa;">
+                        🌉 Multi-Bridge Scan
                     </button>
                     <button onclick="resetCurrencySwapTestScan()" class="btn" style="background: rgba(255,179,71,0.2); border: 1px solid #ffb347; color: #ffb347;">
                         🔄 Reset Data
                     </button>
+                </div>
+
+                <!-- Multi-Bridge Results (Hidden by default) -->
+                <div id="multiBridgeResults" style="display: none; background: linear-gradient(135deg, rgba(124,58,237,0.1) 0%, rgba(91,33,182,0.05) 100%); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 2px solid #7c3aed;">
+                    <h4 style="color: #a78bfa; margin-bottom: 15px;">🌉 Multi-Bridge Scan Results</h4>
+
+                    <!-- Status Info -->
+                    <div style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px; margin-bottom: 15px;">
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; font-size: 0.85rem;">
+                            <div>
+                                <span style="color: #b8c6db;">Status:</span>
+                                <span id="multiBridgeStatus" style="color: #00ff88; margin-left: 5px;">Idle</span>
+                            </div>
+                            <div>
+                                <span style="color: #b8c6db;">Cycle:</span>
+                                <span id="multiBridgeCycle" style="color: #00d4ff; margin-left: 5px;">-</span>
+                            </div>
+                            <div>
+                                <span style="color: #b8c6db;">Next Scan:</span>
+                                <span id="multiBridgeNextScan" style="color: #ffb347; margin-left: 5px;">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bridge Comparison Table -->
+                    <div style="overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                            <thead>
+                                <tr style="background: rgba(124,58,237,0.2); border-bottom: 2px solid #7c3aed;">
+                                    <th style="padding: 10px; text-align: left; color: #a78bfa;">Bridge</th>
+                                    <th style="padding: 10px; text-align: right; color: #a78bfa;">Profit %</th>
+                                    <th style="padding: 10px; text-align: left; color: #a78bfa;">Best Path</th>
+                                    <th style="padding: 10px; text-align: right; color: #a78bfa;">Paths</th>
+                                    <th style="padding: 10px; text-align: right; color: #a78bfa;">Last Scan</th>
+                                </tr>
+                            </thead>
+                            <tbody id="multiBridgeTableBody">
+                                <tr>
+                                    <td colspan="5" style="padding: 20px; text-align: center; color: #b8c6db;">
+                                        Click "Multi-Bridge Scan" to start...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Stop Button -->
+                    <div style="margin-top: 15px;">
+                        <button id="stopMultiBridgeScanBtn" onclick="stopMultiBridgeScan()" class="btn btn-danger" style="width: 100%;">
+                            ⏸️ Stop Multi-Bridge Scan
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Current Scan Info -->
@@ -3737,6 +3794,220 @@
 
             } catch (error) {
                 console.error('Failed to update analytics:', error);
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // MULTI-BRIDGE SCAN FUNCTIONS
+        // ═══════════════════════════════════════════════════════════
+
+        let multiBridgeScanInterval = null;
+
+        /**
+         * Start Multi-Bridge Scan (XRP, XLM, TRX, LTC)
+         */
+        async function startMultiBridgeScan() {
+            try {
+                console.log('🌉 Starting Multi-Bridge Scan...');
+
+                const userId = localStorage.getItem('userId') || 1;
+
+                // Start the multi-bridge scan
+                const response = await fetch(`${API_BASE}/api/v1/currency-swap/multi-bridge/start`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    console.log('✅ Multi-Bridge Scan started:', result);
+
+                    // Show results container
+                    document.getElementById('multiBridgeResults').style.display = 'block';
+                    document.getElementById('multiBridgeStatus').textContent = 'Running';
+                    document.getElementById('multiBridgeStatus').style.color = '#00ff88';
+
+                    // Disable start button
+                    document.getElementById('startMultiBridgeScanBtn').disabled = true;
+                    document.getElementById('startMultiBridgeScanBtn').style.opacity = '0.5';
+                    document.getElementById('startMultiBridgeScanBtn').style.cursor = 'not-allowed';
+
+                    // Start polling status every 15 seconds
+                    pollMultiBridgeStatus();
+                    multiBridgeScanInterval = setInterval(pollMultiBridgeStatus, 15000);
+
+                } else {
+                    console.error('❌ Failed to start multi-bridge scan:', result.error);
+                    alert('Failed to start multi-bridge scan: ' + result.error);
+                }
+
+            } catch (error) {
+                console.error('Failed to start multi-bridge scan:', error);
+                alert('Error starting multi-bridge scan. Check console for details.');
+            }
+        }
+
+        /**
+         * Poll Multi-Bridge Scan Status
+         */
+        async function pollMultiBridgeStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/currency-swap/multi-bridge/status`);
+                const result = await response.json();
+
+                if (result.success && result.data) {
+                    updateMultiBridgeDisplay(result.data);
+                }
+
+            } catch (error) {
+                console.error('Failed to poll multi-bridge status:', error);
+            }
+        }
+
+        /**
+         * Update Multi-Bridge Display
+         */
+        function updateMultiBridgeDisplay(data) {
+            // Update status info
+            document.getElementById('multiBridgeStatus').textContent = data.isRunning ? 'Running' : 'Stopped';
+            document.getElementById('multiBridgeStatus').style.color = data.isRunning ? '#00ff88' : '#ff6b6b';
+            document.getElementById('multiBridgeCycle').textContent = `#${data.currentCycle || 0}`;
+            document.getElementById('multiBridgeNextScan').textContent = data.nextScan?.in || '-';
+
+            // Update table
+            const bridgeResults = data.bridgeResults || {};
+            const bridges = data.bridges || ['XRP', 'XLM', 'TRX', 'LTC'];
+
+            let tableHTML = '';
+            const bridgeData = [];
+
+            // Collect data for all bridges
+            for (const bridge of bridges) {
+                const result = bridgeResults[bridge];
+
+                if (result && result.success) {
+                    const profit = result.opportunity?.profitPercent || 0;
+                    const path = result.opportunity
+                        ? `${result.opportunity.sourceExchange} → ${result.opportunity.destExchange} (${result.opportunity.sourceCurrency})`
+                        : 'None';
+                    const pathsScanned = result.scannedPaths || 0;
+                    const lastScan = result.scannedAt
+                        ? Math.floor((Date.now() - new Date(result.scannedAt).getTime()) / 1000) + 's ago'
+                        : 'Never';
+
+                    bridgeData.push({
+                        bridge,
+                        profit,
+                        path,
+                        pathsScanned,
+                        lastScan,
+                        isProfitable: result.isProfitable || false,
+                        meetsThreshold: result.meetsThreshold || false
+                    });
+                } else {
+                    bridgeData.push({
+                        bridge,
+                        profit: null,
+                        path: result?.error || 'Not scanned yet',
+                        pathsScanned: 0,
+                        lastScan: 'Pending',
+                        isProfitable: false,
+                        meetsThreshold: false
+                    });
+                }
+            }
+
+            // Sort by profit (highest first)
+            bridgeData.sort((a, b) => (b.profit || -Infinity) - (a.profit || -Infinity));
+
+            // Generate table rows
+            bridgeData.forEach((data, index) => {
+                const isBest = index === 0 && data.profit !== null && data.profit > 0;
+                const profitColor = data.profit === null ? '#888' :
+                                  data.profit > 0.5 ? '#00ff88' :
+                                  data.profit > 0 ? '#ffb347' : '#ff6b6b';
+
+                const profitText = data.profit === null ? 'Pending' :
+                                 `${data.profit > 0 ? '+' : ''}${data.profit.toFixed(4)}%`;
+
+                const rowStyle = isBest ? 'background: rgba(0,255,136,0.1); border-left: 4px solid #00ff88;' : '';
+
+                tableHTML += `
+                    <tr style="${rowStyle}">
+                        <td style="padding: 10px; color: #00d4ff; font-weight: bold;">
+                            ${isBest ? '🏆 ' : ''}${data.bridge}
+                        </td>
+                        <td style="padding: 10px; text-align: right; color: ${profitColor}; font-weight: bold;">
+                            ${profitText}
+                        </td>
+                        <td style="padding: 10px; color: #b8c6db; font-size: 0.85rem;">
+                            ${data.path}
+                        </td>
+                        <td style="padding: 10px; text-align: right; color: #b8c6db;">
+                            ${data.pathsScanned}
+                        </td>
+                        <td style="padding: 10px; text-align: right; color: #888; font-size: 0.85rem;">
+                            ${data.lastScan}
+                        </td>
+                    </tr>
+                `;
+            });
+
+            document.getElementById('multiBridgeTableBody').innerHTML = tableHTML || `
+                <tr>
+                    <td colspan="5" style="padding: 20px; text-align: center; color: #b8c6db;">
+                        No results yet...
+                    </td>
+                </tr>
+            `;
+
+            // Log best opportunity
+            if (data.bestOpportunity && data.bestOpportunity.opportunity) {
+                const best = data.bestOpportunity;
+                console.log(`[MULTI-BRIDGE] 🏆 Best: ${best.opportunity.profitPercent.toFixed(4)}% via ${best.bridge} bridge`);
+            }
+        }
+
+        /**
+         * Stop Multi-Bridge Scan
+         */
+        async function stopMultiBridgeScan() {
+            try {
+                console.log('⏸️ Stopping Multi-Bridge Scan...');
+
+                // Stop polling
+                if (multiBridgeScanInterval) {
+                    clearInterval(multiBridgeScanInterval);
+                    multiBridgeScanInterval = null;
+                }
+
+                // Call stop endpoint
+                const response = await fetch(`${API_BASE}/api/v1/currency-swap/multi-bridge/stop`, {
+                    method: 'POST'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    console.log('✅ Multi-Bridge Scan stopped:', result);
+
+                    // Update UI
+                    document.getElementById('multiBridgeStatus').textContent = 'Stopped';
+                    document.getElementById('multiBridgeStatus').style.color = '#ff6b6b';
+
+                    // Re-enable start button
+                    document.getElementById('startMultiBridgeScanBtn').disabled = false;
+                    document.getElementById('startMultiBridgeScanBtn').style.opacity = '1';
+                    document.getElementById('startMultiBridgeScanBtn').style.cursor = 'pointer';
+
+                } else {
+                    console.error('❌ Failed to stop multi-bridge scan:', result.error);
+                }
+
+            } catch (error) {
+                console.error('Failed to stop multi-bridge scan:', error);
             }
         }
 
