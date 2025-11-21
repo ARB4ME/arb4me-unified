@@ -1113,14 +1113,54 @@
                     </div>
                 </div>
 
-                <!-- Control Buttons -->
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
-                    <button id="startCrossExTestScanBtn" onclick="startCrossExchangeTestScan()" style="padding: 14px; background: linear-gradient(135deg, #00ff88, #00d4ff); border: none; color: #0c0c1e; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 1rem; transition: all 0.3s; box-shadow: 0 4px 15px rgba(0,212,255,0.3);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(0,212,255,0.5)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(0,212,255,0.3)'">
-                        ▶️ Start Test Scan
-                    </button>
-                    <button id="stopCrossExTestScanBtn" onclick="stopCrossExchangeTestScan()" disabled style="padding: 14px; background: rgba(255,107,107,0.5); border: none; color: rgba(255,255,255,0.5); border-radius: 8px; cursor: not-allowed; font-weight: bold; font-size: 1rem;">
-                        ⏹️ Stop Test Scan
-                    </button>
+                <!-- Settings and Controls -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                    <!-- Settings -->
+                    <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 20px;">
+                        <h4 style="color: #667eea; margin-bottom: 15px; font-size: 1rem;">⚙️ Settings</h4>
+
+                        <div style="margin-bottom: 15px;">
+                            <label style="color: #b8c6db; font-size: 0.9rem; display: block; margin-bottom: 5px;">Min Profit % (after fees):</label>
+                            <input type="number" id="crossExMinProfit" min="-10" max="20" step="0.1" value="0.5"
+                                   style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; color: #fff; font-size: 1rem;">
+                            <div style="color: #888; font-size: 0.75rem; margin-top: 5px;">Show all opportunities above this % (can be negative to see all)</div>
+                        </div>
+
+                        <div>
+                            <label style="color: #b8c6db; font-size: 0.9rem; display: block; margin-bottom: 5px;">Scan Interval:</label>
+                            <select id="crossExScanInterval" style="width: 100%; padding: 10px; background: #2a2f45; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; color: #fff; font-size: 1rem;">
+                                <option value="30" style="background: #2a2f45; color: #fff;">30 seconds</option>
+                                <option value="60" selected style="background: #2a2f45; color: #fff;">60 seconds (1 min)</option>
+                                <option value="120" style="background: #2a2f45; color: #fff;">2 minutes</option>
+                                <option value="300" style="background: #2a2f45; color: #fff;">5 minutes</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Controls -->
+                    <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 20px;">
+                        <h4 style="color: #ffc107; margin-bottom: 15px; font-size: 1rem;">🎮 Controls</h4>
+
+                        <button id="startCrossExTestScanBtn" onclick="startCrossExchangeTestScan()"
+                                style="width: 100%; padding: 14px; background: linear-gradient(135deg, #00ff88, #00d4ff); color: #1a1f36; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; margin-bottom: 10px; font-size: 1rem;">
+                            ▶️ Start Test Scan
+                        </button>
+
+                        <button id="stopCrossExTestScanBtn" onclick="stopCrossExchangeTestScan()" disabled
+                                style="width: 100%; padding: 14px; background: rgba(255,107,107,0.2); color: #ff6b6b; font-weight: bold; border: 1px solid #ff6b6b; border-radius: 6px; cursor: not-allowed; margin-bottom: 10px; font-size: 1rem;">
+                            ⏸️ Stop Scan
+                        </button>
+
+                        <button id="downloadCrossExResultsBtn" onclick="downloadCrossExResults()"
+                                style="width: 100%; padding: 12px; background: linear-gradient(135deg, #00d4ff, #0099ff); color: #fff; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; margin-bottom: 10px; font-size: 0.9rem;">
+                            📥 Download Results (CSV)
+                        </button>
+
+                        <button id="resetCrossExResultsBtn" onclick="resetCrossExResults()"
+                                style="width: 100%; padding: 12px; background: rgba(255,255,255,0.05); color: #888; font-weight: bold; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; cursor: pointer; font-size: 0.9rem;">
+                            🗑️ Clear All Data
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Status Dashboard (Always Visible) -->
@@ -1898,6 +1938,67 @@
         }
 
         /**
+         * Download test scan results as CSV
+         */
+        function downloadCrossExResults() {
+            const data = getCrossExScanData();
+            if (!data || !data.routes || Object.keys(data.routes).length === 0) {
+                alert('⚠️ No data to download. Run some scans first!');
+                return;
+            }
+
+            // Create CSV content
+            let csv = 'Route,Asset,Buy Exchange,Sell Exchange,Times Found,Avg Profit %,Best Profit %,Worst Profit %,Last Seen\n';
+
+            Object.values(data.routes).forEach(route => {
+                const lastSeen = route.lastSeen ? new Date(route.lastSeen).toLocaleString() : 'Never';
+                csv += `"${route.buyExchange} → ${route.sellExchange}",${route.asset},${route.buyExchange},${route.sellExchange},${route.timesFound},${route.avgProfit.toFixed(2)},${route.bestProfit.toFixed(2)},${route.worstProfit.toFixed(2)},${lastSeen}\n`;
+            });
+
+            // Download CSV
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `cross-exchange-test-scan-${new Date().toISOString().slice(0,10)}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+
+            console.log('📥 Downloaded', Object.keys(data.routes).length, 'routes to CSV');
+        }
+
+        /**
+         * Reset/clear all test scan data
+         */
+        function resetCrossExResults() {
+            if (!confirm('⚠️ This will permanently delete all test scan data. Continue?')) {
+                return;
+            }
+
+            // Clear localStorage
+            localStorage.removeItem('crossExTestScanData');
+
+            // Reset UI
+            document.getElementById('crossExScanCycles').textContent = '0';
+            document.getElementById('crossExOppsFound').textContent = '0 / 50,000';
+            document.getElementById('crossExStoragePercent').textContent = '0%';
+            document.getElementById('crossExRunTime').textContent = '0:00';
+            document.getElementById('crossExBestOpp').textContent = 'None yet';
+
+            // Clear all table bodies
+            document.getElementById('crossExTopProfitBody').innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 30px; color: #888; font-style: italic;">Waiting for scan data... Click "Start Test Scan" above.</td></tr>';
+            document.getElementById('crossExTopConsistencyBody').innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 30px; color: #888; font-style: italic;">Waiting for scan data... Click "Start Test Scan" above.</td></tr>';
+            document.getElementById('crossExBestCryptosBody').innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 20px; color: #888;">No data yet</td></tr>';
+            document.getElementById('crossExBestExchangesBody').innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 20px; color: #888;">No data yet</td></tr>';
+            document.getElementById('crossExTimeAnalysisBody').innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px; color: #888;">No data yet</td></tr>';
+
+            console.log('🗑️ All test scan data cleared');
+            alert('✅ All test scan data has been cleared!');
+        }
+
+        /**
          * Start Cross-Exchange Test Scan
          */
         async function startCrossExchangeTestScan() {
@@ -2040,7 +2141,15 @@
                 // Step 5: Sort opportunities by net profit (highest first)
                 opportunities.sort((a, b) => b.netPercent - a.netPercent);
 
-                // Step 6: Save opportunities to localStorage and update all tables
+                // Step 6: Filter and save opportunities based on min profit threshold
+                const minProfitThreshold = parseFloat(document.getElementById('crossExMinProfit').value) || 0.5;
+                const filteredOpportunities = opportunities.filter(opp => opp.netPercent >= minProfitThreshold);
+
+                console.log(`🔍 Min Profit Threshold: ${minProfitThreshold}%`);
+                console.log(`📊 Total opportunities scanned: ${totalScanned.toLocaleString()}`);
+                console.log(`✅ Opportunities meeting threshold (≥${minProfitThreshold}%): ${filteredOpportunities.length.toLocaleString()}`);
+                console.log(`💰 Profitable opportunities (>0%): ${opportunities.filter(o => o.netPercent > 0).length}`);
+
                 const scanData = getCrossExScanData();
 
                 // Set start time if first scan
@@ -2051,8 +2160,8 @@
                 // Increment cycle count
                 scanData.cycles++;
 
-                // Add all opportunities to aggregated data
-                opportunities.forEach(opp => addOpportunityToData(scanData, opp));
+                // Add filtered opportunities to aggregated data
+                filteredOpportunities.forEach(opp => addOpportunityToData(scanData, opp));
 
                 // Save updated data
                 saveCrossExScanData(scanData);
@@ -2064,11 +2173,9 @@
                 document.getElementById('crossExStatusText').style.color = '#00ff88';
                 document.getElementById('crossExStatusText').textContent = '✅ SCAN COMPLETE';
                 document.getElementById('crossExCurrentSet').textContent =
-                    `Last scan: ${selectedAssets.length} assets × ${selectedExchanges.length} exchanges`;
+                    `Last scan: ${filteredOpportunities.length} opps (≥${minProfitThreshold}%) from ${selectedAssets.length} assets × ${selectedExchanges.length} exchanges`;
 
                 console.log('✅ Test scan completed successfully');
-                console.log(`📊 Total opportunities scanned: ${totalScanned.toLocaleString()}`);
-                console.log(`💰 Profitable opportunities found: ${opportunities.filter(o => o.netPercent > 0).length}`);
                 console.log(`🗄️  Total data collected: ${scanData.totalOpportunities.toLocaleString()}`);
                 console.log(`🔄 Scan cycle: ${scanData.cycles}`);
                 console.log('🔬 ═══════════════════════════════════════════════════════\n');
