@@ -1071,12 +1071,8 @@
                             <div style="flex: 1; font-weight: bold; color: #ffb347;">Bitrue</div>
                         </label>
                         <label style="display: flex; align-items: center; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer;">
-                            <input type="checkbox" class="test-scan-exchange" value="xtcom" checked style="margin-right: 10px;">
+                            <input type="checkbox" class="test-scan-exchange" value="xt" checked style="margin-right: 10px;">
                             <div style="flex: 1; font-weight: bold; color: #ffb347;">XT.com</div>
-                        </label>
-                        <label style="display: flex; align-items: center; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer;">
-                            <input type="checkbox" class="test-scan-exchange" value="cryptocom" checked style="margin-right: 10px;">
-                            <div style="flex: 1; font-weight: bold; color: #ffb347;">Crypto.com</div>
                         </label>
                         <label style="display: flex; align-items: center; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer;">
                             <input type="checkbox" class="test-scan-exchange" value="chainex" checked style="margin-right: 10px;">
@@ -1773,7 +1769,7 @@
             // Count connected exchanges from localStorage (NEW cross-exchange strategy format)
             let connectedCount = 0;
             const connectedExchangesList = [];
-            const exchanges = ['valr', 'luno', 'altcointrader', 'xago', 'chainex', 'kraken', 'binance', 'bybit', 'gateio', 'okx', 'mexc', 'kucoin', 'xt', 'ascendex', 'htx', 'bingx', 'bitget', 'bitmart', 'bitrue', 'gemini', 'cryptocom', 'coincatch'];
+            const exchanges = ['valr', 'luno', 'altcointrader', 'xago', 'chainex', 'kraken', 'binance', 'bybit', 'gateio', 'okx', 'mexc', 'kucoin', 'xt', 'ascendex', 'htx', 'bingx', 'bitget', 'bitmart', 'bitrue', 'gemini', 'coincatch'];
             exchanges.forEach(exchange => {
                 // Check NEW strategy-specific format: ${exchange}_cross-exchange_connected
                 if (localStorage.getItem(`${exchange}_cross-exchange_connected`) === 'true') {
@@ -2363,8 +2359,7 @@
                 'gemini': 'Gemini',
                 'bitmart': 'Bitmart',
                 'bitrue': 'Bitrue',
-                'xtcom': 'XT.com',
-                'cryptocom': 'Crypto.com',
+                'xt': 'XT.com',
                 'chainex': 'Chainex',
                 'coincatch': 'Coincatch',
                 'bingx': 'BingX',
