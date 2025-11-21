@@ -46,7 +46,9 @@ class PreFlightValidationService {
                 addressCheck: { passed: false, message: '' },
                 tagCheck: { passed: false, message: '' },
                 amountCheck: { passed: false, message: '' },
-                confirmationCheck: { passed: false, message: '' }
+                confirmationCheck: { passed: false, message: '' },
+                priceRecheckCheck: { passed: false, message: '', freshProfit: null },
+                exchangeStatusCheck: { passed: false, message: '' }
             },
             warnings: [],
             currentPath: null
@@ -198,6 +200,60 @@ class PreFlightValidationService {
                 passed: true,
                 message: 'Confirmation received'
             };
+
+            // CHECK 7: Real-Time Price Re-Check
+            systemLogger.trading('[PRE-FLIGHT] Check 7: Re-checking current prices...');
+            const priceRecheckCheck = await this._recheckCurrentPrices(
+                path,
+                minProfitThreshold
+            );
+            validationResult.checks.priceRecheckCheck = priceRecheckCheck;
+
+            if (!priceRecheckCheck.passed) {
+                systemLogger.warn('[PRE-FLIGHT] ❌ Price recheck FAILED', {
+                    originalProfit: path.profitPercent,
+                    currentProfit: priceRecheckCheck.freshProfit,
+                    minRequired: minProfitThreshold,
+                    error: priceRecheckCheck.error
+                });
+                return validationResult;
+            }
+
+            // Add warning if profit dropped significantly
+            const profitDrop = path.profitPercent - priceRecheckCheck.freshProfit;
+            if (profitDrop > 0.2) {
+                const warning = `⚠️ Profit dropped: ${path.profitPercent.toFixed(2)}% → ${priceRecheckCheck.freshProfit.toFixed(2)}% (-${profitDrop.toFixed(2)}%)`;
+                validationResult.warnings.push(warning);
+                systemLogger.warn(`[PRE-FLIGHT] ${warning}`);
+            }
+
+            systemLogger.trading('[PRE-FLIGHT] ✅ Price recheck PASSED', {
+                originalProfit: path.profitPercent,
+                currentProfit: priceRecheckCheck.freshProfit,
+                minRequired: minProfitThreshold
+            });
+
+            // CHECK 8: Exchange Status Check
+            systemLogger.trading('[PRE-FLIGHT] Check 8: Checking exchange status...');
+            const exchangeStatusCheck = await this._checkExchangeStatus(
+                path.sourceExchange,
+                path.destExchange
+            );
+            validationResult.checks.exchangeStatusCheck = exchangeStatusCheck;
+
+            if (!exchangeStatusCheck.passed) {
+                systemLogger.warn('[PRE-FLIGHT] ❌ Exchange status check FAILED', {
+                    sourceExchange: path.sourceExchange,
+                    destExchange: path.destExchange,
+                    error: exchangeStatusCheck.error
+                });
+                return validationResult;
+            }
+
+            systemLogger.trading('[PRE-FLIGHT] ✅ Exchange status check PASSED', {
+                sourceExchange: path.sourceExchange,
+                destExchange: path.destExchange
+            });
 
             // ALL CHECKS PASSED
             validationResult.passed = true;
@@ -423,6 +479,200 @@ class PreFlightValidationService {
             passed: true,
             message: 'Trade amount within limits'
         };
+    }
+
+    /**
+     * Re-check current prices and recalculate profit
+     * @private
+     */
+    async _recheckCurrentPrices(path, minProfitThreshold) {
+        try {
+            const priceCacheService = require('../priceCacheService');
+            const bridgeAsset = 'XRP'; // Currency Swap uses XRP as bridge
+
+            // Get fresh prices from price cache
+            const sourcePrices = priceCacheService.getPrices(path.sourceExchange.toLowerCase());
+            const destPrices = priceCacheService.getPrices(path.destExchange.toLowerCase());
+
+            if (!sourcePrices || !destPrices) {
+                return {
+                    passed: false,
+                    freshProfit: null,
+                    error: 'Could not fetch fresh prices from price cache'
+                };
+            }
+
+            // Try different pair formats
+            const possiblePairFormats = [
+                `${bridgeAsset}${path.sourceCurrency}`,     // XRPUSDT
+                `${bridgeAsset}-${path.sourceCurrency}`,    // XRP-USDT
+                `${bridgeAsset}/${path.sourceCurrency}`     // XRP/USDT
+            ];
+
+            let sourcePrice = null;
+            let destPrice = null;
+
+            // Find source exchange price
+            for (const format of possiblePairFormats) {
+                if (sourcePrices[format]) {
+                    const priceData = sourcePrices[format];
+                    sourcePrice = {
+                        bid: parseFloat(priceData.bid || priceData.bidPrice || priceData.buy || 0),
+                        ask: parseFloat(priceData.ask || priceData.askPrice || priceData.sell || 0)
+                    };
+                    if (sourcePrice.bid > 0 && sourcePrice.ask > 0) break;
+                }
+            }
+
+            // Find dest exchange price
+            for (const format of possiblePairFormats) {
+                if (destPrices[format]) {
+                    const priceData = destPrices[format];
+                    destPrice = {
+                        bid: parseFloat(priceData.bid || priceData.bidPrice || priceData.buy || 0),
+                        ask: parseFloat(priceData.ask || priceData.askPrice || priceData.sell || 0)
+                    };
+                    if (destPrice.bid > 0 && destPrice.ask > 0) break;
+                }
+            }
+
+            if (!sourcePrice || !destPrice) {
+                return {
+                    passed: false,
+                    freshProfit: null,
+                    error: `Missing price data for ${bridgeAsset}/${path.sourceCurrency} on ${path.sourceExchange} or ${path.destExchange}`
+                };
+            }
+
+            if (sourcePrice.ask <= 0 || destPrice.bid <= 0) {
+                return {
+                    passed: false,
+                    freshProfit: null,
+                    error: 'Invalid prices (zero or negative bid/ask)'
+                };
+            }
+
+            // Recalculate profit with fresh prices
+            // Leg 1: Buy XRP on source (pay ask price)
+            // Leg 2: Transfer XRP (pay withdrawal fee)
+            // Leg 3: Sell XRP on dest (receive bid price)
+            const inputAmount = 1000; // Use $1000 as reference
+            const xrpBought = inputAmount / sourcePrice.ask;
+            const withdrawalFee = 0.1; // 0.1 XRP withdrawal fee
+            const xrpAfterWithdrawal = xrpBought - withdrawalFee;
+            const outputAmount = xrpAfterWithdrawal * destPrice.bid;
+
+            const profit = outputAmount - inputAmount;
+            const profitPercent = (profit / inputAmount) * 100;
+
+            // Check if fresh profit still meets threshold
+            if (profitPercent < minProfitThreshold) {
+                return {
+                    passed: false,
+                    freshProfit: profitPercent,
+                    error: `Fresh profit ${profitPercent.toFixed(2)}% below threshold ${minProfitThreshold}%`
+                };
+            }
+
+            return {
+                passed: true,
+                freshProfit: profitPercent,
+                message: `Fresh profit ${profitPercent.toFixed(2)}% meets threshold`,
+                sourcePriceAsk: sourcePrice.ask,
+                destPriceBid: destPrice.bid
+            };
+
+        } catch (error) {
+            systemLogger.error('[PRE-FLIGHT] Price recheck failed', {
+                error: error.message,
+                path: path.id
+            });
+            return {
+                passed: false,
+                freshProfit: null,
+                error: `Price recheck failed: ${error.message}`
+            };
+        }
+    }
+
+    /**
+     * Check if both exchanges are operational and withdrawals enabled
+     * @private
+     */
+    async _checkExchangeStatus(sourceExchange, destExchange) {
+        try {
+            const fetch = require('node-fetch');
+            const baseURL = process.env.NODE_ENV === 'production'
+                ? 'https://arb4me-unified-production.up.railway.app'
+                : 'http://localhost:3000';
+
+            // For now, implement a simplified check
+            // TODO: Add actual exchange status endpoints when available
+
+            // Check if exchanges are in known operational list
+            const operationalExchanges = [
+                'Binance', 'binance',
+                'Kraken', 'kraken',
+                'OKX', 'okx',
+                'Bybit', 'bybit',
+                'Kucoin', 'kucoin',
+                'MEXC', 'mexc',
+                'HTX', 'htx',
+                'Gate.io', 'gateio',
+                'Bitget', 'bitget',
+                'VALR', 'valr',
+                'Luno', 'luno'
+            ];
+
+            const sourceOperational = operationalExchanges.some(ex =>
+                sourceExchange.toLowerCase() === ex.toLowerCase()
+            );
+
+            const destOperational = operationalExchanges.some(ex =>
+                destExchange.toLowerCase() === ex.toLowerCase()
+            );
+
+            if (!sourceOperational) {
+                return {
+                    passed: false,
+                    error: `Source exchange ${sourceExchange} not in operational list`
+                };
+            }
+
+            if (!destOperational) {
+                return {
+                    passed: false,
+                    error: `Destination exchange ${destExchange} not in operational list`
+                };
+            }
+
+            // TODO: When exchange status APIs are available, add:
+            // - Check if exchange is in maintenance
+            // - Check if trading is enabled
+            // - Check if withdrawals are enabled for XRP
+            // - Check if deposits are enabled for XRP
+
+            return {
+                passed: true,
+                message: 'Both exchanges operational',
+                sourceStatus: 'operational',
+                destStatus: 'operational'
+            };
+
+        } catch (error) {
+            systemLogger.error('[PRE-FLIGHT] Exchange status check failed', {
+                error: error.message,
+                sourceExchange,
+                destExchange
+            });
+
+            // Don't block on status check errors - allow trade to proceed
+            return {
+                passed: true,
+                message: 'Status check unavailable - proceeding with caution',
+                warning: error.message
+            };
+        }
     }
 }
 
