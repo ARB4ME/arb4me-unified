@@ -547,12 +547,18 @@ class PriceCacheService {
                     continue;
                 }
 
-                prices[item.symbol] = price;
+                // Store price with bid/ask spread for cross-exchange arbitrage
+                prices[item.symbol] = {
+                    price: price,
+                    bid: book ? book.bid : price,
+                    ask: book ? book.ask : price
+                };
             }
         }
 
         // Get XRPUSDT reference price for validation
-        const xrpUsdtPrice = prices['XRPUSDT'];
+        const xrpUsdtData = prices['XRPUSDT'];
+        const xrpUsdtPrice = xrpUsdtData ? xrpUsdtData.price : null;
 
         if (!xrpUsdtPrice || xrpUsdtPrice <= 0) {
             systemLogger.error('[PRICE CACHE] Binance XRPUSDT price missing - cannot validate other XRP pairs');
@@ -564,14 +570,15 @@ class PriceCacheService {
             if (symbol.startsWith('XRP') && !symbol.endsWith('USDT') && !symbol.endsWith('USDC')) {
                 const currency = symbol.replace('XRP', ''); // Extract currency (AUD, GBP, EUR, etc.)
                 const currencyUsdtPair = `${currency}USDT`; // e.g., AUDUSDT, GBPUSDT
-                const currencyUsdtPrice = prices[currencyUsdtPair];
+                const currencyUsdtData = prices[currencyUsdtPair];
+                const currencyUsdtPrice = currencyUsdtData ? currencyUsdtData.price : null;
 
                 // Calculate expected XRP price in this currency
                 let expectedPrice = null;
                 let isInverted = false;
 
                 if (currencyUsdtPrice && currencyUsdtPrice > 0) {
-                    const actualPrice = prices[symbol];
+                    const actualPrice = prices[symbol].price;
 
                     // Calculate both standard and inverted expected prices
                     const standardExpected = xrpUsdtPrice / currencyUsdtPrice; // XRP/CURRENCY
@@ -592,7 +599,7 @@ class PriceCacheService {
                 }
 
                 if (expectedPrice) {
-                    const actualPrice = prices[symbol];
+                    const actualPrice = prices[symbol].price;
                     const percentDiff = Math.abs((actualPrice - expectedPrice) / expectedPrice * 100);
 
                     // Reject if price differs by more than 30% from expected (indicates stale/fake price)
