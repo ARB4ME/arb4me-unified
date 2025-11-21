@@ -2287,6 +2287,17 @@
 
             for (const variation of variations) {
                 if (exchangePrices[variation]) {
+                    const priceData = exchangePrices[variation];
+
+                    // DEBUG: Log first match to see data structure
+                    if (!window._priceDebugLogged) {
+                        console.log('🔍 DEBUG: Price data structure for', variation, ':', priceData);
+                        console.log('   Type:', typeof priceData);
+                        console.log('   Has .bid?', 'bid' in priceData);
+                        console.log('   Has .ask?', 'ask' in priceData);
+                        window._priceDebugLogged = true;
+                    }
+
                     return {
                         bid: exchangePrices[variation].bid || 0,
                         ask: exchangePrices[variation].ask || 0
