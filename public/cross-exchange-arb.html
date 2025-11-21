@@ -1114,65 +1114,148 @@
                     </button>
                 </div>
 
-                <!-- Scan Status -->
-                <div id="crossExTestScanStatus" style="display: none; background: rgba(0,212,255,0.15); padding: 15px; border-radius: 8px; border: 1px solid #00d4ff; margin-bottom: 20px;">
-                    <div style="display: flex; align-items: center; gap: 15px;">
-                        <div style="width: 24px; height: 24px; border: 3px solid #00d4ff; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-                        <div style="flex: 1;">
-                            <div style="color: #00d4ff; font-weight: bold; margin-bottom: 5px;">🔍 Scanning in progress...</div>
-                            <div id="crossExScanProgressText" style="color: #b8c6db; font-size: 0.9rem;">Initializing scan...</div>
+                <!-- Status Dashboard (Always Visible) -->
+                <div id="crossExTestScanStatus" style="background: rgba(0,255,136,0.1); border: 1px solid #00ff88; border-radius: 8px; padding: 20px; margin-bottom: 25px;">
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 15px;">
+                        <div>
+                            <div style="color: #888; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 5px;">Status</div>
+                            <div id="crossExStatusText" style="color: #888; font-weight: bold; font-size: 1.1rem;">⚪ READY TO SCAN</div>
                         </div>
+                        <div>
+                            <div style="color: #888; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 5px;">Scan Cycles</div>
+                            <div id="crossExScanCycles" style="color: #fff; font-weight: bold; font-size: 1.1rem;">0</div>
+                        </div>
+                        <div>
+                            <div style="color: #888; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 5px;">Data Collected</div>
+                            <div id="crossExOppsFound" style="color: #ffc107; font-weight: bold; font-size: 1.1rem;">0 / 50,000</div>
+                            <div id="crossExStoragePercent" style="color: #888; font-size: 0.7rem; margin-top: 2px;">0%</div>
+                        </div>
+                        <div>
+                            <div style="color: #888; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 5px;">Running Time</div>
+                            <div id="crossExRunTime" style="color: #fff; font-weight: bold; font-size: 1.1rem;">0:00</div>
+                        </div>
+                    </div>
+                    <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;">
+                        <div style="color: #888; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 5px;">Current Scan</div>
+                        <div id="crossExCurrentSet" style="color: #888; font-size: 0.9rem;">Click "Start Test Scan" to begin...</div>
+                        <div style="margin-top: 10px; color: #888; font-size: 0.85rem;">
+                            Next scan in: <span id="crossExCountdown" style="color: #00d4ff; font-weight: bold;">--</span>
+                        </div>
+                    </div>
+                    <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px; margin-top: 15px;">
+                        <div style="color: #888; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 5px;">Best Opportunity Found</div>
+                        <div id="crossExBestOpp" style="color: #ffc107; font-size: 0.95rem; font-weight: bold;">None yet</div>
                     </div>
                 </div>
 
-                <!-- Results Table -->
-                <div style="margin-top: 20px;">
-                    <h4 style="color: #ffb347; margin-bottom: 15px;">🏆 Top 10 Cross-Exchange Opportunities</h4>
-                    <div style="overflow-x: auto;">
-                        <table style="width: 100%; border-collapse: collapse; background: rgba(0,0,0,0.3); border-radius: 8px; overflow: hidden;">
-                            <thead>
-                                <tr style="background: rgba(0,212,255,0.2);">
-                                    <th style="padding: 12px; text-align: left; color: #00d4ff; font-weight: bold; border-bottom: 2px solid #00d4ff;">#</th>
-                                    <th style="padding: 12px; text-align: left; color: #00d4ff; font-weight: bold; border-bottom: 2px solid #00d4ff;">Asset</th>
-                                    <th style="padding: 12px; text-align: left; color: #00d4ff; font-weight: bold; border-bottom: 2px solid #00d4ff;">Buy From</th>
-                                    <th style="padding: 12px; text-align: right; color: #00d4ff; font-weight: bold; border-bottom: 2px solid #00d4ff;">Buy Price</th>
-                                    <th style="padding: 12px; text-align: left; color: #00d4ff; font-weight: bold; border-bottom: 2px solid #00d4ff;">Sell To</th>
-                                    <th style="padding: 12px; text-align: right; color: #00d4ff; font-weight: bold; border-bottom: 2px solid #00d4ff;">Sell Price</th>
-                                    <th style="padding: 12px; text-align: right; color: #00d4ff; font-weight: bold; border-bottom: 2px solid #00d4ff;">Spread %</th>
-                                    <th style="padding: 12px; text-align: right; color: #00d4ff; font-weight: bold; border-bottom: 2px solid #00d4ff;">Net % (After Fees)</th>
-                                    <th style="padding: 12px; text-align: right; color: #00d4ff; font-weight: bold; border-bottom: 2px solid #00d4ff;">Est. Profit (1000 USDT)</th>
-                                </tr>
-                            </thead>
-                            <tbody id="crossExTestScanResults">
-                                <tr>
-                                    <td colspan="9" style="padding: 40px; text-align: center; color: #888; font-size: 1rem;">
-                                        Click "Start Test Scan" to discover cross-exchange arbitrage opportunities
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+                <!-- Live Analysis Report -->
+                <div id="crossExTestScanReports">
+                    <h4 style="color: #ffc107; margin-bottom: 20px; font-size: 1.2rem; text-align: center;">📊 Live Analysis Report</h4>
 
-                <!-- Summary Stats -->
-                <div id="crossExTestScanSummary" style="display: none; margin-top: 20px; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 8px;">
-                    <h5 style="color: #ffb347; margin-bottom: 10px;">📊 Scan Summary</h5>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; font-size: 0.9rem;">
-                        <div>
-                            <span style="color: #b8c6db;">Total Opportunities Scanned:</span>
-                            <span id="totalOpportunitiesScanned" style="color: #00d4ff; font-weight: bold; margin-left: 10px;">0</span>
+                    <!-- Top 20 Routes by Profit % -->
+                    <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+                        <h5 style="color: #00ff88; margin-bottom: 15px;">🏆 Top 20 Routes by Profit %</h5>
+                        <div style="overflow-x: auto;">
+                            <table style="width: 100%; border-collapse: collapse; color: #b8c6db; font-size: 0.85rem;">
+                                <thead>
+                                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                        <th style="text-align: left; padding: 10px; color: #888;">#</th>
+                                        <th style="text-align: left; padding: 10px; color: #888;">Route</th>
+                                        <th style="text-align: left; padding: 10px; color: #888;">Asset</th>
+                                        <th style="text-align: right; padding: 10px; color: #888;">Avg Profit %</th>
+                                        <th style="text-align: right; padding: 10px; color: #888;">Best Profit %</th>
+                                        <th style="text-align: right; padding: 10px; color: #888;">Times Found</th>
+                                        <th style="text-align: right; padding: 10px; color: #888;">Last Seen</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="crossExTopProfitBody">
+                                    <tr><td colspan="7" style="text-align: center; padding: 30px; color: #888; font-style: italic;">Waiting for scan data... Click "Start Test Scan" above.</td></tr>
+                                </tbody>
+                            </table>
                         </div>
-                        <div>
-                            <span style="color: #b8c6db;">Profitable Opportunities:</span>
-                            <span id="profitableOpportunities" style="color: #00ff88; font-weight: bold; margin-left: 10px;">0</span>
+                    </div>
+
+                    <!-- Top 20 Routes by Consistency -->
+                    <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+                        <h5 style="color: #00d4ff; margin-bottom: 15px;">📈 Top 20 Routes by Consistency (Most Reliable)</h5>
+                        <div style="overflow-x: auto;">
+                            <table style="width: 100%; border-collapse: collapse; color: #b8c6db; font-size: 0.85rem;">
+                                <thead>
+                                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                        <th style="text-align: left; padding: 10px; color: #888;">#</th>
+                                        <th style="text-align: left; padding: 10px; color: #888;">Route</th>
+                                        <th style="text-align: left; padding: 10px; color: #888;">Asset</th>
+                                        <th style="text-align: right; padding: 10px; color: #888;">Times Found</th>
+                                        <th style="text-align: right; padding: 10px; color: #888;">Avg Profit %</th>
+                                        <th style="text-align: right; padding: 10px; color: #888;">Min/Max Profit</th>
+                                        <th style="text-align: center; padding: 10px; color: #888;">Consistency</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="crossExTopConsistencyBody">
+                                    <tr><td colspan="7" style="text-align: center; padding: 30px; color: #888; font-style: italic;">Waiting for scan data... Click "Start Test Scan" above.</td></tr>
+                                </tbody>
+                            </table>
                         </div>
-                        <div>
-                            <span style="color: #b8c6db;">Best Net Profit:</span>
-                            <span id="bestNetProfit" style="color: #ffb347; font-weight: bold; margin-left: 10px;">-</span>
+                    </div>
+
+                    <!-- Best Cryptos & Best Exchanges Side by Side -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                        <!-- Best Cryptos -->
+                        <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 20px;">
+                            <h5 style="color: #667eea; margin-bottom: 15px;">⚡ Best Cryptos for Cross-Exchange Arb</h5>
+                            <div style="overflow-x: auto;">
+                                <table style="width: 100%; border-collapse: collapse; color: #b8c6db; font-size: 0.85rem;">
+                                    <thead>
+                                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                            <th style="text-align: left; padding: 10px; color: #888;">Crypto</th>
+                                            <th style="text-align: right; padding: 10px; color: #888;">Opps</th>
+                                            <th style="text-align: right; padding: 10px; color: #888;">Avg Profit</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="crossExBestCryptosBody">
+                                        <tr><td colspan="3" style="text-align: center; padding: 20px; color: #888;">Waiting for scan data...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
-                        <div>
-                            <span style="color: #b8c6db;">Scan Duration:</span>
-                            <span id="scanDuration" style="color: #00d4ff; font-weight: bold; margin-left: 10px;">-</span>
+
+                        <!-- Best Exchanges -->
+                        <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 20px;">
+                            <h5 style="color: #ffb347; margin-bottom: 15px;">🏦 Best Exchange Pairs</h5>
+                            <div style="overflow-x: auto;">
+                                <table style="width: 100%; border-collapse: collapse; color: #b8c6db; font-size: 0.85rem;">
+                                    <thead>
+                                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                            <th style="text-align: left; padding: 10px; color: #888;">Exchange Pair</th>
+                                            <th style="text-align: right; padding: 10px; color: #888;">Opps</th>
+                                            <th style="text-align: right; padding: 10px; color: #888;">Avg Profit</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="crossExBestExchangesBody">
+                                        <tr><td colspan="3" style="text-align: center; padding: 20px; color: #888;">Waiting for scan data...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Time of Day Analysis -->
+                    <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 20px;">
+                        <h5 style="color: #ffc107; margin-bottom: 15px;">🕐 Best Times to Trade (Hourly Analysis)</h5>
+                        <div style="overflow-x: auto;">
+                            <table style="width: 100%; border-collapse: collapse; color: #b8c6db; font-size: 0.85rem;">
+                                <thead>
+                                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                        <th style="text-align: left; padding: 10px; color: #888;">Hour (Local Time)</th>
+                                        <th style="text-align: right; padding: 10px; color: #888;">Opportunities</th>
+                                        <th style="text-align: right; padding: 10px; color: #888;">Avg Profit %</th>
+                                        <th style="text-align: left; padding: 10px; color: #888;">Most Common Route</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="crossExTimeAnalysisBody">
+                                    <tr><td colspan="4" style="text-align: center; padding: 20px; color: #888;">Waiting for scan data...</td></tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -2078,6 +2161,128 @@
             console.log(`   Profitable (>0%): ${profitableCount}`);
             console.log(`   Best Opportunity: ${bestOpportunity.asset} - ${bestOpportunity.netPercent > 0 ? '+' : ''}${bestOpportunity.netPercent.toFixed(2)}%`);
             console.log(`   Scan Duration: ${scanDuration}s`);
+        }
+
+        // ============================================================================
+        // LOCAL STORAGE DATA MANAGEMENT
+        // ============================================================================
+
+        /**
+         * Get scan data from localStorage
+         */
+        function getCrossExScanData() {
+            const data = localStorage.getItem('crossExTestScanData');
+            if (!data) {
+                return {
+                    routes: {},
+                    cryptos: {},
+                    exchanges: {},
+                    hourly: {},
+                    cycles: 0,
+                    totalOpportunities: 0,
+                    startTime: null
+                };
+            }
+            return JSON.parse(data);
+        }
+
+        /**
+         * Save scan data to localStorage
+         */
+        function saveCrossExScanData(data) {
+            localStorage.setItem('crossExTestScanData', JSON.stringify(data));
+        }
+
+        /**
+         * Clear all scan data
+         */
+        function clearCrossExScanData() {
+            localStorage.removeItem('crossExTestScanData');
+            location.reload();
+        }
+
+        /**
+         * Add opportunity to aggregated data
+         */
+        function addOpportunityToData(data, opportunity) {
+            const routeKey = `${opportunity.buyExchange}→${opportunity.sellExchange}|${opportunity.asset}`;
+            const hour = new Date().getHours();
+
+            // Update route data
+            if (!data.routes[routeKey]) {
+                data.routes[routeKey] = {
+                    asset: opportunity.asset,
+                    buyExchange: opportunity.buyExchange,
+                    sellExchange: opportunity.sellExchange,
+                    timesFound: 0,
+                    profits: [],
+                    avgProfit: 0,
+                    bestProfit: -Infinity,
+                    worstProfit: Infinity,
+                    lastSeen: null,
+                    timestamps: []
+                };
+            }
+
+            const route = data.routes[routeKey];
+            route.timesFound++;
+            route.profits.push(opportunity.netPercent);
+            route.timestamps.push(Date.now());
+            route.lastSeen = Date.now();
+            route.bestProfit = Math.max(route.bestProfit, opportunity.netPercent);
+            route.worstProfit = Math.min(route.worstProfit, opportunity.netPercent);
+            route.avgProfit = route.profits.reduce((a, b) => a + b, 0) / route.profits.length;
+
+            // Update crypto data
+            if (!data.cryptos[opportunity.asset]) {
+                data.cryptos[opportunity.asset] = {
+                    opportunities: 0,
+                    profits: [],
+                    avgProfit: 0
+                };
+            }
+            data.cryptos[opportunity.asset].opportunities++;
+            data.cryptos[opportunity.asset].profits.push(opportunity.netPercent);
+            data.cryptos[opportunity.asset].avgProfit =
+                data.cryptos[opportunity.asset].profits.reduce((a, b) => a + b, 0) /
+                data.cryptos[opportunity.asset].profits.length;
+
+            // Update exchange pair data
+            const exchangePairKey = `${opportunity.buyExchange}→${opportunity.sellExchange}`;
+            if (!data.exchanges[exchangePairKey]) {
+                data.exchanges[exchangePairKey] = {
+                    opportunities: 0,
+                    profits: [],
+                    avgProfit: 0
+                };
+            }
+            data.exchanges[exchangePairKey].opportunities++;
+            data.exchanges[exchangePairKey].profits.push(opportunity.netPercent);
+            data.exchanges[exchangePairKey].avgProfit =
+                data.exchanges[exchangePairKey].profits.reduce((a, b) => a + b, 0) /
+                data.exchanges[exchangePairKey].profits.length;
+
+            // Update hourly data
+            if (!data.hourly[hour]) {
+                data.hourly[hour] = {
+                    opportunities: 0,
+                    profits: [],
+                    avgProfit: 0,
+                    routes: {}
+                };
+            }
+            data.hourly[hour].opportunities++;
+            data.hourly[hour].profits.push(opportunity.netPercent);
+            data.hourly[hour].avgProfit =
+                data.hourly[hour].profits.reduce((a, b) => a + b, 0) /
+                data.hourly[hour].profits.length;
+
+            if (!data.hourly[hour].routes[routeKey]) {
+                data.hourly[hour].routes[routeKey] = 0;
+            }
+            data.hourly[hour].routes[routeKey]++;
+
+            data.totalOpportunities++;
         }
 
         // End of Test Scan Functionality
