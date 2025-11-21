@@ -2106,12 +2106,15 @@
                 }
 
                 // Step 4: Calculate all cross-exchange opportunities
-                console.log('🔍 Calculating cross-exchange opportunities...');
+                const totalPossiblePaths = selectedAssets.length * (selectedExchanges.length * (selectedExchanges.length - 1));
+                console.log(`🔍 Calculating cross-exchange opportunities (${totalPossiblePaths.toLocaleString()} possible paths)...`);
                 document.getElementById('crossExCurrentSet').textContent =
                     'Calculating arbitrage opportunities...';
 
                 const opportunities = [];
                 let totalScanned = 0;
+                let opportunitiesFound = 0;
+                let lastLoggedAt = 0;
 
                 // For each asset
                 for (const asset of selectedAssets) {
@@ -2122,6 +2125,15 @@
                             const sellExchange = selectedExchanges[j];
 
                             totalScanned++;
+
+                            // Log progress every 2000 paths
+                            if (totalScanned - lastLoggedAt >= 2000) {
+                                const percentComplete = ((totalScanned / totalPossiblePaths) * 100).toFixed(1);
+                                console.log(`   📊 Progress: ${totalScanned.toLocaleString()}/${totalPossiblePaths.toLocaleString()} paths (${percentComplete}%) - ${opportunitiesFound} opps found so far`);
+                                document.getElementById('crossExCurrentSet').textContent =
+                                    `Calculating... ${percentComplete}% (${opportunitiesFound} opportunities found)`;
+                                lastLoggedAt = totalScanned;
+                            }
 
                             // Get prices for this asset on both exchanges
                             const buyPrice = getBidAskPrice(exchangePrices[buyExchange], asset, 'ask');
@@ -2141,6 +2153,7 @@
                                     spreadPercent,
                                     netPercent
                                 });
+                                opportunitiesFound++;
                             }
 
                             // Also check the reverse direction (buy from sellExchange, sell to buyExchange)
@@ -2160,6 +2173,7 @@
                                     spreadPercent,
                                     netPercent
                                 });
+                                opportunitiesFound++;
                             }
                         }
                     }
