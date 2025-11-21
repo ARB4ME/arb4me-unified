@@ -21395,10 +21395,23 @@ ARB4ME Security Team`
                     // Handle different response formats
                     if (exchange === 'valr' || exchange === 'luno' || exchange === 'altcointrader' || exchange === 'xago' || exchange === 'chainex' || exchange === 'binance' || exchange === 'kraken' || exchange === 'bybit' || exchange === 'gateio' || exchange === 'okx' || exchange === 'mexc' || exchange === 'kucoin' || exchange === 'xt' || exchange === 'ascendex' || exchange === 'htx' || exchange === 'bingx' || exchange === 'bitget' || exchange === 'bitmart' || exchange === 'bitrue' || exchange === 'gemini' || exchange === 'cryptocom' || exchange === 'coincatch') {
                         // New trading routes return { success: true, data: { ticker: {...} } }
-                        return data.data?.ticker?.lastPrice || data.ticker?.lastPrice || data.lastPrice;
+                        // CRITICAL FIX: Return full ticker object with bid/ask for accurate arbitrage calculations
+                        const ticker = data.data?.ticker || data.ticker || data;
+                        return {
+                            last: parseFloat(ticker.lastPrice || ticker.last || 0),
+                            bid: parseFloat(ticker.bid || ticker.bidPrice || ticker.last || 0),
+                            ask: parseFloat(ticker.ask || ticker.askPrice || ticker.last || 0),
+                            volume: parseFloat(ticker.volume || ticker.volume24h || 0)
+                        };
                     } else {
                         // Old routes return { ticker: {...} }
-                        return data.ticker.lastPrice;
+                        const ticker = data.ticker;
+                        return {
+                            last: parseFloat(ticker.lastPrice || ticker.last || 0),
+                            bid: parseFloat(ticker.bid || ticker.bidPrice || ticker.last || 0),
+                            ask: parseFloat(ticker.ask || ticker.askPrice || ticker.last || 0),
+                            volume: parseFloat(ticker.volume || ticker.volume24h || 0)
+                        };
                     }
                 }
                 
@@ -25862,22 +25875,29 @@ ARB4ME Security Team`
                     
                     for (const exchange of connectedExchanges) {
                         try {
-                            const price = await getRealPrice(asset, exchange);
-                            
+                            const priceData = await getRealPrice(asset, exchange);
+
                             // ENHANCED: Handle null returns from unsupported pairs gracefully
-                            if (price === null || price === undefined) {
+                            if (priceData === null || priceData === undefined) {
                                 console.log(`🚫 ${asset} not supported on ${exchange} - skipping this exchange`);
                                 continue; // Exchange doesn't support this pair - try next exchange
                             }
-                            
-                            // Validate price and skip if invalid
-                            if (isNaN(price) || price <= 0) {
-                                console.warn(`Invalid price for ${asset} on ${exchange}: ${price} - skipping`);
+
+                            // CRITICAL FIX: getRealPrice now returns {last, bid, ask, volume}
+                            // Validate price data and skip if invalid
+                            if (!priceData.last || isNaN(priceData.last) || priceData.last <= 0) {
+                                console.warn(`Invalid price data for ${asset} on ${exchange}:`, priceData);
                                 continue;
                             }
-                            
-                            prices[exchange] = price;
-                            
+
+                            // Store full price data with bid/ask
+                            prices[exchange] = {
+                                last: priceData.last,
+                                bid: priceData.bid || priceData.last * 0.999,  // Fallback to -0.1% if no bid
+                                ask: priceData.ask || priceData.last * 1.001,  // Fallback to +0.1% if no ask
+                                volume: priceData.volume || 0
+                            };
+
                             // Add delay between requests to prevent rate limiting
                             await delay(200); // 200ms delay between requests
                         } catch (error) {
@@ -25891,32 +25911,46 @@ ARB4ME Security Team`
                     
                     // ENHANCED: Find arbitrage opportunities between exchanges that have valid prices
                     // Only create opportunities between exchanges that actually have price data for this asset
-                    const exchangesWithValidPrices = Object.keys(prices).filter(exchange => prices[exchange] > 0);
-                    
+                    const exchangesWithValidPrices = Object.keys(prices).filter(exchange => prices[exchange].last > 0);
+
                     if (exchangesWithValidPrices.length < 2) {
                         console.log(`❌ ${asset}: Only ${exchangesWithValidPrices.length} exchange(s) have valid prices - need minimum 2 for arbitrage`);
                         continue; // Skip this asset if less than 2 exchanges have valid prices
                     }
-                    
+
                     console.log(`✅ ${asset}: Found valid prices on ${exchangesWithValidPrices.length} exchanges: ${exchangesWithValidPrices.join(', ')}`);
-                    
+
                     // Create arbitrage opportunities between all combinations of exchanges with valid prices
                     for (let i = 0; i < exchangesWithValidPrices.length; i++) {
                         for (let j = i + 1; j < exchangesWithValidPrices.length; j++) {
                             const buyExchange = exchangesWithValidPrices[i];
                             const sellExchange = exchangesWithValidPrices[j];
-                            const buyPrice = prices[buyExchange];
-                            const sellPrice = prices[sellExchange];
-                            
-                            console.log(`Comparing ${asset}: ${buyExchange}(${buyPrice}) vs ${sellExchange}(${sellPrice})`);
-                            
+
+                            // CRITICAL FIX: Use ASK price when buying (higher), BID price when selling (lower)
+                            const buyPriceAsk = prices[buyExchange].ask;  // Price to BUY on buy exchange
+                            const sellPriceBid = prices[sellExchange].bid; // Price to SELL on sell exchange
+
+                            // SAFETY FILTER: Check 24h volume to avoid low-liquidity tokens
+                            const MIN_24H_VOLUME_USD = 10000; // $10k minimum daily volume
+                            const buyExchangeVolume = prices[buyExchange].volume || 0;
+                            const sellExchangeVolume = prices[sellExchange].volume || 0;
+
+                            if (buyExchangeVolume < MIN_24H_VOLUME_USD || sellExchangeVolume < MIN_24H_VOLUME_USD) {
+                                console.log(`⚠️ LOW LIQUIDITY: ${asset} - ${buyExchange} vol:$${buyExchangeVolume.toFixed(0)}, ${sellExchange} vol:$${sellExchangeVolume.toFixed(0)} (min: $${MIN_24H_VOLUME_USD})`);
+                                addLiveActivity(`Low Liquidity Skipped: ${asset} on ${buyExchange}/${sellExchange} - volume below $${MIN_24H_VOLUME_USD}`, 'skipped', '🚫', '#ff6b6b');
+                                continue; // Skip this exchange pair - insufficient liquidity
+                            }
+
+                            console.log(`Comparing ${asset}: ${buyExchange}(bid:${prices[buyExchange].bid}, ask:${prices[buyExchange].ask}, vol:$${buyExchangeVolume.toFixed(0)}) vs ${sellExchange}(bid:${prices[sellExchange].bid}, ask:${prices[sellExchange].ask}, vol:$${sellExchangeVolume.toFixed(0)})`);
+
                             // Check both directions for arbitrage
-                            
-                            // Direction 1: Buy on exchange i, sell on exchange j
-                            if (sellPrice > buyPrice && buyPrice > 0) {
-                                const grossProfitPercent = ((sellPrice - buyPrice) / buyPrice) * 100;
+
+                            // Direction 1: Buy on exchange i (at ASK), sell on exchange j (at BID)
+                            if (sellPriceBid > buyPriceAsk && buyPriceAsk > 0) {
+                                // CRITICAL FIX: Calculate gross profit using real bid/ask spread
+                                const grossProfitPercent = ((sellPriceBid - buyPriceAsk) / buyPriceAsk) * 100;
                                 const profitThreshold = state.settings.profitThreshold || 2;
-                                
+
                                 // CRITICAL: Validate balances BEFORE creating opportunity
                                 // 1. Check USDT balance on buy exchange
                                 const buyBalance = state.balances[buyExchange]?.USDT || 0;
@@ -25943,32 +25977,33 @@ ARB4ME Security Team`
                                 
                                 // Apply maximum trade value limit
                                 const finalTradeAmountUSDT = Math.min(maxFundableAmount, state.settings.maxTradeAmount || 200);
-                                
-                                const realProfitCalc = calculateRealProfit(buyExchange, sellExchange, buyPrice, sellPrice, finalTradeAmountUSDT, asset);
-                                
+
+                                // CRITICAL FIX: Pass real bid/ask prices to profit calculator
+                                const realProfitCalc = calculateRealProfit(buyExchange, sellExchange, buyPriceAsk, sellPriceBid, finalTradeAmountUSDT, asset);
+
                                 if (realProfitCalc) {
-                                    console.log(`Direction 1: Buy ${buyExchange} at ${buyPrice}, sell ${sellExchange} at ${sellPrice}`);
+                                    console.log(`Direction 1: Buy ${buyExchange} at ${buyPriceAsk.toFixed(6)} (ask), sell ${sellExchange} at ${sellPriceBid.toFixed(6)} (bid)`);
                                     console.log(`  Gross profit: ${grossProfitPercent.toFixed(3)}%`);
                                     console.log(`  Net profit (after fees): ${realProfitCalc.netProfitPercent.toFixed(3)}% (R${realProfitCalc.netProfit.toFixed(2)})`);
                                     console.log(`  Trading fees: R${realProfitCalc.fees.totalTradingFees.toFixed(2)}`);
                                     console.log(`  Threshold: ${profitThreshold}%`);
-                                    
+
                                     // Use NET profit percentage for threshold comparison
                                     if (realProfitCalc.netProfitPercent > profitThreshold && isFinite(realProfitCalc.netProfitPercent)) {
                                         console.log(`✅ PROFITABLE OPPORTUNITY: ${asset} - ${realProfitCalc.netProfitPercent.toFixed(3)}% net profit`);
-                                        
+
                                         // Add to live activity feed
                                         addLiveActivity(`Opportunity Found: ${asset} ${realProfitCalc.netProfitPercent.toFixed(1)}% profit (${buyExchange} → ${sellExchange})`, 'opportunity', '💎', '#00d4ff');
-                                        
+
                                         opportunities.push({
                                             id: `${asset}-${buyExchange}-${sellExchange}-${Date.now()}`,
                                             asset: asset,
                                             amount: realProfitCalc.breakdown.cryptoAmount,
-                                            tradeValueUSDT: tradeAmountUSDT,
+                                            tradeValueUSDT: finalTradeAmountUSDT,
                                             buyExchange,
                                             sellExchange,
-                                            buyPrice,
-                                            sellPrice,
+                                            buyPrice: buyPriceAsk,    // FIXED: Use ask price for buying
+                                            sellPrice: sellPriceBid,  // FIXED: Use bid price for selling
                                             grossProfitPercent,
                                             profitPercent: realProfitCalc.netProfitPercent, // NET profit for decisions
                                             profitAmount: realProfitCalc.netProfit,
@@ -25985,11 +26020,16 @@ ARB4ME Security Team`
                                 }
                             }
                             
-                            // Direction 2: Buy on exchange j, sell on exchange i
-                            if (buyPrice > sellPrice && sellPrice > 0) {
-                                const grossProfitPercent = ((buyPrice - sellPrice) / sellPrice) * 100;
+                            // Direction 2: Buy on exchange j (at ASK), sell on exchange i (at BID)
+                            // CRITICAL FIX: Use correct bid/ask for reverse direction
+                            const buyPriceAsk2 = prices[sellExchange].ask;  // Price to BUY on sellExchange
+                            const sellPriceBid2 = prices[buyExchange].bid;  // Price to SELL on buyExchange
+
+                            if (sellPriceBid2 > buyPriceAsk2 && buyPriceAsk2 > 0) {
+                                // CRITICAL FIX: Calculate gross profit using real bid/ask spread
+                                const grossProfitPercent = ((sellPriceBid2 - buyPriceAsk2) / buyPriceAsk2) * 100;
                                 const profitThreshold = state.settings.profitThreshold || 2;
-                                
+
                                 // CRITICAL: Validate balances for reverse direction
                                 // 1. Check USDT balance on sell exchange (which becomes buy exchange)
                                 const buyBalance2 = state.balances[sellExchange]?.USDT || 0;
@@ -25997,31 +26037,31 @@ ARB4ME Security Team`
                                     console.log(`❌ Skipping ${asset} (reverse): No USDT balance on ${sellExchange}`);
                                     continue;
                                 }
-                                
+
                                 // 2. Check USDT balance on buy exchange (which becomes sell exchange)
                                 const sellBalance2 = state.balances[buyExchange]?.USDT || 0;
                                 if (sellBalance2 <= 0) {
                                     console.log(`❌ Skipping ${asset} (reverse): No USDT balance on ${buyExchange}`);
                                     continue;
                                 }
-                                
+
                                 // Calculate trade amount based on available USDT balances (reverse direction)
                                 const buyAmountAvailable2 = (state.settings.tradeSize / 100) * buyBalance2;
                                 const sellAmountAvailable2 = (state.settings.tradeSize / 100) * sellBalance2;
-                                
+
                                 // Use the smaller of the two balances to ensure both sides can be funded
                                 const maxFundableAmount2 = Math.min(buyAmountAvailable2, sellAmountAvailable2);
-                                
+
                                 // Apply maximum trade value limit
                                 const finalTradeAmountUSDT2 = Math.min(maxFundableAmount2, state.settings.maxTradeAmount || 200);
-                                
-                                // Calculate real profit after fees
-                                const realProfitCalc2 = calculateRealProfit(sellExchange, buyExchange, sellPrice, buyPrice, finalTradeAmountUSDT2, asset);
-                                
+
+                                // CRITICAL FIX: Pass real bid/ask prices to profit calculator (reverse)
+                                const realProfitCalc2 = calculateRealProfit(sellExchange, buyExchange, buyPriceAsk2, sellPriceBid2, finalTradeAmountUSDT2, asset);
+
                                 // Ensure profit percentage is valid
                                 if (realProfitCalc2 && realProfitCalc2.netProfitPercent > profitThreshold && isFinite(realProfitCalc2.netProfitPercent)) {
                                     const profitAmount = realProfitCalc2.netProfit;
-                                    
+
                                     opportunities.push({
                                         id: `${asset}-${sellExchange}-${buyExchange}-${Date.now()}`,
                                         asset: asset,
@@ -26029,8 +26069,8 @@ ARB4ME Security Team`
                                         tradeValueUSDT: finalTradeAmountUSDT2,
                                         buyExchange: sellExchange,
                                         sellExchange: buyExchange,
-                                        buyPrice: sellPrice,
-                                        sellPrice: buyPrice,
+                                        buyPrice: buyPriceAsk2,     // FIXED: Use ask price for buying
+                                        sellPrice: sellPriceBid2,   // FIXED: Use bid price for selling
                                         grossProfitPercent,
                                         profitPercent: realProfitCalc2.netProfitPercent,
                                         profitAmount,
@@ -26038,9 +26078,11 @@ ARB4ME Security Team`
                                         timestamp: Date.now()
                                     });
                                 } else {
-                                    console.log(`❌ Below threshold (Direction 2): ${realProfitCalc2.netProfitPercent.toFixed(3)}% net < ${profitThreshold}%`);
+                                    console.log(`❌ Below threshold (Direction 2): ${realProfitCalc2?.netProfitPercent?.toFixed(3)}% net < ${profitThreshold}%`);
                                     // Add ALL skipped opportunities to live activity feed (Direction 2)
-                                    addLiveActivity(`Opportunity Skipped: ${asset} ${realProfitCalc2.netProfitPercent.toFixed(1)}% below threshold (${sellExchange} → ${buyExchange})`, 'skipped', '⏭️', '#feca57');
+                                    if (realProfitCalc2) {
+                                        addLiveActivity(`Opportunity Skipped: ${asset} ${realProfitCalc2.netProfitPercent.toFixed(1)}% below threshold (${sellExchange} → ${buyExchange})`, 'skipped', '⏭️', '#feca57');
+                                    }
                                 }
                             }
                         }
