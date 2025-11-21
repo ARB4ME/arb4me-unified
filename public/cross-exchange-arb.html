@@ -2139,6 +2139,15 @@
                             const buyPrice = getBidAskPrice(exchangePrices[buyExchange], asset, 'ask');
                             const sellPrice = getBidAskPrice(exchangePrices[sellExchange], asset, 'bid');
 
+                            // DEBUG: Log first 5 rejections to see why
+                            if (!window._rejectDebugCount) window._rejectDebugCount = 0;
+                            if (window._rejectDebugCount < 5 && (!buyPrice || !sellPrice || buyPrice.ask === 0 || sellPrice.bid === 0)) {
+                                console.log(`🔍 REJECT #${window._rejectDebugCount + 1}: ${buyExchange} → ${sellExchange} | ${asset}`);
+                                console.log(`   buyPrice (${buyExchange}):`, buyPrice);
+                                console.log(`   sellPrice (${sellExchange}):`, sellPrice);
+                                window._rejectDebugCount++;
+                            }
+
                             if (buyPrice && sellPrice && buyPrice.ask > 0 && sellPrice.bid > 0) {
                                 // Calculate profit (buy from buyExchange, sell to sellExchange)
                                 const spreadPercent = ((sellPrice.bid - buyPrice.ask) / buyPrice.ask) * 100;
