@@ -1887,15 +1887,28 @@
             if (!grid) return;
 
             let html = '';
+            let loadedCount = 0;
             allAssetPairs.forEach(asset => {
-                // Check by default for major pairs
-                const majorPairs = ['XRPUSDT', 'BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'LINKUSDT', 'DOGEUSDT',
-                                   'ADAUSDT', 'MATICUSDT', 'BNBUSDT', 'LTCUSDT', 'XLMUSDT', 'ALGOUSDT'];
-                const isChecked = majorPairs.includes(asset) ? 'checked' : '';
+                // Load from localStorage, or default to major pairs if no saved state
+                const storageKey = `crossExTestScanAsset_${asset}`;
+                const savedState = localStorage.getItem(storageKey);
+
+                let isChecked = '';
+                if (savedState !== null) {
+                    // Use saved state
+                    isChecked = savedState === 'true' ? 'checked' : '';
+                    if (savedState === 'true') loadedCount++;
+                } else {
+                    // Default: check major pairs
+                    const majorPairs = ['XRPUSDT', 'BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'LINKUSDT', 'DOGEUSDT',
+                                       'ADAUSDT', 'MATICUSDT', 'BNBUSDT', 'LTCUSDT', 'XLMUSDT', 'ALGOUSDT'];
+                    isChecked = majorPairs.includes(asset) ? 'checked' : '';
+                    if (majorPairs.includes(asset)) loadedCount++;
+                }
 
                 html += `
                     <label style="color: #b8c6db; font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; padding: 4px; background: rgba(255,255,255,0.05); border-radius: 4px;">
-                        <input type="checkbox" class="cross-ex-test-scan-asset" value="${asset}" ${isChecked} style="margin-right: 6px;" onchange="updateTestScanAssetCount()">
+                        <input type="checkbox" class="cross-ex-test-scan-asset" value="${asset}" ${isChecked} style="margin-right: 6px;" onchange="saveCrossExTestScanAssetState('${asset}', this.checked); updateTestScanAssetCount()">
                         <span>${asset}</span>
                     </label>
                 `;
@@ -1903,6 +1916,14 @@
 
             grid.innerHTML = html;
             updateTestScanAssetCount();
+            console.log(`📋 Loaded ${loadedCount} test scan asset selections from localStorage`);
+        }
+
+        /**
+         * Save test scan asset selection state to localStorage
+         */
+        function saveCrossExTestScanAssetState(asset, checked) {
+            localStorage.setItem(`crossExTestScanAsset_${asset}`, checked);
         }
 
         /**
@@ -1922,7 +1943,10 @@
          */
         function selectAllCrossExAssets() {
             const checkboxes = document.querySelectorAll('.cross-ex-test-scan-asset');
-            checkboxes.forEach(cb => cb.checked = true);
+            checkboxes.forEach(cb => {
+                cb.checked = true;
+                saveCrossExTestScanAssetState(cb.value, true);
+            });
             updateTestScanAssetCount();
             console.log('✓ All assets selected for test scan');
         }
@@ -1932,7 +1956,10 @@
          */
         function deselectAllCrossExAssets() {
             const checkboxes = document.querySelectorAll('.cross-ex-test-scan-asset');
-            checkboxes.forEach(cb => cb.checked = false);
+            checkboxes.forEach(cb => {
+                cb.checked = false;
+                saveCrossExTestScanAssetState(cb.value, false);
+            });
             updateTestScanAssetCount();
             console.log('✗ All assets deselected for test scan');
         }
@@ -2674,6 +2701,28 @@
             // Populate test scan asset selector
             populateTestScanAssets();
             console.log('✓ Test scan asset selector populated with', allAssetPairs.length, 'assets');
+
+            // Load settings from localStorage
+            const savedMinProfit = localStorage.getItem('crossExMinProfit');
+            if (savedMinProfit !== null) {
+                document.getElementById('crossExMinProfit').value = savedMinProfit;
+            }
+
+            const savedInterval = localStorage.getItem('crossExScanInterval');
+            if (savedInterval !== null) {
+                document.getElementById('crossExScanInterval').value = savedInterval;
+            }
+
+            // Add event listeners to save settings when changed
+            document.getElementById('crossExMinProfit').addEventListener('change', function() {
+                localStorage.setItem('crossExMinProfit', this.value);
+                console.log('✓ Min profit threshold saved:', this.value + '%');
+            });
+
+            document.getElementById('crossExScanInterval').addEventListener('change', function() {
+                localStorage.setItem('crossExScanInterval', this.value);
+                console.log('✓ Scan interval saved:', this.value + 's');
+            });
 
             // Load existing scan data and populate tables
             const data = getCrossExScanData();
