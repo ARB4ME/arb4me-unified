@@ -682,6 +682,22 @@ router.get('/price-cache-status', optionalAuth, asyncHandler(async (req, res) =>
     });
 }));
 
+// Get cached prices for a specific exchange (for test scans)
+router.get('/price-cache/:exchange', optionalAuth, asyncHandler(async (req, res) => {
+    const { exchange } = req.params;
+
+    const prices = priceCacheService.getPrices(exchange);
+
+    if (!prices) {
+        return res.status(404).json({
+            success: false,
+            error: `No cached prices found for exchange: ${exchange}`
+        });
+    }
+
+    res.json(prices);
+}));
+
 // =============================================================================
 // EXECUTE TRANSFER ARBITRAGE
 // =============================================================================

@@ -116,6 +116,12 @@
             visibility: visible !important;
             opacity: 1 !important;
         }
+
+        /* Spinner animation for test scan loading */
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -973,6 +979,205 @@
                 </div>
             </div>
 
+            <!-- ═══════════════════════════════════════════════════════════════════ -->
+            <!-- TEST SCAN MODE - Simulation Only (No Real Trading) -->
+            <!-- ═══════════════════════════════════════════════════════════════════ -->
+            <div style="margin-bottom: 20px; padding: 20px; background: rgba(0,212,255,0.1); border: 2px solid #00d4ff; border-radius: 10px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3 style="color: #00d4ff; margin: 0;">🔬 Test Scan Mode (Simulation)</h3>
+                    <div style="background: rgba(255,183,71,0.2); padding: 8px 15px; border-radius: 6px; border: 1px solid #ffb347;">
+                        <span style="color: #ffb347; font-size: 0.9rem; font-weight: bold;">📊 PUBLIC API - NO CREDENTIALS REQUIRED</span>
+                    </div>
+                </div>
+
+                <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <p style="color: #b8c6db; font-size: 0.95rem; margin: 0 0 10px 0;">
+                        <strong style="color: #00ff88;">Test Scan Mode</strong> simulates cross-exchange arbitrage opportunities using public market data.
+                        No real trades are executed - this is for analysis and strategy testing only.
+                    </p>
+                    <p style="color: #b8c6db; font-size: 0.9rem; margin: 0;">
+                        <strong>How it works:</strong> Compares prices across all selected exchanges for each asset, calculates potential profit after fees (0.2% total), and displays top 10 opportunities.
+                    </p>
+                </div>
+
+                <!-- Exchange Selection -->
+                <div style="margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h4 style="color: #00d4ff; margin: 0;">🏦 Exchange Selection</h4>
+                        <div style="display: flex; gap: 10px;">
+                            <button onclick="selectAllTestScanExchanges()" style="padding: 8px 15px; background: rgba(0,255,136,0.2); border: 1px solid #00ff88; color: #00ff88; border-radius: 6px; cursor: pointer; font-size: 0.85rem; transition: all 0.3s;" onmouseover="this.style.background='rgba(0,255,136,0.3)'" onmouseout="this.style.background='rgba(0,255,136,0.2)'">
+                                ✓ Select All
+                            </button>
+                            <button onclick="deselectAllTestScanExchanges()" style="padding: 8px 15px; background: rgba(255,107,107,0.2); border: 1px solid #ff6b6b; color: #ff6b6b; border-radius: 6px; cursor: pointer; font-size: 0.85rem; transition: all 0.3s;" onmouseover="this.style.background='rgba(255,107,107,0.3)'" onmouseout="this.style.background='rgba(255,107,107,0.2)'">
+                                ✗ Deselect All
+                            </button>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px;">
+                        <label style="display: flex; align-items: center; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer;">
+                            <input type="checkbox" class="test-scan-exchange" value="binance" checked style="margin-right: 10px;">
+                            <div style="flex: 1; font-weight: bold; color: #ffb347;">Binance</div>
+                        </label>
+                        <label style="display: flex; align-items: center; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer;">
+                            <input type="checkbox" class="test-scan-exchange" value="kraken" checked style="margin-right: 10px;">
+                            <div style="flex: 1; font-weight: bold; color: #ffb347;">Kraken</div>
+                        </label>
+                        <label style="display: flex; align-items: center; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer;">
+                            <input type="checkbox" class="test-scan-exchange" value="okx" checked style="margin-right: 10px;">
+                            <div style="flex: 1; font-weight: bold; color: #ffb347;">OKX</div>
+                        </label>
+                        <label style="display: flex; align-items: center; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer;">
+                            <input type="checkbox" class="test-scan-exchange" value="bybit" checked style="margin-right: 10px;">
+                            <div style="flex: 1; font-weight: bold; color: #ffb347;">Bybit</div>
+                        </label>
+                        <label style="display: flex; align-items: center; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer;">
+                            <input type="checkbox" class="test-scan-exchange" value="kucoin" checked style="margin-right: 10px;">
+                            <div style="flex: 1; font-weight: bold; color: #ffb347;">Kucoin</div>
+                        </label>
+                        <label style="display: flex; align-items: center; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer;">
+                            <input type="checkbox" class="test-scan-exchange" value="mexc" checked style="margin-right: 10px;">
+                            <div style="flex: 1; font-weight: bold; color: #ffb347;">MEXC</div>
+                        </label>
+                        <label style="display: flex; align-items: center; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer;">
+                            <input type="checkbox" class="test-scan-exchange" value="htx" checked style="margin-right: 10px;">
+                            <div style="flex: 1; font-weight: bold; color: #ffb347;">HTX</div>
+                        </label>
+                        <label style="display: flex; align-items: center; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer;">
+                            <input type="checkbox" class="test-scan-exchange" value="gateio" checked style="margin-right: 10px;">
+                            <div style="flex: 1; font-weight: bold; color: #ffb347;">Gate.io</div>
+                        </label>
+                        <label style="display: flex; align-items: center; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer;">
+                            <input type="checkbox" class="test-scan-exchange" value="bitget" checked style="margin-right: 10px;">
+                            <div style="flex: 1; font-weight: bold; color: #ffb347;">Bitget</div>
+                        </label>
+                        <label style="display: flex; align-items: center; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer;">
+                            <input type="checkbox" class="test-scan-exchange" value="valr" checked style="margin-right: 10px;">
+                            <div style="flex: 1; font-weight: bold; color: #ffb347;">VALR</div>
+                        </label>
+                        <label style="display: flex; align-items: center; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer;">
+                            <input type="checkbox" class="test-scan-exchange" value="luno" checked style="margin-right: 10px;">
+                            <div style="flex: 1; font-weight: bold; color: #ffb347;">Luno</div>
+                        </label>
+                        <label style="display: flex; align-items: center; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer;">
+                            <input type="checkbox" class="test-scan-exchange" value="gemini" checked style="margin-right: 10px;">
+                            <div style="flex: 1; font-weight: bold; color: #ffb347;">Gemini</div>
+                        </label>
+                        <label style="display: flex; align-items: center; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer;">
+                            <input type="checkbox" class="test-scan-exchange" value="bitmart" checked style="margin-right: 10px;">
+                            <div style="flex: 1; font-weight: bold; color: #ffb347;">Bitmart</div>
+                        </label>
+                        <label style="display: flex; align-items: center; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer;">
+                            <input type="checkbox" class="test-scan-exchange" value="bitrue" checked style="margin-right: 10px;">
+                            <div style="flex: 1; font-weight: bold; color: #ffb347;">Bitrue</div>
+                        </label>
+                        <label style="display: flex; align-items: center; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer;">
+                            <input type="checkbox" class="test-scan-exchange" value="xtcom" checked style="margin-right: 10px;">
+                            <div style="flex: 1; font-weight: bold; color: #ffb347;">XT.com</div>
+                        </label>
+                        <label style="display: flex; align-items: center; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer;">
+                            <input type="checkbox" class="test-scan-exchange" value="cryptocom" checked style="margin-right: 10px;">
+                            <div style="flex: 1; font-weight: bold; color: #ffb347;">Crypto.com</div>
+                        </label>
+                        <label style="display: flex; align-items: center; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer;">
+                            <input type="checkbox" class="test-scan-exchange" value="chainex" checked style="margin-right: 10px;">
+                            <div style="flex: 1; font-weight: bold; color: #ffb347;">Chainex</div>
+                        </label>
+                        <label style="display: flex; align-items: center; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer;">
+                            <input type="checkbox" class="test-scan-exchange" value="coincatch" checked style="margin-right: 10px;">
+                            <div style="flex: 1; font-weight: bold; color: #ffb347;">Coincatch</div>
+                        </label>
+                        <label style="display: flex; align-items: center; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer;">
+                            <input type="checkbox" class="test-scan-exchange" value="bingx" checked style="margin-right: 10px;">
+                            <div style="flex: 1; font-weight: bold; color: #ffb347;">BingX</div>
+                        </label>
+                        <label style="display: flex; align-items: center; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer;">
+                            <input type="checkbox" class="test-scan-exchange" value="ascendex" checked style="margin-right: 10px;">
+                            <div style="flex: 1; font-weight: bold; color: #ffb347;">Ascendex</div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Asset Selection Note -->
+                <div style="background: rgba(0,255,136,0.1); padding: 12px; border-radius: 8px; border-left: 4px solid #00ff88; margin-bottom: 20px;">
+                    <p style="color: #00ff88; font-size: 0.9rem; margin: 0;">
+                        <strong>💎 Assets:</strong> Test scan will use assets selected in the "Crypto Asset Selection" section above (all 130+ pairs).
+                    </p>
+                </div>
+
+                <!-- Control Buttons -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                    <button id="startCrossExTestScanBtn" onclick="startCrossExchangeTestScan()" style="padding: 14px; background: linear-gradient(135deg, #00ff88, #00d4ff); border: none; color: #0c0c1e; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 1rem; transition: all 0.3s; box-shadow: 0 4px 15px rgba(0,212,255,0.3);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(0,212,255,0.5)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(0,212,255,0.3)'">
+                        ▶️ Start Test Scan
+                    </button>
+                    <button id="stopCrossExTestScanBtn" onclick="stopCrossExchangeTestScan()" disabled style="padding: 14px; background: rgba(255,107,107,0.5); border: none; color: rgba(255,255,255,0.5); border-radius: 8px; cursor: not-allowed; font-weight: bold; font-size: 1rem;">
+                        ⏹️ Stop Test Scan
+                    </button>
+                </div>
+
+                <!-- Scan Status -->
+                <div id="crossExTestScanStatus" style="display: none; background: rgba(0,212,255,0.15); padding: 15px; border-radius: 8px; border: 1px solid #00d4ff; margin-bottom: 20px;">
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <div style="width: 24px; height: 24px; border: 3px solid #00d4ff; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                        <div style="flex: 1;">
+                            <div style="color: #00d4ff; font-weight: bold; margin-bottom: 5px;">🔍 Scanning in progress...</div>
+                            <div id="crossExScanProgressText" style="color: #b8c6db; font-size: 0.9rem;">Initializing scan...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Results Table -->
+                <div style="margin-top: 20px;">
+                    <h4 style="color: #ffb347; margin-bottom: 15px;">🏆 Top 10 Cross-Exchange Opportunities</h4>
+                    <div style="overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse; background: rgba(0,0,0,0.3); border-radius: 8px; overflow: hidden;">
+                            <thead>
+                                <tr style="background: rgba(0,212,255,0.2);">
+                                    <th style="padding: 12px; text-align: left; color: #00d4ff; font-weight: bold; border-bottom: 2px solid #00d4ff;">#</th>
+                                    <th style="padding: 12px; text-align: left; color: #00d4ff; font-weight: bold; border-bottom: 2px solid #00d4ff;">Asset</th>
+                                    <th style="padding: 12px; text-align: left; color: #00d4ff; font-weight: bold; border-bottom: 2px solid #00d4ff;">Buy From</th>
+                                    <th style="padding: 12px; text-align: right; color: #00d4ff; font-weight: bold; border-bottom: 2px solid #00d4ff;">Buy Price</th>
+                                    <th style="padding: 12px; text-align: left; color: #00d4ff; font-weight: bold; border-bottom: 2px solid #00d4ff;">Sell To</th>
+                                    <th style="padding: 12px; text-align: right; color: #00d4ff; font-weight: bold; border-bottom: 2px solid #00d4ff;">Sell Price</th>
+                                    <th style="padding: 12px; text-align: right; color: #00d4ff; font-weight: bold; border-bottom: 2px solid #00d4ff;">Spread %</th>
+                                    <th style="padding: 12px; text-align: right; color: #00d4ff; font-weight: bold; border-bottom: 2px solid #00d4ff;">Net % (After Fees)</th>
+                                    <th style="padding: 12px; text-align: right; color: #00d4ff; font-weight: bold; border-bottom: 2px solid #00d4ff;">Est. Profit (1000 USDT)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="crossExTestScanResults">
+                                <tr>
+                                    <td colspan="9" style="padding: 40px; text-align: center; color: #888; font-size: 1rem;">
+                                        Click "Start Test Scan" to discover cross-exchange arbitrage opportunities
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Summary Stats -->
+                <div id="crossExTestScanSummary" style="display: none; margin-top: 20px; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 8px;">
+                    <h5 style="color: #ffb347; margin-bottom: 10px;">📊 Scan Summary</h5>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; font-size: 0.9rem;">
+                        <div>
+                            <span style="color: #b8c6db;">Total Opportunities Scanned:</span>
+                            <span id="totalOpportunitiesScanned" style="color: #00d4ff; font-weight: bold; margin-left: 10px;">0</span>
+                        </div>
+                        <div>
+                            <span style="color: #b8c6db;">Profitable Opportunities:</span>
+                            <span id="profitableOpportunities" style="color: #00ff88; font-weight: bold; margin-left: 10px;">0</span>
+                        </div>
+                        <div>
+                            <span style="color: #b8c6db;">Best Net Profit:</span>
+                            <span id="bestNetProfit" style="color: #ffb347; font-weight: bold; margin-left: 10px;">-</span>
+                        </div>
+                        <div>
+                            <span style="color: #b8c6db;">Scan Duration:</span>
+                            <span id="scanDuration" style="color: #00d4ff; font-weight: bold; margin-left: 10px;">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Trading Configuration -->
             <div style="margin-bottom: 20px; padding: 15px; background: rgba(255,107,107,0.1); border: 2px solid #ff6b6b; border-radius: 10px;">
                 <h4 style="color: #ff6b6b; margin-bottom: 10px;">⚙️ Trading Configuration</h4>
@@ -1516,6 +1721,366 @@
         });
 
         // End of About Modal Functionality
+
+        // ============================================================================
+        // TEST SCAN MODE - Cross-Exchange Arbitrage Simulation
+        // ============================================================================
+
+        // Global variable to track test scan state
+        let crossExTestScanRunning = false;
+
+        /**
+         * Select all exchanges for test scan
+         */
+        function selectAllTestScanExchanges() {
+            const checkboxes = document.querySelectorAll('.test-scan-exchange');
+            checkboxes.forEach(cb => cb.checked = true);
+            console.log('✓ All exchanges selected for test scan');
+        }
+
+        /**
+         * Deselect all exchanges for test scan
+         */
+        function deselectAllTestScanExchanges() {
+            const checkboxes = document.querySelectorAll('.test-scan-exchange');
+            checkboxes.forEach(cb => cb.checked = false);
+            console.log('✗ All exchanges deselected for test scan');
+        }
+
+        /**
+         * Start Cross-Exchange Test Scan
+         */
+        async function startCrossExchangeTestScan() {
+            if (crossExTestScanRunning) {
+                console.warn('⚠️ Test scan already running');
+                return;
+            }
+
+            console.log('\n🔬 ═══════════════════════════════════════════════════════');
+            console.log('🔬 STARTING CROSS-EXCHANGE TEST SCAN');
+            console.log('🔬 ═══════════════════════════════════════════════════════');
+
+            crossExTestScanRunning = true;
+            const scanStartTime = Date.now();
+
+            // Update UI - disable start button, enable stop button
+            document.getElementById('startCrossExTestScanBtn').disabled = true;
+            document.getElementById('startCrossExTestScanBtn').style.opacity = '0.5';
+            document.getElementById('stopCrossExTestScanBtn').disabled = false;
+            document.getElementById('stopCrossExTestScanBtn').style.background = 'linear-gradient(135deg, #ff6b6b, #ee5a24)';
+            document.getElementById('stopCrossExTestScanBtn').style.color = '#fff';
+            document.getElementById('stopCrossExTestScanBtn').style.cursor = 'pointer';
+
+            // Show scanning status
+            document.getElementById('crossExTestScanStatus').style.display = 'block';
+
+            try {
+                // Step 1: Get selected exchanges
+                const selectedExchanges = Array.from(document.querySelectorAll('.test-scan-exchange:checked'))
+                    .map(cb => cb.value);
+
+                if (selectedExchanges.length < 2) {
+                    alert('⚠️ Please select at least 2 exchanges for cross-exchange arbitrage');
+                    stopCrossExchangeTestScan();
+                    return;
+                }
+
+                console.log(`📊 Selected Exchanges (${selectedExchanges.length}):`, selectedExchanges);
+                document.getElementById('crossExScanProgressText').textContent =
+                    `Scanning ${selectedExchanges.length} exchanges...`;
+
+                // Step 2: Get selected assets
+                const selectedAssets = [];
+                allAssetPairs.forEach(asset => {
+                    const checkbox = document.getElementById(`asset_${asset}`);
+                    if (checkbox && checkbox.checked) {
+                        selectedAssets.push(asset);
+                    }
+                });
+
+                if (selectedAssets.length === 0) {
+                    alert('⚠️ Please select at least 1 asset in the Crypto Asset Selection section above');
+                    stopCrossExchangeTestScan();
+                    return;
+                }
+
+                console.log(`💎 Selected Assets (${selectedAssets.length}):`, selectedAssets);
+                document.getElementById('crossExScanProgressText').textContent =
+                    `Analyzing ${selectedAssets.length} assets across ${selectedExchanges.length} exchanges...`;
+
+                // Step 3: Fetch prices from all exchanges
+                console.log('📡 Fetching prices from price cache service...');
+                const exchangePrices = {};
+
+                for (const exchange of selectedExchanges) {
+                    try {
+                        const response = await fetch(`/api/v1/transfer-arb/price-cache/${exchange}`);
+                        if (response.ok) {
+                            exchangePrices[exchange] = await response.json();
+                            console.log(`✓ ${exchange}: ${Object.keys(exchangePrices[exchange]).length} prices fetched`);
+                        } else {
+                            console.warn(`⚠️ ${exchange}: Failed to fetch prices (${response.status})`);
+                            exchangePrices[exchange] = {};
+                        }
+                    } catch (error) {
+                        console.error(`❌ ${exchange}: Error fetching prices:`, error.message);
+                        exchangePrices[exchange] = {};
+                    }
+                }
+
+                // Step 4: Calculate all cross-exchange opportunities
+                console.log('🔍 Calculating cross-exchange opportunities...');
+                document.getElementById('crossExScanProgressText').textContent =
+                    'Calculating arbitrage opportunities...';
+
+                const opportunities = [];
+                let totalScanned = 0;
+
+                // For each asset
+                for (const asset of selectedAssets) {
+                    // For each pair of exchanges (i < j to avoid duplicates)
+                    for (let i = 0; i < selectedExchanges.length; i++) {
+                        for (let j = i + 1; j < selectedExchanges.length; j++) {
+                            const buyExchange = selectedExchanges[i];
+                            const sellExchange = selectedExchanges[j];
+
+                            totalScanned++;
+
+                            // Get prices for this asset on both exchanges
+                            const buyPrice = getBidAskPrice(exchangePrices[buyExchange], asset, 'ask');
+                            const sellPrice = getBidAskPrice(exchangePrices[sellExchange], asset, 'bid');
+
+                            if (buyPrice && sellPrice && buyPrice.ask > 0 && sellPrice.bid > 0) {
+                                // Calculate profit (buy from buyExchange, sell to sellExchange)
+                                const spreadPercent = ((sellPrice.bid - buyPrice.ask) / buyPrice.ask) * 100;
+                                const netPercent = spreadPercent - 0.2; // 0.1% fee on each side = 0.2% total
+
+                                opportunities.push({
+                                    asset,
+                                    buyExchange: formatExchangeName(buyExchange),
+                                    sellExchange: formatExchangeName(sellExchange),
+                                    buyPrice: buyPrice.ask,
+                                    sellPrice: sellPrice.bid,
+                                    spreadPercent,
+                                    netPercent
+                                });
+                            }
+
+                            // Also check the reverse direction (buy from sellExchange, sell to buyExchange)
+                            const reverseBuyPrice = getBidAskPrice(exchangePrices[sellExchange], asset, 'ask');
+                            const reverseSellPrice = getBidAskPrice(exchangePrices[buyExchange], asset, 'bid');
+
+                            if (reverseBuyPrice && reverseSellPrice && reverseBuyPrice.ask > 0 && reverseSellPrice.bid > 0) {
+                                const spreadPercent = ((reverseSellPrice.bid - reverseBuyPrice.ask) / reverseBuyPrice.ask) * 100;
+                                const netPercent = spreadPercent - 0.2;
+
+                                opportunities.push({
+                                    asset,
+                                    buyExchange: formatExchangeName(sellExchange),
+                                    sellExchange: formatExchangeName(buyExchange),
+                                    buyPrice: reverseBuyPrice.ask,
+                                    sellPrice: reverseSellPrice.bid,
+                                    spreadPercent,
+                                    netPercent
+                                });
+                            }
+                        }
+                    }
+                }
+
+                // Step 5: Sort opportunities by net profit (highest first)
+                opportunities.sort((a, b) => b.netPercent - a.netPercent);
+
+                // Step 6: Display top 10 opportunities
+                const top10 = opportunities.slice(0, 10);
+                displayTestScanResults(top10, opportunities.length, totalScanned, scanStartTime);
+
+                console.log('✅ Test scan completed successfully');
+                console.log(`📊 Total opportunities scanned: ${totalScanned.toLocaleString()}`);
+                console.log(`💰 Profitable opportunities found: ${opportunities.filter(o => o.netPercent > 0).length}`);
+                console.log('🔬 ═══════════════════════════════════════════════════════\n');
+
+            } catch (error) {
+                console.error('❌ Test scan failed:', error);
+                alert(`Test scan failed: ${error.message}`);
+
+                // Display error in results table
+                const resultsBody = document.getElementById('crossExTestScanResults');
+                resultsBody.innerHTML = `
+                    <tr>
+                        <td colspan="9" style="padding: 40px; text-align: center; color: #ff6b6b; font-size: 1rem;">
+                            ❌ Scan failed: ${error.message}
+                        </td>
+                    </tr>
+                `;
+            } finally {
+                // Hide scanning status
+                document.getElementById('crossExTestScanStatus').style.display = 'none';
+
+                // Reset button states
+                document.getElementById('startCrossExTestScanBtn').disabled = false;
+                document.getElementById('startCrossExTestScanBtn').style.opacity = '1';
+                document.getElementById('stopCrossExTestScanBtn').disabled = true;
+                document.getElementById('stopCrossExTestScanBtn').style.background = 'rgba(255,107,107,0.5)';
+                document.getElementById('stopCrossExTestScanBtn').style.color = 'rgba(255,255,255,0.5)';
+                document.getElementById('stopCrossExTestScanBtn').style.cursor = 'not-allowed';
+
+                crossExTestScanRunning = false;
+            }
+        }
+
+        /**
+         * Stop Cross-Exchange Test Scan
+         */
+        function stopCrossExchangeTestScan() {
+            crossExTestScanRunning = false;
+            document.getElementById('crossExTestScanStatus').style.display = 'none';
+
+            // Reset button states
+            document.getElementById('startCrossExTestScanBtn').disabled = false;
+            document.getElementById('startCrossExTestScanBtn').style.opacity = '1';
+            document.getElementById('stopCrossExTestScanBtn').disabled = true;
+            document.getElementById('stopCrossExTestScanBtn').style.background = 'rgba(255,107,107,0.5)';
+            document.getElementById('stopCrossExTestScanBtn').style.color = 'rgba(255,255,255,0.5)';
+            document.getElementById('stopCrossExTestScanBtn').style.cursor = 'not-allowed';
+
+            console.log('⏹️ Test scan stopped');
+        }
+
+        /**
+         * Get bid/ask price for an asset from exchange prices
+         * @param {object} exchangePrices - Price data from exchange
+         * @param {string} asset - Asset symbol (e.g., "XRPUSDT")
+         * @param {string} type - 'bid' or 'ask'
+         * @returns {object|null} Price object with bid/ask or null if not found
+         */
+        function getBidAskPrice(exchangePrices, asset, type) {
+            if (!exchangePrices || typeof exchangePrices !== 'object') {
+                return null;
+            }
+
+            // Try different asset format variations
+            const variations = [
+                asset,                          // XRPUSDT
+                asset.replace('USDT', '/USDT'), // XRP/USDT
+                asset.replace('USDT', '-USDT'), // XRP-USDT
+                asset.replace('BTC', '/BTC'),   // ETH/BTC
+                asset.replace('BTC', '-BTC'),   // ETH-BTC
+                asset.replace('ETH', '/ETH'),   // DOT/ETH
+                asset.replace('ETH', '-ETH')    // DOT-ETH
+            ];
+
+            for (const variation of variations) {
+                if (exchangePrices[variation]) {
+                    return {
+                        bid: exchangePrices[variation].bid || 0,
+                        ask: exchangePrices[variation].ask || 0
+                    };
+                }
+            }
+
+            return null;
+        }
+
+        /**
+         * Format exchange name for display
+         * @param {string} exchange - Exchange identifier (e.g., "binance")
+         * @returns {string} Formatted exchange name (e.g., "Binance")
+         */
+        function formatExchangeName(exchange) {
+            const names = {
+                'binance': 'Binance',
+                'kraken': 'Kraken',
+                'okx': 'OKX',
+                'bybit': 'Bybit',
+                'kucoin': 'Kucoin',
+                'mexc': 'MEXC',
+                'htx': 'HTX',
+                'gateio': 'Gate.io',
+                'bitget': 'Bitget',
+                'valr': 'VALR',
+                'luno': 'Luno',
+                'gemini': 'Gemini',
+                'bitmart': 'Bitmart',
+                'bitrue': 'Bitrue',
+                'xtcom': 'XT.com',
+                'cryptocom': 'Crypto.com',
+                'chainex': 'Chainex',
+                'coincatch': 'Coincatch',
+                'bingx': 'BingX',
+                'ascendex': 'Ascendex'
+            };
+            return names[exchange] || exchange.toUpperCase();
+        }
+
+        /**
+         * Display test scan results in table
+         * @param {array} opportunities - Top 10 opportunities
+         * @param {number} totalOpportunities - Total opportunities found
+         * @param {number} totalScanned - Total comparisons made
+         * @param {number} scanStartTime - Scan start timestamp
+         */
+        function displayTestScanResults(opportunities, totalOpportunities, totalScanned, scanStartTime) {
+            const resultsBody = document.getElementById('crossExTestScanResults');
+
+            if (opportunities.length === 0) {
+                resultsBody.innerHTML = `
+                    <tr>
+                        <td colspan="9" style="padding: 40px; text-align: center; color: #ffb347; font-size: 1rem;">
+                            ⚠️ No arbitrage opportunities found. Try selecting more exchanges or assets.
+                        </td>
+                    </tr>
+                `;
+                document.getElementById('crossExTestScanSummary').style.display = 'none';
+                return;
+            }
+
+            // Build table rows
+            let rowsHTML = '';
+            opportunities.forEach((opp, index) => {
+                const profitColor = opp.netPercent > 0 ? '#00ff88' : '#ff6b6b';
+                const estimatedProfit = (1000 * opp.netPercent / 100).toFixed(2);
+
+                rowsHTML += `
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                        <td style="padding: 12px; color: #b8c6db;">${index + 1}</td>
+                        <td style="padding: 12px; color: #00d4ff; font-weight: bold;">${opp.asset}</td>
+                        <td style="padding: 12px; color: #ffb347;">${opp.buyExchange}</td>
+                        <td style="padding: 12px; text-align: right; color: #b8c6db; font-family: monospace;">$${opp.buyPrice.toFixed(6)}</td>
+                        <td style="padding: 12px; color: #ffb347;">${opp.sellExchange}</td>
+                        <td style="padding: 12px; text-align: right; color: #b8c6db; font-family: monospace;">$${opp.sellPrice.toFixed(6)}</td>
+                        <td style="padding: 12px; text-align: right; color: ${profitColor}; font-weight: bold;">${opp.spreadPercent > 0 ? '+' : ''}${opp.spreadPercent.toFixed(2)}%</td>
+                        <td style="padding: 12px; text-align: right; color: ${profitColor}; font-weight: bold; font-size: 1.1rem;">${opp.netPercent > 0 ? '+' : ''}${opp.netPercent.toFixed(2)}%</td>
+                        <td style="padding: 12px; text-align: right; color: ${profitColor}; font-weight: bold;">$${estimatedProfit}</td>
+                    </tr>
+                `;
+            });
+
+            resultsBody.innerHTML = rowsHTML;
+
+            // Update summary stats
+            const scanDuration = ((Date.now() - scanStartTime) / 1000).toFixed(1);
+            const profitableCount = opportunities.filter(o => o.netPercent > 0).length;
+            const bestOpportunity = opportunities[0];
+
+            document.getElementById('totalOpportunitiesScanned').textContent = totalScanned.toLocaleString();
+            document.getElementById('profitableOpportunities').textContent = profitableCount;
+            document.getElementById('bestNetProfit').textContent = bestOpportunity
+                ? `${bestOpportunity.netPercent > 0 ? '+' : ''}${bestOpportunity.netPercent.toFixed(2)}%`
+                : 'N/A';
+            document.getElementById('scanDuration').textContent = `${scanDuration}s`;
+            document.getElementById('crossExTestScanSummary').style.display = 'block';
+
+            // Log summary
+            console.log('\n📊 SCAN SUMMARY:');
+            console.log(`   Total Comparisons: ${totalScanned.toLocaleString()}`);
+            console.log(`   Valid Opportunities: ${totalOpportunities.toLocaleString()}`);
+            console.log(`   Profitable (>0%): ${profitableCount}`);
+            console.log(`   Best Opportunity: ${bestOpportunity.asset} - ${bestOpportunity.netPercent > 0 ? '+' : ''}${bestOpportunity.netPercent.toFixed(2)}%`);
+            console.log(`   Scan Duration: ${scanDuration}s`);
+        }
+
+        // End of Test Scan Functionality
     </script>
 </body>
 </html>
