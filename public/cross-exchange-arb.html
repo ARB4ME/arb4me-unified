@@ -1097,11 +1097,99 @@
                     </div>
                 </div>
 
-                <!-- Asset Selection Note -->
-                <div style="background: rgba(0,255,136,0.1); padding: 12px; border-radius: 8px; border-left: 4px solid #00ff88; margin-bottom: 20px;">
-                    <p style="color: #00ff88; font-size: 0.9rem; margin: 0;">
-                        <strong>💎 Assets:</strong> Test scan will use assets selected in the "Crypto Asset Selection" section above (all 130+ pairs).
+                <!-- Asset Selection for Test Scan -->
+                <div style="background: rgba(0,255,136,0.1); border: 1px solid #00ff88; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+                    <h5 style="color: #00ff88; margin-bottom: 15px; font-size: 1rem;">💎 Asset Selection (Test Scan Only)</h5>
+                    <p style="color: #888; font-size: 0.85rem; margin-bottom: 15px;">
+                        Select crypto pairs to test. These selections are separate from live trading configuration.
                     </p>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px;">
+                        <!-- Major Pairs -->
+                        <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
+                            <input type="checkbox" class="cross-ex-test-scan-asset" value="BTCUSDT" checked style="margin-right: 6px;">
+                            <span style="color: #ffc107;">₿ BTCUSDT</span>
+                        </label>
+                        <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
+                            <input type="checkbox" class="cross-ex-test-scan-asset" value="ETHUSDT" checked style="margin-right: 6px;">
+                            <span style="color: #b8c6db;">Ξ ETHUSDT</span>
+                        </label>
+                        <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
+                            <input type="checkbox" class="cross-ex-test-scan-asset" value="XRPUSDT" checked style="margin-right: 6px;">
+                            <span style="color: #00ff88;">⚡ XRPUSDT</span>
+                        </label>
+                        <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
+                            <input type="checkbox" class="cross-ex-test-scan-asset" value="SOLUSDT" checked style="margin-right: 6px;">
+                            <span style="color: #9945ff;">◎ SOLUSDT</span>
+                        </label>
+                        <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
+                            <input type="checkbox" class="cross-ex-test-scan-asset" value="BNBUSDT" checked style="margin-right: 6px;">
+                            <span style="color: #ffc107;">◈ BNBUSDT</span>
+                        </label>
+                        <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
+                            <input type="checkbox" class="cross-ex-test-scan-asset" value="ADAUSDT" checked style="margin-right: 6px;">
+                            <span style="color: #0033ad;">♠ ADAUSDT</span>
+                        </label>
+                        <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
+                            <input type="checkbox" class="cross-ex-test-scan-asset" value="DOGEUSDT" checked style="margin-right: 6px;">
+                            <span style="color: #c2a633;">Ð DOGEUSDT</span>
+                        </label>
+                        <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
+                            <input type="checkbox" class="cross-ex-test-scan-asset" value="MATICUSDT" checked style="margin-right: 6px;">
+                            <span style="color: #8247e5;">⬡ MATICUSDT</span>
+                        </label>
+                        <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
+                            <input type="checkbox" class="cross-ex-test-scan-asset" value="DOTUSDT" style="margin-right: 6px;">
+                            <span style="color: #e6007a;">● DOTUSDT</span>
+                        </label>
+                        <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
+                            <input type="checkbox" class="cross-ex-test-scan-asset" value="LTCUSDT" style="margin-right: 6px;">
+                            <span style="color: #345d9d;">Ł LTCUSDT</span>
+                        </label>
+                        <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
+                            <input type="checkbox" class="cross-ex-test-scan-asset" value="TRXUSDT" style="margin-right: 6px;">
+                            <span style="color: #ff060a;">◎ TRXUSDT</span>
+                        </label>
+                        <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
+                            <input type="checkbox" class="cross-ex-test-scan-asset" value="AVAXUSDT" style="margin-right: 6px;">
+                            <span style="color: #e84142;">▲ AVAXUSDT</span>
+                        </label>
+                        <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
+                            <input type="checkbox" class="cross-ex-test-scan-asset" value="XLMUSDT" style="margin-right: 6px;">
+                            <span style="color: #00ff88;">★ XLMUSDT</span>
+                        </label>
+                        <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
+                            <input type="checkbox" class="cross-ex-test-scan-asset" value="LINKUSDT" style="margin-right: 6px;">
+                            <span style="color: #2a5ada;">⬣ LINKUSDT</span>
+                        </label>
+                        <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
+                            <input type="checkbox" class="cross-ex-test-scan-asset" value="ATOMUSDT" style="margin-right: 6px;">
+                            <span style="color: #6f7390;">⚛ ATOMUSDT</span>
+                        </label>
+                        <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
+                            <input type="checkbox" class="cross-ex-test-scan-asset" value="UNIUSDT" style="margin-right: 6px;">
+                            <span style="color: #ff007a;">🦄 UNIUSDT</span>
+                        </label>
+                        <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
+                            <input type="checkbox" class="cross-ex-test-scan-asset" value="NEARUSDT" style="margin-right: 6px;">
+                            <span style="color: #00c1de;">◈ NEARUSDT</span>
+                        </label>
+                        <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
+                            <input type="checkbox" class="cross-ex-test-scan-asset" value="ALGOUSDT" style="margin-right: 6px;">
+                            <span style="color: #00ff88;">◉ ALGOUSDT</span>
+                        </label>
+                        <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
+                            <input type="checkbox" class="cross-ex-test-scan-asset" value="APTUSDT" style="margin-right: 6px;">
+                            <span style="color: #00d4ff;">⬡ APTUSDT</span>
+                        </label>
+                        <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
+                            <input type="checkbox" class="cross-ex-test-scan-asset" value="OPUSDT" style="margin-right: 6px;">
+                            <span style="color: #ff0420;">⭕ OPUSDT</span>
+                        </label>
+                    </div>
+                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1);">
+                        <button onclick="selectAllCrossExAssets()" style="padding: 6px 12px; background: rgba(0,255,136,0.2); border: 1px solid #00ff88; color: #00ff88; border-radius: 4px; cursor: pointer; font-size: 0.75rem; margin-right: 8px;">✓ Select All</button>
+                        <button onclick="deselectAllCrossExAssets()" style="padding: 6px 12px; background: rgba(255,107,107,0.2); border: 1px solid #ff6b6b; color: #ff6b6b; border-radius: 4px; cursor: pointer; font-size: 0.75rem;">✗ Clear All</button>
+                    </div>
                 </div>
 
                 <!-- Control Buttons -->
@@ -1831,6 +1919,24 @@
         }
 
         /**
+         * Select all assets for test scan
+         */
+        function selectAllCrossExAssets() {
+            const checkboxes = document.querySelectorAll('.cross-ex-test-scan-asset');
+            checkboxes.forEach(cb => cb.checked = true);
+            console.log('✓ All assets selected for test scan');
+        }
+
+        /**
+         * Deselect all assets for test scan
+         */
+        function deselectAllCrossExAssets() {
+            const checkboxes = document.querySelectorAll('.cross-ex-test-scan-asset');
+            checkboxes.forEach(cb => cb.checked = false);
+            console.log('✗ All assets deselected for test scan');
+        }
+
+        /**
          * Start Cross-Exchange Test Scan
          */
         async function startCrossExchangeTestScan() {
@@ -1869,26 +1975,25 @@
                 }
 
                 console.log(`📊 Selected Exchanges (${selectedExchanges.length}):`, selectedExchanges);
-                document.getElementById('crossExScanProgressText').textContent =
-                    `Scanning ${selectedExchanges.length} exchanges...`;
 
-                // Step 2: Get selected assets
-                const selectedAssets = [];
-                allAssetPairs.forEach(asset => {
-                    const checkbox = document.getElementById(`asset_${asset}`);
-                    if (checkbox && checkbox.checked) {
-                        selectedAssets.push(asset);
-                    }
-                });
+                // Update status dashboard
+                document.getElementById('crossExStatusText').style.color = '#00d4ff';
+                document.getElementById('crossExStatusText').textContent = '🔵 SCANNING...';
+                document.getElementById('crossExCurrentSet').textContent =
+                    `Fetching prices from ${selectedExchanges.length} exchanges...`;
+
+                // Step 2: Get selected assets from test scan asset selector
+                const selectedAssets = Array.from(document.querySelectorAll('.cross-ex-test-scan-asset:checked'))
+                    .map(checkbox => checkbox.value);
 
                 if (selectedAssets.length === 0) {
-                    alert('⚠️ Please select at least 1 asset in the Crypto Asset Selection section above');
+                    alert('⚠️ Please select at least 1 asset in the Asset Selection section');
                     stopCrossExchangeTestScan();
                     return;
                 }
 
                 console.log(`💎 Selected Assets (${selectedAssets.length}):`, selectedAssets);
-                document.getElementById('crossExScanProgressText').textContent =
+                document.getElementById('crossExCurrentSet').textContent =
                     `Analyzing ${selectedAssets.length} assets across ${selectedExchanges.length} exchanges...`;
 
                 // Step 3: Fetch prices from all exchanges
@@ -2011,18 +2116,12 @@
                 console.error('❌ Test scan failed:', error);
                 alert(`Test scan failed: ${error.message}`);
 
-                // Display error in results table
-                const resultsBody = document.getElementById('crossExTestScanResults');
-                resultsBody.innerHTML = `
-                    <tr>
-                        <td colspan="9" style="padding: 40px; text-align: center; color: #ff6b6b; font-size: 1rem;">
-                            ❌ Scan failed: ${error.message}
-                        </td>
-                    </tr>
-                `;
+                // Update status to show error
+                document.getElementById('crossExStatusText').style.color = '#ff6b6b';
+                document.getElementById('crossExStatusText').textContent = '❌ SCAN FAILED';
+                document.getElementById('crossExCurrentSet').textContent = `Error: ${error.message}`;
             } finally {
-                // Hide scanning status
-                document.getElementById('crossExTestScanStatus').style.display = 'none';
+                // Status dashboard stays visible (don't hide it)
 
                 // Reset button states
                 document.getElementById('startCrossExTestScanBtn').disabled = false;
