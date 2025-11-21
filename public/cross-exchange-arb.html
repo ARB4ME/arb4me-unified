@@ -2196,12 +2196,20 @@
 
                 // Step 6: Filter and save opportunities based on min profit threshold
                 const minProfitThreshold = parseFloat(document.getElementById('crossExMinProfit').value) || 0.5;
+                const maxRealisticProfit = 15; // Anything above this is likely stale data or low liquidity
+
                 const filteredOpportunities = opportunities.filter(opp => opp.netPercent >= minProfitThreshold);
+
+                // Categorize opportunities
+                const realisticOpps = filteredOpportunities.filter(o => o.netPercent <= maxRealisticProfit);
+                const suspiciousOpps = filteredOpportunities.filter(o => o.netPercent > maxRealisticProfit);
 
                 console.log(`🔍 Min Profit Threshold: ${minProfitThreshold}%`);
                 console.log(`📊 Total opportunities scanned: ${totalScanned.toLocaleString()}`);
                 console.log(`✅ Opportunities meeting threshold (≥${minProfitThreshold}%): ${filteredOpportunities.length.toLocaleString()}`);
                 console.log(`💰 Profitable opportunities (>0%): ${opportunities.filter(o => o.netPercent > 0).length}`);
+                console.log(`✔️  Realistic opportunities (≤${maxRealisticProfit}%): ${realisticOpps.length}`);
+                console.log(`⚠️  Suspicious/high spread (>${maxRealisticProfit}%): ${suspiciousOpps.length} - likely stale data or low liquidity`);
 
                 const scanData = getCrossExScanData();
 
@@ -2214,10 +2222,14 @@
                 scanData.cycles++;
 
                 // Add filtered opportunities to aggregated data (limit to top 20 to avoid localStorage quota)
-                const topOpportunities = filteredOpportunities.slice(0, 20);
+                // Prioritize realistic opportunities, then add suspicious ones if space remains
+                const topRealistic = realisticOpps.slice(0, 15); // Save up to 15 realistic
+                const topSuspicious = suspiciousOpps.slice(0, Math.max(0, 20 - topRealistic.length)); // Fill remaining slots
+                const topOpportunities = [...topRealistic, ...topSuspicious];
+
                 topOpportunities.forEach(opp => addOpportunityToData(scanData, opp));
 
-                console.log(`💾 Saving top ${topOpportunities.length} opportunities to localStorage`);
+                console.log(`💾 Saving ${topRealistic.length} realistic + ${topSuspicious.length} suspicious = ${topOpportunities.length} total opportunities`);
 
                 // Save updated data
                 saveCrossExScanData(scanData);
@@ -2532,13 +2544,18 @@
                     `${timeSinceLastSeen}s ago` :
                     `${Math.floor(timeSinceLastSeen / 60)}m ago`;
 
+                // Mark suspiciously high profits (>15% likely stale data or low liquidity)
+                const isSuspicious = route.avgProfit > 15;
+                const warningIcon = isSuspicious ? ' ⚠️' : '';
+                const warningBadge = isSuspicious ? '<span style="background: rgba(255,107,107,0.2); color: #ff6b6b; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; margin-left: 5px;">LOW LIQ?</span>' : '';
+
                 html += `
                     <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
                         <td style="padding: 10px; color: #888;">${index + 1}</td>
                         <td style="padding: 10px; color: #00d4ff;">${route.buyExchange} → ${route.sellExchange}</td>
-                        <td style="padding: 10px; color: #ffb347;">${route.asset}</td>
+                        <td style="padding: 10px; color: #ffb347;">${route.asset}${warningBadge}</td>
                         <td style="padding: 10px; text-align: right; color: ${profitColor}; font-weight: bold;">
-                            ${route.avgProfit > 0 ? '+' : ''}${route.avgProfit.toFixed(2)}%
+                            ${route.avgProfit > 0 ? '+' : ''}${route.avgProfit.toFixed(2)}%${warningIcon}
                         </td>
                         <td style="padding: 10px; text-align: right; color: #00ff88; font-weight: bold;">
                             ${route.bestProfit > 0 ? '+' : ''}${route.bestProfit.toFixed(2)}%
