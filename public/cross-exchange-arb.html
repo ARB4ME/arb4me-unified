@@ -2307,10 +2307,17 @@
                         window._priceDebugLogged = true;
                     }
 
-                    const bid = exchangePrices[variation].bid || 0;
-                    const ask = exchangePrices[variation].ask || 0;
+                    let bid = exchangePrices[variation].bid || 0;
+                    let ask = exchangePrices[variation].ask || 0;
 
-                    // Return null if no liquidity (bid and ask are 0)
+                    // If exchange doesn't have bid/ask but has price, estimate spread (0.1% each side)
+                    if (bid === 0 && ask === 0 && exchangePrices[variation].price) {
+                        const price = exchangePrices[variation].price;
+                        bid = price * 0.999;  // -0.1% for bid
+                        ask = price * 1.001;  // +0.1% for ask
+                    }
+
+                    // Return null if still no liquidity
                     if (bid === 0 && ask === 0) {
                         return null;
                     }
