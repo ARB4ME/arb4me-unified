@@ -1128,8 +1128,8 @@ class PriceCacheService {
         const prices = {};
         for (const ticker of data.result) {
             if (ticker.s) {
-                // XT uses format like XRP_USDT, convert to XRPUSDT
-                const symbol = ticker.s.replace('_', '');
+                // XT uses format like xrp_usdt (lowercase), convert to XRPUSDT (uppercase)
+                const symbol = ticker.s.replace('_', '').toUpperCase();
                 if (this.shouldCachePair(symbol)) {
                     const price = parseFloat(ticker.c);
                     prices[symbol] = {
