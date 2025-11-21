@@ -790,7 +790,8 @@ class PriceCacheService {
      * Fetch all prices from MEXC
      */
     async fetchMEXCPrices() {
-        const response = await fetch('https://api.mexc.com/api/v3/ticker/price');
+        // Use bookTicker endpoint which provides real bid/ask
+        const response = await fetch('https://api.mexc.com/api/v3/ticker/bookTicker');
 
         if (!response.ok) {
             throw new Error(`MEXC API error: ${response.status}`);
@@ -801,14 +802,15 @@ class PriceCacheService {
         const prices = {};
         for (const item of data) {
             if (this.shouldCachePair(item.symbol)) {
-                const price = parseFloat(item.price);
+                const price = (parseFloat(item.bidPrice) + parseFloat(item.askPrice)) / 2;
+                const bid = parseFloat(item.bidPrice);
+                const ask = parseFloat(item.askPrice);
 
-                // MEXC /ticker/price doesn't provide bid/ask, estimate spread
-                // Store with bid/ask spread for cross-exchange arbitrage
+                // Store with real bid/ask spread for cross-exchange arbitrage
                 prices[item.symbol] = {
                     price: price,
-                    bid: price * 0.999,  // Estimate -0.1% for bid
-                    ask: price * 1.001   // Estimate +0.1% for ask
+                    bid: bid || price * 0.999,  // Fallback to estimate if missing
+                    ask: ask || price * 1.001   // Fallback to estimate if missing
                 };
             }
         }
@@ -875,10 +877,16 @@ class PriceCacheService {
             const symbol = ticker.symbol.toUpperCase();
             if (this.shouldCachePair(symbol)) {
                 const price = parseFloat(ticker.close);
+
+                // HTX provides real bid/ask (but not in tickers endpoint)
+                // Use bid/ask if available, otherwise estimate
+                const bid = ticker.bid ? parseFloat(ticker.bid) : price * 0.999;
+                const ask = ticker.ask ? parseFloat(ticker.ask) : price * 1.001;
+
                 prices[symbol] = {
                     price: price,
-                    bid: price * 0.999,
-                    ask: price * 1.001
+                    bid: bid,
+                    ask: ask
                 };
             }
         }
@@ -904,10 +912,15 @@ class PriceCacheService {
             const symbol = ticker.currency_pair.replace('_', '');
             if (this.shouldCachePair(symbol)) {
                 const price = parseFloat(ticker.last);
+
+                // Gate.io provides real bid/ask as highest_bid and lowest_ask
+                const bid = parseFloat(ticker.highest_bid || 0);
+                const ask = parseFloat(ticker.lowest_ask || 0);
+
                 prices[symbol] = {
                     price: price,
-                    bid: price * 0.999,
-                    ask: price * 1.001
+                    bid: (bid > 0) ? bid : price * 0.999,  // Fallback to estimate if missing
+                    ask: (ask > 0) ? ask : price * 1.001   // Fallback to estimate if missing
                 };
             }
         }
@@ -935,10 +948,15 @@ class PriceCacheService {
         for (const ticker of data.data) {
             if (ticker.symbol && this.shouldCachePair(ticker.symbol)) {
                 const price = parseFloat(ticker.close);
+
+                // Bitget provides real bid/ask as buyOne and sellOne
+                const bid = parseFloat(ticker.buyOne || 0);   // buyOne = best bid
+                const ask = parseFloat(ticker.sellOne || 0);  // sellOne = best ask
+
                 prices[ticker.symbol] = {
                     price: price,
-                    bid: price * 0.999,
-                    ask: price * 1.001
+                    bid: (bid > 0) ? bid : price * 0.999,  // Fallback to estimate if missing
+                    ask: (ask > 0) ? ask : price * 1.001   // Fallback to estimate if missing
                 };
             }
         }
@@ -965,10 +983,15 @@ class PriceCacheService {
                 const pairUpper = ticker.pair.toUpperCase();
                 if (this.shouldCachePair(pairUpper)) {
                     const price = parseFloat(ticker.price);
+
+                    // Gemini provides real bid/ask in pricefeed
+                    const bid = parseFloat(ticker.bid || 0);
+                    const ask = parseFloat(ticker.ask || 0);
+
                     prices[pairUpper] = {
                         price: price,
-                        bid: price * 0.999,
-                        ask: price * 1.001
+                        bid: (bid > 0) ? bid : price * 0.999,  // Fallback to estimate if missing
+                        ask: (ask > 0) ? ask : price * 1.001   // Fallback to estimate if missing
                     };
                 }
             }
@@ -1039,10 +1062,14 @@ class PriceCacheService {
                 const symbol = ticker.symbol.replace('_', '');
                 if (this.shouldCachePair(symbol)) {
                     const price = parseFloat(ticker.last_price);
+
+                    // Note: BitMart v1/ticker endpoint doesn't provide bid/ask
+                    // Would need v3/ticker per-symbol calls which is too slow
+                    // Using estimates for now
                     prices[symbol] = {
                         price: price,
-                        bid: price * 0.999,
-                        ask: price * 1.001
+                        bid: price * 0.999,  // Estimate (bulk endpoint doesn't provide real bid/ask)
+                        ask: price * 1.001   // Estimate
                     };
                 }
             }
@@ -1141,10 +1168,15 @@ class PriceCacheService {
                 const symbol = ticker.s.replace('_', '').toUpperCase();
                 if (this.shouldCachePair(symbol)) {
                     const price = parseFloat(ticker.c);
+
+                    // XT provides real bid/ask as bp and ap
+                    const bid = parseFloat(ticker.bp || 0);  // bp = bid price
+                    const ask = parseFloat(ticker.ap || 0);  // ap = ask price
+
                     prices[symbol] = {
                         price: price,
-                        bid: price * 0.999,
-                        ask: price * 1.001
+                        bid: (bid > 0) ? bid : price * 0.999,  // Fallback to estimate if missing
+                        ask: (ask > 0) ? ask : price * 1.001   // Fallback to estimate if missing
                     };
                 }
             }
@@ -1207,10 +1239,15 @@ class PriceCacheService {
                 const symbol = ticker.currencyPair.replace('-', '');
                 if (this.shouldCachePair(symbol)) {
                     const price = parseFloat(ticker.lastTradedPrice);
+
+                    // VALR provides real bid/ask
+                    const bid = parseFloat(ticker.bidPrice || 0);
+                    const ask = parseFloat(ticker.askPrice || 0);
+
                     prices[symbol] = {
                         price: price,
-                        bid: price * 0.999,
-                        ask: price * 1.001
+                        bid: (bid > 0) ? bid : price * 0.999,  // Fallback to estimate if missing
+                        ask: (ask > 0) ? ask : price * 1.001   // Fallback to estimate if missing
                     };
                 }
             }
@@ -1236,10 +1273,15 @@ class PriceCacheService {
         for (const ticker of data.tickers) {
             if (ticker.pair && this.shouldCachePair(ticker.pair)) {
                 const price = parseFloat(ticker.last_trade);
+
+                // Luno provides real bid/ask
+                const bid = parseFloat(ticker.bid || 0);
+                const ask = parseFloat(ticker.ask || 0);
+
                 prices[ticker.pair] = {
                     price: price,
-                    bid: price * 0.999,
-                    ask: price * 1.001
+                    bid: (bid > 0) ? bid : price * 0.999,  // Fallback to estimate if missing
+                    ask: (ask > 0) ? ask : price * 1.001   // Fallback to estimate if missing
                 };
             }
         }
