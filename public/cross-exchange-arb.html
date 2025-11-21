@@ -122,6 +122,32 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
+        /* Mobile Responsive Styles */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .cross-exchange-container {
+                padding: 0;
+            }
+
+            /* Make test scan cards stack vertically on mobile */
+            .test-scan-cards-grid {
+                grid-template-columns: 1fr !important;
+            }
+
+            /* Status dashboard - reduce to 2 columns on mobile */
+            .test-scan-status-grid {
+                grid-template-columns: repeat(2, 1fr) !important;
+            }
+
+            /* Settings and Controls - stack vertically */
+            .test-scan-settings-grid {
+                grid-template-columns: 1fr !important;
+            }
+        }
     </style>
 </head>
 <body>
@@ -1110,7 +1136,7 @@
                 </div>
 
                 <!-- Settings and Controls -->
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                <div class="test-scan-settings-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
                     <!-- Settings -->
                     <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 20px;">
                         <h4 style="color: #667eea; margin-bottom: 15px; font-size: 1rem;">⚙️ Settings</h4>
@@ -1161,7 +1187,7 @@
 
                 <!-- Status Dashboard (Always Visible) -->
                 <div id="crossExTestScanStatus" style="background: rgba(0,255,136,0.1); border: 1px solid #00ff88; border-radius: 8px; padding: 20px; margin-bottom: 25px;">
-                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 15px;">
+                    <div class="test-scan-status-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 15px;">
                         <div>
                             <div style="color: #888; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 5px;">Status</div>
                             <div id="crossExStatusText" style="color: #888; font-weight: bold; font-size: 1.1rem;">⚪ READY TO SCAN</div>
@@ -1244,7 +1270,7 @@
                     </div>
 
                     <!-- Best Cryptos & Best Exchanges Side by Side -->
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                    <div class="test-scan-cards-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
                         <!-- Best Cryptos -->
                         <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 20px;">
                             <h5 style="color: #667eea; margin-bottom: 15px;">⚡ Best Cryptos for Cross-Exchange Arb</h5>
