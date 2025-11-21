@@ -2097,10 +2097,11 @@
                             const symbols = Object.keys(exchangePrices[exchange]);
                             console.log(`✓ ${exchange}: ${symbols.length} prices fetched`);
 
-                            // DEBUG: Show first 10 symbols from each exchange to see format
-                            if (symbols.length > 0 && !window._symbolsLogged) {
-                                console.log(`   📋 First 10 symbols from ${exchange}:`, symbols.slice(0, 10));
-                                window._symbolsLogged = true;
+                            // DEBUG: Show first 10 symbols from BINANCE to see format (once per scan)
+                            if (symbols.length > 0 && exchange === 'binance') {
+                                console.log(`   📋 First 10 symbols from ${exchange}:`, symbols.slice(0, 10).join(', '));
+                                console.log(`   📋 Looking for XRPUSDT? Found:`, 'XRPUSDT' in exchangePrices[exchange]);
+                                console.log(`   📋 Sample price data:`, exchangePrices[exchange][symbols[0]]);
                             }
                         } else {
                             console.warn(`⚠️ ${exchange}: Failed to fetch prices (${response.status})`);
