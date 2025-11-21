@@ -1096,15 +1096,20 @@ class PriceCacheService {
 
         const prices = {};
         for (const ticker of data.data) {
-            if (ticker.symbol) {
+            if (ticker.symbol && ticker.type === 'spot') {  // Only spot pairs, not derivatives
                 // AscendEX uses format like XRP/USDT, convert to XRPUSDT
                 const symbol = ticker.symbol.replace('/', '');
                 if (this.shouldCachePair(symbol)) {
                     const price = parseFloat(ticker.close);
+
+                    // AscendEX provides real bid/ask as arrays: ["price", "quantity"]
+                    const bidPrice = ticker.bid && ticker.bid[0] ? parseFloat(ticker.bid[0]) : 0;
+                    const askPrice = ticker.ask && ticker.ask[0] ? parseFloat(ticker.ask[0]) : 0;
+
                     prices[symbol] = {
                         price: price,
-                        bid: price * 0.999,
-                        ask: price * 1.001
+                        bid: (bidPrice > 0) ? bidPrice : price * 0.999,  // Use real bid or fallback to estimate
+                        ask: (askPrice > 0) ? askPrice : price * 1.001   // Use real ask or fallback to estimate
                     };
                 }
             }
