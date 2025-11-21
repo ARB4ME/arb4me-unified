@@ -981,7 +981,8 @@ class PriceCacheService {
      * Fetch all prices from BingX
      */
     async fetchBingXPrices() {
-        const response = await fetch('https://open-api.bingx.com/openApi/spot/v1/ticker/24hr');
+        // Using perpetual futures endpoint (has bid/ask and no auth required)
+        const response = await fetch('https://open-api.bingx.com/openApi/swap/v2/quote/ticker');
 
         if (!response.ok) {
             throw new Error(`BingX API error: ${response.status}`);
@@ -990,7 +991,7 @@ class PriceCacheService {
         const data = await response.json();
 
         if (data.code !== 0) {
-            throw new Error(`BingX API error: ${data.msg}`);
+            throw new Error(`BingX API error: ${data.msg || 'Unknown error'}`);
         }
 
         const prices = {};
@@ -1000,10 +1001,13 @@ class PriceCacheService {
                 const symbol = ticker.symbol.replace('-', '');
                 if (this.shouldCachePair(symbol)) {
                     const price = parseFloat(ticker.lastPrice);
+                    const bid = parseFloat(ticker.bidPrice || 0);
+                    const ask = parseFloat(ticker.askPrice || 0);
+
                     prices[symbol] = {
                         price: price,
-                        bid: price * 0.999,
-                        ask: price * 1.001
+                        bid: (bid > 0) ? bid : price * 0.999,  // Use real bid or estimate
+                        ask: (ask > 0) ? ask : price * 1.001   // Use real ask or estimate
                     };
                 }
             }
@@ -1145,10 +1149,10 @@ class PriceCacheService {
     }
 
     /**
-     * Fetch all prices from CoinCatch
+     * Fetch all prices from CoinCatch (SPOT market)
      */
     async fetchCoinCatchPrices() {
-        const response = await fetch('https://api.coincatch.com/api/mix/v1/market/tickers?productType=umcbl');
+        const response = await fetch('https://api.coincatch.com/api/spot/v1/market/tickers');
 
         if (!response.ok) {
             throw new Error(`CoinCatch API error: ${response.status}`);
@@ -1157,17 +1161,20 @@ class PriceCacheService {
         const data = await response.json();
 
         if (data.code !== '00000') {
-            throw new Error(`CoinCatch API error: ${data.msg}`);
+            throw new Error(`CoinCatch API error: ${data.msg || 'Unknown error'}`);
         }
 
         const prices = {};
         for (const ticker of data.data) {
             if (ticker.symbol && this.shouldCachePair(ticker.symbol)) {
-                const price = parseFloat(ticker.lastPr);
+                const price = parseFloat(ticker.close);
+                const bid = parseFloat(ticker.buyOne || 0);
+                const ask = parseFloat(ticker.sellOne || 0);
+
                 prices[ticker.symbol] = {
                     price: price,
-                    bid: price * 0.999,
-                    ask: price * 1.001
+                    bid: (bid > 0) ? bid : price * 0.999,
+                    ask: (ask > 0) ? ask : price * 1.001
                 };
             }
         }
