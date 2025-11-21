@@ -2217,8 +2217,11 @@
                 // Increment cycle count
                 scanData.cycles++;
 
-                // Add filtered opportunities to aggregated data
-                filteredOpportunities.forEach(opp => addOpportunityToData(scanData, opp));
+                // Add filtered opportunities to aggregated data (limit to top 20 to avoid localStorage quota)
+                const topOpportunities = filteredOpportunities.slice(0, 20);
+                topOpportunities.forEach(opp => addOpportunityToData(scanData, opp));
+
+                console.log(`💾 Saving top ${topOpportunities.length} opportunities to localStorage`);
 
                 // Save updated data
                 saveCrossExScanData(scanData);
@@ -2230,7 +2233,7 @@
                 document.getElementById('crossExStatusText').style.color = '#00ff88';
                 document.getElementById('crossExStatusText').textContent = '✅ SCAN COMPLETE';
                 document.getElementById('crossExCurrentSet').textContent =
-                    `Last scan: ${filteredOpportunities.length} opps (≥${minProfitThreshold}%) from ${selectedAssets.length} assets × ${selectedExchanges.length} exchanges`;
+                    `Last scan: ${filteredOpportunities.length} opps found (top ${topOpportunities.length} saved) from ${selectedAssets.length} assets × ${selectedExchanges.length} exchanges`;
 
                 console.log('✅ Test scan completed successfully');
                 console.log(`🗄️  Total data collected: ${scanData.totalOpportunities.toLocaleString()}`);
