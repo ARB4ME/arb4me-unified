@@ -2094,7 +2094,14 @@
                         const response = await fetch(`/api/v1/transfer-arb/price-cache/${exchange}`);
                         if (response.ok) {
                             exchangePrices[exchange] = await response.json();
-                            console.log(`✓ ${exchange}: ${Object.keys(exchangePrices[exchange]).length} prices fetched`);
+                            const symbols = Object.keys(exchangePrices[exchange]);
+                            console.log(`✓ ${exchange}: ${symbols.length} prices fetched`);
+
+                            // DEBUG: Show first 10 symbols from each exchange to see format
+                            if (symbols.length > 0 && !window._symbolsLogged) {
+                                console.log(`   📋 First 10 symbols from ${exchange}:`, symbols.slice(0, 10));
+                                window._symbolsLogged = true;
+                            }
                         } else {
                             console.warn(`⚠️ ${exchange}: Failed to fetch prices (${response.status})`);
                             exchangePrices[exchange] = {};
