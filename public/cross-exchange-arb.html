@@ -2211,6 +2211,24 @@
                 console.log(`✔️  Realistic opportunities (≤${maxRealisticProfit}%): ${realisticOpps.length}`);
                 console.log(`⚠️  Suspicious/high spread (>${maxRealisticProfit}%): ${suspiciousOpps.length} - likely stale data or low liquidity`);
 
+                // Show detailed price verification for top 10 opportunities
+                console.log(`\n💵 PRICE VERIFICATION - Top 10 Opportunities:`);
+                console.log(`═══════════════════════════════════════════════════════════════════`);
+                filteredOpportunities.slice(0, 10).forEach((opp, index) => {
+                    const isSuspicious = opp.netPercent > maxRealisticProfit;
+                    const flag = isSuspicious ? '⚠️ ' : '✔️ ';
+                    console.log(`${flag}#${index + 1}: ${opp.buyExchange} → ${opp.sellExchange} | ${opp.asset}`);
+                    console.log(`   Buy (${opp.buyExchange} ask):  $${opp.buyPrice.toFixed(6)}`);
+                    console.log(`   Sell (${opp.sellExchange} bid): $${opp.sellPrice.toFixed(6)}`);
+                    console.log(`   Spread: ${opp.spreadPercent.toFixed(2)}% | Net Profit: ${opp.netPercent.toFixed(2)}%`);
+                    console.log(`   Calculation: (${opp.sellPrice.toFixed(6)} - ${opp.buyPrice.toFixed(6)}) / ${opp.buyPrice.toFixed(6)} = ${((opp.sellPrice - opp.buyPrice) / opp.buyPrice * 100).toFixed(2)}%`);
+                    if (isSuspicious) {
+                        console.log(`   ⚠️  WARNING: >15% spread likely indicates stale data or extremely low liquidity`);
+                    }
+                    console.log(`───────────────────────────────────────────────────────────────────`);
+                });
+                console.log(``);
+
                 const scanData = getCrossExScanData();
 
                 // Set start time if first scan
