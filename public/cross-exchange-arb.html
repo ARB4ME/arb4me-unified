@@ -1974,13 +1974,37 @@
                 // Step 5: Sort opportunities by net profit (highest first)
                 opportunities.sort((a, b) => b.netPercent - a.netPercent);
 
-                // Step 6: Display top 10 opportunities
-                const top10 = opportunities.slice(0, 10);
-                displayTestScanResults(top10, opportunities.length, totalScanned, scanStartTime);
+                // Step 6: Save opportunities to localStorage and update all tables
+                const scanData = getCrossExScanData();
+
+                // Set start time if first scan
+                if (!scanData.startTime) {
+                    scanData.startTime = Date.now();
+                }
+
+                // Increment cycle count
+                scanData.cycles++;
+
+                // Add all opportunities to aggregated data
+                opportunities.forEach(opp => addOpportunityToData(scanData, opp));
+
+                // Save updated data
+                saveCrossExScanData(scanData);
+
+                // Update all tables and dashboard
+                populateAllTables();
+
+                // Update status text
+                document.getElementById('crossExStatusText').style.color = '#00ff88';
+                document.getElementById('crossExStatusText').textContent = '✅ SCAN COMPLETE';
+                document.getElementById('crossExCurrentSet').textContent =
+                    `Last scan: ${selectedAssets.length} assets × ${selectedExchanges.length} exchanges`;
 
                 console.log('✅ Test scan completed successfully');
                 console.log(`📊 Total opportunities scanned: ${totalScanned.toLocaleString()}`);
                 console.log(`💰 Profitable opportunities found: ${opportunities.filter(o => o.netPercent > 0).length}`);
+                console.log(`🗄️  Total data collected: ${scanData.totalOpportunities.toLocaleString()}`);
+                console.log(`🔄 Scan cycle: ${scanData.cycles}`);
                 console.log('🔬 ═══════════════════════════════════════════════════════\n');
 
             } catch (error) {
@@ -2094,73 +2118,6 @@
                 'ascendex': 'Ascendex'
             };
             return names[exchange] || exchange.toUpperCase();
-        }
-
-        /**
-         * Display test scan results in table
-         * @param {array} opportunities - Top 10 opportunities
-         * @param {number} totalOpportunities - Total opportunities found
-         * @param {number} totalScanned - Total comparisons made
-         * @param {number} scanStartTime - Scan start timestamp
-         */
-        function displayTestScanResults(opportunities, totalOpportunities, totalScanned, scanStartTime) {
-            const resultsBody = document.getElementById('crossExTestScanResults');
-
-            if (opportunities.length === 0) {
-                resultsBody.innerHTML = `
-                    <tr>
-                        <td colspan="9" style="padding: 40px; text-align: center; color: #ffb347; font-size: 1rem;">
-                            ⚠️ No arbitrage opportunities found. Try selecting more exchanges or assets.
-                        </td>
-                    </tr>
-                `;
-                document.getElementById('crossExTestScanSummary').style.display = 'none';
-                return;
-            }
-
-            // Build table rows
-            let rowsHTML = '';
-            opportunities.forEach((opp, index) => {
-                const profitColor = opp.netPercent > 0 ? '#00ff88' : '#ff6b6b';
-                const estimatedProfit = (1000 * opp.netPercent / 100).toFixed(2);
-
-                rowsHTML += `
-                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
-                        <td style="padding: 12px; color: #b8c6db;">${index + 1}</td>
-                        <td style="padding: 12px; color: #00d4ff; font-weight: bold;">${opp.asset}</td>
-                        <td style="padding: 12px; color: #ffb347;">${opp.buyExchange}</td>
-                        <td style="padding: 12px; text-align: right; color: #b8c6db; font-family: monospace;">$${opp.buyPrice.toFixed(6)}</td>
-                        <td style="padding: 12px; color: #ffb347;">${opp.sellExchange}</td>
-                        <td style="padding: 12px; text-align: right; color: #b8c6db; font-family: monospace;">$${opp.sellPrice.toFixed(6)}</td>
-                        <td style="padding: 12px; text-align: right; color: ${profitColor}; font-weight: bold;">${opp.spreadPercent > 0 ? '+' : ''}${opp.spreadPercent.toFixed(2)}%</td>
-                        <td style="padding: 12px; text-align: right; color: ${profitColor}; font-weight: bold; font-size: 1.1rem;">${opp.netPercent > 0 ? '+' : ''}${opp.netPercent.toFixed(2)}%</td>
-                        <td style="padding: 12px; text-align: right; color: ${profitColor}; font-weight: bold;">$${estimatedProfit}</td>
-                    </tr>
-                `;
-            });
-
-            resultsBody.innerHTML = rowsHTML;
-
-            // Update summary stats
-            const scanDuration = ((Date.now() - scanStartTime) / 1000).toFixed(1);
-            const profitableCount = opportunities.filter(o => o.netPercent > 0).length;
-            const bestOpportunity = opportunities[0];
-
-            document.getElementById('totalOpportunitiesScanned').textContent = totalScanned.toLocaleString();
-            document.getElementById('profitableOpportunities').textContent = profitableCount;
-            document.getElementById('bestNetProfit').textContent = bestOpportunity
-                ? `${bestOpportunity.netPercent > 0 ? '+' : ''}${bestOpportunity.netPercent.toFixed(2)}%`
-                : 'N/A';
-            document.getElementById('scanDuration').textContent = `${scanDuration}s`;
-            document.getElementById('crossExTestScanSummary').style.display = 'block';
-
-            // Log summary
-            console.log('\n📊 SCAN SUMMARY:');
-            console.log(`   Total Comparisons: ${totalScanned.toLocaleString()}`);
-            console.log(`   Valid Opportunities: ${totalOpportunities.toLocaleString()}`);
-            console.log(`   Profitable (>0%): ${profitableCount}`);
-            console.log(`   Best Opportunity: ${bestOpportunity.asset} - ${bestOpportunity.netPercent > 0 ? '+' : ''}${bestOpportunity.netPercent.toFixed(2)}%`);
-            console.log(`   Scan Duration: ${scanDuration}s`);
         }
 
         // ============================================================================
@@ -2284,6 +2241,278 @@
 
             data.totalOpportunities++;
         }
+
+        // ============================================================================
+        // TABLE POPULATION FUNCTIONS
+        // ============================================================================
+
+        /**
+         * Populate all analysis tables
+         */
+        function populateAllTables() {
+            const data = getCrossExScanData();
+            populateTopProfitTable(data);
+            populateTopConsistencyTable(data);
+            populateBestCryptosTable(data);
+            populateBestExchangesTable(data);
+            populateTimeAnalysisTable(data);
+            updateStatusDashboard(data);
+        }
+
+        /**
+         * Populate Top 20 Routes by Profit % table
+         */
+        function populateTopProfitTable(data) {
+            const tbody = document.getElementById('crossExTopProfitBody');
+
+            // Convert routes object to array and sort by avg profit
+            const routes = Object.values(data.routes)
+                .sort((a, b) => b.avgProfit - a.avgProfit)
+                .slice(0, 20);
+
+            if (routes.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 30px; color: #888;">No data yet. Start scanning to see results.</td></tr>';
+                return;
+            }
+
+            let html = '';
+            routes.forEach((route, index) => {
+                const profitColor = route.avgProfit > 0 ? '#00ff88' : '#ff6b6b';
+                const timeSinceLastSeen = route.lastSeen ?
+                    Math.floor((Date.now() - route.lastSeen) / 1000) : 0;
+                const lastSeenText = timeSinceLastSeen < 60 ?
+                    `${timeSinceLastSeen}s ago` :
+                    `${Math.floor(timeSinceLastSeen / 60)}m ago`;
+
+                html += `
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                        <td style="padding: 10px; color: #888;">${index + 1}</td>
+                        <td style="padding: 10px; color: #00d4ff;">${route.buyExchange} → ${route.sellExchange}</td>
+                        <td style="padding: 10px; color: #ffb347;">${route.asset}</td>
+                        <td style="padding: 10px; text-align: right; color: ${profitColor}; font-weight: bold;">
+                            ${route.avgProfit > 0 ? '+' : ''}${route.avgProfit.toFixed(2)}%
+                        </td>
+                        <td style="padding: 10px; text-align: right; color: #00ff88; font-weight: bold;">
+                            ${route.bestProfit > 0 ? '+' : ''}${route.bestProfit.toFixed(2)}%
+                        </td>
+                        <td style="padding: 10px; text-align: right; color: #b8c6db;">${route.timesFound}</td>
+                        <td style="padding: 10px; text-align: right; color: #888; font-size: 0.85rem;">${lastSeenText}</td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = html;
+        }
+
+        /**
+         * Populate Top 20 Routes by Consistency table
+         */
+        function populateTopConsistencyTable(data) {
+            const tbody = document.getElementById('crossExTopConsistencyBody');
+
+            // Calculate consistency score (timesFound * avgProfit / stdDev)
+            const routes = Object.values(data.routes)
+                .map(route => {
+                    const consistency = route.timesFound >= 3 ?
+                        (route.timesFound / Math.max(1, route.bestProfit - route.worstProfit)) * 100 : 0;
+                    return { ...route, consistency };
+                })
+                .sort((a, b) => b.consistency - a.consistency)
+                .slice(0, 20);
+
+            if (routes.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 30px; color: #888;">No data yet. Start scanning to see results.</td></tr>';
+                return;
+            }
+
+            let html = '';
+            routes.forEach((route, index) => {
+                const profitColor = route.avgProfit > 0 ? '#00ff88' : '#ff6b6b';
+                const consistencyColor = route.consistency > 50 ? '#00ff88' :
+                                        route.consistency > 20 ? '#ffc107' : '#ff6b6b';
+
+                html += `
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                        <td style="padding: 10px; color: #888;">${index + 1}</td>
+                        <td style="padding: 10px; color: #00d4ff;">${route.buyExchange} → ${route.sellExchange}</td>
+                        <td style="padding: 10px; color: #ffb347;">${route.asset}</td>
+                        <td style="padding: 10px; text-align: right; color: #b8c6db;">${route.timesFound}</td>
+                        <td style="padding: 10px; text-align: right; color: ${profitColor}; font-weight: bold;">
+                            ${route.avgProfit > 0 ? '+' : ''}${route.avgProfit.toFixed(2)}%
+                        </td>
+                        <td style="padding: 10px; text-align: right; color: #888; font-size: 0.85rem;">
+                            ${route.worstProfit.toFixed(2)}% / ${route.bestProfit.toFixed(2)}%
+                        </td>
+                        <td style="padding: 10px; text-align: center;">
+                            <span style="background: ${consistencyColor}; color: #0c0c1e; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.85rem;">
+                                ${route.consistency.toFixed(0)}
+                            </span>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = html;
+        }
+
+        /**
+         * Populate Best Cryptos table
+         */
+        function populateBestCryptosTable(data) {
+            const tbody = document.getElementById('crossExBestCryptosBody');
+
+            const cryptos = Object.entries(data.cryptos)
+                .map(([asset, stats]) => ({ asset, ...stats }))
+                .sort((a, b) => b.avgProfit - a.avgProfit)
+                .slice(0, 10);
+
+            if (cryptos.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 20px; color: #888;">No data yet</td></tr>';
+                return;
+            }
+
+            let html = '';
+            cryptos.forEach(crypto => {
+                const profitColor = crypto.avgProfit > 0 ? '#00ff88' : '#ff6b6b';
+                html += `
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                        <td style="padding: 10px; color: #ffb347; font-weight: bold;">${crypto.asset}</td>
+                        <td style="padding: 10px; text-align: right; color: #b8c6db;">${crypto.opportunities}</td>
+                        <td style="padding: 10px; text-align: right; color: ${profitColor}; font-weight: bold;">
+                            ${crypto.avgProfit > 0 ? '+' : ''}${crypto.avgProfit.toFixed(2)}%
+                        </td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = html;
+        }
+
+        /**
+         * Populate Best Exchange Pairs table
+         */
+        function populateBestExchangesTable(data) {
+            const tbody = document.getElementById('crossExBestExchangesBody');
+
+            const exchanges = Object.entries(data.exchanges)
+                .map(([pair, stats]) => ({ pair, ...stats }))
+                .sort((a, b) => b.avgProfit - a.avgProfit)
+                .slice(0, 10);
+
+            if (exchanges.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 20px; color: #888;">No data yet</td></tr>';
+                return;
+            }
+
+            let html = '';
+            exchanges.forEach(exchange => {
+                const profitColor = exchange.avgProfit > 0 ? '#00ff88' : '#ff6b6b';
+                html += `
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                        <td style="padding: 10px; color: #00d4ff;">${exchange.pair}</td>
+                        <td style="padding: 10px; text-align: right; color: #b8c6db;">${exchange.opportunities}</td>
+                        <td style="padding: 10px; text-align: right; color: ${profitColor}; font-weight: bold;">
+                            ${exchange.avgProfit > 0 ? '+' : ''}${exchange.avgProfit.toFixed(2)}%
+                        </td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = html;
+        }
+
+        /**
+         * Populate Time of Day Analysis table
+         */
+        function populateTimeAnalysisTable(data) {
+            const tbody = document.getElementById('crossExTimeAnalysisBody');
+
+            const hours = Object.entries(data.hourly)
+                .map(([hour, stats]) => {
+                    // Find most common route for this hour
+                    const mostCommonRoute = Object.entries(stats.routes)
+                        .sort((a, b) => b[1] - a[1])[0];
+                    return {
+                        hour: parseInt(hour),
+                        ...stats,
+                        mostCommonRoute: mostCommonRoute ? mostCommonRoute[0] : 'N/A'
+                    };
+                })
+                .sort((a, b) => b.avgProfit - a.avgProfit);
+
+            if (hours.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px; color: #888;">No data yet</td></tr>';
+                return;
+            }
+
+            let html = '';
+            hours.forEach(hourData => {
+                const profitColor = hourData.avgProfit > 0 ? '#00ff88' : '#ff6b6b';
+                const hourFormatted = hourData.hour.toString().padStart(2, '0') + ':00';
+
+                html += `
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                        <td style="padding: 10px; color: #b8c6db;">${hourFormatted}</td>
+                        <td style="padding: 10px; text-align: right; color: #b8c6db;">${hourData.opportunities}</td>
+                        <td style="padding: 10px; text-align: right; color: ${profitColor}; font-weight: bold;">
+                            ${hourData.avgProfit > 0 ? '+' : ''}${hourData.avgProfit.toFixed(2)}%
+                        </td>
+                        <td style="padding: 10px; color: #888; font-size: 0.85rem;">${hourData.mostCommonRoute}</td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = html;
+        }
+
+        /**
+         * Update Status Dashboard
+         */
+        function updateStatusDashboard(data) {
+            // Update cycles
+            document.getElementById('crossExScanCycles').textContent = data.cycles || 0;
+
+            // Update data collected
+            const maxStorage = 50000;
+            const collected = data.totalOpportunities || 0;
+            const storagePercent = ((collected / maxStorage) * 100).toFixed(1);
+            document.getElementById('crossExOppsFound').textContent = `${collected.toLocaleString()} / ${maxStorage.toLocaleString()}`;
+            document.getElementById('crossExStoragePercent').textContent = `${storagePercent}%`;
+
+            // Update running time
+            if (data.startTime) {
+                const elapsed = Date.now() - data.startTime;
+                const minutes = Math.floor(elapsed / 60000);
+                const seconds = Math.floor((elapsed % 60000) / 1000);
+                document.getElementById('crossExRunTime').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            }
+
+            // Update best opportunity
+            if (data.routes && Object.keys(data.routes).length > 0) {
+                const bestRoute = Object.values(data.routes)
+                    .sort((a, b) => b.bestProfit - a.bestProfit)[0];
+                document.getElementById('crossExBestOpp').textContent =
+                    `${bestRoute.asset}: ${bestRoute.buyExchange}→${bestRoute.sellExchange} @ ${bestRoute.bestProfit > 0 ? '+' : ''}${bestRoute.bestProfit.toFixed(2)}%`;
+            }
+        }
+
+        // ============================================================================
+        // PAGE INITIALIZATION
+        // ============================================================================
+
+        /**
+         * Initialize test scan on page load
+         */
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load existing scan data and populate tables
+            const data = getCrossExScanData();
+            if (data && data.totalOpportunities > 0) {
+                console.log(`📊 Loading existing scan data: ${data.totalOpportunities.toLocaleString()} opportunities from ${data.cycles} cycles`);
+                populateAllTables();
+            } else {
+                console.log('ℹ️ No existing scan data found. Click "Start Test Scan" to begin.');
+            }
+        });
 
         // End of Test Scan Functionality
     </script>
