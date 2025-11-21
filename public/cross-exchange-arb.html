@@ -2307,9 +2307,17 @@
                         window._priceDebugLogged = true;
                     }
 
+                    const bid = exchangePrices[variation].bid || 0;
+                    const ask = exchangePrices[variation].ask || 0;
+
+                    // Return null if no liquidity (bid and ask are 0)
+                    if (bid === 0 && ask === 0) {
+                        return null;
+                    }
+
                     return {
-                        bid: exchangePrices[variation].bid || 0,
-                        ask: exchangePrices[variation].ask || 0
+                        bid: bid,
+                        ask: ask
                     };
                 }
             }
