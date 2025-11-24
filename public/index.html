@@ -33082,18 +33082,24 @@ ARB4ME Security Team`
         // ARB SCANNER - Live Cross-Exchange Price Comparison
         // ════════════════════════════════════════════════════════════════════════
 
+        // Same asset list as Cross-Exchange Arbitrage (128 assets)
         const allArbScannerAssets = [
-            // USDT pairs
             'XRPUSDT', 'BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'LINKUSDT', 'DOGEUSDT', 'ADAUSDT', 'DOTUSDT',
             'AVAXUSDT', 'MATICUSDT', 'LTCUSDT', 'ATOMUSDT', 'BNBUSDT', 'UNIUSDT', 'BCHUSDT', 'SHIBUSDT',
-            'XLMUSDT', 'PEPEUSDT', 'AAVEUSDT', 'ALGOUSDT', 'ARBUSDT', 'HBARUSDT',
-            // BTC pairs
-            'ETHBTC', 'ADABTC', 'DOTETH', 'LINKBTC', 'XRPBTC', 'XLMBTC', 'ALGOBTC', 'HBARBTC',
+            'ETHBTC', 'ADABTC', 'DOTETH', 'LINKBTC', 'XRPBTC', 'XLMBTC', 'ALGOBTC', 'HBARBTC', 'HBARUSDT',
             'SOLBTC', 'MATICBTC', 'AVAXBTC', 'BNBBTC', 'LTCBTC', 'SOLETH', 'MATICETH', 'LINKETH', 'UNIETH',
-            // USDC pairs
-            'BTCUSDC', 'ETHUSDC',
-            // ZAR pairs (South African exchanges)
-            'BTCZAR', 'ETHZAR', 'XRPZAR', 'SOLZAR', 'ADAZAR', 'DOTZAR', 'LTCZAR', 'LINKZAR', 'USDTZAR'
+            'BTCUSDC', 'ETHUSDC', 'SUNUSDT', 'UBXSUSDT', 'GMMTUSDT', 'SNPTUSDT', 'ONDOUSDT', 'TRADEUSDT',
+            'TLOSUSDT', 'ZCXUSDT', 'PINUSDT', 'UDSUSDT', 'TETUSDT', 'OMIUSDT', 'HTXUSDT', 'BADUSDT',
+            'DNXUSDT', 'HASHAIUSDT', 'XTAGUSDT', 'AIMONICAUSDT', 'IAGUSDT', 'SEIUSDT', 'MASAUSDT', 'TRVLUSDT',
+            'OMNIAUSDT', 'ARCAUSDT', 'EVMOSUSDT', 'HEARTUSDT', 'XCADUSDT', 'ZCDUSDT', 'NAIUSDT', 'NPCUSDT',
+            'HAIUSDT', 'NTXUSDT', 'TURBOUSDT', 'NOTUSDT', 'BLSUSDT', 'DFYNUSDT', 'STRMUSDT', 'XPRTUSDT',
+            'HTMUSDT', 'TOKOUSDT', 'ATRUSDT', 'ATLASUSDT', 'PAWSUSDT', 'KASTAUSDT', 'PZPUSDT', 'QTLXUSDT',
+            'SCPTUSDT', 'MTRGUSDT', 'VANRYUSDT', 'XRPHUSDT', 'ZANOUSDT', 'STBUUSDT', 'REKTUSDT', 'AGLAUSDT',
+            'PROPCUSDT', 'SPARKLETUSDT', 'CSIXUSDT', 'HOODUSDT', 'MBGUSDT', 'SEEDUSDT', 'MUBIUSDT', 'XPUSDT',
+            'SNYUSDT', 'PEPE2USDT', 'SWEATUSDT', 'KIPUSDT', 'VISTAUSDT', 'DKSUSDT', 'CKBUSDT', 'QUBICUSDT',
+            'ETNUSDT', 'XLMUSDT', 'PEPEUSDT', 'AAVEUSDT', 'AGRIUSDT', 'ALGOUSDT', 'LUMENUSDT', 'SFIUSDT',
+            'PROPSUSDT', 'VEMPUSDT', 'XRUSDT', 'XDCUSDT', 'GELUSDT', 'RTFUSDT', 'DCKUSDT', 'MOGUSDT',
+            'RETIKUSDT', 'ARBUSDT', 'VSCUSDT', 'REDOUSDT', 'MEMEFIUSDT', 'MUBUSDT', 'AKIUSDT', 'XZKUSDT'
         ];
 
         const allScannerExchanges = [
