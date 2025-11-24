@@ -3663,58 +3663,118 @@
 
 
         <div id="settingsTab" class="tab-content">
-            <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-                <h2 style="color: #00d4ff; text-align: center; margin-bottom: 30px;">⚙️ Platform Settings</h2>
+            <div style="max-width: 1400px; margin: 0 auto; padding: 20px;">
+                <h2 style="color: #00d4ff; text-align: center; margin-bottom: 10px;">🔍 Live Arbitrage Scanner</h2>
+                <p style="text-align: center; color: #b8c6db; font-size: 0.9rem; margin-bottom: 30px;">
+                    Real-time price comparison across all exchanges • Public data • No authentication required
+                </p>
 
-                <!-- Note about strategy-specific settings -->
-                <div style="background: rgba(0,212,255,0.1); padding: 15px; border-radius: 10px; border-left: 4px solid #00d4ff; margin-bottom: 30px;">
-                    <div style="font-size: 0.9rem; color: #00d4ff; font-weight: bold; margin-bottom: 5px;">📋 Strategy Settings</div>
-                    <div style="font-size: 0.85rem; color: #b8c6db; line-height: 1.4;">
-                        Each trading strategy has its own configuration page with strategy-specific settings. Platform-wide security settings are managed here.
-                    </div>
-                </div>
-
-                <!-- Security Settings Section -->
-                <h3 style="color: #ff6b6b; margin: 0 0 15px 0;">🔒 Security Settings</h3>
-                <div style="background: rgba(255,107,107,0.1); padding: 20px; border-radius: 10px; border-left: 4px solid #ff6b6b;">
-                    <div style="max-width: 400px; margin-bottom: 20px;">
-                        <label style="display: block; margin-bottom: 8px; color: #e0e0e0; font-weight: bold;">Lock Screen After Inactivity:</label>
-                        <select id="inactivityTimeout" onchange="updateSecuritySettings()" style="width: 100%; padding: 12px; border-radius: 8px; background: #1a1a2e; color: white; border: 1px solid rgba(255,255,255,0.2); font-size: 14px;">
-                            <option value="5">5 minutes</option>
-                            <option value="15">15 minutes (Recommended)</option>
-                            <option value="30">30 minutes</option>
-                            <option value="60">1 hour</option>
-                            <option value="0">Never (Disabled)</option>
-                        </select>
-                        <div style="font-size: 0.8rem; color: #b8c6db; margin-top: 8px;">
-                            Automatically locks the platform after period of inactivity for security
+                <!-- Asset Selection and Refresh -->
+                <div style="background: rgba(0,212,255,0.1); padding: 20px; border-radius: 10px; border: 2px solid #00d4ff; margin-bottom: 25px;">
+                    <div style="display: grid; grid-template-columns: 1fr auto; gap: 15px; align-items: end;">
+                        <div>
+                            <label style="display: block; margin-bottom: 8px; color: #00d4ff; font-weight: bold; font-size: 0.95rem;">📊 Select Asset to Scan:</label>
+                            <select id="arbScannerAsset" onchange="scanArbitrageOpportunity()" style="width: 100%; padding: 14px; border-radius: 8px; background: #1a1a2e; color: white; border: 2px solid rgba(0,212,255,0.5); font-size: 1rem; font-weight: bold; cursor: pointer;">
+                                <option value="">-- Select a crypto pair --</option>
+                            </select>
                         </div>
-                    </div>
-
-                    <div style="text-align: center; margin-top: 20px;">
-                        <button onclick="lockApplication('manual')" style="
-                            padding: 12px 24px;
-                            background: linear-gradient(45deg, #ff6b6b, #ff5252);
-                            color: white;
-                            border: none;
-                            border-radius: 20px;
+                        <button id="refreshArbScannerBtn" onclick="scanArbitrageOpportunity()" style="
+                            padding: 14px 30px;
+                            background: linear-gradient(135deg, #00ff88, #00d4ff);
+                            color: #1a1f36;
                             font-weight: bold;
+                            border: none;
+                            border-radius: 8px;
                             cursor: pointer;
-                            transition: all 0.3s;
                             font-size: 1rem;
-                        " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-                            🔒 Lock Application Now
+                            transition: all 0.3s;
+                            white-space: nowrap;
+                        " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 5px 15px rgba(0,255,136,0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                            🔄 Refresh Prices
                         </button>
                     </div>
+                </div>
 
-                    <div style="margin-top: 20px; padding: 15px; background: rgba(0,255,136,0.1); border-radius: 8px; border-left: 3px solid #00ff88;">
-                        <div style="font-size: 0.95rem; color: #00ff88; font-weight: bold; margin-bottom: 8px;">🚀 Trading Protection</div>
-                        <div style="font-size: 0.9rem; color: #e0e0e0; line-height: 1.5;">
-                            Lock screen protects your UI only - <strong>trading continues safely in the background</strong><br>
-                            <span style="font-size: 0.85rem; color: #b8c6db;">Password required to unlock (same as your login password)</span>
-                        </div>
+                <!-- Loading State -->
+                <div id="arbScannerLoading" style="display: none; text-align: center; padding: 40px; background: rgba(0,0,0,0.2); border-radius: 10px; margin-bottom: 25px;">
+                    <div style="font-size: 2rem; margin-bottom: 10px;">⏳</div>
+                    <div style="color: #00d4ff; font-size: 1.1rem; font-weight: bold;">Scanning prices across all exchanges...</div>
+                    <div style="color: #888; font-size: 0.9rem; margin-top: 5px;">This may take a few seconds</div>
+                </div>
+
+                <!-- Best Opportunity Card -->
+                <div id="arbScannerBestOpp" style="display: none; background: linear-gradient(135deg, rgba(0,255,136,0.15), rgba(0,212,255,0.15)); border: 2px solid #00ff88; border-radius: 12px; padding: 25px; margin-bottom: 25px;">
+                    <h3 style="color: #00ff88; margin: 0 0 15px 0; font-size: 1.3rem;">🏆 Best Arbitrage Opportunity</h3>
+                    <div id="arbScannerBestOppContent" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                        <!-- Will be populated by JavaScript -->
                     </div>
                 </div>
+
+                <!-- No Data State -->
+                <div id="arbScannerNoData" style="display: block; text-align: center; padding: 60px 20px; background: rgba(255,255,255,0.03); border: 2px dashed rgba(255,255,255,0.2); border-radius: 10px; margin-bottom: 25px;">
+                    <div style="font-size: 3rem; margin-bottom: 15px; opacity: 0.5;">📊</div>
+                    <div style="color: #888; font-size: 1.1rem; margin-bottom: 10px;">Select an asset above to start scanning</div>
+                    <div style="color: #666; font-size: 0.9rem;">Compare real-time prices across all 19 exchanges</div>
+                </div>
+
+                <!-- Exchange Cards Grid -->
+                <div id="arbScannerCards" style="display: none;">
+                    <h3 style="color: #00d4ff; margin: 0 0 20px 0; font-size: 1.2rem;">💱 Exchange Prices</h3>
+                    <div id="arbScannerCardsGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; margin-bottom: 30px;">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Collapsible Security Settings -->
+                <details style="margin-top: 40px; padding: 20px; background: rgba(255,107,107,0.05); border: 1px solid rgba(255,107,107,0.3); border-radius: 10px;">
+                    <summary style="color: #ff6b6b; font-weight: bold; font-size: 1.1rem; cursor: pointer; user-select: none; list-style: none; display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 1.2rem;">🔒</span>
+                        <span>Security Settings</span>
+                        <span style="margin-left: auto; font-size: 0.8rem; color: #888;">(Click to expand)</span>
+                    </summary>
+
+                    <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,107,107,0.2);">
+                        <div style="max-width: 500px;">
+                            <div style="margin-bottom: 20px;">
+                                <label style="display: block; margin-bottom: 8px; color: #e0e0e0; font-weight: bold;">Lock Screen After Inactivity:</label>
+                                <select id="inactivityTimeout" onchange="updateSecuritySettings()" style="width: 100%; padding: 12px; border-radius: 8px; background: #1a1a2e; color: white; border: 1px solid rgba(255,255,255,0.2); font-size: 14px;">
+                                    <option value="5">5 minutes</option>
+                                    <option value="15">15 minutes</option>
+                                    <option value="30">30 minutes</option>
+                                    <option value="60">1 hour</option>
+                                    <option value="0" selected>Never (Disabled)</option>
+                                </select>
+                                <div style="font-size: 0.8rem; color: #b8c6db; margin-top: 8px;">
+                                    Automatically locks the platform after period of inactivity for security
+                                </div>
+                            </div>
+
+                            <div style="text-align: center; margin-bottom: 20px;">
+                                <button onclick="lockApplication('manual')" style="
+                                    padding: 12px 24px;
+                                    background: linear-gradient(45deg, #ff6b6b, #ff5252);
+                                    color: white;
+                                    border: none;
+                                    border-radius: 20px;
+                                    font-weight: bold;
+                                    cursor: pointer;
+                                    transition: all 0.3s;
+                                    font-size: 1rem;
+                                " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                                    🔒 Lock Application Now
+                                </button>
+                            </div>
+
+                            <div style="padding: 15px; background: rgba(0,255,136,0.1); border-radius: 8px; border-left: 3px solid #00ff88;">
+                                <div style="font-size: 0.95rem; color: #00ff88; font-weight: bold; margin-bottom: 8px;">🚀 Trading Protection</div>
+                                <div style="font-size: 0.9rem; color: #e0e0e0; line-height: 1.5;">
+                                    Lock screen protects your UI only - <strong>trading continues safely in the background</strong><br>
+                                    <span style="font-size: 0.85rem; color: #b8c6db;">Password required to unlock (same as your login password)</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </details>
             </div>
         </div>
 
@@ -33003,7 +33063,309 @@ ARB4ME Security Team`
             if (kucoinStatus) kucoinStatus.textContent = 'Ready';
 
             console.log('📦 Transfer ARB system initialized');
+
+            // Initialize ARB Scanner
+            initializeArbScanner();
         });
+
+        // ════════════════════════════════════════════════════════════════════════
+        // ARB SCANNER - Live Cross-Exchange Price Comparison
+        // ════════════════════════════════════════════════════════════════════════
+
+        const allArbScannerAssets = [
+            'XRPUSDT', 'BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'LINKUSDT', 'DOGEUSDT', 'ADAUSDT', 'DOTUSDT',
+            'AVAXUSDT', 'MATICUSDT', 'LTCUSDT', 'ATOMUSDT', 'BNBUSDT', 'UNIUSDT', 'BCHUSDT', 'SHIBUSDT',
+            'ETHBTC', 'ADABTC', 'DOTETH', 'LINKBTC', 'XRPBTC', 'XLMBTC', 'ALGOBTC', 'HBARBTC', 'HBARUSDT',
+            'SOLBTC', 'MATICBTC', 'AVAXBTC', 'BNBBTC', 'LTCBTC', 'SOLETH', 'MATICETH', 'LINKETH', 'UNIETH',
+            'BTCUSDC', 'ETHUSDC', 'XLMUSDT', 'PEPEUSDT', 'AAVEUSDT', 'ALGOUSDT', 'ARBUSDT'
+        ];
+
+        const allScannerExchanges = [
+            'binance', 'kraken', 'okx', 'bybit', 'kucoin', 'mexc', 'htx', 'gateio', 'bitget',
+            'valr', 'luno', 'gemini', 'bitmart', 'bitrue', 'xt', 'chainex', 'coincatch', 'bingx', 'ascendex'
+        ];
+
+        /**
+         * Initialize ARB Scanner - populate asset dropdown
+         */
+        function initializeArbScanner() {
+            const dropdown = document.getElementById('arbScannerAsset');
+            if (!dropdown) return;
+
+            // Populate dropdown with sorted assets
+            const sortedAssets = [...allArbScannerAssets].sort();
+            sortedAssets.forEach(asset => {
+                const option = document.createElement('option');
+                option.value = asset;
+                option.textContent = asset;
+                dropdown.appendChild(option);
+            });
+
+            console.log('🔍 ARB Scanner initialized with', sortedAssets.length, 'assets');
+        }
+
+        /**
+         * Scan arbitrage opportunity for selected asset
+         */
+        async function scanArbitrageOpportunity() {
+            const assetSelect = document.getElementById('arbScannerAsset');
+            const selectedAsset = assetSelect?.value;
+
+            if (!selectedAsset) {
+                alert('⚠️ Please select an asset first');
+                return;
+            }
+
+            console.log('🔍 Scanning arbitrage opportunity for', selectedAsset);
+
+            // Show loading, hide other states
+            document.getElementById('arbScannerLoading').style.display = 'block';
+            document.getElementById('arbScannerNoData').style.display = 'none';
+            document.getElementById('arbScannerBestOpp').style.display = 'none';
+            document.getElementById('arbScannerCards').style.display = 'none';
+
+            // Disable refresh button
+            const refreshBtn = document.getElementById('refreshArbScannerBtn');
+            if (refreshBtn) {
+                refreshBtn.disabled = true;
+                refreshBtn.style.opacity = '0.5';
+                refreshBtn.style.cursor = 'not-allowed';
+            }
+
+            try {
+                // Fetch prices from all exchanges
+                const prices = await fetchPricesForAllExchanges(selectedAsset);
+
+                // Calculate best opportunity
+                const bestOpportunity = calculateBestOpportunity(prices, selectedAsset);
+
+                // Display results
+                displayScanResults(prices, bestOpportunity, selectedAsset);
+
+                console.log('✅ Scan complete:', bestOpportunity);
+
+            } catch (error) {
+                console.error('❌ Scan failed:', error);
+                alert(`Scan failed: ${error.message}`);
+                document.getElementById('arbScannerNoData').style.display = 'block';
+            } finally {
+                // Hide loading
+                document.getElementById('arbScannerLoading').style.display = 'none';
+
+                // Re-enable refresh button
+                if (refreshBtn) {
+                    refreshBtn.disabled = false;
+                    refreshBtn.style.opacity = '1';
+                    refreshBtn.style.cursor = 'pointer';
+                }
+            }
+        }
+
+        /**
+         * Fetch prices from all exchanges for a specific asset
+         */
+        async function fetchPricesForAllExchanges(asset) {
+            const prices = {};
+            const fetchPromises = [];
+
+            for (const exchange of allScannerExchanges) {
+                const promise = getRealPrice(asset, exchange)
+                    .then(priceData => {
+                        if (priceData && priceData.last > 0) {
+                            prices[exchange] = {
+                                last: priceData.last,
+                                bid: priceData.bid || priceData.last * 0.999,
+                                ask: priceData.ask || priceData.last * 1.001,
+                                volume: priceData.volume || 0,
+                                spread: ((priceData.ask - priceData.bid) / priceData.bid * 100).toFixed(3)
+                            };
+                        }
+                    })
+                    .catch(err => {
+                        console.warn(`⚠️ ${exchange} price fetch failed:`, err.message);
+                    });
+
+                fetchPromises.push(promise);
+            }
+
+            // Wait for all fetches to complete
+            await Promise.all(fetchPromises);
+
+            console.log(`📊 Fetched prices from ${Object.keys(prices).length} exchanges`);
+            return prices;
+        }
+
+        /**
+         * Calculate best arbitrage opportunity
+         */
+        function calculateBestOpportunity(prices, asset) {
+            if (Object.keys(prices).length < 2) {
+                return null;
+            }
+
+            let bestBuyExchange = null;
+            let lowestAsk = Infinity;
+            let bestSellExchange = null;
+            let highestBid = -Infinity;
+
+            // Find best buy (lowest ask) and best sell (highest bid)
+            for (const [exchange, priceData] of Object.entries(prices)) {
+                if (priceData.ask < lowestAsk) {
+                    lowestAsk = priceData.ask;
+                    bestBuyExchange = exchange;
+                }
+                if (priceData.bid > highestBid) {
+                    highestBid = priceData.bid;
+                    bestSellExchange = exchange;
+                }
+            }
+
+            if (!bestBuyExchange || !bestSellExchange || bestBuyExchange === bestSellExchange) {
+                return null;
+            }
+
+            // Calculate profit
+            const grossProfit = highestBid - lowestAsk;
+            const grossProfitPercent = (grossProfit / lowestAsk) * 100;
+
+            // Subtract typical exchange fees (0.1% per side = 0.2% total)
+            const fees = lowestAsk * 0.002; // 0.2% total fees
+            const netProfit = grossProfit - fees;
+            const netProfitPercent = (netProfit / lowestAsk) * 100;
+
+            return {
+                asset,
+                buyExchange: bestBuyExchange,
+                buyPrice: lowestAsk,
+                sellExchange: bestSellExchange,
+                sellPrice: highestBid,
+                grossProfit,
+                grossProfitPercent,
+                netProfit,
+                netProfitPercent,
+                fees
+            };
+        }
+
+        /**
+         * Display scan results
+         */
+        function displayScanResults(prices, bestOpportunity, asset) {
+            // Hide no data state
+            document.getElementById('arbScannerNoData').style.display = 'none';
+
+            // Show results
+            document.getElementById('arbScannerCards').style.display = 'block';
+
+            // Display best opportunity card
+            if (bestOpportunity && bestOpportunity.netProfitPercent > 0) {
+                const bestOppCard = document.getElementById('arbScannerBestOpp');
+                const bestOppContent = document.getElementById('arbScannerBestOppContent');
+
+                const profitColor = bestOpportunity.netProfitPercent >= 0.5 ? '#00ff88' : '#ffc107';
+
+                bestOppContent.innerHTML = `
+                    <div style="text-align: center;">
+                        <div style="color: #888; font-size: 0.85rem; margin-bottom: 5px;">Action</div>
+                        <div style="color: ${profitColor}; font-size: 1.2rem; font-weight: bold;">
+                            Buy on ${bestOpportunity.buyExchange.toUpperCase()} → Sell on ${bestOpportunity.sellExchange.toUpperCase()}
+                        </div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="color: #888; font-size: 0.85rem; margin-bottom: 5px;">Buy Price (Ask)</div>
+                        <div style="color: #ff6b6b; font-size: 1.2rem; font-weight: bold;">
+                            $${bestOpportunity.buyPrice.toFixed(6)}
+                        </div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="color: #888; font-size: 0.85rem; margin-bottom: 5px;">Sell Price (Bid)</div>
+                        <div style="color: #00ff88; font-size: 1.2rem; font-weight: bold;">
+                            $${bestOpportunity.sellPrice.toFixed(6)}
+                        </div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="color: #888; font-size: 0.85rem; margin-bottom: 5px;">Net Profit % (after fees)</div>
+                        <div style="color: ${profitColor}; font-size: 1.5rem; font-weight: bold;">
+                            ${bestOpportunity.netProfitPercent >= 0 ? '+' : ''}${bestOpportunity.netProfitPercent.toFixed(3)}%
+                        </div>
+                        <div style="color: #888; font-size: 0.75rem; margin-top: 3px;">
+                            Gross: ${bestOpportunity.grossProfitPercent.toFixed(3)}% | Fees: 0.2%
+                        </div>
+                    </div>
+                `;
+
+                bestOppCard.style.display = 'block';
+            } else {
+                document.getElementById('arbScannerBestOpp').style.display = 'none';
+            }
+
+            // Render exchange cards
+            renderExchangeCards(prices, asset, bestOpportunity);
+        }
+
+        /**
+         * Render exchange price cards
+         */
+        function renderExchangeCards(prices, asset, bestOpportunity) {
+            const grid = document.getElementById('arbScannerCardsGrid');
+            if (!grid) return;
+
+            // Sort exchanges by bid price (highest first)
+            const sortedPrices = Object.entries(prices).sort((a, b) => b[1].bid - a[1].bid);
+
+            grid.innerHTML = sortedPrices.map(([exchange, priceData]) => {
+                // Highlight best buy and sell exchanges
+                let borderColor = 'rgba(255,255,255,0.1)';
+                let bgGradient = 'rgba(255,255,255,0.03)';
+                let badge = '';
+
+                if (bestOpportunity) {
+                    if (exchange === bestOpportunity.buyExchange) {
+                        borderColor = '#ff6b6b';
+                        bgGradient = 'linear-gradient(135deg, rgba(255,107,107,0.15), rgba(255,107,107,0.05))';
+                        badge = '<div style="position: absolute; top: 10px; right: 10px; background: #ff6b6b; color: white; padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: bold;">🛒 BEST BUY</div>';
+                    }
+                    if (exchange === bestOpportunity.sellExchange) {
+                        borderColor = '#00ff88';
+                        bgGradient = 'linear-gradient(135deg, rgba(0,255,136,0.15), rgba(0,255,136,0.05))';
+                        badge = '<div style="position: absolute; top: 10px; right: 10px; background: #00ff88; color: #1a1f36; padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: bold;">💰 BEST SELL</div>';
+                    }
+                }
+
+                return `
+                    <div style="position: relative; background: ${bgGradient}; border: 2px solid ${borderColor}; border-radius: 10px; padding: 20px; transition: all 0.3s;">
+                        ${badge}
+                        <div style="font-size: 1.2rem; font-weight: bold; color: #00d4ff; margin-bottom: 15px; text-transform: uppercase;">
+                            ${exchange}
+                        </div>
+
+                        <div style="display: grid; gap: 10px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; background: rgba(0,0,0,0.2); border-radius: 6px;">
+                                <span style="color: #888; font-size: 0.85rem;">Bid (Sell):</span>
+                                <span style="color: #00ff88; font-weight: bold; font-size: 1rem;">$${priceData.bid.toFixed(6)}</span>
+                            </div>
+
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; background: rgba(0,0,0,0.2); border-radius: 6px;">
+                                <span style="color: #888; font-size: 0.85rem;">Ask (Buy):</span>
+                                <span style="color: #ff6b6b; font-weight: bold; font-size: 1rem;">$${priceData.ask.toFixed(6)}</span>
+                            </div>
+
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; background: rgba(0,0,0,0.2); border-radius: 6px;">
+                                <span style="color: #888; font-size: 0.85rem;">Spread:</span>
+                                <span style="color: #ffc107; font-weight: bold; font-size: 0.9rem;">${priceData.spread}%</span>
+                            </div>
+
+                            ${priceData.volume > 0 ? `
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; background: rgba(0,0,0,0.2); border-radius: 6px;">
+                                <span style="color: #888; font-size: 0.85rem;">24h Volume:</span>
+                                <span style="color: #b8c6db; font-weight: bold; font-size: 0.85rem;">$${priceData.volume.toLocaleString()}</span>
+                            </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
 
     </script>
 
