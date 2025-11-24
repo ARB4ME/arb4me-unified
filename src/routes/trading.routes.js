@@ -1760,10 +1760,13 @@ router.post('/luno/ticker', tickerRateLimit, optionalAuth, [
             pair: pair
         });
         
-        // Handle Luno's pair naming: convert USDT pairs to ZAR pairs
-        let lunoPair = pair.replace('USDT', 'ZAR'); // Convert BTCUSDT -> BTCZAR
-        if (lunoPair === 'BTCZAR') {
-            lunoPair = 'XBTZAR'; // Luno uses XBTZAR for Bitcoin
+        // Handle Luno's pair naming: BTC -> XBT conversion ONLY
+        // Luno supports both USDT and ZAR pairs, so we don't convert between them
+        let lunoPair = pair;
+
+        // Luno uses XBT instead of BTC for Bitcoin
+        if (pair.startsWith('BTC')) {
+            lunoPair = pair.replace('BTC', 'XBT');
         }
         
         const response = await fetch(`${LUNO_CONFIG.baseUrl}${LUNO_CONFIG.endpoints.ticker}?pair=${lunoPair}`, {
