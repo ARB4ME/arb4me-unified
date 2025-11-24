@@ -20540,11 +20540,16 @@ ARB4ME Security Team`
 
         function restoreUISettings() {
             // Restore sliders (profitThreshold removed - now fixed at 1%)
-            document.getElementById('tradeSize').value = state.settings.tradeSize;
-            document.getElementById('tradeSizeValue').textContent = `${state.settings.tradeSize}%`;
-            
-            document.getElementById('maxTrade').value = state.settings.maxTradeAmount;
-            document.getElementById('maxTradeValue').textContent = formatCurrency(state.settings.maxTradeAmount);
+            // NOTE: These settings are now strategy-specific, not on main Settings page
+            const tradeSizeEl = document.getElementById('tradeSize');
+            const tradeSizeValueEl = document.getElementById('tradeSizeValue');
+            const maxTradeEl = document.getElementById('maxTrade');
+            const maxTradeValueEl = document.getElementById('maxTradeValue');
+
+            if (tradeSizeEl) tradeSizeEl.value = state.settings.tradeSize;
+            if (tradeSizeValueEl) tradeSizeValueEl.textContent = `${state.settings.tradeSize}%`;
+            if (maxTradeEl) maxTradeEl.value = state.settings.maxTradeAmount;
+            if (maxTradeValueEl) maxTradeValueEl.textContent = formatCurrency(state.settings.maxTradeAmount);
             
             // Restore checkboxes - ALL 130 assets
             const assets = [
