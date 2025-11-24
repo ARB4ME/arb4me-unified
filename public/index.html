@@ -33078,11 +33078,17 @@ ARB4ME Security Team`
         // ════════════════════════════════════════════════════════════════════════
 
         const allArbScannerAssets = [
+            // USDT pairs
             'XRPUSDT', 'BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'LINKUSDT', 'DOGEUSDT', 'ADAUSDT', 'DOTUSDT',
             'AVAXUSDT', 'MATICUSDT', 'LTCUSDT', 'ATOMUSDT', 'BNBUSDT', 'UNIUSDT', 'BCHUSDT', 'SHIBUSDT',
-            'ETHBTC', 'ADABTC', 'DOTETH', 'LINKBTC', 'XRPBTC', 'XLMBTC', 'ALGOBTC', 'HBARBTC', 'HBARUSDT',
+            'XLMUSDT', 'PEPEUSDT', 'AAVEUSDT', 'ALGOUSDT', 'ARBUSDT', 'HBARUSDT',
+            // BTC pairs
+            'ETHBTC', 'ADABTC', 'DOTETH', 'LINKBTC', 'XRPBTC', 'XLMBTC', 'ALGOBTC', 'HBARBTC',
             'SOLBTC', 'MATICBTC', 'AVAXBTC', 'BNBBTC', 'LTCBTC', 'SOLETH', 'MATICETH', 'LINKETH', 'UNIETH',
-            'BTCUSDC', 'ETHUSDC', 'XLMUSDT', 'PEPEUSDT', 'AAVEUSDT', 'ALGOUSDT', 'ARBUSDT'
+            // USDC pairs
+            'BTCUSDC', 'ETHUSDC',
+            // ZAR pairs (South African exchanges)
+            'BTCZAR', 'ETHZAR', 'XRPZAR', 'SOLZAR', 'ADAZAR', 'DOTZAR', 'LTCZAR', 'LINKZAR', 'USDTZAR'
         ];
 
         const allScannerExchanges = [
@@ -33226,15 +33232,17 @@ ARB4ME Security Team`
                 const promise = getRealPrice(asset, exchange)
                     .then(priceData => {
                         if (priceData && priceData.last > 0) {
-                            // Check if this is a ZAR exchange and convert prices to USD
+                            // Check if this is a ZAR exchange AND the pair is in ZAR
                             const isZarExchange = zarExchanges.includes(exchange);
+                            const isZarPair = asset.toUpperCase().endsWith('ZAR');
+                            const shouldConvert = isZarExchange && isZarPair && usdZarRate;
 
                             let last = priceData.last;
                             let bid = priceData.bid || priceData.last * 0.999;
                             let ask = priceData.ask || priceData.last * 1.001;
 
-                            if (isZarExchange && usdZarRate) {
-                                console.log(`💱 Converting ${exchange} ZAR prices to USD (rate: ${usdZarRate})`);
+                            if (shouldConvert) {
+                                console.log(`💱 Converting ${exchange} ${asset} ZAR prices to USD (rate: ${usdZarRate})`);
                                 last = convertZarToUsd(last, usdZarRate);
                                 bid = convertZarToUsd(bid, usdZarRate);
                                 ask = convertZarToUsd(ask, usdZarRate);
@@ -33246,7 +33254,7 @@ ARB4ME Security Team`
                                 ask,
                                 volume: priceData.volume || 0,
                                 spread: ((ask - bid) / bid * 100).toFixed(3),
-                                currency: isZarExchange ? 'USD (converted from ZAR)' : 'USD'
+                                currency: shouldConvert ? 'USD (converted from ZAR)' : 'USD'
                             };
                         }
                     })
