@@ -3719,7 +3719,12 @@
 
                 <!-- Exchange Cards Grid -->
                 <div id="arbScannerCards" style="display: none;">
-                    <h3 style="color: #00d4ff; margin: 0 0 20px 0; font-size: 1.2rem;">💱 Exchange Prices</h3>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3 style="color: #00d4ff; margin: 0; font-size: 1.2rem;">💱 Exchange Prices</h3>
+                        <div id="arbScannerExchangeCount" style="color: #888; font-size: 0.9rem; padding: 8px 16px; background: rgba(0,212,255,0.1); border-radius: 20px; border: 1px solid rgba(0,212,255,0.3);">
+                            Loading...
+                        </div>
+                    </div>
                     <div id="arbScannerCardsGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; margin-bottom: 30px;">
                         <!-- Will be populated by JavaScript -->
                     </div>
@@ -33085,6 +33090,12 @@ ARB4ME Security Team`
             'valr', 'luno', 'gemini', 'bitmart', 'bitrue', 'xt', 'chainex', 'coincatch', 'bingx', 'ascendex'
         ];
 
+        // South African exchanges that return ZAR prices
+        const zarExchanges = ['valr', 'luno', 'ascendex'];
+
+        // Cache for USD/ZAR exchange rate (refreshed per scan)
+        let cachedZarRate = null;
+
         /**
          * Initialize ARB Scanner - populate asset dropdown
          */
@@ -33105,6 +33116,43 @@ ARB4ME Security Team`
         }
 
         /**
+         * Fetch current USD/ZAR exchange rate
+         * Uses Binance USDTZAR ticker as the most reliable source
+         */
+        async function fetchUsdZarRate() {
+            if (cachedZarRate) {
+                console.log('💰 Using cached ZAR rate:', cachedZarRate);
+                return cachedZarRate;
+            }
+
+            try {
+                // Use Binance public API for USDT/ZAR rate
+                const response = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=USDTZAR');
+                const data = await response.json();
+
+                if (data.price) {
+                    cachedZarRate = parseFloat(data.price);
+                    console.log('💰 Fetched USD/ZAR rate:', cachedZarRate);
+                    return cachedZarRate;
+                }
+            } catch (error) {
+                console.warn('⚠️ Failed to fetch USD/ZAR rate, using fallback:', error.message);
+            }
+
+            // Fallback rate if API fails (approximate current rate)
+            cachedZarRate = 18.0;
+            console.log('💰 Using fallback ZAR rate:', cachedZarRate);
+            return cachedZarRate;
+        }
+
+        /**
+         * Convert ZAR price to USD
+         */
+        function convertZarToUsd(zarPrice, usdZarRate) {
+            return zarPrice / usdZarRate;
+        }
+
+        /**
          * Scan arbitrage opportunity for selected asset
          */
         async function scanArbitrageOpportunity() {
@@ -33117,6 +33165,9 @@ ARB4ME Security Team`
             }
 
             console.log('🔍 Scanning arbitrage opportunity for', selectedAsset);
+
+            // Clear cached ZAR rate to fetch fresh rate for each scan
+            cachedZarRate = null;
 
             // Show loading, hide other states
             document.getElementById('arbScannerLoading').style.display = 'block';
@@ -33133,8 +33184,11 @@ ARB4ME Security Team`
             }
 
             try {
-                // Fetch prices from all exchanges
-                const prices = await fetchPricesForAllExchanges(selectedAsset);
+                // Fetch USD/ZAR rate first
+                const usdZarRate = await fetchUsdZarRate();
+
+                // Fetch prices from all exchanges (with ZAR conversion)
+                const prices = await fetchPricesForAllExchanges(selectedAsset, usdZarRate);
 
                 // Calculate best opportunity
                 const bestOpportunity = calculateBestOpportunity(prices, selectedAsset);
@@ -33164,7 +33218,7 @@ ARB4ME Security Team`
         /**
          * Fetch prices from all exchanges for a specific asset
          */
-        async function fetchPricesForAllExchanges(asset) {
+        async function fetchPricesForAllExchanges(asset, usdZarRate) {
             const prices = {};
             const fetchPromises = [];
 
@@ -33172,12 +33226,27 @@ ARB4ME Security Team`
                 const promise = getRealPrice(asset, exchange)
                     .then(priceData => {
                         if (priceData && priceData.last > 0) {
+                            // Check if this is a ZAR exchange and convert prices to USD
+                            const isZarExchange = zarExchanges.includes(exchange);
+
+                            let last = priceData.last;
+                            let bid = priceData.bid || priceData.last * 0.999;
+                            let ask = priceData.ask || priceData.last * 1.001;
+
+                            if (isZarExchange && usdZarRate) {
+                                console.log(`💱 Converting ${exchange} ZAR prices to USD (rate: ${usdZarRate})`);
+                                last = convertZarToUsd(last, usdZarRate);
+                                bid = convertZarToUsd(bid, usdZarRate);
+                                ask = convertZarToUsd(ask, usdZarRate);
+                            }
+
                             prices[exchange] = {
-                                last: priceData.last,
-                                bid: priceData.bid || priceData.last * 0.999,
-                                ask: priceData.ask || priceData.last * 1.001,
+                                last,
+                                bid,
+                                ask,
                                 volume: priceData.volume || 0,
-                                spread: ((priceData.ask - priceData.bid) / priceData.bid * 100).toFixed(3)
+                                spread: ((ask - bid) / bid * 100).toFixed(3),
+                                currency: isZarExchange ? 'USD (converted from ZAR)' : 'USD'
                             };
                         }
                     })
@@ -33191,7 +33260,7 @@ ARB4ME Security Team`
             // Wait for all fetches to complete
             await Promise.all(fetchPromises);
 
-            console.log(`📊 Fetched prices from ${Object.keys(prices).length} exchanges`);
+            console.log(`📊 Fetched prices from ${Object.keys(prices).length}/${allScannerExchanges.length} exchanges`);
             return prices;
         }
 
@@ -33251,11 +33320,24 @@ ARB4ME Security Team`
          * Display scan results
          */
         function displayScanResults(prices, bestOpportunity, asset) {
+            const exchangeCount = Object.keys(prices).length;
+            const totalExchanges = allScannerExchanges.length;
+
             // Hide no data state
             document.getElementById('arbScannerNoData').style.display = 'none';
 
             // Show results
             document.getElementById('arbScannerCards').style.display = 'block';
+
+            // Update exchange count badge
+            const countBadge = document.getElementById('arbScannerExchangeCount');
+            if (countBadge) {
+                const successRate = (exchangeCount / totalExchanges * 100).toFixed(0);
+                const badgeColor = exchangeCount >= totalExchanges * 0.5 ? '#00ff88' : '#ffc107';
+                countBadge.innerHTML = `<span style="color: ${badgeColor}; font-weight: bold;">${exchangeCount}/${totalExchanges}</span> exchanges responding`;
+                countBadge.style.borderColor = `${badgeColor}33`;
+                countBadge.style.background = `${badgeColor}1a`;
+            }
 
             // Display best opportunity card
             if (bestOpportunity && bestOpportunity.netProfitPercent > 0) {
@@ -33332,6 +33414,11 @@ ARB4ME Security Team`
                     }
                 }
 
+                // Add ZAR conversion indicator if applicable
+                const zarIndicator = priceData.currency && priceData.currency.includes('ZAR')
+                    ? '<div style="margin-top: 10px; padding: 6px 10px; background: rgba(255,183,71,0.2); border: 1px solid #ffb347; border-radius: 6px; text-align: center;"><span style="color: #ffb347; font-size: 0.75rem; font-weight: bold;">💱 Converted from ZAR</span></div>'
+                    : '';
+
                 return `
                     <div style="position: relative; background: ${bgGradient}; border: 2px solid ${borderColor}; border-radius: 10px; padding: 20px; transition: all 0.3s;">
                         ${badge}
@@ -33362,6 +33449,8 @@ ARB4ME Security Team`
                             </div>
                             ` : ''}
                         </div>
+
+                        ${zarIndicator}
                     </div>
                 `;
             }).join('');
