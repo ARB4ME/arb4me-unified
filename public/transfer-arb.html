@@ -410,6 +410,25 @@
                 </div>
             </div>
 
+            <!-- Active Trades Dashboard -->
+            <div id="activeTradesDashboard" style="display: none; margin-bottom: 30px;">
+                <div class="stat-card">
+                    <h3 style="color: #00d4ff; margin: 0 0 15px 0;">
+                        <span style="font-size: 1.2rem;">🔥</span> Active Transfers
+                        <span style="font-size: 0.9rem; color: #b8c6db; font-weight: normal; margin-left: 10px;">
+                            (<span id="activeTradesCount">0</span>/<span id="maxTradesCount">5</span>)
+                        </span>
+                    </h3>
+                    <div id="activeTradesDetail">
+                        <div style="text-align: center; padding: 40px 20px; color: #888;">
+                            <div style="font-size: 3rem; margin-bottom: 10px;">💤</div>
+                            <div style="font-size: 1.1rem; margin-bottom: 5px;">No Active Trades</div>
+                            <div style="font-size: 0.85rem;">Waiting for profitable opportunities...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Crypto Selection Section -->
             <div id="crypto-selection-section" style="margin-bottom: 30px;">
                 <!-- Will be populated with crypto selector component -->
@@ -462,7 +481,7 @@
                         <div id="autoExecuteWarning" style="display: none; background: rgba(255,107,107,0.2); border: 1px solid #ff6b6b; border-radius: 8px; padding: 12px; margin-top: 10px;">
                             <div style="color: #ff6b6b; font-weight: bold; margin-bottom: 5px;">⚠️ Auto-Execute Active</div>
                             <div style="color: #b8c6db; font-size: 0.85rem; line-height: 1.4;">
-                                System will automatically execute trades meeting your risk criteria. Scanning every <span id="scanInterval">30</span> seconds.
+                                System will automatically execute trades meeting your risk criteria. Scanning every <span id="scanInterval">60</span> seconds.
                             </div>
                         </div>
                     </div>
@@ -3375,7 +3394,216 @@
         // Continuous Scan Variables
         let continuousScanInterval = null;
         let isAutoExecuteActive = false;
-        const SCAN_INTERVAL_MS = 30000; // 30 seconds
+        const SCAN_INTERVAL_MS = 60000; // 60 seconds (changed from 30s to reduce API load)
+
+        // Trade Locking System - Prevent Duplicate Trades
+        const activeTrades = new Map(); // { "XRP_binance_kraken": { startTime, crypto, route, estimatedCompletion } }
+        const routeCooldowns = new Map(); // { "XRP_binance_kraken": cooldownUntilTimestamp }
+        const MAX_CONCURRENT_TRADES = 5; // Maximum simultaneous transfers
+        const ROUTE_COOLDOWN_MS = 10 * 60 * 1000; // 10 minutes cooldown after trade completes
+
+        // Trade Locking Helper Functions
+        function getTradeKey(crypto, fromExchange, toExchange) {
+            return `${crypto}_${fromExchange}_${toExchange}`;
+        }
+
+        function isTradeActive(tradeKey) {
+            return activeTrades.has(tradeKey);
+        }
+
+        function isRouteCoolingDown(tradeKey) {
+            if (!routeCooldowns.has(tradeKey)) return false;
+
+            const cooldownUntil = routeCooldowns.get(tradeKey);
+            const now = Date.now();
+
+            if (now >= cooldownUntil) {
+                // Cooldown expired, remove it
+                routeCooldowns.delete(tradeKey);
+                return false;
+            }
+
+            return true;
+        }
+
+        function canExecuteTrade(opportunity) {
+            const tradeKey = getTradeKey(opportunity.crypto, opportunity.fromExchange, opportunity.toExchange);
+
+            // Check if this exact route is already executing
+            if (isTradeActive(tradeKey)) {
+                console.log(`⏸️ Skipping ${tradeKey} - already executing`);
+                return false;
+            }
+
+            // Check if route is in cooldown
+            if (isRouteCoolingDown(tradeKey)) {
+                const cooldownUntil = routeCooldowns.get(tradeKey);
+                const remainingSeconds = Math.ceil((cooldownUntil - Date.now()) / 1000);
+                console.log(`❄️ Skipping ${tradeKey} - cooling down for ${remainingSeconds}s`);
+                return false;
+            }
+
+            // Check max concurrent trades limit
+            if (activeTrades.size >= MAX_CONCURRENT_TRADES) {
+                console.log(`⏸️ Skipping ${tradeKey} - max concurrent trades (${MAX_CONCURRENT_TRADES}) reached`);
+                return false;
+            }
+
+            return true;
+        }
+
+        function lockTrade(opportunity) {
+            const tradeKey = getTradeKey(opportunity.crypto, opportunity.fromExchange, opportunity.toExchange);
+            const now = Date.now();
+            const transferTimeMs = (opportunity.estimatedTransferTime || 15) * 60 * 1000; // Convert minutes to ms
+            const bufferMs = 2 * 60 * 1000; // 2 minute buffer
+            const estimatedCompletion = now + transferTimeMs + bufferMs;
+
+            activeTrades.set(tradeKey, {
+                startTime: now,
+                crypto: opportunity.crypto,
+                route: `${opportunity.fromExchange} → ${opportunity.toExchange}`,
+                fromExchange: opportunity.fromExchange,
+                toExchange: opportunity.toExchange,
+                estimatedCompletion: estimatedCompletion,
+                transferTimeMinutes: opportunity.estimatedTransferTime || 15,
+                profit: opportunity.netProfit,
+                profitPercent: opportunity.netProfitPercent
+            });
+
+            console.log(`🔒 Locked ${tradeKey} for ${Math.ceil((estimatedCompletion - now) / 1000 / 60)} minutes`);
+
+            // Auto-unlock after estimated time + buffer
+            setTimeout(() => {
+                if (activeTrades.has(tradeKey)) {
+                    unlockTrade(tradeKey);
+                }
+            }, transferTimeMs + bufferMs);
+        }
+
+        function unlockTrade(tradeKey) {
+            if (activeTrades.has(tradeKey)) {
+                const trade = activeTrades.get(tradeKey);
+                activeTrades.delete(tradeKey);
+
+                // Start cooldown period
+                const cooldownUntil = Date.now() + ROUTE_COOLDOWN_MS;
+                routeCooldowns.set(tradeKey, cooldownUntil);
+
+                console.log(`🔓 Unlocked ${tradeKey}, cooldown until ${new Date(cooldownUntil).toLocaleTimeString()}`);
+
+                // Auto-remove cooldown after period expires
+                setTimeout(() => {
+                    routeCooldowns.delete(tradeKey);
+                    console.log(`✅ Cooldown expired for ${tradeKey}`);
+                }, ROUTE_COOLDOWN_MS);
+
+                // Update UI
+                updateActiveTradesUI();
+            }
+        }
+
+        function getActiveTradesInfo() {
+            const trades = [];
+            const now = Date.now();
+
+            for (const [key, trade] of activeTrades.entries()) {
+                const elapsedSeconds = Math.floor((now - trade.startTime) / 1000);
+                const remainingSeconds = Math.max(0, Math.floor((trade.estimatedCompletion - now) / 1000));
+
+                trades.push({
+                    key,
+                    ...trade,
+                    elapsedSeconds,
+                    remainingSeconds,
+                    elapsedMinutes: Math.floor(elapsedSeconds / 60),
+                    remainingMinutes: Math.ceil(remainingSeconds / 60)
+                });
+            }
+
+            return trades;
+        }
+
+        // Update Active Trades UI
+        function updateActiveTradesUI() {
+            const pendingElement = document.getElementById('pendingTransfers');
+            if (pendingElement) {
+                pendingElement.textContent = activeTrades.size;
+            }
+
+            // Update active trades count
+            const countElement = document.getElementById('activeTradesCount');
+            if (countElement) {
+                countElement.textContent = activeTrades.size;
+            }
+
+            const maxCountElement = document.getElementById('maxTradesCount');
+            if (maxCountElement) {
+                maxCountElement.textContent = MAX_CONCURRENT_TRADES;
+            }
+
+            // Show/hide dashboard based on auto-execute status
+            const dashboard = document.getElementById('activeTradesDashboard');
+            if (dashboard && isAutoExecuteActive) {
+                dashboard.style.display = 'block';
+            } else if (dashboard && !isAutoExecuteActive) {
+                dashboard.style.display = 'none';
+            }
+
+            // Update active trades detail section if it exists
+            const activeTradesSection = document.getElementById('activeTradesDetail');
+            if (!activeTradesSection) return;
+
+            const trades = getActiveTradesInfo();
+
+            if (trades.length === 0) {
+                activeTradesSection.innerHTML = `
+                    <div style="text-align: center; padding: 40px 20px; color: #888;">
+                        <div style="font-size: 3rem; margin-bottom: 10px;">💤</div>
+                        <div style="font-size: 1.1rem; margin-bottom: 5px;">No Active Trades</div>
+                        <div style="font-size: 0.85rem;">Waiting for profitable opportunities...</div>
+                    </div>
+                `;
+                return;
+            }
+
+            activeTradesSection.innerHTML = `
+                <div style="display: grid; gap: 15px;">
+                    ${trades.map(trade => `
+                        <div style="background: rgba(0,212,255,0.1); border: 2px solid #00d4ff; border-radius: 12px; padding: 15px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <div>
+                                    <div style="font-size: 1.1rem; font-weight: bold; color: #00ff88;">
+                                        ${trade.crypto}
+                                    </div>
+                                    <div style="font-size: 0.85rem; color: #b8c6db; margin-top: 2px;">
+                                        ${trade.route}
+                                    </div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div style="font-size: 1rem; font-weight: bold; color: #00ff88;">
+                                        +${trade.profitPercent.toFixed(2)}%
+                                    </div>
+                                    <div style="font-size: 0.8rem; color: #b8c6db;">
+                                        $${trade.profit.toFixed(2)}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style="background: rgba(0,0,0,0.3); border-radius: 8px; padding: 10px; margin-top: 10px;">
+                                <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: #b8c6db;">
+                                    <span>⏱️ Elapsed: ${trade.elapsedMinutes}m ${trade.elapsedSeconds % 60}s</span>
+                                    <span>⏳ Remaining: ~${trade.remainingMinutes}m</span>
+                                </div>
+                                <div style="margin-top: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; height: 6px; overflow: hidden;">
+                                    <div style="background: linear-gradient(90deg, #00ff88, #00d4ff); height: 100%; width: ${Math.min(100, (trade.elapsedSeconds / (trade.transferTimeMinutes * 60)) * 100)}%; transition: width 1s;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
 
         // Start continuous scanning
         function startContinuousScan() {
@@ -3386,6 +3614,11 @@
 
             isAutoExecuteActive = true;
             console.log('🚀 Starting continuous scan every', SCAN_INTERVAL_MS / 1000, 'seconds');
+            console.log(`   Max concurrent trades: ${MAX_CONCURRENT_TRADES}`);
+            console.log(`   Route cooldown: ${ROUTE_COOLDOWN_MS / 1000 / 60} minutes`);
+
+            // Show active trades dashboard
+            updateActiveTradesUI();
 
             // Run first scan immediately
             scanWithAutoExecute();
@@ -3394,6 +3627,15 @@
             continuousScanInterval = setInterval(() => {
                 scanWithAutoExecute();
             }, SCAN_INTERVAL_MS);
+
+            // Update UI every 5 seconds to show live progress
+            const uiUpdateInterval = setInterval(() => {
+                if (!isAutoExecuteActive) {
+                    clearInterval(uiUpdateInterval);
+                    return;
+                }
+                updateActiveTradesUI();
+            }, 5000);
         }
 
         // Stop continuous scanning
@@ -3449,41 +3691,63 @@
                 });
 
                 console.log(`✅ Found ${filteredOpportunities.length} opportunities meeting criteria (${opportunities.length} total)`);
+                console.log(`🔒 Active trades: ${activeTrades.size}/${MAX_CONCURRENT_TRADES}`);
 
                 if (filteredOpportunities.length > 0 && isAutoExecuteActive) {
-                    // Sort by profit and take best one
-                    const bestOpp = filteredOpportunities.sort((a, b) => b.netProfitPercent - a.netProfitPercent)[0];
+                    // Sort by profit
+                    const sortedOpps = filteredOpportunities.sort((a, b) => b.netProfitPercent - a.netProfitPercent);
 
-                    console.log('💎 Best opportunity:', bestOpp);
-                    console.log(`   ${bestOpp.crypto}: ${bestOpp.fromExchange} → ${bestOpp.toExchange}`);
-                    console.log(`   Profit: $${bestOpp.netProfit} (${bestOpp.netProfitPercent}%)`);
+                    // Try to find an opportunity we can execute (not locked, not cooling down)
+                    let bestExecutableOpp = null;
+                    for (const opp of sortedOpps) {
+                        if (canExecuteTrade(opp)) {
+                            bestExecutableOpp = opp;
+                            break;
+                        }
+                    }
+
+                    if (!bestExecutableOpp) {
+                        console.log('⏸️ No executable opportunities (all locked or cooling down)');
+                        // Update display anyway
+                        displayOpportunities(filteredOpportunities);
+                        updateActiveTradesUI();
+                        return;
+                    }
+
+                    console.log('💎 Best executable opportunity:', bestExecutableOpp);
+                    console.log(`   ${bestExecutableOpp.crypto}: ${bestExecutableOpp.fromExchange} → ${bestExecutableOpp.toExchange}`);
+                    console.log(`   Profit: $${bestExecutableOpp.netProfit} (${bestExecutableOpp.netProfitPercent}%)`);
 
                     // ⚠️ SAFETY CHECK: Validate deposit address exists before executing
-                    const depositAddress = localStorage.getItem(`deposit_${bestOpp.toExchange}_${bestOpp.crypto}_deposit`);
+                    const depositAddress = localStorage.getItem(`deposit_${bestExecutableOpp.toExchange}_${bestExecutableOpp.crypto}_deposit`);
                     if (!depositAddress) {
                         console.error('⚠️ CRITICAL: No deposit address configured for auto-execute');
                         stopContinuousScan();
-                        alert(`⚠️ AUTO-EXECUTE STOPPED\n\nMissing Deposit Address:\n${bestOpp.toExchange} - ${bestOpp.crypto}\n\nPlease configure the deposit address in "Deposit Address Configuration" before enabling auto-execute.`);
+                        alert(`⚠️ AUTO-EXECUTE STOPPED\n\nMissing Deposit Address:\n${bestExecutableOpp.toExchange} - ${bestExecutableOpp.crypto}\n\nPlease configure the deposit address in "Deposit Address Configuration" before enabling auto-execute.`);
                         return;
                     }
 
                     // ⚠️ SAFETY CHECK: Validate destination tag for XRP/XLM
-                    if (['XRP', 'XLM'].includes(bestOpp.crypto)) {
-                        const tag = localStorage.getItem(`deposit_${bestOpp.toExchange}_${bestOpp.crypto}_tag`);
+                    if (['XRP', 'XLM'].includes(bestExecutableOpp.crypto)) {
+                        const tag = localStorage.getItem(`deposit_${bestExecutableOpp.toExchange}_${bestExecutableOpp.crypto}_tag`);
                         if (!tag) {
                             console.error('⚠️ CRITICAL: No destination tag configured for XRP/XLM');
                             stopContinuousScan();
-                            alert(`⚠️ AUTO-EXECUTE STOPPED\n\n${bestOpp.crypto} requires a DESTINATION TAG!\n\nExchange: ${bestOpp.toExchange}\n\nFunds will be LOST without a tag. Please configure it in "Deposit Address Configuration".`);
+                            alert(`⚠️ AUTO-EXECUTE STOPPED\n\n${bestExecutableOpp.crypto} requires a DESTINATION TAG!\n\nExchange: ${bestExecutableOpp.toExchange}\n\nFunds will be LOST without a tag. Please configure it in "Deposit Address Configuration".`);
                             return;
                         }
                     }
 
+                    // 🔒 LOCK THE TRADE BEFORE EXECUTING
+                    lockTrade(bestExecutableOpp);
+
                     // Execute the trade automatically (safe to proceed)
-                    await executeTransfer(bestOpp);
+                    await executeTransfer(bestExecutableOpp);
                 }
 
                 // Update display
                 displayOpportunities(filteredOpportunities);
+                updateActiveTradesUI();
 
             } catch (error) {
                 console.error('❌ Auto-scan error:', error);
