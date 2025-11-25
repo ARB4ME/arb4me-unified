@@ -1509,47 +1509,89 @@
             </button>
 
             <!-- Header -->
-            <h2 style="color: #00d4ff; margin: 0 0 20px 0; padding-right: 40px; font-size: 1.5rem;">📦 What is Transfer Arbitrage?</h2>
+            <h2 style="color: #00d4ff; margin: 0 0 20px 0; padding-right: 40px; font-size: 1.5rem;">📦 Transfer Arbitrage Explained</h2>
 
             <!-- Content -->
             <div style="color: #b8c6db; line-height: 1.6; font-size: 0.95rem; padding-right: 5px;">
-                <p style="margin: 0 0 15px 0;">
-                    <strong style="color: #00ff88;">Transfer arbitrage</strong> (also called <strong>physical arbitrage</strong>) involves buying crypto on one exchange and <strong>physically transferring it to another exchange</strong> where the price is higher to sell for profit.
-                </p>
-
-                <div style="background: rgba(0,212,255,0.1); padding: 15px; border-radius: 8px; border-left: 4px solid #00d4ff; margin-bottom: 15px;">
-                    <strong style="color: #00d4ff; display: block; margin-bottom: 8px;">Example:</strong>
-                    <div style="font-family: monospace; color: #00ff88;">
-                        1. Buy 1000 XRP on Binance @ $2.00 = $2,000<br>
-                        2. Transfer XRP to Kraken (fee: $0.02, time: 3 min)<br>
-                        3. Sell 1000 XRP on Kraken @ $2.08 = $2,080<br>
-                        <span style="color: #ffb347;">Profit: $80 - $0.02 = $79.98 (4%)</span>
+                <!-- Core Concept -->
+                <div style="background: rgba(0,255,136,0.1); padding: 15px; border-radius: 8px; border-left: 4px solid #00ff88; margin-bottom: 15px;">
+                    <strong style="color: #00ff88; display: block; margin-bottom: 8px;">🎯 Core Concept: Physical Arbitrage</strong>
+                    <div style="font-size: 0.9rem;">
+                        <strong>Transfer Arbitrage</strong> means physically moving crypto between exchanges to profit from price differences. You temporarily convert USDT → Crypto → Transfer → Crypto → USDT (with MORE profit!)
                     </div>
                 </div>
 
-                <p style="margin: 0 0 15px 0;">
-                    <strong style="color: #ffb347;">How it works:</strong>
+                <!-- Complete Example -->
+                <div style="background: rgba(0,212,255,0.1); padding: 15px; border-radius: 8px; border-left: 4px solid #00d4ff; margin-bottom: 15px;">
+                    <strong style="color: #00d4ff; display: block; margin-bottom: 8px;">💰 Complete Example - XRP Arbitrage:</strong>
+                    <div style="font-family: monospace; font-size: 0.85rem; line-height: 1.8;">
+                        <strong style="color: #ffb347;">Setup:</strong><br>
+                        • You have $2,000 USDT on Binance<br>
+                        • You have XRP deposit address configured on Kraken<br><br>
+
+                        <strong style="color: #00ff88;">📊 Step 1: Scanner Finds Opportunity</strong><br>
+                        • XRP on Binance: $2.00 (cheaper)<br>
+                        • XRP on Kraken: $2.08 (4% higher)<br><br>
+
+                        <strong style="color: #00ff88;">🛒 Step 2: Buy on Binance</strong><br>
+                        • Buy 1,000 XRP @ $2.00 = $2,000 USDT spent<br><br>
+
+                        <strong style="color: #00ff88;">📤 Step 3: Transfer to Kraken</strong><br>
+                        • Withdraw 1,000 XRP from Binance<br>
+                        • Send to your Kraken XRP deposit address<br>
+                        • Network fee: $0.02 | Time: 3 minutes<br><br>
+
+                        <strong style="color: #00ff88;">💸 Step 4: Sell on Kraken</strong><br>
+                        • 1,000 XRP arrives on Kraken<br>
+                        • Sell @ $2.08 = $2,080 USDT received<br><br>
+
+                        <strong style="color: #ffb347;">✅ Profit:</strong><br>
+                        Revenue: $2,080 - Cost: $2,000.02 = <strong>$79.98 profit (4%)</strong>
+                    </div>
+                </div>
+
+                <!-- Key Requirements -->
+                <p style="margin: 0 0 10px 0;">
+                    <strong style="color: #ffb347; font-size: 1.1rem;">🔑 What You Need:</strong>
                 </p>
-                <ol style="margin: 0 0 15px 0; padding-left: 25px;">
-                    <li style="margin-bottom: 8px;">System identifies <strong>price differences</strong> across exchanges</li>
-                    <li style="margin-bottom: 8px;">Finds an asset trading <strong>cheaper</strong> on Exchange A</li>
-                    <li style="margin-bottom: 8px;">Buys the asset on the <strong>cheaper exchange</strong></li>
-                    <li style="margin-bottom: 8px;"><strong>Transfers the asset</strong> to Exchange B (blockchain transfer)</li>
-                    <li style="margin-bottom: 8px;">Sells on the <strong>higher-priced exchange</strong> for profit</li>
+                <ol style="margin: 0 0 15px 0; padding-left: 25px; font-size: 0.9rem;">
+                    <li style="margin-bottom: 8px;"><strong style="color: #00ff88;">USDT Funded on Exchanges</strong> - Need $2,000+ USDT per exchange to buy crypto when opportunities appear</li>
+                    <li style="margin-bottom: 8px;"><strong style="color: #00ff88;">Deposit Addresses Configured</strong> - Must set up XRP/XLM/TRX deposit addresses on each exchange (this is where transfers arrive!)</li>
+                    <li style="margin-bottom: 8px;"><strong style="color: #00ff88;">API Keys</strong> - Exchange API access for automated trading</li>
+                    <li style="margin-bottom: 8px;"><strong style="color: #00ff88;">Fast/Cheap Cryptos</strong> - Use XRP, XLM, or TRX for quick, low-cost transfers</li>
                 </ol>
 
-                <p style="margin: 0 0 15px 0;">
-                    <strong style="color: #ffb347;">Best assets for transfer arbitrage:</strong>
+                <!-- Money Flow -->
+                <div style="background: rgba(255,179,71,0.1); padding: 15px; border-radius: 8px; border-left: 4px solid #ffb347; margin-bottom: 15px;">
+                    <strong style="color: #ffb347; display: block; margin-bottom: 8px;">💡 Money Flow (You're NOT permanently holding crypto!):</strong>
+                    <div style="font-family: monospace; font-size: 0.85rem; text-align: center; color: #00ff88;">
+                        USDT (Binance) → Buy XRP → Transfer XRP → Sell XRP → USDT (Kraken)<br>
+                        <span style="color: #ffb347;">↑ Start with $2,000 | End with $2,080 = $80 profit! ↑</span>
+                    </div>
+                </div>
+
+                <!-- Best Cryptos -->
+                <p style="margin: 0 0 10px 0;">
+                    <strong style="color: #ffb347;">⚡ Best Cryptos for Transfer Arb:</strong>
                 </p>
-                <ul style="margin: 0 0 15px 0; padding-left: 25px;">
-                    <li style="margin-bottom: 8px;"><strong style="color: #00ff88;">XRP</strong> - Fast (3 min), Low fee ($0.02)</li>
-                    <li style="margin-bottom: 8px;"><strong style="color: #00ff88;">XLM</strong> - Fast (5 min), Very low fee ($0.01)</li>
-                    <li style="margin-bottom: 8px;"><strong style="color: #00ff88;">TRX</strong> - Fast, Low fee</li>
-                    <li style="margin-bottom: 8px;"><strong style="color: #00ff88;">LTC</strong> - Moderate speed, Low fee</li>
+                <ul style="margin: 0 0 15px 0; padding-left: 25px; font-size: 0.9rem;">
+                    <li style="margin-bottom: 8px;"><strong style="color: #00ff88;">🥇 XRP</strong> - 3 min transfer, $0.02 fee (BEST CHOICE)</li>
+                    <li style="margin-bottom: 8px;"><strong style="color: #00ff88;">🥇 XLM</strong> - 5 min transfer, $0.01 fee (BEST CHOICE)</li>
+                    <li style="margin-bottom: 8px;"><strong style="color: #00ff88;">🥇 TRX</strong> - 3 min transfer, $1 fee (GOOD)</li>
+                    <li style="margin-bottom: 8px;"><strong style="color: #ffb347;">🥈 LTC</strong> - 15 min transfer, $0.10 fee (OK)</li>
+                    <li style="margin-bottom: 8px;"><strong style="color: #ff6b6b;">❌ BTC</strong> - 30+ min, $5+ fee (TOO SLOW)</li>
+                    <li style="margin-bottom: 8px;"><strong style="color: #ff6b6b;">❌ ETH</strong> - 10 min, $8+ fee (TOO EXPENSIVE)</li>
                 </ul>
 
-                <div style="background: rgba(255,152,0,0.1); padding: 15px; border-radius: 8px; border-left: 4px solid #ffb347; margin-bottom: 0;">
-                    <strong style="color: #ffb347;">Key Difference:</strong> Unlike cross-exchange arbitrage (simultaneous buy/sell), transfer arbitrage involves a <strong>time delay</strong> during the blockchain transfer. You need to account for <strong>transfer time, network fees, and price movement risk</strong>. Best for assets with fast transfer times and low fees!
+                <!-- Key Risks -->
+                <div style="background: rgba(255,107,107,0.1); padding: 15px; border-radius: 8px; border-left: 4px solid #ff6b6b; margin-bottom: 0;">
+                    <strong style="color: #ff6b6b; display: block; margin-bottom: 8px;">⚠️ Important Risks:</strong>
+                    <ul style="margin: 5px 0 0 0; padding-left: 20px; font-size: 0.85rem;">
+                        <li style="margin-bottom: 5px;"><strong>Price Movement</strong> - Price may drop during transfer (XRP 3 min = lower risk)</li>
+                        <li style="margin-bottom: 5px;"><strong>Transfer Delays</strong> - Network congestion could slow transfers</li>
+                        <li style="margin-bottom: 5px;"><strong>Fees Add Up</strong> - Exchange fees + network fees reduce profit</li>
+                        <li style="margin-bottom: 5px;"><strong>Need Liquidity</strong> - Must be able to sell on destination exchange</li>
+                    </ul>
                 </div>
             </div>
         </div>
