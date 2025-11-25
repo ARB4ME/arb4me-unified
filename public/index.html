@@ -33237,44 +33237,55 @@ ARB4ME Security Team`
          */
         async function fetchPricesForAllExchanges(asset, usdZarRate) {
             const prices = {};
-            const fetchPromises = [];
 
-            for (const exchange of allScannerExchanges) {
-                const promise = getRealPrice(asset, exchange)
-                    .then(priceData => {
-                        if (priceData && priceData.last > 0) {
-                            // Check if this is a ZAR exchange AND the pair is in ZAR
-                            const isZarExchange = zarExchanges.includes(exchange);
-                            const isZarPair = asset.toUpperCase().endsWith('ZAR');
-                            const shouldConvert = isZarExchange && isZarPair && usdZarRate;
+            console.log(`📡 Fetching prices from price cache service for ${asset}...`);
 
-                            let last = priceData.last;
-                            let bid = priceData.bid || priceData.last * 0.999;
-                            let ask = priceData.ask || priceData.last * 1.001;
+            // Fetch all exchange prices in parallel using price cache (same as Cross-Exchange)
+            const fetchPromises = allScannerExchanges.map(async (exchange) => {
+                try {
+                    const response = await fetch(`/api/v1/transfer-arb/price-cache/${exchange}`);
+                    if (!response.ok) {
+                        console.warn(`⚠️ ${exchange}: Price cache unavailable (${response.status})`);
+                        return;
+                    }
 
-                            if (shouldConvert) {
-                                console.log(`💱 Converting ${exchange} ${asset} ZAR prices to USD (rate: ${usdZarRate})`);
-                                last = convertZarToUsd(last, usdZarRate);
-                                bid = convertZarToUsd(bid, usdZarRate);
-                                ask = convertZarToUsd(ask, usdZarRate);
-                            }
+                    const exchangePrices = await response.json();
 
+                    // Look for the asset in this exchange's cached prices
+                    if (exchangePrices[asset]) {
+                        const priceData = exchangePrices[asset];
+
+                        // Check if this is a ZAR exchange AND the pair is in ZAR
+                        const isZarExchange = zarExchanges.includes(exchange);
+                        const isZarPair = asset.toUpperCase().endsWith('ZAR');
+                        const shouldConvert = isZarExchange && isZarPair && usdZarRate;
+
+                        let price = priceData.price || priceData.last || 0;
+                        let bid = priceData.bid || price * 0.999;
+                        let ask = priceData.ask || price * 1.001;
+
+                        if (shouldConvert) {
+                            console.log(`💱 Converting ${exchange} ${asset} ZAR prices to USD (rate: ${usdZarRate})`);
+                            price = convertZarToUsd(price, usdZarRate);
+                            bid = convertZarToUsd(bid, usdZarRate);
+                            ask = convertZarToUsd(ask, usdZarRate);
+                        }
+
+                        if (price > 0) {
                             prices[exchange] = {
-                                last,
-                                bid,
-                                ask,
+                                last: price,
+                                bid: bid,
+                                ask: ask,
                                 volume: priceData.volume || 0,
                                 spread: ((ask - bid) / bid * 100).toFixed(3),
                                 currency: shouldConvert ? 'USD (converted from ZAR)' : 'USD'
                             };
                         }
-                    })
-                    .catch(err => {
-                        console.warn(`⚠️ ${exchange} price fetch failed:`, err.message);
-                    });
-
-                fetchPromises.push(promise);
-            }
+                    }
+                } catch (err) {
+                    console.warn(`⚠️ ${exchange} price cache error:`, err.message);
+                }
+            });
 
             // Wait for all fetches to complete
             await Promise.all(fetchPromises);
