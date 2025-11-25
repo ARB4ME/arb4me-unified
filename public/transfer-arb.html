@@ -2465,6 +2465,48 @@
                     description: 'Cardano address (starts with addr1 or DdzFF)',
                     minLength: 50,
                     maxLength: 104
+                },
+
+                // Algorand
+                'ALGO': {
+                    pattern: /^[A-Z2-7]{58}$/,
+                    description: 'Algorand address (58 uppercase characters)',
+                    minLength: 58,
+                    maxLength: 58
+                },
+                'Algorand': {
+                    pattern: /^[A-Z2-7]{58}$/,
+                    description: 'Algorand address (58 uppercase characters)',
+                    minLength: 58,
+                    maxLength: 58
+                },
+
+                // Cosmos
+                'ATOM': {
+                    pattern: /^cosmos1[a-z0-9]{38}$/,
+                    description: 'Cosmos address (starts with cosmos1)',
+                    minLength: 45,
+                    maxLength: 45
+                },
+                'Cosmos': {
+                    pattern: /^cosmos1[a-z0-9]{38}$/,
+                    description: 'Cosmos address (starts with cosmos1)',
+                    minLength: 45,
+                    maxLength: 45
+                },
+
+                // Polkadot
+                'DOT': {
+                    pattern: /^1[a-zA-Z0-9]{47}$/,
+                    description: 'Polkadot address (starts with 1, 48 characters)',
+                    minLength: 48,
+                    maxLength: 48
+                },
+                'Polkadot': {
+                    pattern: /^1[a-zA-Z0-9]{47}$/,
+                    description: 'Polkadot address (starts with 1, 48 characters)',
+                    minLength: 48,
+                    maxLength: 48
                 }
             };
 
@@ -2638,6 +2680,12 @@
                 ],
                 'ADA': [
                     { id: 'ADA', name: 'Cardano', fee: '~1 ADA' }
+                ],
+                'ALGO': [
+                    { id: 'ALGO', name: 'Algorand', fee: '~0.001 ALGO' }
+                ],
+                'ATOM': [
+                    { id: 'ATOM', name: 'Cosmos Hub', fee: '~0.01 ATOM' }
                 ],
                 'DOT': [
                     { id: 'DOT', name: 'Polkadot', fee: '~0.1 DOT' }
