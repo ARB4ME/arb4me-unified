@@ -542,7 +542,7 @@
                                         <span style="color: #00ff88;">💵 USDT</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(3m)</span>
                                     </label>
                                     <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
-                                        <input type="checkbox" class="test-scan-asset" value="USDC" style="margin-right: 6px;">
+                                        <input type="checkbox" class="test-scan-asset" value="USDC" checked style="margin-right: 6px;">
                                         <span style="color: #00ff88;">💵 USDC</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(3m)</span>
                                     </label>
                                     <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
@@ -602,7 +602,7 @@
                                         <span style="color: #ffb347;">⚡ LTC</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(15m)</span>
                                     </label>
                                     <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
-                                        <input type="checkbox" class="test-scan-asset" value="BCH" style="margin-right: 6px;">
+                                        <input type="checkbox" class="test-scan-asset" value="BCH" checked style="margin-right: 6px;">
                                         <span style="color: #ffb347;">⚡ BCH</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(15m)</span>
                                     </label>
                                     <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
@@ -614,12 +614,12 @@
                                         <span style="color: #ffb347;">⚡ ADA</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(10m)</span>
                                     </label>
                                     <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
-                                        <input type="checkbox" class="test-scan-asset" value="AVAX" style="margin-right: 6px;">
-                                        <span style="color: #ffb347;">⚡ AVAX</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(10m)</span>
+                                        <input type="checkbox" class="test-scan-asset" value="AVAX" checked style="margin-right: 6px;">
+                                        <span style="color: #ffb347;">⚡ AVAX</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(5m)</span>
                                     </label>
                                     <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
-                                        <input type="checkbox" class="test-scan-asset" value="ATOM" style="margin-right: 6px;">
-                                        <span style="color: #ffb347;">⚡ ATOM</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(10m)</span>
+                                        <input type="checkbox" class="test-scan-asset" value="ATOM" checked style="margin-right: 6px;">
+                                        <span style="color: #ffb347;">⚡ ATOM</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(7m)</span>
                                     </label>
                                     <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
                                         <input type="checkbox" class="test-scan-asset" value="FTM" style="margin-right: 6px;">
@@ -652,8 +652,8 @@
                                         <span style="color: #ff6b6b;">⚡ ETH</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(10m)</span>
                                     </label>
                                     <label style="color: #b8c6db; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;">
-                                        <input type="checkbox" class="test-scan-asset" value="DOT" style="margin-right: 6px;">
-                                        <span style="color: #ff6b6b;">⚡ DOT</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(20m)</span>
+                                        <input type="checkbox" class="test-scan-asset" value="DOT" checked style="margin-right: 6px;">
+                                        <span style="color: #ffb347;">⚡ DOT</span> <span style="color: #888; font-size: 0.7rem; margin-left: 4px;">(12m)</span>
                                     </label>
 
                                     <!-- BATCH 1: Popular Meme & DeFi -->
@@ -4688,6 +4688,59 @@
                 console.log(`⏱️ Note: Scan interval change requires restart to take effect`);
             });
 
+            // Load saved asset selection on page load
+            function loadAssetSelection() {
+                const config = JSON.parse(localStorage.getItem('testScan_config') || '{}');
+
+                if (config.assets && config.assets.length > 0) {
+                    console.log(`📥 Loading saved asset selection: ${config.assets.length} assets`);
+
+                    // Uncheck all first
+                    document.querySelectorAll('.test-scan-asset').forEach(cb => cb.checked = false);
+
+                    // Check saved assets
+                    config.assets.forEach(assetValue => {
+                        const checkbox = document.querySelector(`.test-scan-asset[value="${assetValue}"]`);
+                        if (checkbox) {
+                            checkbox.checked = true;
+                        }
+                    });
+
+                    // Update badge
+                    updateAssetBadge(config.assets.length);
+
+                    console.log(`✅ Restored ${config.assets.length} asset selections`);
+                } else {
+                    console.log('ℹ️ No saved asset selection found, using defaults');
+                    // Count currently checked defaults
+                    const defaultCount = document.querySelectorAll('.test-scan-asset:checked').length;
+                    updateAssetBadge(defaultCount);
+                }
+            }
+
+            function updateAssetBadge(count) {
+                const badge = document.getElementById('assetCountBadge');
+                const warning = document.getElementById('assetWarning');
+
+                if (badge) {
+                    badge.textContent = `${count} selected`;
+
+                    // Color coding
+                    if (count > 10) {
+                        badge.style.background = 'rgba(255,179,71,0.2)';
+                        badge.style.color = '#ffb347';
+                        if (warning) warning.style.display = 'block';
+                    } else {
+                        badge.style.background = 'rgba(0,255,136,0.2)';
+                        badge.style.color = '#00ff88';
+                        if (warning) warning.style.display = 'none';
+                    }
+                }
+            }
+
+            // Load saved selections
+            loadAssetSelection();
+
             // Save asset selection whenever checkboxes change
             document.querySelectorAll('.test-scan-asset').forEach(checkbox => {
                 checkbox.addEventListener('change', function() {
@@ -4695,23 +4748,7 @@
                     const count = selectedAssets.length;
 
                     // Update badge
-                    const badge = document.getElementById('assetCountBadge');
-                    const warning = document.getElementById('assetWarning');
-
-                    if (badge) {
-                        badge.textContent = `${count} selected`;
-
-                        // Color coding
-                        if (count > 10) {
-                            badge.style.background = 'rgba(255,179,71,0.2)';
-                            badge.style.color = '#ffb347';
-                            if (warning) warning.style.display = 'block';
-                        } else {
-                            badge.style.background = 'rgba(0,255,136,0.2)';
-                            badge.style.color = '#00ff88';
-                            if (warning) warning.style.display = 'none';
-                        }
-                    }
+                    updateAssetBadge(count);
 
                     // Save to config
                     const config = JSON.parse(localStorage.getItem('testScan_config') || '{}');
