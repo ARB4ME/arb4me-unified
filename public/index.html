@@ -33113,6 +33113,11 @@ ARB4ME Security Team`
         // Cache for USD/ZAR exchange rate (refreshed per scan)
         let cachedZarRate = null;
 
+        // Rate limiting for manual scans
+        let lastScanTime = 0;
+        const SCAN_COOLDOWN_MS = 15000; // 15 seconds cooldown
+        let cooldownInterval = null;
+
         /**
          * Initialize ARB Scanner - populate asset dropdown
          */
@@ -33170,6 +33175,35 @@ ARB4ME Security Team`
         }
 
         /**
+         * Start cooldown countdown timer
+         */
+        function startCooldownTimer() {
+            const refreshBtn = document.getElementById('refreshArbScannerBtn');
+            if (!refreshBtn) return;
+
+            // Clear any existing interval
+            if (cooldownInterval) {
+                clearInterval(cooldownInterval);
+            }
+
+            // Update button every second
+            cooldownInterval = setInterval(() => {
+                const timeRemaining = Math.ceil((SCAN_COOLDOWN_MS - (Date.now() - lastScanTime)) / 1000);
+
+                if (timeRemaining <= 0) {
+                    clearInterval(cooldownInterval);
+                    cooldownInterval = null;
+                    refreshBtn.disabled = false;
+                    refreshBtn.style.opacity = '1';
+                    refreshBtn.style.cursor = 'pointer';
+                    refreshBtn.innerHTML = '🔄 Refresh Prices';
+                } else {
+                    refreshBtn.innerHTML = `⏱️ Wait ${timeRemaining}s`;
+                }
+            }, 1000);
+        }
+
+        /**
          * Scan arbitrage opportunity for selected asset
          */
         async function scanArbitrageOpportunity() {
@@ -33181,7 +33215,18 @@ ARB4ME Security Team`
                 return;
             }
 
+            // Check cooldown
+            const timeSinceLastScan = Date.now() - lastScanTime;
+            if (timeSinceLastScan < SCAN_COOLDOWN_MS) {
+                const remainingSeconds = Math.ceil((SCAN_COOLDOWN_MS - timeSinceLastScan) / 1000);
+                alert(`⏱️ Please wait ${remainingSeconds} seconds before scanning again to avoid rate limits`);
+                return;
+            }
+
             console.log('🔍 Scanning arbitrage opportunity for', selectedAsset);
+
+            // Update last scan time
+            lastScanTime = Date.now();
 
             // Clear cached ZAR rate to fetch fresh rate for each scan
             cachedZarRate = null;
@@ -33192,12 +33237,13 @@ ARB4ME Security Team`
             document.getElementById('arbScannerBestOpp').style.display = 'none';
             document.getElementById('arbScannerCards').style.display = 'none';
 
-            // Disable refresh button
+            // Disable refresh button and start cooldown
             const refreshBtn = document.getElementById('refreshArbScannerBtn');
             if (refreshBtn) {
                 refreshBtn.disabled = true;
                 refreshBtn.style.opacity = '0.5';
                 refreshBtn.style.cursor = 'not-allowed';
+                refreshBtn.innerHTML = '🔄 Scanning...';
             }
 
             try {
@@ -33223,12 +33269,8 @@ ARB4ME Security Team`
                 // Hide loading
                 document.getElementById('arbScannerLoading').style.display = 'none';
 
-                // Re-enable refresh button
-                if (refreshBtn) {
-                    refreshBtn.disabled = false;
-                    refreshBtn.style.opacity = '1';
-                    refreshBtn.style.cursor = 'pointer';
-                }
+                // Start cooldown timer (15 second wait before next scan)
+                startCooldownTimer();
             }
         }
 
