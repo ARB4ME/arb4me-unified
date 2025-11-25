@@ -33411,12 +33411,24 @@ ARB4ME Security Team`
                 countBadge.style.background = `${badgeColor}1a`;
             }
 
-            // Display best opportunity card
-            if (bestOpportunity && bestOpportunity.netProfitPercent > 0) {
+            // Display best opportunity card (ALWAYS show if there's price data)
+            if (bestOpportunity) {
                 const bestOppCard = document.getElementById('arbScannerBestOpp');
                 const bestOppContent = document.getElementById('arbScannerBestOppContent');
 
-                const profitColor = bestOpportunity.netProfitPercent >= 0.5 ? '#00ff88' : '#ffc107';
+                // Color based on profitability
+                let profitColor;
+                let profitStatus;
+                if (bestOpportunity.netProfitPercent >= 0.5) {
+                    profitColor = '#00ff88'; // Green - Good profit
+                    profitStatus = '✅ Profitable';
+                } else if (bestOpportunity.netProfitPercent >= 0) {
+                    profitColor = '#ffc107'; // Yellow - Small profit
+                    profitStatus = '⚠️ Low Profit';
+                } else {
+                    profitColor = '#ff6b6b'; // Red - Loss
+                    profitStatus = '❌ Not Profitable';
+                }
 
                 bestOppContent.innerHTML = `
                     <div style="text-align: center;">
@@ -33443,7 +33455,7 @@ ARB4ME Security Team`
                             ${bestOpportunity.netProfitPercent >= 0 ? '+' : ''}${bestOpportunity.netProfitPercent.toFixed(3)}%
                         </div>
                         <div style="color: #888; font-size: 0.75rem; margin-top: 3px;">
-                            Gross: ${bestOpportunity.grossProfitPercent.toFixed(3)}% | Fees: 0.2%
+                            ${profitStatus} | Gross: ${bestOpportunity.grossProfitPercent.toFixed(3)}% | Fees: 0.2%
                         </div>
                     </div>
                 `;
