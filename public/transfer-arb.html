@@ -2282,10 +2282,19 @@
                         </p>
                     </div>
                 `;
+
+                // Also show manual trading section
+                const manualSection = document.getElementById('manual-trading-section');
+                if (manualSection) manualSection.style.display = 'block';
+
                 return;
             }
 
             section.style.display = 'block';
+
+            // Also show manual trading section when auto-trading opportunities are shown
+            const manualSection = document.getElementById('manual-trading-section');
+            if (manualSection) manualSection.style.display = 'block';
 
             list.innerHTML = opportunities.map(opp => `
                 <div class="stat-card" style="margin-bottom: 15px; ${opp.isPlaceholder ? 'border: 2px dashed #ffb347;' : ''}">
@@ -6168,23 +6177,18 @@ ${opportunity.configMessage}
             }
         };
 
-        // Show manual trading section when live trading starts
-        const originalStartContinuousScan = startContinuousScan;
-        startContinuousScan = function() {
-            // Show manual trading section
-            document.getElementById('manual-trading-section').style.display = 'block';
-
-            // Call original function
-            return originalStartContinuousScan.call(this);
-        };
-
-        // Hide manual trading section when live trading stops
+        // When live trading stops, collapse manual trading section
         const originalStopContinuousScan = stopContinuousScan;
         stopContinuousScan = function() {
-            // Hide manual trading section
-            document.getElementById('manual-trading-section').style.display = 'none';
+            // Collapse manual trading section (but keep it visible)
             manualTradingExpanded = false;
-            document.getElementById('manual-opportunities-container').style.display = 'none';
+            const container = document.getElementById('manual-opportunities-container');
+            const btn = document.getElementById('toggle-manual-trading-btn');
+            if (container) container.style.display = 'none';
+            if (btn) {
+                btn.textContent = '👁️ Show Manual Opportunities';
+                btn.style.background = 'linear-gradient(45deg, #ffb347 0%, #ff6b6b 100%)';
+            }
 
             // Call original function
             return originalStopContinuousScan.call(this);
