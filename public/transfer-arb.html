@@ -538,7 +538,7 @@
             <!-- ============================================ -->
             <!-- MANUAL TRADING Section -->
             <!-- ============================================ -->
-            <div id="manual-trading-section" style="display: none; margin-bottom: 40px; margin-top: 40px;">
+            <div id="manual-trading-section" style="display: block; margin-bottom: 40px; margin-top: 40px;">
                 <div style="background: linear-gradient(135deg, rgba(255,179,71,0.1) 0%, rgba(255,107,107,0.1) 100%); border: 2px solid #ffb347; border-radius: 12px; padding: 25px; margin-bottom: 20px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                         <div>
@@ -2284,19 +2284,10 @@
                         </p>
                     </div>
                 `;
-
-                // Also show manual trading section
-                const manualSection = document.getElementById('manual-trading-section');
-                if (manualSection) manualSection.style.display = 'block';
-
                 return;
             }
 
             section.style.display = 'block';
-
-            // Also show manual trading section when auto-trading opportunities are shown
-            const manualSection = document.getElementById('manual-trading-section');
-            if (manualSection) manualSection.style.display = 'block';
 
             list.innerHTML = opportunities.map(opp => `
                 <div class="stat-card" style="margin-bottom: 15px; ${opp.isPlaceholder ? 'border: 2px dashed #ffb347;' : ''}">
