@@ -340,9 +340,33 @@
                     ✕ Close
                 </button>
             </div>
-            <p style="color: #b8c6db; margin-bottom: 25px;">
+            <p style="color: #b8c6db; margin-bottom: 20px;">
                 Enter deposit addresses for your selected cryptocurrencies. Changes are saved automatically.
             </p>
+
+            <!-- Bulk Network Copy Feature -->
+            <div id="bulk-network-copy-section" style="display: none; background: linear-gradient(45deg, rgba(102,126,234,0.2) 0%, rgba(118,75,162,0.2) 100%); border: 2px solid #667eea; border-radius: 10px; padding: 20px; margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="flex: 1;">
+                        <h4 style="color: #ffb347; margin: 0 0 8px 0; font-size: 1rem;">
+                            🚀 Quick Network Configuration
+                        </h4>
+                        <p style="color: #b8c6db; font-size: 0.85rem; margin: 0; line-height: 1.4;">
+                            Copy network selections from <strong style="color: #00ff88;">ChainEX</strong> to all other exchanges.<br>
+                            <span style="color: #00d4ff;">Saves you from configuring networks 17 times!</span>
+                        </p>
+                    </div>
+                    <button onclick="copyNetworksFromChainEX()"
+                            style="background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+                                   border: none; padding: 12px 24px; border-radius: 8px;
+                                   color: white; font-weight: bold; cursor: pointer;
+                                   white-space: nowrap; margin-left: 20px; font-size: 0.95rem;
+                                   box-shadow: 0 4px 15px rgba(102,126,234,0.4);">
+                        🔄 Copy Networks from ChainEX
+                    </button>
+                </div>
+            </div>
+
             <div id="modal-deposit-fields" style="max-height: 60vh; overflow-y: auto; padding-right: 10px;">
                 <!-- Will be populated dynamically -->
             </div>
@@ -2944,6 +2968,27 @@
 
                 // Load saved values into modal fields
                 setTimeout(() => loadModalDepositAddresses(), 100);
+
+                // Check if ChainEX has networks configured to show bulk copy button
+                setTimeout(() => {
+                    const bulkCopySection = document.getElementById('bulk-network-copy-section');
+                    if (bulkCopySection && connectedExchanges.includes('chainex') && connectedExchanges.length > 1) {
+                        // Check if ChainEX has any networks configured
+                        let chainexHasNetworks = false;
+                        for (const crypto of selectedCryptos) {
+                            if (localStorage.getItem(`deposit_chainex_${crypto}_network`)) {
+                                chainexHasNetworks = true;
+                                break;
+                            }
+                        }
+
+                        if (chainexHasNetworks) {
+                            bulkCopySection.style.display = 'block';
+                        } else {
+                            bulkCopySection.style.display = 'none';
+                        }
+                    }
+                }, 150);
             }
 
             // Show modal
@@ -3184,6 +3229,73 @@
         function getIncompatibleExchanges(currentExchange, compatibleExchanges) {
             const allExchanges = getConnectedExchanges().filter(ex => ex !== currentExchange);
             return allExchanges.filter(ex => !compatibleExchanges.includes(ex));
+        }
+
+        // Copy network selections from ChainEX to all other exchanges
+        function copyNetworksFromChainEX() {
+            console.log('🔄 Copying networks from ChainEX to all exchanges...');
+
+            const connectedExchanges = getConnectedExchanges();
+
+            if (!connectedExchanges.includes('chainex')) {
+                alert('⚠️ ChainEX is not connected. Please configure ChainEX first.');
+                return;
+            }
+
+            // Count how many networks are configured for ChainEX
+            let chainexNetworkCount = 0;
+            const networksToCopy = {};
+
+            for (const crypto of selectedCryptos) {
+                const chainexNetwork = localStorage.getItem(`deposit_chainex_${crypto}_network`);
+                if (chainexNetwork) {
+                    networksToCopy[crypto] = chainexNetwork;
+                    chainexNetworkCount++;
+                }
+            }
+
+            if (chainexNetworkCount === 0) {
+                alert('⚠️ No networks configured for ChainEX yet.\n\nPlease configure ChainEX networks first, then use this button to copy them to other exchanges.');
+                return;
+            }
+
+            // Confirm with user
+            const otherExchanges = connectedExchanges.filter(ex => ex !== 'chainex');
+            const message = `🔄 Copy Networks from ChainEX?\n\n` +
+                `This will copy ${chainexNetworkCount} network selections from ChainEX to ${otherExchanges.length} other exchanges:\n\n` +
+                `${Object.entries(networksToCopy).map(([crypto, network]) => `• ${crypto}: ${network}`).join('\n')}\n\n` +
+                `Target exchanges: ${otherExchanges.join(', ')}\n\n` +
+                `This will OVERWRITE any existing network selections on those exchanges.\n\n` +
+                `Continue?`;
+
+            if (!confirm(message)) {
+                return;
+            }
+
+            // Copy networks
+            let copiedCount = 0;
+            for (const exchange of otherExchanges) {
+                for (const [crypto, network] of Object.entries(networksToCopy)) {
+                    const key = `deposit_${exchange}_${crypto}_network`;
+                    localStorage.setItem(key, network);
+                    copiedCount++;
+
+                    // Update the dropdown if it exists
+                    const dropdown = document.getElementById(`modal-${exchange}-${crypto}-network`);
+                    if (dropdown) {
+                        dropdown.value = network;
+                    }
+                }
+            }
+
+            // Show success message
+            const successMsg = `✅ Network Configuration Copied!\n\n` +
+                `Copied ${chainexNetworkCount} networks to ${otherExchanges.length} exchanges.\n` +
+                `Total: ${copiedCount} network configurations updated.\n\n` +
+                `You can now just enter deposit addresses for each exchange!`;
+
+            alert(successMsg);
+            console.log(`✅ Copied ${copiedCount} network configurations from ChainEX`);
         }
 
         // Close deposit address modal
