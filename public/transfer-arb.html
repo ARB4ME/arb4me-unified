@@ -5946,10 +5946,22 @@
             if (!fromSelect || !toSelect) return;
 
             // Get configured exchanges from Strategy API Setup
-            const exchanges = ['valr', 'luno', 'altcointrader', 'chainex', 'binance', 'bybit', 'kraken', 'okx', 'mexc', 'kucoin', 'htx', 'bitget', 'gateio', 'gemini'];
+            const exchanges = ['valr', 'luno', 'chainex', 'binance', 'bybit', 'kraken', 'okx', 'mexc', 'kucoin', 'htx', 'bitget', 'gateio', 'gemini', 'xt', 'ascendex', 'bingx', 'bitmart', 'bitrue', 'coincatch'];
+
+            // Display name mapping for proper capitalization
+            const displayNames = {
+                'xt': 'XT',
+                'bingx': 'BingX',
+                'ascendex': 'AscendEX',
+                'okx': 'OKX',
+                'htx': 'HTX'
+            };
 
             const options = '<option value="">-- Choose Exchange --</option>' +
-                exchanges.map(ex => `<option value="${ex}">${ex.charAt(0).toUpperCase() + ex.slice(1)}</option>`).join('');
+                exchanges.map(ex => {
+                    const displayName = displayNames[ex] || (ex.charAt(0).toUpperCase() + ex.slice(1));
+                    return `<option value="${ex}">${displayName}</option>`;
+                }).join('');
 
             fromSelect.innerHTML = options;
             toSelect.innerHTML = options;

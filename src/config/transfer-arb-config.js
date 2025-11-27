@@ -151,13 +151,6 @@ const EXCHANGE_CRYPTO_SUPPORT = {
         depositFees: {},
         minWithdrawal: { BTC: 0.0002, ETH: 0.01, XRP: 10 }
     },
-    altcointrader: {
-        supports: ['BTC', 'ETH', 'LTC'],
-        hasUSDT: false, // Uses ZAR
-        withdrawalFees: { BTC: 0.0003, ETH: 0.01, LTC: 0.01 },
-        depositFees: {},
-        minWithdrawal: { BTC: 0.001, ETH: 0.01 }
-    },
     chainex: {
         supports: ['BTC', 'ETH', 'XRP', 'LTC', 'TRX'],
         hasUSDT: true,
@@ -241,7 +234,48 @@ const EXCHANGE_CRYPTO_SUPPORT = {
         depositFees: {},
         minWithdrawal: { BTC: 0.001, ETH: 0.01 }
     },
-    // Add other exchanges...
+    xt: {
+        supports: ['BTC', 'ETH', 'XRP', 'LTC', 'TRX', 'XLM', 'DOGE', 'USDT', 'USDC', 'ALGO', 'ATOM', 'SOL', 'MATIC', 'AVAX', 'ADA', 'DOT'],
+        hasUSDT: true,
+        withdrawalFees: { BTC: 0.0005, ETH: 0.006, XRP: 0.25, TRX: 1.0, USDT: 1.0, ALGO: 0.1, ATOM: 0.01, SOL: 0.01, MATIC: 0.1, AVAX: 0.01, ADA: 0.8, DOT: 0.1 },
+        depositFees: {},
+        minWithdrawal: { BTC: 0.001, ETH: 0.01, USDT: 10, ALGO: 0.1, SOL: 0.01, ADA: 1.0 }
+    },
+    ascendex: {
+        supports: ['BTC', 'ETH', 'XRP', 'LTC', 'TRX', 'XLM', 'USDT', 'USDC', 'ALGO', 'ATOM', 'SOL', 'MATIC', 'AVAX', 'ADA', 'DOT'],
+        hasUSDT: true,
+        withdrawalFees: { BTC: 0.0005, ETH: 0.007, XRP: 0.25, TRX: 1.0, USDT: 1.0, ALGO: 0.1, ATOM: 0.01, SOL: 0.01, MATIC: 0.1, AVAX: 0.01, ADA: 1.0, DOT: 0.1 },
+        depositFees: {},
+        minWithdrawal: { BTC: 0.001, ETH: 0.01, USDT: 10, ALGO: 0.1, SOL: 0.01, ADA: 1.0 }
+    },
+    bingx: {
+        supports: ['BTC', 'ETH', 'XRP', 'LTC', 'TRX', 'XLM', 'DOGE', 'USDT', 'ALGO', 'ATOM', 'SOL', 'MATIC', 'AVAX', 'ADA', 'DOT'],
+        hasUSDT: true,
+        withdrawalFees: { BTC: 0.0005, ETH: 0.006, XRP: 0.25, TRX: 1.0, USDT: 1.0, ALGO: 0.1, ATOM: 0.01, SOL: 0.01, MATIC: 0.1, AVAX: 0.01, ADA: 0.8, DOT: 0.1 },
+        depositFees: {},
+        minWithdrawal: { BTC: 0.001, ETH: 0.01, USDT: 10, ALGO: 0.1, SOL: 0.01, ADA: 1.0 }
+    },
+    bitmart: {
+        supports: ['BTC', 'ETH', 'XRP', 'LTC', 'TRX', 'XLM', 'DOGE', 'USDT', 'USDC', 'ALGO', 'ATOM', 'SOL', 'MATIC', 'AVAX', 'ADA', 'DOT'],
+        hasUSDT: true,
+        withdrawalFees: { BTC: 0.0005, ETH: 0.007, XRP: 0.25, TRX: 1.0, USDT: 1.0, ALGO: 0.1, ATOM: 0.01, SOL: 0.01, MATIC: 0.1, AVAX: 0.01, ADA: 0.8, DOT: 0.1 },
+        depositFees: {},
+        minWithdrawal: { BTC: 0.001, ETH: 0.01, USDT: 10, ALGO: 0.1, SOL: 0.01, ADA: 1.0 }
+    },
+    bitrue: {
+        supports: ['BTC', 'ETH', 'XRP', 'LTC', 'TRX', 'XLM', 'USDT', 'USDC', 'ALGO', 'ATOM', 'SOL', 'MATIC', 'AVAX', 'ADA', 'DOT'],
+        hasUSDT: true,
+        withdrawalFees: { BTC: 0.0005, ETH: 0.006, XRP: 0.25, TRX: 1.0, USDT: 1.0, ALGO: 0.1, ATOM: 0.01, SOL: 0.01, MATIC: 0.1, AVAX: 0.01, ADA: 0.8, DOT: 0.1 },
+        depositFees: {},
+        minWithdrawal: { BTC: 0.001, ETH: 0.01, USDT: 10, ALGO: 0.1, SOL: 0.01, ADA: 1.0 }
+    },
+    coincatch: {
+        supports: ['BTC', 'ETH', 'XRP', 'LTC', 'TRX', 'XLM', 'DOGE', 'USDT', 'ALGO', 'ATOM', 'SOL', 'MATIC', 'AVAX', 'ADA', 'DOT'],
+        hasUSDT: true,
+        withdrawalFees: { BTC: 0.0005, ETH: 0.006, XRP: 0.25, TRX: 1.0, USDT: 1.0, ALGO: 0.1, ATOM: 0.01, SOL: 0.01, MATIC: 0.1, AVAX: 0.01, ADA: 0.8, DOT: 0.1 },
+        depositFees: {},
+        minWithdrawal: { BTC: 0.001, ETH: 0.01, USDT: 10, ALGO: 0.1, SOL: 0.01, ADA: 1.0 }
+    }
 };
 
 // Minimum profitable spread (after all fees)
