@@ -538,90 +538,175 @@
             <!-- ============================================ -->
             <!-- MANUAL TRADING Section -->
             <!-- ============================================ -->
+            <!-- ============================================ -->
+            <!-- MANUAL TRADING - Simple Execution Interface -->
+            <!-- ============================================ -->
             <div id="manual-trading-section" style="display: block; margin-bottom: 40px; margin-top: 40px;">
+                <!-- Section Header -->
                 <div style="background: linear-gradient(135deg, rgba(255,179,71,0.1) 0%, rgba(255,107,107,0.1) 100%); border: 2px solid #ffb347; border-radius: 12px; padding: 25px; margin-bottom: 20px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                        <div>
-                            <h3 style="color: #ffb347; margin: 0 0 8px 0;">💰 MANUAL TRADING Opportunities</h3>
-                            <p style="color: #b8c6db; font-size: 0.9rem; margin: 0; line-height: 1.4;">
-                                Additional 113 assets from TEST scan • Configure deposits on-demand • Cherry-pick high-profit trades
-                            </p>
-                        </div>
-                        <button onclick="toggleManualTrading()"
-                                id="toggle-manual-trading-btn"
-                                style="background: linear-gradient(45deg, #ffb347 0%, #ff6b6b 100%);
-                                       border: none; padding: 12px 24px; border-radius: 8px;
-                                       color: white; font-weight: bold; cursor: pointer;
-                                       white-space: nowrap; font-size: 0.95rem;
-                                       box-shadow: 0 4px 15px rgba(255,179,71,0.4);">
-                            👁️ Show Manual Opportunities
-                        </button>
-                    </div>
-
-                    <!-- Manual Trading Stats -->
-                    <div id="manual-trading-stats" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px;">
-                        <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; text-align: center;">
-                            <div style="font-size: 1.8rem; font-weight: bold; color: #ffb347;" id="manual-opp-count">0</div>
-                            <div style="font-size: 0.85rem; color: #b8c6db;">Opportunities Found</div>
-                        </div>
-                        <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; text-align: center;">
-                            <div style="font-size: 1.8rem; font-weight: bold; color: #00ff88;" id="manual-ready-count">0</div>
-                            <div style="font-size: 0.85rem; color: #b8c6db;">Ready to Execute</div>
-                        </div>
-                        <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; text-align: center;">
-                            <div style="font-size: 1.8rem; font-weight: bold; color: #00d4ff;" id="manual-best-profit">0%</div>
-                            <div style="font-size: 0.85rem; color: #b8c6db;">Best Profit</div>
-                        </div>
-                    </div>
+                    <h3 style="color: #ffb347; margin: 0 0 8px 0;">💰 MANUAL TRADING - Quick Execute</h3>
+                    <p style="color: #b8c6db; font-size: 0.9rem; margin: 0; line-height: 1.4;">
+                        Use TEST scan to find opportunities, then execute them manually here • Configure specific assets on-demand
+                    </p>
                 </div>
 
-                <!-- Manual Opportunities List (Hidden by default) -->
-                <div id="manual-opportunities-container" style="display: none;">
-                    <!-- Filters and Sort Controls -->
-                    <div style="background: rgba(0,0,0,0.3); padding: 20px; border-radius: 10px; margin-bottom: 20px;">
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; align-items: end;">
+                <!-- SECTION 1: EXECUTION FORM -->
+                <div style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,179,71,0.5); border-radius: 10px; padding: 25px; margin-bottom: 20px;">
+                    <h4 style="color: #ffb347; margin: 0 0 20px 0;">⚡ Execute Manual Trade</h4>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                        <!-- Asset Selection -->
+                        <div>
+                            <label style="color: #b8c6db; font-size: 0.9rem; display: block; margin-bottom: 8px; font-weight: 500;">
+                                📊 Select Asset
+                            </label>
+                            <select id="manual-asset-select"
+                                    style="background: rgba(0,0,0,0.4); border: 2px solid rgba(255,179,71,0.3);
+                                           border-radius: 8px; padding: 12px; color: white; width: 100%; font-size: 1rem;">
+                                <option value="">-- Choose Asset --</option>
+                            </select>
+                        </div>
+
+                        <!-- From Exchange -->
+                        <div>
+                            <label style="color: #b8c6db; font-size: 0.9rem; display: block; margin-bottom: 8px; font-weight: 500;">
+                                🏦 FROM Exchange (Buy)
+                            </label>
+                            <select id="manual-from-exchange"
+                                    style="background: rgba(0,0,0,0.4); border: 2px solid rgba(0,212,255,0.3);
+                                           border-radius: 8px; padding: 12px; color: white; width: 100%; font-size: 1rem;">
+                                <option value="">-- Choose Exchange --</option>
+                            </select>
+                        </div>
+
+                        <!-- To Exchange -->
+                        <div>
+                            <label style="color: #b8c6db; font-size: 0.9rem; display: block; margin-bottom: 8px; font-weight: 500;">
+                                🏦 TO Exchange (Sell)
+                            </label>
+                            <select id="manual-to-exchange"
+                                    style="background: rgba(0,0,0,0.4); border: 2px solid rgba(0,255,136,0.3);
+                                           border-radius: 8px; padding: 12px; color: white; width: 100%; font-size: 1rem;">
+                                <option value="">-- Choose Exchange --</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Deposit Configuration for FROM Exchange -->
+                    <div style="margin-top: 25px; padding-top: 25px; border-top: 1px solid rgba(255,255,255,0.1);">
+                        <h5 style="color: #00d4ff; margin: 0 0 15px 0; font-size: 1rem;">📍 FROM Exchange Deposit Info</h5>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                             <div>
-                                <label style="color: #b8c6db; font-size: 0.85rem; display: block; margin-bottom: 6px;">Sort By</label>
-                                <select id="manual-sort" onchange="scanManualOpportunities()"
-                                        style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.3);
-                                               border-radius: 6px; padding: 10px; color: white; width: 100%; font-size: 0.9rem;">
-                                    <option value="profit-desc">💰 Highest Profit %</option>
-                                    <option value="profit-asc">📉 Lowest Profit %</option>
-                                    <option value="time-asc">⚡ Fastest Transfer</option>
-                                    <option value="ready-first">✅ Ready to Execute</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label style="color: #b8c6db; font-size: 0.85rem; display: block; margin-bottom: 6px;">Min Profit %</label>
-                                <input type="number" id="manual-min-profit" value="2" min="0" max="20" step="0.5" onchange="scanManualOpportunities()"
+                                <label style="color: #b8c6db; font-size: 0.85rem; display: block; margin-bottom: 6px;">Network</label>
+                                <input type="text" id="manual-from-network" placeholder="e.g. TRC20, BEP20, ERC20"
                                        style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.3);
                                               border-radius: 6px; padding: 10px; color: white; width: 100%; font-size: 0.9rem;">
                             </div>
                             <div>
-                                <label style="color: #b8c6db; font-size: 0.85rem; display: block; margin-bottom: 6px;">Status Filter</label>
-                                <select id="manual-status-filter" onchange="scanManualOpportunities()"
-                                        style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.3);
-                                               border-radius: 6px; padding: 10px; color: white; width: 100%; font-size: 0.9rem;">
-                                    <option value="all">All Opportunities</option>
-                                    <option value="ready">✅ Ready to Execute</option>
-                                    <option value="partial">🟡 Partially Configured</option>
-                                    <option value="not-configured">⚠️ Not Configured</option>
-                                </select>
-                            </div>
-                            <div>
-                                <button onclick="scanManualOpportunities()"
-                                        style="background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
-                                               border: none; padding: 10px 20px; border-radius: 6px;
-                                               color: white; font-weight: bold; cursor: pointer; width: 100%;">
-                                    🔄 Refresh
-                                </button>
+                                <label style="color: #b8c6db; font-size: 0.85rem; display: block; margin-bottom: 6px;">Deposit Address</label>
+                                <input type="text" id="manual-from-deposit" placeholder="Paste deposit address"
+                                       style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.3);
+                                              border-radius: 6px; padding: 10px; color: white; width: 100%; font-size: 0.9rem;">
                             </div>
                         </div>
                     </div>
 
-                    <!-- Opportunities List -->
-                    <div id="manual-opportunities-list">
-                        <!-- Will be populated with manual opportunities -->
+                    <!-- Deposit Configuration for TO Exchange -->
+                    <div style="margin-top: 20px;">
+                        <h5 style="color: #00ff88; margin: 0 0 15px 0; font-size: 1rem;">📍 TO Exchange Deposit Info</h5>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div>
+                                <label style="color: #b8c6db; font-size: 0.85rem; display: block; margin-bottom: 6px;">Network</label>
+                                <input type="text" id="manual-to-network" placeholder="e.g. TRC20, BEP20, ERC20"
+                                       style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.3);
+                                              border-radius: 6px; padding: 10px; color: white; width: 100%; font-size: 0.9rem;">
+                            </div>
+                            <div>
+                                <label style="color: #b8c6db; font-size: 0.85rem; display: block; margin-bottom: 6px;">Deposit Address</label>
+                                <input type="text" id="manual-to-deposit" placeholder="Paste deposit address"
+                                       style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.3);
+                                              border-radius: 6px; padding: 10px; color: white; width: 100%; font-size: 0.9rem;">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Execute Button -->
+                    <div style="margin-top: 25px; text-align: center;">
+                        <button onclick="executeManualTrade()" id="manual-execute-btn"
+                                style="background: linear-gradient(45deg, #00ff88 0%, #00d4ff 100%);
+                                       border: none; padding: 15px 40px; border-radius: 10px;
+                                       color: white; font-weight: bold; cursor: pointer; font-size: 1.1rem;
+                                       box-shadow: 0 4px 20px rgba(0,255,136,0.4);
+                                       transition: all 0.3s;">
+                            ⚡ Execute Manual Trade
+                        </button>
+                    </div>
+                </div>
+
+                <!-- SECTION 2: LATEST TRADE RESULT -->
+                <div id="manual-latest-result" style="display: none; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; padding: 25px; margin-bottom: 20px;">
+                    <h4 style="color: #00ff88; margin: 0 0 15px 0;">📊 Latest Trade Result</h4>
+                    <div id="manual-latest-result-content">
+                        <!-- Will be populated after trade execution -->
+                    </div>
+                </div>
+
+                <!-- SECTION 3: TRADE HISTORY BUTTON -->
+                <div style="text-align: center;">
+                    <button onclick="openManualTradeHistory()"
+                            style="background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+                                   border: none; padding: 12px 30px; border-radius: 8px;
+                                   color: white; font-weight: bold; cursor: pointer; font-size: 1rem;">
+                        📊 View Manual Trade History
+                    </button>
+                </div>
+            </div>
+
+            <!-- TRADE HISTORY MODAL -->
+            <div id="manual-trade-history-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; overflow-y: auto;">
+                <div style="max-width: 1200px; margin: 40px auto; background: linear-gradient(135deg, #1e3a8a 0%, #312e81 100%); border-radius: 15px; padding: 30px; position: relative;">
+                    <!-- Close Button -->
+                    <button onclick="closeManualTradeHistory()"
+                            style="position: absolute; top: 15px; right: 15px; background: rgba(255,255,255,0.1);
+                                   border: none; padding: 10px 15px; border-radius: 6px; color: white;
+                                   font-size: 1.2rem; cursor: pointer;">
+                        ✕
+                    </button>
+
+                    <h3 style="color: #00d4ff; margin: 0 0 25px 0;">📊 Manual Trade History</h3>
+
+                    <!-- Time Period Filter -->
+                    <div style="display: flex; gap: 10px; margin-bottom: 25px; flex-wrap: wrap;">
+                        <button onclick="filterManualTradeHistory('today')" class="history-filter-btn" data-period="today"
+                                style="background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.3);
+                                       padding: 10px 20px; border-radius: 6px; color: white; cursor: pointer;">
+                            Today
+                        </button>
+                        <button onclick="filterManualTradeHistory('week')" class="history-filter-btn" data-period="week"
+                                style="background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.3);
+                                       padding: 10px 20px; border-radius: 6px; color: white; cursor: pointer;">
+                            This Week
+                        </button>
+                        <button onclick="filterManualTradeHistory('month')" class="history-filter-btn" data-period="month"
+                                style="background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.3);
+                                       padding: 10px 20px; border-radius: 6px; color: white; cursor: pointer;">
+                            This Month
+                        </button>
+                        <button onclick="filterManualTradeHistory('all')" class="history-filter-btn" data-period="all"
+                                style="background: linear-gradient(45deg, #667eea 0%, #764ba2 100%); border: 2px solid rgba(255,255,255,0.5);
+                                       padding: 10px 20px; border-radius: 6px; color: white; cursor: pointer; font-weight: bold;">
+                            All Time
+                        </button>
+                    </div>
+
+                    <!-- Summary Statistics -->
+                    <div id="manual-history-stats" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 25px;">
+                        <!-- Will be populated with stats -->
+                    </div>
+
+                    <!-- Trade List -->
+                    <div id="manual-history-list" style="max-height: 500px; overflow-y: auto;">
+                        <!-- Will be populated with trade history -->
                     </div>
                 </div>
             </div>
@@ -5826,366 +5911,425 @@
         // ============================================================================
 
         // Manual trading variables
-        let manualOpportunities = [];
-        let manualTradingExpanded = false;
+        // ============================================================================
+        // MANUAL TRADING - Simple Execution Interface
+        // ============================================================================
 
-        // Define manual trading assets (all TEST scan assets except the 17 auto-trading ones)
-        const AUTO_TRADING_ASSETS = ['USDT', 'USDC', 'XRP', 'XLM', 'TRX', 'SOL', 'ALGO', 'MATIC', 'AVAX', 'ATOM', 'LTC', 'BCH', 'DOGE', 'ADA', 'DOT', 'BTC', 'ETH'];
+        let manualTradeHistory = [];
+        let currentHistoryFilter = 'all';
 
-        // Get all test scan assets
-        function getAllTestScanAssets() {
+        // Initialize manual trading dropdowns on page load
+        function initializeManualTrading() {
+            populateManualAssetDropdown();
+            populateManualExchangeDropdowns();
+            loadManualTradeHistory();
+            console.log('✅ Manual trading initialized');
+        }
+
+        // Populate asset dropdown with all TEST scan assets
+        function populateManualAssetDropdown() {
+            const select = document.getElementById('manual-asset-select');
+            if (!select) return;
+
+            // Get all test scan assets from checkboxes
             const checkboxes = document.querySelectorAll('.test-scan-asset');
-            return Array.from(checkboxes).map(cb => cb.value);
+            const assets = Array.from(checkboxes).map(cb => cb.value);
+
+            select.innerHTML = '<option value="">-- Choose Asset --</option>' +
+                assets.map(asset => `<option value="${asset}">${asset}</option>`).join('');
         }
 
-        // Get manual trading assets (TEST scan - AUTO trading)
-        function getManualTradingAssets() {
-            const allAssets = getAllTestScanAssets();
-            return allAssets.filter(asset => !AUTO_TRADING_ASSETS.includes(asset));
-        }
+        // Populate exchange dropdowns with configured exchanges
+        function populateManualExchangeDropdowns() {
+            const fromSelect = document.getElementById('manual-from-exchange');
+            const toSelect = document.getElementById('manual-to-exchange');
+            if (!fromSelect || !toSelect) return;
 
-        // Toggle manual trading section visibility
-        function toggleManualTrading() {
-            manualTradingExpanded = !manualTradingExpanded;
-            const container = document.getElementById('manual-opportunities-container');
-            const btn = document.getElementById('toggle-manual-trading-btn');
+            // Get configured exchanges from Strategy API Setup
+            const exchanges = ['valr', 'luno', 'altcointrader', 'chainex', 'binance', 'bybit', 'kraken', 'okx', 'mexc', 'kucoin', 'htx', 'bitget', 'gateio', 'gemini'];
 
-            if (manualTradingExpanded) {
-                container.style.display = 'block';
-                btn.textContent = '🙈 Hide Manual Opportunities';
-                btn.style.background = 'linear-gradient(45deg, #667eea 0%, #764ba2 100%)';
+            const options = '<option value="">-- Choose Exchange --</option>' +
+                exchanges.map(ex => `<option value="${ex}">${ex.charAt(0).toUpperCase() + ex.slice(1)}</option>`).join('');
 
-                // Scan for opportunities when expanding
-                scanManualOpportunities();
-            } else {
-                container.style.display = 'none';
-                btn.textContent = '👁️ Show Manual Opportunities';
-                btn.style.background = 'linear-gradient(45deg, #ffb347 0%, #ff6b6b 100%)';
-            }
-        }
-
-        // Check if an asset is configured for both exchanges
-        function checkManualAssetConfiguration(crypto, fromExchange, toExchange) {
-            const fromNetwork = localStorage.getItem(`deposit_${fromExchange}_${crypto}_network`);
-            const fromDeposit = localStorage.getItem(`deposit_${fromExchange}_${crypto}_deposit`);
-            const toNetwork = localStorage.getItem(`deposit_${toExchange}_${crypto}_network`);
-            const toDeposit = localStorage.getItem(`deposit_${toExchange}_${crypto}_deposit`);
-
-            const fromConfigured = fromNetwork && fromDeposit;
-            const toConfigured = toNetwork && toDeposit;
-
-            if (fromConfigured && toConfigured && fromNetwork === toNetwork) {
-                return { status: 'ready', message: '✅ Ready to Execute' };
-            } else if (fromConfigured || toConfigured) {
-                return { status: 'partial', message: '🟡 Partially Configured' };
-            } else {
-                return { status: 'not-configured', message: '⚠️ Not Configured' };
-            }
-        }
-
-        // Scan for manual trading opportunities
-        async function scanManualOpportunities() {
-            console.log('🔍 Scanning manual trading opportunities...');
-
-            const manualAssets = getManualTradingAssets();
-            const connectedExchanges = getConnectedExchanges();
-
-            if (connectedExchanges.length < 2) {
-                document.getElementById('manual-opportunities-list').innerHTML = `
-                    <div style="background: rgba(255,107,107,0.2); border: 1px solid #ff6b6b; border-radius: 8px; padding: 30px; text-align: center;">
-                        <h4 style="color: #ff6b6b;">⚠️ Need More Exchanges</h4>
-                        <p style="color: #b8c6db;">Connect at least 2 exchanges to scan for manual trading opportunities.</p>
-                    </div>
-                `;
-                return;
-            }
-
-            // Show loading state
-            document.getElementById('manual-opportunities-list').innerHTML = `
-                <div style="text-align: center; padding: 40px; color: #00d4ff;">
-                    <div style="font-size: 2rem; margin-bottom: 10px;">⏳</div>
-                    <div>Scanning ${manualAssets.length} assets across ${connectedExchanges.length} exchanges...</div>
-                </div>
-            `;
-
-            try {
-                // Fetch prices for all manual assets
-                const response = await fetch('/api/v1/transfer-arb/scan', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        exchanges: connectedExchanges,
-                        assets: manualAssets
-                    })
-                });
-
-                if (!response.ok) throw new Error('Scan failed');
-
-                const data = await response.json();
-                manualOpportunities = data.opportunities || [];
-
-                // Check configuration status for each opportunity
-                manualOpportunities.forEach(opp => {
-                    const configStatus = checkManualAssetConfiguration(opp.crypto, opp.fromExchange, opp.toExchange);
-                    opp.configStatus = configStatus.status;
-                    opp.configMessage = configStatus.message;
-                });
-
-                // Apply filters and sort
-                applyManualFiltersAndDisplay();
-
-            } catch (error) {
-                console.error('Manual scan error:', error);
-                document.getElementById('manual-opportunities-list').innerHTML = `
-                    <div style="background: rgba(255,107,107,0.2); border: 1px solid #ff6b6b; border-radius: 8px; padding: 30px; text-align: center;">
-                        <h4 style="color: #ff6b6b;">❌ Scan Failed</h4>
-                        <p style="color: #b8c6db;">${error.message}</p>
-                    </div>
-                `;
-            }
-        }
-
-        // Apply filters and display manual opportunities
-        function applyManualFiltersAndDisplay() {
-            const minProfit = parseFloat(document.getElementById('manual-min-profit').value) || 0;
-            const sortBy = document.getElementById('manual-sort').value;
-            const statusFilter = document.getElementById('manual-status-filter').value;
-
-            // Filter opportunities
-            let filtered = manualOpportunities.filter(opp => opp.netProfitPercent >= minProfit);
-
-            // Apply status filter
-            if (statusFilter !== 'all') {
-                filtered = filtered.filter(opp => opp.configStatus === statusFilter);
-            }
-
-            // Sort opportunities
-            filtered.sort((a, b) => {
-                if (sortBy === 'profit-desc') return b.netProfitPercent - a.netProfitPercent;
-                if (sortBy === 'profit-asc') return a.netProfitPercent - b.netProfitPercent;
-                if (sortBy === 'time-asc') return a.estimatedTransferTime - b.estimatedTransferTime;
-                if (sortBy === 'ready-first') {
-                    if (a.configStatus === 'ready' && b.configStatus !== 'ready') return -1;
-                    if (a.configStatus !== 'ready' && b.configStatus === 'ready') return 1;
-                    return b.netProfitPercent - a.netProfitPercent;
-                }
-                return 0;
-            });
-
-            // Update stats
-            const readyCount = manualOpportunities.filter(opp => opp.configStatus === 'ready').length;
-            const bestProfit = filtered.length > 0 ? Math.max(...filtered.map(opp => opp.netProfitPercent)) : 0;
-
-            document.getElementById('manual-opp-count').textContent = filtered.length;
-            document.getElementById('manual-ready-count').textContent = readyCount;
-            document.getElementById('manual-best-profit').textContent = `${bestProfit.toFixed(2)}%`;
-
-            // Display opportunities
-            displayManualOpportunities(filtered);
-        }
-
-        // Display manual opportunities
-        function displayManualOpportunities(opportunities) {
-            const listDiv = document.getElementById('manual-opportunities-list');
-
-            if (opportunities.length === 0) {
-                listDiv.innerHTML = `
-                    <div style="background: rgba(255,179,71,0.2); border: 1px solid #ffb347; border-radius: 8px; padding: 30px; text-align: center;">
-                        <h4 style="color: #ffb347;">📭 No Opportunities Found</h4>
-                        <p style="color: #b8c6db;">Try lowering the minimum profit % or adjusting filters.</p>
-                    </div>
-                `;
-                return;
-            }
-
-            listDiv.innerHTML = opportunities.map(opp => `
-                <div style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; padding: 20px; margin-bottom: 15px;">
-                    <div style="display: grid; grid-template-columns: 1fr auto; gap: 20px; align-items: start;">
-                        <div>
-                            <!-- Header -->
-                            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-                                <div style="background: linear-gradient(45deg, #667eea 0%, #764ba2 100%); padding: 8px 16px; border-radius: 8px; font-weight: bold; font-size: 1.1rem;">
-                                    ${opp.crypto}
-                                </div>
-                                <div style="color: #b8c6db; font-size: 0.95rem;">
-                                    ${opp.fromExchange} → ${opp.toExchange}
-                                </div>
-                                <div style="margin-left: auto;">
-                                    ${opp.configMessage}
-                                </div>
-                            </div>
-
-                            <!-- Metrics -->
-                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 15px;">
-                                <div>
-                                    <div style="color: #888; font-size: 0.75rem;">Profit</div>
-                                    <div style="color: #00ff88; font-size: 1.3rem; font-weight: bold;">${opp.netProfitPercent.toFixed(2)}%</div>
-                                    <div style="color: #00ff88; font-size: 0.85rem;">$${opp.netProfit.toFixed(2)}</div>
-                                </div>
-                                <div>
-                                    <div style="color: #888; font-size: 0.75rem;">Buy Price</div>
-                                    <div style="color: #00d4ff; font-size: 1rem;">$${opp.buyPrice.toFixed(6)}</div>
-                                </div>
-                                <div>
-                                    <div style="color: #888; font-size: 0.75rem;">Sell Price</div>
-                                    <div style="color: #ffb347; font-size: 1rem;">$${opp.sellPrice.toFixed(6)}</div>
-                                </div>
-                                <div>
-                                    <div style="color: #888; font-size: 0.75rem;">Transfer Time</div>
-                                    <div style="color: #b8c6db; font-size: 1rem;">${opp.estimatedTransferTime} min</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Actions -->
-                        <div style="display: flex; flex-direction: column; gap: 10px; min-width: 180px;">
-                            ${opp.configStatus === 'ready' ? `
-                                <button onclick="executeManualTrade(${JSON.stringify(opp).replace(/"/g, '&quot;')})"
-                                        style="background: linear-gradient(45deg, #00ff88 0%, #00d4ff 100%);
-                                               border: none; padding: 12px 20px; border-radius: 8px;
-                                               color: white; font-weight: bold; cursor: pointer;
-                                               box-shadow: 0 4px 15px rgba(0,255,136,0.3);">
-                                    ⚡ Execute Trade
-                                </button>
-                            ` : `
-                                <button onclick="openDepositModalForAsset('${opp.crypto}', '${opp.fromExchange}', '${opp.toExchange}')"
-                                        style="background: linear-gradient(45deg, #ffb347 0%, #ff6b6b 100%);
-                                               border: none; padding: 12px 20px; border-radius: 8px;
-                                               color: white; font-weight: bold; cursor: pointer;">
-                                    ⚙️ Configure Addresses
-                                </button>
-                            `}
-                            <button onclick="showOpportunityDetails(${JSON.stringify(opp).replace(/"/g, '&quot;')})"
-                                    style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3);
-                                           padding: 8px 16px; border-radius: 6px; color: #b8c6db;
-                                           cursor: pointer; font-size: 0.9rem;">
-                                📊 Details
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
+            fromSelect.innerHTML = options;
+            toSelect.innerHTML = options;
         }
 
         // Execute manual trade
-        async function executeManualTrade(opportunity) {
-            console.log('⚡ Executing manual trade:', opportunity);
+        async function executeManualTrade() {
+            console.log('⚡ Executing manual trade...');
 
-            // Confirm with user
-            const confirmMsg = `Execute Manual Trade?\n\n` +
-                `Asset: ${opportunity.crypto}\n` +
-                `Route: ${opportunity.fromExchange} → ${opportunity.toExchange}\n` +
-                `Profit: ${opportunity.netProfitPercent.toFixed(2)}% ($${opportunity.netProfit.toFixed(2)})\n` +
-                `Transfer Time: ~${opportunity.estimatedTransferTime} minutes\n\n` +
-                `Continue?`;
+            // Get form values
+            const asset = document.getElementById('manual-asset-select').value;
+            const fromExchange = document.getElementById('manual-from-exchange').value;
+            const toExchange = document.getElementById('manual-to-exchange').value;
+            const fromNetwork = document.getElementById('manual-from-network').value.trim();
+            const fromDeposit = document.getElementById('manual-from-deposit').value.trim();
+            const toNetwork = document.getElementById('manual-to-network').value.trim();
+            const toDeposit = document.getElementById('manual-to-deposit').value.trim();
 
-            if (!confirm(confirmMsg)) {
+            // Validation
+            if (!asset || !fromExchange || !toExchange) {
+                alert('⚠️ Please select asset and both exchanges');
                 return;
             }
 
-            // Execute using the same function as auto-trading (WITHOUT trade locking)
-            await executeTransferDirect(opportunity, { skipLocking: true });
+            if (fromExchange === toExchange) {
+                alert('⚠️ FROM and TO exchanges must be different');
+                return;
+            }
 
-            // Refresh manual opportunities
-            setTimeout(() => scanManualOpportunities(), 2000);
-        }
+            if (!fromNetwork || !fromDeposit || !toNetwork || !toDeposit) {
+                alert('⚠️ Please fill in all deposit addresses and networks');
+                return;
+            }
 
-        // Open deposit modal for specific asset
-        function openDepositModalForAsset(crypto, fromExchange, toExchange) {
-            // First open the modal
-            openDepositAddressModal();
+            if (fromNetwork.toUpperCase() !== toNetwork.toUpperCase()) {
+                const proceed = confirm(`⚠️ Warning: Networks don't match!\n\nFROM: ${fromNetwork}\nTO: ${toNetwork}\n\nThis may cause funds to be lost. Continue anyway?`);
+                if (!proceed) return;
+            }
 
-            // Wait for modal to populate, then scroll to the asset
-            setTimeout(() => {
-                const fromElement = document.getElementById(`modal-${fromExchange}-${crypto}-network`);
-                const toElement = document.getElementById(`modal-${toExchange}-${crypto}-network`);
+            // Save configuration to localStorage (same format as auto-trading)
+            localStorage.setItem(`deposit_${fromExchange}_${asset}_network`, fromNetwork);
+            localStorage.setItem(`deposit_${fromExchange}_${asset}_deposit`, fromDeposit);
+            localStorage.setItem(`deposit_${toExchange}_${asset}_network`, toNetwork);
+            localStorage.setItem(`deposit_${toExchange}_${asset}_deposit`, toDeposit);
 
-                if (fromElement) {
-                    fromElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    fromElement.style.border = '3px solid #ffb347';
-                    setTimeout(() => { fromElement.style.border = '2px solid #00d4ff'; }, 2000);
+            // Confirmation
+            const confirmMsg = `Execute Manual Trade?\n\n` +
+                `Asset: ${asset}\n` +
+                `Route: ${fromExchange} → ${toExchange}\n` +
+                `Network: ${fromNetwork}\n\n` +
+                `This will execute the trade using your API credentials.\n\n` +
+                `Continue?`;
+
+            if (!confirm(confirmMsg)) return;
+
+            // Disable button during execution
+            const btn = document.getElementById('manual-execute-btn');
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '⏳ Executing...';
+
+            const startTime = Date.now();
+            let tradeResult = {
+                timestamp: new Date().toISOString(),
+                asset: asset,
+                fromExchange: fromExchange,
+                toExchange: toExchange,
+                fromNetwork: fromNetwork,
+                toNetwork: toNetwork,
+                success: false,
+                error: null,
+                profit: 0,
+                profitPercent: 0,
+                executionTime: 0
+            };
+
+            try {
+                // Build opportunity object for execution
+                const opportunity = {
+                    crypto: asset,
+                    fromExchange: fromExchange,
+                    toExchange: toExchange,
+                    // Note: We don't have real-time prices here, so execution will fetch them
+                };
+
+                // Execute trade using transfer-arb backend
+                const response = await fetch('/api/v1/transfer-arb/execute', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        opportunity: opportunity,
+                        depositAddresses: {
+                            [fromExchange]: { [asset]: { network: fromNetwork, address: fromDeposit } },
+                            [toExchange]: { [asset]: { network: toNetwork, address: toDeposit } }
+                        }
+                    })
+                });
+
+                const result = await response.json();
+                const executionTime = Date.now() - startTime;
+
+                if (result.success) {
+                    tradeResult.success = true;
+                    tradeResult.profit = result.profit || 0;
+                    tradeResult.profitPercent = result.profitPercent || 0;
+                    tradeResult.executionTime = executionTime;
+                    tradeResult.details = result;
+
+                    // Show success in latest result section
+                    displayLatestTradeResult(tradeResult);
+
+                    // Save to history
+                    saveManualTradeToHistory(tradeResult);
+
+                    alert(`✅ Trade Executed Successfully!\n\nProfit: $${tradeResult.profit.toFixed(2)} (${tradeResult.profitPercent.toFixed(2)}%)\nTime: ${(executionTime / 1000).toFixed(1)}s`);
+
+                    // Clear form
+                    clearManualTradeForm();
+
+                } else {
+                    throw new Error(result.error || 'Trade execution failed');
                 }
 
-                if (toElement && toElement !== fromElement) {
-                    setTimeout(() => {
-                        toElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        toElement.style.border = '3px solid #ffb347';
-                        setTimeout(() => { toElement.style.border = '2px solid #00d4ff'; }, 2000);
-                    }, 1000);
-                }
-            }, 500);
+            } catch (error) {
+                console.error('Manual trade error:', error);
+                tradeResult.success = false;
+                tradeResult.error = error.message;
+                tradeResult.executionTime = Date.now() - startTime;
+
+                // Show error in latest result section
+                displayLatestTradeResult(tradeResult);
+
+                // Save failed trade to history
+                saveManualTradeToHistory(tradeResult);
+
+                alert(`❌ Trade Failed!\n\n${error.message}`);
+
+            } finally {
+                // Re-enable button
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
         }
 
-        // Show opportunity details
-        function showOpportunityDetails(opportunity) {
-            const details = `
-📊 Opportunity Details
+        // Display latest trade result
+        function displayLatestTradeResult(result) {
+            const section = document.getElementById('manual-latest-result');
+            const content = document.getElementById('manual-latest-result-content');
+            if (!section || !content) return;
 
-Asset: ${opportunity.crypto}
-Route: ${opportunity.fromExchange} → ${opportunity.toExchange}
+            section.style.display = 'block';
 
-💰 PROFIT:
-• Net Profit: ${opportunity.netProfitPercent.toFixed(2)}% ($${opportunity.netProfit.toFixed(2)})
-• Price Spread: ${opportunity.priceSpread.toFixed(2)}%
+            const date = new Date(result.timestamp);
+            const timeStr = date.toLocaleTimeString();
 
-💵 PRICING:
-• Buy Price: $${opportunity.buyPrice.toFixed(6)} (${opportunity.fromExchange})
-• Sell Price: $${opportunity.sellPrice.toFixed(6)} (${opportunity.toExchange})
-
-💸 EXECUTION:
-• USDT to Spend: $${opportunity.usdtToSpend.toFixed(2)}
-• ${opportunity.crypto} Quantity: ${opportunity.cryptoQuantity.toFixed(6)}
-• ${opportunity.crypto} Received: ${opportunity.cryptoReceived.toFixed(6)}
-• Revenue USDT: $${opportunity.revenueUSDT.toFixed(2)}
-
-💳 FEES:
-• Withdrawal Fee: ${opportunity.withdrawalFee} ${opportunity.crypto} ($${opportunity.withdrawalFeeUSD.toFixed(2)})
-• Network Fee: $${opportunity.networkFee.toFixed(2)}
-• Total Fees: $${opportunity.totalFees.toFixed(2)}
-
-⏱️ TIMING:
-• Estimated Transfer: ${opportunity.estimatedTransferTime} minutes
-• Confirmations Required: ${opportunity.confirmations}
-• Risk Score: ${opportunity.riskScore}/10
-
-⚙️ CONFIGURATION:
-${opportunity.configMessage}
-            `;
-
-            alert(details);
-        }
-
-        // Modify executeTransferDirect to support skipping trade locking for manual trades
-        const originalExecuteTransferDirect = executeTransferDirect;
-        executeTransferDirect = async function(opportunity, options = {}) {
-            const skipLocking = options.skipLocking || false;
-
-            if (skipLocking) {
-                console.log('📝 Manual trade - skipping trade locking');
-                // Call original function without locking
-                return await originalExecuteTransferDirect.call(this, opportunity);
+            if (result.success) {
+                content.innerHTML = `
+                    <div style="background: rgba(0,255,136,0.1); border: 2px solid #00ff88; border-radius: 8px; padding: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <div style="font-size: 1.5rem;">✅ Success</div>
+                            <div style="color: #b8c6db; font-size: 0.85rem;">${timeStr}</div>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                            <div>
+                                <div style="color: #888; font-size: 0.8rem;">Asset & Route</div>
+                                <div style="color: white; font-size: 1.1rem; font-weight: bold;">${result.asset}</div>
+                                <div style="color: #b8c6db; font-size: 0.9rem;">${result.fromExchange} → ${result.toExchange}</div>
+                            </div>
+                            <div>
+                                <div style="color: #888; font-size: 0.8rem;">Profit</div>
+                                <div style="color: #00ff88; font-size: 1.3rem; font-weight: bold;">$${result.profit.toFixed(2)}</div>
+                                <div style="color: #00ff88; font-size: 0.9rem;">${result.profitPercent.toFixed(2)}%</div>
+                            </div>
+                            <div>
+                                <div style="color: #888; font-size: 0.8rem;">Execution Time</div>
+                                <div style="color: #00d4ff; font-size: 1.1rem;">${(result.executionTime / 1000).toFixed(1)}s</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
             } else {
-                // Normal auto-trading with locking
-                return await originalExecuteTransferDirect.call(this, opportunity);
+                content.innerHTML = `
+                    <div style="background: rgba(255,107,107,0.1); border: 2px solid #ff6b6b; border-radius: 8px; padding: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <div style="font-size: 1.5rem;">❌ Failed</div>
+                            <div style="color: #b8c6db; font-size: 0.85rem;">${timeStr}</div>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                            <div>
+                                <div style="color: #888; font-size: 0.8rem;">Asset & Route</div>
+                                <div style="color: white; font-size: 1.1rem; font-weight: bold;">${result.asset}</div>
+                                <div style="color: #b8c6db; font-size: 0.9rem;">${result.fromExchange} → ${result.toExchange}</div>
+                            </div>
+                            <div style="grid-column: span 2;">
+                                <div style="color: #888; font-size: 0.8rem;">Error</div>
+                                <div style="color: #ff6b6b; font-size: 0.95rem;">${result.error || 'Unknown error'}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
             }
-        };
+        }
 
-        // When live trading stops, collapse manual trading section
-        const originalStopContinuousScan = stopContinuousScan;
-        stopContinuousScan = function() {
-            // Collapse manual trading section (but keep it visible)
-            manualTradingExpanded = false;
-            const container = document.getElementById('manual-opportunities-container');
-            const btn = document.getElementById('toggle-manual-trading-btn');
-            if (container) container.style.display = 'none';
-            if (btn) {
-                btn.textContent = '👁️ Show Manual Opportunities';
-                btn.style.background = 'linear-gradient(45deg, #ffb347 0%, #ff6b6b 100%)';
+        // Clear manual trade form
+        function clearManualTradeForm() {
+            document.getElementById('manual-asset-select').value = '';
+            document.getElementById('manual-from-exchange').value = '';
+            document.getElementById('manual-to-exchange').value = '';
+            document.getElementById('manual-from-network').value = '';
+            document.getElementById('manual-from-deposit').value = '';
+            document.getElementById('manual-to-network').value = '';
+            document.getElementById('manual-to-deposit').value = '';
+        }
+
+        // Save manual trade to history (localStorage)
+        function saveManualTradeToHistory(trade) {
+            manualTradeHistory.unshift(trade); // Add to beginning
+            localStorage.setItem('manual_trade_history', JSON.stringify(manualTradeHistory));
+            console.log('💾 Trade saved to history');
+        }
+
+        // Load manual trade history from localStorage
+        function loadManualTradeHistory() {
+            const stored = localStorage.getItem('manual_trade_history');
+            if (stored) {
+                try {
+                    manualTradeHistory = JSON.parse(stored);
+                    console.log(`📚 Loaded ${manualTradeHistory.length} manual trades from history`);
+                } catch (e) {
+                    console.error('Error loading trade history:', e);
+                    manualTradeHistory = [];
+                }
+            }
+        }
+
+        // Open manual trade history modal
+        function openManualTradeHistory() {
+            document.getElementById('manual-trade-history-modal').style.display = 'block';
+            filterManualTradeHistory('all'); // Default to all time
+        }
+
+        // Close manual trade history modal
+        function closeManualTradeHistory() {
+            document.getElementById('manual-trade-history-modal').style.display = 'none';
+        }
+
+        // Filter manual trade history by time period
+        function filterManualTradeHistory(period) {
+            currentHistoryFilter = period;
+
+            // Update button styles
+            document.querySelectorAll('.history-filter-btn').forEach(btn => {
+                if (btn.getAttribute('data-period') === period) {
+                    btn.style.background = 'linear-gradient(45deg, #667eea 0%, #764ba2 100%)';
+                    btn.style.borderColor = 'rgba(255,255,255,0.5)';
+                    btn.style.fontWeight = 'bold';
+                } else {
+                    btn.style.background = 'rgba(255,255,255,0.1)';
+                    btn.style.borderColor = 'rgba(255,255,255,0.3)';
+                    btn.style.fontWeight = 'normal';
+                }
+            });
+
+            // Filter trades by period
+            const now = new Date();
+            const filtered = manualTradeHistory.filter(trade => {
+                const tradeDate = new Date(trade.timestamp);
+
+                if (period === 'today') {
+                    return tradeDate.toDateString() === now.toDateString();
+                } else if (period === 'week') {
+                    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                    return tradeDate >= weekAgo;
+                } else if (period === 'month') {
+                    const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+                    return tradeDate >= monthAgo;
+                } else {
+                    return true; // all time
+                }
+            });
+
+            // Display statistics and list
+            displayManualTradeStats(filtered);
+            displayManualTradeList(filtered);
+        }
+
+        // Display manual trade statistics
+        function displayManualTradeStats(trades) {
+            const statsDiv = document.getElementById('manual-history-stats');
+            if (!statsDiv) return;
+
+            const successfulTrades = trades.filter(t => t.success);
+            const failedTrades = trades.filter(t => !t.success);
+            const totalProfit = successfulTrades.reduce((sum, t) => sum + (t.profit || 0), 0);
+            const avgProfit = successfulTrades.length > 0 ? totalProfit / successfulTrades.length : 0;
+            const winRate = trades.length > 0 ? (successfulTrades.length / trades.length) * 100 : 0;
+            const bestTrade = successfulTrades.length > 0 ?
+                successfulTrades.reduce((best, t) => t.profit > best.profit ? t : best) : null;
+
+            statsDiv.innerHTML = `
+                <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 1.8rem; font-weight: bold; color: #00d4ff;">${trades.length}</div>
+                    <div style="font-size: 0.85rem; color: #b8c6db;">Total Trades</div>
+                </div>
+                <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 1.8rem; font-weight: bold; color: ${totalProfit >= 0 ? '#00ff88' : '#ff6b6b'};">$${totalProfit.toFixed(2)}</div>
+                    <div style="font-size: 0.85rem; color: #b8c6db;">Total Profit</div>
+                </div>
+                <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 1.8rem; font-weight: bold; color: #ffb347;">${winRate.toFixed(1)}%</div>
+                    <div style="font-size: 0.85rem; color: #b8c6db;">Win Rate (${successfulTrades.length}/${trades.length})</div>
+                </div>
+                <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 1.8rem; font-weight: bold; color: #00ff88;">$${avgProfit.toFixed(2)}</div>
+                    <div style="font-size: 0.85rem; color: #b8c6db;">Avg Profit</div>
+                </div>
+                ${bestTrade ? `
+                <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 1.3rem; font-weight: bold; color: #00ff88;">$${bestTrade.profit.toFixed(2)}</div>
+                    <div style="font-size: 0.85rem; color: #b8c6db;">Best Trade</div>
+                    <div style="font-size: 0.75rem; color: #888;">${bestTrade.asset}</div>
+                </div>
+                ` : ''}
+            `;
+        }
+
+        // Display manual trade list
+        function displayManualTradeList(trades) {
+            const listDiv = document.getElementById('manual-history-list');
+            if (!listDiv) return;
+
+            if (trades.length === 0) {
+                listDiv.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #b8c6db;">
+                        <div style="font-size: 2rem; margin-bottom: 10px;">📭</div>
+                        <div>No trades found for this period</div>
+                    </div>
+                `;
+                return;
             }
 
-            // Call original function
-            return originalStopContinuousScan.call(this);
-        };
+            listDiv.innerHTML = trades.map(trade => {
+                const date = new Date(trade.timestamp);
+                const dateStr = date.toLocaleDateString();
+                const timeStr = date.toLocaleTimeString();
+
+                return `
+                    <div style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; padding: 15px; margin-bottom: 10px;">
+                        <div style="display: grid; grid-template-columns: auto 1fr auto auto; gap: 15px; align-items: center;">
+                            <div style="font-size: 1.5rem;">
+                                ${trade.success ? '✅' : '❌'}
+                            </div>
+                            <div>
+                                <div style="color: white; font-weight: bold; font-size: 1rem;">${trade.asset}</div>
+                                <div style="color: #b8c6db; font-size: 0.85rem;">${trade.fromExchange} → ${trade.toExchange}</div>
+                                <div style="color: #888; font-size: 0.75rem;">${dateStr} ${timeStr}</div>
+                            </div>
+                            <div style="text-align: right;">
+                                ${trade.success ? `
+                                    <div style="color: #00ff88; font-size: 1.2rem; font-weight: bold;">$${trade.profit.toFixed(2)}</div>
+                                    <div style="color: #00ff88; font-size: 0.85rem;">${trade.profitPercent.toFixed(2)}%</div>
+                                ` : `
+                                    <div style="color: #ff6b6b; font-size: 0.9rem;">Failed</div>
+                                    ${trade.error ? `<div style="color: #888; font-size: 0.75rem;">${trade.error.substring(0, 30)}...</div>` : ''}
+                                `}
+                            </div>
+                            <div>
+                                <div style="color: #888; font-size: 0.75rem;">Time</div>
+                                <div style="color: #00d4ff; font-size: 0.9rem;">${(trade.executionTime / 1000).toFixed(1)}s</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Initialize manual trading when page loads
+        setTimeout(() => {
+            initializeManualTrading();
+        }, 1000);
 
         console.log('✅ Manual trading functionality loaded');
 
