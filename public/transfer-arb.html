@@ -1476,6 +1476,47 @@
                     </button>
                 </div>
 
+                <!-- ============================================ -->
+                <!-- USDT REBALANCE SETUP (One-Time Configuration) -->
+                <!-- ============================================ -->
+                <div id="usdt-setup-section" class="stat-card" style="margin-bottom: 25px; border: 2px solid #ffb347;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <div>
+                            <h4 style="color: #ffb347; margin: 0 0 8px 0;">⚙️ USDT Rebalance Setup (One-Time)</h4>
+                            <p style="color: #b8c6db; font-size: 0.85rem; margin: 0;">
+                                Configure USDT deposit addresses for each exchange. Do this once, rebalance unlimited times.
+                            </p>
+                        </div>
+                        <div style="text-align: right;">
+                            <div id="usdt-progress" style="font-size: 1.5rem; font-weight: bold; color: #00ff88;">0/19</div>
+                            <div style="font-size: 0.75rem; color: #888;">Exchanges Configured</div>
+                        </div>
+                    </div>
+
+                    <!-- Bulk Actions -->
+                    <div style="margin-bottom: 20px; padding: 15px; background: rgba(255,179,71,0.1); border-radius: 8px; border-left: 4px solid #ffb347;">
+                        <strong style="color: #ffb347;">💡 Quick Setup:</strong>
+                        <p style="color: #b8c6db; font-size: 0.85rem; margin: 8px 0;">
+                            1. Configure ChainEX first (recommended) • 2. Click "Copy All Networks from ChainEX" • 3. Add deposit addresses for remaining exchanges
+                        </p>
+                        <button onclick="copyUSDTNetworksFromChainEX()" class="btn" style="background: linear-gradient(45deg, #667eea 0%, #764ba2 100%); padding: 10px 20px; margin-top: 10px;">
+                            🔄 Copy All Networks from ChainEX
+                        </button>
+                    </div>
+
+                    <!-- Exchange Cards Grid -->
+                    <div id="usdt-exchanges-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 15px;">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+
+                    <!-- Save Button -->
+                    <div style="margin-top: 25px; text-align: center;">
+                        <button onclick="saveAllUSDTAddresses()" class="btn" style="background: linear-gradient(45deg, #00ff88 0%, #00d4ff 100%); padding: 15px 40px; font-size: 1.1rem;">
+                            💾 Save All USDT Addresses
+                        </button>
+                    </div>
+                </div>
+
                 <!-- Tab 1: Rebalance My Exchanges -->
                 <div id="rebalance-form" class="stat-card">
                     <h4 style="color: #00ff88; margin-bottom: 25px;">📊 Rebalance Between My Exchanges</h4>
@@ -4128,6 +4169,236 @@
                 ${profitPercent > 0 && profitPercent < 1 ? '<p style="color: #ffb347; margin-top: 10px; font-size: 0.85rem;">⚠️ Low profit margin - consider risks carefully</p>' : ''}
             `;
         }
+
+        // ============================================================================
+        // USDT REBALANCE SETUP FUNCTIONALITY
+        // ============================================================================
+
+        const REBALANCE_EXCHANGES = ['chainex', 'valr', 'luno', 'binance', 'kraken', 'bybit', 'okx', 'mexc', 'kucoin', 'htx', 'bitget', 'bitmart', 'bitrue', 'gemini', 'coincatch', 'bingx', 'ascendex', 'xt', 'gateio'];
+
+        const EXCHANGE_DISPLAY_NAMES = {
+            'chainex': 'ChainEX',
+            'valr': 'VALR',
+            'luno': 'Luno',
+            'binance': 'Binance',
+            'kraken': 'Kraken',
+            'bybit': 'Bybit',
+            'okx': 'OKX',
+            'mexc': 'MEXC',
+            'kucoin': 'KuCoin',
+            'htx': 'HTX',
+            'bitget': 'Bitget',
+            'bitmart': 'BitMart',
+            'bitrue': 'Bitrue',
+            'gemini': 'Gemini',
+            'coincatch': 'CoinCatch',
+            'bingx': 'BingX',
+            'ascendex': 'AscendEX',
+            'xt': 'XT',
+            'gateio': 'Gate.io'
+        };
+
+        // Initialize USDT setup on page load
+        function initializeUSDTSetup() {
+            console.log('⚙️ Initializing USDT Rebalance Setup...');
+            populateUSDTExchangeCards();
+            loadSavedUSDTAddresses();
+            updateUSDTProgress();
+        }
+
+        // Populate exchange cards
+        function populateUSDTExchangeCards() {
+            const grid = document.getElementById('usdt-exchanges-grid');
+            if (!grid) return;
+
+            grid.innerHTML = REBALANCE_EXCHANGES.map(exchange => `
+                <div class="usdt-exchange-card" data-exchange="${exchange}" style="background: rgba(0,0,0,0.3); border: 2px solid rgba(255,255,255,0.2); border-radius: 10px; padding: 15px;">
+                    <!-- Header with status -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <div style="font-weight: bold; font-size: 1.05rem; color: white;">
+                            🏦 ${EXCHANGE_DISPLAY_NAMES[exchange]}
+                        </div>
+                        <div id="usdt-status-${exchange}" class="usdt-status" style="font-size: 1.3rem;">
+                            ⚠️
+                        </div>
+                    </div>
+
+                    <!-- Network Selection -->
+                    <div style="margin-bottom: 12px;">
+                        <label style="color: #b8c6db; font-size: 0.8rem; display: block; margin-bottom: 6px;">Network</label>
+                        <select id="usdt-network-${exchange}" onchange="updateUSDTProgress()"
+                                style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.3);
+                                       border-radius: 6px; padding: 8px; color: white; width: 100%; font-size: 0.9rem;">
+                            <option value="">-- Select Network --</option>
+                            <option value="TRC20">TRC20 (Recommended - Fast & Cheap)</option>
+                            <option value="ERC20">ERC20 (Ethereum)</option>
+                            <option value="BEP20">BEP20 (BSC)</option>
+                            <option value="Polygon">Polygon</option>
+                        </select>
+                    </div>
+
+                    <!-- USDT Deposit Address -->
+                    <div>
+                        <label style="color: #b8c6db; font-size: 0.8rem; display: block; margin-bottom: 6px;">USDT Deposit Address</label>
+                        <input type="text" id="usdt-address-${exchange}" placeholder="Paste ${EXCHANGE_DISPLAY_NAMES[exchange]} USDT address"
+                               oninput="updateUSDTProgress()"
+                               style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.3);
+                                      border-radius: 6px; padding: 8px; color: white; width: 100%; font-size: 0.85rem;">
+                    </div>
+                </div>
+            `).join('');
+
+            console.log('✅ USDT exchange cards populated');
+        }
+
+        // Load saved USDT addresses from localStorage
+        function loadSavedUSDTAddresses() {
+            console.log('📂 Loading saved USDT addresses...');
+            let loadedCount = 0;
+
+            REBALANCE_EXCHANGES.forEach(exchange => {
+                const networkKey = `deposit_${exchange}_USDT_network`;
+                const addressKey = `deposit_${exchange}_USDT_deposit`;
+
+                const savedNetwork = localStorage.getItem(networkKey);
+                const savedAddress = localStorage.getItem(addressKey);
+
+                const networkSelect = document.getElementById(`usdt-network-${exchange}`);
+                const addressInput = document.getElementById(`usdt-address-${exchange}`);
+
+                if (savedNetwork && networkSelect) {
+                    networkSelect.value = savedNetwork;
+                }
+
+                if (savedAddress && addressInput) {
+                    addressInput.value = savedAddress;
+                    loadedCount++;
+                }
+            });
+
+            console.log(`✅ Loaded ${loadedCount} saved USDT addresses`);
+            updateUSDTProgress();
+        }
+
+        // Update progress counter and status indicators
+        function updateUSDTProgress() {
+            let configuredCount = 0;
+
+            REBALANCE_EXCHANGES.forEach(exchange => {
+                const network = document.getElementById(`usdt-network-${exchange}`)?.value;
+                const address = document.getElementById(`usdt-address-${exchange}`)?.value;
+                const statusIcon = document.getElementById(`usdt-status-${exchange}`);
+                const card = document.querySelector(`.usdt-exchange-card[data-exchange="${exchange}"]`);
+
+                const isConfigured = network && address && address.trim().length > 0;
+
+                if (statusIcon) {
+                    statusIcon.textContent = isConfigured ? '✅' : '⚠️';
+                }
+
+                if (card) {
+                    if (isConfigured) {
+                        card.style.borderColor = '#00ff88';
+                        card.style.background = 'rgba(0,255,136,0.05)';
+                        configuredCount++;
+                    } else {
+                        card.style.borderColor = 'rgba(255,255,255,0.2)';
+                        card.style.background = 'rgba(0,0,0,0.3)';
+                    }
+                }
+            });
+
+            // Update progress counter
+            const progressDiv = document.getElementById('usdt-progress');
+            if (progressDiv) {
+                progressDiv.textContent = `${configuredCount}/19`;
+                progressDiv.style.color = configuredCount === 19 ? '#00ff88' : (configuredCount > 0 ? '#ffb347' : '#ff6b6b');
+            }
+
+            return configuredCount;
+        }
+
+        // Save all USDT addresses to localStorage
+        function saveAllUSDTAddresses() {
+            console.log('💾 Saving all USDT addresses...');
+            let savedCount = 0;
+            let errors = [];
+
+            REBALANCE_EXCHANGES.forEach(exchange => {
+                const network = document.getElementById(`usdt-network-${exchange}`)?.value;
+                const address = document.getElementById(`usdt-address-${exchange}`)?.value.trim();
+
+                // Only save if both fields are filled
+                if (network && address) {
+                    const networkKey = `deposit_${exchange}_USDT_network`;
+                    const addressKey = `deposit_${exchange}_USDT_deposit`;
+
+                    localStorage.setItem(networkKey, network);
+                    localStorage.setItem(addressKey, address);
+                    savedCount++;
+                } else if ((network && !address) || (!network && address)) {
+                    // Partial configuration - warn user
+                    errors.push(`${EXCHANGE_DISPLAY_NAMES[exchange]}: ${!network ? 'Missing network' : 'Missing address'}`);
+                }
+            });
+
+            if (errors.length > 0) {
+                alert(`⚠️ Some exchanges have incomplete configuration:\n\n${errors.join('\n')}\n\nPlease complete both Network and Address fields.`);
+            } else if (savedCount === 0) {
+                alert('⚠️ No addresses to save. Please configure at least one exchange.');
+            } else {
+                alert(`✅ Successfully saved ${savedCount} USDT deposit addresses!\n\nYou can now use the Rebalance feature.`);
+                console.log(`✅ Saved ${savedCount} USDT addresses to localStorage`);
+            }
+
+            updateUSDTProgress();
+        }
+
+        // Copy all networks from ChainEX to other exchanges
+        function copyUSDTNetworksFromChainEX() {
+            const chainexNetwork = document.getElementById('usdt-network-chainex')?.value;
+
+            if (!chainexNetwork) {
+                alert('⚠️ Please select a network for ChainEX first, then copy it to other exchanges.');
+                return;
+            }
+
+            const confirmMsg = `🔄 Copy ChainEX Network to All Exchanges?\n\n` +
+                `This will set all exchanges to: ${chainexNetwork}\n\n` +
+                `You can change individual exchanges later if needed.\n\n` +
+                `Continue?`;
+
+            if (!confirm(confirmMsg)) {
+                return;
+            }
+
+            let copiedCount = 0;
+
+            REBALANCE_EXCHANGES.forEach(exchange => {
+                if (exchange !== 'chainex') {
+                    const networkSelect = document.getElementById(`usdt-network-${exchange}`);
+                    if (networkSelect) {
+                        networkSelect.value = chainexNetwork;
+                        copiedCount++;
+                    }
+                }
+            });
+
+            alert(`✅ Copied ${chainexNetwork} to ${copiedCount} exchanges!\n\nNow add your USDT deposit addresses for each exchange.`);
+            console.log(`✅ Copied network ${chainexNetwork} to ${copiedCount} exchanges`);
+            updateUSDTProgress();
+        }
+
+        // Initialize USDT setup when page loads
+        setTimeout(() => {
+            initializeUSDTSetup();
+        }, 1000);
+
+        console.log('✅ USDT Rebalance Setup functionality loaded');
+
+        // ============================================================================
+        // END OF USDT REBALANCE SETUP FUNCTIONALITY
+        // ============================================================================
 
         // Tab Switching Functionality
         function switchTab(tab) {
