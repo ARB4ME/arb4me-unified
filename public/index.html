@@ -7431,38 +7431,51 @@
 
         // 👤 PROFILE UNLOCK/LOCK FUNCTIONS
         function handleUnlockProfile(event) {
+            console.log('🔓 handleUnlockProfile called!');
             event.preventDefault();
-            
+
             const password = document.getElementById('profileUnlockPassword').value;
-            
+            console.log('Password length:', password.length);
+
             if (password.length < 1) {
+                console.log('❌ Password is empty');
                 addActivity('❌ Please enter your password', 'error');
                 return;
             }
-            
+
+            console.log('🔓 Verifying password...');
             addActivity('🔓 Verifying password...', 'info');
             
             setTimeout(() => {
                 // Check if user is logged in first
                 let userData = null;
-                
+
+                console.log('userState.isLoggedIn:', userState.isLoggedIn);
+                console.log('userState.userData:', userState.userData ? 'exists' : 'null');
+
                 if (userState.isLoggedIn && userState.userData) {
                     // Use current logged-in user data
                     userData = userState.userData;
+                    console.log('✅ Using logged-in user data');
                 } else {
                     // Otherwise, get user data from localStorage
                     const encryptedUser = localStorage.getItem('arb4me_user');
+                    console.log('localStorage arb4me_user:', encryptedUser ? 'exists' : 'null');
                     if (encryptedUser) {
                         try {
                             const decryptedData = simpleDecrypt(encryptedUser);
                             userData = JSON.parse(decryptedData);
+                            console.log('✅ Decrypted user data from localStorage');
                         } catch (error) {
+                            console.log('❌ Error decrypting user data:', error);
                             addActivity('❌ Error accessing profile data', 'error');
                             return;
                         }
                     }
                 }
-                
+
+                console.log('userData:', userData ? 'exists' : 'null');
+
                 if (userData) {
                     try {
                         // Validate password against stored password
