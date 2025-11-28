@@ -2006,6 +2006,142 @@
     </style>
 </head>
 <body>
+    <!-- ACCESS CODE PROTECTION OVERLAY -->
+    <div id="accessOverlay" style="
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+        display: none;
+        z-index: 999999;
+        overflow-y: auto;
+    ">
+        <div style="max-width: 600px; margin: 50px auto; padding: 20px;">
+            <!-- BETA Banner in Access Screen -->
+            <div style="background: linear-gradient(135deg, rgba(255,183,77,0.2), rgba(255,107,107,0.2)); border: 2px solid #ffb74d; border-radius: 10px; padding: 15px; margin-bottom: 30px; text-align: center;">
+                <div style="color: #ffb74d; font-size: 1.2rem; font-weight: bold; margin-bottom: 5px;">⚠️ BETA TESTING</div>
+                <div style="color: #e0e0e0; font-size: 0.9rem;">Platform under development - Features may change</div>
+            </div>
+
+            <!-- Access Gate -->
+            <div style="background: rgba(255,255,255,0.05); backdrop-filter: blur(10px); border-radius: 20px; padding: 40px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); border: 2px solid rgba(0,212,255,0.3);">
+                <div style="text-align: center; margin-bottom: 30px;">
+                    <div style="font-size: 3rem; margin-bottom: 15px;">🔒</div>
+                    <h1 style="color: #00d4ff; margin: 0 0 10px 0; font-size: 2rem;">ARB4ME Platform</h1>
+                    <div style="color: #b8c6db; font-size: 1.1rem;">Access Code Required</div>
+                </div>
+
+                <div style="background: rgba(0,212,255,0.1); border-left: 4px solid #00d4ff; padding: 20px; border-radius: 10px; margin-bottom: 30px;">
+                    <div style="color: #e0e0e0; font-size: 0.95rem; line-height: 1.6;">
+                        <strong style="color: #00d4ff;">Platform in BETA Testing</strong><br>
+                        To request access, contact us via WhatsApp:<br>
+                        <a href="https://wa.me/27833093157" target="_blank" style="color: #00ff88; text-decoration: none; font-size: 1.1rem; font-weight: bold; display: inline-block; margin-top: 10px;">
+                            📱 +27 (0) 83 309 3157
+                        </a>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <label style="color: #b8c6db; display: block; margin-bottom: 10px; font-size: 0.9rem;">Enter Access Code:</label>
+                    <input
+                        type="password"
+                        id="accessCodeInput"
+                        placeholder="Enter your access code"
+                        style="
+                            width: 100%;
+                            padding: 15px;
+                            background: rgba(255,255,255,0.1);
+                            border: 2px solid rgba(0,212,255,0.3);
+                            border-radius: 10px;
+                            color: #fff;
+                            font-size: 1.1rem;
+                            outline: none;
+                            box-sizing: border-box;
+                        "
+                        onkeypress="if(event.key === 'Enter') checkAccessCode()"
+                    />
+                </div>
+
+                <button
+                    onclick="checkAccessCode()"
+                    style="
+                        width: 100%;
+                        padding: 15px;
+                        background: linear-gradient(45deg, #00d4ff, #00ff88);
+                        border: none;
+                        border-radius: 10px;
+                        color: #1a1a2e;
+                        font-size: 1.1rem;
+                        font-weight: bold;
+                        cursor: pointer;
+                        transition: transform 0.2s;
+                    "
+                    onmouseover="this.style.transform='scale(1.02)'"
+                    onmouseout="this.style.transform='scale(1)'"
+                >
+                    🔓 Access Platform
+                </button>
+
+                <div id="accessError" style="display: none; margin-top: 15px; padding: 15px; background: rgba(255,107,107,0.2); border-left: 4px solid #ff6b6b; border-radius: 8px; color: #ff6b6b; text-align: center;">
+                    ❌ Invalid access code. Please contact us via WhatsApp for access.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- BETA TESTING BANNER (Visible after access) -->
+    <div id="betaBanner" style="
+        background: linear-gradient(135deg, rgba(255,183,77,0.15), rgba(255,107,107,0.15));
+        border-bottom: 3px solid #ffb74d;
+        padding: 12px 20px;
+        text-align: center;
+        position: sticky;
+        top: 0;
+        z-index: 9998;
+        display: none;
+    ">
+        <div style="color: #ffb74d; font-weight: bold; font-size: 1rem;">
+            ⚠️ BETA TESTING - Platform under development. Features may change.
+            <span style="color: #00ff88;">Contact: </span>
+            <a href="https://wa.me/27833093157" target="_blank" style="color: #00d4ff; text-decoration: none;">WhatsApp +27 83 309 3157</a>
+        </div>
+    </div>
+
+    <script>
+        // Access Code Protection
+        const ACCESS_CODE = 'arb4me2025';
+
+        function checkAccessCode() {
+            const input = document.getElementById('accessCodeInput');
+            const error = document.getElementById('accessError');
+
+            if (input.value === ACCESS_CODE) {
+                // Grant access
+                localStorage.setItem('arb4me_access_granted', 'true');
+                document.getElementById('accessOverlay').style.display = 'none';
+                document.getElementById('betaBanner').style.display = 'block';
+                error.style.display = 'none';
+            } else {
+                // Show error
+                error.style.display = 'block';
+                input.value = '';
+                input.focus();
+            }
+        }
+
+        // Check access on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            const hasAccess = localStorage.getItem('arb4me_access_granted');
+            if (!hasAccess) {
+                document.getElementById('accessOverlay').style.display = 'block';
+            } else {
+                document.getElementById('betaBanner').style.display = 'block';
+            }
+        });
+    </script>
+
     <!-- ADMIN REPLY MODAL -->
     <div id="adminReplyModal" style="
         position: fixed;
