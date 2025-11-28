@@ -5230,24 +5230,68 @@
                 </div>
 
                 <div id="adminBillingTab" class="admin-content" style="display: none;">
-                    <h3 style="color: #00d4ff; margin-bottom: 15px;">💰 Billing & Payment Management</h3>
-                    
+                    <h3 style="color: #00d4ff; margin-bottom: 15px;">💰 Billing & Payment Management - 3% Profit Fee Model</h3>
+
                     <div class="stats-grid" style="margin-bottom: 20px;">
                         <div class="stat-card">
-                            <div class="stat-value" id="adminTotalRevenue">R0.00</div>
-                            <div class="stat-label">Total Monthly Revenue</div>
+                            <div class="stat-value" id="adminTotalRevenue">$0.00</div>
+                            <div class="stat-label">Total Revenue Due (3%)</div>
                         </div>
                         <div class="stat-card">
-                            <div class="stat-value" id="adminExpiringUsers">0</div>
-                            <div class="stat-label">Expiring in 7 Days</div>
+                            <div class="stat-value" id="adminTotalPaid">$0.00</div>
+                            <div class="stat-label">Total Paid (USDT)</div>
                         </div>
                         <div class="stat-card">
-                            <div class="stat-value" id="adminExpiredUsers">0</div>
-                            <div class="stat-label">Expired Users</div>
+                            <div class="stat-value" id="adminPendingUsers">0</div>
+                            <div class="stat-label">Pending Payments</div>
                         </div>
                         <div class="stat-card">
-                            <div class="stat-value" id="adminSuspendedAccounts">0</div>
-                            <div class="stat-label">Suspended Accounts</div>
+                            <div class="stat-value" id="adminOverdueUsers">0</div>
+                            <div class="stat-label">Overdue (Suspended)</div>
+                        </div>
+                    </div>
+
+                    <!-- Filter Section -->
+                    <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+                        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                            <select id="billingStatusFilter" onchange="filterUserBilling()"
+                                style="flex: 1; min-width: 200px; padding: 8px 12px; background: rgba(30,30,50,0.9);
+                                       border: 1px solid #00d4ff; border-radius: 6px; color: white; cursor: pointer;">
+                                <option value="all">All Users</option>
+                                <option value="paid">✅ Paid</option>
+                                <option value="pending">⚠️ Pending</option>
+                                <option value="overdue">🚨 Overdue</option>
+                                <option value="no_fee">📅 No Fee Due</option>
+                            </select>
+
+                            <button onclick="refreshAdminBillingData()" style="
+                                padding: 8px 16px;
+                                background: linear-gradient(45deg, #00ff88, #00d4aa);
+                                color: #1a1a2e;
+                                border: none;
+                                border-radius: 6px;
+                                cursor: pointer;
+                                font-weight: bold;
+                            ">🔄 Refresh Data</button>
+
+                            <button onclick="exportBillingReport()" style="
+                                padding: 8px 16px;
+                                background: linear-gradient(45deg, #667eea, #764ba2);
+                                color: white;
+                                border: none;
+                                border-radius: 6px;
+                                cursor: pointer;
+                                font-weight: bold;
+                            ">📊 Export Report</button>
+                        </div>
+                    </div>
+
+                    <!-- Users Billing List -->
+                    <div id="usersBillingList" style="max-height: 600px; overflow-y: auto;">
+                        <div style="text-align: center; padding: 40px; color: #888;">
+                            <div style="font-size: 2rem; margin-bottom: 10px;">💰</div>
+                            <div>Loading user billing data...</div>
+                            <div style="font-size: 0.85rem; margin-top: 5px;">Click "Refresh Data" to load</div>
                         </div>
                     </div>
 
@@ -10641,6 +10685,407 @@
             `;
 
             document.body.appendChild(modal);
+        }
+
+        // 👑 ADMIN BILLING FUNCTIONS
+
+        // Refresh admin billing data - show all users with profits and payment statuses
+        async function refreshAdminBillingData() {
+            console.log('🔄 Refreshing admin billing data...');
+
+            const usersBillingList = document.getElementById('usersBillingList');
+            if (!usersBillingList) return;
+
+            // Show loading
+            usersBillingList.innerHTML = `
+                <div style="text-align: center; padding: 40px; color: #888;">
+                    <div style="font-size: 2rem; margin-bottom: 10px;">⏳</div>
+                    <div>Loading user billing data...</div>
+                </div>
+            `;
+
+            try {
+                // Get all users from backend (or localStorage for now)
+                const response = await fetch('/api/v1/admin/users');
+                const result = await response.json();
+
+                const users = result.success ? result.data.users : [];
+
+                if (users.length === 0) {
+                    usersBillingList.innerHTML = `
+                        <div style="text-align: center; padding: 40px; color: #888;">
+                            <div style="font-size: 2rem; margin-bottom: 10px;">👥</div>
+                            <div>No users found</div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Calculate billing for each user
+                const currentMonth = new Date().getMonth();
+                const currentYear = new Date().getFullYear();
+
+                let totalRevenueDue = 0;
+                let totalPaid = 0;
+                let pendingCount = 0;
+                let overdueCount = 0;
+
+                const usersWithBilling = users.map(user => {
+                    // Calculate user's monthly profit (mock data for now - should come from backend)
+                    const monthlyProfit = calculateUserMonthlyProfit(user.id);
+                    const fee = monthlyProfit * 0.03;
+
+                    // Check if user paid
+                    const paymentKey = `payment_${user.id}_${currentYear}_${currentMonth}`;
+                    const paymentRecord = localStorage.getItem(paymentKey);
+                    const isPaid = !!paymentRecord;
+
+                    // Calculate payment status
+                    const endOfMonth = new Date(currentYear, currentMonth + 1, 0);
+                    const paymentDeadline = new Date(endOfMonth);
+                    paymentDeadline.setDate(paymentDeadline.getDate() + 7);
+                    const daysUntilDeadline = Math.ceil((paymentDeadline - new Date()) / (1000 * 60 * 60 * 24));
+
+                    let status, statusColor, statusText;
+
+                    if (fee <= 0) {
+                        status = 'no_fee';
+                        statusColor = '#888';
+                        statusText = '📅 No Fee';
+                    } else if (isPaid) {
+                        status = 'paid';
+                        statusColor = '#00ff88';
+                        statusText = '✅ Paid';
+                        totalPaid += fee;
+                    } else if (daysUntilDeadline < 0) {
+                        status = 'overdue';
+                        statusColor = '#ff6b6b';
+                        statusText = `🚨 Overdue (${Math.abs(daysUntilDeadline)}d)`;
+                        overdueCount++;
+                    } else if (daysUntilDeadline <= 7) {
+                        status = 'pending';
+                        statusColor = '#ffb347';
+                        statusText = `⚠️ Pending (${daysUntilDeadline}d)`;
+                        pendingCount++;
+                    } else {
+                        status = 'not_due';
+                        statusColor = '#00d4ff';
+                        statusText = '📅 Not Due';
+                    }
+
+                    if (fee > 0) {
+                        totalRevenueDue += fee;
+                    }
+
+                    return {
+                        ...user,
+                        monthlyProfit,
+                        fee,
+                        status,
+                        statusColor,
+                        statusText,
+                        isPaid,
+                        paymentRecord: isPaid ? JSON.parse(paymentRecord) : null
+                    };
+                });
+
+                // Update stats
+                document.getElementById('adminTotalRevenue').textContent = `$${totalRevenueDue.toFixed(2)}`;
+                document.getElementById('adminTotalPaid').textContent = `$${totalPaid.toFixed(2)}`;
+                document.getElementById('adminPendingUsers').textContent = pendingCount;
+                document.getElementById('adminOverdueUsers').textContent = overdueCount;
+
+                // Render user cards
+                renderUserBillingCards(usersWithBilling);
+
+            } catch (error) {
+                console.error('❌ Error loading billing data:', error);
+                usersBillingList.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #ff6b6b;">
+                        <div style="font-size: 2rem; margin-bottom: 10px;">❌</div>
+                        <div>Error loading billing data</div>
+                        <div style="font-size: 0.85rem; margin-top: 5px;">${error.message}</div>
+                    </div>
+                `;
+            }
+        }
+
+        // Calculate user's monthly profit (placeholder - should come from backend)
+        function calculateUserMonthlyProfit(userId) {
+            // This is a placeholder - in production, this would:
+            // 1. Fetch user's trade history from backend
+            // 2. Calculate total profit for current month across all strategies
+            // 3. Return the total
+
+            // For now, return mock data
+            const mockProfits = [0, 125, 450, 1250, 0, 890, 2100, 340, 0, 550];
+            return mockProfits[userId % mockProfits.length] || 0;
+        }
+
+        // Render user billing cards
+        function renderUserBillingCards(users) {
+            const usersBillingList = document.getElementById('usersBillingList');
+
+            if (users.length === 0) {
+                usersBillingList.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #888;">
+                        <div style="font-size: 2rem; margin-bottom: 10px;">👥</div>
+                        <div>No users match the filter</div>
+                    </div>
+                `;
+                return;
+            }
+
+            usersBillingList.innerHTML = users.map(user => `
+                <div class="user-billing-card" data-status="${user.status}" style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px; margin-bottom: 15px; border-left: 4px solid ${user.statusColor};">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
+                        <div style="flex: 1;">
+                            <div style="color: #00d4ff; font-weight: bold; font-size: 1.1rem; margin-bottom: 5px;">
+                                ${user.name || user.email}
+                            </div>
+                            <div style="color: #b8c6db; font-size: 0.9rem;">
+                                ${user.email}${user.phone ? ` • ${user.phone}` : ''}
+                            </div>
+                            <div style="color: #888; font-size: 0.85rem; margin-top: 3px;">
+                                Ref: ${user.paymentReference || 'ARB-' + String(user.id).padStart(6, '0')}
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="color: ${user.statusColor}; font-weight: bold; font-size: 1rem; margin-bottom: 5px;">
+                                ${user.statusText}
+                            </div>
+                            <div style="color: #888; font-size: 0.85rem;">
+                                ${user.isPaid ? 'Paid: ' + new Date(user.paymentRecord.timestamp).toLocaleDateString() : ''}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 15px;">
+                        <div style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px;">
+                            <div style="color: #feca57; font-size: 0.85rem;">Monthly Profit</div>
+                            <div style="color: #00ff88; font-weight: bold; font-size: 1.3rem;">
+                                $${user.monthlyProfit.toFixed(2)}
+                            </div>
+                        </div>
+                        <div style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px;">
+                            <div style="color: #feca57; font-size: 0.85rem;">Fee Due (3%)</div>
+                            <div style="color: #ff6b6b; font-weight: bold; font-size: 1.3rem;">
+                                $${user.fee.toFixed(2)}
+                            </div>
+                        </div>
+                        ${user.isPaid ? `
+                        <div style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px;">
+                            <div style="color: #feca57; font-size: 0.85rem;">TX Hash</div>
+                            <div style="color: #00d4ff; font-size: 0.75rem; font-family: monospace; word-break: break-all;">
+                                ${user.paymentRecord.txHash.substring(0, 20)}...
+                            </div>
+                        </div>` : ''}
+                    </div>
+
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        ${!user.isPaid && user.fee > 0 ? `
+                            <button onclick="sendPaymentReminder('${user.id}')" style="
+                                padding: 8px 16px;
+                                background: rgba(255,183,71,0.2);
+                                color: #ffb347;
+                                border: 1px solid #ffb347;
+                                border-radius: 6px;
+                                cursor: pointer;
+                                font-size: 0.9rem;
+                            ">📧 Send Reminder</button>
+                        ` : ''}
+
+                        ${user.status === 'overdue' ? `
+                            <button onclick="suspendUserTrading('${user.id}')" style="
+                                padding: 8px 16px;
+                                background: rgba(255,107,107,0.2);
+                                color: #ff6b6b;
+                                border: 1px solid #ff6b6b;
+                                border-radius: 6px;
+                                cursor: pointer;
+                                font-size: 0.9rem;
+                            ">🚫 Suspend Trading</button>
+                        ` : ''}
+
+                        ${user.accountStatus === 'SUSPENDED' ? `
+                            <button onclick="reactivateUserTrading('${user.id}')" style="
+                                padding: 8px 16px;
+                                background: rgba(0,255,136,0.2);
+                                color: #00ff88;
+                                border: 1px solid #00ff88;
+                                border-radius: 6px;
+                                cursor: pointer;
+                                font-size: 0.9rem;
+                            ">✅ Reactivate Trading</button>
+                        ` : ''}
+
+                        <button onclick="viewUserPaymentHistory('${user.id}')" style="
+                            padding: 8px 16px;
+                            background: rgba(0,212,255,0.2);
+                            color: #00d4ff;
+                            border: 1px solid #00d4ff;
+                            border-radius: 6px;
+                            cursor: pointer;
+                            font-size: 0.9rem;
+                        ">📜 Payment History</button>
+
+                        ${user.isPaid ? `
+                            <button onclick="viewTransactionDetails('${user.paymentRecord.txHash}')" style="
+                                padding: 8px 16px;
+                                background: rgba(0,212,255,0.2);
+                                color: #00d4ff;
+                                border: 1px solid #00d4ff;
+                                border-radius: 6px;
+                                cursor: pointer;
+                                font-size: 0.9rem;
+                            ">🔍 View TX</button>
+                        ` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Filter user billing by status
+        function filterUserBilling() {
+            const filter = document.getElementById('billingStatusFilter').value;
+            const cards = document.querySelectorAll('.user-billing-card');
+
+            cards.forEach(card => {
+                const status = card.getAttribute('data-status');
+                if (filter === 'all' || status === filter) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        // Send payment reminder to user
+        function sendPaymentReminder(userId) {
+            if (!confirm('Send payment reminder email to this user?')) return;
+
+            // In production, this would call backend to send email
+            alert('✅ Payment reminder sent!\n\n(This would send an email in production)');
+            addActivity(`📧 Payment reminder sent to user ${userId}`, 'info');
+        }
+
+        // Suspend user trading for non-payment
+        async function suspendUserTrading(userId) {
+            if (!confirm('⚠️ Suspend Trading Access?\n\nThis will disable all trading for this user until payment is received.\n\nContinue?')) {
+                return;
+            }
+
+            try {
+                // Call backend to suspend user
+                const response = await fetch(`/api/v1/admin/users/${userId}/suspend`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ reason: 'Payment overdue' })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('✅ User trading suspended\n\nUser will not be able to execute trades until payment is received.');
+                    refreshAdminBillingData();
+                } else {
+                    alert('❌ Failed to suspend user:\n' + (result.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error suspending user:', error);
+                alert('❌ Error suspending user:\n' + error.message);
+            }
+        }
+
+        // Reactivate user trading after payment
+        async function reactivateUserTrading(userId) {
+            if (!confirm('✅ Reactivate Trading Access?\n\nThis will restore trading ability for this user.\n\nContinue?')) {
+                return;
+            }
+
+            try {
+                // Call backend to reactivate user
+                const response = await fetch(`/api/v1/admin/users/${userId}/reactivate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('✅ User trading reactivated\n\nUser can now execute trades.');
+                    refreshAdminBillingData();
+                } else {
+                    alert('❌ Failed to reactivate user:\n' + (result.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error reactivating user:', error);
+                alert('❌ Error reactivating user:\n' + error.message);
+            }
+        }
+
+        // View specific user payment history
+        function viewUserPaymentHistory(userId) {
+            const paymentHistory = JSON.parse(localStorage.getItem(`payment_history_${userId}`) || '[]');
+
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+                background: rgba(0,0,0,0.8); display: flex; align-items: center;
+                justify-content: center; z-index: 10000; padding: 20px;
+            `;
+
+            const historyHTML = paymentHistory.length > 0
+                ? paymentHistory.reverse().map(payment => `
+                    <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                            <div>
+                                <div style="color: #00d4ff; font-weight: bold;">
+                                    ${new Date(payment.timestamp).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                                </div>
+                                <div style="color: #888; font-size: 0.85rem;">
+                                    ${new Date(payment.timestamp).toLocaleString()}
+                                </div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="color: #00ff88; font-weight: bold; font-size: 1.2rem;">
+                                    $${payment.amount.toFixed(2)} USDT
+                                </div>
+                            </div>
+                        </div>
+                        <div style="color: #888; font-size: 0.8rem; font-family: monospace;">
+                            TxID: ${payment.txHash}
+                        </div>
+                    </div>
+                `).join('')
+                : `<div style="text-align: center; padding: 40px; color: #888;">
+                    <div style="font-size: 2rem; margin-bottom: 10px;">📜</div>
+                    <div>No payment history for this user</div>
+                   </div>`;
+
+            modal.innerHTML = `
+                <div style="background: #1a1a2e; padding: 30px; border-radius: 15px; max-width: 700px; width: 100%; max-height: 80vh; overflow-y: auto;">
+                    <h3 style="color: #00d4ff; margin-bottom: 20px;">📜 User Payment History</h3>
+                    <div style="max-height: 500px; overflow-y: auto;">
+                        ${historyHTML}
+                    </div>
+                    <button onclick="this.parentElement.parentElement.remove()" class="btn" style="margin-top: 20px; width: 100%;">
+                        Close
+                    </button>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+        }
+
+        // View transaction details
+        function viewTransactionDetails(txHash) {
+            alert(`🔍 Transaction Details\n\nTX Hash: ${txHash}\n\n(In production, this would link to blockchain explorer)`);
+        }
+
+        // Export billing report
+        function exportBillingReport() {
+            alert('📊 Export Billing Report\n\n(This would generate a CSV/Excel report in production)');
         }
 
         // Simulate payment processing (for demo purposes)
