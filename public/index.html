@@ -10961,12 +10961,35 @@
         }
 
         // Send payment reminder to user
-        function sendPaymentReminder(userId) {
-            if (!confirm('Send payment reminder email to this user?')) return;
+        async function sendPaymentReminder(userId) {
+            if (!confirm('📧 Send Payment Reminder?\n\nThis will send a system message to the user about their pending payment.\n\nContinue?')) {
+                return;
+            }
 
-            // In production, this would call backend to send email
-            alert('✅ Payment reminder sent!\n\n(This would send an email in production)');
-            addActivity(`📧 Payment reminder sent to user ${userId}`, 'info');
+            try {
+                // Call backend to send message to user
+                const response = await fetch(`/api/v1/admin/users/${userId}/message`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        subject: 'Payment Reminder - Platform Fee Due',
+                        message: 'Your monthly platform fee (3% of profit) is now due. Please make your USDT payment via the Profile > Billing section to continue trading. Grace period: 7 days.',
+                        priority: 'high'
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('✅ Payment reminder sent!\n\nUser will see the message in their inbox.');
+                    addActivity(`📧 Payment reminder sent to user ${userId}`, 'info');
+                } else {
+                    alert('❌ Failed to send reminder:\n' + (result.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error sending reminder:', error);
+                alert('❌ Error sending reminder:\n' + error.message);
+            }
         }
 
         // Suspend user trading for non-payment
@@ -10976,17 +10999,21 @@
             }
 
             try {
-                // Call backend to suspend user
-                const response = await fetch(`/api/v1/admin/users/${userId}/suspend`, {
+                // Call backend to update user status to suspended
+                const response = await fetch(`/api/v1/admin/users/${userId}/status`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ reason: 'Payment overdue' })
+                    body: JSON.stringify({
+                        status: 'suspended',
+                        reason: 'Payment overdue - 3% platform fee not received'
+                    })
                 });
 
                 const result = await response.json();
 
                 if (result.success) {
                     alert('✅ User trading suspended\n\nUser will not be able to execute trades until payment is received.');
+                    addActivity(`🚫 User ${userId} suspended for non-payment`, 'warning');
                     refreshAdminBillingData();
                 } else {
                     alert('❌ Failed to suspend user:\n' + (result.error || 'Unknown error'));
@@ -11004,16 +11031,21 @@
             }
 
             try {
-                // Call backend to reactivate user
-                const response = await fetch(`/api/v1/admin/users/${userId}/reactivate`, {
+                // Call backend to update user status to active
+                const response = await fetch(`/api/v1/admin/users/${userId}/status`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        status: 'active',
+                        reason: 'Payment received - account reactivated'
+                    })
                 });
 
                 const result = await response.json();
 
                 if (result.success) {
                     alert('✅ User trading reactivated\n\nUser can now execute trades.');
+                    addActivity(`✅ User ${userId} reactivated after payment`, 'success');
                     refreshAdminBillingData();
                 } else {
                     alert('❌ Failed to reactivate user:\n' + (result.error || 'Unknown error'));
