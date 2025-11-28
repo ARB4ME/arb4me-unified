@@ -1577,22 +1577,24 @@
                         <div class="form-group">
                             <label>Cryptocurrency to Transfer</label>
                             <select id="rebalanceCrypto" onchange="autoCalculateTransfer()">
-                                <option value="XRP">XRP (Fast, Low Fees)</option>
-                                <option value="XLM">XLM (Fast, Low Fees)</option>
-                                <option value="TRX">TRX (Fast, Low Fees)</option>
-                                <option value="LTC">LTC (Medium Speed)</option>
-                                <option value="USDT">USDT-TRC20 (Stable)</option>
-                                <option value="BTC">BTC</option>
-                                <option value="ETH">ETH</option>
-                                <option value="USDT">USDT-TRC20</option>
+                                <option value="USDT" selected>USDT (Recommended - Configured)</option>
+                                <option value="XRP" disabled style="color: #666;">XRP (Not configured for rebalancing)</option>
+                                <option value="XLM" disabled style="color: #666;">XLM (Not configured for rebalancing)</option>
+                                <option value="TRX" disabled style="color: #666;">TRX (Not configured for rebalancing)</option>
+                                <option value="LTC" disabled style="color: #666;">LTC (Not configured for rebalancing)</option>
+                                <option value="BTC" disabled style="color: #666;">BTC (Not configured for rebalancing)</option>
+                                <option value="ETH" disabled style="color: #666;">ETH (Not configured for rebalancing)</option>
                             </select>
+                            <div style="color: #888; font-size: 0.7rem; margin-top: 4px;">
+                                💡 Only USDT is configured for rebalancing. Configure other cryptos in Phase 3.
+                            </div>
                         </div>
 
                         <div class="form-group">
-                            <label>Amount (in crypto units)</label>
-                            <input type="number" id="rebalanceAmount" placeholder="e.g., 1000 XRP" min="1" step="0.01" oninput="autoCalculateTransfer()">
+                            <label>Amount (in USDT)</label>
+                            <input type="number" id="rebalanceAmount" placeholder="e.g., 500 USDT" min="1" step="0.01" oninput="autoCalculateTransfer()">
                             <div style="color: #888; font-size: 0.7rem; margin-top: 4px;">
-                                Enter amount in the cryptocurrency selected above
+                                Enter the amount of USDT to transfer between exchanges
                             </div>
                         </div>
                     </div>
@@ -4352,6 +4354,7 @@
             }
 
             updateUSDTProgress();
+            updateRebalanceExchangeDropdowns(); // Refresh dropdown status indicators
         }
 
         // Copy all networks from ChainEX to other exchanges
@@ -4389,9 +4392,56 @@
             updateUSDTProgress();
         }
 
+        // Update rebalance form exchange dropdowns with status indicators
+        function updateRebalanceExchangeDropdowns() {
+            const fromSelect = document.getElementById('rebalanceFromExchange');
+            const toSelect = document.getElementById('rebalanceToExchange');
+
+            if (!fromSelect || !toSelect) return;
+
+            // Get current values to preserve selection
+            const currentFrom = fromSelect.value;
+            const currentTo = toSelect.value;
+
+            // Update both dropdowns with status indicators
+            [fromSelect, toSelect].forEach(select => {
+                // Clear existing options except the first one (placeholder)
+                const placeholder = select.options[0].text;
+                select.innerHTML = `<option value="">${placeholder}</option>`;
+
+                // Add all exchanges with status indicators
+                REBALANCE_EXCHANGES.forEach(exchange => {
+                    const networkKey = `deposit_${exchange}_USDT_network`;
+                    const addressKey = `deposit_${exchange}_USDT_deposit`;
+
+                    const hasNetwork = localStorage.getItem(networkKey);
+                    const hasAddress = localStorage.getItem(addressKey);
+                    const isConfigured = hasNetwork && hasAddress && hasAddress.trim().length > 0;
+
+                    const option = document.createElement('option');
+                    option.value = exchange;
+                    option.textContent = `${isConfigured ? '✅' : '⚠️'} ${EXCHANGE_DISPLAY_NAMES[exchange]}`;
+
+                    // Style unconfigured exchanges differently
+                    if (!isConfigured) {
+                        option.style.color = '#ffb347';
+                    }
+
+                    select.appendChild(option);
+                });
+            });
+
+            // Restore previous selections
+            if (currentFrom) fromSelect.value = currentFrom;
+            if (currentTo) toSelect.value = currentTo;
+
+            console.log('✅ Updated rebalance form exchange dropdowns with status indicators');
+        }
+
         // Initialize USDT setup when page loads
         setTimeout(() => {
             initializeUSDTSetup();
+            updateRebalanceExchangeDropdowns();
         }, 1000);
 
         console.log('✅ USDT Rebalance Setup functionality loaded');
@@ -4672,15 +4722,49 @@
                 return;
             }
 
+            // USDT-specific validation: Check if USDT addresses are configured
+            if (crypto === 'USDT') {
+                // Check source exchange has USDT configured
+                const fromNetworkKey = `deposit_${fromExchange}_USDT_network`;
+                const fromAddressKey = `deposit_${fromExchange}_USDT_deposit`;
+                const fromNetwork = localStorage.getItem(fromNetworkKey);
+                const fromAddress = localStorage.getItem(fromAddressKey);
+
+                // Check destination exchange has USDT configured
+                const toNetworkKey = `deposit_${toExchange}_USDT_network`;
+                const toAddressKey = `deposit_${toExchange}_USDT_deposit`;
+                const toNetwork = localStorage.getItem(toNetworkKey);
+                const toAddress = localStorage.getItem(toAddressKey);
+
+                if (!toNetwork || !toAddress || toAddress.trim().length === 0) {
+                    alert(
+                        `⚠️ USDT Deposit Not Configured\n\n` +
+                        `${EXCHANGE_DISPLAY_NAMES[toExchange] || toExchange.toUpperCase()} does not have a USDT deposit address configured.\n\n` +
+                        `📍 Action Required:\n` +
+                        `1. Scroll up to "USDT Rebalance Setup" section\n` +
+                        `2. Configure USDT network and deposit address for ${EXCHANGE_DISPLAY_NAMES[toExchange] || toExchange.toUpperCase()}\n` +
+                        `3. Click "Save All USDT Addresses"\n` +
+                        `4. Return here to execute your transfer`
+                    );
+                    return;
+                }
+
+                console.log('✅ USDT configuration validated:', {
+                    toExchange: toExchange,
+                    network: toNetwork,
+                    address: toAddress.substring(0, 10) + '...'
+                });
+            }
+
             // Check if both exchanges are connected
             const connectedExchanges = getConnectedExchanges();
             if (!connectedExchanges.includes(fromExchange)) {
-                alert(`⚠️ ${fromExchange.toUpperCase()} is not connected. Please configure it in Strategy API Setup.`);
+                alert(`⚠️ ${EXCHANGE_DISPLAY_NAMES[fromExchange] || fromExchange.toUpperCase()} is not connected.\n\nPlease configure it in Strategy API Setup.`);
                 return;
             }
 
             if (!connectedExchanges.includes(toExchange)) {
-                alert(`⚠️ ${toExchange.toUpperCase()} is not connected. Please configure it in Strategy API Setup.`);
+                alert(`⚠️ ${EXCHANGE_DISPLAY_NAMES[toExchange] || toExchange.toUpperCase()} is not connected.\n\nPlease configure it in Strategy API Setup.`);
                 return;
             }
 
@@ -4689,7 +4773,10 @@
             const destinationAddress = localStorage.getItem(depositKey);
 
             if (!destinationAddress) {
-                alert(`⚠️ No ${crypto} deposit address configured for ${toExchange.toUpperCase()}.\n\nPlease configure it in the Deposit Address Configuration section above.`);
+                alert(
+                    `⚠️ No ${crypto} deposit address configured for ${EXCHANGE_DISPLAY_NAMES[toExchange] || toExchange.toUpperCase()}.\n\n` +
+                    `Please configure it in the USDT Rebalance Setup section above.`
+                );
                 return;
             }
 
@@ -4701,13 +4788,18 @@
                 destinationAddress: destinationAddress
             });
 
+            // Get network for display
+            const networkKey = `deposit_${toExchange}_${crypto}_network`;
+            const network = localStorage.getItem(networkKey) || 'Default';
+
             // Show confirmation
             const confirmed = confirm(
                 `🔄 Confirm Rebalance Transfer\n\n` +
-                `From: ${fromExchange.toUpperCase()}\n` +
-                `To: ${toExchange.toUpperCase()}\n` +
-                `Amount: ${amount} ${crypto}\n\n` +
-                `This will withdraw ${amount} ${crypto} from ${fromExchange} and send it to your ${toExchange} account.\n\n` +
+                `From: ${EXCHANGE_DISPLAY_NAMES[fromExchange] || fromExchange.toUpperCase()}\n` +
+                `To: ${EXCHANGE_DISPLAY_NAMES[toExchange] || toExchange.toUpperCase()}\n` +
+                `Amount: ${amount} ${crypto}\n` +
+                `Network: ${network}\n\n` +
+                `This will withdraw ${amount} ${crypto} from ${EXCHANGE_DISPLAY_NAMES[fromExchange]} and send it to your ${EXCHANGE_DISPLAY_NAMES[toExchange]} account.\n\n` +
                 `Do you want to proceed?`
             );
 
