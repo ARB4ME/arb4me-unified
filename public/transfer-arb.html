@@ -4567,7 +4567,7 @@
             try {
                 const baseURL = window.location.hostname === 'localhost'
                     ? 'http://localhost:3000'
-                    : 'https://arb4me-unified-production.up.railway.app';
+                    : window.location.origin;
 
                 const pair = `${crypto}USDT`;
 
@@ -4861,7 +4861,7 @@
                 // Call backend API
                 const baseURL = window.location.hostname === 'localhost'
                     ? 'http://localhost:3000'
-                    : 'https://arb4me-unified-production.up.railway.app';
+                    : window.location.origin;
 
                 const response = await fetch(`${baseURL}/api/v1/transfer-arb/rebalance`, {
                     method: 'POST',
@@ -5068,7 +5068,7 @@
                 // Call backend API
                 const baseURL = window.location.hostname === 'localhost'
                     ? 'http://localhost:3000'
-                    : 'https://arb4me-unified-production.up.railway.app';
+                    : window.location.origin;
 
                 const response = await fetch(`${baseURL}/api/v1/transfer-arb/payment`, {
                     method: 'POST',

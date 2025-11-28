@@ -10549,10 +10549,10 @@
                     network: billingState.adminUSDTNetwork
                 });
 
-                // Call backend API
+                // Call backend API (auto-detects domain)
                 const baseURL = window.location.hostname === 'localhost'
                     ? 'http://localhost:3000'
-                    : 'https://arb4me-unified-production.up.railway.app';
+                    : window.location.origin;
 
                 const response = await fetch(`${baseURL}/api/v1/transfer-arb/payment`, {
                     method: 'POST',
@@ -14724,9 +14724,9 @@ Please help recover this stuck asset.`;
                 
                 console.log(`🚀 Executing BUY order: ${amount} ${opportunity.asset} on ${exchange}`);
                 
-                // Use Railway for VALR and LUNO, localhost for others
+                // Use production backend for VALR, LUNO, ChainEX, CoinCatch; localhost for others
                 const backendUrl = (exchange === 'valr' || exchange === 'luno' || exchange === 'chainex' || exchange === 'coincatch')
-                    ? 'https://arb4me-unified-production.up.railway.app'
+                    ? (window.location.hostname === 'localhost' ? 'http://localhost:3000' : window.location.origin)
                     : 'http://localhost:3000';
                 
                 // Use correct endpoints for VALR and LUNO
@@ -14892,9 +14892,9 @@ Please help recover this stuck asset.`;
                 
                 console.log(`💰 Executing SELL order: ${amount} ${opportunity.asset} on ${exchange}`);
                 
-                // Use Railway for VALR and LUNO, localhost for others
+                // Use production backend for VALR, LUNO, ChainEX, CoinCatch; localhost for others
                 const backendUrl = (exchange === 'valr' || exchange === 'luno' || exchange === 'chainex' || exchange === 'coincatch')
-                    ? 'https://arb4me-unified-production.up.railway.app'
+                    ? (window.location.hostname === 'localhost' ? 'http://localhost:3000' : window.location.origin)
                     : 'http://localhost:3000';
                 
                 // Use correct endpoints for VALR and LUNO
@@ -21999,9 +21999,9 @@ ARB4ME Security Team`
 
             // Use backend server for all exchanges to avoid CORS issues
             if (exchange === 'luno' || exchange === 'valr' || exchange === 'altcointrader' || exchange === 'xago' || exchange === 'chainex' || exchange === 'kraken' || exchange === 'binance' || exchange === 'bybit' || exchange === 'gateio' || exchange === 'bitmart' || exchange === 'bitrue' || exchange === 'cryptocom' || exchange === 'coincatch' || exchange === 'bitget' || exchange === 'okx' || exchange === 'mexc' || exchange === 'kucoin' || exchange === 'xt' || exchange === 'ascendex' || exchange === 'bingx' || exchange === 'gemini' || exchange === 'htx') {
-                // Use Railway for all exchanges (production deployment)
+                // Use production backend for all supported exchanges (auto-detects domain)
                 const backendUrl = (exchange === 'valr' || exchange === 'luno' || exchange === 'chainex' || exchange === 'okx' || exchange === 'kraken' || exchange === 'binance' || exchange === 'bybit' || exchange === 'mexc' || exchange === 'kucoin' || exchange === 'xt' || exchange === 'ascendex' || exchange === 'bingx' || exchange === 'gemini' || exchange === 'htx' || exchange === 'bitget' || exchange === 'bitmart' || exchange === 'bitrue' || exchange === 'cryptocom' || exchange === 'coincatch' || exchange === 'gateio')
-                    ? 'https://arb4me-unified-production.up.railway.app'
+                    ? (window.location.hostname === 'localhost' ? 'http://localhost:3000' : window.location.origin)
                     : 'http://localhost:3000';
                 
                 try {
@@ -24400,7 +24400,8 @@ ARB4ME Security Team`
                     throw new Error('Luno API credentials incomplete');
                 }
 
-                const response = await fetch('https://arb4me-unified-production.up.railway.app/api/v1/trading/luno/triangular', {
+                const backendUrl = window.location.hostname === 'localhost' ? 'http://localhost:3000' : window.location.origin;
+                const response = await fetch(`${backendUrl}/api/v1/trading/luno/triangular`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -31503,7 +31504,8 @@ ARB4ME Security Team`
                     console.log(`   Endpoint: /api/v1/trading/luno/triangular`);
                     console.log(`   Request data:`, requestData);
                     
-                    const response = await fetch('https://arb4me-unified-production.up.railway.app/api/v1/trading/luno/triangular', {
+                    const backendUrl = window.location.hostname === 'localhost' ? 'http://localhost:3000' : window.location.origin;
+                const response = await fetch(`${backendUrl}/api/v1/trading/luno/triangular`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -31753,7 +31755,8 @@ ARB4ME Security Team`
                     };
                     console.log('🔍 CLIENT REQUEST PAYLOAD:', JSON.stringify(requestPayload, null, 2));
                     
-                    const response = await fetch('https://arb4me-unified-production.up.railway.app/api/v1/trading/valr/triangular', {
+                    const backendUrl = window.location.hostname === 'localhost' ? 'http://localhost:3000' : window.location.origin;
+                    const response = await fetch(`${backendUrl}/api/v1/trading/valr/triangular`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
