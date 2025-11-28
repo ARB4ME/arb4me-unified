@@ -935,4 +935,157 @@ router.get('/history', tradingRateLimit, optionalAuth, asyncHandler(async (req, 
     });
 }));
 
+// =============================================================================
+// REBALANCE ENDPOINT (Smart Money Transfer)
+// =============================================================================
+
+/**
+ * POST /api/v1/transfer-arb/rebalance
+ * Execute a rebalance transfer between user's own exchanges
+ * This is a simplified withdrawal - no buy/sell, just transfer USDT between accounts
+ */
+router.post('/rebalance', tradingRateLimit, optionalAuth, [
+    body('fromExchange').notEmpty().withMessage('Source exchange is required'),
+    body('toExchange').notEmpty().withMessage('Destination exchange is required'),
+    body('crypto').notEmpty().withMessage('Cryptocurrency is required'),
+    body('amount').isFloat({ min: 0.01 }).withMessage('Valid amount is required (min 0.01)'),
+    body('network').optional().isString().withMessage('Network must be a string'),
+    body('credentials').isObject().withMessage('Credentials object is required'),
+    body('credentials.apiKey').notEmpty().withMessage('API key is required'),
+    body('credentials.apiSecret').notEmpty().withMessage('API secret is required'),
+    body('credentials.passphrase').optional().isString().withMessage('Passphrase must be a string'),
+    body('destinationAddress').notEmpty().withMessage('Destination address is required'),
+    body('destinationTag').optional().isString().withMessage('Destination tag must be a string')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR', errors.array());
+    }
+
+    const {
+        fromExchange,
+        toExchange,
+        crypto,
+        amount,
+        network,
+        credentials,
+        destinationAddress,
+        destinationTag
+    } = req.body;
+
+    systemLogger.trading('Rebalance transfer initiated', {
+        userId: req.user?.id || 'anonymous',
+        fromExchange,
+        toExchange,
+        crypto,
+        amount,
+        network: network || 'default'
+    });
+
+    try {
+        // Validate same exchange transfer
+        if (fromExchange === toExchange) {
+            throw new APIError(
+                'Source and destination exchanges must be different',
+                400,
+                'SAME_EXCHANGE_ERROR'
+            );
+        }
+
+        // Validate USDT network is provided
+        if (crypto === 'USDT' && !network) {
+            throw new APIError(
+                'Network is required for USDT transfers (e.g., TRC20, ERC20, BEP20)',
+                400,
+                'MISSING_NETWORK'
+            );
+        }
+
+        // Validate XRP/XLM tag
+        if (['XRP', 'XLM'].includes(crypto.toUpperCase()) && !destinationTag) {
+            throw new APIError(
+                `Destination tag is REQUIRED for ${crypto} transfers. Transfers without tags will result in permanent fund loss!`,
+                400,
+                'MISSING_TAG'
+            );
+        }
+
+        // Build credentials object with network override for USDT
+        const withdrawalCredentials = {
+            apiKey: credentials.apiKey,
+            apiSecret: credentials.apiSecret,
+            passphrase: credentials.passphrase || undefined,
+            network: network || undefined
+        };
+
+        // Execute withdrawal using existing service
+        systemLogger.trading('Executing rebalance withdrawal', {
+            exchange: fromExchange,
+            crypto,
+            amount,
+            destinationPreview: destinationAddress.substring(0, 10) + '...',
+            network: network || 'default'
+        });
+
+        const result = await transferExecutionService.executeWithdrawal(
+            fromExchange.toLowerCase(),
+            crypto.toUpperCase(),
+            parseFloat(amount),
+            withdrawalCredentials,
+            destinationAddress,
+            destinationTag || undefined
+        );
+
+        systemLogger.trading('Rebalance transfer completed', {
+            userId: req.user?.id || 'anonymous',
+            txHash: result.txHash,
+            status: result.status,
+            fromExchange,
+            toExchange,
+            amount,
+            crypto
+        });
+
+        res.json({
+            success: true,
+            message: 'Rebalance transfer initiated successfully',
+            data: {
+                transferId: result.txHash || result.id,
+                status: result.status,
+                fromExchange,
+                toExchange,
+                crypto,
+                amount,
+                network: network || 'default',
+                destinationAddress: destinationAddress.substring(0, 10) + '...' + destinationAddress.substring(destinationAddress.length - 6),
+                fee: result.fee || 'Unknown',
+                timestamp: new Date().toISOString(),
+                estimatedArrival: crypto === 'USDT' && network === 'TRC20' ? '3-5 minutes' : '10-30 minutes'
+            }
+        });
+
+    } catch (error) {
+        systemLogger.error('Rebalance transfer failed', {
+            userId: req.user?.id || 'anonymous',
+            fromExchange,
+            toExchange,
+            crypto,
+            amount,
+            error: error.message,
+            stack: error.stack
+        });
+
+        // Check if it's already an APIError
+        if (error instanceof APIError) {
+            throw error;
+        }
+
+        throw new APIError(
+            error.message || 'Rebalance transfer failed',
+            500,
+            'REBALANCE_ERROR'
+        );
+    }
+}));
+
 module.exports = router;
