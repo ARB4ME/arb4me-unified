@@ -4994,18 +4994,150 @@
                 return;
             }
 
-            // TODO: Call withdrawal API
-            alert('🚧 Payment execution coming soon! This will call the withdrawal API to send crypto to the recipient.');
+            // Get API credentials from localStorage
+            const strategy = 'transfer';
+            const apiKey = localStorage.getItem(`${fromExchange}_${strategy}_api`);
+            const apiSecret = localStorage.getItem(`${fromExchange}_${strategy}_secret`);
+            const passphrase = localStorage.getItem(`${fromExchange}_${strategy}_passphrase`);
 
-            // Log the transaction
-            console.log('✅ Payment would execute:', {
-                fromExchange,
-                crypto,
-                amount,
-                recipientAddress,
-                recipientTag,
-                description
-            });
+            if (!apiKey || !apiSecret) {
+                alert(
+                    `⚠️ Missing API Credentials\n\n` +
+                    `${EXCHANGE_DISPLAY_NAMES[fromExchange] || fromExchange.toUpperCase()} API credentials are not configured.\n\n` +
+                    `Please configure them in the Strategy API Setup section first.`
+                );
+                return;
+            }
+
+            // Determine network for USDT
+            let network = undefined;
+            if (crypto === 'USDT') {
+                // Ask user to select network for USDT
+                const networkChoice = prompt(
+                    '🌐 Select USDT Network:\n\n' +
+                    '1 = TRC20 (Tron - Fast & Cheap, recommended)\n' +
+                    '2 = ERC20 (Ethereum)\n' +
+                    '3 = BEP20 (BSC)\n' +
+                    '4 = Polygon\n\n' +
+                    'Enter 1, 2, 3, or 4:',
+                    '1'
+                );
+
+                const networkMap = {
+                    '1': 'TRC20',
+                    '2': 'ERC20',
+                    '3': 'BEP20',
+                    '4': 'Polygon'
+                };
+
+                network = networkMap[networkChoice] || 'TRC20';
+                console.log(`📡 Selected USDT network: ${network}`);
+            }
+
+            // Show loading indicator
+            const executeButton = document.querySelector('button[onclick="executeCryptoPayment()"]');
+            const originalButtonText = executeButton.innerHTML;
+            executeButton.innerHTML = '⏳ Processing Payment...';
+            executeButton.disabled = true;
+
+            try {
+                // Build request payload
+                const payload = {
+                    fromExchange: fromExchange,
+                    crypto: crypto,
+                    amount: amount,
+                    network: network,
+                    credentials: {
+                        apiKey: apiKey,
+                        apiSecret: apiSecret,
+                        passphrase: passphrase || undefined
+                    },
+                    recipientAddress: recipientAddress,
+                    recipientTag: recipientTag || undefined,
+                    description: description || undefined
+                };
+
+                console.log('💳 Calling payment API...', {
+                    fromExchange,
+                    crypto,
+                    amount,
+                    recipientPreview: recipientAddress.substring(0, 20) + '...',
+                    network: network || 'default'
+                });
+
+                // Call backend API
+                const baseURL = window.location.hostname === 'localhost'
+                    ? 'http://localhost:3000'
+                    : 'https://arb4me-unified-production.up.railway.app';
+
+                const response = await fetch(`${baseURL}/api/v1/transfer-arb/payment`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+
+                // Reset button
+                executeButton.innerHTML = originalButtonText;
+                executeButton.disabled = false;
+
+                if (result.success) {
+                    // Success!
+                    console.log('✅ Payment initiated successfully:', result.data);
+
+                    alert(
+                        `✅ Payment Sent Successfully!\n\n` +
+                        `Payment ID: ${result.data.paymentId}\n` +
+                        `Status: ${result.data.status}\n` +
+                        `From: ${EXCHANGE_DISPLAY_NAMES[fromExchange] || fromExchange.toUpperCase()}\n` +
+                        `Amount: ${result.data.amount} ${result.data.crypto}\n` +
+                        `Network: ${result.data.network}\n` +
+                        `To: ${result.data.recipientAddress}\n` +
+                        (result.data.recipientTag ? `Tag: ${result.data.recipientTag}\n` : '') +
+                        (result.data.description ? `Description: ${result.data.description}\n` : '') +
+                        `Fee: ${result.data.fee}\n` +
+                        `Estimated Arrival: ${result.data.estimatedArrival}\n\n` +
+                        `🔍 The recipient should receive the crypto shortly.`
+                    );
+
+                    // Clear form fields
+                    document.getElementById('paymentAmount').value = '';
+                    document.getElementById('paymentAddress').value = '';
+                    document.getElementById('paymentTag').value = '';
+                    document.getElementById('paymentDescription').value = '';
+
+                    // Clear from localStorage
+                    localStorage.removeItem('payment_amount');
+                    localStorage.removeItem('payment_address');
+                    localStorage.removeItem('payment_tag');
+                    localStorage.removeItem('payment_description');
+
+                } else {
+                    // Error from backend
+                    console.error('❌ Payment failed:', result);
+                    alert(
+                        `❌ Payment Failed\n\n` +
+                        `Error: ${result.error || result.message || 'Unknown error'}\n\n` +
+                        `Please check your credentials and try again.`
+                    );
+                }
+
+            } catch (error) {
+                // Network or other error
+                console.error('❌ Payment execution error:', error);
+
+                executeButton.innerHTML = originalButtonText;
+                executeButton.disabled = false;
+
+                alert(
+                    `❌ Payment Failed\n\n` +
+                    `Error: ${error.message}\n\n` +
+                    `Please check your internet connection and try again.`
+                );
+            }
         }
 
         // Smart Money Transfer Route Finder (OLD - will be deprecated)

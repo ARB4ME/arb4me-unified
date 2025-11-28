@@ -1088,4 +1088,167 @@ router.post('/rebalance', tradingRateLimit, optionalAuth, [
     }
 }));
 
+// =============================================================================
+// EXTERNAL PAYMENT ENDPOINT (Smart Money Transfer - External Wallets)
+// =============================================================================
+
+/**
+ * POST /api/v1/transfer-arb/payment
+ * Execute a crypto payment to an external wallet address
+ * This is for sending crypto to anyone - contractors, suppliers, friends, etc.
+ */
+router.post('/payment', tradingRateLimit, optionalAuth, [
+    body('fromExchange').notEmpty().withMessage('Source exchange is required'),
+    body('crypto').notEmpty().withMessage('Cryptocurrency is required'),
+    body('amount').isFloat({ min: 0.01 }).withMessage('Valid amount is required (min 0.01)'),
+    body('network').optional().isString().withMessage('Network must be a string'),
+    body('credentials').isObject().withMessage('Credentials object is required'),
+    body('credentials.apiKey').notEmpty().withMessage('API key is required'),
+    body('credentials.apiSecret').notEmpty().withMessage('API secret is required'),
+    body('credentials.passphrase').optional().isString().withMessage('Passphrase must be a string'),
+    body('recipientAddress').notEmpty().withMessage('Recipient wallet address is required'),
+    body('recipientTag').optional().isString().withMessage('Recipient tag must be a string'),
+    body('description').optional().isString().withMessage('Description must be a string')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new APIError('Validation failed', 400, 'VALIDATION_ERROR', errors.array());
+    }
+
+    const {
+        fromExchange,
+        crypto,
+        amount,
+        network,
+        credentials,
+        recipientAddress,
+        recipientTag,
+        description
+    } = req.body;
+
+    systemLogger.trading('External payment initiated', {
+        userId: req.user?.id || 'anonymous',
+        fromExchange,
+        crypto,
+        amount,
+        recipientPreview: recipientAddress.substring(0, 10) + '...',
+        hasDescription: !!description,
+        network: network || 'default'
+    });
+
+    try {
+        // Validate recipient address format
+        if (recipientAddress.length < 10) {
+            throw new APIError(
+                'Invalid recipient address format - address too short',
+                400,
+                'INVALID_ADDRESS'
+            );
+        }
+
+        // CRITICAL: Validate XRP/XLM tag
+        if (['XRP', 'XLM'].includes(crypto.toUpperCase()) && !recipientTag) {
+            throw new APIError(
+                `CRITICAL: ${crypto} requires a destination tag/memo. Payments without tags may result in permanent fund loss! Please provide the recipient's tag.`,
+                400,
+                'MISSING_TAG'
+            );
+        }
+
+        // Validate USDT network is provided
+        if (crypto.toUpperCase() === 'USDT' && !network) {
+            throw new APIError(
+                'Network is required for USDT payments (e.g., TRC20, ERC20, BEP20)',
+                400,
+                'MISSING_NETWORK'
+            );
+        }
+
+        // Build credentials object with network override
+        const withdrawalCredentials = {
+            apiKey: credentials.apiKey,
+            apiSecret: credentials.apiSecret,
+            passphrase: credentials.passphrase || undefined,
+            network: network || undefined
+        };
+
+        // Execute withdrawal using existing service
+        systemLogger.trading('Executing external payment withdrawal', {
+            exchange: fromExchange,
+            crypto,
+            amount,
+            recipientPreview: recipientAddress.substring(0, 10) + '...',
+            network: network || 'default',
+            description: description || 'No description'
+        });
+
+        const result = await transferExecutionService.executeWithdrawal(
+            fromExchange.toLowerCase(),
+            crypto.toUpperCase(),
+            parseFloat(amount),
+            withdrawalCredentials,
+            recipientAddress,
+            recipientTag || undefined
+        );
+
+        systemLogger.trading('External payment completed', {
+            userId: req.user?.id || 'anonymous',
+            txHash: result.txHash,
+            status: result.status,
+            fromExchange,
+            crypto,
+            amount,
+            description: description || 'No description'
+        });
+
+        // Build response
+        const responseData = {
+            paymentId: result.txHash || result.id,
+            status: result.status,
+            fromExchange,
+            crypto,
+            amount,
+            network: network || 'default',
+            recipientAddress: recipientAddress.substring(0, 10) + '...' + recipientAddress.substring(recipientAddress.length - 6),
+            recipientTag: recipientTag || null,
+            description: description || null,
+            fee: result.fee || 'Unknown',
+            timestamp: new Date().toISOString(),
+            estimatedArrival: crypto === 'USDT' && network === 'TRC20' ? '3-5 minutes' :
+                             crypto === 'XRP' ? '3-5 minutes' :
+                             crypto === 'XLM' ? '5-10 minutes' :
+                             crypto === 'TRX' ? '3-5 minutes' :
+                             '10-30 minutes'
+        };
+
+        res.json({
+            success: true,
+            message: 'Payment initiated successfully',
+            data: responseData
+        });
+
+    } catch (error) {
+        systemLogger.error('External payment failed', {
+            userId: req.user?.id || 'anonymous',
+            fromExchange,
+            crypto,
+            amount,
+            recipientPreview: recipientAddress?.substring(0, 10) + '...',
+            error: error.message,
+            stack: error.stack
+        });
+
+        // Check if it's already an APIError
+        if (error instanceof APIError) {
+            throw error;
+        }
+
+        throw new APIError(
+            error.message || 'Payment execution failed',
+            500,
+            'PAYMENT_ERROR'
+        );
+    }
+}));
+
 module.exports = router;
