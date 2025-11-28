@@ -4808,17 +4808,118 @@
                 return;
             }
 
-            // TODO: Call withdrawal API
-            alert('🚧 Rebalance execution coming soon! This will call the withdrawal API to transfer your crypto.');
+            // Get API credentials from localStorage
+            const strategy = 'transfer';
+            const apiKey = localStorage.getItem(`${fromExchange}_${strategy}_api`);
+            const apiSecret = localStorage.getItem(`${fromExchange}_${strategy}_secret`);
+            const passphrase = localStorage.getItem(`${fromExchange}_${strategy}_passphrase`);
 
-            // Log the transaction
-            console.log('✅ Rebalance would execute:', {
-                fromExchange,
-                toExchange,
-                crypto,
-                amount,
-                destinationAddress
-            });
+            if (!apiKey || !apiSecret) {
+                alert(
+                    `⚠️ Missing API Credentials\n\n` +
+                    `${EXCHANGE_DISPLAY_NAMES[fromExchange]} API credentials are not configured.\n\n` +
+                    `Please configure them in the Strategy API Setup section first.`
+                );
+                return;
+            }
+
+            // Get destination tag if needed (for XRP/XLM)
+            const tagKey = `deposit_${toExchange}_${crypto}_tag`;
+            const destinationTag = localStorage.getItem(tagKey) || '';
+
+            // Show loading indicator
+            const executeButton = document.querySelector('button[onclick="executeRebalance()"]');
+            const originalButtonText = executeButton.innerHTML;
+            executeButton.innerHTML = '⏳ Processing Transfer...';
+            executeButton.disabled = true;
+
+            try {
+                // Build request payload
+                const payload = {
+                    fromExchange: fromExchange,
+                    toExchange: toExchange,
+                    crypto: crypto,
+                    amount: amount,
+                    network: network !== 'Default' ? network : undefined,
+                    credentials: {
+                        apiKey: apiKey,
+                        apiSecret: apiSecret,
+                        passphrase: passphrase || undefined
+                    },
+                    destinationAddress: destinationAddress,
+                    destinationTag: destinationTag || undefined
+                };
+
+                console.log('🚀 Calling rebalance API...', {
+                    fromExchange,
+                    toExchange,
+                    crypto,
+                    amount,
+                    network
+                });
+
+                // Call backend API
+                const baseURL = window.location.hostname === 'localhost'
+                    ? 'http://localhost:3000'
+                    : 'https://arb4me-unified-production.up.railway.app';
+
+                const response = await fetch(`${baseURL}/api/v1/transfer-arb/rebalance`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+
+                // Reset button
+                executeButton.innerHTML = originalButtonText;
+                executeButton.disabled = false;
+
+                if (result.success) {
+                    // Success!
+                    console.log('✅ Rebalance transfer initiated successfully:', result.data);
+
+                    alert(
+                        `✅ Transfer Initiated Successfully!\n\n` +
+                        `Transfer ID: ${result.data.transferId}\n` +
+                        `Status: ${result.data.status}\n` +
+                        `From: ${EXCHANGE_DISPLAY_NAMES[fromExchange]}\n` +
+                        `To: ${EXCHANGE_DISPLAY_NAMES[toExchange]}\n` +
+                        `Amount: ${result.data.amount} ${result.data.crypto}\n` +
+                        `Network: ${result.data.network}\n` +
+                        `Fee: ${result.data.fee}\n` +
+                        `Estimated Arrival: ${result.data.estimatedArrival}\n\n` +
+                        `🔍 Monitor your ${EXCHANGE_DISPLAY_NAMES[toExchange]} account for the incoming transfer.`
+                    );
+
+                    // Clear form
+                    document.getElementById('rebalanceAmount').value = '';
+
+                } else {
+                    // Error from backend
+                    console.error('❌ Rebalance failed:', result);
+                    alert(
+                        `❌ Transfer Failed\n\n` +
+                        `Error: ${result.error || result.message || 'Unknown error'}\n\n` +
+                        `Please check your credentials and try again.`
+                    );
+                }
+
+            } catch (error) {
+                // Network or other error
+                console.error('❌ Rebalance execution error:', error);
+
+                executeButton.innerHTML = originalButtonText;
+                executeButton.disabled = false;
+
+                alert(
+                    `❌ Transfer Failed\n\n` +
+                    `Error: ${error.message}\n\n` +
+                    `Please check your internet connection and try again.`
+                );
+            }
         }
 
         // Execute Crypto Payment
