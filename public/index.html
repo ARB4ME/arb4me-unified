@@ -3865,57 +3865,6 @@
                         <!-- Will be populated by JavaScript -->
                     </div>
                 </div>
-
-                <!-- Collapsible Security Settings -->
-                <details style="margin-top: 40px; padding: 20px; background: rgba(255,107,107,0.05); border: 1px solid rgba(255,107,107,0.3); border-radius: 10px;">
-                    <summary style="color: #ff6b6b; font-weight: bold; font-size: 1.1rem; cursor: pointer; user-select: none; list-style: none; display: flex; align-items: center; gap: 10px;">
-                        <span style="font-size: 1.2rem;">🔒</span>
-                        <span>Security Settings</span>
-                        <span style="margin-left: auto; font-size: 0.8rem; color: #888;">(Click to expand)</span>
-                    </summary>
-
-                    <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,107,107,0.2);">
-                        <div style="max-width: 500px;">
-                            <div style="margin-bottom: 20px;">
-                                <label style="display: block; margin-bottom: 8px; color: #e0e0e0; font-weight: bold;">Lock Screen After Inactivity:</label>
-                                <select id="inactivityTimeout" onchange="updateSecuritySettings()" style="width: 100%; padding: 12px; border-radius: 8px; background: #1a1a2e; color: white; border: 1px solid rgba(255,255,255,0.2); font-size: 14px;">
-                                    <option value="5">5 minutes</option>
-                                    <option value="15">15 minutes</option>
-                                    <option value="30">30 minutes</option>
-                                    <option value="60">1 hour</option>
-                                    <option value="0" selected>Never (Disabled)</option>
-                                </select>
-                                <div style="font-size: 0.8rem; color: #b8c6db; margin-top: 8px;">
-                                    Automatically locks the platform after period of inactivity for security
-                                </div>
-                            </div>
-
-                            <div style="text-align: center; margin-bottom: 20px;">
-                                <button onclick="lockApplication('manual')" style="
-                                    padding: 12px 24px;
-                                    background: linear-gradient(45deg, #ff6b6b, #ff5252);
-                                    color: white;
-                                    border: none;
-                                    border-radius: 20px;
-                                    font-weight: bold;
-                                    cursor: pointer;
-                                    transition: all 0.3s;
-                                    font-size: 1rem;
-                                " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-                                    🔒 Lock Application Now
-                                </button>
-                            </div>
-
-                            <div style="padding: 15px; background: rgba(0,255,136,0.1); border-radius: 8px; border-left: 3px solid #00ff88;">
-                                <div style="font-size: 0.95rem; color: #00ff88; font-weight: bold; margin-bottom: 8px;">🚀 Trading Protection</div>
-                                <div style="font-size: 0.9rem; color: #e0e0e0; line-height: 1.5;">
-                                    Lock screen protects your UI only - <strong>trading continues safely in the background</strong><br>
-                                    <span style="font-size: 0.85rem; color: #b8c6db;">Password required to unlock (same as your login password)</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </details>
             </div>
         </div>
 
@@ -4048,6 +3997,57 @@
                                 </button>
                             </form>
                         </div>
+
+                        <!-- Security Settings -->
+                        <details style="margin-top: 30px; padding: 20px; background: rgba(255,107,107,0.05); border: 1px solid rgba(255,107,107,0.3); border-radius: 10px;">
+                            <summary style="color: #ff6b6b; font-weight: bold; font-size: 1.1rem; cursor: pointer; user-select: none; list-style: none; display: flex; align-items: center; gap: 10px;">
+                                <span style="font-size: 1.2rem;">🔒</span>
+                                <span>Security Settings</span>
+                                <span style="margin-left: auto; font-size: 0.8rem; color: #888;">(Click to expand)</span>
+                            </summary>
+
+                            <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,107,107,0.2);">
+                                <div style="max-width: 500px;">
+                                    <div style="margin-bottom: 20px;">
+                                        <label style="display: block; margin-bottom: 8px; color: #e0e0e0; font-weight: bold;">Lock Screen After Inactivity:</label>
+                                        <select id="inactivityTimeout" onchange="updateSecuritySettings()" style="width: 100%; padding: 12px; border-radius: 8px; background: #1a1a2e; color: white; border: 1px solid rgba(255,255,255,0.2); font-size: 14px;">
+                                            <option value="5">5 minutes</option>
+                                            <option value="15">15 minutes</option>
+                                            <option value="30">30 minutes</option>
+                                            <option value="60">1 hour</option>
+                                            <option value="0" selected>Never (Disabled)</option>
+                                        </select>
+                                        <div style="font-size: 0.8rem; color: #b8c6db; margin-top: 8px;">
+                                            Automatically locks the platform after period of inactivity for security
+                                        </div>
+                                    </div>
+
+                                    <div style="text-align: center; margin-bottom: 20px;">
+                                        <button onclick="lockApplication('manual')" style="
+                                            padding: 12px 24px;
+                                            background: linear-gradient(45deg, #ff6b6b, #ff5252);
+                                            color: white;
+                                            border: none;
+                                            border-radius: 20px;
+                                            font-weight: bold;
+                                            cursor: pointer;
+                                            transition: all 0.3s;
+                                            font-size: 1rem;
+                                        " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                                            🔒 Lock Application Now
+                                        </button>
+                                    </div>
+
+                                    <div style="padding: 15px; background: rgba(0,255,136,0.1); border-radius: 8px; border-left: 3px solid #00ff88;">
+                                        <div style="font-size: 0.95rem; color: #00ff88; font-weight: bold; margin-bottom: 8px;">🚀 Trading Protection</div>
+                                        <div style="font-size: 0.9rem; color: #e0e0e0; line-height: 1.5;">
+                                            Lock screen protects your UI only - <strong>trading continues safely in the background</strong><br>
+                                            <span style="font-size: 0.85rem; color: #b8c6db;">Password required to unlock (same as your login password)</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </details>
 
                         <!-- BILLING DASHBOARD -->
                         <div style="margin-top: 30px; background: rgba(255,255,255,0.1); padding: 20px; border-radius: 15px;">
