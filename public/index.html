@@ -3915,19 +3915,28 @@
 
                         <!-- BILLING DASHBOARD -->
                         <div style="margin-top: 30px; background: rgba(255,255,255,0.1); padding: 20px; border-radius: 15px;">
-                            <h4 style="color: #00d4ff; margin-bottom: 20px;">💰 Billing & Account Status</h4>
-                            
-                            <!-- Monthly Profit Summary -->
+                            <h4 style="color: #00d4ff; margin-bottom: 20px;">💰 Billing & Payment Status</h4>
+
+                            <!-- Monthly Profit & Fee Summary -->
                             <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
-                                <h5 style="color: #00ff88; margin-bottom: 15px;">📊 Monthly Profit Summary</h5>
+                                <h5 style="color: #00ff88; margin-bottom: 15px;">📊 Monthly Profit & Platform Fee</h5>
                                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
                                     <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; text-align: center;">
-                                        <div style="color: #feca57; font-size: 0.9rem;">Current Month Profit</div>
+                                        <div style="color: #feca57; font-size: 0.9rem;">Total Monthly Profit (All Strategies)</div>
                                         <div style="color: #00ff88; font-size: 1.8rem; font-weight: bold; margin-top: 5px;" id="currentMonthProfit">$0.00</div>
+                                        <div style="color: #888; font-size: 0.75rem; margin-top: 5px;">Calculated from Dashboard strategies</div>
                                     </div>
                                     <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; text-align: center;">
-                                        <div style="color: #feca57; font-size: 0.9rem;">Service Fee (R500)</div>
+                                        <div style="color: #feca57; font-size: 0.9rem;">Platform Fee (3% of Profit)</div>
                                         <div style="color: #ff6b6b; font-size: 1.8rem; font-weight: bold; margin-top: 5px;" id="serviceFeeAmount">$0.00</div>
+                                        <div style="color: #888; font-size: 0.75rem; margin-top: 5px;">Payable in USDT</div>
+                                    </div>
+                                    <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; text-align: center;">
+                                        <div style="color: #feca57; font-size: 0.9rem;">Payment Status</div>
+                                        <div style="font-size: 1.5rem; font-weight: bold; margin-top: 5px;" id="monthlyFeeStatus">
+                                            <span style="color: #00ff88;">✅ PAID</span>
+                                        </div>
+                                        <div style="color: #888; font-size: 0.75rem; margin-top: 5px;" id="paymentDueDate">No payment due</div>
                                     </div>
                                 </div>
                             </div>
@@ -3966,15 +3975,35 @@
                             </div>
 
                             <!-- Important Information -->
-                            <div style="background: rgba(255,107,107,0.1); padding: 15px; border-radius: 10px; border-left: 4px solid #ff6b6b;">
-                                <h5 style="color: #ff6b6b; margin-bottom: 10px;">⚠️ Important Billing Information</h5>
+                            <div style="background: rgba(0,212,255,0.1); padding: 15px; border-radius: 10px; border-left: 4px solid #00d4ff;">
+                                <h5 style="color: #00d4ff; margin-bottom: 10px;">ℹ️ Platform Fee Information</h5>
                                 <ul style="color: #e0e0e0; line-height: 1.6; margin-left: 20px; font-size: 0.9rem;">
-                                    <li>Service fee: <strong>Flat monthly fee payable upfront of R500</strong></li>
-                                    <li>Payment due: <strong>Upfront payment required</strong> to access trading</li>
-                                    <li>Auto-reactivation: Account resumes immediately upon payment</li>
-                                    <li>Payment methods: Credit/Debit cards accepted globally</li>
-                                    <li>Use your unique reference when making payments</li>
+                                    <li>Service fee: <strong>3% of monthly profit</strong> (no profit = no fee)</li>
+                                    <li>Payment currency: <strong>USDT only</strong> (TRC20, ERC20, BEP20, or Polygon)</li>
+                                    <li>Payment due: <strong>End of month + 7 day grace period</strong></li>
+                                    <li>Auto-suspension: Trading disabled after 7 days overdue</li>
+                                    <li>Auto-reactivation: Trading resumes immediately upon payment confirmation</li>
+                                    <li>Payment method: Direct USDT transfer to admin wallet</li>
                                 </ul>
+                            </div>
+
+                            <!-- Pay Admin Button (Only shows if payment due) -->
+                            <div id="payAdminSection" style="margin-top: 20px; background: linear-gradient(135deg, rgba(255,107,107,0.1), rgba(255,183,77,0.1)); padding: 20px; border-radius: 10px; border: 2px solid #ff6b6b; display: none;">
+                                <div style="text-align: center; margin-bottom: 15px;">
+                                    <h4 style="color: #ff6b6b; margin: 0 0 10px 0;">⚠️ Payment Required</h4>
+                                    <div style="color: #e0e0e0; font-size: 0.95rem; margin-bottom: 5px;">
+                                        Your monthly platform fee is now due
+                                    </div>
+                                    <div style="color: #ffb347; font-size: 1.3rem; font-weight: bold; margin: 10px 0;">
+                                        Amount Due: <span id="paymentAmountDue">$0.00</span> USDT
+                                    </div>
+                                    <div style="color: #888; font-size: 0.85rem;" id="paymentDeadline">
+                                        Payment deadline: 7 days from month end
+                                    </div>
+                                </div>
+                                <button onclick="openPayAdminModal()" class="btn" style="width: 100%; background: linear-gradient(45deg, #ff6b6b, #ffb347); font-size: 1.1rem; padding: 15px;">
+                                    💳 Pay Admin with USDT
+                                </button>
                             </div>
 
                             <!-- Payment Actions -->
@@ -3982,8 +4011,8 @@
                                 <button onclick="viewDetailedBilling()" class="btn" style="background: linear-gradient(45deg, #00d4ff, #00ff88); margin-right: 10px;">
                                     📊 View Detailed Billing
                                 </button>
-                                <button onclick="showPaymentInstructions()" class="btn" style="background: linear-gradient(45deg, #feca57, #ff6b6b);">
-                                    💳 Payment Instructions
+                                <button onclick="viewPaymentHistory()" class="btn" style="background: linear-gradient(45deg, #feca57, #ff6b6b);">
+                                    📜 Payment History
                                 </button>
                             </div>
                         </div>
@@ -9443,12 +9472,18 @@
         // 💰 BILLING DASHBOARD FUNCTIONS
         const billingState = {
             currentMonthProfit: 0,
-            serviceFeePercentage: 0.03, // 3%
+            serviceFeePercentage: 0.03, // 3% of profit
+            serviceFeeAmount: 0,
             paymentHistory: [],
             accountStatus: 'ACTIVE',
-            paymentStatus: 'No Payment Due',
+            paymentStatus: 'PAID', // PAID, PENDING, OVERDUE
+            paymentDueDate: null,
             nextPaymentDate: null,
-            paymentReference: null
+            paymentReference: null,
+            adminUSDTAddress: 'TBD', // Admin will provide USDT address
+            adminUSDTNetwork: 'TRC20', // Default network
+            lastPaymentTxHash: null,
+            gracePeriodDays: 7
         };
 
         function updateBillingDashboard() {
@@ -9483,17 +9518,32 @@
                 monthlyBillElement.textContent = `R${serviceFee.toFixed(2)}`;
             }
 
+            // Store fee amount in billingState
+            billingState.serviceFeeAmount = serviceFee;
+
             // Update UI elements in profile (if they exist)
             const currentMonthProfitElement = document.getElementById('currentMonthProfit');
             const serviceFeeAmountElement = document.getElementById('serviceFeeAmount');
             const paymentReferenceElement = document.getElementById('paymentReference');
             const nextPaymentDateElement = document.getElementById('nextPaymentDate');
-            
+            const monthlyFeeStatusElement = document.getElementById('monthlyFeeStatus');
+            const paymentDueDateElement = document.getElementById('paymentDueDate');
+            const paymentAmountDueElement = document.getElementById('paymentAmountDue');
+            const payAdminSection = document.getElementById('payAdminSection');
+
             if (currentMonthProfitElement) {
                 currentMonthProfitElement.textContent = `$${billingState.currentMonthProfit.toFixed(2)}`;
             }
             if (serviceFeeAmountElement) {
                 serviceFeeAmountElement.textContent = `$${serviceFee.toFixed(2)}`;
+            }
+
+            // Check payment status and update UI
+            checkMonthlyPaymentStatus();
+
+            // Update payment amount in "Pay Admin" section
+            if (paymentAmountDueElement) {
+                paymentAmountDueElement.textContent = `$${serviceFee.toFixed(2)}`;
             }
 
             // Use permanent payment reference from database
@@ -10167,6 +10217,429 @@
                 </div>
             `;
             
+            document.body.appendChild(modal);
+        }
+
+        // 💳 NEW USDT PAYMENT SYSTEM
+
+        // Check monthly payment status and update UI
+        function checkMonthlyPaymentStatus() {
+            const currentDate = new Date();
+            const currentMonth = currentDate.getMonth();
+            const currentYear = currentDate.getFullYear();
+
+            // Get payment records for current month
+            const paymentKey = `payment_${currentYear}_${currentMonth}`;
+            const paymentRecord = localStorage.getItem(paymentKey);
+
+            const monthlyFeeStatusElement = document.getElementById('monthlyFeeStatus');
+            const paymentDueDateElement = document.getElementById('paymentDueDate');
+            const payAdminSection = document.getElementById('payAdminSection');
+            const paymentDeadlineElement = document.getElementById('paymentDeadline');
+
+            // Calculate end of month + 7 days grace period
+            const endOfMonth = new Date(currentYear, currentMonth + 1, 0);
+            const paymentDeadline = new Date(endOfMonth);
+            paymentDeadline.setDate(paymentDeadline.getDate() + billingState.gracePeriodDays);
+
+            const daysUntilDeadline = Math.ceil((paymentDeadline - currentDate) / (1000 * 60 * 60 * 24));
+
+            // If no profit, no payment needed
+            if (billingState.serviceFeeAmount === 0 || billingState.currentMonthProfit <= 0) {
+                if (monthlyFeeStatusElement) {
+                    monthlyFeeStatusElement.innerHTML = '<span style="color: #00ff88;">✅ NO FEE DUE</span>';
+                }
+                if (paymentDueDateElement) {
+                    paymentDueDateElement.textContent = 'No profit this month - no fee required';
+                }
+                if (payAdminSection) {
+                    payAdminSection.style.display = 'none';
+                }
+                billingState.paymentStatus = 'PAID';
+                return;
+            }
+
+            // Check if payment has been made this month
+            if (paymentRecord) {
+                const payment = JSON.parse(paymentRecord);
+                if (monthlyFeeStatusElement) {
+                    monthlyFeeStatusElement.innerHTML = '<span style="color: #00ff88;">✅ PAID</span>';
+                }
+                if (paymentDueDateElement) {
+                    paymentDueDateElement.textContent = `Paid on ${new Date(payment.timestamp).toLocaleDateString()}`;
+                }
+                if (payAdminSection) {
+                    payAdminSection.style.display = 'none';
+                }
+                billingState.paymentStatus = 'PAID';
+                billingState.lastPaymentTxHash = payment.txHash;
+                return;
+            }
+
+            // Payment not made - check if overdue
+            if (daysUntilDeadline < 0) {
+                // OVERDUE
+                if (monthlyFeeStatusElement) {
+                    monthlyFeeStatusElement.innerHTML = '<span style="color: #ff6b6b;">🚨 OVERDUE</span>';
+                }
+                if (paymentDueDateElement) {
+                    paymentDueDateElement.innerHTML = `<span style="color: #ff6b6b;">Overdue by ${Math.abs(daysUntilDeadline)} days - Trading suspended</span>`;
+                }
+                if (payAdminSection) {
+                    payAdminSection.style.display = 'block';
+                }
+                if (paymentDeadlineElement) {
+                    paymentDeadlineElement.innerHTML = `<span style="color: #ff6b6b;">⚠️ OVERDUE - Pay now to reactivate trading</span>`;
+                }
+                billingState.paymentStatus = 'OVERDUE';
+                billingState.accountStatus = 'SUSPENDED';
+            } else if (daysUntilDeadline <= billingState.gracePeriodDays) {
+                // PENDING (within grace period)
+                if (monthlyFeeStatusElement) {
+                    monthlyFeeStatusElement.innerHTML = '<span style="color: #ffb347;">⚠️ PENDING</span>';
+                }
+                if (paymentDueDateElement) {
+                    paymentDueDateElement.innerHTML = `<span style="color: #ffb347;">Due: ${paymentDeadline.toLocaleDateString()} (${daysUntilDeadline} days remaining)</span>`;
+                }
+                if (payAdminSection) {
+                    payAdminSection.style.display = 'block';
+                }
+                if (paymentDeadlineElement) {
+                    paymentDeadlineElement.textContent = `Payment deadline: ${paymentDeadline.toLocaleDateString()} (${daysUntilDeadline} days remaining)`;
+                }
+                billingState.paymentStatus = 'PENDING';
+            } else {
+                // NOT DUE YET (still in current month)
+                if (monthlyFeeStatusElement) {
+                    monthlyFeeStatusElement.innerHTML = '<span style="color: #00d4ff;">📅 NOT DUE</span>';
+                }
+                if (paymentDueDateElement) {
+                    paymentDueDateElement.textContent = `Payment due: ${paymentDeadline.toLocaleDateString()}`;
+                }
+                if (payAdminSection) {
+                    payAdminSection.style.display = 'none';
+                }
+                billingState.paymentStatus = 'NOT_DUE';
+            }
+        }
+
+        // Open payment modal with pre-filled USDT payment to admin
+        function openPayAdminModal() {
+            if (billingState.adminUSDTAddress === 'TBD') {
+                alert('⚠️ Admin USDT address not configured yet.\n\nPlease contact support to complete setup.');
+                return;
+            }
+
+            if (billingState.serviceFeeAmount <= 0) {
+                alert('✅ No payment due - you have no profit this month!');
+                return;
+            }
+
+            // Create modal
+            const modal = document.createElement('div');
+            modal.id = 'payAdminModal';
+            modal.style.cssText = `
+                position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+                background: rgba(0,0,0,0.9); display: flex; align-items: center;
+                justify-content: center; z-index: 10000; padding: 20px;
+            `;
+
+            const currentMonth = new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' });
+
+            modal.innerHTML = `
+                <div style="background: #1a1a2e; padding: 30px; border-radius: 15px; max-width: 600px; width: 100%; max-height: 90vh; overflow-y: auto;">
+                    <h3 style="color: #00d4ff; margin-bottom: 20px;">💳 Pay Monthly Platform Fee</h3>
+
+                    <div style="background: rgba(0,212,255,0.1); padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #00d4ff;">
+                        <h4 style="color: #00d4ff; margin-bottom: 15px;">Payment Summary</h4>
+                        <div style="display: grid; gap: 10px;">
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: #b8c6db;">Period:</span>
+                                <span style="color: white; font-weight: bold;">${currentMonth}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: #b8c6db;">Monthly Profit:</span>
+                                <span style="color: #00ff88; font-weight: bold;">$${billingState.currentMonthProfit.toFixed(2)}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: #b8c6db;">Platform Fee (3%):</span>
+                                <span style="color: #ff6b6b; font-weight: bold; font-size: 1.3rem;">$${billingState.serviceFeeAmount.toFixed(2)} USDT</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: #b8c6db;">Payment Reference:</span>
+                                <span style="color: #ffb347; font-family: monospace;">${billingState.paymentReference}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="background: rgba(255,107,107,0.1); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+                        <h4 style="color: #ff6b6b; margin-bottom: 10px;">⚠️ Important</h4>
+                        <ul style="color: #e0e0e0; line-height: 1.6; margin-left: 20px; font-size: 0.9rem;">
+                            <li>Amount will be sent in <strong>USDT</strong></li>
+                            <li>Network: <strong>${billingState.adminUSDTNetwork}</strong> (Fast & Cheap)</li>
+                            <li>Payment is <strong>automatically tracked</strong></li>
+                            <li>Trading reactivates <strong>immediately</strong> after payment</li>
+                        </ul>
+                    </div>
+
+                    <div style="display: flex; gap: 10px; margin-top: 25px;">
+                        <button onclick="executeUSDTPaymentToAdmin()" class="btn" style="flex: 1; background: linear-gradient(45deg, #00ff88, #00d4ff); color: #0a0e27; font-size: 1.1rem; padding: 15px;">
+                            💳 Pay ${billingState.serviceFeeAmount.toFixed(2)} USDT
+                        </button>
+                        <button onclick="document.getElementById('payAdminModal').remove()" class="btn" style="background: rgba(255,107,107,0.2); color: #ff6b6b; border: 1px solid #ff6b6b; padding: 15px;">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+        }
+
+        // Execute USDT payment to admin
+        async function executeUSDTPaymentToAdmin() {
+            console.log('💳 Executing USDT payment to admin...');
+
+            if (billingState.adminUSDTAddress === 'TBD') {
+                alert('⚠️ Admin USDT address not configured. Please contact support.');
+                return;
+            }
+
+            // Get user's connected exchanges
+            const connectedExchanges = getConnectedExchanges();
+            if (connectedExchanges.length === 0) {
+                alert('⚠️ No exchanges connected. Please configure API keys in Setup tab first.');
+                return;
+            }
+
+            // Show exchange selection modal
+            const exchangeModal = document.createElement('div');
+            exchangeModal.id = 'exchangeSelectModal';
+            exchangeModal.style.cssText = `
+                position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+                background: rgba(0,0,0,0.95); display: flex; align-items: center;
+                justify-content: center; z-index: 10001;
+            `;
+
+            const exchangeOptions = connectedExchanges.map(ex =>
+                `<option value="${ex}">${EXCHANGE_DISPLAY_NAMES[ex] || ex.toUpperCase()}</option>`
+            ).join('');
+
+            exchangeModal.innerHTML = `
+                <div style="background: #1a1a2e; padding: 30px; border-radius: 15px; max-width: 500px; width: 100%;">
+                    <h3 style="color: #00d4ff; margin-bottom: 20px;">Select Payment Source</h3>
+                    <p style="color: #e0e0e0; margin-bottom: 20px;">Choose which exchange to send USDT from:</p>
+
+                    <select id="paymentSourceExchange" style="width: 100%; padding: 12px; background: rgba(255,255,255,0.1); border: 1px solid #00d4ff; border-radius: 10px; color: white; font-size: 1rem; margin-bottom: 20px;">
+                        ${exchangeOptions}
+                    </select>
+
+                    <div style="display: flex; gap: 10px;">
+                        <button onclick="confirmPaymentExecution()" class="btn" style="flex: 1; background: linear-gradient(45deg, #00ff88, #00d4ff); color: #0a0e27;">
+                            Confirm & Pay
+                        </button>
+                        <button onclick="document.getElementById('exchangeSelectModal').remove()" class="btn" style="background: rgba(255,107,107,0.2); color: #ff6b6b; border: 1px solid #ff6b6b;">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(exchangeModal);
+        }
+
+        // Confirm and execute payment
+        async function confirmPaymentExecution() {
+            const fromExchange = document.getElementById('paymentSourceExchange').value;
+            const strategy = 'transfer';
+            const apiKey = localStorage.getItem(`${fromExchange}_${strategy}_api`);
+            const apiSecret = localStorage.getItem(`${fromExchange}_${strategy}_secret`);
+            const passphrase = localStorage.getItem(`${fromExchange}_${strategy}_passphrase`);
+
+            if (!apiKey || !apiSecret) {
+                alert(`⚠️ ${EXCHANGE_DISPLAY_NAMES[fromExchange]} API credentials not found for transfer strategy.`);
+                return;
+            }
+
+            // Close modals
+            const payAdminModal = document.getElementById('payAdminModal');
+            const exchangeSelectModal = document.getElementById('exchangeSelectModal');
+            if (payAdminModal) payAdminModal.remove();
+            if (exchangeSelectModal) exchangeSelectModal.remove();
+
+            // Show processing message
+            const processingMsg = document.createElement('div');
+            processingMsg.id = 'processingPayment';
+            processingMsg.style.cssText = `
+                position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+                background: #1a1a2e; padding: 30px 50px; border-radius: 15px; z-index: 10002;
+                border: 2px solid #00d4ff; text-align: center;
+            `;
+            processingMsg.innerHTML = `
+                <div style="color: #00d4ff; font-size: 1.5rem; margin-bottom: 10px;">⏳ Processing Payment...</div>
+                <div style="color: #b8c6db;">Sending ${billingState.serviceFeeAmount.toFixed(2)} USDT to admin</div>
+            `;
+            document.body.appendChild(processingMsg);
+
+            try {
+                // Build payment payload
+                const currentMonth = new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' });
+                const payload = {
+                    fromExchange: fromExchange,
+                    crypto: 'USDT',
+                    amount: billingState.serviceFeeAmount,
+                    network: billingState.adminUSDTNetwork,
+                    credentials: {
+                        apiKey: apiKey,
+                        apiSecret: apiSecret,
+                        passphrase: passphrase || undefined
+                    },
+                    recipientAddress: billingState.adminUSDTAddress,
+                    recipientTag: undefined,
+                    description: `Platform Fee - ${currentMonth} - Ref: ${billingState.paymentReference}`
+                };
+
+                console.log('💳 Calling payment API...', {
+                    fromExchange,
+                    amount: billingState.serviceFeeAmount,
+                    network: billingState.adminUSDTNetwork
+                });
+
+                // Call backend API
+                const baseURL = window.location.hostname === 'localhost'
+                    ? 'http://localhost:3000'
+                    : 'https://arb4me-unified-production.up.railway.app';
+
+                const response = await fetch(`${baseURL}/api/v1/transfer-arb/payment`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+
+                // Remove processing message
+                processingMsg.remove();
+
+                if (result.success) {
+                    // Record payment in localStorage
+                    const currentDate = new Date();
+                    const paymentKey = `payment_${currentDate.getFullYear()}_${currentDate.getMonth()}`;
+                    const paymentRecord = {
+                        amount: billingState.serviceFeeAmount,
+                        txHash: result.data.paymentId,
+                        timestamp: new Date().toISOString(),
+                        month: currentDate.getMonth(),
+                        year: currentDate.getFullYear(),
+                        reference: billingState.paymentReference,
+                        fromExchange: fromExchange,
+                        network: billingState.adminUSDTNetwork
+                    };
+                    localStorage.setItem(paymentKey, JSON.stringify(paymentRecord));
+
+                    // Update payment history
+                    const paymentHistory = JSON.parse(localStorage.getItem('arb4me_payment_history') || '[]');
+                    paymentHistory.push(paymentRecord);
+                    localStorage.setItem('arb4me_payment_history', JSON.stringify(paymentHistory));
+
+                    // Success alert
+                    alert(
+                        `✅ Payment Successful!\n\n` +
+                        `Transaction ID: ${result.data.paymentId}\n` +
+                        `Amount: ${result.data.amount} USDT\n` +
+                        `Network: ${result.data.network}\n` +
+                        `Fee: ${result.data.fee}\n` +
+                        `Estimated Arrival: ${result.data.estimatedArrival}\n\n` +
+                        `Your trading access has been reactivated!`
+                    );
+
+                    // Reactivate account
+                    billingState.accountStatus = 'ACTIVE';
+                    billingState.paymentStatus = 'PAID';
+                    billingState.lastPaymentTxHash = result.data.paymentId;
+
+                    // Refresh billing dashboard
+                    updateBillingDashboard();
+                    addActivity('✅ Monthly platform fee paid successfully', 'success');
+
+                } else {
+                    alert(
+                        `❌ Payment Failed\n\n` +
+                        `Error: ${result.error || result.message || 'Unknown error'}\n\n` +
+                        `Please try again or contact support.`
+                    );
+                }
+
+            } catch (error) {
+                processingMsg.remove();
+                console.error('❌ Payment error:', error);
+                alert(
+                    `❌ Payment Failed\n\n` +
+                    `Error: ${error.message}\n\n` +
+                    `Please check your internet connection and try again.`
+                );
+            }
+        }
+
+        // View payment history
+        function viewPaymentHistory() {
+            const paymentHistory = JSON.parse(localStorage.getItem('arb4me_payment_history') || '[]');
+
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+                background: rgba(0,0,0,0.8); display: flex; align-items: center;
+                justify-content: center; z-index: 10000; padding: 20px;
+            `;
+
+            const historyHTML = paymentHistory.length > 0
+                ? paymentHistory.reverse().map(payment => `
+                    <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                            <div>
+                                <div style="color: #00d4ff; font-weight: bold;">
+                                    ${new Date(payment.timestamp).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                                </div>
+                                <div style="color: #888; font-size: 0.85rem;">
+                                    ${new Date(payment.timestamp).toLocaleString()}
+                                </div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="color: #00ff88; font-weight: bold; font-size: 1.2rem;">
+                                    $${payment.amount.toFixed(2)} USDT
+                                </div>
+                                <div style="color: #ffb347; font-size: 0.85rem;">
+                                    ${payment.network || 'TRC20'}
+                                </div>
+                            </div>
+                        </div>
+                        <div style="color: #b8c6db; font-size: 0.9rem; margin-top: 5px;">
+                            From: ${EXCHANGE_DISPLAY_NAMES[payment.fromExchange] || payment.fromExchange}
+                        </div>
+                        <div style="color: #888; font-size: 0.8rem; font-family: monospace; margin-top: 5px;">
+                            TxID: ${payment.txHash}
+                        </div>
+                    </div>
+                `).join('')
+                : `<div style="text-align: center; padding: 40px; color: #888;">
+                    <div style="font-size: 2rem; margin-bottom: 10px;">📜</div>
+                    <div>No payment history yet</div>
+                   </div>`;
+
+            modal.innerHTML = `
+                <div style="background: #1a1a2e; padding: 30px; border-radius: 15px; max-width: 700px; width: 100%; max-height: 80vh; overflow-y: auto;">
+                    <h3 style="color: #00d4ff; margin-bottom: 20px;">📜 Payment History</h3>
+                    <div style="max-height: 500px; overflow-y: auto;">
+                        ${historyHTML}
+                    </div>
+                    <button onclick="this.parentElement.parentElement.remove()" class="btn" style="margin-top: 20px; width: 100%;">
+                        Close
+                    </button>
+                </div>
+            `;
+
             document.body.appendChild(modal);
         }
 
