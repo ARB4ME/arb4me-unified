@@ -458,8 +458,8 @@
                 <!-- Will be populated with crypto selector component -->
             </div>
 
-            <!-- Deposit Address Configuration (Generated based on selected cryptos) -->
-            <div id="deposit-address-section" style="display: none; margin-bottom: 30px;">
+            <!-- Deposit Address Configuration (Always visible for easy access) -->
+            <div id="deposit-address-section" style="display: block; margin-bottom: 30px;">
                 <!-- Dynamically generated deposit address fields -->
             </div>
 
@@ -3498,6 +3498,11 @@
             console.log('🔄 Initializing crypto selector...');
             initializeCryptoSelector();
             console.log('✅ Crypto selector initialized');
+
+            // Initialize deposit address section (always visible)
+            console.log('📬 Initializing deposit address section...');
+            generateDepositAddressSection();
+            console.log('✅ Deposit address section initialized');
 
             // Load configuration from localStorage
             const sourceExchange = localStorage.getItem('transferSourceExchange');
