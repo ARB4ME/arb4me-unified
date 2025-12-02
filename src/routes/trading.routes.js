@@ -10788,13 +10788,13 @@ router.post('/bingx/sell-order', tradingRateLimit, optionalAuth, [
 // BITGET EXCHANGE API PROXY ENDPOINTS
 // ============================================================================
 
-// Bitget API Configuration
+// Bitget API Configuration (V2 - V1 decommissioned as of 2024)
 const BITGET_CONFIG = {
     baseUrl: 'https://api.bitget.com',
     endpoints: {
-        balance: '/api/spot/v1/account/assets',
-        ticker: '/api/spot/v1/market/ticker',
-        test: '/api/spot/v1/account/assets'
+        balance: '/api/v2/spot/account/assets',
+        ticker: '/api/v2/spot/market/tickers',
+        test: '/api/v2/spot/account/assets'
     }
 };
 
@@ -11050,9 +11050,9 @@ router.post('/bitget/buy-order', tradingRateLimit, optionalAuth, [
         };
         
         const body = JSON.stringify(orderData);
-        const signature = createBitgetSignature(timestamp, 'POST', '/api/spot/v1/trade/orders', body, apiSecret);
-        
-        const response = await fetch(`${BITGET_CONFIG.baseUrl}/api/spot/v1/trade/orders`, {
+        const signature = createBitgetSignature(timestamp, 'POST', '/api/v2/spot/trade/orders', body, apiSecret);
+
+        const response = await fetch(`${BITGET_CONFIG.baseUrl}/api/v2/spot/trade/orders`, {
             method: 'POST',
             headers: {
                 'ACCESS-KEY': apiKey,
@@ -11147,9 +11147,9 @@ router.post('/bitget/sell-order', tradingRateLimit, optionalAuth, [
         };
         
         const body = JSON.stringify(orderData);
-        const signature = createBitgetSignature(timestamp, 'POST', '/api/spot/v1/trade/orders', body, apiSecret);
-        
-        const response = await fetch(`${BITGET_CONFIG.baseUrl}/api/spot/v1/trade/orders`, {
+        const signature = createBitgetSignature(timestamp, 'POST', '/api/v2/spot/trade/orders', body, apiSecret);
+
+        const response = await fetch(`${BITGET_CONFIG.baseUrl}/api/v2/spot/trade/orders`, {
             method: 'POST',
             headers: {
                 'ACCESS-KEY': apiKey,
