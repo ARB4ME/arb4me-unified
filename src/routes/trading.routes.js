@@ -10834,14 +10834,26 @@ router.post('/bitget/balance', tradingRateLimit, optionalAuth, [
             }
         });
 
+        const data = await response.json();
+
         if (!response.ok) {
-            throw new APIError(`Bitget API error: ${response.status}`, 502, 'BITGET_API_ERROR');
+            const errorMsg = data.msg || data.message || 'Unknown error';
+            console.error('Bitget API Error Details:', {
+                status: response.status,
+                code: data.code,
+                message: data.msg,
+                fullResponse: JSON.stringify(data)
+            });
+            throw new APIError(`Bitget API error (${response.status}): ${errorMsg} (Code: ${data.code})`, 502, 'BITGET_API_ERROR');
         }
 
-        const data = await response.json();
-        
         if (data.code !== '00000') {
-            throw new APIError(`Bitget error: ${data.msg}`, 400, 'BITGET_ERROR');
+            console.error('Bitget Response Error:', {
+                code: data.code,
+                message: data.msg,
+                fullResponse: JSON.stringify(data)
+            });
+            throw new APIError(`Bitget error: ${data.msg} (Code: ${data.code})`, 400, 'BITGET_ERROR');
         }
 
         const balances = {};
