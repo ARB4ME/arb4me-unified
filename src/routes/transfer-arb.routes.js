@@ -531,8 +531,11 @@ router.get('/networks/:fromExchange/:toExchange/:asset', asyncHandler(async (req
         const fromNetworks = await networkDetectionService.getNetworks(fromExchange, asset);
         const toNetworks = await networkDetectionService.getNetworks(toExchange, asset);
 
-        // Find matching networks
+        // Find matching networks (now sorted by priority - best first)
         const matchingNetworks = networkDetectionService.findMatchingNetworks(fromNetworks, toNetworks);
+
+        // Best network is now the first match (already sorted by priority and fee)
+        const bestNetwork = matchingNetworks.length > 0 ? matchingNetworks[0] : null;
 
         res.json({
             success: true,
@@ -544,11 +547,13 @@ router.get('/networks/:fromExchange/:toExchange/:asset', asyncHandler(async (req
                 toNetworks,
                 matchingNetworks,
                 isViable: matchingNetworks.length > 0,
-                bestNetwork: matchingNetworks.length > 0
-                    ? matchingNetworks.reduce((best, current) =>
-                        current.withdrawFee < best.withdrawFee ? current : best
-                    )
-                    : null
+                bestNetwork,
+                recommendation: bestNetwork ? {
+                    network: bestNetwork.network,
+                    reason: matchingNetworks.length === 1
+                        ? 'Only compatible network'
+                        : `Best option (priority: ${bestNetwork.priority}, est. fee: $${bestNetwork.estimatedFeeUSD})`
+                } : null
             }
         });
     } catch (error) {
@@ -558,6 +563,66 @@ router.get('/networks/:fromExchange/:toExchange/:asset', asyncHandler(async (req
             error: 'Failed to fetch network information'
         });
     }
+}));
+
+// =============================================================================
+// SMART NETWORK SELECTION ENDPOINT
+// =============================================================================
+
+/**
+ * GET /api/v1/transfer-arb/smart-network/:fromExchange/:toExchange/:asset
+ * Automatically select the best network for a transfer route
+ */
+router.get('/smart-network/:fromExchange/:toExchange/:asset', asyncHandler(async (req, res) => {
+    const { fromExchange, toExchange, asset } = req.params;
+
+    systemLogger.info('Smart network selection request', {
+        fromExchange,
+        toExchange,
+        asset
+    });
+
+    try {
+        const result = await networkDetectionService.selectBestNetwork(fromExchange, toExchange, asset);
+
+        res.json({
+            success: result.success,
+            data: result
+        });
+    } catch (error) {
+        systemLogger.error('Smart network selection error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to select network'
+        });
+    }
+}));
+
+/**
+ * GET /api/v1/transfer-arb/recommended-network/:asset
+ * Get the generally recommended network for an asset (not route-specific)
+ */
+router.get('/recommended-network/:asset', asyncHandler(async (req, res) => {
+    const { asset } = req.params;
+
+    const recommended = networkDetectionService.getRecommendedNetwork(asset);
+    const allNetworks = networkDetectionService.getCommonNetworks(asset);
+
+    res.json({
+        success: true,
+        data: {
+            asset: asset.toUpperCase(),
+            recommendedNetwork: recommended,
+            allNetworks: allNetworks.map(n => ({
+                network: n.network,
+                fee: n.withdrawFee,
+                priority: n.priority
+            })),
+            reason: allNetworks.length === 1
+                ? 'Single network available'
+                : `${recommended} has lowest cost and fastest transfer time`
+        }
+    });
 }));
 
 // Helper function to calculate transfer opportunity

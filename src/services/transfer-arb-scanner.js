@@ -1,6 +1,8 @@
 /**
  * Transfer Arbitrage Smart Shopper
  * Scans all exchanges for profitable transfer opportunities
+ *
+ * Updated: 2026-01-12 - Integrated smart network auto-selection
  */
 
 const {
@@ -11,6 +13,8 @@ const {
     calculateTransferCost,
     isViableRoute
 } = require('../config/transfer-arb-config');
+
+const networkDetectionService = require('./networkDetectionService');
 
 class TransferArbScanner {
     constructor() {
@@ -69,6 +73,7 @@ class TransferArbScanner {
 
     /**
      * Analyze a specific transfer route
+     * Now includes automatic network selection
      */
     async analyzeRoute(fromExchange, toExchange, crypto, exchangePrices, userBalances) {
         // Check if route is viable
@@ -90,19 +95,40 @@ class TransferArbScanner {
             return null; // Not enough USDT to transfer
         }
 
-        // Calculate fees
+        // =============================================================
+        // SMART NETWORK SELECTION - Auto-detect best transfer network
+        // =============================================================
+        const networkSelection = await networkDetectionService.selectBestNetwork(
+            fromExchange,
+            toExchange,
+            crypto
+        );
+
+        // If no compatible network found, this route is not viable
+        if (!networkSelection.success || !networkSelection.recommendation) {
+            console.log(`⚠️ No compatible network for ${crypto}: ${fromExchange} → ${toExchange}`);
+            return null;
+        }
+
+        const selectedNetwork = networkSelection.recommendation;
+        // =============================================================
+
+        // Calculate fees (use actual network fee if available)
         const transferCosts = calculateTransferCost(crypto, fromExchange, toExchange);
         const cryptoInfo = TRANSFER_CRYPTOS[crypto];
+
+        // Use the withdrawal fee from network detection if available
+        const actualWithdrawalFee = selectedNetwork.withdrawFee || transferCosts.withdrawalFee;
 
         // Calculate quantities
         const usdtToSpend = Math.min(availableUSDT, 1000); // Max $1000 per transfer
         const cryptoQuantity = usdtToSpend / buyPrice;
 
         // Calculate withdrawal fee in USD
-        const withdrawalFeeUSD = transferCosts.withdrawalFee * buyPrice;
+        const withdrawalFeeUSD = actualWithdrawalFee * buyPrice;
 
         // Calculate revenue at destination
-        const cryptoReceived = cryptoQuantity - transferCosts.withdrawalFee;
+        const cryptoReceived = cryptoQuantity - actualWithdrawalFee;
         const revenueUSDT = cryptoReceived * sellPrice;
 
         // Calculate net profit
@@ -121,6 +147,16 @@ class TransferArbScanner {
             sellPrice,
             priceSpread: ((sellPrice - buyPrice) / buyPrice) * 100,
 
+            // =============================================================
+            // NETWORK INFO - Auto-selected, ready for execution
+            // =============================================================
+            network: selectedNetwork.network,              // The network to use (e.g., "TRC20", "XRP")
+            networkReason: selectedNetwork.reasoning,      // Why this network was chosen
+            networkPriority: selectedNetwork.priority,     // Priority score (1=best)
+            networkFeeUSD: selectedNetwork.estimatedFeeUSD, // Estimated fee in USD
+            alternativeNetworks: networkSelection.allMatches?.slice(1, 4).map(m => m.network) || [],
+            // =============================================================
+
             // Execution details
             usdtToSpend,
             cryptoQuantity,
@@ -128,7 +164,7 @@ class TransferArbScanner {
             revenueUSDT,
 
             // Costs
-            withdrawalFee: transferCosts.withdrawalFee,
+            withdrawalFee: actualWithdrawalFee,
             withdrawalFeeUSD,
             networkFee: transferCosts.networkFee,
             totalFees: withdrawalFeeUSD + transferCosts.networkFee,

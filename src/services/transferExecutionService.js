@@ -221,62 +221,66 @@ class TransferExecutionService {
             });
 
             // CRITICAL SAFETY CHECK: NETWORK VALIDATION
-            systemLogger.trading('🔒 NETWORK VALIDATION: Checking network compatibility...', {
+            // Network is now AUTO-SELECTED by the scanner (opportunity.network)
+            // We use this network for both withdrawal and deposit
+
+            // Determine the network to use:
+            // 1. Use opportunity.network (auto-selected by scanner) if available
+            // 2. Fall back to credentials.fromNetwork for backward compatibility
+            const transferNetwork = opportunity.network || credentials.fromNetwork;
+
+            systemLogger.trading('🔒 NETWORK VALIDATION: Using auto-selected network...', {
                 transferId,
                 fromExchange: opportunity.fromExchange,
                 toExchange: opportunity.toExchange,
                 crypto: opportunity.crypto,
-                fromNetwork: credentials.fromNetwork,
-                toNetwork: credentials.toNetwork
+                autoSelectedNetwork: opportunity.network,
+                networkReason: opportunity.networkReason,
+                fallbackNetwork: credentials.fromNetwork,
+                usingNetwork: transferNetwork
             });
 
-            // Validate networks are configured
-            if (!credentials.fromNetwork) {
-                throw new Error(`⚠️ NETWORK NOT CONFIGURED: Withdrawal network not set for ${opportunity.fromExchange} ${opportunity.crypto}`);
-            }
-
-            if (!credentials.toNetwork) {
-                throw new Error(`⚠️ NETWORK NOT CONFIGURED: Deposit network not set for ${opportunity.toExchange} ${opportunity.crypto}`);
-            }
-
-            // CRITICAL: Validate network match
-            if (credentials.fromNetwork !== credentials.toNetwork) {
-                systemLogger.error('🚨 NETWORK MISMATCH DETECTED - BLOCKING EXECUTION', {
-                    transferId,
-                    fromExchange: opportunity.fromExchange,
-                    toExchange: opportunity.toExchange,
-                    crypto: opportunity.crypto,
-                    withdrawalNetwork: credentials.fromNetwork,
-                    depositNetwork: credentials.toNetwork,
-                    RISK: 'PERMANENT FUND LOSS'
-                });
-
+            // Validate network is available
+            if (!transferNetwork) {
                 throw new Error(
-                    `🚨 NETWORK MISMATCH - EXECUTION BLOCKED!\n\n` +
+                    `⚠️ NO NETWORK AVAILABLE\n\n` +
                     `Route: ${opportunity.fromExchange} → ${opportunity.toExchange}\n` +
-                    `Crypto: ${opportunity.crypto}\n` +
-                    `Withdrawal Network: ${credentials.fromNetwork}\n` +
-                    `Deposit Network: ${credentials.toNetwork}\n\n` +
-                    `These networks MUST match or funds will be PERMANENTLY LOST!\n\n` +
-                    `Please update your deposit address configuration to use matching networks.`
+                    `Crypto: ${opportunity.crypto}\n\n` +
+                    `The system could not determine a compatible network for this transfer.\n` +
+                    `This usually means the exchanges don't share a common network for ${opportunity.crypto}.`
                 );
             }
 
+            // Validate deposit address exists for destination exchange
+            if (!credentials.depositAddress) {
+                throw new Error(
+                    `⚠️ DEPOSIT ADDRESS NOT CONFIGURED\n\n` +
+                    `Please configure your ${opportunity.crypto} deposit address for ${opportunity.toExchange}.\n` +
+                    `Network: ${transferNetwork}`
+                );
+            }
+
+            // Store the network being used for this transfer
+            transfer.network = transferNetwork;
+
             systemLogger.trading('✅ NETWORK VALIDATION PASSED', {
                 transferId,
-                network: credentials.fromNetwork,
+                network: transferNetwork,
                 fromExchange: opportunity.fromExchange,
                 toExchange: opportunity.toExchange,
-                crypto: opportunity.crypto
+                crypto: opportunity.crypto,
+                autoSelected: !!opportunity.network
             });
 
             // STEP 2: WITHDRAW CRYPTO TO DESTINATION
+            // Using auto-selected network from scanner
             systemLogger.trading('Step 2: Withdrawing crypto', {
                 transferId,
                 fromExchange: opportunity.fromExchange,
                 toExchange: opportunity.toExchange,
                 amount: buyResult.quantity,
-                network: credentials.fromNetwork
+                network: transferNetwork,
+                autoSelected: !!opportunity.network
             });
 
             transfer.steps.withdraw.status = 'IN_PROGRESS';
@@ -286,7 +290,8 @@ class TransferExecutionService {
                 buyResult.quantity,
                 credentials.fromExchange,
                 credentials.depositAddress,
-                credentials.depositTag  // Add tag parameter for XRP/XLM
+                credentials.depositTag,  // Tag parameter for XRP/XLM
+                transferNetwork          // Pass the auto-selected network
             );
 
             transfer.steps.withdraw.status = 'COMPLETED';
@@ -553,15 +558,17 @@ class TransferExecutionService {
      * @param {object} credentials - API credentials { apiKey, apiSecret, passphrase }
      * @param {string} destinationAddress - Receiving wallet address
      * @param {string} destinationTag - Tag/Memo for XRP/XLM (optional)
+     * @param {string} network - Network to use for withdrawal (auto-selected by scanner)
      * @returns {object} Withdrawal result with txHash, status
      */
-    async executeWithdrawal(exchange, crypto, amount, credentials, destinationAddress, destinationTag) {
+    async executeWithdrawal(exchange, crypto, amount, credentials, destinationAddress, destinationTag, network = null) {
         systemLogger.trading('Executing withdrawal via CCXT', {
             exchange,
             crypto,
             amount,
             destination: destinationAddress.substring(0, 10) + '...',
-            hasTag: !!destinationTag
+            hasTag: !!destinationTag,
+            network: network || 'auto-detect'
         });
 
         try {
@@ -625,12 +632,32 @@ class TransferExecutionService {
                 });
             }
 
-            // Specify network for USDT (critical!)
-            if (crypto === 'USDT') {
-                // Default to TRC20 (cheapest, fastest)
+            // Specify network for withdrawal (auto-selected by scanner or fallback)
+            // This is CRITICAL for multi-chain assets like USDT, USDC, ETH
+            if (network) {
+                // Use the auto-selected network from scanner
+                params.network = network;
+                systemLogger.trading('Using auto-selected network for withdrawal', {
+                    crypto,
+                    network: network,
+                    source: 'scanner-auto-select'
+                });
+            } else if (['USDT', 'USDC'].includes(crypto)) {
+                // Fallback for stablecoins: default to TRC20 (cheapest, fastest)
                 params.network = 'TRC20';
-                systemLogger.trading('USDT withdrawal - using TRC20 network', {
-                    network: 'TRC20'
+                systemLogger.trading('Fallback: Using default TRC20 network', {
+                    crypto,
+                    network: 'TRC20',
+                    source: 'fallback-default'
+                });
+            } else if (['ETH', 'MATIC'].includes(crypto)) {
+                // Fallback for ETH/MATIC: use native network
+                const fallbackNetwork = crypto === 'MATIC' ? 'POLYGON' : 'ERC20';
+                params.network = fallbackNetwork;
+                systemLogger.trading('Fallback: Using default network', {
+                    crypto,
+                    network: fallbackNetwork,
+                    source: 'fallback-default'
                 });
             }
 

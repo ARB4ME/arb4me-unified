@@ -1,0 +1,2030 @@
+{
+  "collectedAt": "2026-01-12T07:36:41.876Z",
+  "targetCryptos": [
+    "XRP",
+    "XLM",
+    "TRX",
+    "LTC",
+    "BCH",
+    "DOGE",
+    "SOL",
+    "ALGO",
+    "ATOM",
+    "MATIC",
+    "AVAX",
+    "ADA",
+    "DOT",
+    "USDT",
+    "USDC",
+    "BTC",
+    "ETH"
+  ],
+  "exchanges": {
+    "binance": {
+      "source": "hardcoded (API requires auth)",
+      "networks": {
+        "USDT": [
+          "ERC20",
+          "TRC20",
+          "BEP20",
+          "POLYGON",
+          "ARBITRUM",
+          "OPTIMISM",
+          "SOL",
+          "AVAX-C"
+        ],
+        "USDC": [
+          "ERC20",
+          "TRC20",
+          "BEP20",
+          "POLYGON",
+          "ARBITRUM",
+          "OPTIMISM",
+          "SOL",
+          "AVAX-C"
+        ],
+        "BTC": [
+          "BTC"
+        ],
+        "ETH": [
+          "ERC20",
+          "ARBITRUM",
+          "OPTIMISM",
+          "BEP20"
+        ],
+        "XRP": [
+          "XRP"
+        ],
+        "XLM": [
+          "XLM"
+        ],
+        "TRX": [
+          "TRC20"
+        ],
+        "LTC": [
+          "LTC"
+        ],
+        "BCH": [
+          "BCH"
+        ],
+        "DOGE": [
+          "DOGE",
+          "BEP20"
+        ],
+        "SOL": [
+          "SOL"
+        ],
+        "ADA": [
+          "ADA",
+          "BEP20"
+        ],
+        "DOT": [
+          "DOT"
+        ],
+        "MATIC": [
+          "POLYGON",
+          "ERC20",
+          "BEP20"
+        ],
+        "AVAX": [
+          "AVAX-C"
+        ],
+        "ATOM": [
+          "ATOM"
+        ],
+        "ALGO": [
+          "ALGO"
+        ]
+      }
+    },
+    "bybit": {
+      "source": "api",
+      "networks": {}
+    },
+    "kucoin": {
+      "source": "api",
+      "networks": {}
+    },
+    "gateio": {
+      "source": "api",
+      "networks": {}
+    },
+    "okx": {
+      "source": "hardcoded (API requires auth)",
+      "networks": {
+        "USDT": [
+          "ERC20",
+          "TRC20",
+          "BEP20",
+          "POLYGON",
+          "ARBITRUM",
+          "OPTIMISM",
+          "SOL",
+          "AVAX-C"
+        ],
+        "USDC": [
+          "ERC20",
+          "TRC20",
+          "BEP20",
+          "POLYGON",
+          "ARBITRUM",
+          "SOL"
+        ],
+        "BTC": [
+          "BTC"
+        ],
+        "ETH": [
+          "ERC20",
+          "ARBITRUM",
+          "OPTIMISM"
+        ],
+        "XRP": [
+          "XRP"
+        ],
+        "XLM": [
+          "XLM"
+        ],
+        "TRX": [
+          "TRC20"
+        ],
+        "LTC": [
+          "LTC"
+        ],
+        "BCH": [
+          "BCH"
+        ],
+        "DOGE": [
+          "DOGE"
+        ],
+        "SOL": [
+          "SOL"
+        ],
+        "ADA": [
+          "ADA"
+        ],
+        "DOT": [
+          "DOT"
+        ],
+        "MATIC": [
+          "POLYGON",
+          "ERC20"
+        ],
+        "AVAX": [
+          "AVAX-C"
+        ],
+        "ATOM": [
+          "ATOM"
+        ],
+        "ALGO": [
+          "ALGO"
+        ]
+      }
+    },
+    "mexc": {
+      "source": "api",
+      "networks": {}
+    },
+    "htx": {
+      "source": "error",
+      "networks": {}
+    },
+    "kraken": {
+      "source": "hardcoded (limited multi-chain)",
+      "networks": {
+        "USDT": [
+          "ERC20",
+          "TRC20"
+        ],
+        "USDC": [
+          "ERC20"
+        ],
+        "BTC": [
+          "BTC"
+        ],
+        "ETH": [
+          "ERC20"
+        ],
+        "XRP": [
+          "XRP"
+        ],
+        "XLM": [
+          "XLM"
+        ],
+        "TRX": [
+          "TRC20"
+        ],
+        "LTC": [
+          "LTC"
+        ],
+        "BCH": [
+          "BCH"
+        ],
+        "DOGE": [
+          "DOGE"
+        ],
+        "SOL": [
+          "SOL"
+        ],
+        "ADA": [
+          "ADA"
+        ],
+        "DOT": [
+          "DOT"
+        ],
+        "MATIC": [
+          "POLYGON"
+        ],
+        "AVAX": [
+          "AVAX-C"
+        ],
+        "ATOM": [
+          "ATOM"
+        ],
+        "ALGO": [
+          "ALGO"
+        ]
+      }
+    },
+    "bitget": {
+      "source": "api",
+      "networks": {
+        "BTC": [
+          {
+            "network": "BTC",
+            "rawName": "BTC",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.00004,
+            "minWithdraw": 0.0005
+          },
+          {
+            "network": "LIGHTNING",
+            "rawName": "LIGHTNING",
+            "withdrawEnabled": true,
+            "depositEnabled": false,
+            "withdrawFee": 0.00001,
+            "minWithdraw": 0.00002
+          },
+          {
+            "network": "BEP20",
+            "rawName": "BEP20",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.00000164,
+            "minWithdraw": 0.00010895
+          }
+        ],
+        "USDT": [
+          {
+            "network": "ERC20",
+            "rawName": "ERC20",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 1.6,
+            "minWithdraw": 10
+          },
+          {
+            "network": "TRC20",
+            "rawName": "TRC20",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 1.5,
+            "minWithdraw": 10
+          },
+          {
+            "network": "ARBITRUMONE",
+            "rawName": "ArbitrumOne",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.15,
+            "minWithdraw": 10
+          },
+          {
+            "network": "SOL",
+            "rawName": "SOL",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 1,
+            "minWithdraw": 10
+          },
+          {
+            "network": "OPTIMISM",
+            "rawName": "Optimism",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.15,
+            "minWithdraw": 10
+          },
+          {
+            "network": "BEP20",
+            "rawName": "BEP20",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.15,
+            "minWithdraw": 10
+          },
+          {
+            "network": "MORPH",
+            "rawName": "Morph",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.1,
+            "minWithdraw": 10
+          },
+          {
+            "network": "PLASMA",
+            "rawName": "Plasma",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.001,
+            "minWithdraw": 10
+          },
+          {
+            "network": "POLYGON",
+            "rawName": "Polygon",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.2,
+            "minWithdraw": 10
+          },
+          {
+            "network": "AVAXC-CHAIN",
+            "rawName": "AVAXC-Chain",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.11,
+            "minWithdraw": 10
+          },
+          {
+            "network": "APTOS",
+            "rawName": "Aptos",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.03,
+            "minWithdraw": 10
+          },
+          {
+            "network": "TON",
+            "rawName": "TON",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.15,
+            "minWithdraw": 10
+          }
+        ],
+        "ETH": [
+          {
+            "network": "ERC20",
+            "rawName": "ETH",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.0002,
+            "minWithdraw": 0.00317429
+          },
+          {
+            "network": "ARBITRUMONE",
+            "rawName": "ArbitrumOne",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.00004,
+            "minWithdraw": 0.00317429
+          },
+          {
+            "network": "OPTIMISM",
+            "rawName": "Optimism",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.00003,
+            "minWithdraw": 0.00285686
+          },
+          {
+            "network": "SCROLL",
+            "rawName": "SCROLL",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.0001,
+            "minWithdraw": 0.00317429
+          },
+          {
+            "network": "STARKNET",
+            "rawName": "Starknet",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.0001,
+            "minWithdraw": 0.00317429
+          },
+          {
+            "network": "ZKSYNCERA",
+            "rawName": "zkSyncEra",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.00004,
+            "minWithdraw": 0.00317429
+          },
+          {
+            "network": "BEP20",
+            "rawName": "BEP20",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.00004762,
+            "minWithdraw": 0.00317429
+          },
+          {
+            "network": "MORPH",
+            "rawName": "Morph",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.00003175,
+            "minWithdraw": 0.00317429
+          },
+          {
+            "network": "BASE",
+            "rawName": "BASE",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.00004,
+            "minWithdraw": 0.00317429
+          }
+        ],
+        "LTC": [
+          {
+            "network": "LTC",
+            "rawName": "LTC",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.001,
+            "minWithdraw": 0.12624668
+          }
+        ],
+        "BCH": [
+          {
+            "network": "BCH",
+            "rawName": "BCH",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.0003,
+            "minWithdraw": 0.01543448
+          }
+        ],
+        "ALGO": [
+          {
+            "network": "ALGO",
+            "rawName": "ALGO",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.008,
+            "minWithdraw": 75.471698
+          }
+        ],
+        "TRX": [
+          {
+            "network": "TRC20",
+            "rawName": "TRX",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 1.1,
+            "minWithdraw": 30.100334
+          }
+        ],
+        "XRP": [
+          {
+            "network": "XRP",
+            "rawName": "XRP",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.2,
+            "minWithdraw": 5
+          }
+        ],
+        "USDC": [
+          {
+            "network": "OPTIMISM",
+            "rawName": "OPTIMISM",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.1,
+            "minWithdraw": 9.988014
+          },
+          {
+            "network": "POLYGON",
+            "rawName": "POLYGON",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.64,
+            "minWithdraw": 9.988014
+          },
+          {
+            "network": "SOL",
+            "rawName": "SOL",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.998802,
+            "minWithdraw": 9.988014
+          },
+          {
+            "network": "APTOS",
+            "rawName": "Aptos",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0,
+            "minWithdraw": 9.988014
+          },
+          {
+            "network": "SONIC",
+            "rawName": "SONIC",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0,
+            "minWithdraw": 9.988014
+          },
+          {
+            "network": "BEP20",
+            "rawName": "BEP20",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0,
+            "minWithdraw": 9.98801438
+          },
+          {
+            "network": "ERC20",
+            "rawName": "ERC20",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 1.59808231,
+            "minWithdraw": 9.98801438
+          },
+          {
+            "network": "BASE",
+            "rawName": "BASE",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.099881,
+            "minWithdraw": 9.988014
+          },
+          {
+            "network": "SEIEVM",
+            "rawName": "SEIEVM",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.99880144,
+            "minWithdraw": 9.98801438
+          },
+          {
+            "network": "MORPH",
+            "rawName": "Morph",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.099881,
+            "minWithdraw": 9.988014
+          },
+          {
+            "network": "ARBITRUMONE",
+            "rawName": "ArbitrumOne",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.149821,
+            "minWithdraw": 9.988014
+          },
+          {
+            "network": "MONAD",
+            "rawName": "Monad",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.15,
+            "minWithdraw": 9.988014
+          },
+          {
+            "network": "AVAXC-CHAIN",
+            "rawName": "AVAXC-Chain",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.998802,
+            "minWithdraw": 9.988014
+          },
+          {
+            "network": "NOBLE",
+            "rawName": "Noble",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0,
+            "minWithdraw": 9.988014
+          }
+        ],
+        "DOGE": [
+          {
+            "network": "DOGE",
+            "rawName": "DOGE",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 4,
+            "minWithdraw": 71.31141695
+          }
+        ],
+        "SOL": [
+          {
+            "network": "SOL",
+            "rawName": "SOL",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.006,
+            "minWithdraw": 0.0701213
+          }
+        ],
+        "ADA": [
+          {
+            "network": "ADA",
+            "rawName": "Cardano",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.8,
+            "minWithdraw": 24.697885
+          }
+        ],
+        "DOT": [
+          {
+            "network": "POLKADOTASSETHUB",
+            "rawName": "PolkadotAssetHub",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.05,
+            "minWithdraw": 4.73484848
+          },
+          {
+            "network": "DOT",
+            "rawName": "DOT",
+            "withdrawEnabled": false,
+            "depositEnabled": false,
+            "withdrawFee": 0.08,
+            "minWithdraw": 4.73484848
+          }
+        ],
+        "XLM": [
+          {
+            "network": "STELLARLUMENS",
+            "rawName": "StellarLumens",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.02,
+            "minWithdraw": 44.2869796
+          }
+        ],
+        "ATOM": [
+          {
+            "network": "ATOM",
+            "rawName": "ATOM",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.01,
+            "minWithdraw": 3.824091
+          }
+        ],
+        "AVAX": [
+          {
+            "network": "AVAXX-CHAIN",
+            "rawName": "AVAXX-Chain",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.008,
+            "minWithdraw": 0.14316392
+          },
+          {
+            "network": "AVAXC-CHAIN",
+            "rawName": "AVAXC-Chain",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.0064,
+            "minWithdraw": 0.14316392
+          }
+        ]
+      }
+    },
+    "bingx": {
+      "source": "hardcoded (API requires auth)",
+      "networks": {
+        "USDT": [
+          "ERC20",
+          "TRC20",
+          "BEP20",
+          "ARBITRUM",
+          "OPTIMISM"
+        ],
+        "USDC": [
+          "ERC20",
+          "BEP20"
+        ],
+        "BTC": [
+          "BTC"
+        ],
+        "ETH": [
+          "ERC20",
+          "ARBITRUM"
+        ],
+        "XRP": [
+          "XRP"
+        ],
+        "XLM": [
+          "XLM"
+        ],
+        "TRX": [
+          "TRC20"
+        ],
+        "LTC": [
+          "LTC"
+        ],
+        "DOGE": [
+          "DOGE"
+        ],
+        "SOL": [
+          "SOL"
+        ],
+        "MATIC": [
+          "POLYGON",
+          "ERC20"
+        ]
+      }
+    },
+    "bitmart": {
+      "source": "api",
+      "networks": {
+        "BTC": [
+          {
+            "network": "BTC",
+            "rawName": "BTC",
+            "withdrawEnabled": true,
+            "depositEnabled": true
+          }
+        ],
+        "ETH": [
+          {
+            "network": "ERC20",
+            "rawName": "ETH",
+            "withdrawEnabled": true,
+            "depositEnabled": true
+          }
+        ],
+        "USDT": [
+          {
+            "network": "USDT",
+            "rawName": "USDT",
+            "withdrawEnabled": true,
+            "depositEnabled": true
+          }
+        ],
+        "XLM": [
+          {
+            "network": "XLM",
+            "rawName": "XLM",
+            "withdrawEnabled": true,
+            "depositEnabled": true
+          }
+        ],
+        "BCH": [
+          {
+            "network": "BCH",
+            "rawName": "BCH",
+            "withdrawEnabled": true,
+            "depositEnabled": true
+          }
+        ],
+        "XRP": [
+          {
+            "network": "XRP",
+            "rawName": "XRP",
+            "withdrawEnabled": true,
+            "depositEnabled": true
+          }
+        ],
+        "AVAX": [
+          {
+            "network": "AVAX-C",
+            "rawName": "AVAX",
+            "withdrawEnabled": true,
+            "depositEnabled": true
+          }
+        ],
+        "SOL": [
+          {
+            "network": "SOL",
+            "rawName": "SOL",
+            "withdrawEnabled": true,
+            "depositEnabled": true
+          }
+        ],
+        "ADA": [
+          {
+            "network": "ADA",
+            "rawName": "ADA",
+            "withdrawEnabled": true,
+            "depositEnabled": true
+          }
+        ],
+        "DOGE": [
+          {
+            "network": "DOGE",
+            "rawName": "DOGE",
+            "withdrawEnabled": true,
+            "depositEnabled": true
+          }
+        ],
+        "DOT": [
+          {
+            "network": "DOT",
+            "rawName": "DOT",
+            "withdrawEnabled": true,
+            "depositEnabled": true
+          }
+        ],
+        "ALGO": [
+          {
+            "network": "ALGO",
+            "rawName": "ALGO",
+            "withdrawEnabled": true,
+            "depositEnabled": true
+          }
+        ],
+        "ATOM": [
+          {
+            "network": "ATOM",
+            "rawName": "ATOM",
+            "withdrawEnabled": true,
+            "depositEnabled": true
+          }
+        ],
+        "LTC": [
+          {
+            "network": "LTC",
+            "rawName": "LTC",
+            "withdrawEnabled": true,
+            "depositEnabled": true
+          }
+        ],
+        "TRX": [
+          {
+            "network": "TRC20",
+            "rawName": "TRX",
+            "withdrawEnabled": true,
+            "depositEnabled": true
+          }
+        ],
+        "USDC": [
+          {
+            "network": "USDC",
+            "rawName": "USDC",
+            "withdrawEnabled": true,
+            "depositEnabled": true
+          }
+        ]
+      }
+    },
+    "bitrue": {
+      "source": "hardcoded",
+      "networks": {
+        "USDT": [
+          "ERC20",
+          "TRC20",
+          "BEP20"
+        ],
+        "USDC": [
+          "ERC20"
+        ],
+        "BTC": [
+          "BTC"
+        ],
+        "ETH": [
+          "ERC20"
+        ],
+        "XRP": [
+          "XRP"
+        ],
+        "XLM": [
+          "XLM"
+        ],
+        "TRX": [
+          "TRC20"
+        ],
+        "LTC": [
+          "LTC"
+        ],
+        "DOGE": [
+          "DOGE"
+        ],
+        "SOL": [
+          "SOL"
+        ],
+        "ADA": [
+          "ADA"
+        ]
+      }
+    },
+    "ascendex": {
+      "source": "api",
+      "networks": {
+        "SOL": [
+          {
+            "network": "SOL",
+            "rawName": "Solana",
+            "withdrawFee": 0.034,
+            "minWithdraw": 0.068
+          }
+        ],
+        "DOGE": [
+          {
+            "network": "DOGECHAIN",
+            "rawName": "dogechain",
+            "withdrawFee": 10,
+            "minWithdraw": 20
+          }
+        ],
+        "LTC": [
+          {
+            "network": "LTC",
+            "rawName": "Litecoin",
+            "withdrawFee": 0.05,
+            "minWithdraw": 0.1
+          }
+        ],
+        "USDT": [
+          {
+            "network": "OMNI",
+            "rawName": "Omni",
+            "withdrawFee": 30,
+            "minWithdraw": 60
+          },
+          {
+            "network": "ERC20",
+            "rawName": "ERC20",
+            "withdrawFee": 8,
+            "minWithdraw": 16
+          },
+          {
+            "network": "TRC20",
+            "rawName": "TRC20",
+            "withdrawFee": 2,
+            "minWithdraw": 10
+          },
+          {
+            "network": "SOL",
+            "rawName": "Solana",
+            "withdrawFee": 2,
+            "minWithdraw": 4
+          },
+          {
+            "network": "ARBITRUM",
+            "rawName": "arbitrum",
+            "withdrawFee": 2,
+            "minWithdraw": 4
+          },
+          {
+            "network": "BEP20 (BSC)",
+            "rawName": "BEP20 (BSC)",
+            "withdrawFee": 2,
+            "minWithdraw": 4
+          },
+          {
+            "network": "AVALANCHE C CHAIN",
+            "rawName": "avalanche C chain",
+            "withdrawFee": 1,
+            "minWithdraw": 2
+          },
+          {
+            "network": "FANTOM",
+            "rawName": "fantom",
+            "withdrawFee": 2,
+            "minWithdraw": 4
+          },
+          {
+            "network": "POLYGON",
+            "rawName": "Polygon",
+            "withdrawFee": 2,
+            "minWithdraw": 4
+          }
+        ],
+        "TRX": [
+          {
+            "network": "TRC20",
+            "rawName": "TRC20",
+            "withdrawFee": 15,
+            "minWithdraw": 30
+          }
+        ],
+        "BTC": [
+          {
+            "network": "BTC",
+            "rawName": "Bitcoin",
+            "withdrawFee": 0.0005,
+            "minWithdraw": 0.001
+          }
+        ],
+        "BCH": [
+          {
+            "network": "BITCOIN ABC",
+            "rawName": "Bitcoin ABC",
+            "withdrawFee": 0.022,
+            "minWithdraw": 0.044
+          }
+        ],
+        "XRP": [
+          {
+            "network": "XRP",
+            "rawName": "XRP",
+            "withdrawFee": 2,
+            "minWithdraw": 30
+          }
+        ],
+        "ETH": [
+          {
+            "network": "ERC20",
+            "rawName": "ERC20",
+            "withdrawFee": 0.005,
+            "minWithdraw": 0.01
+          },
+          {
+            "network": "ARBITRUM",
+            "rawName": "arbitrum",
+            "withdrawFee": 0.00074,
+            "minWithdraw": 0.00148
+          }
+        ],
+        "ADA": [
+          {
+            "network": "ADA",
+            "rawName": "Cardano",
+            "withdrawFee": 6.5,
+            "minWithdraw": 13
+          }
+        ],
+        "DOT": [
+          {
+            "network": "ASSETHUB-POLKADOT",
+            "rawName": "Assethub-Polkadot",
+            "withdrawFee": 0.99,
+            "minWithdraw": 2
+          },
+          {
+            "network": "ASSETHUB-POLKADOT",
+            "rawName": "Assethub-Polkadot",
+            "withdrawFee": 0.28,
+            "minWithdraw": 2
+          }
+        ],
+        "ALGO": [
+          {
+            "network": "ALGO",
+            "rawName": "Algorand",
+            "withdrawFee": 2,
+            "minWithdraw": 4
+          }
+        ],
+        "AVAX": [
+          {
+            "network": "BEP20 (BSC)",
+            "rawName": "BEP20 (BSC)",
+            "withdrawFee": 0.15,
+            "minWithdraw": 0.3
+          },
+          {
+            "network": "AVALANCHE C CHAIN",
+            "rawName": "avalanche C chain",
+            "withdrawFee": 0.15,
+            "minWithdraw": 0.3
+          }
+        ],
+        "XLM": [
+          {
+            "network": "XLM",
+            "rawName": "Stellar",
+            "withdrawFee": 5,
+            "minWithdraw": 10
+          }
+        ],
+        "ATOM": [
+          {
+            "network": "ATOM",
+            "rawName": "ATOM",
+            "withdrawFee": 1.1,
+            "minWithdraw": 2.2
+          }
+        ]
+      }
+    },
+    "xt": {
+      "source": "api",
+      "networks": {
+        "BTC": [
+          {
+            "network": "BTC",
+            "rawName": "Bitcoin",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.0001,
+            "minWithdraw": 0
+          },
+          {
+            "network": "BNB SMART CHAIN",
+            "rawName": "BNB Smart Chain",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.00001,
+            "minWithdraw": 0
+          },
+          {
+            "network": "ERC20",
+            "rawName": "Ethereum",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.00008,
+            "minWithdraw": 0
+          }
+        ],
+        "ETH": [
+          {
+            "network": "ERC20",
+            "rawName": "Ethereum",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.0022,
+            "minWithdraw": 0
+          },
+          {
+            "network": "XT SMART CHAIN",
+            "rawName": "XT Smart Chain",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.001,
+            "minWithdraw": 0
+          },
+          {
+            "network": "ZKSYNC ERA",
+            "rawName": "ZkSync Era",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.0031713,
+            "minWithdraw": 0
+          },
+          {
+            "network": "ARBITRUM",
+            "rawName": "Arbitrum One",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.00063,
+            "minWithdraw": 0
+          },
+          {
+            "network": "BASE",
+            "rawName": "Base",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.00063,
+            "minWithdraw": 0
+          },
+          {
+            "network": "ZKLINK",
+            "rawName": "ZKLINK",
+            "withdrawEnabled": false,
+            "depositEnabled": false,
+            "withdrawFee": 0.0001,
+            "minWithdraw": 0
+          },
+          {
+            "network": "BNB SMART CHAIN",
+            "rawName": "BNB Smart Chain",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.0002,
+            "minWithdraw": 0
+          }
+        ],
+        "USDT": [
+          {
+            "network": "TRC20",
+            "rawName": "Tron",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 1,
+            "minWithdraw": 0
+          },
+          {
+            "network": "ERC20",
+            "rawName": "Ethereum",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 4,
+            "minWithdraw": 0
+          },
+          {
+            "network": "BNB SMART CHAIN",
+            "rawName": "BNB Smart Chain",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.5,
+            "minWithdraw": 0
+          },
+          {
+            "network": "POLYGON POS",
+            "rawName": "Polygon POS",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.02,
+            "minWithdraw": 0
+          },
+          {
+            "network": "XT SMART CHAIN",
+            "rawName": "XT Smart Chain",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 2,
+            "minWithdraw": 0
+          },
+          {
+            "network": "AVAX C-CHAIN",
+            "rawName": "AVAX C-Chain",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 1,
+            "minWithdraw": 0
+          },
+          {
+            "network": "ARBITRUM",
+            "rawName": "Arbitrum One",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 2,
+            "minWithdraw": 0
+          },
+          {
+            "network": "OPTIMISM",
+            "rawName": "Optimism",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 1,
+            "minWithdraw": 0
+          },
+          {
+            "network": "SOL",
+            "rawName": "Solana",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 1,
+            "minWithdraw": 0
+          },
+          {
+            "network": "GATECHAIN",
+            "rawName": "GateChain",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 1,
+            "minWithdraw": 0
+          },
+          {
+            "network": "THE OPEN NETWORK",
+            "rawName": "The Open Network",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 1,
+            "minWithdraw": 0
+          },
+          {
+            "network": "APTOS",
+            "rawName": "Aptos",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.01,
+            "minWithdraw": 0
+          }
+        ],
+        "LTC": [
+          {
+            "network": "LTC",
+            "rawName": "Litecoin",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.013,
+            "minWithdraw": 0
+          }
+        ],
+        "TRX": [
+          {
+            "network": "TRC20",
+            "rawName": "Tron",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 5,
+            "minWithdraw": 0
+          }
+        ],
+        "XRP": [
+          {
+            "network": "XRP",
+            "rawName": "XRP Ledger",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.5,
+            "minWithdraw": 0
+          },
+          {
+            "network": "XT SMART CHAIN",
+            "rawName": "XT Smart Chain",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 1,
+            "minWithdraw": 0
+          },
+          {
+            "network": "BNB SMART CHAIN",
+            "rawName": "BNB Smart Chain",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 1,
+            "minWithdraw": 0
+          }
+        ],
+        "XLM": [
+          {
+            "network": "STELLAR NETWORK",
+            "rawName": "Stellar Network",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 4.4,
+            "minWithdraw": 0
+          }
+        ],
+        "ADA": [
+          {
+            "network": "ADA",
+            "rawName": "Cardano",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 5,
+            "minWithdraw": 0
+          },
+          {
+            "network": "XT SMART CHAIN",
+            "rawName": "XT Smart Chain",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 5,
+            "minWithdraw": 0
+          }
+        ],
+        "DOGE": [
+          {
+            "network": "DOGE",
+            "rawName": "dogecoin",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 7,
+            "minWithdraw": 0
+          }
+        ],
+        "ATOM": [
+          {
+            "network": "ATOM",
+            "rawName": "Cosmos",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.38,
+            "minWithdraw": 0
+          }
+        ],
+        "ALGO": [
+          {
+            "network": "ALGO",
+            "rawName": "Algorand",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 8,
+            "minWithdraw": 0
+          }
+        ],
+        "USDC": [
+          {
+            "network": "ERC20",
+            "rawName": "Ethereum",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 4,
+            "minWithdraw": 0
+          },
+          {
+            "network": "BNB SMART CHAIN",
+            "rawName": "BNB Smart Chain",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.001,
+            "minWithdraw": 0
+          },
+          {
+            "network": "SOL",
+            "rawName": "Solana",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 1,
+            "minWithdraw": 0
+          },
+          {
+            "network": "POLYGON POS",
+            "rawName": "Polygon POS",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.02,
+            "minWithdraw": 0
+          },
+          {
+            "network": "XT SMART CHAIN",
+            "rawName": "XT Smart Chain",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 5,
+            "minWithdraw": 0
+          },
+          {
+            "network": "BASE",
+            "rawName": "Base",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 1,
+            "minWithdraw": 0
+          },
+          {
+            "network": "AVAX C-CHAIN",
+            "rawName": "AVAX C-Chain",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 1,
+            "minWithdraw": 0
+          },
+          {
+            "network": "OPTIMISM",
+            "rawName": "Optimism",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 1,
+            "minWithdraw": 0
+          },
+          {
+            "network": "ARBITRUM",
+            "rawName": "Arbitrum One",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 1,
+            "minWithdraw": 0
+          },
+          {
+            "network": "APTOS",
+            "rawName": "Aptos",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 1,
+            "minWithdraw": 0
+          },
+          {
+            "network": "XDC",
+            "rawName": "XDC",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 1e-8,
+            "minWithdraw": 0
+          }
+        ],
+        "DOT": [
+          {
+            "network": "DOT",
+            "rawName": "DOT",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.5,
+            "minWithdraw": 0
+          }
+        ],
+        "SOL": [
+          {
+            "network": "SOL",
+            "rawName": "Solana",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.007,
+            "minWithdraw": 0
+          },
+          {
+            "network": "BNB SMART CHAIN",
+            "rawName": "BNB Smart Chain",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.004,
+            "minWithdraw": 0
+          }
+        ],
+        "AVAX": [
+          {
+            "network": "AVAX C-CHAIN",
+            "rawName": "AVAX C-Chain",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.07,
+            "minWithdraw": 0
+          }
+        ],
+        "BCH": [
+          {
+            "network": "BCH",
+            "rawName": "Bitcoin Cash",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0.002,
+            "minWithdraw": 0
+          }
+        ]
+      }
+    },
+    "coincatch": {
+      "source": "api",
+      "networks": {
+        "BTC": [
+          {
+            "network": "BTC",
+            "rawName": "BITCOIN",
+            "withdrawEnabled": true,
+            "depositEnabled": false,
+            "withdrawFee": 0.00008,
+            "minWithdraw": 0.00005447
+          }
+        ],
+        "USDT": [
+          {
+            "network": "ERC20",
+            "rawName": "ERC20",
+            "withdrawEnabled": false,
+            "depositEnabled": false,
+            "withdrawFee": 3,
+            "minWithdraw": 5
+          },
+          {
+            "network": "TRC20",
+            "rawName": "TRC20",
+            "withdrawEnabled": true,
+            "depositEnabled": false,
+            "withdrawFee": 2,
+            "minWithdraw": 5
+          },
+          {
+            "network": "BEP20",
+            "rawName": "BEP20",
+            "withdrawEnabled": false,
+            "depositEnabled": false,
+            "withdrawFee": 0.29,
+            "minWithdraw": 10
+          },
+          {
+            "network": "ARBITRUMONE",
+            "rawName": "ArbitrumOne",
+            "withdrawEnabled": false,
+            "depositEnabled": false,
+            "withdrawFee": 0.8,
+            "minWithdraw": 5
+          },
+          {
+            "network": "SOL",
+            "rawName": "SOL",
+            "withdrawEnabled": false,
+            "depositEnabled": false,
+            "withdrawFee": 1,
+            "minWithdraw": 10
+          },
+          {
+            "network": "POLYGON",
+            "rawName": "Polygon",
+            "withdrawEnabled": false,
+            "depositEnabled": false,
+            "withdrawFee": 0.2,
+            "minWithdraw": 5
+          }
+        ],
+        "ETH": [
+          {
+            "network": "ERC20",
+            "rawName": "ERC20",
+            "withdrawEnabled": true,
+            "depositEnabled": false,
+            "withdrawFee": 0.00064,
+            "minWithdraw": 0.00158729
+          },
+          {
+            "network": "ARBITRUMONE",
+            "rawName": "ArbitrumOne",
+            "withdrawEnabled": false,
+            "depositEnabled": false,
+            "withdrawFee": 0.0001,
+            "minWithdraw": 0.00158729
+          },
+          {
+            "network": "OPTIMISM",
+            "rawName": "Optimism",
+            "withdrawEnabled": false,
+            "depositEnabled": false,
+            "withdrawFee": 0.0002,
+            "minWithdraw": 0.00158729
+          },
+          {
+            "network": "BASE",
+            "rawName": "BASE",
+            "withdrawEnabled": false,
+            "depositEnabled": false,
+            "withdrawFee": 0.00004,
+            "minWithdraw": 0.00158729
+          }
+        ],
+        "LTC": [
+          {
+            "network": "LTC",
+            "rawName": "LTC",
+            "withdrawEnabled": true,
+            "depositEnabled": false,
+            "withdrawFee": 0.001,
+            "minWithdraw": 0.12632161
+          }
+        ],
+        "BCH": [
+          {
+            "network": "BCH",
+            "rawName": "BCH",
+            "withdrawEnabled": true,
+            "depositEnabled": false,
+            "withdrawFee": 0.0001,
+            "minWithdraw": 0.01543981
+          }
+        ],
+        "TRX": [
+          {
+            "network": "TRC20",
+            "rawName": "TRC20",
+            "withdrawEnabled": true,
+            "depositEnabled": false,
+            "withdrawFee": 0.8,
+            "minWithdraw": 33.44537534
+          }
+        ],
+        "XRP": [
+          {
+            "network": "XRP",
+            "rawName": "XRP",
+            "withdrawEnabled": true,
+            "depositEnabled": false,
+            "withdrawFee": 0.1,
+            "minWithdraw": 4.80001228
+          }
+        ],
+        "USDC": [
+          {
+            "network": "ERC20",
+            "rawName": "ERC20",
+            "withdrawEnabled": true,
+            "depositEnabled": false,
+            "withdrawFee": 1.5,
+            "minWithdraw": 9.98804431
+          },
+          {
+            "network": "SOL",
+            "rawName": "SOL",
+            "withdrawEnabled": true,
+            "depositEnabled": false,
+            "withdrawFee": 3,
+            "minWithdraw": 9.98804431
+          },
+          {
+            "network": "BEP20",
+            "rawName": "BEP20",
+            "withdrawEnabled": false,
+            "depositEnabled": false,
+            "withdrawFee": 0.99880444,
+            "minWithdraw": 10
+          },
+          {
+            "network": "BASE",
+            "rawName": "BASE",
+            "withdrawEnabled": false,
+            "depositEnabled": false,
+            "withdrawFee": 0.09998001,
+            "minWithdraw": 9.98804431
+          },
+          {
+            "network": "POLYGON",
+            "rawName": "Polygon",
+            "withdrawEnabled": false,
+            "depositEnabled": false,
+            "withdrawFee": 0.64,
+            "minWithdraw": 10
+          }
+        ],
+        "DOGE": [
+          {
+            "network": "DOGE",
+            "rawName": "DOGECOIN",
+            "withdrawEnabled": true,
+            "depositEnabled": false,
+            "withdrawFee": 4,
+            "minWithdraw": 40
+          }
+        ],
+        "SOL": [
+          {
+            "network": "SOL",
+            "rawName": "SOL",
+            "withdrawEnabled": true,
+            "depositEnabled": false,
+            "withdrawFee": 0.02103886,
+            "minWithdraw": 0.0701295
+          }
+        ],
+        "ADA": [
+          {
+            "network": "ADA",
+            "rawName": "Cardano",
+            "withdrawEnabled": true,
+            "depositEnabled": false,
+            "withdrawFee": 0.8,
+            "minWithdraw": 12.59125512
+          }
+        ],
+        "DOT": [
+          {
+            "network": "POLKADOTASSETHUB",
+            "rawName": "PolkadotAssetHub",
+            "withdrawEnabled": true,
+            "depositEnabled": false,
+            "withdrawFee": 0.05,
+            "minWithdraw": 4.74456232
+          },
+          {
+            "network": "DOT",
+            "rawName": "DOT",
+            "withdrawEnabled": false,
+            "depositEnabled": false,
+            "withdrawFee": 0.08,
+            "minWithdraw": 2
+          }
+        ],
+        "XLM": [
+          {
+            "network": "STELLARLUMENS",
+            "rawName": "StellarLumens",
+            "withdrawEnabled": true,
+            "depositEnabled": false,
+            "withdrawFee": 0.02,
+            "minWithdraw": 21
+          }
+        ],
+        "ATOM": [
+          {
+            "network": "ATOM",
+            "rawName": "ATOM",
+            "withdrawEnabled": true,
+            "depositEnabled": false,
+            "withdrawFee": 0.004,
+            "minWithdraw": 3.82214343
+          }
+        ],
+        "AVAX": [
+          {
+            "network": "AVAX-C",
+            "rawName": "C-Chain",
+            "withdrawEnabled": true,
+            "depositEnabled": false,
+            "withdrawFee": 0.0064,
+            "minWithdraw": 0.71572805
+          },
+          {
+            "network": "BEP20",
+            "rawName": "BEP20",
+            "withdrawEnabled": false,
+            "depositEnabled": false,
+            "withdrawFee": 0.0064,
+            "minWithdraw": 0.5
+          }
+        ]
+      }
+    },
+    "valr": {
+      "source": "api",
+      "networks": {
+        "BTC": [
+          {
+            "network": "BTC",
+            "rawName": "BTC",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0
+          }
+        ],
+        "ETH": [
+          {
+            "network": "ERC20",
+            "rawName": "ETH",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0
+          }
+        ],
+        "LTC": [
+          {
+            "network": "LTC",
+            "rawName": "LTC",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0
+          }
+        ],
+        "ADA": [
+          {
+            "network": "ADA",
+            "rawName": "ADA",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0
+          }
+        ],
+        "BCH": [
+          {
+            "network": "BCH",
+            "rawName": "BCH",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0
+          }
+        ],
+        "TRX": [
+          {
+            "network": "TRC20",
+            "rawName": "TRX",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0
+          }
+        ],
+        "XRP": [
+          {
+            "network": "XRP",
+            "rawName": "XRP",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0
+          }
+        ],
+        "XLM": [
+          {
+            "network": "XLM",
+            "rawName": "XLM",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0
+          }
+        ],
+        "DOGE": [
+          {
+            "network": "DOGE",
+            "rawName": "DOGE",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0
+          }
+        ],
+        "USDT": [
+          {
+            "network": "USDT",
+            "rawName": "USDT",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0
+          }
+        ],
+        "ALGO": [
+          {
+            "network": "ALGO",
+            "rawName": "ALGO",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0
+          }
+        ],
+        "DOT": [
+          {
+            "network": "DOT",
+            "rawName": "DOT",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0
+          }
+        ],
+        "USDC": [
+          {
+            "network": "USDC",
+            "rawName": "USDC",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0
+          }
+        ],
+        "MATIC": [
+          {
+            "network": "POLYGON",
+            "rawName": "MATIC",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0
+          }
+        ],
+        "SOL": [
+          {
+            "network": "SOL",
+            "rawName": "SOL",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0
+          }
+        ],
+        "AVAX": [
+          {
+            "network": "AVAX-C",
+            "rawName": "AVAX",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0
+          }
+        ],
+        "ATOM": [
+          {
+            "network": "ATOM",
+            "rawName": "ATOM",
+            "withdrawEnabled": true,
+            "depositEnabled": true,
+            "withdrawFee": 0
+          }
+        ]
+      }
+    },
+    "luno": {
+      "source": "hardcoded",
+      "networks": {
+        "BTC": [
+          "BTC"
+        ],
+        "ETH": [
+          "ERC20"
+        ],
+        "XRP": [
+          "XRP"
+        ],
+        "LTC": [
+          "LTC"
+        ],
+        "BCH": [
+          "BCH"
+        ],
+        "USDC": [
+          "ERC20"
+        ]
+      }
+    },
+    "chainex": {
+      "source": "api",
+      "networks": {}
+    },
+    "gemini": {
+      "source": "hardcoded",
+      "networks": {
+        "BTC": [
+          "BTC"
+        ],
+        "ETH": [
+          "ERC20"
+        ],
+        "LTC": [
+          "LTC"
+        ],
+        "BCH": [
+          "BCH"
+        ],
+        "USDT": [
+          "ERC20"
+        ],
+        "USDC": [
+          "ERC20"
+        ],
+        "SOL": [
+          "SOL"
+        ],
+        "MATIC": [
+          "POLYGON"
+        ],
+        "DOT": [
+          "DOT"
+        ]
+      }
+    }
+  },
+  "summary": {
+    "totalExchanges": 19,
+    "apiSuccess": 11,
+    "hardcoded": 7,
+    "errors": 1
+  }
+}

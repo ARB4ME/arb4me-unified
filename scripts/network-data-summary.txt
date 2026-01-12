@@ -1,0 +1,230 @@
+ARB4ME Network Data Collection Report
+Generated: 2026-01-12T07:36:41.876Z
+======================================================================
+
+DATA SOURCES
+----------------------------------------------------------------------
+API Success: 11/19
+Hardcoded:   7/19
+Errors:      1/19
+
+NETWORK COMPATIBILITY MATRIX
+----------------------------------------------------------------------
+
+XRP
+  binance     : XRP
+  okx         : XRP
+  kraken      : XRP
+  bitget      : XRP
+  bingx       : XRP
+  bitmart     : XRP
+  bitrue      : XRP
+  ascendex    : XRP
+  xt          : XRP, XT SMART CHAIN, BNB SMART CHAIN
+  coincatch   : XRP
+  valr        : XRP
+  luno        : XRP
+
+XLM
+  binance     : XLM
+  okx         : XLM
+  kraken      : XLM
+  bitget      : STELLARLUMENS
+  bingx       : XLM
+  bitmart     : XLM
+  bitrue      : XLM
+  ascendex    : XLM
+  xt          : STELLAR NETWORK
+  coincatch   : STELLARLUMENS
+  valr        : XLM
+
+TRX
+  binance     : TRC20
+  okx         : TRC20
+  kraken      : TRC20
+  bitget      : TRC20
+  bingx       : TRC20
+  bitmart     : TRC20
+  bitrue      : TRC20
+  ascendex    : TRC20
+  xt          : TRC20
+  coincatch   : TRC20
+  valr        : TRC20
+
+LTC
+  binance     : LTC
+  okx         : LTC
+  kraken      : LTC
+  bitget      : LTC
+  bingx       : LTC
+  bitmart     : LTC
+  bitrue      : LTC
+  ascendex    : LTC
+  xt          : LTC
+  coincatch   : LTC
+  valr        : LTC
+  luno        : LTC
+  gemini      : LTC
+
+BCH
+  binance     : BCH
+  okx         : BCH
+  kraken      : BCH
+  bitget      : BCH
+  bitmart     : BCH
+  ascendex    : BITCOIN ABC
+  xt          : BCH
+  coincatch   : BCH
+  valr        : BCH
+  luno        : BCH
+  gemini      : BCH
+
+DOGE
+  binance     : DOGE, BEP20
+  okx         : DOGE
+  kraken      : DOGE
+  bitget      : DOGE
+  bingx       : DOGE
+  bitmart     : DOGE
+  bitrue      : DOGE
+  ascendex    : DOGECHAIN
+  xt          : DOGE
+  coincatch   : DOGE
+  valr        : DOGE
+
+SOL
+  binance     : SOL
+  okx         : SOL
+  kraken      : SOL
+  bitget      : SOL
+  bingx       : SOL
+  bitmart     : SOL
+  bitrue      : SOL
+  ascendex    : SOL
+  xt          : SOL, BNB SMART CHAIN
+  coincatch   : SOL
+  valr        : SOL
+  gemini      : SOL
+
+ALGO
+  binance     : ALGO
+  okx         : ALGO
+  kraken      : ALGO
+  bitget      : ALGO
+  bitmart     : ALGO
+  ascendex    : ALGO
+  xt          : ALGO
+  valr        : ALGO
+
+ATOM
+  binance     : ATOM
+  okx         : ATOM
+  kraken      : ATOM
+  bitget      : ATOM
+  bitmart     : ATOM
+  ascendex    : ATOM
+  xt          : ATOM
+  coincatch   : ATOM
+  valr        : ATOM
+
+MATIC
+  binance     : POLYGON, ERC20, BEP20
+  okx         : POLYGON, ERC20
+  kraken      : POLYGON
+  bingx       : POLYGON, ERC20
+  valr        : POLYGON
+  gemini      : POLYGON
+
+AVAX
+  binance     : AVAX-C
+  okx         : AVAX-C
+  kraken      : AVAX-C
+  bitget      : AVAXX-CHAIN, AVAXC-CHAIN
+  bitmart     : AVAX-C
+  ascendex    : BEP20 (BSC), AVALANCHE C CHAIN
+  xt          : AVAX C-CHAIN
+  coincatch   : AVAX-C, BEP20
+  valr        : AVAX-C
+
+ADA
+  binance     : ADA, BEP20
+  okx         : ADA
+  kraken      : ADA
+  bitget      : ADA
+  bitmart     : ADA
+  bitrue      : ADA
+  ascendex    : ADA
+  xt          : ADA, XT SMART CHAIN
+  coincatch   : ADA
+  valr        : ADA
+
+DOT
+  binance     : DOT
+  okx         : DOT
+  kraken      : DOT
+  bitget      : POLKADOTASSETHUB, DOT
+  bitmart     : DOT
+  ascendex    : ASSETHUB-POLKADOT, ASSETHUB-POLKADOT
+  xt          : DOT
+  coincatch   : POLKADOTASSETHUB, DOT
+  valr        : DOT
+  gemini      : DOT
+
+USDT
+  binance     : ERC20, TRC20, BEP20, POLYGON, ARBITRUM, OPTIMISM, SOL, AVAX-C
+  okx         : ERC20, TRC20, BEP20, POLYGON, ARBITRUM, OPTIMISM, SOL, AVAX-C
+  kraken      : ERC20, TRC20
+  bitget      : ERC20, TRC20, ARBITRUMONE, SOL, OPTIMISM, BEP20, MORPH, PLASMA, POLYGON, AVAXC-CHAIN, APTOS, TON
+  bingx       : ERC20, TRC20, BEP20, ARBITRUM, OPTIMISM
+  bitmart     : USDT
+  bitrue      : ERC20, TRC20, BEP20
+  ascendex    : OMNI, ERC20, TRC20, SOL, ARBITRUM, BEP20 (BSC), AVALANCHE C CHAIN, FANTOM, POLYGON
+  xt          : TRC20, ERC20, BNB SMART CHAIN, POLYGON POS, XT SMART CHAIN, AVAX C-CHAIN, ARBITRUM, OPTIMISM, SOL, GATECHAIN, THE OPEN NETWORK, APTOS
+  coincatch   : ERC20, TRC20, BEP20, ARBITRUMONE, SOL, POLYGON
+  valr        : USDT
+  gemini      : ERC20
+
+USDC
+  binance     : ERC20, TRC20, BEP20, POLYGON, ARBITRUM, OPTIMISM, SOL, AVAX-C
+  okx         : ERC20, TRC20, BEP20, POLYGON, ARBITRUM, SOL
+  kraken      : ERC20
+  bitget      : OPTIMISM, POLYGON, SOL, APTOS, SONIC, BEP20, ERC20, BASE, SEIEVM, MORPH, ARBITRUMONE, MONAD, AVAXC-CHAIN, NOBLE
+  bingx       : ERC20, BEP20
+  bitmart     : USDC
+  bitrue      : ERC20
+  xt          : ERC20, BNB SMART CHAIN, SOL, POLYGON POS, XT SMART CHAIN, BASE, AVAX C-CHAIN, OPTIMISM, ARBITRUM, APTOS, XDC
+  coincatch   : ERC20, SOL, BEP20, BASE, POLYGON
+  valr        : USDC
+  luno        : ERC20
+  gemini      : ERC20
+
+BTC
+  binance     : BTC
+  okx         : BTC
+  kraken      : BTC
+  bitget      : BTC, LIGHTNING, BEP20
+  bingx       : BTC
+  bitmart     : BTC
+  bitrue      : BTC
+  ascendex    : BTC
+  xt          : BTC, BNB SMART CHAIN, ERC20
+  coincatch   : BTC
+  valr        : BTC
+  luno        : BTC
+  gemini      : BTC
+
+ETH
+  binance     : ERC20, ARBITRUM, OPTIMISM, BEP20
+  okx         : ERC20, ARBITRUM, OPTIMISM
+  kraken      : ERC20
+  bitget      : ERC20, ARBITRUMONE, OPTIMISM, SCROLL, STARKNET, ZKSYNCERA, BEP20, MORPH, BASE
+  bingx       : ERC20, ARBITRUM
+  bitmart     : ERC20
+  bitrue      : ERC20
+  ascendex    : ERC20, ARBITRUM
+  xt          : ERC20, XT SMART CHAIN, ZKSYNC ERA, ARBITRUM, BASE, ZKLINK, BNB SMART CHAIN
+  coincatch   : ERC20, ARBITRUMONE, OPTIMISM, BASE
+  valr        : ERC20
+  luno        : ERC20
+  gemini      : ERC20
+
