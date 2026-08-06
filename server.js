@@ -165,6 +165,35 @@ async function startServer() {
                 // Don't crash if tables already exist
             }
 
+            // Auto-create Profit Billing tables (3% of profit model)
+            try {
+                const fs = require('fs');
+                const path = require('path');
+
+                // Check if billing_invoices table exists
+                const { query } = require('./src/database/connection');
+                const tableCheck = await query(`
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.tables
+                        WHERE table_schema = 'public'
+                        AND table_name = 'billing_invoices'
+                    ) as exists
+                `);
+
+                if (!tableCheck.rows[0].exists) {
+                    logger.info('Creating billing_invoices table for profit-based billing...');
+                    const migrationPath = path.join(__dirname, 'src/database/migrations/012_profit_billing_system.sql');
+                    const migrationSQL = fs.readFileSync(migrationPath, 'utf8');
+                    await query(migrationSQL);
+                    logger.info('Profit billing system tables created successfully');
+                } else {
+                    logger.info('Profit billing tables already exist');
+                }
+            } catch (error) {
+                logger.warn('Profit billing table creation skipped', { error: error.message });
+                // Don't crash if tables already exist or migration fails
+            }
+
             // Initialize Auto-Reminder Service only if database is connected
             try {
                 autoReminderService.initialize();
