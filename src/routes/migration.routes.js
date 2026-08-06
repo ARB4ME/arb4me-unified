@@ -272,4 +272,52 @@ router.post('/create-position-admins', async (req, res) => {
     }
 });
 
+// POST /api/v1/migration/run-profit-billing - Run profit-based billing migration
+router.post('/run-profit-billing', async (req, res) => {
+    try {
+        console.log('🔄 Starting Profit-Based Billing Migration (012)...');
+
+        // Read the migration file content
+        const fs = require('fs');
+        const path = require('path');
+        const migrationPath = path.join(__dirname, '../database/migrations/012_profit_billing_system.sql');
+
+        let migrationSQL;
+        try {
+            migrationSQL = fs.readFileSync(migrationPath, 'utf8');
+        } catch (error) {
+            return res.status(500).json({
+                success: false,
+                error: 'Profit billing migration file not found',
+                details: error.message
+            });
+        }
+
+        // Execute the entire migration as one transaction
+        console.log('Executing profit-based billing migration script...');
+        const result = await query(migrationSQL);
+
+        console.log('✅ Profit-Based Billing Migration completed');
+
+        res.json({
+            success: true,
+            message: 'Profit-Based Billing Migration completed successfully',
+            summary: {
+                executed: 'billing_invoices table, functions, and indexes created',
+                model: '3% of profit, user anniversary billing',
+                successful: 1,
+                errors: 0
+            }
+        });
+
+    } catch (error) {
+        console.error('❌ Profit Billing Migration failed:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Profit Billing Migration failed',
+            details: error.message
+        });
+    }
+});
+
 module.exports = router;
