@@ -3044,16 +3044,16 @@
                 </div>
             </div>
 
-            <!-- Subscription Expiry Warning Banner -->
-            <div id="subscriptionWarningBanner" class="subscription-warning-banner" style="display: none;">
+            <!-- Billing Alert Banner -->
+            <div id="billingAlertBanner" class="subscription-warning-banner" style="display: none;">
                 <div class="banner-content">
                     <div class="banner-icon">⚠️</div>
                     <div class="banner-text">
-                        <div class="banner-title">Subscription Status</div>
-                        <div class="banner-message" id="subscriptionWarningMessage">Your subscription status will appear here</div>
+                        <div class="banner-title">Billing Alert</div>
+                        <div class="banner-message" id="billingAlertMessage">Your billing status will appear here</div>
                     </div>
                     <div class="banner-actions">
-                        <button id="renewSubscriptionBtn" onclick="openBillingDashboard()" style="background: #ff6b6b; color: white; border: none; padding: 8px 16px; border-radius: 20px; cursor: pointer; font-weight: bold; font-size: 0.9rem;">Renew Now</button>
+                        <button id="payInvoiceBtn" onclick="openBillingDashboard()" style="background: #ff6b6b; color: white; border: none; padding: 8px 16px; border-radius: 20px; cursor: pointer; font-weight: bold; font-size: 0.9rem;">Pay Now</button>
                     </div>
                 </div>
             </div>
@@ -4105,7 +4105,7 @@
                                 <h5 style="color: #00ff88; margin-bottom: 15px;">📜 Billing History</h5>
                                 <div id="billingHistory" style="max-height: 200px; overflow-y: auto;">
                                     <div style="color: #b8c6db; text-align: center; padding: 20px;">
-                                        No billing history yet. Flat monthly fee of R500 payable upfront.
+                                        No invoices generated yet. Fees are calculated at 3% of your monthly profit.
                                     </div>
                                 </div>
                             </div>
@@ -9867,8 +9867,8 @@
                             <div style="color: #e0e0e0;">Monthly Profit</div>
                         </div>
                         <div style="background: rgba(255,107,107,0.1); padding: 20px; border-radius: 10px; text-align: center;">
-                            <div style="color: #ff6b6b; font-size: 1.8rem; font-weight: bold;">R${serviceFee.toFixed(2)}</div>
-                            <div style="color: #e0e0e0;">Service Fee (R500)</div>
+                            <div style="color: #ff6b6b; font-size: 1.8rem; font-weight: bold;">$${serviceFee.toFixed(2)}</div>
+                            <div style="color: #e0e0e0;">Platform Fee (3%)</div>
                         </div>
                         <div style="background: rgba(0,212,255,0.1); padding: 20px; border-radius: 10px; text-align: center;">
                             <div style="color: #00d4ff; font-size: 1.2rem; font-weight: bold; font-family: monospace;">${paymentReference}</div>
@@ -10132,40 +10132,43 @@
             return { color: '#00ff88', status: 'ACTIVE' };
         }
 
-        // Update subscription warning banner
-        function updateSubscriptionWarningBanner(daysRemaining, subscriptionExpiresAt) {
-            const banner = document.getElementById('subscriptionWarningBanner');
-            const message = document.getElementById('subscriptionWarningMessage');
-            
+        // Update billing alert banner (for unpaid invoices)
+        function updateBillingAlertBanner(invoiceStatus, invoice) {
+            const banner = document.getElementById('billingAlertBanner');
+            const message = document.getElementById('billingAlertMessage');
+
             if (!banner || !message) return;
 
             // Remove existing classes
             banner.classList.remove('expired', 'critical', 'warning');
-            
-            if (daysRemaining === null || daysRemaining > 7) {
-                // No warning needed - subscription is healthy or no data
+
+            if (!invoiceStatus || invoiceStatus === 'paid' || invoiceStatus === 'no_invoice') {
+                // No warning needed - no unpaid invoice
                 banner.style.display = 'none';
                 return;
             }
 
             // Show banner with appropriate styling and message
             banner.style.display = 'block';
-            
-            const expiryDate = new Date(subscriptionExpiresAt).toLocaleDateString('en-ZA');
-            
-            if (daysRemaining < 0) {
-                // Expired
+
+            const feeAmount = invoice?.fee_amount ? `$${parseFloat(invoice.fee_amount).toFixed(2)}` : 'your fee';
+
+            if (invoiceStatus === 'overdue' || !billingState.canTrade) {
+                // Trading blocked
                 banner.classList.add('expired');
-                const expiredDays = Math.abs(daysRemaining);
-                message.textContent = `⚠️ Your subscription expired ${expiredDays} day${expiredDays === 1 ? '' : 's'} ago (${expiryDate}). Trading is suspended until renewal.`;
-            } else if (daysRemaining <= 3) {
-                // Critical - expires in 3 days or less
-                banner.classList.add('critical');
-                message.textContent = `🚨 URGENT: Your subscription expires in ${daysRemaining} day${daysRemaining === 1 ? '' : 's'} (${expiryDate}). Renew now to avoid service interruption.`;
-            } else if (daysRemaining <= 7) {
-                // Warning - expires in 7 days or less
+                message.textContent = `⚠️ Your invoice of ${feeAmount} USDT is overdue. Trading is blocked until payment is received.`;
+            } else if (invoiceStatus === 'pending') {
+                // Invoice pending
                 banner.classList.add('warning');
-                message.textContent = `⏰ Your subscription expires in ${daysRemaining} days (${expiryDate}). Please renew soon to avoid any interruption.`;
+                message.textContent = `⏰ Your invoice of ${feeAmount} USDT is due. Please pay to avoid trading interruption.`;
+            }
+        }
+
+        // Legacy function for backwards compatibility
+        function updateSubscriptionWarningBanner(daysRemaining, subscriptionExpiresAt) {
+            // Now uses billing alert system instead
+            if (billingState.currentInvoice && billingState.currentInvoice.status === 'unpaid') {
+                updateBillingAlertBanner('pending', billingState.currentInvoice);
             }
         }
 
@@ -10247,7 +10250,7 @@
             if (billingHistory.length === 0) {
                 historyContainer.innerHTML = `
                     <div style="color: #b8c6db; text-align: center; padding: 20px;">
-                        No billing history yet. Flat monthly fee of R500 payable upfront.
+                        No invoices generated yet. Fees are calculated at 3% of your monthly profit.
                     </div>
                 `;
                 return;
@@ -10258,7 +10261,7 @@
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <div>
                             <div style="color: #00d4ff; font-weight: bold;">${bill.month} ${bill.year}</div>
-                            <div style="color: #e0e0e0; font-size: 0.9rem;">Profit: R${bill.profit.toFixed(2)} | Fee: R${bill.fee.toFixed(2)}</div>
+                            <div style="color: #e0e0e0; font-size: 0.9rem;">Profit: $${bill.profit.toFixed(2)} | Fee: $${bill.fee.toFixed(2)}</div>
                         </div>
                         <div style="text-align: right;">
                             <div style="color: ${bill.status === 'paid' ? '#00ff88' : '#ff6b6b'}; font-weight: bold;">
@@ -10307,7 +10310,7 @@
                                 <div style="color: #00ff88; font-size: 1.5rem;">$${billingState.currentMonthProfit.toFixed(2)}</div>
                             </div>
                             <div>
-                                <div style="color: #feca57;">Service Fee (R500)</div>
+                                <div style="color: #feca57;">Platform Fee (3%)</div>
                                 <div style="color: #ff6b6b; font-size: 1.5rem;">$${(billingState.currentMonthProfit * 0.03).toFixed(2)}</div>
                             </div>
                         </div>
@@ -10323,7 +10326,7 @@
                                             <div style="color: #00d4ff;">${new Date(trade.timestamp).toLocaleString('en-ZA')}</div>
                                             <div style="color: #e0e0e0; font-size: 0.9rem;">${trade.pair} | ${trade.buyExchange} → ${trade.sellExchange}</div>
                                         </div>
-                                        <div style="color: #00ff88; font-weight: bold;">+R${trade.profit.toFixed(2)}</div>
+                                        <div style="color: #00ff88; font-weight: bold;">+$${trade.profit.toFixed(2)}</div>
                                     </div>
                                 </div>
                             `).join('') : '<div style="color: #b8c6db; text-align: center;">No trades completed this month</div>'}
@@ -12087,8 +12090,8 @@
                             <div style="color: #e0e0e0;">Monthly Profit</div>
                         </div>
                         <div style="background: rgba(255,107,107,0.1); padding: 15px; border-radius: 10px; text-align: center;">
-                            <div style="color: #ff6b6b; font-size: 1.5rem; font-weight: bold;">R${serviceFee.toFixed(2)}</div>
-                            <div style="color: #e0e0e0;">Service Fee (R500)</div>
+                            <div style="color: #ff6b6b; font-size: 1.5rem; font-weight: bold;">$${serviceFee.toFixed(2)}</div>
+                            <div style="color: #e0e0e0;">Platform Fee (3%)</div>
                         </div>
                         <div style="background: rgba(0,212,255,0.1); padding: 15px; border-radius: 10px; text-align: center;">
                             <div style="color: #00d4ff; font-size: 1.2rem; font-weight: bold;">${monthlyTrades.length}</div>
@@ -12116,7 +12119,7 @@
                                             <div style="color: #00d4ff;">${new Date(trade.timestamp).toLocaleString('en-ZA')}</div>
                                             <div style="color: #e0e0e0; font-size: 0.9rem;">${trade.pair} | ${trade.buyExchange} → ${trade.sellExchange}</div>
                                         </div>
-                                        <div style="color: #00ff88; font-weight: bold;">+R${trade.profit.toFixed(2)}</div>
+                                        <div style="color: #00ff88; font-weight: bold;">+$${trade.profit.toFixed(2)}</div>
                                     </div>
                                 </div>
                             `).join('') : '<div style="color: #b8c6db; text-align: center;">No trades this month</div>'}
@@ -13998,12 +14001,12 @@
             const activeCount = users.filter(u => u.status === 'active').length;
             const inactiveCount = users.filter(u => u.status === 'inactive').length;
             const graceCount = users.filter(u => u.status === 'grace').length;
-            const monthlyRevenue = activeCount * 500; // R500 per active user
 
             document.getElementById('activeUsersCount').textContent = activeCount;
             document.getElementById('inactiveUsersCount').textContent = inactiveCount;
             document.getElementById('graceUsersCount').textContent = graceCount;
-            document.getElementById('totalRevenueMonth').textContent = `R${monthlyRevenue.toLocaleString()}`;
+            // Revenue is now 3% of user profits - calculated from backend
+            document.getElementById('totalRevenueMonth').textContent = '3% of profits';
         }
 
         function viewUserDetails(userId) {
