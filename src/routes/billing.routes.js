@@ -932,6 +932,100 @@ router.get('/pending-invoices',
     }
 );
 
+// GET /api/v1/admin/billing/all-users - Get all users with their billing status
+router.get('/all-users',
+    authenticateUser,
+    requireAdminAuth,
+    async (req, res) => {
+        try {
+            // Get all users with their billing data
+            const usersResult = await query(
+                `SELECT
+                    u.id,
+                    u.email,
+                    u.first_name,
+                    u.last_name,
+                    u.payment_reference,
+                    u.billing_status,
+                    u.created_at,
+                    u.next_billing_date
+                 FROM users u
+                 WHERE u.admin_role IS NULL OR u.admin_role = ''
+                 ORDER BY u.created_at DESC`
+            );
+
+            // For each user, get their current period profit and invoice status
+            const usersWithBilling = await Promise.all(
+                usersResult.rows.map(async (user) => {
+                    // Get billing period
+                    const periodResult = await query(
+                        'SELECT * FROM get_user_billing_period($1)',
+                        [user.id]
+                    );
+                    const period = periodResult.rows[0];
+
+                    // Calculate profit for current period
+                    let profit = 0;
+                    if (period) {
+                        const profitResult = await query(
+                            'SELECT calculate_period_profit($1, $2, $3) as profit',
+                            [user.id, period.period_start, period.period_end]
+                        );
+                        profit = parseFloat(profitResult.rows[0]?.profit || 0);
+                    }
+
+                    // Get latest invoice
+                    const invoiceResult = await query(
+                        `SELECT * FROM billing_invoices
+                         WHERE user_id = $1
+                         ORDER BY billing_period_start DESC
+                         LIMIT 1`,
+                        [user.id]
+                    );
+                    const invoice = invoiceResult.rows[0] || null;
+
+                    return {
+                        ...user,
+                        currentPeriod: period,
+                        currentProfit: profit,
+                        currentFee: profit > 0 ? profit * 0.03 : 0,
+                        latestInvoice: invoice,
+                        invoiceStatus: invoice?.status || 'no_invoice',
+                        canTrade: !invoice || invoice.status !== 'unpaid'
+                    };
+                })
+            );
+
+            // Calculate totals
+            const totalProfit = usersWithBilling.reduce((sum, u) => sum + u.currentProfit, 0);
+            const totalFees = usersWithBilling.reduce((sum, u) => sum + u.currentFee, 0);
+            const unpaidCount = usersWithBilling.filter(u => u.invoiceStatus === 'unpaid').length;
+            const paidCount = usersWithBilling.filter(u => u.invoiceStatus === 'paid').length;
+
+            res.json({
+                success: true,
+                data: {
+                    users: usersWithBilling,
+                    count: usersWithBilling.length,
+                    totals: {
+                        totalProfit,
+                        totalFees,
+                        unpaidCount,
+                        paidCount
+                    }
+                }
+            });
+
+        } catch (error) {
+            console.error('Error fetching all users billing:', error);
+            res.status(500).json({
+                success: false,
+                error: 'Failed to fetch users billing data'
+            });
+        }
+    }
+);
+
 // GET /api/v1/admin/billing/user-profit/:userId - Get specific user's profit summary
 router.get('/user-profit/:userId',
     authenticateUser,

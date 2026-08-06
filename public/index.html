@@ -9720,123 +9720,128 @@
         }
 
         // 💰 BILLING DASHBOARD FUNCTIONS
+        // Updated 2026-08-06: Profit-based billing (3% of profit, user anniversary cycle)
         const billingState = {
-            currentMonthProfit: 0,
+            currentPeriodProfit: 0,
             serviceFeePercentage: 0.03, // 3% of profit
             serviceFeeAmount: 0,
             paymentHistory: [],
             accountStatus: 'ACTIVE',
-            paymentStatus: 'PAID', // PAID, PENDING, OVERDUE
-            paymentDueDate: null,
-            nextPaymentDate: null,
+            paymentStatus: 'PAID', // PAID, UNPAID, NO_FEE
+            billingPeriodStart: null,
+            billingPeriodEnd: null,
             paymentReference: null,
-            adminUSDTAddress: 'TBD', // Admin will provide USDT address
-            adminUSDTNetwork: 'TRC20', // Default network
-            lastPaymentTxHash: null,
-            gracePeriodDays: 7
+            adminUSDTAddress: 'YOUR_USDT_ADDRESS_HERE', // TODO: Replace with actual USDT address
+            adminUSDTNetwork: 'TRC20', // Recommended - lowest fees
+            currentInvoice: null, // Current unpaid invoice if any
+            canTrade: true // Whether user can trade (no unpaid invoices)
         };
 
-        function updateBillingDashboard() {
+        // Updated 2026-08-06: Fetch billing data from backend API (anniversary-based, 3% of profit)
+        async function updateBillingDashboard() {
             if (!userState.isLoggedIn) return;
 
-            // Calculate current month profit from trade history
-            const currentMonth = new Date().getMonth();
-            const currentYear = new Date().getFullYear();
-            
-            const trades = JSON.parse(localStorage.getItem('arb4me_trades') || '[]');
-            const monthlyTrades = trades.filter(trade => {
-                const tradeDate = new Date(trade.timestamp);
-                return tradeDate.getMonth() === currentMonth && 
-                       tradeDate.getFullYear() === currentYear &&
-                       trade.status === 'completed';
-            });
+            try {
+                // Fetch profit summary from backend (uses user's anniversary billing period)
+                const profitResponse = await apiService.apiCall('/billing/profit-summary');
 
-            // Calculate total profit for the month
-            billingState.currentMonthProfit = monthlyTrades.reduce((total, trade) => {
-                return total + (trade.profit || 0);
-            }, 0);
+                if (profitResponse.success && profitResponse.data) {
+                    const data = profitResponse.data;
+                    billingState.currentPeriodProfit = data.totalProfit || 0;
+                    billingState.serviceFeeAmount = data.feeAmount || 0;
+                    billingState.billingPeriodStart = data.periodStart;
+                    billingState.billingPeriodEnd = data.periodEnd;
+                }
 
-            // Calculate service fee
-            const serviceFee = billingState.currentMonthProfit * billingState.serviceFeePercentage;
+                // Check if user can trade (has unpaid invoices?)
+                const canTradeResponse = await apiService.apiCall('/billing/can-trade');
+                if (canTradeResponse.success && canTradeResponse.data) {
+                    billingState.canTrade = canTradeResponse.data.canTrade;
+                    billingState.currentInvoice = canTradeResponse.data.unpaidInvoice;
 
-            // Update main dashboard billing card
+                    // If can't trade, show warning
+                    if (!billingState.canTrade && billingState.currentInvoice) {
+                        showTradingBlockedWarning(billingState.currentInvoice);
+                    }
+                }
+
+            } catch (error) {
+                console.warn('Could not fetch billing data from backend, using local calculation:', error);
+                // Fallback to local calculation if backend unavailable
+                const trades = JSON.parse(localStorage.getItem('arb4me_trades') || '[]');
+                const completedTrades = trades.filter(t => t.status === 'completed');
+                billingState.currentPeriodProfit = completedTrades.reduce((sum, t) => sum + (t.profit || 0), 0);
+                billingState.serviceFeeAmount = billingState.currentPeriodProfit > 0 ? billingState.currentPeriodProfit * 0.03 : 0;
+            }
+
+            // Update UI elements
             const monthlyBillElement = document.getElementById('monthlyBill');
             const billingStatusElement = document.getElementById('billingStatus');
             const paymentAlertElement = document.getElementById('paymentAlert');
-            
-            if (monthlyBillElement) {
-                monthlyBillElement.textContent = `R${serviceFee.toFixed(2)}`;
-            }
-
-            // Store fee amount in billingState
-            billingState.serviceFeeAmount = serviceFee;
-
-            // Update UI elements in profile (if they exist)
             const currentMonthProfitElement = document.getElementById('currentMonthProfit');
             const serviceFeeAmountElement = document.getElementById('serviceFeeAmount');
             const paymentReferenceElement = document.getElementById('paymentReference');
-            const nextPaymentDateElement = document.getElementById('nextPaymentDate');
-            const monthlyFeeStatusElement = document.getElementById('monthlyFeeStatus');
-            const paymentDueDateElement = document.getElementById('paymentDueDate');
             const paymentAmountDueElement = document.getElementById('paymentAmountDue');
             const payAdminSection = document.getElementById('payAdminSection');
 
+            // Update profit display
             if (currentMonthProfitElement) {
-                currentMonthProfitElement.textContent = `$${billingState.currentMonthProfit.toFixed(2)}`;
+                currentMonthProfitElement.textContent = `$${billingState.currentPeriodProfit.toFixed(2)}`;
             }
+
+            // Update fee display
             if (serviceFeeAmountElement) {
-                serviceFeeAmountElement.textContent = `$${serviceFee.toFixed(2)}`;
+                serviceFeeAmountElement.textContent = `$${billingState.serviceFeeAmount.toFixed(2)}`;
             }
-
-            // Check payment status and update UI
-            checkMonthlyPaymentStatus();
-
-            // Update payment amount in "Pay Admin" section
+            if (monthlyBillElement) {
+                monthlyBillElement.textContent = `$${billingState.serviceFeeAmount.toFixed(2)}`;
+            }
             if (paymentAmountDueElement) {
-                paymentAmountDueElement.textContent = `$${serviceFee.toFixed(2)}`;
+                paymentAmountDueElement.textContent = `$${billingState.serviceFeeAmount.toFixed(2)}`;
             }
 
-            // Use permanent payment reference from database
-            billingState.paymentReference = userState.userData.paymentReference || 'ARB-100001';
-            
+            // Update payment reference
+            billingState.paymentReference = userState.userData?.paymentReference || userState.userData?.payment_reference || 'ARB-100001';
             if (paymentReferenceElement) {
                 paymentReferenceElement.textContent = billingState.paymentReference;
             }
 
-            // Update account status
-            updateAccountStatus();
-
-            // Update next payment date
-            const nextMonth = new Date(currentYear, currentMonth + 1, 7); // 7th of next month
-            if (nextPaymentDateElement) {
-                nextPaymentDateElement.textContent = nextMonth.toLocaleDateString('en-ZA');
-            }
-
-            // Update main dashboard status
-            const currentDate = new Date();
-            const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
-            const daysUntilMonthEnd = Math.ceil((endOfMonth - currentDate) / (1000 * 60 * 60 * 24));
-            
+            // Update billing status display
             if (billingStatusElement && paymentAlertElement) {
-                if (serviceFee === 0) {
-                    billingStatusElement.textContent = 'No payment due';
+                if (!billingState.canTrade && billingState.currentInvoice) {
+                    // Has unpaid invoice - must pay
+                    billingStatusElement.textContent = 'PAYMENT REQUIRED';
+                    billingStatusElement.style.color = '#ff6b6b';
+                    paymentAlertElement.style.display = 'block';
+                    if (payAdminSection) payAdminSection.style.display = 'block';
+                } else if (billingState.serviceFeeAmount === 0) {
+                    // No profit = no fee
+                    billingStatusElement.textContent = 'No fee due';
                     billingStatusElement.style.color = '#00ff88';
                     paymentAlertElement.style.display = 'none';
-                } else if (daysUntilMonthEnd <= 7) {
-                    billingStatusElement.textContent = 'Payment due soon';
-                    billingStatusElement.style.color = '#feca57';
-                    paymentAlertElement.style.display = 'block';
+                    if (payAdminSection) payAdminSection.style.display = 'none';
                 } else {
-                    billingStatusElement.textContent = 'Payment pending';
+                    // Has profit, fee will be due at period end
+                    billingStatusElement.textContent = 'Active';
                     billingStatusElement.style.color = '#00d4ff';
                     paymentAlertElement.style.display = 'none';
                 }
             }
 
-            // Load billing history (if element exists)
+            // Load billing history
             if (document.getElementById('billingHistory')) {
                 loadBillingHistory();
             }
+        }
+
+        // Show warning when trading is blocked due to unpaid invoice
+        function showTradingBlockedWarning(invoice) {
+            // Only show once per session
+            if (sessionStorage.getItem('trading_blocked_warning_shown')) return;
+            sessionStorage.setItem('trading_blocked_warning_shown', 'true');
+
+            const feeAmount = parseFloat(invoice.fee_amount || 0);
+            addActivity(`⚠️ Trading blocked - Please pay outstanding invoice of $${feeAmount.toFixed(2)} USDT`, 'error');
         }
 
         function openBillingDashboard() {
@@ -10420,168 +10425,196 @@
                 background: rgba(0,0,0,0.8); display: flex; align-items: center;
                 justify-content: center; z-index: 10000;
             `;
-            
+
+            const feeAmount = billingState.serviceFeeAmount || (billingState.currentPeriodProfit * 0.03);
+
             modal.innerHTML = `
                 <div style="background: #1a1a2e; padding: 30px; border-radius: 15px; max-width: 600px; max-height: 80vh; overflow-y: auto;">
-                    <h3 style="color: #00d4ff; margin-bottom: 20px;">💳 Payment Instructions</h3>
-                    
+                    <h3 style="color: #00d4ff; margin-bottom: 20px;">💳 USDT Payment Instructions</h3>
+
                     <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px; margin-bottom: 20px;">
                         <h4 style="color: #00ff88; margin-bottom: 15px;">Your Payment Details</h4>
                         <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-                            <div style="color: #feca57; margin-bottom: 5px;">Payment Reference:</div>
-                            <div style="color: white; font-size: 1.2rem; font-family: monospace;">${billingState.paymentReference}</div>
+                            <div style="color: #feca57; margin-bottom: 5px;">Amount Due (3% of Profit):</div>
+                            <div style="color: #00ff88; font-size: 1.5rem; font-weight: bold;">$${feeAmount.toFixed(2)} USDT</div>
                         </div>
+                        ${billingState.currentInvoice ? `
+                        <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                            <div style="color: #feca57; margin-bottom: 5px;">Invoice Period:</div>
+                            <div style="color: white;">${billingState.currentInvoice.billing_period_start} to ${billingState.currentInvoice.billing_period_end}</div>
+                        </div>
+                        ` : ''}
                         <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px;">
-                            <div style="color: #feca57; margin-bottom: 5px;">Amount Due:</div>
-                            <div style="color: white; font-size: 1.2rem;">$${(billingState.currentMonthProfit * 0.03).toFixed(2)}</div>
+                            <div style="color: #feca57; margin-bottom: 5px;">Payment Reference:</div>
+                            <div style="color: white; font-size: 1.1rem; font-family: monospace;">${billingState.paymentReference || 'N/A'}</div>
                         </div>
                     </div>
-                    
-                    <div style="background: rgba(255,107,107,0.1); padding: 20px; border-radius: 10px; border-left: 4px solid #ff6b6b;">
-                        <h4 style="color: #ff6b6b; margin-bottom: 10px;">⚠️ Important Instructions</h4>
+
+                    <div style="background: rgba(0,212,255,0.1); padding: 20px; border-radius: 10px; border-left: 4px solid #00d4ff; margin-bottom: 20px;">
+                        <h4 style="color: #00d4ff; margin-bottom: 15px;">USDT Wallet Address</h4>
+                        <div style="background: rgba(0,0,0,0.4); padding: 15px; border-radius: 8px; margin-bottom: 10px;">
+                            <div style="color: #feca57; font-size: 0.85rem; margin-bottom: 5px;">Network: ${billingState.adminUSDTNetwork || 'TRC20'} (Tron)</div>
+                            <div style="color: white; font-family: monospace; word-break: break-all; font-size: 0.9rem;">
+                                ${billingState.adminUSDTAddress || 'Contact admin for wallet address'}
+                            </div>
+                        </div>
+                        <button onclick="copyToClipboard('${billingState.adminUSDTAddress}')" style="
+                            width: 100%; padding: 10px; background: rgba(0,212,255,0.2);
+                            color: #00d4ff; border: 1px solid #00d4ff; border-radius: 6px;
+                            cursor: pointer; font-size: 0.9rem;
+                        ">📋 Copy Address</button>
+                    </div>
+
+                    <div style="background: rgba(255,183,71,0.1); padding: 20px; border-radius: 10px; border-left: 4px solid #ffb347;">
+                        <h4 style="color: #ffb347; margin-bottom: 10px;">⚠️ Important Instructions</h4>
                         <ol style="color: #e0e0e0; line-height: 1.8; margin-left: 20px;">
-                            <li>Use your unique payment reference: <strong>${billingState.paymentReference}</strong></li>
-                            <li>Payment must be made upfront to access platform trading ability</li>
-                            <li>We accept all major credit/debit cards (Visa, Mastercard)</li>
-                            <li>International payments are supported</li>
-                            <li>Your account will auto-reactivate upon payment confirmation</li>
+                            <li>Send <strong>exactly $${feeAmount.toFixed(2)} USDT</strong> to the address above</li>
+                            <li>Use <strong>${billingState.adminUSDTNetwork || 'TRC20'}</strong> network only - other networks may result in lost funds</li>
+                            <li>Include your payment reference in the memo/note if possible</li>
+                            <li>After sending, <strong>contact admin</strong> with your transaction hash (TX ID)</li>
+                            <li>Trading will be unblocked once payment is verified</li>
                         </ol>
                     </div>
-                    
-                    <div style="margin-top: 20px; padding: 15px; background: rgba(0,212,255,0.1); border-radius: 10px;">
-                        <p style="color: #e0e0e0; margin: 0; line-height: 1.6;">
-                            <strong>Note:</strong> Please make payment to the following account to activate trading alternatively set up a monthly recurring payment with your bank to ensure continuation of your Trading platform:<br><br>
-                            <strong>Account Holder Name:</strong> ARB4ME<br>
-                            <strong>Bank:</strong> ABSA<br>
-                            <strong>Branch Code:</strong> 632005<br>
-                            <strong>Swift Code:</strong> ABSAZAJJ<br>
-                            <strong>Account Number:</strong> ~~~~~~~~~~~<br>
-                            <strong>Type Account:</strong> Current<br>
-                            <strong>Your Payment Reference:</strong> ${billingState.paymentReference}
+
+                    <div style="margin-top: 15px; padding: 12px; background: rgba(255,107,107,0.1); border-radius: 8px;">
+                        <p style="color: #ff6b6b; margin: 0; font-size: 0.9rem;">
+                            <strong>Note:</strong> Trading is blocked until your invoice is paid. Contact admin via the Messages section if you need assistance.
                         </p>
                     </div>
-                    
+
                     <button onclick="this.parentElement.parentElement.remove()" class="btn" style="margin-top: 20px; width: 100%;">
                         Close
                     </button>
                 </div>
             `;
-            
+
             document.body.appendChild(modal);
         }
 
-        // 💳 NEW USDT PAYMENT SYSTEM
+        // Helper to copy text to clipboard
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Address copied to clipboard!');
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                prompt('Copy the address:', text);
+            });
+        }
 
-        // Check monthly payment status and update UI
-        function checkMonthlyPaymentStatus() {
-            const currentDate = new Date();
-            const currentMonth = currentDate.getMonth();
-            const currentYear = currentDate.getFullYear();
+        // 💳 USDT PAYMENT SYSTEM (3% of Profit)
 
-            // Get payment records for current month
-            const paymentKey = `payment_${currentYear}_${currentMonth}`;
-            const paymentRecord = localStorage.getItem(paymentKey);
-
+        // Check monthly payment status and update UI (now uses backend invoice system)
+        async function checkMonthlyPaymentStatus() {
             const monthlyFeeStatusElement = document.getElementById('monthlyFeeStatus');
             const paymentDueDateElement = document.getElementById('paymentDueDate');
             const payAdminSection = document.getElementById('payAdminSection');
             const paymentDeadlineElement = document.getElementById('paymentDeadline');
 
-            // Calculate end of month + 7 days grace period
-            const endOfMonth = new Date(currentYear, currentMonth + 1, 0);
-            const paymentDeadline = new Date(endOfMonth);
-            paymentDeadline.setDate(paymentDeadline.getDate() + billingState.gracePeriodDays);
+            try {
+                // Call backend to get invoice status
+                const canTradeResponse = await apiService.apiCall('/billing/can-trade');
 
-            const daysUntilDeadline = Math.ceil((paymentDeadline - currentDate) / (1000 * 60 * 60 * 24));
+                if (!canTradeResponse.success) {
+                    console.error('Failed to check billing status');
+                    return;
+                }
 
-            // If no profit, no payment needed
-            if (billingState.serviceFeeAmount === 0 || billingState.currentMonthProfit <= 0) {
-                if (monthlyFeeStatusElement) {
-                    monthlyFeeStatusElement.innerHTML = '<span style="color: #00ff88;">✅ NO FEE DUE</span>';
+                const { canTrade, unpaidInvoice } = canTradeResponse.data;
+                billingState.canTrade = canTrade;
+
+                // If no profit or can trade, no payment needed
+                if (canTrade && !unpaidInvoice) {
+                    if (billingState.serviceFeeAmount === 0 || billingState.currentPeriodProfit <= 0) {
+                        if (monthlyFeeStatusElement) {
+                            monthlyFeeStatusElement.innerHTML = '<span style="color: #00ff88;">✅ NO FEE DUE</span>';
+                        }
+                        if (paymentDueDateElement) {
+                            paymentDueDateElement.textContent = 'No profit this period - no fee required';
+                        }
+                        if (payAdminSection) {
+                            payAdminSection.style.display = 'none';
+                        }
+                        billingState.paymentStatus = 'PAID';
+                        return;
+                    }
+
+                    // Active trading period, no invoice yet
+                    if (monthlyFeeStatusElement) {
+                        monthlyFeeStatusElement.innerHTML = '<span style="color: #00d4ff;">📊 ACTIVE PERIOD</span>';
+                    }
+                    if (paymentDueDateElement) {
+                        paymentDueDateElement.textContent = 'Invoice will be generated at end of billing period';
+                    }
+                    if (payAdminSection) {
+                        payAdminSection.style.display = 'none';
+                    }
+                    billingState.paymentStatus = 'ACTIVE';
+                    return;
                 }
-                if (paymentDueDateElement) {
-                    paymentDueDateElement.textContent = 'No profit this month - no fee required';
+
+                // Check if there's an unpaid invoice
+                if (unpaidInvoice) {
+                    billingState.currentInvoice = unpaidInvoice;
+                    const invoiceDate = new Date(unpaidInvoice.generated_at);
+                    const daysSinceGenerated = Math.floor((Date.now() - invoiceDate) / (1000 * 60 * 60 * 24));
+
+                    if (daysSinceGenerated > 7) {
+                        // OVERDUE
+                        if (monthlyFeeStatusElement) {
+                            monthlyFeeStatusElement.innerHTML = '<span style="color: #ff6b6b;">🚨 OVERDUE</span>';
+                        }
+                        if (paymentDueDateElement) {
+                            paymentDueDateElement.innerHTML = `<span style="color: #ff6b6b;">Overdue by ${daysSinceGenerated - 7} days - Trading blocked</span>`;
+                        }
+                        if (payAdminSection) {
+                            payAdminSection.style.display = 'block';
+                        }
+                        if (paymentDeadlineElement) {
+                            paymentDeadlineElement.innerHTML = `<span style="color: #ff6b6b;">⚠️ OVERDUE - Pay now to resume trading</span>`;
+                        }
+                        billingState.paymentStatus = 'OVERDUE';
+                    } else {
+                        // PENDING
+                        if (monthlyFeeStatusElement) {
+                            monthlyFeeStatusElement.innerHTML = '<span style="color: #ffb347;">⏳ PENDING</span>';
+                        }
+                        if (paymentDueDateElement) {
+                            paymentDueDateElement.innerHTML = `<span style="color: #ffb347;">Due in ${7 - daysSinceGenerated} days</span>`;
+                        }
+                        if (payAdminSection) {
+                            payAdminSection.style.display = 'block';
+                        }
+                        billingState.paymentStatus = 'PENDING';
+                    }
+
+                    // Show trading blocked warning if can't trade
+                    if (!canTrade) {
+                        showTradingBlockedWarning();
+                    }
+                    return;
                 }
-                if (payAdminSection) {
-                    payAdminSection.style.display = 'none';
-                }
+
+                // Default - all good
                 billingState.paymentStatus = 'PAID';
-                return;
-            }
 
-            // Check if payment has been made this month
-            if (paymentRecord) {
-                const payment = JSON.parse(paymentRecord);
+            } catch (error) {
+                console.error('Error checking billing status:', error);
+                // On error, show active status
                 if (monthlyFeeStatusElement) {
-                    monthlyFeeStatusElement.innerHTML = '<span style="color: #00ff88;">✅ PAID</span>';
+                    monthlyFeeStatusElement.innerHTML = '<span style="color: #888;">Unable to check</span>';
                 }
-                if (paymentDueDateElement) {
-                    paymentDueDateElement.textContent = `Paid on ${new Date(payment.timestamp).toLocaleDateString()}`;
-                }
-                if (payAdminSection) {
-                    payAdminSection.style.display = 'none';
-                }
-                billingState.paymentStatus = 'PAID';
-                billingState.lastPaymentTxHash = payment.txHash;
-                return;
-            }
-
-            // Payment not made - check if overdue
-            if (daysUntilDeadline < 0) {
-                // OVERDUE
-                if (monthlyFeeStatusElement) {
-                    monthlyFeeStatusElement.innerHTML = '<span style="color: #ff6b6b;">🚨 OVERDUE</span>';
-                }
-                if (paymentDueDateElement) {
-                    paymentDueDateElement.innerHTML = `<span style="color: #ff6b6b;">Overdue by ${Math.abs(daysUntilDeadline)} days - Trading suspended</span>`;
-                }
-                if (payAdminSection) {
-                    payAdminSection.style.display = 'block';
-                }
-                if (paymentDeadlineElement) {
-                    paymentDeadlineElement.innerHTML = `<span style="color: #ff6b6b;">⚠️ OVERDUE - Pay now to reactivate trading</span>`;
-                }
-                billingState.paymentStatus = 'OVERDUE';
-                billingState.accountStatus = 'SUSPENDED';
-            } else if (daysUntilDeadline <= billingState.gracePeriodDays) {
-                // PENDING (within grace period)
-                if (monthlyFeeStatusElement) {
-                    monthlyFeeStatusElement.innerHTML = '<span style="color: #ffb347;">⚠️ PENDING</span>';
-                }
-                if (paymentDueDateElement) {
-                    paymentDueDateElement.innerHTML = `<span style="color: #ffb347;">Due: ${paymentDeadline.toLocaleDateString()} (${daysUntilDeadline} days remaining)</span>`;
-                }
-                if (payAdminSection) {
-                    payAdminSection.style.display = 'block';
-                }
-                if (paymentDeadlineElement) {
-                    paymentDeadlineElement.textContent = `Payment deadline: ${paymentDeadline.toLocaleDateString()} (${daysUntilDeadline} days remaining)`;
-                }
-                billingState.paymentStatus = 'PENDING';
-            } else {
-                // NOT DUE YET (still in current month)
-                if (monthlyFeeStatusElement) {
-                    monthlyFeeStatusElement.innerHTML = '<span style="color: #00d4ff;">📅 NOT DUE</span>';
-                }
-                if (paymentDueDateElement) {
-                    paymentDueDateElement.textContent = `Payment due: ${paymentDeadline.toLocaleDateString()}`;
-                }
-                if (payAdminSection) {
-                    payAdminSection.style.display = 'none';
-                }
-                billingState.paymentStatus = 'NOT_DUE';
             }
         }
 
         // Open payment modal with pre-filled USDT payment to admin
         function openPayAdminModal() {
-            if (billingState.adminUSDTAddress === 'TBD') {
+            if (!billingState.adminUSDTAddress || billingState.adminUSDTAddress === 'YOUR_USDT_ADDRESS_HERE') {
                 alert('⚠️ Admin USDT address not configured yet.\n\nPlease contact support to complete setup.');
                 return;
             }
 
             if (billingState.serviceFeeAmount <= 0) {
-                alert('✅ No payment due - you have no profit this month!');
+                alert('✅ No payment due - you have no profit this period!');
                 return;
             }
 
@@ -10594,22 +10627,24 @@
                 justify-content: center; z-index: 10000; padding: 20px;
             `;
 
-            const currentMonth = new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' });
+            const periodInfo = billingState.currentInvoice
+                ? `${billingState.currentInvoice.billing_period_start} to ${billingState.currentInvoice.billing_period_end}`
+                : 'Current Billing Period';
 
             modal.innerHTML = `
                 <div style="background: #1a1a2e; padding: 30px; border-radius: 15px; max-width: 600px; width: 100%; max-height: 90vh; overflow-y: auto;">
-                    <h3 style="color: #00d4ff; margin-bottom: 20px;">💳 Pay Monthly Platform Fee</h3>
+                    <h3 style="color: #00d4ff; margin-bottom: 20px;">💳 Pay Platform Fee (3% of Profit)</h3>
 
                     <div style="background: rgba(0,212,255,0.1); padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #00d4ff;">
-                        <h4 style="color: #00d4ff; margin-bottom: 15px;">Payment Summary</h4>
+                        <h4 style="color: #00d4ff; margin-bottom: 15px;">Invoice Summary</h4>
                         <div style="display: grid; gap: 10px;">
                             <div style="display: flex; justify-content: space-between;">
-                                <span style="color: #b8c6db;">Period:</span>
-                                <span style="color: white; font-weight: bold;">${currentMonth}</span>
+                                <span style="color: #b8c6db;">Billing Period:</span>
+                                <span style="color: white; font-weight: bold;">${periodInfo}</span>
                             </div>
                             <div style="display: flex; justify-content: space-between;">
-                                <span style="color: #b8c6db;">Monthly Profit:</span>
-                                <span style="color: #00ff88; font-weight: bold;">$${billingState.currentMonthProfit.toFixed(2)}</span>
+                                <span style="color: #b8c6db;">Period Profit:</span>
+                                <span style="color: #00ff88; font-weight: bold;">$${billingState.currentPeriodProfit.toFixed(2)}</span>
                             </div>
                             <div style="display: flex; justify-content: space-between;">
                                 <span style="color: #b8c6db;">Platform Fee (3%):</span>
@@ -10617,24 +10652,39 @@
                             </div>
                             <div style="display: flex; justify-content: space-between;">
                                 <span style="color: #b8c6db;">Payment Reference:</span>
-                                <span style="color: #ffb347; font-family: monospace;">${billingState.paymentReference}</span>
+                                <span style="color: #ffb347; font-family: monospace;">${billingState.paymentReference || 'N/A'}</span>
                             </div>
                         </div>
                     </div>
 
-                    <div style="background: rgba(255,107,107,0.1); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
-                        <h4 style="color: #ff6b6b; margin-bottom: 10px;">⚠️ Important</h4>
+                    <div style="background: rgba(0,212,255,0.1); padding: 15px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #00d4ff;">
+                        <h4 style="color: #00d4ff; margin-bottom: 10px;">USDT Wallet Address</h4>
+                        <div style="background: rgba(0,0,0,0.4); padding: 12px; border-radius: 8px; margin-bottom: 10px;">
+                            <div style="color: #feca57; font-size: 0.85rem; margin-bottom: 5px;">Network: ${billingState.adminUSDTNetwork}</div>
+                            <div style="color: white; font-family: monospace; word-break: break-all; font-size: 0.9rem;">
+                                ${billingState.adminUSDTAddress}
+                            </div>
+                        </div>
+                        <button onclick="copyToClipboard('${billingState.adminUSDTAddress}')" style="
+                            width: 100%; padding: 8px; background: rgba(0,212,255,0.2);
+                            color: #00d4ff; border: 1px solid #00d4ff; border-radius: 6px;
+                            cursor: pointer; font-size: 0.85rem;
+                        ">📋 Copy Address</button>
+                    </div>
+
+                    <div style="background: rgba(255,183,71,0.1); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+                        <h4 style="color: #ffb347; margin-bottom: 10px;">⚠️ Important</h4>
                         <ul style="color: #e0e0e0; line-height: 1.6; margin-left: 20px; font-size: 0.9rem;">
-                            <li>Amount will be sent in <strong>USDT</strong></li>
-                            <li>Network: <strong>${billingState.adminUSDTNetwork}</strong> (Fast & Cheap)</li>
-                            <li>Payment is <strong>automatically tracked</strong></li>
-                            <li>Trading reactivates <strong>immediately</strong> after payment</li>
+                            <li>Send exactly <strong>$${billingState.serviceFeeAmount.toFixed(2)} USDT</strong></li>
+                            <li>Use <strong>${billingState.adminUSDTNetwork}</strong> network only</li>
+                            <li>After sending, contact admin with your <strong>TX hash</strong></li>
+                            <li>Trading will be unblocked once payment is verified</li>
                         </ul>
                     </div>
 
                     <div style="display: flex; gap: 10px; margin-top: 25px;">
-                        <button onclick="executeUSDTPaymentToAdmin()" class="btn" style="flex: 1; background: linear-gradient(45deg, #00ff88, #00d4ff); color: #0a0e27; font-size: 1.1rem; padding: 15px;">
-                            💳 Pay ${billingState.serviceFeeAmount.toFixed(2)} USDT
+                        <button onclick="showPaymentInstructions(); document.getElementById('payAdminModal').remove();" class="btn" style="flex: 1; background: linear-gradient(45deg, #00ff88, #00d4ff); color: #0a0e27; font-size: 1rem; padding: 15px;">
+                            📋 View Full Instructions
                         </button>
                         <button onclick="document.getElementById('payAdminModal').remove()" class="btn" style="background: rgba(255,107,107,0.2); color: #ff6b6b; border: 1px solid #ff6b6b; padding: 15px;">
                             Cancel
@@ -10911,11 +10961,14 @@
             `;
 
             try {
-                // Get all users from backend (or localStorage for now)
-                const response = await fetch('/api/v1/admin/users');
-                const result = await response.json();
+                // Get all users with billing data from backend
+                const response = await apiService.apiCall('/admin/billing/all-users');
 
-                const users = result.success ? result.data.users : [];
+                if (!response.success) {
+                    throw new Error(response.error || 'Failed to fetch billing data');
+                }
+
+                const { users, totals } = response.data;
 
                 if (users.length === 0) {
                     usersBillingList.innerHTML = `
@@ -10927,34 +10980,21 @@
                     return;
                 }
 
-                // Calculate billing for each user
-                const currentMonth = new Date().getMonth();
-                const currentYear = new Date().getFullYear();
-
+                // Process users for display
                 let totalRevenueDue = 0;
                 let totalPaid = 0;
                 let pendingCount = 0;
                 let overdueCount = 0;
 
                 const usersWithBilling = users.map(user => {
-                    // Calculate user's monthly profit (mock data for now - should come from backend)
-                    const monthlyProfit = calculateUserMonthlyProfit(user.id);
-                    const fee = monthlyProfit * 0.03;
-
-                    // Check if user paid
-                    const paymentKey = `payment_${user.id}_${currentYear}_${currentMonth}`;
-                    const paymentRecord = localStorage.getItem(paymentKey);
-                    const isPaid = !!paymentRecord;
-
-                    // Calculate payment status
-                    const endOfMonth = new Date(currentYear, currentMonth + 1, 0);
-                    const paymentDeadline = new Date(endOfMonth);
-                    paymentDeadline.setDate(paymentDeadline.getDate() + 7);
-                    const daysUntilDeadline = Math.ceil((paymentDeadline - new Date()) / (1000 * 60 * 60 * 24));
+                    const monthlyProfit = user.currentProfit || 0;
+                    const fee = user.currentFee || 0;
+                    const invoice = user.latestInvoice;
+                    const isPaid = invoice?.status === 'paid';
 
                     let status, statusColor, statusText;
 
-                    if (fee <= 0) {
+                    if (fee <= 0 && !invoice) {
                         status = 'no_fee';
                         statusColor = '#888';
                         statusText = '📅 No Fee';
@@ -10962,25 +11002,33 @@
                         status = 'paid';
                         statusColor = '#00ff88';
                         statusText = '✅ Paid';
-                        totalPaid += fee;
-                    } else if (daysUntilDeadline < 0) {
-                        status = 'overdue';
-                        statusColor = '#ff6b6b';
-                        statusText = `🚨 Overdue (${Math.abs(daysUntilDeadline)}d)`;
-                        overdueCount++;
-                    } else if (daysUntilDeadline <= 7) {
-                        status = 'pending';
-                        statusColor = '#ffb347';
-                        statusText = `⚠️ Pending (${daysUntilDeadline}d)`;
-                        pendingCount++;
-                    } else {
+                        totalPaid += parseFloat(invoice.fee_amount || 0);
+                    } else if (invoice?.status === 'unpaid') {
+                        // Check if overdue (invoice generated more than 7 days ago)
+                        const generatedAt = new Date(invoice.generated_at);
+                        const daysSinceGenerated = Math.floor((Date.now() - generatedAt) / (1000 * 60 * 60 * 24));
+
+                        if (daysSinceGenerated > 7) {
+                            status = 'overdue';
+                            statusColor = '#ff6b6b';
+                            statusText = `🚨 Overdue (${daysSinceGenerated}d)`;
+                            overdueCount++;
+                        } else {
+                            status = 'pending';
+                            statusColor = '#ffb347';
+                            statusText = `⚠️ Pending (${7 - daysSinceGenerated}d)`;
+                            pendingCount++;
+                        }
+                        totalRevenueDue += parseFloat(invoice.fee_amount || 0);
+                    } else if (fee > 0) {
                         status = 'not_due';
                         statusColor = '#00d4ff';
-                        statusText = '📅 Not Due';
-                    }
-
-                    if (fee > 0) {
+                        statusText = '📅 Active Period';
                         totalRevenueDue += fee;
+                    } else {
+                        status = 'no_fee';
+                        statusColor = '#888';
+                        statusText = '📅 No Profit';
                     }
 
                     return {
@@ -10991,7 +11039,12 @@
                         statusColor,
                         statusText,
                         isPaid,
-                        paymentRecord: isPaid ? JSON.parse(paymentRecord) : null
+                        invoice,
+                        paymentRecord: isPaid ? {
+                            txHash: invoice.payment_tx_hash,
+                            timestamp: invoice.payment_date,
+                            network: invoice.payment_network
+                        } : null
                     };
                 });
 
@@ -11014,18 +11067,6 @@
                     </div>
                 `;
             }
-        }
-
-        // Calculate user's monthly profit (placeholder - should come from backend)
-        function calculateUserMonthlyProfit(userId) {
-            // This is a placeholder - in production, this would:
-            // 1. Fetch user's trade history from backend
-            // 2. Calculate total profit for current month across all strategies
-            // 3. Return the total
-
-            // For now, return mock data
-            const mockProfits = [0, 125, 450, 1250, 0, 890, 2100, 340, 0, 550];
-            return mockProfits[userId % mockProfits.length] || 0;
         }
 
         // Render user billing cards
@@ -11089,7 +11130,31 @@
                     </div>
 
                     <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                        ${!user.isPaid && user.fee > 0 ? `
+                        ${user.fee > 0 && !user.invoice ? `
+                            <button onclick="generateUserInvoice('${user.id}')" style="
+                                padding: 8px 16px;
+                                background: rgba(0,212,255,0.2);
+                                color: #00d4ff;
+                                border: 1px solid #00d4ff;
+                                border-radius: 6px;
+                                cursor: pointer;
+                                font-size: 0.9rem;
+                            ">📝 Generate Invoice</button>
+                        ` : ''}
+
+                        ${user.invoice && user.invoice.status === 'unpaid' ? `
+                            <button onclick="markInvoicePaid('${user.invoice.id}', '${user.email}')" style="
+                                padding: 8px 16px;
+                                background: rgba(0,255,136,0.2);
+                                color: #00ff88;
+                                border: 1px solid #00ff88;
+                                border-radius: 6px;
+                                cursor: pointer;
+                                font-size: 0.9rem;
+                            ">✅ Mark Paid</button>
+                        ` : ''}
+
+                        ${user.invoice && user.invoice.status === 'unpaid' ? `
                             <button onclick="sendPaymentReminder('${user.id}')" style="
                                 padding: 8px 16px;
                                 background: rgba(255,183,71,0.2);
@@ -11110,11 +11175,11 @@
                                 border-radius: 6px;
                                 cursor: pointer;
                                 font-size: 0.9rem;
-                            ">🚫 Suspend Trading</button>
+                            ">🚫 Block Trading</button>
                         ` : ''}
 
-                        ${user.accountStatus === 'SUSPENDED' ? `
-                            <button onclick="reactivateUserTrading('${user.id}')" style="
+                        ${!user.canTrade ? `
+                            <button onclick="unblockUserTrading('${user.id}')" style="
                                 padding: 8px 16px;
                                 background: rgba(0,255,136,0.2);
                                 color: #00ff88;
@@ -11122,10 +11187,10 @@
                                 border-radius: 6px;
                                 cursor: pointer;
                                 font-size: 0.9rem;
-                            ">✅ Reactivate Trading</button>
+                            ">🔓 Unblock Trading</button>
                         ` : ''}
 
-                        <button onclick="viewUserPaymentHistory('${user.id}')" style="
+                        <button onclick="viewUserInvoiceHistory('${user.id}')" style="
                             padding: 8px 16px;
                             background: rgba(0,212,255,0.2);
                             color: #00d4ff;
@@ -11133,9 +11198,9 @@
                             border-radius: 6px;
                             cursor: pointer;
                             font-size: 0.9rem;
-                        ">📜 Payment History</button>
+                        ">📜 Invoice History</button>
 
-                        ${user.isPaid ? `
+                        ${user.isPaid && user.paymentRecord?.txHash ? `
                             <button onclick="viewTransactionDetails('${user.paymentRecord.txHash}')" style="
                                 padding: 8px 16px;
                                 background: rgba(0,212,255,0.2);
@@ -11262,7 +11327,262 @@
             }
         }
 
-        // View specific user payment history
+        // Generate invoice for a user (admin)
+        async function generateUserInvoice(userId) {
+            if (!confirm('📝 Generate Invoice?\n\nThis will create an invoice for this user\'s current period profit.\n\nContinue?')) {
+                return;
+            }
+
+            try {
+                const response = await apiService.apiCall(`/admin/billing/generate-invoice/${userId}`, {
+                    method: 'POST'
+                });
+
+                if (response.success) {
+                    if (response.data.invoice) {
+                        alert(`✅ Invoice Generated!\n\nAmount: $${parseFloat(response.data.invoice.fee_amount).toFixed(2)} USDT\nPeriod: ${response.data.invoice.billing_period_start} to ${response.data.invoice.billing_period_end}`);
+                        addActivity(`📝 Invoice generated for user ${userId}`, 'info');
+                    } else {
+                        alert('ℹ️ No invoice generated - user had no profit this period');
+                    }
+                    refreshAdminBillingData();
+                } else {
+                    alert('❌ Failed to generate invoice:\n' + (response.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error generating invoice:', error);
+                alert('❌ Error generating invoice:\n' + error.message);
+            }
+        }
+
+        // Mark invoice as paid (admin)
+        async function markInvoicePaid(invoiceId, userEmail) {
+            // Create modal to get TX hash
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+                background: rgba(0,0,0,0.8); display: flex; align-items: center;
+                justify-content: center; z-index: 10000; padding: 20px;
+            `;
+
+            modal.innerHTML = `
+                <div style="background: #1a1a2e; padding: 30px; border-radius: 15px; max-width: 500px; width: 100%;">
+                    <h3 style="color: #00d4ff; margin-bottom: 20px;">✅ Mark Invoice as Paid</h3>
+                    <p style="color: #b8c6db; margin-bottom: 20px;">Recording payment for: <strong>${userEmail}</strong></p>
+
+                    <div style="margin-bottom: 20px;">
+                        <label style="color: #feca57; display: block; margin-bottom: 8px;">Transaction Hash (TX ID)</label>
+                        <input type="text" id="paymentTxHash" placeholder="Enter USDT transaction hash" style="
+                            width: 100%; padding: 12px; background: rgba(255,255,255,0.1);
+                            border: 1px solid #00d4ff; border-radius: 8px; color: white;
+                            font-family: monospace;
+                        ">
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <label style="color: #feca57; display: block; margin-bottom: 8px;">Network</label>
+                        <select id="paymentNetwork" style="
+                            width: 100%; padding: 12px; background: rgba(255,255,255,0.1);
+                            border: 1px solid #00d4ff; border-radius: 8px; color: white;
+                        ">
+                            <option value="TRC20" selected>TRC20 (Tron)</option>
+                            <option value="ERC20">ERC20 (Ethereum)</option>
+                            <option value="BEP20">BEP20 (BSC)</option>
+                        </select>
+                    </div>
+
+                    <div style="display: flex; gap: 10px;">
+                        <button onclick="submitMarkPaid('${invoiceId}')" class="btn" style="flex: 1; background: #00ff88; color: #0d0d1a;">
+                            ✅ Confirm Payment
+                        </button>
+                        <button onclick="this.parentElement.parentElement.parentElement.remove()" class="btn" style="flex: 1; background: rgba(255,255,255,0.1);">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+        }
+
+        // Submit mark paid form
+        async function submitMarkPaid(invoiceId) {
+            const txHash = document.getElementById('paymentTxHash').value.trim();
+            const network = document.getElementById('paymentNetwork').value;
+
+            if (!txHash) {
+                alert('Please enter a transaction hash');
+                return;
+            }
+
+            try {
+                const response = await apiService.apiCall(`/admin/billing/mark-invoice-paid/${invoiceId}`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        txHash: txHash,
+                        network: network
+                    })
+                });
+
+                if (response.success) {
+                    alert('✅ Invoice marked as paid!\n\nUser can now resume trading.');
+                    addActivity(`✅ Invoice #${invoiceId} marked as paid (TX: ${txHash.substring(0, 20)}...)`, 'success');
+                    document.querySelector('div[style*="z-index: 10000"]').remove();
+                    refreshAdminBillingData();
+                } else {
+                    alert('❌ Failed to mark invoice as paid:\n' + (response.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error marking invoice paid:', error);
+                alert('❌ Error marking invoice paid:\n' + error.message);
+            }
+        }
+
+        // View user invoice history
+        async function viewUserInvoiceHistory(userId) {
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+                background: rgba(0,0,0,0.8); display: flex; align-items: center;
+                justify-content: center; z-index: 10000; padding: 20px;
+            `;
+
+            modal.innerHTML = `
+                <div style="background: #1a1a2e; padding: 30px; border-radius: 15px; max-width: 700px; width: 100%; max-height: 80vh; overflow-y: auto;">
+                    <h3 style="color: #00d4ff; margin-bottom: 20px;">📜 User Invoice History</h3>
+                    <div id="invoiceHistoryContent" style="max-height: 500px; overflow-y: auto;">
+                        <div style="text-align: center; padding: 40px; color: #888;">
+                            <div style="font-size: 2rem; margin-bottom: 10px;">⏳</div>
+                            <div>Loading invoice history...</div>
+                        </div>
+                    </div>
+                    <button onclick="this.parentElement.parentElement.remove()" class="btn" style="margin-top: 20px; width: 100%;">
+                        Close
+                    </button>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+
+            // Fetch invoice history
+            try {
+                const response = await apiService.apiCall(`/admin/billing/user-profit/${userId}`);
+
+                if (response.success) {
+                    const { user, period, totalProfit, feeAmount, existingInvoice } = response.data;
+
+                    // Get all invoices for this user
+                    const historyResponse = await fetch(`/api/v1/admin/payments/history/${userId}`, {
+                        headers: { 'Authorization': `Bearer ${apiService.authToken}` }
+                    });
+                    const historyData = await historyResponse.json();
+
+                    let historyHTML = `
+                        <div style="background: rgba(0,255,136,0.1); padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #00ff88;">
+                            <div style="color: #00ff88; font-weight: bold; margin-bottom: 10px;">Current Period</div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                <div>
+                                    <div style="color: #888; font-size: 0.85rem;">Period</div>
+                                    <div style="color: #00d4ff;">${period?.period_start || 'N/A'} to ${period?.period_end || 'N/A'}</div>
+                                </div>
+                                <div>
+                                    <div style="color: #888; font-size: 0.85rem;">Total Profit</div>
+                                    <div style="color: #00ff88; font-weight: bold;">$${totalProfit.toFixed(2)}</div>
+                                </div>
+                                <div>
+                                    <div style="color: #888; font-size: 0.85rem;">Fee Due (3%)</div>
+                                    <div style="color: #ffb347; font-weight: bold;">$${feeAmount.toFixed(2)}</div>
+                                </div>
+                                <div>
+                                    <div style="color: #888; font-size: 0.85rem;">Invoice Status</div>
+                                    <div style="color: ${existingInvoice?.status === 'paid' ? '#00ff88' : existingInvoice?.status === 'unpaid' ? '#ff6b6b' : '#888'}; font-weight: bold;">
+                                        ${existingInvoice?.status?.toUpperCase() || 'NO INVOICE'}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    if (historyData.success && historyData.data.length > 0) {
+                        historyHTML += `<div style="color: #feca57; margin-bottom: 10px;">Previous Payments</div>`;
+                        historyHTML += historyData.data.map(payment => `
+                            <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; margin-bottom: 10px;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                                    <div>
+                                        <div style="color: #00d4ff; font-weight: bold;">
+                                            ${new Date(payment.payment_date).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                                        </div>
+                                        <div style="color: #888; font-size: 0.85rem;">
+                                            ${new Date(payment.payment_date).toLocaleString()}
+                                        </div>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div style="color: #00ff88; font-weight: bold; font-size: 1.2rem;">
+                                            $${parseFloat(payment.amount).toFixed(2)} USDT
+                                        </div>
+                                    </div>
+                                </div>
+                                ${payment.bank_reference ? `<div style="color: #888; font-size: 0.8rem;">Ref: ${payment.bank_reference}</div>` : ''}
+                            </div>
+                        `).join('');
+                    } else {
+                        historyHTML += `
+                            <div style="text-align: center; padding: 20px; color: #888;">
+                                <div>No previous payment history</div>
+                            </div>
+                        `;
+                    }
+
+                    document.getElementById('invoiceHistoryContent').innerHTML = historyHTML;
+                } else {
+                    document.getElementById('invoiceHistoryContent').innerHTML = `
+                        <div style="text-align: center; padding: 40px; color: #ff6b6b;">
+                            <div style="font-size: 2rem; margin-bottom: 10px;">❌</div>
+                            <div>Error loading invoice history</div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading invoice history:', error);
+                document.getElementById('invoiceHistoryContent').innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #ff6b6b;">
+                        <div style="font-size: 2rem; margin-bottom: 10px;">❌</div>
+                        <div>Error: ${error.message}</div>
+                    </div>
+                `;
+            }
+        }
+
+        // Unblock user trading (admin override)
+        async function unblockUserTrading(userId) {
+            if (!confirm('🔓 Unblock Trading?\n\nThis will allow the user to trade even with unpaid invoices.\nUse only for special cases.\n\nContinue?')) {
+                return;
+            }
+
+            try {
+                const response = await apiService.apiCall(`/admin/users/${userId}/status`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        status: 'active',
+                        billing_status: 'active',
+                        reason: 'Admin override - trading unblocked'
+                    })
+                });
+
+                if (response.success) {
+                    alert('✅ User trading unblocked\n\nUser can now execute trades.');
+                    addActivity(`🔓 User ${userId} trading unblocked by admin`, 'warning');
+                    refreshAdminBillingData();
+                } else {
+                    alert('❌ Failed to unblock user:\n' + (response.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error unblocking user:', error);
+                alert('❌ Error unblocking user:\n' + error.message);
+            }
+        }
+
+        // View specific user payment history (legacy)
         function viewUserPaymentHistory(userId) {
             const paymentHistory = JSON.parse(localStorage.getItem(`payment_history_${userId}`) || '[]');
 
