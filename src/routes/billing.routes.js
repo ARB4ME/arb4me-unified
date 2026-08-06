@@ -506,4 +506,504 @@ router.post('/reminders/send',
     }
 );
 
+// =====================================================
+// PROFIT-BASED BILLING SYSTEM (3% of Profit)
+// Added: 2026-08-06
+// =====================================================
+
+// GET /api/v1/billing/my-invoice - Get current user's latest invoice
+router.get('/my-invoice',
+    authenticateUser,
+    async (req, res) => {
+        try {
+            const userId = req.user.id;
+
+            // Get user's current billing period
+            const periodResult = await query(
+                'SELECT * FROM get_user_billing_period($1)',
+                [userId]
+            );
+
+            const period = periodResult.rows[0];
+            if (!period) {
+                return res.json({
+                    success: true,
+                    data: {
+                        invoice: null,
+                        message: 'No billing period found'
+                    }
+                });
+            }
+
+            // Get any existing invoice for current period
+            const invoiceResult = await query(
+                `SELECT * FROM billing_invoices
+                 WHERE user_id = $1
+                 ORDER BY billing_period_start DESC
+                 LIMIT 1`,
+                [userId]
+            );
+
+            const invoice = invoiceResult.rows[0] || null;
+
+            // Get user's billing status
+            const userResult = await query(
+                'SELECT billing_status, next_billing_date FROM users WHERE id = $1',
+                [userId]
+            );
+
+            res.json({
+                success: true,
+                data: {
+                    invoice: invoice,
+                    currentPeriod: period,
+                    billingStatus: userResult.rows[0]?.billing_status || 'active',
+                    canTrade: userResult.rows[0]?.billing_status !== 'blocked'
+                }
+            });
+
+        } catch (error) {
+            console.error('Error fetching user invoice:', error);
+            res.status(500).json({
+                success: false,
+                error: 'Failed to fetch invoice'
+            });
+        }
+    }
+);
+
+// GET /api/v1/billing/my-history - Get user's invoice history
+router.get('/my-history',
+    authenticateUser,
+    async (req, res) => {
+        try {
+            const userId = req.user.id;
+            const { limit = 12 } = req.query;
+
+            const invoices = await query(
+                `SELECT * FROM billing_invoices
+                 WHERE user_id = $1
+                 ORDER BY billing_period_start DESC
+                 LIMIT $2`,
+                [userId, limit]
+            );
+
+            res.json({
+                success: true,
+                data: {
+                    invoices: invoices.rows,
+                    count: invoices.rows.length
+                }
+            });
+
+        } catch (error) {
+            console.error('Error fetching invoice history:', error);
+            res.status(500).json({
+                success: false,
+                error: 'Failed to fetch invoice history'
+            });
+        }
+    }
+);
+
+// GET /api/v1/billing/profit-summary - Get user's current period profit
+router.get('/profit-summary',
+    authenticateUser,
+    async (req, res) => {
+        try {
+            const userId = req.user.id;
+
+            // Get user's current billing period
+            const periodResult = await query(
+                'SELECT * FROM get_user_billing_period($1)',
+                [userId]
+            );
+
+            const period = periodResult.rows[0];
+            if (!period) {
+                return res.json({
+                    success: true,
+                    data: {
+                        profit: 0,
+                        feeAmount: 0,
+                        period: null
+                    }
+                });
+            }
+
+            // Calculate profit for current period
+            const profitResult = await query(
+                'SELECT calculate_period_profit($1, $2, $3) as profit',
+                [userId, period.period_start, period.period_end]
+            );
+
+            const profit = parseFloat(profitResult.rows[0]?.profit || 0);
+            const feeAmount = profit > 0 ? profit * 0.03 : 0;
+
+            // Get trade count for period
+            const tradeCountResult = await query(
+                `SELECT COUNT(*) as trade_count
+                 FROM user_activity
+                 WHERE user_id = $1
+                 AND activity_type = 'trade_completed'
+                 AND (activity_details->>'successful')::BOOLEAN = true
+                 AND created_at >= $2
+                 AND created_at < ($3::DATE + INTERVAL '1 day')`,
+                [userId, period.period_start, period.period_end]
+            );
+
+            res.json({
+                success: true,
+                data: {
+                    periodStart: period.period_start,
+                    periodEnd: period.period_end,
+                    periodNumber: period.period_number,
+                    totalProfit: profit,
+                    feePercentage: 0.03,
+                    feeAmount: feeAmount,
+                    tradeCount: parseInt(tradeCountResult.rows[0]?.trade_count || 0)
+                }
+            });
+
+        } catch (error) {
+            console.error('Error fetching profit summary:', error);
+            res.status(500).json({
+                success: false,
+                error: 'Failed to fetch profit summary'
+            });
+        }
+    }
+);
+
+// GET /api/v1/billing/can-trade - Check if user can trade
+router.get('/can-trade',
+    authenticateUser,
+    async (req, res) => {
+        try {
+            const userId = req.user.id;
+
+            const result = await query(
+                'SELECT can_user_trade($1) as can_trade',
+                [userId]
+            );
+
+            const canTrade = result.rows[0]?.can_trade ?? true;
+
+            // If can't trade, get the unpaid invoice details
+            let unpaidInvoice = null;
+            if (!canTrade) {
+                const invoiceResult = await query(
+                    `SELECT * FROM billing_invoices
+                     WHERE user_id = $1 AND status = 'unpaid'
+                     ORDER BY billing_period_start DESC LIMIT 1`,
+                    [userId]
+                );
+                unpaidInvoice = invoiceResult.rows[0] || null;
+            }
+
+            res.json({
+                success: true,
+                data: {
+                    canTrade: canTrade,
+                    unpaidInvoice: unpaidInvoice,
+                    message: canTrade ? 'Trading allowed' : 'Please pay outstanding invoice to continue trading'
+                }
+            });
+
+        } catch (error) {
+            console.error('Error checking trade permission:', error);
+            res.status(500).json({
+                success: false,
+                error: 'Failed to check trade permission'
+            });
+        }
+    }
+);
+
+// =====================
+// ADMIN INVOICE MANAGEMENT
+// =====================
+
+// POST /api/v1/admin/billing/generate-invoice/:userId - Generate invoice for user
+router.post('/generate-invoice/:userId',
+    authenticateUser,
+    requireAdminAuth,
+    param('userId').notEmpty(),
+    handleValidationErrors,
+    async (req, res) => {
+        const startTime = Date.now();
+        try {
+            const { userId } = req.params;
+
+            // Generate invoice using database function
+            const result = await query(
+                'SELECT generate_user_invoice($1) as invoice_id',
+                [userId]
+            );
+
+            const invoiceId = result.rows[0]?.invoice_id;
+
+            if (!invoiceId) {
+                // No invoice generated (user had no profit)
+                return res.json({
+                    success: true,
+                    data: {
+                        invoice: null,
+                        message: 'No invoice generated - user had no profit this period'
+                    }
+                });
+            }
+
+            // Get the created invoice
+            const invoiceResult = await query(
+                'SELECT * FROM billing_invoices WHERE id = $1',
+                [invoiceId]
+            );
+
+            // Log admin activity
+            await logAdminActivity(
+                req.user.id,
+                'invoice_generated',
+                'user',
+                userId,
+                {
+                    invoice_id: invoiceId,
+                    fee_amount: invoiceResult.rows[0]?.fee_amount,
+                    total_profit: invoiceResult.rows[0]?.total_profit
+                },
+                req.ip,
+                req.get('User-Agent'),
+                {
+                    category: 'billing',
+                    severity: 'info',
+                    durationMs: Date.now() - startTime
+                }
+            );
+
+            res.json({
+                success: true,
+                data: {
+                    invoice: invoiceResult.rows[0],
+                    message: 'Invoice generated successfully'
+                }
+            });
+
+        } catch (error) {
+            console.error('Error generating invoice:', error);
+            res.status(500).json({
+                success: false,
+                error: 'Failed to generate invoice',
+                details: error.message
+            });
+        }
+    }
+);
+
+// POST /api/v1/admin/billing/mark-invoice-paid/:invoiceId - Mark invoice as paid
+router.post('/mark-invoice-paid/:invoiceId',
+    authenticateUser,
+    requireAdminAuth,
+    param('invoiceId').isInt(),
+    body('txHash').notEmpty().withMessage('Transaction hash is required'),
+    body('network').optional().isIn(['TRC20', 'ERC20', 'BEP20']).withMessage('Invalid network'),
+    body('amount').optional().isFloat({ min: 0 }),
+    handleValidationErrors,
+    async (req, res) => {
+        const startTime = Date.now();
+        try {
+            const { invoiceId } = req.params;
+            const { txHash, network = 'TRC20', amount } = req.body;
+
+            // Get invoice before update
+            const beforeInvoice = await query(
+                'SELECT * FROM billing_invoices WHERE id = $1',
+                [invoiceId]
+            );
+
+            if (beforeInvoice.rows.length === 0) {
+                return res.status(404).json({
+                    success: false,
+                    error: 'Invoice not found'
+                });
+            }
+
+            // Mark as paid using database function
+            const result = await query(
+                'SELECT mark_invoice_paid($1, $2, $3, $4) as success',
+                [invoiceId, txHash, network, amount]
+            );
+
+            const success = result.rows[0]?.success;
+
+            if (!success) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Failed to mark invoice as paid - may already be paid'
+                });
+            }
+
+            // Get updated invoice
+            const afterInvoice = await query(
+                'SELECT * FROM billing_invoices WHERE id = $1',
+                [invoiceId]
+            );
+
+            // Log admin activity
+            await logAdminActivity(
+                req.user.id,
+                'invoice_marked_paid',
+                'billing',
+                invoiceId.toString(),
+                {
+                    user_id: beforeInvoice.rows[0].user_id,
+                    fee_amount: beforeInvoice.rows[0].fee_amount,
+                    tx_hash: txHash,
+                    network: network
+                },
+                req.ip,
+                req.get('User-Agent'),
+                {
+                    category: 'billing',
+                    severity: 'info',
+                    beforeState: { status: 'unpaid' },
+                    afterState: { status: 'paid', tx_hash: txHash },
+                    durationMs: Date.now() - startTime
+                }
+            );
+
+            res.json({
+                success: true,
+                data: {
+                    invoice: afterInvoice.rows[0],
+                    message: 'Invoice marked as paid - user can now trade'
+                }
+            });
+
+        } catch (error) {
+            console.error('Error marking invoice as paid:', error);
+            res.status(500).json({
+                success: false,
+                error: 'Failed to mark invoice as paid',
+                details: error.message
+            });
+        }
+    }
+);
+
+// GET /api/v1/admin/billing/pending-invoices - Get all unpaid invoices
+router.get('/pending-invoices',
+    authenticateUser,
+    requireAdminAuth,
+    async (req, res) => {
+        try {
+            const invoices = await query(
+                `SELECT
+                    bi.*,
+                    u.email,
+                    u.first_name,
+                    u.last_name,
+                    u.payment_reference,
+                    EXTRACT(DAY FROM (CURRENT_TIMESTAMP - bi.generated_at)) as days_overdue
+                 FROM billing_invoices bi
+                 JOIN users u ON bi.user_id = u.id
+                 WHERE bi.status = 'unpaid'
+                 ORDER BY bi.generated_at ASC`
+            );
+
+            // Calculate totals
+            const totalDue = invoices.rows.reduce((sum, inv) => sum + parseFloat(inv.fee_amount), 0);
+
+            res.json({
+                success: true,
+                data: {
+                    invoices: invoices.rows,
+                    count: invoices.rows.length,
+                    totalDue: totalDue
+                }
+            });
+
+        } catch (error) {
+            console.error('Error fetching pending invoices:', error);
+            res.status(500).json({
+                success: false,
+                error: 'Failed to fetch pending invoices'
+            });
+        }
+    }
+);
+
+// GET /api/v1/admin/billing/user-profit/:userId - Get specific user's profit summary
+router.get('/user-profit/:userId',
+    authenticateUser,
+    requireAdminAuth,
+    param('userId').notEmpty(),
+    handleValidationErrors,
+    async (req, res) => {
+        try {
+            const { userId } = req.params;
+
+            // Get user's current billing period
+            const periodResult = await query(
+                'SELECT * FROM get_user_billing_period($1)',
+                [userId]
+            );
+
+            const period = periodResult.rows[0];
+            if (!period) {
+                return res.json({
+                    success: true,
+                    data: {
+                        profit: 0,
+                        period: null,
+                        message: 'No billing period found for user'
+                    }
+                });
+            }
+
+            // Calculate profit
+            const profitResult = await query(
+                'SELECT calculate_period_profit($1, $2, $3) as profit',
+                [userId, period.period_start, period.period_end]
+            );
+
+            const profit = parseFloat(profitResult.rows[0]?.profit || 0);
+            const feeAmount = profit > 0 ? profit * 0.03 : 0;
+
+            // Get user details
+            const userResult = await query(
+                `SELECT id, email, first_name, last_name, payment_reference,
+                        billing_status, created_at, next_billing_date
+                 FROM users WHERE id = $1`,
+                [userId]
+            );
+
+            // Get existing invoice if any
+            const invoiceResult = await query(
+                `SELECT * FROM billing_invoices
+                 WHERE user_id = $1 AND billing_period_start = $2`,
+                [userId, period.period_start]
+            );
+
+            res.json({
+                success: true,
+                data: {
+                    user: userResult.rows[0],
+                    period: period,
+                    totalProfit: profit,
+                    feePercentage: 0.03,
+                    feeAmount: feeAmount,
+                    existingInvoice: invoiceResult.rows[0] || null
+                }
+            });
+
+        } catch (error) {
+            console.error('Error fetching user profit:', error);
+            res.status(500).json({
+                success: false,
+                error: 'Failed to fetch user profit'
+            });
+        }
+    }
+);
+
 module.exports = router;

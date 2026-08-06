@@ -6,6 +6,7 @@ const { authenticateUser, requireOwnershipOrAdmin, requireAdmin, optionalAuth } 
 const { tradingRateLimit, tickerRateLimit, authenticatedRateLimit, adminRateLimit } = require('../middleware/rateLimiter');
 const { systemLogger } = require('../utils/logger');
 const { broadcastToAdmins } = require('../websocket/socketManager');
+const { requirePaidInvoices, checkTradingStatus } = require('../middleware/tradingGate');
 
 // Additional dependencies for exchange API integration
 const crypto = require('crypto');
@@ -1098,7 +1099,8 @@ router.put('/activity', authenticatedRateLimit, authenticateUser, tradingRateLim
 }));
 
 // POST /api/v1/trading/trades - Record a completed trade
-router.post('/trades', authenticatedRateLimit, authenticateUser, tradingRateLimit, [
+// NOTE: requirePaidInvoices blocks trading if user has unpaid invoice
+router.post('/trades', authenticatedRateLimit, authenticateUser, requirePaidInvoices, tradingRateLimit, [
     body('strategy').optional().isIn(['cross_exchange', 'triangular', 'transfer', 'currency_swap', 'momentum', 'rebalance', 'payment_gateway']).withMessage('Invalid strategy type'),
     body('exchangePair').notEmpty().withMessage('Exchange pair is required'),
     body('asset').notEmpty().withMessage('Asset is required'),

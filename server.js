@@ -83,6 +83,8 @@ app.use(`${API_PREFIX}/user`, userRoutes);
 app.use(`${API_PREFIX}/messages`, messageRoutes);
 app.use(`${API_PREFIX}/admin`, adminRoutes);
 app.use(`${API_PREFIX}/admin/payments`, billingRoutes);
+app.use(`${API_PREFIX}/admin/billing`, billingRoutes);  // Admin billing endpoints
+app.use(`${API_PREFIX}/billing`, billingRoutes);         // User billing endpoints (my-invoice, can-trade, etc.)
 app.use(`${API_PREFIX}/migration`, migrationRoutes);
 app.use(`${API_PREFIX}/trading`, tradingRoutes);
 app.use(`${API_PREFIX}/trading`, triangularArbRoutes);
