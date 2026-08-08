@@ -1437,7 +1437,7 @@
             </div>
 
             <!-- Smart Money Transfer - Payment Gateway Section -->
-            <div style="margin-bottom: 30px; margin-top: 40px;">
+            <div id="smart-money-section" style="margin-bottom: 30px; margin-top: 40px;">
                 <div style="background: rgba(0,212,255,0.1); border: 2px solid #00d4ff; border-radius: 12px; padding: 30px; margin-bottom: 20px; text-align: center;">
                     <h3 style="color: #00d4ff; margin-bottom: 25px; font-size: 1.5rem;">💸 SMART MONEY TRANSFER - PAYMENT GATEWAY</h3>
 
@@ -3589,7 +3589,7 @@
             if (urlHash === 'rebalance') {
                 console.log('🔗 Navigated from dashboard - opening Rebalance tab');
                 // Scroll to Smart Money section
-                const smartMoneySection = document.querySelector('h3[style*="SMART MONEY TRANSFER"]')?.parentElement?.parentElement;
+                const smartMoneySection = document.getElementById('smart-money-section');
                 if (smartMoneySection) {
                     smartMoneySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
@@ -3598,7 +3598,7 @@
             } else if (urlHash === 'payment') {
                 console.log('🔗 Navigated from dashboard - opening Payment Gateway tab');
                 // Scroll to Smart Money section
-                const smartMoneySection = document.querySelector('h3[style*="SMART MONEY TRANSFER"]')?.parentElement?.parentElement;
+                const smartMoneySection = document.getElementById('smart-money-section');
                 if (smartMoneySection) {
                     smartMoneySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }

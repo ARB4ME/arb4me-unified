@@ -1,0 +1,631 @@
+{
+  "supported": [
+    {
+      "exchange": "binance",
+      "interval": "8h",
+      "cryptoCount": 10
+    },
+    {
+      "exchange": "okx",
+      "interval": "8h",
+      "cryptoCount": 5
+    },
+    {
+      "exchange": "bybit",
+      "interval": "8h",
+      "cryptoCount": 9
+    },
+    {
+      "exchange": "gateio",
+      "interval": "8h",
+      "cryptoCount": 9
+    },
+    {
+      "exchange": "mexc",
+      "interval": "8h",
+      "cryptoCount": 9
+    },
+    {
+      "exchange": "kucoin",
+      "interval": "8h",
+      "cryptoCount": 8,
+      "note": "Separate futures API - may need different credentials"
+    },
+    {
+      "exchange": "bingx",
+      "interval": "8h",
+      "cryptoCount": 9
+    },
+    {
+      "exchange": "htx",
+      "interval": "8h",
+      "cryptoCount": 9
+    },
+    {
+      "exchange": "bitget",
+      "interval": "8h",
+      "cryptoCount": 9
+    },
+    {
+      "exchange": "coincatch",
+      "interval": "8h",
+      "cryptoCount": 9
+    }
+  ],
+  "notSupported": [
+    {
+      "exchange": "valr",
+      "reason": "South African exchange - spot only"
+    },
+    {
+      "exchange": "luno",
+      "reason": "South African exchange - spot only"
+    },
+    {
+      "exchange": "chainex",
+      "reason": "South African exchange - spot only"
+    },
+    {
+      "exchange": "kraken",
+      "reason": "Limited futures - not suitable for funding arb"
+    },
+    {
+      "exchange": "xt",
+      "reason": "No futures data"
+    },
+    {
+      "exchange": "ascendex",
+      "reason": "Futures API requires authentication"
+    },
+    {
+      "exchange": "gemini",
+      "reason": "US exchange - no perpetual futures"
+    },
+    {
+      "exchange": "bitmart",
+      "reason": "No futures data available"
+    },
+    {
+      "exchange": "bitrue",
+      "reason": "Limited futures support"
+    }
+  ],
+  "fundingRates": {
+    "binance": {
+      "LTC": {
+        "symbol": "LTCUSDT",
+        "fundingRate": -0.00021600000000000002,
+        "nextFundingTime": "2026-01-12T16:00:00.000Z",
+        "markPrice": 78.32457843
+      },
+      "XRP": {
+        "symbol": "XRPUSDT",
+        "fundingRate": -0.005365,
+        "nextFundingTime": "2026-01-12T16:00:00.000Z",
+        "markPrice": 2.05
+      },
+      "MATIC": {
+        "symbol": "MATICUSDT",
+        "fundingRate": 0.01,
+        "nextFundingTime": "2026-01-12T16:00:00.000Z",
+        "markPrice": 0.19800816
+      },
+      "DOT": {
+        "symbol": "DOTUSDT",
+        "fundingRate": -0.008583,
+        "nextFundingTime": "2026-01-12T16:00:00.000Z",
+        "markPrice": 2.05670248
+      },
+      "ADA": {
+        "symbol": "ADAUSDT",
+        "fundingRate": -0.004334,
+        "nextFundingTime": "2026-01-12T16:00:00.000Z",
+        "markPrice": 0.3879489
+      },
+      "SOL": {
+        "symbol": "SOLUSDT",
+        "fundingRate": 0.01,
+        "nextFundingTime": "2026-01-12T16:00:00.000Z",
+        "markPrice": 140.06134725
+      },
+      "DOGE": {
+        "symbol": "DOGEUSDT",
+        "fundingRate": -0.000315,
+        "nextFundingTime": "2026-01-12T16:00:00.000Z",
+        "markPrice": 0.13706
+      },
+      "BTC": {
+        "symbol": "BTCUSDT",
+        "fundingRate": 0.002982,
+        "nextFundingTime": "2026-01-12T16:00:00.000Z",
+        "markPrice": 90869
+      },
+      "AVAX": {
+        "symbol": "AVAXUSDT",
+        "fundingRate": 0.0038940000000000003,
+        "nextFundingTime": "2026-01-12T16:00:00.000Z",
+        "markPrice": 13.64441926
+      },
+      "ETH": {
+        "symbol": "ETHUSDT",
+        "fundingRate": 0.003438,
+        "nextFundingTime": "2026-01-12T16:00:00.000Z",
+        "markPrice": 3122.71808527
+      }
+    },
+    "okx": {
+      "BTC": {
+        "symbol": "BTC-USDT-SWAP",
+        "fundingRate": 0.01,
+        "nextFundingTime": "2026-01-13T00:00:00.000Z",
+        "markPrice": null
+      },
+      "ETH": {
+        "symbol": "ETH-USDT-SWAP",
+        "fundingRate": 0.00675533810002,
+        "nextFundingTime": "2026-01-13T00:00:00.000Z",
+        "markPrice": null
+      },
+      "XRP": {
+        "symbol": "XRP-USDT-SWAP",
+        "fundingRate": 0.00384248693056,
+        "nextFundingTime": "2026-01-13T00:00:00.000Z",
+        "markPrice": null
+      },
+      "SOL": {
+        "symbol": "SOL-USDT-SWAP",
+        "fundingRate": 0.01,
+        "nextFundingTime": "2026-01-13T00:00:00.000Z",
+        "markPrice": null
+      },
+      "DOGE": {
+        "symbol": "DOGE-USDT-SWAP",
+        "fundingRate": 0.01,
+        "nextFundingTime": "2026-01-13T00:00:00.000Z",
+        "markPrice": null
+      }
+    },
+    "bybit": {
+      "ADA": {
+        "symbol": "ADAUSDT",
+        "fundingRate": -0.019705,
+        "nextFundingTime": "2026-01-12T16:00:00.000Z",
+        "markPrice": 0.3879
+      },
+      "AVAX": {
+        "symbol": "AVAXUSDT",
+        "fundingRate": -0.032181,
+        "nextFundingTime": "2026-01-12T16:00:00.000Z",
+        "markPrice": 13.644
+      },
+      "BTC": {
+        "symbol": "BTCUSDT",
+        "fundingRate": 0.003871,
+        "nextFundingTime": "2026-01-12T16:00:00.000Z",
+        "markPrice": 90864.1
+      },
+      "DOGE": {
+        "symbol": "DOGEUSDT",
+        "fundingRate": -0.012132,
+        "nextFundingTime": "2026-01-12T16:00:00.000Z",
+        "markPrice": 0.13703
+      },
+      "DOT": {
+        "symbol": "DOTUSDT",
+        "fundingRate": -0.009995,
+        "nextFundingTime": "2026-01-12T16:00:00.000Z",
+        "markPrice": 2.0566
+      },
+      "ETH": {
+        "symbol": "ETHUSDT",
+        "fundingRate": -0.001047,
+        "nextFundingTime": "2026-01-12T16:00:00.000Z",
+        "markPrice": 3121.85
+      },
+      "LTC": {
+        "symbol": "LTCUSDT",
+        "fundingRate": -0.0007740000000000001,
+        "nextFundingTime": "2026-01-12T16:00:00.000Z",
+        "markPrice": 78.32
+      },
+      "SOL": {
+        "symbol": "SOLUSDT",
+        "fundingRate": 0.0009249999999999999,
+        "nextFundingTime": "2026-01-12T16:00:00.000Z",
+        "markPrice": 140.014
+      },
+      "XRP": {
+        "symbol": "XRPUSDT",
+        "fundingRate": -0.010242,
+        "nextFundingTime": "2026-01-12T16:00:00.000Z",
+        "markPrice": 2.0497
+      }
+    },
+    "gateio": {
+      "ETH": {
+        "symbol": "ETH_USDT",
+        "fundingRate": 0.01,
+        "nextFundingTime": "2026-01-12T16:00:00.000Z",
+        "markPrice": 3122.2
+      },
+      "DOT": {
+        "symbol": "DOT_USDT",
+        "fundingRate": -0.014100000000000001,
+        "nextFundingTime": "2026-01-12T16:00:00.000Z",
+        "markPrice": 2.057
+      },
+      "ADA": {
+        "symbol": "ADA_USDT",
+        "fundingRate": -0.0082,
+        "nextFundingTime": "2026-01-12T10:00:00.000Z",
+        "markPrice": 0.3879
+      },
+      "BTC": {
+        "symbol": "BTC_USDT",
+        "fundingRate": 0.01,
+        "nextFundingTime": "2026-01-12T16:00:00.000Z",
+        "markPrice": 90867.38
+      },
+      "AVAX": {
+        "symbol": "AVAX_USDT",
+        "fundingRate": -0.0012000000000000001,
+        "nextFundingTime": "2026-01-12T10:00:00.000Z",
+        "markPrice": 13.65
+      },
+      "XRP": {
+        "symbol": "XRP_USDT",
+        "fundingRate": 0.0049,
+        "nextFundingTime": "2026-01-12T16:00:00.000Z",
+        "markPrice": 2.0501
+      },
+      "DOGE": {
+        "symbol": "DOGE_USDT",
+        "fundingRate": -0.0088,
+        "nextFundingTime": "2026-01-12T16:00:00.000Z",
+        "markPrice": 0.13705
+      },
+      "LTC": {
+        "symbol": "LTC_USDT",
+        "fundingRate": -0.0025,
+        "nextFundingTime": "2026-01-12T16:00:00.000Z",
+        "markPrice": 78.34
+      },
+      "SOL": {
+        "symbol": "SOL_USDT",
+        "fundingRate": 0.01,
+        "nextFundingTime": "2026-01-12T16:00:00.000Z",
+        "markPrice": 140.08
+      }
+    },
+    "mexc": {
+      "BTC": {
+        "symbol": "BTC_USDT",
+        "fundingRate": 0.003,
+        "nextFundingTime": "2026-01-12T16:00:00.000Z",
+        "markPrice": null
+      },
+      "ETH": {
+        "symbol": "ETH_USDT",
+        "fundingRate": 0.0034,
+        "nextFundingTime": "2026-01-12T16:00:00.000Z",
+        "markPrice": null
+      },
+      "SOL": {
+        "symbol": "SOL_USDT",
+        "fundingRate": 0.01,
+        "nextFundingTime": "2026-01-12T16:00:00.000Z",
+        "markPrice": null
+      },
+      "XRP": {
+        "symbol": "XRP_USDT",
+        "fundingRate": -0.0052,
+        "nextFundingTime": "2026-01-12T16:00:00.000Z",
+        "markPrice": null
+      },
+      "DOGE": {
+        "symbol": "DOGE_USDT",
+        "fundingRate": -0.00019999999999999998,
+        "nextFundingTime": "2026-01-12T16:00:00.000Z",
+        "markPrice": null
+      },
+      "ADA": {
+        "symbol": "ADA_USDT",
+        "fundingRate": -0.0041,
+        "nextFundingTime": "2026-01-12T16:00:00.000Z",
+        "markPrice": null
+      },
+      "LTC": {
+        "symbol": "LTC_USDT",
+        "fundingRate": -0.00009999999999999999,
+        "nextFundingTime": "2026-01-12T16:00:00.000Z",
+        "markPrice": null
+      },
+      "AVAX": {
+        "symbol": "AVAX_USDT",
+        "fundingRate": 0.0043,
+        "nextFundingTime": "2026-01-12T16:00:00.000Z",
+        "markPrice": null
+      },
+      "DOT": {
+        "symbol": "DOT_USDT",
+        "fundingRate": -0.0085,
+        "nextFundingTime": "2026-01-12T16:00:00.000Z",
+        "markPrice": null
+      }
+    },
+    "kucoin": {
+      "ETH": {
+        "symbol": "ETHUSDTM",
+        "fundingRate": -0.0005,
+        "nextFundingTime": "1970-01-01T06:35:30.880Z",
+        "markPrice": 3123.28
+      },
+      "SOL": {
+        "symbol": "SOLUSDTM",
+        "fundingRate": -0.005399999999999999,
+        "nextFundingTime": "1970-01-01T06:35:30.880Z",
+        "markPrice": 140.035
+      },
+      "DOGE": {
+        "symbol": "DOGEUSDTM",
+        "fundingRate": 0.00019999999999999998,
+        "nextFundingTime": "1970-01-01T06:35:30.880Z",
+        "markPrice": 0.13709
+      },
+      "XRP": {
+        "symbol": "XRPUSDTM",
+        "fundingRate": -0.0072,
+        "nextFundingTime": "1970-01-01T06:35:30.880Z",
+        "markPrice": 2.05137
+      },
+      "ADA": {
+        "symbol": "ADAUSDTM",
+        "fundingRate": -0.0095,
+        "nextFundingTime": "1970-01-01T06:35:30.880Z",
+        "markPrice": 0.38809
+      },
+      "AVAX": {
+        "symbol": "AVAXUSDTM",
+        "fundingRate": -0.002,
+        "nextFundingTime": "1970-01-01T06:35:30.880Z",
+        "markPrice": 13.65
+      },
+      "DOT": {
+        "symbol": "DOTUSDTM",
+        "fundingRate": -0.0051,
+        "nextFundingTime": "1970-01-01T06:35:30.880Z",
+        "markPrice": 2.058
+      },
+      "LTC": {
+        "symbol": "LTCUSDTM",
+        "fundingRate": 0.0117,
+        "nextFundingTime": "1970-01-01T06:35:30.880Z",
+        "markPrice": 78.39
+      }
+    },
+    "bingx": {
+      "BTC": {
+        "symbol": "BTC-USDT",
+        "fundingRate": 0.01,
+        "nextFundingTime": "2026-01-12T16:00:00.000Z",
+        "markPrice": 90859.5
+      },
+      "ETH": {
+        "symbol": "ETH-USDT",
+        "fundingRate": 0.01,
+        "nextFundingTime": "2026-01-12T16:00:00.000Z",
+        "markPrice": 3120.82
+      },
+      "ADA": {
+        "symbol": "ADA-USDT",
+        "fundingRate": -0.00009999999999999999,
+        "nextFundingTime": "2026-01-12T16:00:00.000Z",
+        "markPrice": 0.38769
+      },
+      "XRP": {
+        "symbol": "XRP-USDT",
+        "fundingRate": 0.006999999999999999,
+        "nextFundingTime": "2026-01-12T16:00:00.000Z",
+        "markPrice": 2.0501
+      },
+      "LTC": {
+        "symbol": "LTC-USDT",
+        "fundingRate": 0.01,
+        "nextFundingTime": "2026-01-12T16:00:00.000Z",
+        "markPrice": 78.33
+      },
+      "DOT": {
+        "symbol": "DOT-USDT",
+        "fundingRate": -0.0126,
+        "nextFundingTime": "2026-01-12T16:00:00.000Z",
+        "markPrice": 2.057
+      },
+      "AVAX": {
+        "symbol": "AVAX-USDT",
+        "fundingRate": 0.0063,
+        "nextFundingTime": "2026-01-12T16:00:00.000Z",
+        "markPrice": 13.639
+      },
+      "SOL": {
+        "symbol": "SOL-USDT",
+        "fundingRate": 0.01,
+        "nextFundingTime": "2026-01-12T16:00:00.000Z",
+        "markPrice": 139.987
+      },
+      "DOGE": {
+        "symbol": "DOGE-USDT",
+        "fundingRate": 0.01,
+        "nextFundingTime": "2026-01-12T16:00:00.000Z",
+        "markPrice": 0.13703
+      }
+    },
+    "htx": {
+      "SOL": {
+        "symbol": "SOL-USDT",
+        "fundingRate": -0.0023927189009926,
+        "nextFundingTime": "1970-01-01T00:00:00.000Z",
+        "markPrice": null
+      },
+      "DOGE": {
+        "symbol": "DOGE-USDT",
+        "fundingRate": 0.01,
+        "nextFundingTime": "1970-01-01T00:00:00.000Z",
+        "markPrice": null
+      },
+      "XRP": {
+        "symbol": "XRP-USDT",
+        "fundingRate": -0.0034510529011607997,
+        "nextFundingTime": "1970-01-01T00:00:00.000Z",
+        "markPrice": null
+      },
+      "DOT": {
+        "symbol": "DOT-USDT",
+        "fundingRate": 0.01,
+        "nextFundingTime": "1970-01-01T00:00:00.000Z",
+        "markPrice": null
+      },
+      "ETH": {
+        "symbol": "ETH-USDT",
+        "fundingRate": 0.01,
+        "nextFundingTime": "1970-01-01T00:00:00.000Z",
+        "markPrice": null
+      },
+      "BTC": {
+        "symbol": "BTC-USDT",
+        "fundingRate": 0.01,
+        "nextFundingTime": "1970-01-01T00:00:00.000Z",
+        "markPrice": null
+      },
+      "ADA": {
+        "symbol": "ADA-USDT",
+        "fundingRate": -0.0193355631900237,
+        "nextFundingTime": "1970-01-01T00:00:00.000Z",
+        "markPrice": null
+      },
+      "LTC": {
+        "symbol": "LTC-USDT",
+        "fundingRate": 0.01,
+        "nextFundingTime": "1970-01-01T00:00:00.000Z",
+        "markPrice": null
+      },
+      "AVAX": {
+        "symbol": "AVAX-USDT",
+        "fundingRate": -0.0200615056476524,
+        "nextFundingTime": "1970-01-01T00:00:00.000Z",
+        "markPrice": null
+      }
+    },
+    "bitget": {
+      "BTC": {
+        "symbol": "BTCUSDT",
+        "fundingRate": 0.01,
+        "nextFundingTime": null,
+        "markPrice": 90869.8
+      },
+      "ETH": {
+        "symbol": "ETHUSDT",
+        "fundingRate": 0.01,
+        "nextFundingTime": null,
+        "markPrice": 3121.5
+      },
+      "XRP": {
+        "symbol": "XRPUSDT",
+        "fundingRate": 0.0069,
+        "nextFundingTime": null,
+        "markPrice": 2.0505
+      },
+      "LTC": {
+        "symbol": "LTCUSDT",
+        "fundingRate": 0.0022,
+        "nextFundingTime": null,
+        "markPrice": 78.32
+      },
+      "ADA": {
+        "symbol": "ADAUSDT",
+        "fundingRate": -0.0102,
+        "nextFundingTime": null,
+        "markPrice": 0.3878
+      },
+      "DOT": {
+        "symbol": "DOTUSDT",
+        "fundingRate": -0.0103,
+        "nextFundingTime": null,
+        "markPrice": 2.0563
+      },
+      "DOGE": {
+        "symbol": "DOGEUSDT",
+        "fundingRate": 0.01,
+        "nextFundingTime": null,
+        "markPrice": 0.13706
+      },
+      "SOL": {
+        "symbol": "SOLUSDT",
+        "fundingRate": 0.0093,
+        "nextFundingTime": null,
+        "markPrice": 139.985
+      },
+      "AVAX": {
+        "symbol": "AVAXUSDT",
+        "fundingRate": -0.038,
+        "nextFundingTime": null,
+        "markPrice": 13.644
+      }
+    },
+    "coincatch": {
+      "BTC": {
+        "symbol": "BTCUSDT_UMCBL",
+        "fundingRate": 0.0033000000000000004,
+        "nextFundingTime": null,
+        "markPrice": null
+      },
+      "ETH": {
+        "symbol": "ETHUSDT_UMCBL",
+        "fundingRate": 0.003,
+        "nextFundingTime": null,
+        "markPrice": null
+      },
+      "XRP": {
+        "symbol": "XRPUSDT_UMCBL",
+        "fundingRate": -0.0057,
+        "nextFundingTime": null,
+        "markPrice": null
+      },
+      "DOGE": {
+        "symbol": "DOGEUSDT_UMCBL",
+        "fundingRate": 0.0005,
+        "nextFundingTime": null,
+        "markPrice": null
+      },
+      "SOL": {
+        "symbol": "SOLUSDT_UMCBL",
+        "fundingRate": 0.01,
+        "nextFundingTime": null,
+        "markPrice": null
+      },
+      "DOT": {
+        "symbol": "DOTUSDT_UMCBL",
+        "fundingRate": -0.0095,
+        "nextFundingTime": null,
+        "markPrice": null
+      },
+      "LTC": {
+        "symbol": "LTCUSDT_UMCBL",
+        "fundingRate": 0.00019999999999999998,
+        "nextFundingTime": null,
+        "markPrice": null
+      },
+      "ADA": {
+        "symbol": "ADAUSDT_UMCBL",
+        "fundingRate": -0.0038000000000000004,
+        "nextFundingTime": null,
+        "markPrice": null
+      },
+      "AVAX": {
+        "symbol": "AVAXUSDT_UMCBL",
+        "fundingRate": 0.0044,
+        "nextFundingTime": null,
+        "markPrice": null
+      }
+    }
+  }
+}
